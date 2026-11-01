@@ -127,6 +127,81 @@ fn journal_query_row(
 }
 
 ///|
+// Same bounded request transfer for scalar rows and exact-fence packets. It
+// neither observes current nor selects authority; each caller fences its IO.
+fn physical_journal_request(
+  physical : Int,
+  mode : Int,
+  table_name : String,
+  key : String,
+) -> Int {
+  let namespace_bytes = @utf8.encode(table_name)
+  let key_bytes = @utf8.encode(key)
+  if namespace_bytes.length() > 4096 ||
+    key_bytes.length() > 4096 ||
+    physical_journal_begin(
+      physical,
+      mode,
+      namespace_bytes.length(),
+      key_bytes.length(),
+    ) !=
+    0 {
+    return -41
+  }
+  let mut ordinal = 0
+  for bytes in [namespace_bytes, key_bytes] {
+    let mut index = 0
+    while index < bytes.length() {
+      let length = (bytes.length() - index).min(16384)
+      if physical_journal_query_copy(
+          physical,
+          ordinal,
+          journal_bytes_offset(bytes) + index,
+          length,
+        ) !=
+        length {
+        return -41
+      }
+      ordinal += length
+      index += length
+    }
+  }
+  physical_journal_query(physical)
+}
+
+///|
+// None means this independent physical adapter has no batch primitive, before
+// row IO. False is actual byte/revision mismatch; errors never select fallback.
+fn physical_journal_fence_packet(
+  physical : Int,
+  current : () -> Result[Unit, Int],
+  packet : String,
+) -> Result[Bool?, Int] {
+  match current() {
+    Err(code) => return Err(code)
+    Ok(_) => ()
+  }
+  let code = physical_journal_request(
+    physical, 2, "publication_contract", packet,
+  )
+  if code < 0 || code > 2 {
+    return Err(-41)
+  }
+  if physical_journal_release(physical) != 0 {
+    return Err(-41)
+  }
+  match current() {
+    Err(code) => return Err(code)
+    Ok(_) => ()
+  }
+  if code == 2 {
+    Ok(None)
+  } else {
+    Ok(Some(code == 0))
+  }
+}
+
+///|
 /// Shared physical transfer for an original scoped namespace-reader loan.
 /// The owning caller supplies its existing typed current fence before/after
 /// every query. This transfer cannot issue scope, completeness or permission.
@@ -141,38 +216,7 @@ fn physical_journal_row(
     Ok(_) => ()
     Err(code) => return Err(code)
   }
-  let namespace_bytes = @utf8.encode(table_name)
-  let key_bytes = @utf8.encode(key)
-  if namespace_bytes.length() > 4096 ||
-    key_bytes.length() > 4096 ||
-    physical_journal_begin(
-      physical,
-      mode,
-      namespace_bytes.length(),
-      key_bytes.length(),
-    ) !=
-    0 {
-    return Err(-41)
-  }
-  let mut ordinal = 0
-  for bytes in [namespace_bytes, key_bytes] {
-    let mut index = 0
-    while index < bytes.length() {
-      let length = (bytes.length() - index).min(16384)
-      if physical_journal_query_copy(
-          physical,
-          ordinal,
-          journal_bytes_offset(bytes) + index,
-          length,
-        ) !=
-        length {
-        return Err(-41)
-      }
-      ordinal += length
-      index += length
-    }
-  }
-  let code = physical_journal_query(physical)
+  let code = physical_journal_request(physical, mode, table_name, key)
   if code == 1 {
     if physical_journal_release(physical) != 0 {
       return Err(-41)

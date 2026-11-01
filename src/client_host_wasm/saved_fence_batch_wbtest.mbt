@@ -1,0 +1,137 @@
+///|
+// Actual pure saved-reader coordinator with explicit physical ports. These
+// ports do not assert Host/current/Account/FD or normal runtime acceptance.
+fn saved_fence_batch_fixture() -> Array[(String, String, Int64, Bytes)] {
+  [
+    ("public_index", "scope", 0L, b"original-index"),
+    ("publication_contract", "first", 1L, b"{\"x\":1}"),
+    ("publication_contract", "second", 2L, b"original\r\n"),
+    ("publication_contract", "third", 3L, b""),
+  ]
+}
+
+///|
+test "saved fence packet bounds retain UTF8 bytes and original duplicate rows" {
+  let many = Array::makei(33, i => {
+    ("publication_contract", "key-" + i.to_string(), 0L, b"x")
+  })
+  let (packet, end) = saved_result_fence_packet(many, 0).unwrap()
+  assert_eq(end, 32)
+  assert_true(@utf8.encode(packet).length() <= 4096)
+  let text = @utf8.encode("😀".repeat(600))
+  let unicode = [
+    ("publication_contract", "one", 0L, text),
+    ("publication_contract", "two", 0L, text),
+  ]
+  assert_eq(saved_result_fence_packet(unicode, 0), None)
+  let duplicates = [
+    ("publication_contract", "same", 0L, b"original"),
+    ("publication_contract", "same", 0L, b"original"),
+  ]
+  assert_eq(saved_result_fence_packet(duplicates, 0), None)
+  let mut reads = 0
+  let mut packets = 0
+  let result = validate_saved_result_fences(
+    duplicates,
+    (_, key) => {
+      reads += 1
+      Ok(Some({ key, revision: 0L, body: b"original", }))
+    },
+    _ => {
+      packets += 1
+      Err(-99)
+    },
+  )
+  assert_eq(result, Ok(()))
+  assert_eq(reads, 2)
+  assert_eq(packets, 0)
+}
+
+///|
+test "saved fence batch keeps exact original fields and one physical packet" {
+  let fences = saved_fence_batch_fixture()
+  let expected = "[[\"first\",\"1\",\"{\\\"x\\\":1}\"],[\"second\",\"2\",\"original\\r\\n\"],[\"third\",\"3\",\"\"]]"
+  assert_eq(saved_result_fence_packet(fences, 1), Some((expected, 4)))
+  let mut scalar = 0
+  let mut packets = 0
+  let actual = validate_saved_result_fences(
+    fences,
+    (table, key) => {
+      scalar += 1
+      if table == "public_index" && key == "scope" {
+        Ok(Some({ key, revision: 0L, body: b"original-index", }))
+      } else {
+        Err(-97)
+      }
+    },
+    wire => {
+      packets += 1
+      if wire == expected {
+        Ok(Some(true))
+      } else {
+        Err(-98)
+      }
+    },
+  )
+  assert_eq(actual, Ok(()))
+  assert_eq(scalar, 1)
+  assert_eq(packets, 1)
+}
+
+///|
+test "saved fence batch refuses mismatch and original error without scalar fallback" {
+  let fences = saved_fence_batch_fixture()[1:].to_owned()
+  for result in [Ok(Some(false)), Err(-74)] {
+    let mut scalar = 0
+    let actual = validate_saved_result_fences(
+      fences,
+      (_, _) => {
+        scalar += 1
+        Err(-97)
+      },
+      _ => result,
+    )
+    assert_eq(
+      actual,
+      match result {
+        Err(code) => Err(code)
+        _ => Err(-32)
+      },
+    )
+    assert_eq(scalar, 0)
+  }
+}
+
+///|
+test "saved fence batch keeps scalar adapter and unbatchable byte semantics" {
+  let fences = saved_fence_batch_fixture()
+  let mut scalar = 0
+  let mut packets = 0
+  let actual = validate_saved_result_fences(
+    fences,
+    (table, key) => {
+      scalar += 1
+      let mut selected : @host.ClientJournalPhysicalRow? = None
+      for (wanted_table, wanted_key, revision, body) in fences {
+        if wanted_table == table && wanted_key == key {
+          selected = Some({ key, revision, body, })
+        }
+      }
+      Ok(selected)
+    },
+    _ => {
+      packets += 1
+      Ok(None)
+    },
+  )
+  assert_eq(actual, Ok(()))
+  assert_eq(scalar, 4)
+  assert_eq(packets, 1)
+  let binary = [("publication_contract", "binary", 0L, b"\xff")]
+  assert_eq(saved_result_fence_packet(binary, 0), None)
+  let large = [
+    ("publication_contract", "large", 0L, @utf8.encode("a".repeat(4096))),
+  ]
+  assert_eq(saved_result_fence_packet(large, 0), None)
+  assert_eq(saved_result_fence_packet(fences, 0), None)
+}

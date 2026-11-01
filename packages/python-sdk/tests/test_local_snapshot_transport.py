@@ -1,5 +1,6 @@
 """Actual SQLite frame counters with explicit Core ports, not installed authority."""
 from pathlib import Path
+import json
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 import unittest
@@ -14,6 +15,224 @@ import test_local_submission_lookup as lookup_fixture
 
 
 class SnapshotTransportTests(unittest.TestCase):
+    def test_original_fence_packet_malformed_fields_never_query_or_fallback(self):
+        for packet in (b'{}', b'[]', b'[["one",true,"x"]]',
+                       b'[["one","00","x"]]', b'[["one","9223372036854775808","x"]]',
+                       b'[["one","0","x"],["one","0","x"]]'):
+            with self.subTest(packet=packet), TemporaryDirectory(prefix='actql-fence-packet-shape-') as directory:
+                store = LocalByteStore(Path(directory) / 'original.sqlite', max_records=8,
+                    max_record_bytes=4096, max_payload_bytes=16384)
+                self.addCleanup(store.close)
+                store.compare_exchange('epoch', None, b'original-epoch')
+                callbacks = _JournalCallbacks(lambda: None, store)
+                namespace = b'publication_contract'
+                errors = []
+                def inspect(reader):
+                    callbacks.reader = reader
+                    self.assertEqual(callbacks.begin(2, len(namespace), len(packet)), 0)
+                    self.assertEqual(callbacks.query_copy(0, namespace + packet), len(namespace + packet))
+                    trace = []
+                    store._connection.set_trace_callback(trace.append)
+                    try:
+                        self.assertEqual(callbacks.query(), -41)
+                    finally:
+                        store._connection.set_trace_callback(None)
+                    self.assertEqual(trace, [])
+                    errors.append(callbacks.failure)
+                    self.assertIsInstance(callbacks.failure, ValueError)
+                    self.assertEqual(callbacks.query(), -41)
+                    self.assertIs(callbacks.failure, errors[0])
+                    raise callbacks.failure
+                with self.assertRaises(ValueError) as error:
+                    store.inspect_namespaces((ByteFence('epoch', 0, b'original-epoch'),),
+                        inspect=inspect, current=lambda: None)
+                self.assertIs(error.exception, errors[0])
+                self.assertFalse(store._physical.in_transaction)
+
+    def test_original_fence_packet_counts_copied_bytes_across_queries(self):
+        from actql_sdk._local_storage import LocalStorageError
+        with TemporaryDirectory(prefix='actql-fence-byte-budget-') as directory:
+            store = LocalByteStore(Path(directory) / 'original.sqlite', max_records=8,
+                max_record_bytes=4096, max_payload_bytes=4096)
+            self.addCleanup(store.close)
+            store.compare_exchange('epoch', None, b'original-epoch')
+            expected = [['one', '0', 'a' * 1500], ['two', '0', 'b' * 1500]]
+            for name, _, text in expected:
+                store.compare_exchange(store.namespaced_key('publication_contract', name), None, text.encode())
+            callbacks = _JournalCallbacks(lambda: None, store)
+            namespace = b'publication_contract';packet = json.dumps(expected).encode()
+            def inspect(reader):
+                callbacks.reader = reader
+                for attempt in (1, 2):
+                    self.assertEqual(callbacks.begin(2, len(namespace), len(packet)), 0)
+                    self.assertEqual(callbacks.query_copy(0, namespace + packet), len(namespace + packet))
+                    with patch.object(type(store._physical), '_match_rows', autospec=True,
+                                      side_effect=type(store._physical)._match_rows) as match:
+                        self.assertEqual(callbacks.query(), 0 if attempt == 1 else -41)
+                        self.assertEqual(match.call_count, 1 if attempt == 1 else 0)
+                    if attempt == 1:
+                        self.assertEqual(callbacks.release(), 0)
+                self.assertIsInstance(callbacks.failure, LocalStorageError)
+            with self.assertRaises(LocalStorageError):
+                store.inspect_namespaces((ByteFence('epoch', 0, b'original-epoch'),),
+                    inspect=inspect, current=lambda: None)
+            self.assertFalse(store._physical.in_transaction)
+
+    def test_original_fence_packet_rejects_copied_or_retired_reader_before_io(self):
+        with TemporaryDirectory(prefix='actql-fence-original-reader-') as directory:
+            store = LocalByteStore(Path(directory) / 'original.sqlite', max_records=8,
+                max_record_bytes=4096, max_payload_bytes=16384)
+            self.addCleanup(store.close)
+            store.compare_exchange('epoch', None, b'original-epoch')
+            held = []
+            def inspect(reader):
+                held.append(reader)
+                with patch.object(type(store._physical), '_match_rows', autospec=True,
+                                  side_effect=type(store._physical)._match_rows) as match:
+                    with self.assertRaises(ValueError):
+                        reader.match_rows_current(replace(reader), 'publication_contract',
+                                                  (('one', 0, b'a'),), lambda: None)
+                    self.assertEqual(match.call_count, 0)
+            with self.assertRaises(ValueError):
+                store.inspect_namespaces((ByteFence('epoch', 0, b'original-epoch'),),
+                    inspect=inspect, current=lambda: None)
+            self.assertFalse(store._physical.in_transaction)
+            with self.assertRaises(ValueError):
+                held[0].match_rows_current(held[0], 'publication_contract',
+                                           (('one', 0, b'a'),), lambda: None)
+
+    def test_original_fence_packet_matches_actual_rows_with_two_currents_and_no_row_copy(self):
+        with TemporaryDirectory(prefix='actql-original-fence-packet-') as directory:
+            store = LocalByteStore(Path(directory) / 'original.sqlite', max_records=8,
+                max_record_bytes=4096, max_payload_bytes=16384)
+            self.addCleanup(store.close)
+            store.compare_exchange('epoch', None, b'original-epoch')
+            namespace = b'publication_contract'
+            expected = [['first', '0', '{"n":1}'], ['second', '0', 'original\r\nbytes']]
+            for name, _, body in expected:
+                store.compare_exchange(store.namespaced_key(namespace.decode(), name), None,
+                                       body.encode())
+            currents = []
+            def current(): currents.append(None)
+            callbacks = _JournalCallbacks(current, store)
+            def inspect(reader):
+                callbacks.reader = reader
+                for change in (False, True):
+                    packet = json.dumps(expected).encode() if not change else json.dumps(
+                        [['first', '1', '{"n":1}'], expected[1]]).encode()
+                    self.assertEqual(callbacks.begin(2, len(namespace), len(packet)), 0)
+                    self.assertEqual(callbacks.query_copy(0, namespace + packet),
+                                     len(namespace) + len(packet))
+                    before = len(currents)
+                    with patch.object(type(store._physical), '_match_rows', autospec=True,
+                                      side_effect=type(store._physical)._match_rows) as match:
+                        self.assertEqual(callbacks.query(), int(change))
+                        self.assertEqual(match.call_count, 1)
+                    self.assertEqual(len(currents) - before, 2)
+                    self.assertIsNone(callbacks.row)
+                    self.assertIsNone(callbacks.request)
+                    self.assertEqual(callbacks.release(), 0)
+            store.inspect_namespaces((ByteFence('epoch', 0, b'original-epoch'),),
+                inspect=inspect, current=current)
+            self.assertFalse(store._physical.in_transaction)
+
+    def test_original_fence_packet_charges_each_row_and_poisoning_survives_swallow(self):
+        from actql_sdk._local_storage import LocalStorageError
+        with TemporaryDirectory(prefix='actql-original-fence-capacity-') as directory:
+            store = LocalByteStore(Path(directory) / 'original.sqlite', max_records=8,
+                max_record_bytes=4096, max_payload_bytes=16384, max_inspection_queries=1)
+            self.addCleanup(store.close)
+            store.compare_exchange('epoch', None, b'original-epoch')
+            namespace = b'publication_contract'
+            packet = b'[["first","0","a"],["second","0","b"]]'
+            callbacks = _JournalCallbacks(lambda: None, store)
+            failures = []
+            def inspect(reader):
+                callbacks.reader = reader
+                self.assertEqual(callbacks.begin(2, len(namespace), len(packet)), 0)
+                self.assertEqual(callbacks.query_copy(0, namespace + packet), len(namespace + packet))
+                with patch.object(type(store._physical), '_match_rows', autospec=True,
+                                      side_effect=type(store._physical)._match_rows) as match:
+                    self.assertEqual(callbacks.query(), -41)
+                    self.assertEqual(match.call_count, 0)
+                failures.append(callbacks.failure)
+                self.assertIsInstance(callbacks.failure, LocalStorageError)
+                self.assertEqual(callbacks.schema(), -41)
+                self.assertIs(callbacks.failure, failures[0])
+            with self.assertRaises(LocalStorageError) as original:
+                store.inspect_namespaces((ByteFence('epoch', 0, b'original-epoch'),),
+                    inspect=inspect, current=lambda: None)
+            self.assertIs(original.exception, failures[0])
+            self.assertFalse(store._physical.in_transaction)
+
+    def test_original_fence_packet_keeps_current_changes_at_entry_and_return(self):
+        from actql_sdk._local_storage import LocalStorageError
+        for stop in (1, 2):
+            with self.subTest(stop=stop), TemporaryDirectory(prefix='actql-original-fence-current-') as directory:
+                store = LocalByteStore(Path(directory) / 'original.sqlite', max_records=8,
+                    max_record_bytes=4096, max_payload_bytes=16384)
+                self.addCleanup(store.close)
+                store.compare_exchange('epoch', None, b'original-epoch')
+                store.compare_exchange(store.namespaced_key('publication_contract', 'first'), None, b'a')
+                calls, armed = [], []
+                def current():
+                    if armed:
+                        calls.append(None)
+                        if len(calls) == stop:
+                            store._connection.execute('UPDATE core_bytes SET generation=1 WHERE key=?', ('epoch',))
+                callbacks = _JournalCallbacks(current, store)
+                namespace = b'publication_contract';packet = b'[["first","0","a"]]'
+                def inspect(reader):
+                    callbacks.reader = reader
+                    self.assertEqual(callbacks.begin(2, len(namespace), len(packet)), 0)
+                    self.assertEqual(callbacks.query_copy(0, namespace + packet), len(namespace + packet))
+                    armed.append(None)
+                    self.assertEqual(callbacks.query(), -41)
+                    armed.clear()
+                    self.assertIsInstance(callbacks.failure, LocalStorageError)
+                with self.assertRaises(LocalStorageError):
+                    store.inspect_namespaces((ByteFence('epoch', 0, b'original-epoch'),),
+                        inspect=inspect, current=current)
+                self.assertEqual(len(calls), stop)
+                self.assertIsNone(callbacks.row)
+                self.assertEqual(store.read('epoch').generation, 0)
+
+    def test_original_fence_packet_unsupported_adapter_selects_old_scalar_before_row_io(self):
+        with TemporaryDirectory(prefix='actql-original-fence-scalar-') as directory:
+            store = LocalByteStore(Path(directory) / 'original.sqlite', max_records=8,
+                max_record_bytes=4096, max_payload_bytes=16384)
+            self.addCleanup(store.close)
+            store.compare_exchange('epoch', None, b'original-epoch')
+            store.compare_exchange(store.namespaced_key('publication_contract', 'first'), None, b'a')
+            database = store._physical
+            class ScalarPhysical:
+                # Explicit physical-adapter port, not an actual Native backend.
+                def __getattr__(self, name): return getattr(database, name)
+            store._physical = ScalarPhysical()
+            callbacks = _JournalCallbacks(lambda: None, store)
+            namespace = b'publication_contract';packet = b'[["first","0","a"]]'
+            def inspect(reader):
+                callbacks.reader = reader
+                self.assertIsNone(reader.match_rows_current)
+                self.assertEqual(callbacks.begin(2, len(namespace), len(packet)), 0)
+                self.assertEqual(callbacks.query_copy(0, namespace + packet), len(namespace + packet))
+                with patch.object(type(database), 'scan_range', autospec=True,
+                                  side_effect=type(database).scan_range) as query:
+                    self.assertEqual(callbacks.query(), 2)
+                    self.assertEqual(query.call_count, 0)
+                self.assertIsNone(callbacks.failure)
+                self.assertEqual(callbacks.release(), 0)
+                self.assertEqual(callbacks.begin(1, len(namespace), 5), 0)
+                self.assertEqual(callbacks.query_copy(0, namespace + b'first'), len(namespace) + 5)
+                self.assertEqual(callbacks.query(), 0)
+                self.assertEqual(callbacks.row[1].payload, b'a')
+                self.assertEqual(callbacks.release(), 0)
+            try:
+                store.inspect_namespaces((ByteFence('epoch', 0, b'original-epoch'),),
+                    inspect=inspect, current=lambda: None)
+            finally:
+                store._physical = database
+
     def test_original_journal_row_transfer_has_only_query_entry_and_return_currents(self):
         with TemporaryDirectory(prefix='actql-direct-journal-row-') as directory:
             store = LocalByteStore(Path(directory) / 'original.sqlite', max_records=8,
