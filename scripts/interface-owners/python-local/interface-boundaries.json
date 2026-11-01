@@ -73480,7 +73480,7 @@
     },
     {
       "module": "src/client_host_wasm/journal_observation.mbt",
-      "sha256": "d85178d8f6e1a8904ff808e5dbdfba2728d2b22ec3e8aa3d09e349e7b9b77756",
+      "sha256": "7ab4b95578d0dc5e2ca7a26424be3719d209d8ce1dc65c8b96202d6e728c1362",
       "exports": [],
       "operations": [
         {

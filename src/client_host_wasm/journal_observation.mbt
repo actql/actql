@@ -181,7 +181,9 @@ fn physical_journal_fence_packet(
     Err(code) => return Err(code)
     Ok(_) => ()
   }
-  let code = physical_journal_request(physical, 2, "publication_contract", packet)
+  let code = physical_journal_request(
+    physical, 2, "publication_contract", packet,
+  )
   if code < 0 || code > 2 {
     return Err(-41)
   }
@@ -192,7 +194,11 @@ fn physical_journal_fence_packet(
     Err(code) => return Err(code)
     Ok(_) => ()
   }
-  if code == 2 { Ok(None) } else { Ok(Some(code == 0)) }
+  if code == 2 {
+    Ok(None)
+  } else {
+    Ok(Some(code == 0))
+  }
 }
 
 ///|
