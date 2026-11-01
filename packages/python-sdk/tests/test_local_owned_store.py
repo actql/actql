@@ -10,7 +10,7 @@ from unittest.mock import patch
 
 from actql_sdk._local_files import LocalFileRoot, LocalFileError
 from actql_sdk._local_journal_port import _JournalCallbacks
-from actql_sdk._local_storage import ByteWrite, LocalByteStore, LocalStorageError
+from actql_sdk._local_storage import ByteFence, ByteWrite, LocalByteStore, LocalStorageError
 from actql_sdk._local_submission import LocalSubmissionAuthority, LocalSubmissionIdentityError
 
 
@@ -117,6 +117,7 @@ class LocalOwnedStoreInitializationTests(unittest.TestCase):
     def test_original_catalog_scalar_port_borrows_only_current_reader(self):
         path, root, original = self.fixture()
         store = self.open(path / original.name, root, original)
+        store.compare_exchange('catalog-fence', None, b'original')
         calls = []
         def current(): calls.append(None)
         callbacks = _JournalCallbacks(current, store)
@@ -125,7 +126,7 @@ class LocalOwnedStoreInitializationTests(unittest.TestCase):
             before = len(calls)
             self.assertEqual(callbacks.schema(), 1)
             self.assertEqual(len(calls) - before, 2)
-        store.inspect_namespaces((), inspect=inspect, current=current)
+        store.inspect_namespaces((ByteFence('catalog-fence', 0, b'original'),), inspect=inspect, current=current)
         before = len(calls)
         self.assertEqual(callbacks.schema(), -41)
         self.assertIsInstance(callbacks.failure, ValueError)
@@ -168,6 +169,7 @@ class LocalOwnedStoreInitializationTests(unittest.TestCase):
             with self.subTest(stop=stop):
                 path, root, original = self.fixture()
                 store = self.open(path / original.name, root, original)
+                store.compare_exchange('catalog-fence', None, b'original')
                 failure = PermissionError('original required current changed')
                 required_calls = []
                 def required():
@@ -180,7 +182,7 @@ class LocalOwnedStoreInitializationTests(unittest.TestCase):
                     self.assertIs(callbacks.failure, failure)
                     self.assertEqual(callbacks.schema(), -41)
                 with self.assertRaises(PermissionError) as caught:
-                    store.inspect_namespaces((), inspect=inspect, current=lambda: None)
+                    store.inspect_namespaces((ByteFence('catalog-fence', 0, b'original'),), inspect=inspect, current=lambda: None)
                 self.assertIs(caught.exception, failure)
                 self.assertEqual(len(required_calls), stop)
 
