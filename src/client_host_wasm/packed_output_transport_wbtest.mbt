@@ -12,7 +12,12 @@ test "packed output transport retains original buffer guards and exact scalar by
   let pool = @buffers.open_pool_on_ledger(root, 4096L, 16, 1048576).unwrap()
   assert_eq(
     install_buffer_instance(
-      2901L, root, capacity, None, pool, 16,
+      2901L,
+      root,
+      capacity,
+      None,
+      pool,
+      16,
       prepare_product_sequence_contracts().unwrap(),
     ),
     0,
