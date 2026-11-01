@@ -58975,7 +58975,11 @@
             ]
           }
         }
-      ]
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing checked Program, typed sequence and original Request/Plan preparation owners",
+      "referenceQualification": "Same Request pre-factory original Model input and component construction; JS debug component and source correspondence only, not new ABI or ordinary physical acceptance"
     }
   ]
 }
