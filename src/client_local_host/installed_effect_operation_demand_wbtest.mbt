@@ -1263,3 +1263,59 @@ test "Effect Result bound inventory refuses foreign graph and spends the existin
     is None,
   )
 }
+
+///|
+test "preserving Effect request construction does not charge the distinct normalizing decoder" {
+  let empty = @execution.execution_capacity(0L, 0L).unwrap()
+  let request = installed_json_effect_request_construction_capacity(
+    empty, 100000, 10000, 16,
+  ).unwrap()
+  let normalized = installed_json_effect_response_construction_capacity(
+    empty, 100000, 10000, 16,
+  ).unwrap()
+  // Original request String/Bytes add real backing, but do not introduce
+  // the other decoder's NFC constructor. The native provider remains separate.
+  assert_true(
+    @execution.execution_capacity_retained_bytes(request) <
+    @execution.execution_capacity_retained_bytes(normalized),
+  )
+  assert_true(
+    @execution.execution_capacity_execution_bytes(request) <
+    @execution.execution_capacity_execution_bytes(normalized),
+  )
+  assert_eq(@execution.execution_capacity_retained_bytes(empty), 0L)
+  assert_true(
+    installed_json_effect_request_construction_capacity(empty, 0, 10000, 16)
+    is None,
+  )
+}
+
+///|
+test "preserving Effect request keeps the exact original native capacity and invalid-limit refusal" {
+  let empty = @execution.execution_capacity(0L, 0L).unwrap()
+  let native = @execution.execution_capacity(3L, 5L).unwrap()
+  let base = installed_json_effect_request_construction_capacity(
+    empty, 256, 16, 4,
+  ).unwrap()
+  let composed = installed_json_effect_request_construction_capacity(
+    native, 256, 16, 4,
+  ).unwrap()
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(composed),
+    @execution.execution_capacity_retained_bytes(base) + 3L,
+  )
+  assert_eq(
+    @execution.execution_capacity_execution_bytes(composed),
+    @execution.execution_capacity_execution_bytes(base) + 5L,
+  )
+  assert_eq(@execution.execution_capacity_retained_bytes(native), 3L)
+  assert_eq(@execution.execution_capacity_execution_bytes(native), 5L)
+  for (bytes, nodes, depth) in [(0, 16, 4), (256, 0, 4), (256, 16, 0)] {
+    assert_true(
+      installed_json_effect_request_construction_capacity(
+        native, bytes, nodes, depth,
+      )
+      is None,
+    )
+  }
+}

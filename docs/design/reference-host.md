@@ -1940,6 +1940,14 @@ constructor that this path never calls. Binding and recovery configuration
 identity retain their distinct normalization obligations. This changes no
 payload spelling, request identity, refusal guard or installed resource ceiling.
 
+The shared Effect request constructor uses the existing preserving byte-JSON
+parser/index inventory, matching data-key Preview admission and the Native
+payload codecs. It does not add the distinct normalizing reader's NFC work.
+Input String/Bytes, indexed nodes, native provider quantities, failed prefixes
+and their original output lifetimes remain co-held. Response decoding keeps
+its own declared recipe; no response, grant, transport or recovery allowance
+is removed by selecting the request's actual decoder.
+
 Captured Effect operation multiplicity selects the SAME checked member Result
 endpoints inside the existing work-bounded schema walk. It does not replace
 Source/Compute input demand with an output count or re-lower another Program.
