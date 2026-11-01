@@ -6257,10 +6257,15 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       // predicate, not by a terminal result projection or handler completion.
       const contentRetirement = run.preparationKind === 'serialization-plan' || run.preparationKind === 'keyed-content-plan';
       const mockSourceRetirement = run.mockSourceReads !== undefined;
+      const effectRetirement = run.preparationKind === 'effect-plan';
+      const effectValue = run.value, effectRequest = run.request, effectOriginal = run.original,
+        effectPlan = run.operationPlan;
       if (contentRetirement && run.retiringContent) throw clientOperationError('InstalledContentRunCleanupPending');
       if (mockSourceRetirement && run.retiringMockSources) throw clientOperationError('InstalledMockSourceCleanupPending');
+      if (effectRetirement && run.retiringEffect) throw clientOperationError('InstalledEffectRunCleanupPending');
       if (contentRetirement) run.retiringContent = true;
       if (mockSourceRetirement) run.retiringMockSources = true;
+      if (effectRetirement) run.retiringEffect = true;
       try {
         if (run.selecting) throw clientOperationError('InstalledEffectPlanSelectionPending');
         if (['serialization-plan', 'keyed-content-plan'].includes(run.preparationKind) && run.value === undefined) {
@@ -6290,6 +6295,12 @@ export async function connectEmbeddedLocal(options, initialEntry) {
           return;
         }
         finishInstalledEffectModelScope(run, true, checked);
+        if (effectRetirement && (record.computeRuns.get(prepared) !== run || !record.computeLiveRuns.has(run) ||
+            run.prepared !== prepared || run.runtime !== moon || run.closed ||
+            run.preparationKind !== 'effect-plan' || run.value !== effectValue || run.request !== effectRequest ||
+            run.original !== effectOriginal || run.operationPlan !== effectPlan)) {
+          throw clientOperationError('ForeignInstalledEffectManagedRun');
+        }
         if (run.preparationFunded) {
           if (run.preparationKind === 'serialization-plan' && !run.serializationCleaned) {
             if (Reflect.apply(run.cleanupSerialization, run.content, [run.value, run.serialization]) !== true) {
@@ -6304,6 +6315,15 @@ export async function connectEmbeddedLocal(options, initialEntry) {
           try {checked(Reflect.apply(run.retire,run.runtime,[run.value]));}
           catch (cause) {
             if (run.runtime.clientProgramInstalledPreparationPayloadSevered(run.value,run.request)!==true) throw cause;
+          }
+          // Both the original retire and its one existing fallback observation
+          // can call current. Neither may replace the same Effect record before
+          // its aliases are cut and its original Request borrower is consumed.
+          if (effectRetirement && (record.computeRuns.get(prepared) !== run || !record.computeLiveRuns.has(run) ||
+              run.prepared !== prepared || run.runtime !== moon || run.closed ||
+              run.preparationKind !== 'effect-plan' || run.value !== effectValue || run.request !== effectRequest ||
+              run.original !== effectOriginal || run.operationPlan !== effectPlan)) {
+            throw clientOperationError('ForeignInstalledEffectManagedRun');
           }
           if (mockSourceRetirement) {
             // Native retirement and physical close are separate duties. Cut
@@ -6372,6 +6392,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       } finally {
         if (contentRetirement) run.retiringContent = false;
         if (mockSourceRetirement) run.retiringMockSources = false;
+        if (effectRetirement) run.retiringEffect = false;
       }
     },
     isOriginalManagedComputePreparationRefusal(error, prepared, request) {
