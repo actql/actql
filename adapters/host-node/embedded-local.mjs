@@ -2179,7 +2179,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     return finish;
   }, typeof moon.clientProgramPreparationBorrowSibling !== 'function' ? undefined : {
     runtime: moon, borrow: (prepared, request) => preparation?.borrowManagedPreparation?.(prepared, request),
-  });
+  }, releaseRequestDomainAliases);
   preparation?.retainUndispatchedRetirement(localPreparationCustody.retireQuiescentUndispatched,
     localPreparationCustody.retireRetiringOriginal, releaseRequestDomainAliases);
   clientProgramPreparationReferences = Object.freeze({owner: prepareSubmit,
