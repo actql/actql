@@ -3,9 +3,24 @@
 /// complete row objects under its declared schema and owns physical charges.
 struct RowSourceJsonPage {
   rows_wire : String
+  original : RowSourceProjectedJsonPage
+}
+
+///|
+/// The same parsed external rows, before schema admission. No mutable source
+/// tree or response bytes escape this opaque page. Its RowRun still validates
+/// the whole selected array under the original input schema and page limits.
+struct RowSourceProjectedJsonPage {
+  origin : Ref[Unit]
+  rows : @source.Node
+  rows_bytes : Int
   row_count : Int
   next_cursor : String?
 }
+
+///|
+/// Namespace identity is DATA provenance, not an admission or Resource owner.
+let projected_json_page_origin : Ref[Unit] = Ref(())
 
 ///|
 pub(all) enum RowSourceJsonPageIssue {
@@ -59,6 +74,35 @@ pub fn project_row_source_json_page(
   max_rows : Int,
   max_cursor_bytes : Int,
 ) -> Result[RowSourceJsonPage, RowSourceJsonPageIssue] {
+  let original = match
+    project_row_source_typed_json_page(
+      bytes, items_path, cursor_present, cursor_path, max_bytes, max_nodes,
+      max_depth, max_rows, max_cursor_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let span = original.rows.span
+  let rows_wire = @utf8.decode(bytes[span.start_byte:span.end_byte]) catch {
+    _ => return Err(InvalidPage)
+  }
+  Ok({ rows_wire, original, })
+}
+
+///|
+/// Parse once without encoding the selected array. The provider envelope and
+/// cursor use the same parser and bounds as the wire projection above.
+pub fn project_row_source_typed_json_page(
+  bytes : Bytes,
+  items_path : Array[String],
+  cursor_present : Bool,
+  cursor_path : Array[String],
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_rows : Int,
+  max_cursor_bytes : Int,
+) -> Result[RowSourceProjectedJsonPage, RowSourceJsonPageIssue] {
   if max_bytes < 1 ||
     max_nodes < 1 ||
     max_depth < 1 ||
@@ -116,10 +160,13 @@ pub fn project_row_source_json_page(
     span.end_byte > bytes.length() {
     return Err(InvalidPage)
   }
-  let rows_wire = @utf8.decode(bytes[span.start_byte:span.end_byte]) catch {
-    _ => return Err(InvalidPage)
-  }
-  Ok({ rows_wire, row_count: rows.length(), next_cursor: cursor, })
+  Ok({
+    origin: projected_json_page_origin,
+    rows: selected,
+    rows_bytes: span.end_byte - span.start_byte,
+    row_count: rows.length(),
+    next_cursor: cursor,
+  })
 }
 
 ///|
@@ -129,20 +176,109 @@ pub fn row_source_json_page_rows_wire(value : RowSourceJsonPage) -> String {
 
 ///|
 pub fn row_source_json_page_row_count(value : RowSourceJsonPage) -> Int {
-  value.row_count
+  value.original.row_count
 }
 
 ///|
 pub fn row_source_json_page_has_next_cursor(value : RowSourceJsonPage) -> Bool {
-  value.next_cursor is Some(_)
+  value.original.next_cursor is Some(_)
 }
 
 ///|
 pub fn row_source_json_page_next_cursor(
   value : RowSourceJsonPage,
 ) -> Result[String, RowSourceJsonPageIssue] {
+  match value.original.next_cursor {
+    Some(text) => Ok(text)
+    None => Err(NoNextCursor)
+  }
+}
+
+///|
+pub fn row_source_json_page_original(
+  value : RowSourceJsonPage,
+) -> RowSourceProjectedJsonPage {
+  value.original
+}
+
+///|
+pub fn row_source_typed_json_page_row_count(
+  value : RowSourceProjectedJsonPage,
+) -> Int {
+  value.row_count
+}
+
+///|
+pub fn row_source_typed_json_page_has_next_cursor(
+  value : RowSourceProjectedJsonPage,
+) -> Bool {
+  value.next_cursor is Some(_)
+}
+
+///|
+pub fn row_source_typed_json_page_next_cursor(
+  value : RowSourceProjectedJsonPage,
+) -> Result[String, RowSourceJsonPageIssue] {
   match value.next_cursor {
     Some(text) => Ok(text)
     None => Err(NoNextCursor)
+  }
+}
+
+///|
+/// This is still full row/schema admission. Only the already completed byte
+/// parse is reused; no row, field, value, count or retention check is skipped.
+fn accept_row_source_projected_page(
+  read : RowSourceRead,
+  page : RowSourceProjectedJsonPage,
+) -> Result[Int, RowSourceIssue] {
+  if !read.open {
+    return Err(Closed)
+  }
+  if !physical_equal(page.origin, projected_json_page_origin) {
+    return fail_read(read, InvalidPage)
+  }
+  if read.listing is Some(_) {
+    return fail_read(read, ListingProtocol)
+  }
+  if read.keyed is Some(_) {
+    return fail_read(read, KeyedIncomplete)
+  }
+  let limits = read.page_limits
+  guard page.rows_bytes <= limits.max_bytes &&
+    @decode.admit(page.rows, {
+      max_nodes: limits.max_nodes,
+      max_depth: limits.max_depth,
+      max_string_bytes: limits.max_bytes,
+      max_total_string_bytes: limits.max_bytes,
+    })
+    is Ok(root) && @decode.elements(root) is Ok(items) else {
+    return fail_read(read, InvalidPage)
+  }
+  accept_row_source_items(read, items)
+}
+
+///|
+/// Reuse the exact parsed page with this attempt's existing response charge.
+/// The opaque page supplies DATA only; it cannot issue another charge, permit
+/// a foreign ticket or acknowledge physical cleanup.
+pub fn accept_charged_row_run_projected_page(
+  run : RowRun,
+  charge : RowPageCharge,
+  page : RowSourceProjectedJsonPage,
+) -> Result[Int, RowHostIssue] {
+  guard !run.closed && run.attempt.state is Reading(read) else {
+    return Err(InvalidState)
+  }
+  match consume_row_page_charge(run, charge) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  match accept_row_source_projected_page(read, page) {
+    Ok(count) => Ok(count)
+    Err(issue) => {
+      abort_row_run(run)
+      Err(Source(issue))
+    }
   }
 }

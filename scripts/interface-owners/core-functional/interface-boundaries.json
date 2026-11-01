@@ -56604,12 +56604,20 @@
     },
     {
       "module": "src/client_row_source_host/json_page_projection.mbt",
-      "sha256": "e4d051cef6481668feb745176eac0c2263f053804f3bd2953f982618c6d838a0",
+      "sha256": "fec9f8d26faa8341c4e3d57c0aafe75467efee926b4e6e8cc715bf9ec718d713",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Common row Source envelope and schema admission owners; DATA only, no new physical/current or resource issuer",
       "exports": [],
       "operations": [
+        {
+          "name": "accept_charged_row_run_projected_page",
+          "declaration": "accept_charged_row_run_projected_page ( run : RowRun , charge : RowPageCharge , page : RowSourceProjectedJsonPage , ) - > Result [ Int , RowHostIssue ]"
+        },
+        {
+          "name": "accept_row_source_projected_page",
+          "declaration": "accept_row_source_projected_page ( read : RowSourceRead , page : RowSourceProjectedJsonPage , ) - > Result [ Int , RowSourceIssue ]"
+        },
         {
           "name": "json_page_path",
           "declaration": "json_page_path ( root : @ source . Node , path : Array [ String ] , ) - > Result [ @ source . Node ? , RowSourceJsonPageIssue ]"
@@ -56617,6 +56625,10 @@
         {
           "name": "project_row_source_json_page",
           "declaration": "project_row_source_json_page ( bytes : Bytes , items_path : Array [ String ] , cursor_present : Bool , cursor_path : Array [ String ] , max_bytes : Int , max_nodes : Int , max_depth : Int , max_rows : Int , max_cursor_bytes : Int , ) - > Result [ RowSourceJsonPage , RowSourceJsonPageIssue ]"
+        },
+        {
+          "name": "project_row_source_typed_json_page",
+          "declaration": "project_row_source_typed_json_page ( bytes : Bytes , items_path : Array [ String ] , cursor_present : Bool , cursor_path : Array [ String ] , max_bytes : Int , max_nodes : Int , max_depth : Int , max_rows : Int , max_cursor_bytes : Int , ) - > Result [ RowSourceProjectedJsonPage , RowSourceJsonPageIssue ]"
         },
         {
           "name": "row_source_json_page_has_next_cursor",
@@ -56627,12 +56639,28 @@
           "declaration": "row_source_json_page_next_cursor ( value : RowSourceJsonPage , ) - > Result [ String , RowSourceJsonPageIssue ]"
         },
         {
+          "name": "row_source_json_page_original",
+          "declaration": "row_source_json_page_original ( value : RowSourceJsonPage , ) - > RowSourceProjectedJsonPage"
+        },
+        {
           "name": "row_source_json_page_row_count",
           "declaration": "row_source_json_page_row_count ( value : RowSourceJsonPage ) - > Int"
         },
         {
           "name": "row_source_json_page_rows_wire",
           "declaration": "row_source_json_page_rows_wire ( value : RowSourceJsonPage ) - > String"
+        },
+        {
+          "name": "row_source_typed_json_page_has_next_cursor",
+          "declaration": "row_source_typed_json_page_has_next_cursor ( value : RowSourceProjectedJsonPage , ) - > Bool"
+        },
+        {
+          "name": "row_source_typed_json_page_next_cursor",
+          "declaration": "row_source_typed_json_page_next_cursor ( value : RowSourceProjectedJsonPage , ) - > Result [ String , RowSourceJsonPageIssue ]"
+        },
+        {
+          "name": "row_source_typed_json_page_row_count",
+          "declaration": "row_source_typed_json_page_row_count ( value : RowSourceProjectedJsonPage , ) - > Int"
         }
       ],
       "contracts": [
@@ -56644,7 +56672,14 @@
             "row_source_json_page_has_next_cursor",
             "row_source_json_page_next_cursor",
             "row_source_json_page_row_count",
-            "row_source_json_page_rows_wire"
+            "row_source_json_page_rows_wire",
+            "accept_charged_row_run_projected_page",
+            "accept_row_source_projected_page",
+            "project_row_source_typed_json_page",
+            "row_source_json_page_original",
+            "row_source_typed_json_page_has_next_cursor",
+            "row_source_typed_json_page_next_cursor",
+            "row_source_typed_json_page_row_count"
           ],
           "exports": [],
           "attributes": {
@@ -56652,54 +56687,90 @@
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "Original JSON page envelopes"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "Original JSON page envelopes"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
               }
             ],
             "identity": [
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "Original JSON page envelopes"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
               }
             ],
             "ownership": [
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "Original JSON page envelopes"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
               }
             ],
             "synchronization": [
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "Original JSON page envelopes"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
               }
             ],
             "failure": [
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "Original JSON page envelopes"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
               }
             ],
             "cancellation": [
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "Original JSON page envelopes"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
               }
             ],
             "resources": [
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "Original JSON page envelopes"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
               }
             ],
             "extension": [
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "Original JSON page envelopes"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
               }
             ],
             "verification": [
@@ -56710,6 +56781,18 @@
               {
                 "path": "src/client_row_source_host/json_page_projection_wbtest.mbt",
                 "anchor": "original JSON page array enters existing full row admission without dropping fields or rounding"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
+              },
+              {
+                "path": "src/client_row_source_host/typed_json_page_wbtest.mbt",
+                "anchor": "typed JSON page keeps whole schema NULL Unicode and original cursor without wire replay"
+              },
+              {
+                "path": "src/client_row_source_host/typed_json_page_wbtest.mbt",
+                "anchor": "typed JSON page namespace provenance refuses a foreign original without wire fallback"
               }
             ]
           }
@@ -56718,12 +56801,16 @@
     },
     {
       "module": "src/connectors_builtin_node/client_row_json_page_bridge.mbt",
-      "sha256": "629a75f152942c0da4376175e29e1f929ae011edd0e73214a3e1178b3c1c2347",
+      "sha256": "0304a6ed0c10be3c0a7e1e81fc8b32a920d1c10e8cafd645f18e484dd2d1950a",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Common row Source envelope and schema admission owners; DATA only, no new physical/current or resource issuer",
       "exports": [],
       "operations": [
+        {
+          "name": "client_program_row_source_accept_charged_projected_page",
+          "declaration": "client_program_row_source_accept_charged_projected_page ( run : @ client_row_source_host . RowRun , charge : @ client_row_source_host . RowPageCharge , page : @ client_row_source_host . RowSourceProjectedJsonPage , ) - > Result [ Int , @ client_row_source_host . RowHostIssue ]"
+        },
         {
           "name": "client_program_row_source_json_page_has_next_cursor",
           "declaration": "client_program_row_source_json_page_has_next_cursor ( value : @ client_row_source_host . RowSourceJsonPage , ) - > Bool"
@@ -56731,6 +56818,10 @@
         {
           "name": "client_program_row_source_json_page_next_cursor",
           "declaration": "client_program_row_source_json_page_next_cursor ( value : @ client_row_source_host . RowSourceJsonPage , ) - > Result [ String , @ client_row_source_host . RowSourceJsonPageIssue ]"
+        },
+        {
+          "name": "client_program_row_source_json_page_original",
+          "declaration": "client_program_row_source_json_page_original ( page : @ client_row_source_host . RowSourceJsonPage , ) - > @ client_row_source_host . RowSourceProjectedJsonPage"
         },
         {
           "name": "client_program_row_source_json_page_row_count",
@@ -56743,6 +56834,22 @@
         {
           "name": "client_program_row_source_project_json_page",
           "declaration": "client_program_row_source_project_json_page ( bytes : Bytes , items_path : Array [ String ] , cursor_present : Bool , cursor_path : Array [ String ] , max_bytes : Int , max_nodes : Int , max_depth : Int , max_rows : Int , max_cursor_bytes : Int , ) - > Result [ @ client_row_source_host . RowSourceJsonPage , @ client_row_source_host . RowSourceJsonPageIssue , ]"
+        },
+        {
+          "name": "client_program_row_source_project_typed_json_page",
+          "declaration": "client_program_row_source_project_typed_json_page ( bytes : Bytes , items_path : Array [ String ] , cursor_present : Bool , cursor_path : Array [ String ] , max_bytes : Int , max_nodes : Int , max_depth : Int , max_rows : Int , max_cursor_bytes : Int , ) - > Result [ @ client_row_source_host . RowSourceProjectedJsonPage , @ client_row_source_host . RowSourceJsonPageIssue , ]"
+        },
+        {
+          "name": "client_program_row_source_typed_json_page_has_next_cursor",
+          "declaration": "client_program_row_source_typed_json_page_has_next_cursor ( page : @ client_row_source_host . RowSourceProjectedJsonPage , ) - > Bool"
+        },
+        {
+          "name": "client_program_row_source_typed_json_page_next_cursor",
+          "declaration": "client_program_row_source_typed_json_page_next_cursor ( page : @ client_row_source_host . RowSourceProjectedJsonPage , ) - > Result [ String , @ client_row_source_host . RowSourceJsonPageIssue ]"
+        },
+        {
+          "name": "client_program_row_source_typed_json_page_row_count",
+          "declaration": "client_program_row_source_typed_json_page_row_count ( page : @ client_row_source_host . RowSourceProjectedJsonPage , ) - > Int"
         }
       ],
       "contracts": [
@@ -56753,7 +56860,13 @@
             "client_program_row_source_json_page_next_cursor",
             "client_program_row_source_json_page_row_count",
             "client_program_row_source_json_page_rows_wire",
-            "client_program_row_source_project_json_page"
+            "client_program_row_source_project_json_page",
+            "client_program_row_source_accept_charged_projected_page",
+            "client_program_row_source_json_page_original",
+            "client_program_row_source_project_typed_json_page",
+            "client_program_row_source_typed_json_page_has_next_cursor",
+            "client_program_row_source_typed_json_page_next_cursor",
+            "client_program_row_source_typed_json_page_row_count"
           ],
           "exports": [],
           "attributes": {
@@ -56761,54 +56874,90 @@
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "Original JSON page envelopes"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "Original JSON page envelopes"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
               }
             ],
             "identity": [
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "Original JSON page envelopes"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
               }
             ],
             "ownership": [
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "Original JSON page envelopes"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
               }
             ],
             "synchronization": [
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "Original JSON page envelopes"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
               }
             ],
             "failure": [
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "Original JSON page envelopes"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
               }
             ],
             "cancellation": [
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "Original JSON page envelopes"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
               }
             ],
             "resources": [
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "Original JSON page envelopes"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
               }
             ],
             "extension": [
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "Original JSON page envelopes"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
               }
             ],
             "verification": [
@@ -56819,6 +56968,18 @@
               {
                 "path": "src/client_row_source_host/json_page_projection_wbtest.mbt",
                 "anchor": "original JSON page array enters existing full row admission without dropping fields or rounding"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
+              },
+              {
+                "path": "src/client_row_source_host/typed_json_page_wbtest.mbt",
+                "anchor": "typed JSON page keeps whole schema NULL Unicode and original cursor without wire replay"
+              },
+              {
+                "path": "src/client_row_source_host/typed_json_page_wbtest.mbt",
+                "anchor": "typed JSON page namespace provenance refuses a foreign original without wire fallback"
               }
             ]
           }
@@ -56827,12 +56988,16 @@
     },
     {
       "module": "src/connectors_builtin_node_rela/client_row_json_page_bridge.mbt",
-      "sha256": "9ca05117795200e7fa0e7a7aa15c41b8fca21d6e68449357907f9721e99d2e99",
+      "sha256": "457fb980247c4fce9cb1963bb1b44dfe667089eab0cbea6281dbc543887ce162",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Common row Source envelope and schema admission owners; DATA only, no new physical/current or resource issuer",
       "exports": [],
       "operations": [
+        {
+          "name": "client_program_row_source_accept_charged_projected_page",
+          "declaration": "client_program_row_source_accept_charged_projected_page ( run : @ client_row_source_host . RowRun , charge : @ client_row_source_host . RowPageCharge , page : @ client_row_source_host . RowSourceProjectedJsonPage , ) - > Result [ Int , @ client_row_source_host . RowHostIssue ]"
+        },
         {
           "name": "client_program_row_source_json_page_has_next_cursor",
           "declaration": "client_program_row_source_json_page_has_next_cursor ( value : @ client_row_source_host . RowSourceJsonPage , ) - > Bool"
@@ -56840,6 +57005,10 @@
         {
           "name": "client_program_row_source_json_page_next_cursor",
           "declaration": "client_program_row_source_json_page_next_cursor ( value : @ client_row_source_host . RowSourceJsonPage , ) - > Result [ String , @ client_row_source_host . RowSourceJsonPageIssue ]"
+        },
+        {
+          "name": "client_program_row_source_json_page_original",
+          "declaration": "client_program_row_source_json_page_original ( page : @ client_row_source_host . RowSourceJsonPage , ) - > @ client_row_source_host . RowSourceProjectedJsonPage"
         },
         {
           "name": "client_program_row_source_json_page_row_count",
@@ -56852,6 +57021,22 @@
         {
           "name": "client_program_row_source_project_json_page",
           "declaration": "client_program_row_source_project_json_page ( bytes : Bytes , items_path : Array [ String ] , cursor_present : Bool , cursor_path : Array [ String ] , max_bytes : Int , max_nodes : Int , max_depth : Int , max_rows : Int , max_cursor_bytes : Int , ) - > Result [ @ client_row_source_host . RowSourceJsonPage , @ client_row_source_host . RowSourceJsonPageIssue , ]"
+        },
+        {
+          "name": "client_program_row_source_project_typed_json_page",
+          "declaration": "client_program_row_source_project_typed_json_page ( bytes : Bytes , items_path : Array [ String ] , cursor_present : Bool , cursor_path : Array [ String ] , max_bytes : Int , max_nodes : Int , max_depth : Int , max_rows : Int , max_cursor_bytes : Int , ) - > Result [ @ client_row_source_host . RowSourceProjectedJsonPage , @ client_row_source_host . RowSourceJsonPageIssue , ]"
+        },
+        {
+          "name": "client_program_row_source_typed_json_page_has_next_cursor",
+          "declaration": "client_program_row_source_typed_json_page_has_next_cursor ( page : @ client_row_source_host . RowSourceProjectedJsonPage , ) - > Bool"
+        },
+        {
+          "name": "client_program_row_source_typed_json_page_next_cursor",
+          "declaration": "client_program_row_source_typed_json_page_next_cursor ( page : @ client_row_source_host . RowSourceProjectedJsonPage , ) - > Result [ String , @ client_row_source_host . RowSourceJsonPageIssue ]"
+        },
+        {
+          "name": "client_program_row_source_typed_json_page_row_count",
+          "declaration": "client_program_row_source_typed_json_page_row_count ( page : @ client_row_source_host . RowSourceProjectedJsonPage , ) - > Int"
         }
       ],
       "contracts": [
@@ -56862,7 +57047,13 @@
             "client_program_row_source_json_page_next_cursor",
             "client_program_row_source_json_page_row_count",
             "client_program_row_source_json_page_rows_wire",
-            "client_program_row_source_project_json_page"
+            "client_program_row_source_project_json_page",
+            "client_program_row_source_accept_charged_projected_page",
+            "client_program_row_source_json_page_original",
+            "client_program_row_source_project_typed_json_page",
+            "client_program_row_source_typed_json_page_has_next_cursor",
+            "client_program_row_source_typed_json_page_next_cursor",
+            "client_program_row_source_typed_json_page_row_count"
           ],
           "exports": [],
           "attributes": {
@@ -56870,54 +57061,90 @@
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "Original JSON page envelopes"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "Original JSON page envelopes"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
               }
             ],
             "identity": [
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "Original JSON page envelopes"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
               }
             ],
             "ownership": [
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "Original JSON page envelopes"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
               }
             ],
             "synchronization": [
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "Original JSON page envelopes"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
               }
             ],
             "failure": [
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "Original JSON page envelopes"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
               }
             ],
             "cancellation": [
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "Original JSON page envelopes"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
               }
             ],
             "resources": [
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "Original JSON page envelopes"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
               }
             ],
             "extension": [
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "Original JSON page envelopes"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
               }
             ],
             "verification": [
@@ -56928,6 +57155,18 @@
               {
                 "path": "src/client_row_source_host/json_page_projection_wbtest.mbt",
                 "anchor": "original JSON page array enters existing full row admission without dropping fields or rounding"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
+              },
+              {
+                "path": "src/client_row_source_host/typed_json_page_wbtest.mbt",
+                "anchor": "typed JSON page keeps whole schema NULL Unicode and original cursor without wire replay"
+              },
+              {
+                "path": "src/client_row_source_host/typed_json_page_wbtest.mbt",
+                "anchor": "typed JSON page namespace provenance refuses a foreign original without wire fallback"
               }
             ]
           }
