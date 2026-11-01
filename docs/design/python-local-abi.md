@@ -2040,8 +2040,9 @@ After the original Host binding has completed its own admission and actual
 initial inspection, the same Installation may retire an earlier completed EOF
 reader only when its later live Host pin has the same root/name and complete
 original physical snapshot, including device/inode, size and digest. Both
-original descriptors are physically observed before retirement; the retained
-pin is observed again after the old descriptor closes. The pin keeps its own
+original descriptors are physically observed before retirement; the same Host
+pins recheck their complete current, including named installation roots, Store
+generation and retained files, after the old descriptor closes. The pin keeps its own
 original body and descriptor, and every subsequent current still observes it.
 This removes a consumed physical preparation read, not a current or Account
 check, semantic original, file, immutable byte body or resource reservation.

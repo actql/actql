@@ -299,8 +299,7 @@ class OriginalLocalInstallation:
             self._readers.remove((root, reader))
             # A failed/changed observation after close keeps the remaining pin
             # and the same Installation cleanup; never reopen either original.
-            if root.observe_original(member.reader) != member.snapshot:
-                raise ValueError('Original Local Host pin changed during preparation retirement')
+            pins.current()
 
     def _reserve(self, acquire: Callable[[], _T]) -> _T:
         ticket = self._core._next_ticket
