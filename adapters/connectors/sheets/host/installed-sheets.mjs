@@ -501,11 +501,12 @@ async function load(profile, options, effect) {
   if (!effect) return loadManagedSheetsGridSource(profile, options, site, publication, restored);
   const opened = await openSite(profile, site, options, publication,
     options.installationServices);
+  let closed = false;
   try {
     const referenceCurrent = rangeCommand === undefined ? undefined
       : checkedSourceMethod(opened.site, 'referenceCurrent');
-    const isCurrent = () => referenceCurrent === undefined ||
-      Reflect.apply(referenceCurrent, opened.site, []) === true;
+    const isCurrent = () => !closed && (referenceCurrent === undefined ||
+      Reflect.apply(referenceCurrent, opened.site, []) === true);
     const construction = rangeCommand === undefined ? undefined
       : prepareInitializedSheetsEffectDriver(sourceInitialization, providerMoon, site, declared.catalog_cid,
         opened.bindingCid, rangeCommand.installed, profile.rangeCommand === 'clear', isCurrent);
@@ -559,6 +560,7 @@ async function load(profile, options, effect) {
           }},
         classify: options => projectSheetsAppend({...options, moon: providerMoon})}});
   } catch (cause) {
+    closed = true;
     throw await retainInstalledHostInitializationFailure(cause, {installedEffect: opened.site});
   }
 }

@@ -2,7 +2,7 @@
   {
     "module": "adapters/connectors/sheets/host/installed-sheets.mjs",
     "responsibilityFacet": "primary",
-    "sha256": "b9b1cbfd83a5367f1826718177425d790d98950c8c33d349a9c4bac6e0e58cb3",
+    "sha256": "0e6dc55269d8f8bda82d8c8c5fbcf5f605749e58c48dc043c12f1ad62306fb93",
     "exports": [
       "SHEETS_EFFECT_VERSION",
       "SHEETS_SITE_VERSION",

@@ -1049,6 +1049,31 @@ for (const rangeCommand of [true, 'clear']) {
   });
 }
 
+test('Sheets initialized driver invalidates current BEFORE failure cleanup can reenter the original Site', async () => {
+  const source=readFileSync(new URL('../connectors/sheets/host/installed-sheets.mjs',import.meta.url),'utf8');
+  const node=parse(source,{ecmaVersion:'latest',sourceType:'module'}).body
+    .find(value=>value.type==='FunctionDeclaration'&&value.id.name==='load');
+  const original={},sourceInitialization={},configurationReader={},installationServices={},site={referenceCurrent:()=>true};
+  let driverCurrent,cleanupCalls=0;
+  const ports={fail:code=>{throw Object.assign(new Error(code),{code});},
+    captureConfigurationReaders:value=>value,readSite:async()=>({}),
+    restore:()=>({declaration:{},declared:{},environment:{wire:'same'},commandDefinition:{installed:{}}}),
+    readPublication:async()=>({}),openSite:async()=>({site}),checkedSourceMethod:(owner,name)=>owner[name],
+    prepareInitializedSheetsEffectDriver(scope,provider,configuration,catalog,binding,command,clear,current){
+      driverCurrent=current;assert.equal(current(),true);return {driver:{}};},
+    async createInstalledRowEffect(){throw original;},
+    async retainInstalledHostInitializationFailure(cause,owners){
+      cleanupCalls++;assert.equal(cause,original);assert.equal(owners.installedEffect,site);
+      assert.equal(site.referenceCurrent(),true,'Physical owner is still live; failure is not its ACK');
+      assert.equal(driverCurrent(),false,'Invalidate the logical driver before original cleanup observation');
+      return cause;},registration:'sheets',revision:'sheets/0.1'};
+  const load=Function(...Object.keys(ports),`return (${source.slice(node.start,node.end)});`)(...Object.values(ports));
+  let caught=false,failure;
+  try{await load({rangeCommand:true},{moon:{},providerMoon:{},sourceInitialization,configurationReader,installationServices},true);}
+  catch(cause){caught=true;failure=cause;}
+  assert.equal(caught,true);assert.equal(failure,original);assert.equal(cleanupCalls,1);assert.equal(driverCurrent(),false);
+});
+
 for (const selectedClear of [false, true]) {
   test(`initialized Sheets ${selectedClear ? 'clear' : 'range'} declaration stays under the SAME Source constructor before original Native projection`, async () => {
     const source = readFileSync(new URL('../connectors/sheets/host/installed-sheets.mjs', import.meta.url), 'utf8');
