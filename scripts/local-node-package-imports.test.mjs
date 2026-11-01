@@ -37,7 +37,7 @@ test('Source preparation delivery retains the same private SDK module in the ins
 });
 
 test('ordinary Host native filesystem fallbacks retain only the exact package-local assets', () => {
-  const path = 'adapters/host-node/embedded-local.mjs';
+  const path = 'adapters/host-node/local-files-native.mjs';
   const source = readFileSync(path, 'utf8');
   const copied = rewriteLocalNodePackageImports(source, path);
   assert.equal((source.match(/\.\.\/\.\.\/packages\/local-node\/_build\/native\//gu) ?? []).length, 6);

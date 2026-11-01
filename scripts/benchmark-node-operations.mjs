@@ -109,9 +109,9 @@ export function nodeWarmProtocol(mode) {
 export function nodeOperationProtocol(mode) {
   return {warm: nodeWarmProtocol(mode), process: {
     samplesPerOperation: mode === 'final' ? 30 : 3,
-    coldExisting: 'one new successful seed Run; distinct child per original saved Result read',
+    coldExisting: 'same candidate publicly initializes and closes state in a seed process; each distinct timed child submits a distinct NEW query/Run and materializes all rows, never Saved-only',
     firstInit: 'distinct empty state and actual child per SELECT/Result/awaited close',
-    wall: 'parent launch through natural child exit, including import/open/operation/close',
+    wall: 'parent launch to actual all-rows IPC notification separately from parent launch through natural child exit, including import/open/new-query/all-rows/first-close; child public spans nested, never added to parent totals',
     cpu: 'actual child process; separate workers and subprocesses excluded',
     failedOrUnknown: 'retain sample and stop; never replay the failed Run',
   }, boundaries: {usedMaterial: nodeUsedMaterialProtocol()}};

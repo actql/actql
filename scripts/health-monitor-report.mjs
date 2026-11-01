@@ -5,6 +5,10 @@ import {readFileSync} from 'node:fs';
 import {join} from 'node:path';
 import {latencySummary, assessPublicLatencySamples, resourceSummary} from './operation-performance.mjs';
 
+export const nodeColdStateKinds = Object.freeze(['cold-existing-state','cold-new-state']);
+export const nodeColdPublicPhases = Object.freeze(['product-import','public-open','new-run-submission',
+  'wait-execution-publication','all-result-rows','first-close']);
+
 export const digest = value => createHash('sha256').update(value).digest('hex');
 export const jsonDigest = value => digest(JSON.stringify(value));
 export const statuses = ['pass', 'warning', 'regression', 'incomplete', 'error'];
@@ -23,7 +27,7 @@ export function summarize(samples, minimum) {
 }
 
 const publicLatencyMetric = metric => metric.kind === 'latency' &&
-  (metric.id.startsWith('warm-') || ['first-init', 'cold-existing', 'cold-new-run', 'cold-result',
+  (metric.id.startsWith('warm-') || /^(cold-existing-state|cold-new-state)-process-first-result(?:-close)?$/u.test(metric.id) || ['first-init', 'cold-existing', 'cold-new-run', 'cold-result',
     'cold-process-first-result-close'].includes(metric.id));
 
 export function assessMeasurements(report) {
@@ -78,7 +82,9 @@ export function measurementProfile(mode, environment = {}) {
     {id: 'peak-rss', target: 'node-local', kind: 'rss', unit: 'bytes', required: true}];
   if (mode === 'quick') return [...rows,
     ...['warm-select', 'warm-join', 'warm-aggregate', 'warm-saved', 'warm-status'].map(id => latency(id)),
-    ...['cold-process-first-result-close', 'cold-host-initialization', 'cold-first-query', 'cold-first-close', 'mock-workflow'].map(id => latency(id, true))];
+    ...nodeColdStateKinds.flatMap(state=>[`${state}-process-first-result-close`,`${state}-process-first-result`,
+      ...nodeColdPublicPhases.map(phase=>`${state}-${phase}`)].map(id=>latency(id,true))),
+    latency('mock-workflow',true)];
   if (mode !== 'release') return [];
   rows.push(...['warm-select', 'warm-result', 'warm-status', 'warm-join', 'warm-union', 'warm-decimal-sum', 'warm-parameters', 'warm-unicode'].map(id => latency(id)),
     ...['first-init', 'cold-existing', 'mock-workflow'].map(id => latency(id, true)));

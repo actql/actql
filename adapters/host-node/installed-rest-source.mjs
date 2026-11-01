@@ -2,6 +2,7 @@
 // owners. Provider declarations supply DATA; no reader lifecycle is here.
 import {createHash} from 'node:crypto';
 import {types} from 'node:util';
+import {checked} from '../host-common/runtime-result.mjs';
 import {canonicalJson} from '../../packages/sdk/host-port.mjs';
 import {captureInstalledSourceServices} from './installed-host-services.mjs';
 import {createInstalledRowSource} from './installed-row-source.mjs';
@@ -15,6 +16,36 @@ const cid = value => `sha256:${createHash('sha256').update(canonicalJson(value))
 const bounds = Object.freeze({maxPageRows: 'maxRows', maxPageBytes: 'maxResponseBytes',
   maxPages: 'maxPages', maxRows: 'maxTotalRows', maxNodes: 'maxNodes', maxDepth: 'maxDepth',
   maxCursorBytes: 'maxCursorBytes'});
+
+// Select the existing Source constructor before configuration awaits. Its
+// original native capacity recipe owns proportional DATA, not callback counts.
+function capturePhysicalTargetConstruction(sourceInitialization, moon) {
+  const method = Object.getOwnPropertyDescriptor(sourceInitialization, 'prepareReadTarget');
+  const capacity = Object.getOwnPropertyDescriptor(moon, 'clientProgramInstalledSourceConstructionCapacity');
+  if (!method || !Object.hasOwn(method, 'value') || typeof method.value !== 'function' ||
+      !capacity || !Object.hasOwn(capacity, 'value') || typeof capacity.value !== 'function') {
+    fail('RestSourceInitializationUnavailable');
+  }
+  return (sources, declared, physicalTarget) => {
+    // One array, one eight-field target object per resource and its original
+    // ordered field values. String payloads are borrowed immutable originals.
+    let slots = 1n;
+    for (const source of sources) {
+      const view = declared.views.find(view => view.resource === source.resource);
+      if (view === undefined) fail('RestSourceReadTargetMismatch');
+      slots += 9n + BigInt(view.fields.length);
+    }
+    return Reflect.apply(method.value, sourceInitialization, [Object.freeze({
+      capacity() {
+        return checked(Reflect.apply(capacity.value, moon, [slots, 0n, 0n, slots, 0n, 0n]));
+      },
+      project() {
+        return Object.freeze(sources.map(source => physicalTarget(source.resource,
+          declared.views.find(view => view.resource === source.resource).fields)));
+      },
+    })]);
+  };
+}
 
 export function createInstalledRestSource(definition, {decodePage} = {}) {
   const metadata = createRestSourceMetadata(definition), original = metadata.definition;
@@ -54,6 +85,7 @@ export function createInstalledRestSource(definition, {decodePage} = {}) {
       () => fail('RestSourceInstallationServicesUnavailable'));
     const {moon, installation, sourceInitialization, runtimeBundleCid, resolveSecret} = options;
     const prepare = captureDeclarationPreparation(sourceInitialization);
+    const preparePhysicalTargets = capturePhysicalTargetConstruction(sourceInitialization, moon);
     if (typeof resolveSecret !== 'function') fail('RestSourceCredentialMaterialUnavailable');
     const input = await metadata.readInputs(profile, {configurationReader: options.configurationReader});
     const {declaration, declared, environment} = prepare();
@@ -122,7 +154,8 @@ export function createInstalledRestSource(definition, {decodePage} = {}) {
       return await createInstalledRowSource({moon, declaration, declared, environment, sourceInitialization,
         environmentWire: environment.wire,
         connectorId: input.installed.connectorId, connectorRegistration: original.registration,
-        connectorRevision: original.revision, site, authorization, readOperation: operation, physicalTarget,
+        connectorRevision: original.revision, site, authorization, readOperation: operation,
+        physicalTarget: preparePhysicalTargets(original.sources, declared, physicalTarget),
         bindingCid: cid({connectorId: input.installed.connectorId, connectorRegistration: original.registration,
           connectorRevision: original.revision, originalStringsCid: input.originalStringsCid,
           catalogCid: declared.catalog_cid, runtimeBundleCid, contextCid: authorization.context.contextCid}),

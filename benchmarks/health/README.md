@@ -33,8 +33,13 @@ Installed bytes are logical file bytes, not filesystem-exclusive allocation.
 Bundled DuckDB/Wasmtime/Wasm members retain their actual names and sizes.
 Ten samples each cover retained-Host SELECT, the existing literal JOIN and
 Decimal SUM Aggregate, original saved Named Result and same-Run status. Five
-new processes each cover import/open/first query/Result/awaited close; inner
-open and first-query timings remain separate. Five complete Mock workflows
+new processes for each of two separate cold cases cover import/open/a NEW
+query/all Result rows/first awaited close. `cold-existing-state` is initialized
+and closed through the same installed candidate's public API in a separate
+preparation process; each timed process submits a different new Run against
+that state. It is not a Saved-only read or an older candidate's migration.
+`cold-new-state` gives every timed child a new state, including normal first
+initialization. Warm operations remain on one original open Host. Five complete Mock workflows
 reuse the exact tracked `mock-project-effect-public.mjs` consumer and original
 seven-file `churn-risk-mock` template: separate capture/approve/recover
 processes retain all 9/11/7 assertions, actual review/approval/continuation,
@@ -48,6 +53,19 @@ to bytes), excluding compiler/parent/other process memory. Build/prepack,
 packaging, browser bundling and installation remain separate reference work,
 never included in retained operation latency. Cold-process wall time includes
 process startup through natural exit; it does not mean a cold OS page cache.
+Parent launch-to-first-Result records the arrival of a fixed all-rows IPC
+notification, including its delivery delay. Parent launch-to-natural-exit is a
+separate clock. Child monotonic spans separate product import, public open,
+new-Run submission, wait/execution/publication, all-row materialization and
+first close. The import span covers the public `@actql/node` entry; Local
+provider imports selected inside `open` remain in the public-open span.
+Query spans retain their parent relationship; neither child
+phases nor nested Host work may be added to parent elapsed time. Activation,
+prepare/check/compile/Plan, execution and durable-commit internals remain
+explicitly unobserved until an actual Host diagnostic supplies them. No wall
+span is an exclusive CPU partition. Output/report writes stay outside child
+public spans; parent-to-exit retains collector setup, IPC and reporting costs.
+
 Missing CPU observations remain unavailable. Optional Native/Python Quick
 coverage is explicit unmeasured; supplied ordinary manifests can additionally
 measure their artifacts.
@@ -211,6 +229,9 @@ The existing operation assessor now requires both **p95 <= 200 ms** and
 **observed maximum <= 200 ms** for the in-scope public short-query operations,
 including retained SELECT, two-row UNION, parameters and short Unicode, saved
 Result, status, process-cold existing state and normal first initialization.
+Node `cold-existing` is a NEW query after same-candidate public initialization
+and close; `first-init` is cold-new-state. Historical Saved-only process
+measurements retain their original protocol and cannot qualify these cases.
 Normal initialization is included; a warm-only number cannot qualify the cold
 entry. The separate Mock workflow keeps its own workflow budget and cannot
 substitute for a short-query measurement. Native CLI launches remain process

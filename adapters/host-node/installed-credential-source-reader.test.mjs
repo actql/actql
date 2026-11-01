@@ -9,14 +9,18 @@ const ok = value => ({$tag: 1, _0: value});
 const error = value => ({$tag: 0, _0: value});
 const deferred = () => {let resolve; const promise = new Promise(r => {resolve = r;}); return {resolve, promise};};
 function fixture({pendingRead, pendingBinding = false} = {}) {
-  const events = [], raw = {}, credential = {}, capacity = {}, charge = {}, began = deferred();
+  const events = [], raw = {grant: {}, scope: {operation: 'read'}}, credential = {}, capacity = {}, charge = {}, began = deferred();
   const response = Object.freeze({body: Buffer.from('same received bytes')});
-  let current = true, bindingCanClose = !pendingBinding, providerRetired = false, stopped = false;
+  let current = true, bindingCanClose = !pendingBinding, providerRetired = false, requestSignal;
   let retainedOptions, cleanup, coreRetired = false;
   const site = {}, acquisition = Object.freeze({credential, close() {
     assert.equal(this, acquisition); events.push('binding-close'); return bindingCanClose ? 'closed' : 'pending';
   }});
-  const originalSite = Object.freeze({site, callResource() {assert.equal(this, site);},
+  const originalSite = Object.freeze({site, callResource(input) {
+    assert.equal(this, site);requestSignal = input.signal;input.responseCustody.retain(response);return response;
+  }, readChildCredential(original, authorization) {
+    assert.equal(original, acquisition);assert.equal(authorization, raw);return credential;
+  },
     referenceCurrent() {return current;}, authorizationPurpose(authorization) {
       assert.equal(authorization, raw); return {kind: 'read'};
     }, bindRunAcquisition(authorization, callbacks) {
@@ -25,25 +29,29 @@ function fixture({pendingRead, pendingBinding = false} = {}) {
   let provider;
   const factory = createInstalledCredentialSourceReader({capacity, originalSite,
     assertCurrent() {if (!current) throw new Error('original Host retired');}, maxResponses: 1,
-    createReader(options) {
-      assert.equal(options.credential, credential); retainedOptions = options;
+    maxResponseBytes: 128, prepareReadSequence() {
       events.push('provider-create');
-      provider = Object.freeze({async read() {
-        assert.equal(this, provider); events.push('provider-read');
-        options.responseCustody.retain(response);
-        await options.chargePage(response.body);
+      provider = Object.freeze({async read(context) {
+        assert.equal(this, provider);retainedOptions = context;events.push('provider-read');
+        await context.readChild({operation:'read', prepare() {
+          return {request:{method:'GET',path:'/one'},project(actual) {assert.equal(actual,response);}};
+        }});
         if (pendingRead) await pendingRead;
-        if (stopped) throw new Error('original read stopped');
-        return {rowCount: 1};
-      }, requestStop() {assert.equal(this, provider); stopped = true; events.push('provider-stop');},
-      retire() {assert.equal(this, provider); providerRetired = true; retainedOptions = undefined; return true;},
-      observe() {assert.equal(this, provider); return {cleanupConfirmed: providerRetired};}});
+        requestSignal.throwIfAborted();
+        await context.consumePage([{id:1}]);
+      }, retire() {
+        assert.equal(this, provider);providerRetired = true;retainedOptions = undefined;return true;
+      }});
       return provider;
     }});
   const options = Object.freeze({originalAuthorization: raw, columns: ['id'],
     verifyRead() {events.push('verify');}, authorizationFor(index) {
-      assert.equal(index, 0); events.push('use'); return {original: raw, useId: 'one'};
-    }, chargePage(bytes) {assert.equal(bytes, response.body); events.push('charge'); began.resolve(); return charge;}});
+      assert.equal(index, 0);events.push('use');return {...raw, useId:'one'};
+    }, authorizeReadChild(operation,index) {
+      assert.equal(operation,'read');assert.equal(index,0);
+      return {authorization:{...raw,useId:'child'},originalAuthorization:raw};
+    }, consumePage(rows) {assert.deepEqual(rows,[{id:1}]);},consumeObservation() {},
+    chargePage(bytes) {assert.equal(bytes,response.body);events.push('charge');began.resolve();return charge;}});
   const run = {}, source = {}, ledger = {};
   const moon = {
     clientProgramRowSourceStartProviderAccounted() {events.push('reserve'); return ok(run);},
@@ -60,23 +68,24 @@ function fixture({pendingRead, pendingBinding = false} = {}) {
   return {factory, options, events, session, response, readBegan: began.promise,
     read() {return session.readProvider({prepare: factory.prepare, receiver: factory, options});},
     bindingRetires() {bindingCanClose = true;},
-    inspect() {return {coreRetired, providerRetired, retainedOptions, stopped};}};
+    inspect() {return {coreRetired, providerRetired, retainedOptions, stopped:requestSignal?.aborted === true};}};
 }
 
 test('same original Source reader retains grant response and binding until actual original retirement', async () => {
   const f = fixture({pendingBinding: true});
-  assert.equal(await f.read(), undefined);
-  assert.equal(f.inspect().retainedOptions.initialAuthorization.original, f.options.originalAuthorization);
-  assert.equal(f.inspect().retainedOptions.credential === undefined, false);
+  assert.deepEqual(await f.read(), {pages:1,rowCount:1});
+  assert.equal(typeof f.inspect().retainedOptions.readChild, 'function');
+  assert.equal(f.inspect().stopped, false);
   assert.ok(f.events.indexOf('retain') < f.events.indexOf('bind'));
   assert.ok(f.events.indexOf('bind') < f.events.indexOf('provider-read'));
   assert.throws(() => f.session.close(), {code: 'MoonBitHostFailure'});
   assert.equal(f.inspect().coreRetired, false);
-  assert.equal(f.inspect().providerRetired, true);
+  assert.equal(f.inspect().providerRetired, false);
   f.bindingRetires(); f.session.close();
   assert.equal(f.inspect().coreRetired, true);
   assert.equal(f.inspect().retainedOptions, undefined);
-  assert.equal(f.events.filter(x => x === 'provider-stop').length, 1);
+  assert.equal(f.inspect().providerRetired, true);
+  assert.equal(f.inspect().stopped, true);
   assert.equal(f.events.filter(x => x === 'bind').length, 1);
 });
 
@@ -88,36 +97,45 @@ test('same pending Source read cannot retire through stop or a copied factory', 
   assert.throws(() => f.session.close(), {code: 'MoonBitHostFailure'});
   assert.equal(f.inspect().coreRetired, false);
   assert.equal(f.inspect().providerRetired, false);
-  gate.resolve(); await assert.rejects(reading, /original read stopped/);
+  gate.resolve(); await assert.rejects(reading, error => error.name === 'AbortError');
   f.session.close(); assert.equal(f.inspect().coreRetired, true);
   assert.equal(f.events.filter(x => x === 'provider-read').length, 1);
 });
 
 function directFixture({gate, pendingBinding = false, failCharge = false} = {}) {
-  const events = [], raw = {}, credential = {}, capacity = {}, began = deferred();
+  const events = [], raw = {grant:{},scope:{operation:'read'}}, credential = {}, capacity = {}, began = deferred();
   const bodies = ['account', 'schema', 'page', 'final-schema'].map(value => Object.freeze({body: Buffer.from(value)}));
-  let cleanup, bindingClosed = !pendingBinding, retired = false, phase;
-  const originalSite = Object.freeze({site: Object.freeze({}), callResource() {assert.fail('no physical transport in this component');},
+  let cleanup, bindingClosed = !pendingBinding, retired = false, sent = 0;
+  const originalSite = Object.freeze({site: Object.freeze({}), callResource(input) {
+    const response = bodies[sent++];input.responseCustody.retain(response);
+    events.push('retain-' + response.body.toString());return response;
+  }, readChildCredential(_acquisition, authorization) {assert.equal(authorization,raw);return credential;},
     referenceCurrent() {return true;}, authorizationPurpose(value) {assert.equal(value, raw); return {kind: 'read'};},
     bindRunAcquisition(value, callbacks) {
       assert.equal(value, raw); callbacks.assertCurrent(); events.push('bind');
       return Object.freeze({credential, close() {events.push('close-binding'); return bindingClosed ? 'closed' : 'pending';}});
     }});
-  const factory = createInstalledCredentialSourceReader({capacity, originalSite, maxResponses: 4,
-    assertCurrent() {}, async readPages(options) {
-      assert.equal(options.credential, credential); assert.equal(options.initialAuthorization.original, raw);
-      events.push('sequence'); began.resolve();
-      for (const response of bodies) {
-        options.responseCustody.retain(response); events.push('retain-' + response.body.toString());
-        await options.chargePage(response.body);
-        if (gate) await gate;
-        options.signal.throwIfAborted();
-      }
-      return Object.freeze({pages: 1, rowCount: 1});
-    }});
-  const options = Object.freeze({originalAuthorization: raw, verifyRead() {events.push('current');},
-    authorizationFor(index) {assert.equal(index, 0); return {original: raw, useId: 'original-use'};},
-    chargePage(body) {events.push('charge-' + body.toString()); if (failCharge) throw new Error('original charge refused'); return {};}});
+  const factory = createInstalledCredentialSourceReader({capacity, originalSite, maxResponses: 4, maxResponseBytes:128,
+    assertCurrent() {}, prepareReadSequence() {return {
+      async read(context) {
+        events.push('sequence');
+        for (let index=0;index<bodies.length;index++) {
+          await context.readChild({operation:'read',prepare() {
+            return {request:{method:'GET',path:'/part-' + index},project() {}};
+          }});
+          began.resolve();
+          if (gate) await gate;
+          if(index === bodies.length-1) await context.consumePage([{id:1}]);
+          else await context.consumeObservation();
+        }
+      },retire() {events.push('provider-retire');return true;}
+    };}});
+  const options = Object.freeze({originalAuthorization: raw,columns:['id'],verifyRead() {events.push('current');},
+    authorizationFor(index) {assert.equal(index,0);return {...raw,useId:'original-use'};},
+    authorizeReadChild(operation,index) {
+      assert.equal(operation,'read');return {authorization:{...raw,useId:'part-' + index},originalAuthorization:raw};
+    },consumePage() {},consumeObservation() {},
+    chargePage(body) {events.push('charge-' + body.toString());if(failCharge) throw new Error('original charge refused');return {};}});
   const moon = {clientProgramRowSourceStartProviderAccounted() {events.push('reserve'); return ok({});},
     clientProgramRowSourceBorrowResponses() {return ok({});},
     clientProgramRowSourceBindResponseCleanup(_borrow, value) {cleanup = value; events.push('retain-reader'); return ok(undefined);},
@@ -127,10 +145,10 @@ function directFixture({gate, pendingBinding = false, failCharge = false} = {}) 
     capacity: {provider: capacity, transferBytes: 100n, executionBytes: 100n}});
   return {events, bodies, session, began: began.promise,
     read() {return session.readProvider({prepare: factory.prepare, receiver: factory, options});},
-    retireBinding() {bindingClosed = true;}, inspect() {return {retired, phase};}};
+    retireBinding() {bindingClosed = true;}, inspect() {return {retired, sent};}};
 }
 
-test('standard Source directly retains one sequence through original read and binding retirement', async () => {
+test('managed Source retains one sequence through original read and binding retirement', async () => {
   // Actual common reader and RowRun JS; no provider lifecycle/cleanup handle,
   // real grant, Core capacity, transport or physical ACK is supplied here.
   const gate = deferred(), f = directFixture({gate: gate.promise, pendingBinding: true});
@@ -149,9 +167,9 @@ test('standard Source directly retains one sequence through original read and bi
   assert.equal(f.events.some(value => value === 'charge-schema'), false);
 });
 
-test('direct standard Source completes all responses then retires the same reader', async () => {
+test('managed Source completes all responses then retires the same reader', async () => {
   const f = directFixture();
-  assert.equal(await f.read(), undefined); assert.equal(f.inspect().retired, false);
+  assert.deepEqual(await f.read(), {pages:4,rowCount:1}); assert.equal(f.inspect().retired, false);
   for (const kind of ['account', 'schema', 'page', 'final-schema']) {
     assert(f.events.indexOf('retain-' + kind) < f.events.indexOf('charge-' + kind));
   }
@@ -159,11 +177,13 @@ test('direct standard Source completes all responses then retires the same reade
   f.session.close(); assert.equal(f.inspect().retired, true);
 });
 
-test('direct standard Source accounting refusal preserves its same binding duty', async () => {
+test('managed Source accounting refusal cannot acknowledge unresolved accounting through binding closure', async () => {
   const f = directFixture({failCharge: true, pendingBinding: true});
   await assert.rejects(f.read(), /original charge refused/);
   assert.throws(() => f.session.close(), {code: 'MoonBitHostFailure'});
   assert.equal(f.inspect().retired, false);
   assert.equal(f.events.filter(value => value.startsWith('charge-')).length, 1);
-  f.retireBinding(); f.session.close(); assert.equal(f.inspect().retired, true);
+  f.retireBinding();
+  assert.throws(() => f.session.close(), {code:'MoonBitHostFailure'});
+  assert.equal(f.inspect().retired,false);assert.equal(f.inspect().sent,1);
 });

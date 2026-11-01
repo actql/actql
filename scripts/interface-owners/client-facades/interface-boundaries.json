@@ -10404,7 +10404,7 @@
     {
       "module": "packages/sdk/internal/private-source-preparation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "55a5d4c48f50ab5b0d98aa070c5f308656c679e93be1ce1063c7b5221f421ad4",
+      "sha256": "1bd0d2f032837127baca17a606e56a34bef4c5cff7e15c63738d80bc12bc54b3",
       "exports": [
         "captureSourcePreparation",
         "freezeInput",
@@ -10774,12 +10774,20 @@
               {
                 "path": "packages/sdk/internal/private-source-preparation.mjs",
                 "anchor": "// connection. A generic Host port implementing these methods gains no grant."
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Selecting the private Local Source preparation receiver requires its complete"
               }
             ],
             "synchronization": [
               {
                 "path": "packages/sdk/internal/private-source-preparation.mjs",
                 "anchor": "// Do not defer the original synchronous SDK capture until an await."
+              },
+              {
+                "path": "packages/sdk/private-source-preparation.test.mjs",
+                "anchor": "assert.deepEqual([...reads.values()], required.map(() => 1));"
               }
             ],
             "failure": [
@@ -10814,6 +10822,10 @@
               {
                 "path": "packages/sdk/private-source-preparation.test.mjs",
                 "anchor": "Source intent identity refuses asynchronous or malformed observations without assimilation"
+              },
+              {
+                "path": "packages/sdk/source-preparation-submission.test.mjs",
+                "anchor": "selected Local Source rejects incomplete required methods before connect or caller access"
               }
             ]
           }
