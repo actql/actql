@@ -229,6 +229,26 @@ test "same Request retains Content component before the original serialized Mode
     is Some(RequestModelGraph(_, _, _, original)) &&
     physical_equal(original, graph),
   )
+  let compilation = prepare_request_model_compilation(
+    parent,
+    input,
+    graph,
+    contracts,
+    manifests~,
+    compilation_limits~,
+  ).unwrap()
+  assert_true(
+    physical_equal(
+      @publication_host.client_task_compilation_infers(compilation)[0],
+      graph,
+    ),
+  )
+  assert_true(
+    physical_equal(
+      @publication_host.client_task_compilation_serialization(compilation).unwrap(),
+      component,
+    ),
+  )
   assert_false(@resources.return_preparation_body_borrow(holder).unwrap())
   abort_request_preparation_after_cleanup(parent).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
