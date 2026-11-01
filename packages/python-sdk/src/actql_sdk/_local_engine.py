@@ -213,7 +213,7 @@ class _InitializationLibraryFiles:
             original = _OriginalComponentFile(path, expected=size, digest=digest)
             # Register before acquisition; failed reads retain the same existing
             # one-shot FD carrier and do not acquire a replacement descriptor.
-            self._stack.push(original)
+            self._stack.push(original.__exit__)
             original.read()
             self._files[path] = original
         original.observe()
