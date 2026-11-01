@@ -10,10 +10,10 @@ import {cleanupRequestInput} from '../local-node/request-preparation-adapter.mjs
 
 // Actual methods with explicit Core/current ports. These are not a compiled
 // Common ABI, a physical capacity admission or an ordinary Content receipt.
-function method(file, name, ports) {
+function method(file, name, ports, {methodOnly = false} = {}) {
   const source=readFileSync(new URL(file,import.meta.url),'utf8');let found;
   const walk=node=>{if(!node||typeof node!=='object')return;
-    if(node.type==='Property'&&node.key?.name===name){assert(!found);found=node;}
+    if(node.type==='Property'&&node.key?.name===name&&(!methodOnly||node.method===true)){assert(!found);found=node;}
     for(const value of Object.values(node)){
       if(Array.isArray(value))value.forEach(walk);else if(value&&typeof value==='object')walk(value);
     }};
@@ -342,7 +342,7 @@ function modelContentFixture({constructorFailure} = {}) {
       run.serialization = prefix;
       return {};
     }};
-  const prepare = method('./embedded-local.mjs', 'prepareManagedModelRun', ports);
+  const prepare = method('./embedded-local.mjs', 'prepareManagedModelRun', ports, {methodOnly: true});
   const retire = method('./embedded-local.mjs', 'retireManagedComputeRun', ports);
   const content = installNodeContentRun({moon, preparedRunRequired: true, assertRunCurrent() {},
     registry: '{}', values: '{}', ownerPrincipal: 'owner', storeAuthorityCid: 'store', now: () => '2026-11-01T00:00:00.000Z',
