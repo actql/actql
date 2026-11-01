@@ -5042,7 +5042,12 @@ Request, parent, input receipt and failure object can supply that result; a
 later compiler, provider or physical failure cannot become an original Check
 observation. The existing Resource parent continues to own the check child and
 its report overlap while audience authorization is awaited. Synchronous current
-fences reject replacement or retirement before the projected wire is returned.
+fences reject replacement or retirement before the projected wire is returned. Availability is
+selected from that exact existing failed state before invoking the private
+metadata continuation. A resource, policy or constructor failure without the
+retained Check result performs no Source/account/namespace metadata work. The
+continuation closes only over that same parent/result and verifies them again
+when metadata awaits return; it issues no holder, token or cache.
 
 The existing checker installation issues fresh HMAC context/input bindings and
 collects current audience visibility for this optional projection. It does not

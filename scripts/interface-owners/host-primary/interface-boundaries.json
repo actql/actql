@@ -8238,7 +8238,7 @@
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/submissionService/submissionService/outcome/outcome",
           "parameters": [
-            "metadata"
+            "project"
           ],
           "async": false
         },
@@ -9267,6 +9267,15 @@
           "async": false
         },
         {
+          "name": "openPreparedInstalledHost/preparation/init:observeOriginalCheckOutcome/init:observeOriginalCheckOutcome",
+          "parameters": [
+            "request",
+            "failure",
+            "visit"
+          ],
+          "async": false
+        },
+        {
           "name": "openPreparedInstalledHost/preparation/init:openRequestJournal/init:openRequestJournal",
           "parameters": [
             "directory",
@@ -9584,15 +9593,6 @@
             "rootCreation"
           ],
           "async": true
-        },
-        {
-          "name": "openPreparedInstalledHost/preparation/init:projectOriginalCheckOutcome/init:projectOriginalCheckOutcome",
-          "parameters": [
-            "request",
-            "failure",
-            "metadata"
-          ],
-          "async": false
         },
         {
           "name": "openPreparedInstalledHost/preparation/init:publicationOwnership/init:publicationOwnership",
@@ -18389,7 +18389,7 @@
           "operations": [
             "openInstalledHost/initializePublicationServices/initializePublicationServices/submissionService/submissionService/outcome/outcome",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/submissionService/submissionService#3",
-            "openPreparedInstalledHost/preparation/init:projectOriginalCheckOutcome/init:projectOriginalCheckOutcome"
+            "openPreparedInstalledHost/preparation/init:observeOriginalCheckOutcome/init:observeOriginalCheckOutcome"
           ],
           "exports": [],
           "attributes": {
@@ -18574,7 +18574,7 @@
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "04bf857bfcc27c497b7ab0c4b7267d6324617beaaf5397da1ef18ca3331d4683"
+      "sha256": "7e44c227a53c746afdb8cb8f1398a1f1b96e33ecc1c1ae546a4e099c3ddf873b"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
