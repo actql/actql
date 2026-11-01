@@ -27622,7 +27622,7 @@
           "parameters": []
         }
       ],
-      "sha256": "83677a55624b4805fe8486f7eb305d4670dfc07aaf3111a757e3eb6eaec6e140",
+      "sha256": "dcdf8bbc4888cd8a0d655a1fbefd7fbdbe17291534429c156fae0d85152fec1b",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -27654,6 +27654,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Original file observation groups"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "After observing every original file FD/name, root and Store generation, the Host"
               }
             ],
             "inputsOutputs": [
@@ -27812,6 +27816,26 @@
               {
                 "path": "packages/python-sdk/tests/test_local_host_files.py",
                 "anchor": "def test_complete_file_group_checks_directory_twice_and_every_original_fd_and_name("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_host_files.py",
+                "anchor": "def test_current_keeps_each_physical_member_without_deep_comparing_same_snapshot("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_host_files.py",
+                "anchor": "def test_equal_distinct_snapshot_keeps_full_value_comparison("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_host_files.py",
+                "anchor": "def test_changed_distinct_snapshot_keeps_original_value_error("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_host_files.py",
+                "anchor": "def test_distinct_snapshot_propagates_original_comparison_error("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_host_files.py",
+                "anchor": "def test_same_snapshot_alias_does_not_hide_actual_file_generation_change("
               }
             ]
           }
