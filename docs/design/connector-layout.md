@@ -51,6 +51,34 @@ approval, dispatch, reconciliation and accounting remain with the existing
 common owners. Adding a Source or Command must not introduce a Connector-local
 Run scheduler, retry authority or approval state machine.
 
+Standard REST installations hand their complete frozen physical-target DATA
+inventory to the existing installed row-source owner. That owner constructs the
+selected ordered-field target and its canonical CID during original Source
+preparation. Later binding observations retain the same Prepared, immutable
+target and installation generation; the exact Core resource/field tuple and
+current connection are still compared before and after Account authorization.
+Retirement invalidates this selection without acknowledging physical cleanup.
+This DATA path grants no permission and retains no Allow or current decision.
+Necessary await, response, cancellation and page authorization checks remain.
+
+The existing Source initializer reserves this proportional target DATA through
+its private read-target constructor before projection. Its original construction
+recipe covers the inventory array, each eight-field target and ordered field
+values, plus the simultaneous construction/validation references. Immutable
+string payloads are borrowed from the original declaration and configuration.
+The same Source material retains the actual projected inventory through its
+existing retirement; the Row Source borrows it without another target Map or
+copied inventory/field arrays. Failed reservation enters the original
+initialization cleanup and cannot construct the target output. Fixed callbacks
+and control frames remain the trusted Host baseline, rather than being counted
+as a second closure resource model.
+
+Custom target callbacks retain full target construction and canonical checks,
+including callbacks that return frozen values but depend on mutable state.
+External or restored Source bindings still need their original full admission;
+copied wire, equal CIDs or a reconstructed Prepared cannot supply the existing
+owner's private preparation correspondence.
+
 Bulk physical conversion can preserve Arrow, file or engine representations
 without materializing every value as a MoonBit object. Its schema, absence/NULL,
 numeric and encoding rules, order, chunks, EOS, custody and simultaneous copy

@@ -5,7 +5,8 @@ import {createInstalledCredentialSourceReader} from './installed-credential-sour
 // Actual shared Reader lifetime JS. The original Site, current decision and
 // transport close/retirement are explicit ports; no physical lease is opened.
 function fixture({malformed = false} = {}) {
-  const originalAuthorization = {}, credential = {}, events = [];
+  const originalAuthorization = {}, control=Object.freeze({kind:'installation-metadata'}),
+    credential={control},events=[];
   let retireReady = false, retireGetterCalls = 0;
   const acquisition = {credential, close() {
     assert.equal(this, acquisition);events.push('socket-close');return 'closed';
@@ -19,9 +20,10 @@ function fixture({malformed = false} = {}) {
   Object.freeze(acquisition);
   const originalSite = Object.freeze({site: Object.freeze({}),
     callResource() {assert.fail('No physical send in this component');},
+    readChildCredential() {assert.fail('No physical child in this lifetime component');},
     referenceCurrent() {return true;},
     authorizationPurpose(value) {
-      assert.equal(value, originalAuthorization);return {kind: 'read'};
+      assert.equal(value, originalAuthorization);return {kind:'installation-metadata',control};
     },
     bindRunAcquisition(value, callbacks) {
       assert.equal(value, originalAuthorization);callbacks.assertCurrent();
@@ -30,10 +32,12 @@ function fixture({malformed = false} = {}) {
   });
   const factory = createInstalledCredentialSourceReader({capacity: {}, originalSite,
     assertCurrent() {}, maxResponses: 1,
-    readPages() {events.push('provider-read');return {rowCount: 0};},
+    maxResponseBytes:128,prepareReadSequence() {return {
+      read() {events.push('provider-read');},retire() {return true;}
+    };},
   });
   const reader = factory.prepare({originalAuthorization, columns: ['id'],
-    verifyRead() {}, authorizationFor(index) {
+    verifyRead() {},authorizeReadChild() {},chargePage() {},consumeObservation() {},authorizationFor(index) {
       assert.equal(index, 0);events.push('authorize');return {original: originalAuthorization};
     },
   });

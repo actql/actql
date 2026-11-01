@@ -18,7 +18,7 @@ import {createAuthorizationGate} from '../../../host-common/authorization-gate.m
 import {readFileSync} from 'node:fs';
 import {rowSourceCheckEnvironment} from '../../../host-node/installed-row-source.mjs';
 import {createInstalledCredentialSourceReader} from '../../../host-node/installed-credential-source-reader.mjs';
-import {callHttpsCredentialResource} from '../../../site-node/https-credential-resource.mjs';
+import {callHttpsCredentialResource,openHttpsCredentialBinding,closeHttpsCredentialBinding} from '../../../site-node/https-credential-resource.mjs';
 import {openSqliteCredentialJournal} from '../../../site-node/sqlite-credential-journal.mjs';
 import {signRemoteCredentialGrant} from '../../../site-node/remote-credential-signature.mjs';
 import {prepareNotionUserListPages,NOTION_USER_LIST_OPERATION} from '../site/user-list-read.mjs';
@@ -162,11 +162,21 @@ export async function userListFixture(t,{account='allow',format='sql',accounted=
     const selected={...options,...overrides};
     const bound=Object.freeze({...selected.limits});
     const site={credential:selected.credential,referenceCurrent:()=>true,callResource:callHttpsCredentialResource};
-    const factory=createInstalledCredentialSourceReader({capacity:{},site,operation:NOTION_USER_LIST_OPERATION,
+    const originalSite=Object.freeze({site,referenceCurrent:()=>true,callResource:callHttpsCredentialResource,
+      authorizationPurpose(original) {assert.equal(original,selected.initialAuthorization);return {kind:'read'};},
+      bindRunAcquisition(original,callbacks) {
+        assert.equal(original,selected.initialAuthorization);callbacks.assertCurrent();
+        const binding=openHttpsCredentialBinding({...selected.credential,scope:original.scope,
+          maxSecretBytes:128,assertCurrent:callbacks.assertCurrent});
+        return Object.freeze({credential:Object.freeze({...selected.credential,binding,
+          currentBeforeSend:callbacks.observeCurrent}),close:()=>closeHttpsCredentialBinding(binding)});
+      }
+    });
+    const factory=createInstalledCredentialSourceReader({capacity:{},originalSite,assertCurrent() {},operation:NOTION_USER_LIST_OPERATION,
       maxResponses:bound.maxPages,maxResponseBytes:bound.maxResponseBytes,maxSecretBytes:128,
       preparePageReader:({columns},applySynchronousProjection)=>prepareNotionUserListPages({moon:selected.moon,names:columns,limits:bound},applySynchronousProjection)});
     factories.push(factory);
-    const reader=factory.prepare({resource:'users',columns:selected.names,signal:selected.signal,
+    const reader=factory.prepare({originalAuthorization:selected.initialAuthorization,resource:'users',columns:selected.names,signal:selected.signal,
       verifyRead:typeof selected.current==='function'?()=>selected.current(NOTION_USER_LIST_OPERATION):selected.current,
       authorizationFor:typeof selected.authorizationFor==='function'?index=>selected.authorizationFor({operation:NOTION_USER_LIST_OPERATION,index}):selected.authorizationFor,
       chargePage:typeof selected.chargeResponse==='function'?body=>selected.chargeResponse(body):selected.chargeResponse,

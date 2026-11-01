@@ -50,7 +50,7 @@ function serviceFixture(){
   const implementation=services.sourceReaderImplementation({installation,limits,columnCount:3});
   const reader=services.createSourceReader({installation,implementation,site,operation:'rest:read',
     preparePageReader(){assert.fail('no read preparation');}});
-  return{scope,reader,limits,capacity};
+  return{scope,reader,limits,capacity,services,installation,implementation,site};
 }
 
 function pageSelection(reader,readerDemand,originalPageLimits,prepareSourceRead){
@@ -112,4 +112,16 @@ test('managed page demand does not weaken the legacy originalPageLimits guard or
     const selected=pageSelection(undefined,undefined,{maxNodes:11,maxDepth:7},()=>{});
     assert.deepEqual(selected.pageLimits,{maxNodes:11,maxDepth:7});assert.equal(selected.managedPageLimits,undefined);
   }finally{assert.equal(f.reader.retire(),true);}
+});
+
+
+test('normal service refuses obsolete mixed and missing protocols before opening a Site',()=>{
+  const f=serviceFixture();
+  try {
+    const base={installation:f.installation,implementation:f.implementation,site:f.site};
+    for(const selected of [{...base,createReader(){}},{...base,readPages(){}},base,
+      {...base,operation:'rest:read',preparePageReader(){},prepareReadSequence(){}}]) {
+      assert.throws(()=>f.services.createSourceReader(selected),{code:'InvalidInstalledSourceReaderSelection'});
+    }
+  }finally {assert.equal(f.reader.retire(),true);}
 });
