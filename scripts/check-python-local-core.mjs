@@ -26,6 +26,7 @@ const fixtureModes = Object.freeze({
   'contract': 'actual artifact shape; synthetic entry refusal only',
   'buffer': 'unmetered transfer/cleanup custody',
   'buffer-packed': 'unmetered raw Wasmtime i64 transport; no Run or physical ACK',
+  'original-bulk': 'unmetered raw original-memory block ABI; no funded Host/Run or physical ACK',
   'preparation': 'unmetered positive; separate metered5k interruption',
   'runtime': '100M instances; separate5k transfer trap and explicit cleanup funding',
   'workspace': '100M instance; reservation/stop/cleanup',
