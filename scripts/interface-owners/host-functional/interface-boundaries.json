@@ -107431,7 +107431,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-host-result.mjs",
-      "sha256": "0c33e69e625867c0156605e28d2c3cccfb25ab7fe3fe45905e2024226c4c0219",
+      "sha256": "d1500367a2bc8721cb00125343c62416a5480a1acfe088187e06b25697608d51",
       "exports": [
         "prepareOrdinaryHostResult"
       ],
@@ -107642,7 +107642,7 @@
             "resources": [
               {
                 "path": "adapters/host-node/ordinary-host-result.mjs",
-                "anchor": "operations === 4096"
+                "anchor": "retainedBytes: BigInt(value.maxContractBytes)"
               }
             ],
             "extension": [
@@ -107743,6 +107743,10 @@
               {
                 "path": "adapters/host-node/ordinary-host-result.test.mjs",
                 "anchor": "test('ordinary Model publication uses the same admitted Run and live Store, not copied limits'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-host-result.test.mjs",
+                "anchor": "test('ordinary Result keeps current cancellation and original failure checks after long operation history'"
               }
             ]
           }
@@ -108046,7 +108050,7 @@
             "resources": [
               {
                 "path": "adapters/host-node/ordinary-host-result.mjs",
-                "anchor": "operations === 4096"
+                "anchor": "retainedBytes: BigInt(value.maxContractBytes)"
               }
             ],
             "extension": [
