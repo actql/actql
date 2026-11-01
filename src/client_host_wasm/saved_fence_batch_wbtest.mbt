@@ -11,6 +11,43 @@ fn saved_fence_batch_fixture() -> Array[(String, String, Int64, Bytes)] {
 }
 
 ///|
+test "saved fence packet bounds retain UTF8 bytes and original duplicate rows" {
+  let many = Array::makei(33, i => {
+    ("publication_contract", "key-" + i.to_string(), 0L, b"x")
+  })
+  let (packet, end) = saved_result_fence_packet(many, 0).unwrap()
+  assert_eq(end, 32)
+  assert_true(@utf8.encode(packet).length() <= 4096)
+  let text = @utf8.encode("😀".repeat(600))
+  let unicode = [
+    ("publication_contract", "one", 0L, text),
+    ("publication_contract", "two", 0L, text),
+  ]
+  assert_eq(saved_result_fence_packet(unicode, 0), None)
+  let duplicates = [
+    ("publication_contract", "same", 0L, b"original"),
+    ("publication_contract", "same", 0L, b"original"),
+  ]
+  assert_eq(saved_result_fence_packet(duplicates, 0), None)
+  let mut reads = 0
+  let mut packets = 0
+  let result = validate_saved_result_fences(
+    duplicates,
+    (_, key) => {
+      reads += 1
+      Ok(Some({ key, revision: 0L, body: b"original", }))
+    },
+    _ => {
+      packets += 1
+      Err(-99)
+    },
+  )
+  assert_eq(result, Ok(()))
+  assert_eq(reads, 2)
+  assert_eq(packets, 0)
+}
+
+///|
 test "saved fence batch keeps exact original fields and one physical packet" {
   let fences = saved_fence_batch_fixture()
   let expected = "[[\"first\",\"1\",\"{\\\"x\\\":1}\"],[\"second\",\"2\",\"original\\r\\n\"],[\"third\",\"3\",\"\"]]"
