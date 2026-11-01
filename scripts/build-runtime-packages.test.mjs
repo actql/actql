@@ -93,7 +93,7 @@ const expectedGates = {
     "node scripts/local-checks.mjs test node -- adapters/host-node/finalization-scratch-cut-public.test.mjs adapters/connectors/calendar/test/installed-calendar-source.test.mjs",
     "node scripts/local-checks.mjs test node -- adapters/host-node/managed-output-mode.test.mjs adapters/host-node/request-program-module-body-callers.test.mjs adapters/host-node/request-preparation-parent.test.mjs",
     "node scripts/local-checks.mjs test node -- adapters/host-common/source-response-custody.test.mjs",
-    "node scripts/local-checks.mjs test node -- adapters/host-node/installed-source-service-capture.test.mjs adapters/host-node/source-profile-json.test.mjs",
+    "node scripts/local-checks.mjs test node -- adapters/host-node/installed-source-service-capture.test.mjs adapters/host-node/host-deferred-publication-startup.test.mjs adapters/host-node/source-profile-json.test.mjs",
     "node scripts/local-checks.mjs test node -- adapters/host-node/installed-content-family-custody.test.mjs"
   ],
   "check:run-host-core": [

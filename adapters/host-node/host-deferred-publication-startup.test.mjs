@@ -20,6 +20,12 @@ function collect(node){
   }
 }
 collect(ast);
+const installedHost=ast.body.find(node=>node.type==='FunctionDeclaration'&&
+  node.id.name==='openInstalledHost');
+const installedEntryGuard=installedHost.body.body[0];
+assert.equal(installedEntryGuard.type,'IfStatement');
+assert.match(source.slice(installedEntryGuard.start,installedEntryGuard.end),
+  /InstalledRequestPreparationUnavailable/u);
 const declaration=name=>{
   const found=nodes.filter(node=>node.type==='VariableDeclarator'&&node.id.name===name);
   assert.equal(found.length,1,name);return source.slice(found[0].start,found[0].end);
@@ -39,11 +45,20 @@ const make=compileFunction(`return async function(input){
   const authorityScopeCid=input.scope,workspaceId=undefined,moon=input.moon,journal=input.journal;
   const closeHostRequestJournal=()=>journal.close();
   const sourceProfile=input.source,installedEffect=undefined,diagnostic=undefined,observation=undefined;
-  const preparation=input.selected===false?undefined:{initialControl:input.initialControl,
-    bindSourceRequest(){throw Error('No business Source in this fixture');}};
-  const originalSourcePreparation=input.withSource===false?undefined:Object.freeze(Object.fromEntries(
-    ['beforeSourceSnapshot','bindSourceSnapshot','bindSourceRequest','finishSourceProducer','intentCid']
+  const fixtureRequestPreparation=Object.freeze(Object.fromEntries(
+    ['beforeSourceSnapshot','bindSourceSnapshot','bindSourceRequest','finishSourceProducer','intentCid',
+      'captureSourceSnapshot','assertSourceSnapshotCurrent','publishSourceSnapshot']
       .map(name=>[name,()=>{throw Error('No business Source in this fixture');}])));
+  const preparation=input.selected===false?undefined:{initialControl:input.initialControl,
+    fundedPreparation(){throw Error('No business funding in this fixture');},
+    requestPreparation(){return fixtureRequestPreparation;},
+    beforeResultPublicationOperation(operation){if(operation!=='attach')throw Error('Unexpected component operation');},
+    assertResultPublicationCurrent(){},
+    bindSourceRequest(){throw Error('No business Source in this fixture');}};
+  ${source.slice(installedEntryGuard.start,installedEntryGuard.end)}
+  const originalSourcePreparation=input.withSource===false?undefined:fixtureRequestPreparation;
+  const ${declaration('originalRequestPreparation')};
+  const ${declaration('localSigningRecoveries')};
   let modelRuntimeClosing=false,activationFlight,activationFailure,store;
   const retireModelRuntime=input.retire;
   const initializePublicationServices=()=>input.initialize(host,value=>{store=value;});
@@ -74,7 +89,7 @@ async function createFixture({initialize,withSource=true,selected=true}={}){
   let constructions=0;
   const host=await make({scope:ref.authorityScopeCid,moon,journal,withSource,selected,
     observeIngress(options){assert.equal(typeof options.bindOwnedRequest,
-      withSource?'function':'undefined');},
+      'function');},
     source:{close(){calls.push('source');}},initialControl:{close(){calls.push('control');return {pending:false};}},
     retire(){calls.push('retire-runtime');},async initialize(same,setStore){
       constructions++;if(initialize)return initialize(same,setStore,calls);
@@ -88,23 +103,31 @@ async function createFixture({initialize,withSource=true,selected=true}={}){
     connect:()=>registry.connect('/original','same',async()=>host,{mode:'local',owner:'local'})};
 }
 
-nodeTest('unprepared Host retains its original eager publication service construction',async()=>{
-  const f=await createFixture({selected:false,withSource:false});
-  assert.equal(f.constructions(),1);
-  assert.notEqual(f.host.port,undefined);
+nodeTest('installed Host fixture requires its actual preparation owner before activation',async()=>{
+  let initialized=0;
+  await assert.rejects(createFixture({selected:false,withSource:false,
+    initialize(){initialized++;}}),{name:'TypeError',message:'InstalledRequestPreparationUnavailable'});
+  assert.equal(initialized,0);
 });
 
-nodeTest('selected ordinary Host cannot borrow Journal coverage for Publication activation',()=>{
+nodeTest('selected ordinary Host cannot borrow Journal coverage for Publication activation',async()=>{
   const initializer=nodes.find(node=>node.type==='VariableDeclarator'&&
     node.id.name==='initializePublicationServices');
   const guard=initializer.init.body.body[0].block.body[0];
   assert.equal(guard.type,'IfStatement');
-  const check=compileFunction(source.slice(guard.start,guard.end),
-    ['preparation','originalSourcePreparation','clientOperationError']);
-  const error=code=>Object.assign(new Error(code),{code});
-  for(const originalSource of [undefined,{}])assert.throws(()=>check({},originalSource,error),
-    {code:'InstalledPublicationPreparationUnavailable'});
-  assert.doesNotThrow(()=>check(undefined,undefined,error));
+  const check=compileFunction(`return async preparation=>{${source.slice(guard.start,guard.end)}};`)();
+  let journalCalls=0;
+  for(const preparation of [{},{prepareHostJournal(){journalCalls++;}}]){
+    await assert.rejects(check(preparation),TypeError);
+  }
+  assert.equal(journalCalls,0);
+  const original=new Error('OriginalPublicationPreparationFailure');
+  await assert.rejects(check({prepareResultPublication(){throw original;}}),error=>error===original);
+  const waiting=deferred();let returned=false,calls=0;
+  const pending=check({prepareResultPublication(){calls++;return waiting.promise;}})
+    .then(()=>{returned=true;});
+  await Promise.resolve();assert.equal(calls,1);assert.equal(returned,false);
+  waiting.resolve();await pending;assert.equal(returned,true);
 });
 
 for(const withSource of [true,false]){
@@ -113,7 +136,8 @@ const test=(name,body)=>nodeTest(`${withSource?'Source-selected':'ordinary selec
 
 test('SDK connect and unused close require no Publication Store key or service construction',async()=>{
   const f=await fixture(),client=await f.connect();
-  assert.equal(Object.hasOwn(f.host.port,sourcePreparationPort),withSource);
+  assert.equal(Object.hasOwn(f.host.port,sourcePreparationPort),true);
+  assert.equal(Object.hasOwn(f.host.port,'answerCheckpoint'),withSource);
   assert.equal(f.constructions(),0);assert.equal(f.host.store,undefined);
   assert.deepEqual(f.calls,['epoch']);
   await client.close();
