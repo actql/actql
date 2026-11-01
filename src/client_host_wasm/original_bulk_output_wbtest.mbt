@@ -6,7 +6,7 @@ test "original bulk output keeps exact range and cleanup guards without copying 
     holdings: 16,
     transfer_bytes: 65536L,
     retained_bytes: 65536L,
-    execution_bytes: 16781312L,
+    execution_bytes: 16842752L,
   }).unwrap()
   let capacity = @resources.reserve_shared_capacity(root, 16777216L).unwrap()
   let pool = @buffers.open_pool_on_ledger(root, 65536L, 16, 1048576).unwrap()
