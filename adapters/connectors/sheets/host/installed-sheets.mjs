@@ -391,17 +391,9 @@ async function load(profile, options, effect) {
     ? [{resource: 'append_rows', mappingRef: prepared.mappingRef,
       mappingCid: prepared.mappingCid, body: prepared.body}] : prepared.mappings : undefined;
   const mapping = mappings?.[0];
-  let environment = sourceInitialization === undefined || rangeCommand !== undefined
+  const environment = sourceInitialization === undefined || rangeCommand !== undefined
     ? rowSourceCheckEnvironment(baseEnvironmentWire, declared, mapping === undefined ? [] : [mapping.body])
     : effect ? prepared.environment : restored.environment;
-  if (rangeCommand !== undefined) {
-    const {evidence_bundle_cid: _, ...body} = JSON.parse(environment.wire);
-    if (!Array.isArray(body.command_contracts) || body.command_contracts.length !== 0) {
-      fail('InvalidRowSourceCheckEnvironmentBase');
-    }
-    const value = {...body, command_contracts: [rangeCommand.command]};
-    environment = {wire: canonicalJson({...value, evidence_bundle_cid: contentCid(value)})};
-  }
   if (!effect && rangeCommand === undefined && sourceInitialization !== undefined) {
     return loadManagedSheetsGridSource(profile, options, site, publication, restored);
   }

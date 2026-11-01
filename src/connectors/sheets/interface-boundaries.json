@@ -2,7 +2,7 @@
   {
     "module": "adapters/connectors/sheets/host/installed-sheets.mjs",
     "responsibilityFacet": "primary",
-    "sha256": "fa001b04b04f97aa9fded2a9210f9d1aa23d72e6a6d95d7341bdc3d16e1f2309",
+    "sha256": "3e0b5b67da9674e42fc8165530e1b11b06f670df063246b4a44cbc4a3b4b270b",
     "exports": [
       "SHEETS_EFFECT_VERSION",
       "SHEETS_SITE_VERSION",
@@ -3193,7 +3193,7 @@
   {
     "module": "src/connectors/sheets/catalog/range_declaration.mbt",
     "responsibilityFacet": "primary",
-    "sha256": "f836b1706b6216b42124177408490d8d674c052981607ed7bd668c9af8203c21",
+    "sha256": "c293f344417155bf2b591c3116eb824dd65c24b20d1c8ddbaa6d7dc2096d26cf",
     "operations": [
       {
         "name": "range_catalog_json",
@@ -3249,6 +3249,10 @@
             {
               "path": "adapters/connectors/sheets/README.md",
               "anchor": "Clear's input/output roles use operation-qualified"
+            },
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "The existing Sheets range and clear Catalog projection also retains the full"
             }
           ],
           "inputsOutputs": [
@@ -3259,6 +3263,10 @@
             {
               "path": "src/connectors/sheets/catalog/pkg.generated.mbti",
               "anchor": "pub fn"
+            },
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "The existing Sheets range and clear Catalog projection also retains the full"
             }
           ],
           "identity": [
@@ -3269,6 +3277,10 @@
             {
               "path": "adapters/connectors/sheets/README.md",
               "anchor": "Configuration identity"
+            },
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "The existing Sheets range and clear Catalog projection also retains the full"
             }
           ],
           "ownership": [
@@ -3279,6 +3291,10 @@
             {
               "path": "adapters/host-node/installed-row-effect.mjs",
               "anchor": "The identities this factory issues"
+            },
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "The existing Sheets range and clear Catalog projection also retains the full"
             }
           ],
           "synchronization": {
@@ -3309,6 +3325,10 @@
             {
               "path": "adapters/host-node/installed-row-effect.mjs",
               "anchor": "const defaultLimits"
+            },
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "The existing Sheets range and clear Catalog projection also retains the full"
             }
           ],
           "extension": [
@@ -3319,6 +3339,10 @@
             {
               "path": "scripts/check-source-command-addition.mjs",
               "anchor": "third-Compute checker"
+            },
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "The existing Sheets range and clear Catalog projection also retains the full"
             }
           ],
           "verification": [
@@ -3337,6 +3361,10 @@
             {
               "path": "src/connectors/sheets/catalog/command_role_identity_wbtest.mbt",
               "anchor": "Sheets clear and update original roles coexist in the same checked registry"
+            },
+            {
+              "path": "src/connectors/sheets/catalog/command_source_projection_wbtest.mbt",
+              "anchor": "test \"Sheets range Source projection retains the original installed Command body for common Environment construction\""
             }
           ]
         }

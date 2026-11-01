@@ -1805,6 +1805,14 @@ All declared cells remain admitted before requested-column projection. Site
 authorization, acquisition admission, before-send current checks, response
 charging and failed-child retirement remain with their original owners.
 
+The existing Sheets range and clear Catalog projection also retains the full
+canonical Command body beside that same Catalog. The shared row Environment
+constructor consumes those original bodies together with their referenced
+contracts; the installer does not append them later by rehashing a second
+Environment. Range and clear keep distinct original contracts and requests.
+This projection does not issue a ResourceRef, permission, approval, claim or
+physical cleanup acknowledgement.
+
 A synchronous request constructor returning a native Promise is invalid, but
 its original task stays in the same capture child until settlement. Observation
 uses the captured native Promise method before any replaceable public `then`.

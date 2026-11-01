@@ -218,5 +218,12 @@ pub fn range_catalog_json(
   declared["catalog_cid"] = cid.to_json()
   declared["catalog"] = catalog_wire.to_json()
   declared["contracts"] = Json::array(contract_wires)
+  // Keep the complete SAME Command beside the Catalog for the existing
+  // common Environment constructor. No Host-specific second recipe adds it.
+  let command_wire = match range_canonical(command, limits) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  declared["command_bodies"] = Json::array([command_wire.to_json()])
   range_canonical(Json::object(declared), limits)
 }
