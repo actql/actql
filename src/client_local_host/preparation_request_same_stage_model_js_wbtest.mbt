@@ -37,7 +37,7 @@ test "same-stage acquired serialized Model preserves original capture module inp
         @checked.Units(_) => "Units"
         @checked.Closure(_) => "Closure"
         @checked.Source(@checked.Requests(reason)) => {
-          "Source.Requests/" + match reason {
+          let branch = match reason {
             @context.InvalidLimits => "InvalidLimits"
             @context.BudgetExceeded => "BudgetExceeded"
             @context.Declarations(_) => "Declarations"
@@ -48,17 +48,23 @@ test "same-stage acquired serialized Model preserves original capture module inp
             @context.Capacity(_) => "Capacity"
             @context.Producers(_) => "Producers"
           }
+          "Source.Requests/" + branch
         }
         @checked.Source(@checked.Registration(_)) => "Source.Registration"
         @checked.Source(@checked.Declarations(_)) => "Source.Declarations"
         @checked.Source(@checked.Checks(_)) => "Source.Checks"
         @checked.Source(@checked.SourceView(_)) => "Source.SourceView"
-        @checked.Source(@checked.RequestForm(reason)) => "Source.RequestForm/" + @debug.to_string(reason)
+        @checked.Source(@checked.RequestForm(reason)) =>
+          "Source.RequestForm/" + @debug.to_string(reason)
         @checked.Source(@checked.Identity(_)) => "Source.Identity"
-        @checked.Source(@checked.UnsupportedBindings(_)) => "Source.UnsupportedBindings"
-        @checked.Source(@checked.UnsupportedEffects(_)) => "Source.UnsupportedEffects"
-        @checked.Source(@checked.DeclarationWorkLimit) => "Source.DeclarationWorkLimit"
-        @checked.Source(@checked.CapacityMetadataBudget) => "Source.CapacityMetadataBudget"
+        @checked.Source(@checked.UnsupportedBindings(_)) =>
+          "Source.UnsupportedBindings"
+        @checked.Source(@checked.UnsupportedEffects(_)) =>
+          "Source.UnsupportedEffects"
+        @checked.Source(@checked.DeclarationWorkLimit) =>
+          "Source.DeclarationWorkLimit"
+        @checked.Source(@checked.CapacityMetadataBudget) =>
+          "Source.CapacityMetadataBudget"
         @checked.Environment(_) => "Environment"
         @checked.Program(_) => "Program"
         @checked.CapacityInputs(_) => "CapacityInputs"
