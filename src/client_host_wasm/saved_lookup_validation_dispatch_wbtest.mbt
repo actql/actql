@@ -2,7 +2,7 @@
 // Exercise the actual exported validation dispatch and existing typed callee.
 // A missing original snapshot must refuse there, never manufacture a Run or
 // validate from scalar metadata. No physical Host or normal admission is used.
-fn saved_lookup_validation_dispatch_case(kind : Int) -> (Int, Int) {
+fn saved_lookup_validation_dispatch_case(kind : Int) -> (Int, Int) raise {
   let root = @resources.create_ledger({
     planning_work: 10000,
     attempts: 16,
@@ -15,7 +15,12 @@ fn saved_lookup_validation_dispatch_case(kind : Int) -> (Int, Int) {
   let pool = @buffers.open_pool_on_ledger(root, 65536L, 8, 4096).unwrap()
   assert_eq(
     install_buffer_instance(
-      4901L, root, capacity, None, pool, 8,
+      4901L,
+      root,
+      capacity,
+      None,
+      pool,
+      8,
       prepare_product_sequence_contracts().unwrap(),
     ),
     0,
@@ -31,7 +36,12 @@ fn saved_lookup_validation_dispatch_case(kind : Int) -> (Int, Int) {
     account: @authorization.admit_account_configuration_json(
       "{\"version\":\"actql-execution-account-config/0.1\",\"account_id\":\"local:operator\",\"entries\":[]}",
     ).unwrap(),
-    tuple: { principal: "operator", connection: "local", resource: "run", operation: "read", },
+    tuple: {
+      principal: "operator",
+      connection: "local",
+      resource: "run",
+      operation: "read",
+    },
     authority_scope_cid: "uninterpreted-dispatch-fixture",
     context_cid: "uninterpreted-dispatch-fixture",
     policy_cid: "uninterpreted-dispatch-fixture",
