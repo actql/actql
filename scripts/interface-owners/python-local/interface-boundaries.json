@@ -29019,6 +29019,13 @@
         },
         {
           "async": false,
+          "name": "OriginalLocalInstallation/_retire_preparation_readers",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
           "name": "OriginalLocalInstallation/_root",
           "parameters": [
             "self",
@@ -29086,7 +29093,7 @@
           ]
         }
       ],
-      "sha256": "df3611635d45c5fd9378d75e5848268f3edd3e827329eabb2cf1cc8a8bbde172",
+      "sha256": "b3167a1c37d3fd37de8deb81bd0796f47f2ca79e9a080210a4b6e1c708a56802",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -29676,6 +29683,118 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_installation.py",
                 "anchor": "\"\"\"Trusted installed assembly; original Core metadata and physical Host custody.\"\"\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "OriginalLocalInstallation/_retire_preparation_readers"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Consumed installation preparation readers"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_installation.py",
+                "anchor": "def _retire_preparation_readers(self) -> None:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Consumed installation preparation readers"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_installation.py",
+                "anchor": "def _retire_preparation_readers(self) -> None:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Consumed installation preparation readers"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_installation.py",
+                "anchor": "def _retire_preparation_readers(self) -> None:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Consumed installation preparation readers"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_installation.py",
+                "anchor": "def _retire_preparation_readers(self) -> None:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Consumed installation preparation readers"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_installation.py",
+                "anchor": "def _retire_preparation_readers(self) -> None:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Consumed installation preparation readers"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_installation.py",
+                "anchor": "def _retire_preparation_readers(self) -> None:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Consumed installation preparation readers"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_installation.py",
+                "anchor": "def _retire_preparation_readers(self) -> None:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Consumed installation preparation readers"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_installation.py",
+                "anchor": "def _retire_preparation_readers(self) -> None:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Consumed installation preparation readers"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_installation.py",
+                "anchor": "def _retire_preparation_readers(self) -> None:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/tests/test_local_installation.py",
+                "anchor": "def test_consumed_initial_readers_retire_after_same_original_host_pins_bind(self):"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_installation.py",
+                "anchor": "def test_lost_consumed_reader_close_ack_retains_same_cleanup_without_reclose(self):"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_installation.py",
+                "anchor": "def test_equal_bytes_foreign_file_refuses_before_consumed_reader_retirement(self):"
               }
             ]
           }

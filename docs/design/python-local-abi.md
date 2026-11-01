@@ -2034,6 +2034,28 @@ carrier, a public author callback or a new capacity allowance. The existing
 Guest Instance/current/buffer and imported parent remain the only owners;
 retirement and failed cleanup retain their original pending responsibility.
 
+### Consumed installation preparation readers
+
+After the original Host binding has completed its own admission and actual
+initial inspection, the same Installation may retire an earlier completed EOF
+reader only when its later live Host pin has the same root/name and complete
+original physical snapshot, including device/inode, size and digest. Both
+original descriptors are physically observed before retirement; the retained
+pin is observed again after the old descriptor closes. The pin keeps its own
+original body and descriptor, and every subsequent current still observes it.
+This removes a consumed physical preparation read, not a current or Account
+check, semantic original, file, immutable byte body or resource reservation.
+
+Unmatched preparation originals remain in the Installation's original reader
+list. Ambiguous, copied, foreign, closing or changed pins refuse. Failed or
+uncertain close retains the same original reader and pending Installation;
+only its existing explicit cleanup may observe that same descriptor again.
+Successful close removes exactly that old reader from the existing cleanup
+list before post-close observation, so a later refusal keeps all remaining
+pins and owners without reopening or double-closing the old descriptor. Saved
+files, Store state, canonical material and existing conservative bounds remain
+unchanged; there is no replacement pin, authority or cleanup owner.
+
 ### Original file observation groups
 
 An original saved reader retains the immutable EOF digest/snapshot value it
