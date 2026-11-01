@@ -32,6 +32,17 @@ fn sdk_payload_read_current_frame(
 }
 
 ///|
+// Original direct read, extracted unchanged before the before-IO counter.
+// This private transport returns physical DATA, never a Source or permission.
+fn sdk_payload_read_original_row(
+  original_current : () -> Result[Unit, Int],
+  read : () -> Result[@host.ClientJournalPhysicalRow?, Int],
+) -> Result[@host.ClientJournalPhysicalRow?, Int] {
+  original_current |> ignore
+  read()
+}
+
+///|
 // Only the same freshly constructed Saved context selects this private path.
 // These are live owner/Account/Host checks, never a remembered successful check.
 // The enclosing read-only frame separately reobserves all saved Store rows.
@@ -120,6 +131,16 @@ fn sdk_payload_access_current(
     required_text(observed, "observed_at") is Some(at) else {
     return Err(-30)
   }
+  let read = (table, key) => {
+    if value.publications.contains(first.publication) {
+      sdk_run_journal_port(value, context.current, 1, table, key)
+    } else {
+      sdk_payload_read_original_row(
+        context.check_current,
+        () => sdk_run_journal_port(value, context.current, 1, table, key),
+      )
+    }
+  }
   let observe = current => {
     @local_run.validate_local_sdk_payload_encoding_source_current(
       context.source,
@@ -135,9 +156,7 @@ fn sdk_payload_access_current(
       attempt_id,
       at,
       8,
-      (table, key) => {
-        sdk_run_journal_port(value, context.current, 1, table, key)
-      },
+      read,
       current,
     ).map_err(sdk_payload_codec_issue)
   }

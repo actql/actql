@@ -150,3 +150,40 @@ test "saved payload access frame rejects changed final originals before encoder 
   assert_eq(checks.val, 1)
   assert_true(!advanced.val)
 }
+
+///|
+// A final refusal alone cannot erase a metadata read already issued after an
+// original changed. Both called controllers are the actual private product
+// functions; read/current remain explicit DATA ports, not a real Account/Store.
+test "saved payload row fence refuses the next dependent read after original mutation" {
+  let unchanged = Ref(true)
+  let reads = Ref(0)
+  let row : @host.ClientJournalPhysicalRow = {
+    key: "same-original-key",
+    revision: 0L,
+    body: b"original",
+  }
+  let original = () => if unchanged.val { Ok(()) } else { Err(-32) }
+  let read = () => {
+    sdk_payload_read_original_row(original, () => {
+      reads.val += 1
+      Ok(Some(row))
+    })
+  }
+  let result = sdk_payload_read_current_frame(
+    original,
+    () => Ok(()),
+    current => {
+      current().unwrap()
+      read().unwrap() |> ignore
+      unchanged.val = false
+      current().unwrap()
+      match read() {
+        Err(code) => Err(code)
+        Ok(_) => Ok(())
+      }
+    },
+  )
+  assert_eq(result, Err(-32))
+  assert_eq(reads.val, 1)
+}
