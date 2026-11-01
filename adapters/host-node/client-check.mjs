@@ -200,7 +200,7 @@ export function installNodeClientCheck({moon, environment, publication,
   const documentBinding = (documentId, kind, bytes) => ({document_id: documentId,
     kind, revision: revision(documentId, bytes), byte_length: Buffer.byteLength(bytes, 'utf8')});
 
-  const check = async request => {
+  const check = async (request, projectOriginal) => {
     const {principalId, kind, input, parameters, signal, scope} = request;
     if (!['template_only', 'bound_input'].includes(scope) || !['text', 'program'].includes(kind) ||
         scope === 'template_only' && Object.hasOwn(request, 'parameters')) {
@@ -244,13 +244,21 @@ export function installNodeClientCheck({moon, environment, publication,
           gate?.close();
         }
       }
-      const outcome = JSON.parse(moon.clientProgramCheckProgram(document, environment,
-        JSON.stringify({environmentCid, aliases: visible,
-          ...(visibleUpdates.length === 0 ? {} : {updateTargets: visibleUpdates}),
-          ...(visibleWrites.length === 0 ? {} : {tableWrites: visibleWrites})}), supplied,
-        context, original.revision, bindings?.revision, correlationRef, scope, namespace));
-      return validBoundOutcome(outcome, context, scope, [original, ...(bindings ? [bindings] : [])])
-        ? outcome : failed('check_internal', correlationRef);
+      const visiblePublication = JSON.stringify({environmentCid, aliases: visible,
+        ...(visibleUpdates.length === 0 ? {} : {updateTargets: visibleUpdates}),
+        ...(visibleWrites.length === 0 ? {} : {tableWrites: visibleWrites})});
+      const wire = projectOriginal === undefined
+        ? moon.clientProgramCheckProgram(document, environment, visiblePublication, supplied,
+          context, original.revision, bindings?.revision, correlationRef, scope, namespace)
+        : projectOriginal(Object.freeze([visiblePublication, context, 'program',
+          original.revision, original.byte_length, undefined, 0,
+          bindings?.revision, bindings?.byte_length ?? 0, correlationRef, namespace]));
+      if (projectOriginal !== undefined && wire === undefined) return undefined;
+      if (projectOriginal !== undefined && typeof wire !== 'string') throw new TypeError('InvalidOriginalCheckObservation');
+      const outcome = JSON.parse(wire);
+      if (validBoundOutcome(outcome, context, scope, [original, ...(bindings ? [bindings] : [])])) return outcome;
+      if (projectOriginal !== undefined) throw new TypeError('InvalidOriginalCheckObservation');
+      return failed('check_internal', correlationRef);
     }
     const declarations = input.parameterDeclarations === undefined
       ? undefined : JSON.stringify(input.parameterDeclarations);
@@ -285,22 +293,39 @@ export function installNodeClientCheck({moon, environment, publication,
         gate?.close();
       }
     }
-    const outcome = JSON.parse(moon.clientProgramCheckSource(input.text,
-      input.format, environment,
-      JSON.stringify({environmentCid, aliases: visible,
-        ...(visibleUpdates.length === 0 ? {} : {updateTargets: visibleUpdates}),
-        ...(visibleWrites.length === 0 ? {} : {tableWrites: visibleWrites})}),
-      declarations, supplied,
-      context, original.revision, declared?.revision, bindings?.revision, correlationRef, scope, namespace));
-    return validBoundOutcome(outcome, context, scope,
-      [original, ...(declared ? [declared] : []), ...(bindings ? [bindings] : [])])
-      ? outcome : failed('check_internal', correlationRef);
+    const visiblePublication = JSON.stringify({environmentCid, aliases: visible,
+      ...(visibleUpdates.length === 0 ? {} : {updateTargets: visibleUpdates}),
+      ...(visibleWrites.length === 0 ? {} : {tableWrites: visibleWrites})});
+    const wire = projectOriginal === undefined
+      ? moon.clientProgramCheckSource(input.text, input.format, environment,
+        visiblePublication, declarations, supplied, context, original.revision,
+        declared?.revision, bindings?.revision, correlationRef, scope, namespace)
+      : projectOriginal(Object.freeze([visiblePublication, context, 'text',
+        original.revision, original.byte_length, declared?.revision,
+        declared?.byte_length ?? 0, bindings?.revision, bindings?.byte_length ?? 0,
+        correlationRef, undefined])); // A query-alias namespace is not a nominal Source selector namespace.
+    if (projectOriginal !== undefined && wire === undefined) return undefined;
+    if (projectOriginal !== undefined && typeof wire !== 'string') throw new TypeError('InvalidOriginalCheckObservation');
+    const outcome = JSON.parse(wire);
+    if (validBoundOutcome(outcome, context, scope,
+      [original, ...(declared ? [declared] : []), ...(bindings ? [bindings] : [])])) return outcome;
+    if (projectOriginal !== undefined) throw new TypeError('InvalidOriginalCheckObservation');
+    return failed('check_internal', correlationRef);
   };
   // The ingress's existing connection authorization owner determines whether
   // any report binding can be disclosed. This projection touches neither the
   // authored input nor Source decisions nor the checking environment.
   Object.defineProperty(check, 'unavailable', {value: () =>
     JSON.parse(moon.clientProgramCheckUnavailable(`corr:${randomBytes(16).toString('hex')}`))});
+  // Private fixed Host path: share this same installation's fresh audience,
+  // namespace and input bindings, while the retained Request supplies the
+  // original typed outcome. The public check still uses its existing checker.
+  Object.defineProperty(check, 'projectOriginal', {value: (request, project) => {
+    if (request.scope !== 'bound_input' || typeof project !== 'function') {
+      throw new TypeError('InvalidOriginalCheckObservation');
+    }
+    return check(request, project);
+  }});
   return Object.freeze(check);
 }
 

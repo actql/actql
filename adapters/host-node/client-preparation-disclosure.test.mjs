@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFile} from 'node:fs/promises';
 import {installNodeClientProgramPreparation} from './client-program-preparation.mjs';
+import {installNodeClientCheck} from './client-check.mjs';
 import {validCheckOutcome} from '../../packages/client-wire/index.mjs';
 
 const invalid = JSON.parse(await readFile(new URL('../../packages/client-wire/fixtures/check-default-type.invalid.json', import.meta.url), 'utf8'));
@@ -191,4 +192,79 @@ test('independent Host Effect feature refusal is not inferred from checking supp
   const f = installation('effect_not_supported', verified);
   await assert.rejects(async () => f.prepare(sourceRequest), {code: 'ClientProgramUnsupported'});
   assert.equal(f.checks, 0);
+});
+
+// Only protocol metadata is echoed by these explicit report ports. They do
+// not certify a semantic verdict, compiled Check child or normal Host funding.
+function originalObservationChecker(authorize = () => ({action: 'dispatch'})) {
+  const environment = {}, cid = 'sha256:' + 'a'.repeat(64), sourceRef = 'fixture:original';
+  const moon = {
+    clientProgramCheckProgram: () => assert.fail('Original projection must not recheck Program'),
+    clientProgramCheckSource: () => assert.fail('Original projection must not recheck text'),
+    clientProgramCheckUnavailable: () => JSON.stringify(failed),
+    clientProgramCheckCompilerIdentity: () => '{}',
+    clientProgramCheckContextIdentity: () => '{}',
+    clientProgramCheckingEnvironmentCid: actual => {assert.strictEqual(actual, environment); return cid;},
+    clientProgramCheckSourceNamespace: () => assert.fail('No namespace owner selected'),
+    clientProgramCheckSourceSelectorNamespace: () => assert.fail('No namespace owner selected'),
+  };
+  return installNodeClientCheck({moon, environment, contextKey: Buffer.alloc(32, 7),
+    publication: {environmentCid: cid, aliases: [{name: 'original', sourceRef}]},
+    sourceAccesses: [{sourceRef, resource: 'records', connection: {}, authorization: {authorize}}]});
+}
+function boundOriginalReport(metadata) {
+  const [, context, kind, revision, bytes, declarations, declarationBytes, parameters, parameterBytes] = metadata;
+  const outcome = structuredClone(verified);
+  outcome.report.context_ref = context; outcome.report.scope = {kind: 'bound_input'};
+  outcome.report.inputs = [{document_id: kind === 'program' ? 'program' : 'source',
+    kind: kind === 'program' ? 'structured' : 'text', revision, byte_length: bytes},
+  ...(declarations === undefined ? [] : [{document_id: 'parameter_declarations', kind: 'structured',
+    revision: declarations, byte_length: declarationBytes}]),
+  ...(parameters === undefined ? [] : [{document_id: 'parameters', kind: 'structured',
+    revision: parameters, byte_length: parameterBytes}])];
+  assert.equal(validCheckOutcome(outcome), true); return outcome;
+}
+
+test('original Request observation awaits current audience and binds exact UTF8 inputs without rechecking', async () => {
+  let enter, release, projected = 0;
+  const entered = new Promise(resolve => {enter = resolve;});
+  const held = new Promise(resolve => {release = resolve;});
+  const checker = originalObservationChecker(async () => {enter(); await held; return {action: 'dispatch'};});
+  for (const kind of ['text', 'program']) {
+    const request = {principalId: 'original-audience', scope: 'bound_input', kind,
+      input: kind === 'text' ? {format: 'sql', text: 'SELECT @name AS name\r\n',
+        parameterDeclarations: {name: {type: 'string'}}} : {original: 'e\u0301\r\n日本語'},
+      parameters: {name: 'e\u0301\r\n日本語'}};
+    let metadata;
+    const pending = checker.projectOriginal(request, actual => {
+      projected++; metadata = actual; assert.ok(Object.isFrozen(actual));
+      assert.equal(actual.length, 11); assert.equal(actual[2], kind);
+      assert.equal(actual[4], Buffer.byteLength(kind === 'text' ? request.input.text : JSON.stringify(request.input)));
+      assert.equal(actual[8], Buffer.byteLength(JSON.stringify(request.parameters)));
+      assert.equal(actual[10], undefined, 'No query-alias to Source-selector cast');
+      assert.deepEqual(JSON.parse(actual[0]).aliases, [{name: 'original', sourceRef: 'fixture:original'}]);
+      return JSON.stringify(boundOriginalReport(actual));
+    });
+    await entered; if (kind === 'text') {assert.equal(projected, 0); release();}
+    const result = await pending;
+    assert.equal(result.report.context_ref, metadata[1]);
+    assert.match(metadata[1], /^ctx:[0-9a-f]{64}$/u);
+    assert.match(metadata[3], /^rev:[0-9a-f]{64}$/u);
+  }
+  assert.equal(projected, 2);
+});
+
+test('original Request observation omits unavailable and refuses stale binding or nonstring without fallback', async () => {
+  const checker = originalObservationChecker();
+  const request = {principalId: 'original-audience', scope: 'bound_input', kind: 'text',
+    input: {format: 'sql', text: 'SELECT 1'}, parameters: null};
+  assert.equal(await checker.projectOriginal(request, () => undefined), undefined);
+  await assert.rejects(checker.projectOriginal(request, metadata => {
+    const outcome = boundOriginalReport(metadata); outcome.report.context_ref = 'ctx:stale';
+    return JSON.stringify(outcome);
+  }), /InvalidOriginalCheckObservation/u);
+  await assert.rejects(checker.projectOriginal(request, () => ({toString() {assert.fail('Do not coerce a result');}})),
+    /InvalidOriginalCheckObservation/u);
+  assert.throws(() => checker.projectOriginal({...request, scope: 'template_only'}, () => undefined),
+    /InvalidOriginalCheckObservation/u);
 });

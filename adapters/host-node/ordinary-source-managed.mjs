@@ -427,7 +427,10 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       // module; no shape scan selects a second preparation protocol.
       if (context !== undefined) {
         const state = {context, original: undefined, admission: undefined, parent: undefined,
-          prepared: undefined, holder: undefined, adopting: false};
+          prepared: undefined, holder: undefined, adopting: false,
+          originalCheckResult: undefined,
+          projectOriginalCheck: Object.getOwnPropertyDescriptor(context.runtime,
+            'clientProgramProjectRequestCheckOutcome')?.value};
         producer.preparation = state;
         try {
           if (sourceEnvironment !== undefined &&
@@ -550,6 +553,40 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       if (intent === undefined) fail('ForeignInstalledSourceProducer');
       return intent;
     },
+    observeOriginalCheckOutcome(request, failure, visit) {
+      current();
+      const producer = producerForRequest(request), state = producer?.preparation;
+      // No retained original is reconstructed after completion/retirement, or
+      // for a foreign failure merely carrying a public-looking error code.
+      if (state === undefined || state.parent === undefined || state.preparing ||
+          !state.preparationFailed || state.preparationFailure !== failure ||
+          state.originalCheckResult === undefined || typeof state.projectOriginalCheck !== 'function') return undefined;
+      if (typeof visit !== 'function') fail('InvalidOriginalCheckObservation');
+      const parent = state.parent, result = state.originalCheckResult;
+      const project = state.projectOriginalCheck, moon = state.context.runtime;
+      const assertSame = () => {
+        current();
+        if (producer.finished || producer.request !== request || producer.preparation !== state ||
+            state.parent !== parent || state.originalCheckResult !== result ||
+            state.preparing || !state.preparationFailed || state.preparationFailure !== failure) {
+          fail('ForeignInstalledSourceProducer');
+        }
+      };
+      // Availability is decided from this SAME failed state before any
+      // Source/account/namespace metadata visitor can await or do work.
+      assertSame();
+      return visit(metadata => {
+        if (!Array.isArray(metadata) || metadata.length !== 11) fail('InvalidOriginalCheckObservation');
+        assertSame();
+        // Preserve the original Result wrapper. Only the typed C bridge may
+        // match its terminal; no Err/Option or Error.cause is rebuilt in JS.
+        const wire = checked(Reflect.apply(project, moon,
+          [parent, producer.receipt, result, ...metadata]));
+        assertSame();
+        if (wire !== undefined && typeof wire !== 'string') fail('InvalidOriginalCheckObservation');
+        return wire;
+      });
+    },
     async fundedPreparation(request, environment, originalVerifier, signal) {
       current();
       const producer = producerForRequest(request);
@@ -601,10 +638,15 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
             }
             assertPreparingOriginal();
             const valuesMaxRows = Object.getOwnPropertyDescriptor(state.context, 'valuesMaxRows')?.value;
-            checkedRequestProgramPreparation(moon, Reflect.apply(prepareCheck, moon, [
+            const originalCheckResult = Reflect.apply(prepareCheck, moon, [
               parent, producer.receipt, producer.body.input, producer.body.parameters,
               environment, state.context.preparedEnvironment, valuesMaxRows,
-            ]), projectIssue);
+            ]);
+            // This failed Request already owns the child and its cleanup.
+            // Retain only its actual result until that same owner retires it.
+            state.originalCheckResult = originalCheckResult;
+            checkedRequestProgramPreparation(moon, originalCheckResult, projectIssue);
+            state.originalCheckResult = undefined;
             assertPreparingOriginal();
             if (originalVerifier !== undefined) {
               const [prepareSubjects, readSubject, bindSubject, finishSubjects] = policyMethods;
@@ -1343,7 +1385,8 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       state.prepared = state.snapshot = state.snapshotDocument = state.parametersCursor = undefined;
       state.capturePlan = state.effectPlan = run.operationPlan = run.content = undefined;
       state.modelProviderBinding = undefined;
-      state.preparationFailure = undefined;state.preparationFailed = false;
+      state.preparationFailure = state.originalCheckResult = state.projectOriginalCheck = undefined;
+      state.preparationFailed = false;
       const holder = state.holder;state.holder = undefined;
       checked(state.effectBorrowMethods === undefined
         ? state.context.runtime.clientProgramPreparationBorrowReturn(holder)
@@ -1361,7 +1404,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       liveRuns.delete(run);producer.liveRuns--;
       producer.preparation=undefined;
       state.parent=state.admission=state.original=state.context=undefined;
-      state.compilationKind=state.preparationFailure=undefined;state.preparationFailed=false;
+      state.compilationKind=state.preparationFailure=state.originalCheckResult=state.projectOriginalCheck=undefined;state.preparationFailed=false;
       state.compilationFamily=undefined;
       state.policyVerifier=state.policySignal=undefined;state.policyVerifierSelected=false;
       run.value=run.producer=undefined;
