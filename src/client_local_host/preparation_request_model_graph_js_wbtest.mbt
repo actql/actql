@@ -640,8 +640,11 @@ fn request_acquired_model_capture_fixture(
       2048L,
     ) {
     Ok(value) => value
-    Err(issue) =>
-      fail("same Request managed Source read: " + @debug.to_string(issue))
+    Err(Acquisition(@row_source_host.Physical(issue))) =>
+      fail("same Request managed Source physical: " + @debug.to_string(issue))
+    Err(Resource(issue)) =>
+      fail("same Request managed Source Resource: " + @debug.to_string(issue))
+    Err(_) => fail("same Request managed Source non-physical refusal")
   }
   @row_source_host.begin_row_run(source, 128, 1, 1).unwrap()
   assert_eq(
