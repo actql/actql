@@ -71,9 +71,8 @@ class SnapshotTransportTests(unittest.TestCase):
                     self.assertEqual(match.call_count, 0)
                 failures.append(callbacks.failure)
                 self.assertIsInstance(callbacks.failure, LocalStorageError)
-                with self.assertRaises(LocalStorageError) as same:
-                    reader.current()
-                self.assertIs(same.exception, callbacks.failure)
+                self.assertEqual(callbacks.schema(), -41)
+                self.assertIs(callbacks.failure, failures[0])
             with self.assertRaises(LocalStorageError) as original:
                 store.inspect_namespaces((ByteFence('epoch', 0, b'original-epoch'),),
                     inspect=inspect, current=lambda: None)
