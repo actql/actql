@@ -5,7 +5,7 @@ import {runtimeField, runtimeOptionalField, runtimeTag} from '../host-common/com
 import {CapturedRunPublicationError,
   runPublishedCapturedStrategy} from './entry.mjs';
 import {acquiredTaskPublicationPlan, acquiredMultiTaskPublicationPlan,
-  acquiredKeyedTaskPublicationPlan} from './local-values-plan.mjs';
+  acquiredKeyedTaskPublicationPlan, sourceFreePlanExecutionOwner} from './local-values-plan.mjs';
 import {installedSourceFor} from './installed-source.mjs';
 import {ordinarySourceDescriptors, verifyOrdinarySourceBinding} from './ordinary-source-binding.mjs';
 import {acquisitionEndHandoff} from '../host-common/acquisition-outcome.mjs';
@@ -117,6 +117,30 @@ export async function cancelNodeRunContinuation({currentDispatchIdle, ...facts})
   }
   return facts.checkpoints.cancelEffectContinuation(
     facts.control.runDefinitionRunId(retained.runDefinition), facts.ref.runDefinitionCid);
+}
+
+export async function observeNodeRestoredLocalStop(facts) {
+  // Same-process original stop is an execution observation, not a cleanup
+  // acknowledgement or proof that a requested cancellation was honored.
+  // Publication/Carrier cleanup remains owned by its actual original APIs.
+  for (let inspection = 0; inspection < 2; inspection++) {
+    const before = facts.journal.lookupRunDefinition(facts.ref, facts.moon, facts.control);
+    if (before === undefined || before.physicalCloseConfirmed === true ||
+        facts.journal.observeStoppedLocalExecutionOwner?.(facts.ref, before) !== true) return;
+    const committed = await facts.store.confirmCommittedIndex(facts.ref) !== undefined;
+    const retained = facts.journal.lookupRunDefinition(facts.ref, facts.moon, facts.control, before);
+    if (retained?.physicalCloseConfirmed === true) return;
+    if (retained !== before) {
+      if (inspection === 0 &&
+          facts.journal.canReinspectRunStopAfterStatePublication?.(before, retained) === true) continue;
+      throw new Error('ClientRunStopObservationChanged');
+    }
+    if (facts.journal.observeStoppedLocalExecutionOwner(facts.ref, retained) !== true ||
+        facts.journal.lookupReconciliationState(facts.ref) !== undefined) return;
+    facts.journal.markPhysicalClose(facts.ref, committed ? null : 'failed', retained);
+    return;
+  }
+  throw new Error('ClientRunStopObservationChanged');
 }
 
 export async function observeNodeRestoredModelStop(facts) {
@@ -828,6 +852,9 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         namespaceId, ref: accepted.ref,
         currentAuthorization: hostConnection({principalId: actual,
           connection, ref: accepted.ref}),
+        ...(!acquiring && !inferring && !serializing && !generatingContent ? {
+          localExecutionOwner: sourceFreePlanExecutionOwner(held.plan),
+        } : {}),
         ...(acquiring && journal.sourceOperationConfigured === true ? {
           captureSourceOperation: {program: preparedProgram, compiled: held.plan.compiled, store,
             capture(scope) {entry.sourceOperationScope = scope;}},

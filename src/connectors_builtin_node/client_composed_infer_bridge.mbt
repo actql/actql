@@ -510,6 +510,15 @@ pub fn client_program_check_compiled_run_definition(
 }
 
 ///|
+#export_name("clientProgramCheckCompiledLocalExecutionOwner")
+pub fn client_program_check_compiled_local_execution_owner(
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+) -> Bool {
+  @publication_host.client_compiled_local_execution_owner(compiled, definition)
+}
+
+///|
 #export_name("clientProgramAdmitComposedInferEgress")
 pub fn client_program_admit_composed_infer_egress(
   occurrence : @publication_host.ClientInferOccurrence,

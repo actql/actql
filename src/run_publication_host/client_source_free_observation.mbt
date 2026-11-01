@@ -147,6 +147,31 @@ pub fn issue_client_effect_source_free_invocation(
 }
 
 ///|
+/// Only this same compiled, definition-bound local computation can use a
+/// retained process-owner stop observation. Empty input counts alone do not
+/// exclude Effects, Model work, graph carriers or Content generation.
+pub fn client_compiled_local_execution_owner(
+  value : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+) -> Bool {
+  if check_client_compiled_run_definition(value, definition) is Err(_) ||
+    prepared_client_acquisition_count(value.owner) != 0 ||
+    prepared_client_uses_graph_carrier(value.owner) ||
+    @strategy.graph_program_has_effects(value.owner.graph) ||
+    !client_compiled_run_infers(value).is_empty() {
+    return false
+  }
+  match value.compilation {
+    Values(_) => true
+    Tasks(compilation) =>
+      compilation.serialization is None &&
+      compilation.infers.is_empty() &&
+      @strategy.graph_source_free_inputs_complete(compilation.owner.graph)
+    Effects(_) => false
+  }
+}
+
+///|
 /// The Local Values occurrence uses the Host's admitted Result policy original,
 /// never a Source installation or an unrelated Model egress CID. Compilation
 /// alternatives are selected by their actual common-owner type, not fallback.

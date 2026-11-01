@@ -1,3 +1,4 @@
+import {localProjectFilesystem} from './local-files-native.mjs';
 import {createInstalledHostServices, installedSourceConfigurationReader, reserveInstalledSourceEnvironment,
   completeInstalledSourceInitialization, borrowInstalledSourceInitialization,
   retireInstalledSourceInitialization} from './installed-host-services.mjs';
@@ -142,7 +143,7 @@ import {createNodeInProcessClientHost} from './in-process-client.mjs';
 import {installHostObservation, observationTraceParent,
   captureManagedRunObservation} from '../host-common/observation.mjs';
 import {installNodeClientDispatchOwner, confirmNodeRunCancellation, cancelNodeRunContinuation,
-  observeNodeRestoredModelStop, recordNodeRunPhysicalStop} from './client-dispatch-owner.mjs';
+  observeNodeRestoredModelStop, observeNodeRestoredLocalStop, recordNodeRunPhysicalStop} from './client-dispatch-owner.mjs';
 import {retainInstalledHostInitializationFailure, retainInstalledHostRuntimeFailure} from
   './installed-host-cleanup.mjs';
 import {issueInferTrustedRuntimeView, checkInferTrustedRuntimeView,
@@ -200,35 +201,7 @@ import {installNodeContentRun} from './installed-content-run.mjs';
 
 const packageRoot = fileURLToPath(new URL('../../', import.meta.url));
 const require = createRequire(import.meta.url);
-function localProjectFilesystem() {
-  // Normal native delivery and Node's ABI checks, not a selected-preload image
-  // recipe. Load failure stays a supported-backend gap; it never selects a
-  // weaker pathname reader or another installation's resource original.
-  if (process.platform === 'darwin' && process.arch === 'arm64') {
-    if (existsSync(new URL('../../_build/native/directory-darwin-arm64.node', import.meta.url))) {
-      return require('../../_build/native/directory-darwin-arm64.node');
-    }
-    if (existsSync(new URL('../../packages/local-node/_build/native/directory-darwin-arm64.node', import.meta.url))) {
-      return require('../../packages/local-node/_build/native/directory-darwin-arm64.node');
-    }
-  } else if (process.platform === 'darwin' && process.arch === 'x64') {
-    if (existsSync(new URL('../../_build/native/directory-darwin-x64.node', import.meta.url))) {
-      return require('../../_build/native/directory-darwin-x64.node');
-    }
-    if (existsSync(new URL('../../packages/local-node/_build/native/directory-darwin-x64.node', import.meta.url))) {
-      return require('../../packages/local-node/_build/native/directory-darwin-x64.node');
-    }
-  }
-  if (process.platform === 'linux' && process.arch === 'x64') {
-    if (existsSync(new URL('../../_build/native/local-files-linux-x64.node', import.meta.url))) {
-      return require('../../_build/native/local-files-linux-x64.node');
-    }
-    if (existsSync(new URL('../../packages/local-node/_build/native/local-files-linux-x64.node', import.meta.url))) {
-      return require('../../packages/local-node/_build/native/local-files-linux-x64.node');
-    }
-  }
-  throw clientOperationError('LocalFilesNativeUnavailable');
-}
+
 const runtimeUrl = new URL('../../_build/js/release/build/' +
   'connectors_builtin_node/connectors_builtin_node.js', import.meta.url);
 const now = () => new Date().toISOString();
@@ -4704,6 +4677,9 @@ async function openInstalledHost(originalInstallation, preparation) {
     const state = await observeRun({ref, principalId: actual});
     // An explicit Effect observation never restarts Compute, reopens approval
     // or converts an execution-unknown Run into an invented Effect inventory.
+    if (state.status === 'needs_reconciliation' && state.next_action?.kind === 'reconcile_run') {
+      await observeNodeRestoredLocalStop({ref, journal, store, checkpoints, moon, control});
+    }
     if (state.status === 'needs_reconciliation' &&
         state.next_action?.kind === 'reconcile') {
       await sweepEffectRuns({reconcileRef: ref});

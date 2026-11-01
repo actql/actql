@@ -1851,11 +1851,12 @@
     },
     {
       "module": "adapters/host-node/client-dispatch-owner.mjs",
-      "sha256": "5fbb22537949bd82e86d3b121a994441c294d81457947abbef46421c79d938d3",
+      "sha256": "6d22d8fd079f0468c235c17dfcc93ee728458c13bc3b501da21ac916b466bff8",
       "exports": [
         "cancelNodeRunContinuation",
         "confirmNodeRunCancellation",
         "installNodeClientDispatchOwner",
+        "observeNodeRestoredLocalStop",
         "observeNodeRestoredModelStop",
         "recordNodeRunPhysicalStop"
       ],
@@ -2414,6 +2415,13 @@
           "name": "installNodeClientDispatchOwner/track/track/track#5",
           "parameters": [],
           "async": false
+        },
+        {
+          "name": "observeNodeRestoredLocalStop",
+          "parameters": [
+            "facts"
+          ],
+          "async": true
         },
         {
           "name": "observeNodeRestoredModelStop",
@@ -3512,6 +3520,134 @@
               {
                 "path": "adapters/host-node/client-dispatch-observation.test.mjs",
                 "anchor": "single Source publication missing or refused checked Result policy never falls back to read policy"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "observeNodeRestoredLocalStop"
+          ],
+          "exports": [
+            "observeNodeRestoredLocalStop"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "export async function observeNodeRestoredLocalStop(facts)"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "Run reconciliation only observes that execution: it MUST NOT submit or"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "export async function observeNodeRestoredLocalStop(facts)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const value = compiledRunTokens.get(compiled);"
+              },
+              {
+                "path": "src/run_publication_host/client_source_free_observation.mbt",
+                "anchor": "pub fn client_compiled_local_execution_owner("
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.inc",
+                "anchor": "flock(original->descriptor, LOCK_EX | LOCK_NB)"
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.inc",
+                "anchor": "static napi_value local_fs_lease_receipt("
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "const original = retainRunStateFrame(originalFrame, ref);"
+              },
+              {
+                "path": "adapters/store-local/publication-owner-lease.mjs",
+                "anchor": "call('storeOwnerLeaseReceipt', lease)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "return entry.recoveryReady === true && entry.ownership.priorExecutionStopped(receipt);"
+              },
+              {
+                "path": "adapters/store-local/publication-owner-lease.mjs",
+                "anchor": "if (leaseClose?.outcome !== 'closed')"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "transact('physical_start', 'ClientRunPhysicalStartUnknown'"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "if (facts.journal.observeStoppedLocalExecutionOwner(facts.ref, retained) !== true ||"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/publication-owner-lease.mjs",
+                "anchor": "return undefined;"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "if (stored === undefined) return false;"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "facts.journal.markPhysicalClose(facts.ref, committed ? null : 'failed', retained);"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "The Host MUST distinguish confirmed business outcomes, pending cleanup and"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "This observation issues no cancellation or new start permission. Existing Run control still requires its original cancellation decision and confirmed physical stop."
+            },
+            "resources": [
+              {
+                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "anchor": "ownershipLease: record("
+              },
+              {
+                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "anchor": "ownershipLeaseDescriptors: 2"
+              },
+              {
+                "path": "adapters/store-local/publication-owner-lease.mjs",
+                "anchor": "const close = () => {"
+              }
+            ],
+            "extension": {
+              "notApplicable": "Private extensions of the same Store/Host/Journal and compiled Common originals; no public Run identity, new scheduler, arbitrary liveness callback or replacement resource authority."
+            },
+            "verification": [
+              {
+                "path": "adapters/host-node/client-source-operation.test.mjs",
+                "anchor": "test('local execution owner receipt atomically binds the original start"
+              },
+              {
+                "path": "adapters/host-node/client-source-operation.test.mjs",
+                "anchor": "test('local execution owner receipt rejects foreign and external-work originals"
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem-native.test.mjs",
+                "anchor": "test('Store lease locks the exact retained anchor"
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem-native.test.mjs",
+                "anchor": "test('Store lease rejects replacement of its exact opened anchor"
               }
             ]
           }
@@ -6381,7 +6517,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "219a7d216460d00bbff76a0f17446b5ad9eb2e8bf12aa479624e16d432fc2f87",
+      "sha256": "35cab8ced246e979b7b14cd9f7f7a392043b14b33aa77d7435640cd1023da9d4",
       "exports": [
         "admitOriginalHostRootFormat",
         "assertInitialControlHostPreparation",
@@ -6565,11 +6701,6 @@
         },
         {
           "name": "installedRemoteHttpTransport/installedRemoteHttpTransport",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "localProjectFilesystem",
           "parameters": [],
           "async": false
         },
@@ -11631,7 +11762,6 @@
         {
           "operations": [
             "openPreparedInstalledHost/preparation/init:installProjectSources/init:installProjectSources",
-            "localProjectFilesystem",
             "openInstalledHost/openInstalledHost#10",
             "readInstalledProjectSourcePreparation",
             "readSourceManagedRunRequirementsOwned/matches/matches",
@@ -18548,7 +18678,7 @@
     },
     {
       "module": "adapters/host-node/local-values-plan.mjs",
-      "sha256": "b6ba3ec489486bac76ff079f5ce0030fc4c9bb0433ece8e088b638bcff0ecdde",
+      "sha256": "8627c062e3afbe73d9e35b528de79f4b2a5f243a3f08d6d858af0676f2638d33",
       "exports": [
         "acquiredEffectPublicationAdmission",
         "acquiredEffectPublicationPlan",
@@ -18572,6 +18702,7 @@
         "sourceFreeContentEffectPublicationPlan",
         "sourceFreeEffectPublicationPlan",
         "sourceFreeInferEffectPublicationPlan",
+        "sourceFreePlanExecutionOwner",
         "sourceFreePlanOriginal",
         "sourceFreeTaskPlan",
         "sourceFreeValuesAdmissionEvidence",
@@ -19065,6 +19196,13 @@
             "operation",
             "issuance",
             "modelEvidence"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceFreePlanExecutionOwner",
+          "parameters": [
+            "plan"
           ],
           "async": false
         },
@@ -20235,6 +20373,146 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "sourceFreePlanExecutionOwner"
+          ],
+          "exports": [
+            "sourceFreePlanExecutionOwner"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function sourceFreePlanExecutionOwner(plan)"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "Run reconciliation only observes that execution: it MUST NOT submit or"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function sourceFreePlanExecutionOwner(plan)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "const originalPlans = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "executionOwner: Object.freeze({program: preparedProgram, compiled})"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const value = compiledRunTokens.get(compiled);"
+              },
+              {
+                "path": "src/run_publication_host/client_source_free_observation.mbt",
+                "anchor": "pub fn client_compiled_local_execution_owner("
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.inc",
+                "anchor": "flock(original->descriptor, LOCK_EX | LOCK_NB)"
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.inc",
+                "anchor": "static napi_value local_fs_lease_receipt("
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "const original = retainRunStateFrame(originalFrame, ref);"
+              },
+              {
+                "path": "adapters/store-local/publication-owner-lease.mjs",
+                "anchor": "call('storeOwnerLeaseReceipt', lease)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "return entry.recoveryReady === true && entry.ownership.priorExecutionStopped(receipt);"
+              },
+              {
+                "path": "adapters/store-local/publication-owner-lease.mjs",
+                "anchor": "if (leaseClose?.outcome !== 'closed')"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "transact('physical_start', 'ClientRunPhysicalStartUnknown'"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "if (facts.journal.observeStoppedLocalExecutionOwner(facts.ref, retained) !== true ||"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/publication-owner-lease.mjs",
+                "anchor": "return undefined;"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "if (stored === undefined) return false;"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "facts.journal.markPhysicalClose(facts.ref, committed ? null : 'failed', retained);"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "The Host MUST distinguish confirmed business outcomes, pending cleanup and"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "This observation issues no cancellation or new start permission. Existing Run control still requires its original cancellation decision and confirmed physical stop."
+            },
+            "resources": [
+              {
+                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "anchor": "ownershipLease: record("
+              },
+              {
+                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "anchor": "ownershipLeaseDescriptors: 2"
+              },
+              {
+                "path": "adapters/store-local/publication-owner-lease.mjs",
+                "anchor": "const close = () => {"
+              }
+            ],
+            "extension": {
+              "notApplicable": "Private extensions of the same Store/Host/Journal and compiled Common originals; no public Run identity, new scheduler, arbitrary liveness callback or replacement resource authority."
+            },
+            "verification": [
+              {
+                "path": "adapters/host-node/local-values-plan.test.mjs",
+                "anchor": "function assertOriginalExecutionOwner(plan, program, control)"
+              },
+              {
+                "path": "adapters/host-node/client-source-operation.test.mjs",
+                "anchor": "test('local execution owner receipt atomically binds the original start"
+              },
+              {
+                "path": "adapters/host-node/client-source-operation.test.mjs",
+                "anchor": "test('local execution owner receipt rejects foreign and external-work originals"
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem-native.test.mjs",
+                "anchor": "test('Store lease locks the exact retained anchor"
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem-native.test.mjs",
+                "anchor": "test('Store lease rejects replacement of its exact opened anchor"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -21053,8 +21331,8 @@
   ],
   "counts": {
     "modules": 16,
-    "operations": 825,
-    "exports": 99,
-    "explicitContractGroups": 60
+    "operations": 897,
+    "exports": 102,
+    "explicitContractGroups": 93
   }
 }

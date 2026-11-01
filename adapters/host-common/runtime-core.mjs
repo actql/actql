@@ -3110,6 +3110,13 @@ function publicationControl(moon) {
         throw new TypeError('Foreign Client compiled Run Definition');
       }
     },
+    checkClientCompiledLocalExecutionOwner(compiled, definition) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined ||
+          moon.clientProgramCheckCompiledLocalExecutionOwner(value, token(definition)) !== true) {
+        throw new TypeError('Foreign Client local execution owner');
+      }
+    },
     checkedClientRunCapturedContentCandidate(compiled, definition, acquisition, request,
       bindingWire, mediaType, contentCid, sizeBytes, limits) {
       const value = compiledRunTokens.get(compiled);
