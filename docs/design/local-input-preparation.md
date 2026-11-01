@@ -4769,3 +4769,33 @@ request, original input and cleanup-method checks before managed aliases or
 records retire. A changed Scope tuple cannot inherit the old Scope's cleanup
 result. Pending or throwing finish retains the same failed preparation; it does
 not fabricate an adopted Run or replace the Request's original abort duty.
+
+### Acquired Node Model provider and capture handoff
+
+A serialized Node Model with one Query Source retains the installed Source's
+original declaration, opaque provider capacity and transport bounds on the same
+Request. The typed module constructor creates the original Query and acquisition
+once and composes their capacity with that exact provider. Its additional bounded
+provider vector joins the module container debit before Query construction. An
+absent provider cannot select the base Row or Mock constructor. The existing
+source-free and two-Query Mock routes keep their original constructors.
+
+The Request constructs its serialization prefix before the module, then binds
+that same module, compiler, Definition, occurrence, Graph, prefix and installed
+physical read layout into its Model Plan. The Scope and adoption retain these
+originals together. A plain acquired Model without this prefix connection remains
+refused. The read snapshot follows prefix Ledger mutations; it cannot refresh an
+older snapshot or create another Scope.
+
+Source preparation consumes the adopted Plan's existing acquisition. Content
+borrows that same Run's Ledger and passes the same retained Row capture to the
+acquired prefix entry. Its private capture accessor checks the original receiver,
+live Source and retirement state without capturing again. Missing captured input
+cannot select the empty-input entry or construct an independent Content Ledger.
+
+The existing Content record retains a partial prefix and Store children until
+physical cleanup, then acknowledges the same prefix once. Source and Model Scope
+retirement stay independent. Pure provider-selection DATA and a borrowed Ledger
+must pass post-callback original-record checks before attaching aliases; callbacks
+that retire a record cannot resurrect its spent fields. Failures stay with the
+same Request and never reissue the compiler, module, prefix or physical operation.
