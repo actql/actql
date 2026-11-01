@@ -59864,7 +59864,7 @@
           "parameters": []
         }
       ],
-      "sha256": "19be6ecf123ccfe435fc5ca358317b90a4844c0d8e7c4bdf3451379e5bc5a67b",
+      "sha256": "8637d0d9b4b95c3b859d67ebe13369e6e9e2ca9baa2f00dcc0564be989ec9d60",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -60509,6 +60509,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The borrowed namespace reader reuses shape and bound admission only for the"
               }
             ],
             "inputsOutputs": [
@@ -60759,6 +60763,22 @@
               {
                 "path": "packages/python-sdk/tests/test_local_owned_store.py",
                 "anchor": "def test_owned_indexed_journal_reopens_in_fresh_process_with_original_rows("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_snapshot_transport.py",
+                "anchor": "def test_same_original_fence_members_reuse_only_shape_admission("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_snapshot_transport.py",
+                "anchor": "def test_copied_partial_and_reordered_fences_keep_full_shape_admission("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_snapshot_transport.py",
+                "anchor": "def test_same_original_fences_still_refuse_current_metadata_mutation("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_snapshot_transport.py",
+                "anchor": "def test_same_original_fences_cannot_select_prewrite_facts_in_successor_read("
               }
             ]
           }
