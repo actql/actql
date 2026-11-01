@@ -925,7 +925,8 @@ class LocalByteStore:
             if not reuse_snapshot or snapshot is None or snapshot != last_fenced_snapshot:
                 if not self._fences_match_locked(fences, successors):
                     raise LocalStorageError('Original Local inventory metadata changed')
-                if snapshot is not None and database._snapshot_identity() != snapshot:
+                if (snapshot is not None and type(database) is _SQLiteByteDatabase
+                        and database._snapshot_identity() != snapshot):
                     raise LocalStorageError('Original Local snapshot changed during metadata read')
                 last_fenced_snapshot = snapshot
 
