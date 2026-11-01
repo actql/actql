@@ -8,7 +8,7 @@ installation keeps its existing dependencies.
 This source directory is a recipe, not a shipped runtime. It contains no Wasm
 module or native library. A release producer must supply the exact committed
 source artifact and its independent build and execution receipts. The existing
-Core loader validates ABI80; an older module is not a fallback. Installed
+Core loader validates ABI81; an older module is not a fallback. Installed
 metadata must select standalone DuckDB `v1.4.3`; other library versions cannot
 enter this installed profile. The physical loader also checks the actual
 library version before use.

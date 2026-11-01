@@ -3668,12 +3668,17 @@ class LocalCore:
             if not 0 <= length <= value.limit:
                 raise LocalCoreError(operation, length)
             destination = bytearray(length)
-            for start in range(0, length, 16_384):
-                for index in range(start, min(start + 16_384, length)):
-                    byte = self._call('buffer', 'byte', value.handle, index)
-                    if not 0 <= byte <= 255:
-                        raise LocalCoreError('projection_byte', byte)
-                    destination[index] = byte
+            for start in range(0, length, 7):
+                count = min(7, length - start)
+                packed = self._call('buffer', 'read_packed', value.handle, start, count)
+                if not 0 <= packed < 1 << (8 * count):
+                    raise LocalCoreError('projection_bytes', packed)
+                # The same destination/copy reservation stays live throughout.
+                # No raw pointer/view, unbounded temporary buffer or fallback
+                # to another module/owner is introduced by scalar transport.
+                for offset in range(count):
+                    destination[start + offset] = packed & 255
+                    packed >>= 8
             physical.payload = bytes(destination)
             return physical.payload
 

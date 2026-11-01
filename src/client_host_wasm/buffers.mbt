@@ -464,6 +464,30 @@ pub fn byte(nonce : Int64, handle : Int, index : Int) -> Int {
 }
 
 ///|
+/// Transport at most seven original bytes in one nonnegative scalar. Each
+/// byte still passes the same Buffer Owner checks; no memory view escapes.
+pub fn read_packed(
+  nonce : Int64,
+  handle : Int,
+  start : Int,
+  count : Int,
+) -> Int64 {
+  guard selected(nonce) is Some(value) else { return -1L }
+  guard value.copies.get(handle) is Some((slot, _)) else { return -2L }
+  if count < 1 || count > 7 || start < 0 || start > 2147483647 - count {
+    return -6L
+  }
+  let mut packed = 0L
+  for offset in 0..<count {
+    guard @buffers.buffer_byte(value.pool, slot, start + offset) is Some(byte) else {
+      return -5L
+    }
+    packed = packed | (byte.to_int().to_int64() << (8 * offset))
+  }
+  packed
+}
+
+///|
 pub fn borrow(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) else { return -1 }
   guard value.copies.get(handle) is Some((slot, physical_input)) else {

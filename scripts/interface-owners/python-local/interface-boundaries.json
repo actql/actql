@@ -65,7 +65,7 @@
     },
     {
       "module": "packages/python-sdk/src/actql_sdk/_local_wasm_abi.py",
-      "sha256": "d60270235e6e682b806e8c4dd32c246e2f6bd02b6ee04643c899490605e7e2dd",
+      "sha256": "13b8efe0badec518fc97b24f4b579ec311280480f98cdfca5b122b07ab1a1609",
       "generator": {
         "path": "scripts/generate-local-wasm-abi.py",
         "anchor": "def render("
@@ -7821,7 +7821,7 @@
           ]
         }
       ],
-      "sha256": "ad9f07032b06353ca16cc0b42eb4b8cc54a1a1e73b9be80d5b4b7fcd7e7f4e4e",
+      "sha256": "c2906a5a2f44981d9ee91e4872552d238f79e973fe2bfdcecb006c912f2415da",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -61147,7 +61147,7 @@
       "module": "packages/python-sdk/src/actql_sdk/_local_wasm_abi.py",
       "responsibilityFacet": "primary",
       "operations": [],
-      "sha256": "d60270235e6e682b806e8c4dd32c246e2f6bd02b6ee04643c899490605e7e2dd",
+      "sha256": "13b8efe0badec518fc97b24f4b579ec311280480f98cdfca5b122b07ab1a1609",
       "role": "generated-binding",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [

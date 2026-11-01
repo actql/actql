@@ -48,6 +48,7 @@ options(
         "fill:actql_buffer_fill",
         "seal:actql_buffer_seal",
         "byte:actql_buffer_byte",
+        "read_packed:actql_buffer_read_packed",
         "borrow:actql_buffer_borrow",
         "return_reader:actql_buffer_return",
         "close:actql_buffer_close",

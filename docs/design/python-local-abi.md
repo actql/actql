@@ -1627,6 +1627,16 @@ prior immutable evidence retains its original source and module identity.
 
 ## Physical publication metadata transactions
 
+Private ABI81 transports up to seven original output bytes per nonnegative
+Int64 scalar. The same instance nonce and original buffer handle are retained;
+each selected byte passes the existing Buffer Owner guard. Count, position and
+closed/foreign access still refuse without exposing a partial scalar. Python
+unpacks only into its already reserved bounded destination and retains the same
+output loan through complete copying and physical cleanup. This changes no
+wire bytes, parser, authority, pool allowance or per-operation fuel. It exposes
+no raw address or memory view and supplies no legacy-module fallback.
+
+
 Fixed identity fields use the existing output Owner with their original 71-byte
 SHA-256 CID or 64-byte index-key bound. Full contract bodies keep the existing
 one-MiB envelope. Both field loans and their physical copies remain retained
