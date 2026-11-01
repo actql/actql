@@ -68,8 +68,70 @@ test "same-stage acquired serialized Model preserves original capture module inp
           stage.to_string() +
           "/" +
           @debug.to_string(issue.kind)
-        @checked.Source(@checked.SourceView(@context.Program(_))) =>
-          "Source.SourceView.Program"
+        @checked.Source(
+          @checked.SourceView(@context.SourceViewContextIssue::Program(reason))
+        ) => {
+          let branch = match reason {
+            @context.SourceViewProgramIssue::InvalidLimits => "InvalidLimits"
+            @context.SourceViewProgramIssue::Unavailable => "Unavailable"
+            @context.SourceViewProgramIssue::ForeignEnvironment =>
+              "ForeignEnvironment"
+            @context.SourceViewProgramIssue::ForeignCalendarEnvironment =>
+              "ForeignCalendarEnvironment"
+            @context.SourceViewProgramIssue::CalendarSelection(_) =>
+              "CalendarSelection"
+            @context.SourceViewProgramIssue::MissingCalendarArtifact(_) =>
+              "MissingCalendarArtifact"
+            @context.SourceViewProgramIssue::MissingCalendarSelection(_, _) =>
+              "MissingCalendarSelection"
+            @context.SourceViewProgramIssue::ForeignSource => "ForeignSource"
+            @context.SourceViewProgramIssue::ForeignPartition(_) =>
+              "ForeignPartition"
+            @context.SourceViewProgramIssue::BudgetExceeded => "BudgetExceeded"
+            @context.SourceViewProgramIssue::Registration(_, issue) =>
+              "Registration/" + @debug.to_string(issue)
+            @context.SourceViewProgramIssue::Program(issue) =>
+              match issue {
+                @stage_results.LocalProgramIssue::InvalidLimits =>
+                  "Program.InvalidLimits"
+                @stage_results.LocalProgramIssue::CheckOnlyPrefix =>
+                  "Program.CheckOnlyPrefix"
+                @stage_results.LocalProgramIssue::BudgetExceeded =>
+                  "Program.BudgetExceeded"
+                @stage_results.LocalProgramIssue::ForeignEnvironmentSource =>
+                  "Program.ForeignEnvironmentSource"
+                @stage_results.LocalProgramIssue::ForeignModelEnvironment =>
+                  "Program.ForeignModelEnvironment"
+                @stage_results.LocalProgramIssue::SourceViewStageCount =>
+                  "Program.SourceViewStageCount"
+                @stage_results.LocalProgramIssue::MissingSourceViewRegistrations(
+                  _
+                ) => "Program.MissingSourceViewRegistrations"
+                @stage_results.LocalProgramIssue::InvalidSourceViewRegistration(
+                  _,
+                  _
+                ) => "Program.InvalidSourceViewRegistration"
+                @stage_results.LocalProgramIssue::UnsupportedReceipt(_, _) =>
+                  "Program.UnsupportedReceipt"
+                @stage_results.LocalProgramIssue::LocalInput(_, _) =>
+                  "Program.LocalInput"
+                @stage_results.LocalProgramIssue::Import(_, _) =>
+                  "Program.Import"
+                @stage_results.LocalProgramIssue::Pipeline(_, reason) =>
+                  "Program.Pipeline/" + @debug.to_string(reason.kind)
+                @stage_results.LocalProgramIssue::Collection(_, _) =>
+                  "Program.Collection"
+                @stage_results.LocalProgramIssue::Results(_, _) =>
+                  "Program.Results"
+                @stage_results.LocalProgramIssue::Order(_, _) => "Program.Order"
+                @stage_results.LocalProgramIssue::Ports(_, _) => "Program.Ports"
+                @stage_results.LocalProgramIssue::TableInputs(_, _) =>
+                  "Program.TableInputs"
+                @stage_results.LocalProgramIssue::Wiring(_) => "Program.Wiring"
+              }
+          }
+          "Source.SourceView.Program/" + branch
+        }
         @checked.Source(@checked.SourceView(@context.Binding(_))) =>
           "Source.SourceView.Binding"
         @checked.Source(@checked.SourceView(@context.Context(_))) =>
