@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {types} from 'node:util';
+import {parse} from 'acorn';
 import {cleanupRequestInput} from '../local-node/request-preparation-adapter.mjs';
 
 // Execute the existing manager method with explicit Core original/phase ports.
@@ -252,4 +253,107 @@ test('Model Scope cannot be acquired for a copied graph or accessor-owned cleanu
   const accessor = {graph: f.model.graph, get scope() {assert.fail('Scope accessor must not be observed');}};
   assert.throws(() => f.adoptModel(accessor), {code: 'ForeignInstalledSourceProducer'});
   assert.deepEqual(f.calls, []); assert.equal(f.producer.liveRuns, 0);
+});
+
+
+// Extract the same private constructors and bookkeeping, with explicit native
+// and current ports. No Common image or physical admission is supplied here.
+function requestManagerMethods(names, ports) {
+  const selected = [], helpers = [];
+  const visit = node => {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'Property' && node.method && names.includes(node.key?.name)) selected.push(source.slice(node.start, node.end));
+    if (node.type === 'FunctionDeclaration' && ['constructRequestDomain', 'registerRequestRun'].includes(node.id?.name)) {
+      helpers.push(source.slice(node.start, node.end));
+    }
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit);
+      else if (value && typeof value === 'object') visit(value);
+    }
+  };
+  visit(parse(source, {ecmaVersion: 'latest', sourceType: 'module'}));
+  assert.equal(selected.length, names.length);
+  return Function(...Object.keys(ports), `const pendingRunRegistrations = new Set();
+    ${helpers.join('\n')} return ({${selected.join(',\n')}});`)(...Object.values(ports));
+}
+
+function registrationFixture(family, {full = false} = {}) {
+  const prepared = {}, request = {}, identity = {}, parent = {}, input = {}, holder = {}, value = {}, original = {};
+  const plan = {}, graph = {}, model = {graph, scope: undefined}, scope = {}, calls = [];
+  const state = {prepared, parent, holder, original, compilationKind: 'effect_free',
+    compilationFamily: family === 'capture' ? 'pure' : family, acquisitionCount: family === 'capture' ? 1 : 0,
+    modelGraph: graph, modelCompilation: {}, context: undefined};
+  const producer = {request, receipt: input, preparation: state, liveRuns: 0};
+  const runs = new WeakMap(), liveRuns = new Set(Array.from({length: full ? 4096 : 0}, () => ({})));
+  let onAdopt, after;
+  const nativeAdopt = () => {calls.push('adopt'); if (onAdopt) onAdopt(); return value;};
+  const moon = {clientProgramPreparationBorrowRead: h => {assert.equal(h, holder); return prepared;},
+    clientProgramRequestProgramModuleIssueCode() {}, clientProgramPrepareRequestCaptureModuleBody() {calls.push('module');},
+    clientProgramAdoptRequestCapturePreparation: nativeAdopt, clientProgramAdoptRequestProgramPreparation: nativeAdopt,
+    clientProgramPrepareRequestModelReadScope() {calls.push('scope'); return scope;},
+    clientProgramCompleteRequestModelPreparation() {calls.push('complete');},
+    clientProgramAdoptRequestModelPreparation: nativeAdopt,
+    clientProgramCompleteRequestContentPreparation() {calls.push('complete');},
+    clientProgramAdoptRequestContentPreparation: nativeAdopt};
+  state.context = {runtime: moon};
+  const ports = {current: () => {if (after) after();}, fail, types, runs, liveRuns,
+    originals: {installation: {sequenceContractOriginal: {moon, admission: {}}}},
+    callbacks: {request: () => request, contentRequirements: () => ({attempts: 1})},
+    producerForRequest: r => r === request ? producer : undefined,
+    checked: v => v, checkedRequestProgramPreparation: (_moon, v) => v,
+    originalTimedInvocation: () => undefined};
+  const methods = requestManagerMethods(['adoptPreparation', 'adoptCapturePreparation', 'adoptModelPreparation', 'adoptContentPreparation'], ports);
+  const invoke = () => family === 'pure' ? methods.adoptPreparation(prepared, request, identity)
+    : family === 'capture' ? methods.adoptCapturePreparation(prepared, request, identity, () => {calls.push('plan'); return plan;})
+    : family === 'model' ? methods.adoptModelPreparation(prepared, identity, plan, model)
+    : methods.adoptContentPreparation(prepared, identity, plan);
+  return {invoke, calls, state, producer, prepared, runs, liveRuns, value,
+    onAdopt: f => {onAdopt = f;}, after: f => {after = f;}};
+}
+
+test('Request registration refuses every full or duplicate original before native adoption', () => {
+  for (const family of ['pure', 'capture', 'model', 'content']) {
+    const full = registrationFixture(family, {full: true});
+    assert.throws(full.invoke, {code: 'ForeignInstalledSourceProducer'});
+    assert(!full.calls.includes('adopt')); assert.equal(full.producer.liveRuns, 0);
+    const duplicate = registrationFixture(family);
+    duplicate.runs.set(duplicate.prepared, {});
+    assert.throws(duplicate.invoke, {code: 'ForeignInstalledSourceProducer'});
+    assert(!duplicate.calls.includes('adopt')); assert.equal(duplicate.producer.liveRuns, 0);
+  }
+});
+
+test('Request registration owns the original returned Run before the next fallible current', () => {
+  for (const family of ['pure', 'capture', 'model', 'content']) {
+    const f = registrationFixture(family);
+    f.onAdopt(() => assert.throws(f.invoke, {code: 'ForeignInstalledSourceProducer'}));
+    const run = f.invoke();
+    assert.equal(run.value, f.value); assert.equal(f.runs.get(f.prepared), run);
+    assert(f.liveRuns.has(run)); assert.equal(f.producer.liveRuns, 1);
+    assert.equal(f.calls.filter(v => v === 'adopt').length, 1);
+    const primary = new Error('original current after adoption');
+    f.after(() => {throw primary;}); assert.throws(f.invoke, error => error === primary);
+    assert.equal(f.runs.get(f.prepared), run); assert(f.liveRuns.has(run));
+  }
+});
+
+test('Request Model retains its constructor Plan before adoption current and preserves null or undefined failures', () => {
+  for (const primary of [null, undefined]) {
+    const prepared = {}, request = {}, parent = {}, input = {}, model = {graph: {}}, plan = {}, compilation = {};
+    const state = {prepared, parent, compilationFamily: 'model'}, producer = {preparation: state, receipt: input};
+    let object, constructions = 0;
+    const view = {prepareModelCompilation: () => compilation,
+      adoptModelPreparation() {assert.equal(state.modelPlan, plan); throw primary;}};
+    object = requestManagerMethods(['prepareModelRun'], {current() {}, fail, view,
+      producerForRequest: () => producer});
+    const invoke = () => object.prepareModelRun(prepared, request, {}, model, (p, i, c) => {
+      assert.deepEqual([p, i, c], [parent, input, compilation]); assert.equal(state.preparing, true);
+      assert.throws(invoke, {code: 'ForeignInstalledSourceProducer'}); constructions++; return plan;
+    });
+    const capture = f => {let caught = false; try {f();} catch (cause) {caught = true; assert.equal(cause, primary);} assert(caught);};
+    capture(invoke); assert.equal(state.modelPlan, plan); assert.equal(state.preparing, false);
+    // The constructor body itself is covered separately; this continuation
+    // proves that post-constructor adoption failure cannot lose its same Plan.
+    assert.equal(constructions, 1);
+  }
 });
