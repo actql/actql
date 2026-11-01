@@ -2896,6 +2896,34 @@ remain retained, so the original publication cannot be replayed. Unknown,
 missing or refused index exports preserve the pending pair. The observation
 action alone is neither acknowledgement nor a public RunState observation.
 
+### Original observation data within one Host operation
+
+The ordinary Host records a private monotone operation generation only after
+entering its existing serialized operation. It is DATA, not a Run, continuation,
+request identity, grant, instruction refill or authority decision. The generation
+is cleared on exit. Raw diagnostic calls and every cleanup phase use the full
+observation path. Nested cleanup neither mints a generation nor refreshes fuel.
+
+The original binding may avoid rebinding the same input/current loans within
+that operation only after a prior reader completed successfully. Each actual SQL
+reader still checks the original file, settings, epoch and complete singleton
+adoption inventory before and after its frame. The physical metadata import
+accepts only that same original binding receiver, its currently verified reader,
+its original retained input/current loans and the currently invoking instance.
+Copied loans, changed operations, retired readers and failed frames cannot supply
+this observation witness. Nonstandard private suppliers use the full old path.
+
+The Wasm adapter retains only an alias of the first genuine immutable adoption
+row already retained by Common. Within the same verified operation it can reuse
+that DATA with fresh physical current checks on both sides. A different or zero
+generation repeats the full singleton observation. Common still compares the
+complete original Account bytes, adoption row and filesystem generation and
+independently evaluates each protected operation. No Allow, permission, result or
+mutable reader is cached. Original current/input retirement, cleanup
+acknowledgments, failed COMMIT/Unknown and Store lifetime remain unchanged.
+Private ABI83 adds the bounded i64 observation-generation import; installed
+modules must match the existing exact generated ABI contract.
+
 ### Saved Run observations and Result reads
 
 A repeated submit first observes the authenticated original submission under
