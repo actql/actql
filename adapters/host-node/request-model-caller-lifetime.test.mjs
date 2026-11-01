@@ -676,7 +676,7 @@ test('installed Model caller cuts its same managed aliases only after original r
   model.read = undefined; Reflect.apply(release, model, []);
   assert.equal(model.compiled, undefined); assert.equal(model.originalReadInstallation, undefined);
   assert.equal(f.early().plan, undefined); assert.equal(f.early().managed, undefined);
-  assert.equal(f.early().requested, undefined); assert.equal(model.closed, true);
+  assert.equal(f.early().requested, undefined); assert.equal(f.early().prepared, undefined); assert.equal(model.closed, true);
   Reflect.apply(release, model, []); assert.equal(f.early().aliasesReleased, true);
 });
 

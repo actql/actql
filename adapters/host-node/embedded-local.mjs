@@ -3340,7 +3340,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       }
       return early.model;
     }
-    early = {requestId: submission.requestId, requested, plan: undefined, model: undefined,
+    early = {prepared, requestId: submission.requestId, requested, plan: undefined, model: undefined,
       managed: undefined, selecting: true, aliasesReleased: false};
     const model = {prepared, control, compiled: undefined, runDefinition: undefined,
       graph: selection.graph, occurrence: selection.occurrence, serializationGraph: selection.serializationGraph,
@@ -3348,7 +3348,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       releaseAliases() {
         if (this !== model) throw clientOperationError('ForeignInstalledModelPreparation');
         if (early.aliasesReleased) return;
-        if (earlyMockInferPlans.get(prepared) !== early || early.model !== model ||
+        if (earlyMockInferPlans.get(early.prepared) !== early || early.model !== model ||
             model.scope !== undefined && model.scopeFinished !== true || model.read !== undefined) {
           throw clientOperationError('InstalledModelCleanupPending');
         }
@@ -3356,7 +3356,7 @@ async function openInstalledHost(originalInstallation, preparation) {
         // Request cleanup. No physical child or Scope is released by this cut.
         for (const key of Object.keys(model)) model[key] = undefined;
         model.closed = true;
-        early.requested = early.plan = early.managed = undefined;
+        early.prepared = early.requested = early.plan = early.managed = undefined;
         early.aliasesReleased = true;
       }};
     early.model = model;
