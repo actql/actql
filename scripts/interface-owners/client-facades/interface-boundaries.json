@@ -3270,7 +3270,7 @@
     {
       "module": "packages/node/index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5712586d51582f267991f8929d018d629252ca851cd2c9ff1e7f69015d85d58b",
+      "sha256": "8466652332438ba77fdeb0ec440e885d653176c11b48af8cbf6b31163b751ae2",
       "exports": [
         "ClientError",
         "RequestHeld",
@@ -3322,6 +3322,7 @@
         }
       ],
       "imports": [
+        "@actql/local-node/_internal/compile-cache",
         "@actql/sdk/_internal/client-errors",
         "node:module",
         "node:path"

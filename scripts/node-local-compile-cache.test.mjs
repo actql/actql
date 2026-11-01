@@ -2,17 +2,21 @@
 // Host boundary double. This is module ordering/routing, not Host admission.
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
-import {copyFile, mkdir, readFile, symlink, writeFile} from 'node:fs/promises';
+import {copyFile, mkdir, mkdtemp, readFile, symlink, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import test from 'node:test';
 import {createOwnedScratch} from './owned-scratch.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
-async function fixture({missing = false, provider} = {}) {
-  const scratch = await createOwnedScratch({parent: join(repository, '_build'),
+let owner;
+async function fixture({missing = false, provider, privateExport} = {}) {
+  // One test-file Owner retains every child installation until all synchronous
+  // children have ended; any failed test preserves the whole original scratch.
+  owner ??= await createOwnedScratch({parent: join(repository, '_build'),
     prefix: 'node-local-cache-', label: 'public Local optional cache boundary'});
-  const packages = join(scratch.path, 'node_modules/@actql');
+  const scratch = owner, directory = await mkdtemp(join(scratch.path, 'installation-'));
+  const packages = join(directory, 'node_modules/@actql');
   const node = join(packages, 'node'), local = join(packages, 'local-node');
   await mkdir(node, {recursive: true});
   for (const file of ['index.mjs', 'package.json']) {
@@ -28,6 +32,12 @@ async function fixture({missing = false, provider} = {}) {
       await copyFile(join(repository, 'packages/local-node', file), join(local, file));
       assert.deepEqual(await readFile(join(local, file)),
         await readFile(join(repository, 'packages/local-node', file)));
+    }
+    if (privateExport !== undefined) {
+      const manifest = JSON.parse(await readFile(join(local, 'package.json')));
+      if (privateExport === 'missing') delete manifest.exports['./_internal/compile-cache'];
+      else manifest.exports['./_internal/compile-cache'] = '../foreign/compile-cache.mjs';
+      await writeFile(join(local, 'package.json'), JSON.stringify(manifest));
     }
     await copyFile(join(repository, 'adapters/host-node/compile-cache.mjs'),
       join(host, 'compile-cache.mjs'));
@@ -53,11 +63,11 @@ export const publishInstalledEffect = () => {throw new Error('Unselected');};
       'export const createInstalledConnectorTable = () => {throw new Error("Unselected");};\n');
     if (provider !== undefined) await writeFile(join(local, 'index.mjs'), provider);
   }
-  return {scratch, local};
+  return {scratch, directory, local};
 }
 
 async function check(body, {mode = 'enabled', coverage = false, ...options} = {}) {
-  const f = await fixture(options), entry = join(f.scratch.path, 'entry.mjs');
+  const f = await fixture(options), entry = join(f.directory, 'entry.mjs');
   await writeFile(entry, `
 import assert from 'node:assert/strict';
 import {createRequire, syncBuiltinESMExports} from 'node:module';
@@ -77,8 +87,8 @@ ${body}
 `);
   const env = {...process.env, NODE_OPTIONS: ''};
   delete env.NODE_V8_COVERAGE;
-  if (coverage) env.NODE_V8_COVERAGE = join(f.scratch.path, 'coverage');
-  const result = spawnSync(process.execPath, [entry], {cwd: f.scratch.path,
+  if (coverage) env.NODE_V8_COVERAGE = join(f.directory, 'coverage');
+  const result = spawnSync(process.execPath, [entry], {cwd: f.directory,
     env, encoding: 'utf8', timeout: 10000, maxBuffer: 1024 * 1024});
   assert.equal(result.error, undefined);
   assert.equal(result.signal, null);
@@ -133,6 +143,20 @@ await assert.rejects(pending, error => error instanceof ClientError &&
   error.code === 'LocalProviderNotInstalled' && error.cause.code === 'ERR_MODULE_NOT_FOUND');
 assert.deepEqual(order, []);
 `, {missing: true});
+});
+
+test('missing private export refuses before helper or provider with no fallback', async () => {
+  await check(`
+await assert.rejects(node.connect({mode: 'local'}), {code: 'ERR_PACKAGE_PATH_NOT_EXPORTED'});
+assert.deepEqual(order, []);
+`, {privateExport: 'missing'});
+});
+
+test('a foreign private export target refuses before helper or provider with no fallback', async () => {
+  await check(`
+await assert.rejects(node.connect({mode: 'local'}), {code: 'ERR_INVALID_PACKAGE_TARGET'});
+assert.deepEqual(order, []);
+`, {privateExport: 'foreign'});
 });
 
 test('the resolved original provider namespace remains the connect receiver', async () => {
