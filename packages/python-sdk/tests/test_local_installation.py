@@ -199,6 +199,28 @@ class OriginalLocalInstallationTests(unittest.TestCase):
             self.assertTrue(value._pins)
             self.assertTrue(value.close())
 
+    def test_named_root_change_after_consumed_close_refuses_before_constructor_returns(self):
+        with TemporaryDirectory(prefix='actql-install-') as directory:
+            path = Path(directory)
+            core, _ = self.core()
+            close = LocalFileRoot.close_original
+            stopped = []
+            def change(root, reader):
+                result = close(root, reader)
+                stopped.append((root, reader))
+                if len(stopped) == 1:
+                    source = path / 'source'
+                    source.rename(path / 'source-original')
+                    source.mkdir(mode=0o700)
+                return result
+            with patch.object(LocalFileRoot, 'close_original', change):
+                with self.assertRaises(LocalInstallationCleanupPending) as raised:
+                    self.create(core, path)
+            self.assertEqual(len(stopped), 1)
+            value = raised.exception.cleanup_installation
+            self.assertNotIn(stopped[0], value._readers)
+            self.assertTrue(value.close())
+
     def test_pending_bootstrap_retirement_keeps_same_output_without_rebootstrap(self):
         with TemporaryDirectory(prefix='actql-install-') as directory:
             core, calls = self.core()
