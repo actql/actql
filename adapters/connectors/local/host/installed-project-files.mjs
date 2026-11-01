@@ -261,6 +261,14 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
     for(const key of Object.keys(run))run[key]=undefined;
     run.retired=true;
   }
+  function contentSourceEntry(resource,reference){
+    // These are the SAME declaration aliases captured by installation below.
+    // Keep their existing order; do not parse/reconstruct declarations at the
+    // Request constructor or select another connection after a refusal.
+    const index=sources.findIndex((source,index)=>source.queryAliases.some((alias,slot)=>
+      bundle.sources[index].queryAliases[slot].resource===resource&&alias.sourceRef===reference));
+    return index<0?undefined:bundle.sources[index];
+  }
   function prepareContentRun(prepared,request,recipe,graph,contentPreparation){
     current();
     if(typeof prepareManagedContentRun!=='function')fail('ForeignLocalFilesContentPreparation');
@@ -278,33 +286,30 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
     contentPreparation.localPreparation=run;
     sharedRuns.set(prepared,run);
     try{
-      run.hostRun=Reflect.apply(prepareManagedContentRun,undefined,[prepared,request,graph,recipe,()=>{
+      run.hostRun=Reflect.apply(prepareManagedContentRun,undefined,[prepared,request,graph,recipe,(parent,requestInput)=>{
+        const control=Object.getOwnPropertyDescriptor(contentPreparation,'contentControl')?.value;
+        const construct=control===undefined?undefined:Object.getOwnPropertyDescriptor(control,'prepareRequestKeyedPlan')?.value;
+        if(typeof construct!=='function')fail('LocalFilesContentPreparationUnavailable');
         const keyed=recipe.keyedAcquisition;
         if(keyed===undefined||moon.clientProgramKeyedAcquisitionMatchesProgram(keyed,prepared)!==true)
           fail('ForeignLocalFilesContentPreparation');
         const coordinates=moon.clientProgramKeyedDirectAcquisitionCoordinates(keyed);
         const stage=runtimeOptionalField(coordinates,0),input=runtimeOptionalField(coordinates,1);
         if(!Number.isSafeInteger(stage)||!Number.isSafeInteger(input))fail('LocalFilesContentPreparationUnavailable');
-        const requirement=checked(moon.clientProgramPrepareLocalQueryRequirement(prepared,stage,input,
-          recipe.registry,recipe.values,recipe.fragment,recipe.ordered));
-        const directRef=moon.clientProgramQueryRequirementSourceRef(requirement);
+        const source=checked(moon.clientProgramSelectInstalledSourceInput(prepared,request,stage,input));
+        if(moon.clientProgramSelectedSourceInputKind(source)!=='query')fail('LocalFilesContentPreparationUnavailable');
+        const directRef=moon.clientProgramSelectedSourceInputRef(source);
+        if(typeof directRef!=='string')fail('LocalFilesContentPreparationUnavailable');
         const facts=checked(moon.clientProgramKeyedAcquisitionSourceEvidenceFacts(keyed));
-        const direct=bundle.sources.find(entry=>JSON.parse(entry.wire).views.some(view=>
-          view.resource==='files'&&view.source_ref===directRef));
-        const content=bundle.sources.find(entry=>JSON.parse(entry.wire).views.some(view=>
-          view.resource==='contents'&&view.source_ref===facts[0]));
+        const direct=contentSourceEntry('files',directRef);
+        const content=contentSourceEntry('contents',facts[0]);
         if(direct===undefined||content===undefined)fail('LocalFilesContentPreparationUnavailable');
-        const acquisition=checked(moon.clientProgramRowSourcePrepareAcquisition(direct.declaration,
-          requirement,queryContract,evidenceContract));
-        const capacity=moon.clientProgramInstalledRowCaptureCapacity(acquisition);
-        if(capacity===undefined)fail('LocalFilesContentPreparationUnavailable');
         run.keyed=keyed;run.contentEntry=content;
-        run.selected=checked(moon.clientProgramInstalledManagedKeyedContentPrepare(prepared,capacity,keyed,
-          content.declaration,content.limits.maxPageBytes,content.limits.maxPageBytes,1000000,
+        run.selected=Reflect.apply(construct,control,[parent,requestInput,request,keyed,
+          direct.declaration,content.declaration,content.limits.maxPageBytes,1000000,queryContract,evidenceContract,
           [BigInt(direct.limits.maxPages)*BigInt(direct.limits.maxPageBytes),keyedTransports.get(content).transferBytes],
-          [BigInt(direct.limits.maxPageBytes),keyedTransports.get(content).executionBytes],content.limits.maxPageBytes,1000000,
-          recipe.registry,recipe.values,recipe.fragment,recipe.ordered,recipe.task,recipe.step,
-          recipe.prefixRetainedBytes,recipe.prefixExecutionBytes));
+          [BigInt(direct.limits.maxPageBytes),keyedTransports.get(content).executionBytes],
+          recipe.registry,recipe.task,recipe.step,recipe.prefixLimits,recipe.workspace]);
         return run.selected;
       },contentPreparation]);
       if(run.hostRun===undefined||run.hostRun.selectedKeyed!==run.selected||run.hostRun.value===undefined)

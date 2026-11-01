@@ -23,9 +23,10 @@ function method(file, name, ports) {
   return Function(...Object.keys(ports),`return ({${s.slice(selected.start,selected.end)}}).${name};`)(...Object.values(ports));
 }
 const fail=code=>{throw Object.assign(new Error(code),{code});},ok=value=>({$tag:1,_0:value});
-async function fixture({failurePhase,failure,failKeyedRead,hostRetirement=false}={}) {
+async function fixture({failurePhase,failure,failKeyedRead,hostRetirement=false,requestPlanOnly=false}={}) {
   const prepared={},request={},sdkRequest={},parent={},input={},holder={},original={},value={},selected={},compilation={};
   const graph=Object.freeze({task:0,step:1}),rawGraph={},keyed={},declaration={},calls=[];
+  const sourceSelection={},prefixWorkspace={retainedBytes:1n,executionBytes:1n};let requestConstructors=0;
   const plan={kind:'serialization',serializationGraph:graph,compiled:{},runDefinition:{}};
   const record={},originalInstallation={releaseRequestDomainAliases(){}},originals={},runs=new WeakMap(),liveRuns=new Set(),view={};
   let profile,localOptions,currentFailure;
@@ -52,6 +53,9 @@ async function fixture({failurePhase,failure,failKeyedRead,hostRetirement=false}
     clientProgramLocalFileTimestamp(){},clientProgramResourceReferenceIssuer:()=>({}),
     clientProgramKeyedAcquisitionMatchesProgram:(k,p)=>k===keyed&&p===prepared,
     clientProgramKeyedDirectAcquisitionCoordinates:()=>({_0:0,_1:0}),
+    clientProgramSelectInstalledSourceInput(p,r,t,i){assert.deepEqual([p,r,t,i],[prepared,request,0,0]);return ok(sourceSelection);},
+    clientProgramSelectedSourceInputKind:s=>{assert.equal(s,sourceSelection);return 'query';},
+    clientProgramSelectedSourceInputRef:s=>{assert.equal(s,sourceSelection);return 'local:files';},
     clientProgramPrepareLocalQueryRequirement:()=>ok({}),clientProgramQueryRequirementSourceRef:()=> 'local:files',
     clientProgramKeyedAcquisitionSourceEvidenceFacts:()=>ok(['local:contents']),
     clientProgramRowSourcePrepareAcquisition:d=>{assert.equal(d,declaration);return ok({});},
@@ -107,21 +111,51 @@ async function fixture({failurePhase,failure,failKeyedRead,hostRetirement=false}
     baseEnvironmentWire:'{}',authorizationFor:async()=>({context:{contextCid:'context'},assertAccountCurrent(){}}),
     prepareManagedContentRun(p,r,g,recipe,construct,preparation){assert.equal(profile,record.managedSourceProfile);return host(moon,p,r,g,recipe,construct,preparation);}});
   record.managedSourceProfile=profile;
-  const content=installNodeContentRun({moon,core:{contentGenerationControl:{workspaceCapacity:()=>({retainedBytes:1n,executionBytes:1n}),
-    prefixCapacity(p,t,s){assert.deepEqual([p,t,s],[prepared,0,1]);calls.push('prefix');return{retainedBytes:5n,executionBytes:7n};}},
+  const prefixControl={workspaceCapacity:()=>prefixWorkspace,
+    prefixCapacity(p,t,s){if(requestPlanOnly)assert.fail('Original Request must reserve before any prefix provider is constructed');
+      assert.deepEqual([p,t,s],[prepared,0,1]);calls.push('prefix');return{retainedBytes:5n,executionBytes:7n};},
+    prepareRequestKeyedPlan(p,i,r,k,d,c,maxBytes,maxWork,q,e,transfers,executions,contracts,task,step,limits,workspace){
+      assert.deepEqual([p,i,r,k,d,c],[parent,input,request,keyed,declaration,declaration]);
+      assert.equal(record.computeRuns.get(prepared).selecting,true);
+      assert.equal(state.contentPreparation.contentControl,prefixControl);assert.equal(workspace,prefixWorkspace);
+      assert.equal(maxBytes,8);assert.equal(maxWork,1000000);assert.equal(contracts,'{}');
+      assert.deepEqual([task,step],[0,1]);assert.equal(limits.maxWork,1000000);
+      assert.equal(typeof q,'string');assert.equal(typeof e,'string');assert.deepEqual(transfers,[16n,116n]);
+      assert.deepEqual(executions,[8n,65608n]);requestConstructors++;calls.push('selected');return selected;
+    }};
+  const content=installNodeContentRun({moon,core:{contentGenerationControl:prefixControl,
     publicationControl:{checkClientCompiledRunOwner(c,p){assert.equal(c,plan.compiled);assert.equal(p,prepared);}}},
     preparedRunRequired:true,assertRunCurrent(){},registry:'{}',values:'{}',ownerPrincipal:'fixture',
     retainPreparation:(p,original)=>retainContent(moon,p,original),
     prepareKeyedManagedRun:(p,r,g,recipe,original)=>profile.prepareManagedContentRun(p,r,recipe,g,original),borrowKeyedManagedLedger:()=>assert.fail('No physical Ledger borrowed')});
   return{calls,content,profile,prepared,request,plan,graph,keyed,compilation,record,state,control,selected,localOptions,declaration,moon,view,original,
+    prefixControl,requestConstructors:()=>requestConstructors,
     child:(r={})=>view.prepareKeyedRead(prepared,declaration,original,r),failCurrent:e=>{currentFailure=e;},
     compile:(changes={})=>content.prepareManagedKeyedCompilation({preparedProgram:prepared,request,serializationGraph:graph,keyedAcquisition:keyed,...changes}),
     bind:()=>content.prepareManagedKeyedRun({preparedProgram:prepared,request,plan,keyedAcquisition:keyed})};
 }
 
+test('Local keyed caller reaches the same Request constructor before any old Query or prefix capacity reconstruction',async()=>{
+  const f=await fixture({requestPlanOnly:true});
+  f.moon.clientProgramPrepareLocalQueryRequirement=()=>assert.fail('No JS Query issuer before Request backing');
+  f.moon.clientProgramRowSourcePrepareAcquisition=()=>assert.fail('No JS acquisition constructor before Request backing');
+  f.moon.clientProgramInstalledManagedKeyedContentPrepare=()=>assert.fail('No old unowned Plan constructor');
+  assert.equal(f.compile(),f.compilation);assert.equal(f.requestConstructors(),1);
+  assert.equal(f.compile(),f.compilation);assert.equal(f.requestConstructors(),1);
+  assert.deepEqual(f.calls,['selected','compile','complete','adopt']);await f.profile.close();
+});
+
+test('Local keyed caller refuses a missing Request constructor without a legacy Query or Plan fallback',async()=>{
+  const f=await fixture();delete f.prefixControl.prepareRequestKeyedPlan;
+  assert.throws(f.compile,{code:'LocalFilesContentPreparationUnavailable'});
+  assert.equal(f.requestConstructors(),0);assert.equal(f.calls.includes('selected'),false);
+  const run=f.record.computeRuns.get(f.prepared);assert.equal(run.selectedKeyed,undefined);
+  await f.profile.close();
+});
+
 test('Request keyed Content selects then compiles once before completing and adopting its same Host parent',async()=>{
   const f=await fixture();assert.equal(f.compile(),f.compilation);assert.equal(f.compile(),f.compilation);
-  assert.deepEqual(f.calls,['prefix','selected','compile','complete','adopt']);
+  assert.deepEqual(f.calls,['selected','compile','complete','adopt']);
   const run=f.record.computeRuns.get(f.prepared);assert.equal(run.selectedKeyed,f.selected);assert.equal(run.contentCompilation,f.compilation);
   f.bind();f.bind();await f.profile.close();assert.equal(f.calls.filter(x=>x==='compile').length,1);
 });
@@ -176,7 +210,7 @@ test('actual planFor forwards its original keyed selection through adoption befo
     diagnostic:()=>assert.fail('No successful-path diagnostic'),clientOperationError:code=>Object.assign(new Error(code),{code})};
   const planFor=Function(...Object.keys(ports),`return (${source.slice(selected.start,selected.end)});`)(...Object.values(ports));
   assert.equal(planFor({preparedProgram:f.prepared,requestId:'original-request'},undefined,f.request,f.keyed),f.plan);
-  assert.deepEqual(f.calls,['prefix','selected','compile','complete','adopt','task-run']);await f.profile.close();
+  assert.deepEqual(f.calls,['selected','compile','complete','adopt','task-run']);await f.profile.close();
 });
 
 

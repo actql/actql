@@ -15,7 +15,7 @@ let selected;const walk=n=>{if(!n||typeof n!=='object')return;
   if(n.type==='Property'&&n.key?.name==='retireManagedComputeRun')selected=n;
   for(const v of Object.values(n)){if(Array.isArray(v))v.forEach(walk);else if(v&&typeof v==='object')walk(v);}};
 walk(parse(host,{ecmaVersion:'latest',sourceType:'module'}));assert(selected);
-function fixture({prefixFailure,constructFailure,retainFailure,retainEarlyPlan=false}={}) {
+function fixture({entryFailure,constructFailure,retainFailure,retainEarlyPlan=false}={}) {
   const record={computeRuns:new WeakMap(),computeLiveRuns:new Set()},origins=new WeakMap(),held=[],captured=[],retained=[];
   const earlyPlans=new WeakMap();let selectionCuts=0;
   const moon={clientProgramAcquisitionCount:p=>p.keyed?2:0,
@@ -30,6 +30,7 @@ function fixture({prefixFailure,constructFailure,retainFailure,retainEarlyPlan=f
     if(retainEarlyPlan)earlyPlans.set(p,{graph:{},compiled:{},definition:{}});
     preparation.inputHolder={prepared:p,retiring:false};retained.push(preparation);};
   function prepare(p,r,graph,recipe,preparation,keyed) {
+    if(entryFailure)throw entryFailure;
     const value={},origin={request:r,severed:false,allowed:true};origins.set(value,origin);
     const run={runtime:moon,prepared:p,request:r,value,preparationFunded:true,preparationKind:keyed?'keyed-content-plan':'serialization-plan',
       serialization:{},serializationCleaned:false,content:{},manager:{severPreparation(){}},original:{},closed:false,
@@ -45,7 +46,7 @@ function fixture({prefixFailure,constructFailure,retainFailure,retainEarlyPlan=f
     prepareKeyedManagedRun:(p,r,g,recipe,preparation)=>prepare(p,r,g,recipe,preparation,true),borrowKeyedManagedLedger:()=>assert.fail('No physical Ledger'),
     prepareSerializationManagedRun:(p,r,plan,limits,workspace,preparation)=>prepare(p,r,plan.serializationGraph,undefined,preparation,false),
     core:{contentGenerationControl:{workspaceCapacity:()=>({retainedBytes:0n,executionBytes:0n}),
-      prefixCapacity:()=>{if(prefixFailure)throw prefixFailure;return{retainedBytes:1n,executionBytes:1n};},requestPrefixCapacity:()=>({retainedBytes:1n,executionBytes:1n})},
+      prefixCapacity:()=>assert.fail('No prefix reconstruction before Request constructor'),requestPrefixCapacity:()=>({retainedBytes:1n,executionBytes:1n})},
       publicationControl:{checkClientCompiledRunOwner(c,p){assert.equal(c.owner,p);}}}});
   const ports={record,moon,checked,finishInstalledEffectModelScope,
     clientOperationError:code=>Object.assign(new Error(code),{code}),
@@ -154,8 +155,8 @@ test('Content uses one callbackful fallback observation and refuses retirement r
 });
 
 test('failed Content construction keeps its aliases until the same Request abort and consumes its borrow once',()=>{
-  for(const phase of ['quote','constructor']){
-    const failure=new Error('same '+phase),f=fixture(phase==='quote'?{prefixFailure:failure,retainEarlyPlan:true}:{constructFailure:failure,retainEarlyPlan:true});
+  for(const phase of ['entry','constructor']){
+    const failure=new Error('same '+phase),f=fixture(phase==='entry'?{entryFailure:failure,retainEarlyPlan:true}:{constructFailure:failure,retainEarlyPlan:true});
     assert.throws(()=>f.open(),e=>e===failure);const original=f.retained[0],holder=original.inputHolder,parent={};
     let ready=false,returns=0,aborts=0,initialRetirements=0,returned=false;
     const returnFailure=new Error('same consumed return');

@@ -6567,6 +6567,26 @@ export function contentGenerationControl(moon, publications) {
       return publications.prepareCheckedClientRequestSerializationPlan(parent, input, request, compiled,
         definition, limits, workspace === undefined ? undefined : workspaces.get(workspace));
     },
+    prepareRequestKeyedPlan(parent, input, request, keyed, directDeclaration, contentDeclaration,
+      maxBytes, maxWork, queryContract, evidenceContract, transfers, executions, contracts, task, step,
+      limits, workspace) {
+      const prepare = moon.clientProgramPrepareRequestKeyedContentPlan;
+      if (typeof prepare !== 'function') throw new TypeError('Request keyed Content constructor unavailable');
+      if (!quantity(maxBytes) || !quantity(maxWork, 1) ||
+          !quantity(limits?.maxRows) || !quantity(limits?.maxWork, 1) ||
+          !quantity(limits?.maxEntries, 1) || !quantity(limits?.maxValueBytes) ||
+          !quantity(limits?.maxValueNodes, 1) || !quantity(limits?.maxValueDepth) ||
+          !quantity(limits?.maxFrames, 1)) throw new TypeError('Invalid Content prefix limits');
+      if (workspace !== undefined && !workspaces.has(workspace)) {
+        throw new TypeError('Foreign Content workspace capacity');
+      }
+      return checked(Reflect.apply(prepare, moon, [parent, input, request, keyed,
+        directDeclaration, contentDeclaration, maxBytes, maxBytes, maxWork,
+        queryContract, evidenceContract, transfers, executions, maxBytes, maxWork,
+        contracts, task, step, limits.maxRows, limits.maxWork, limits.maxEntries,
+        limits.maxValueBytes, limits.maxValueNodes, limits.maxValueDepth, limits.maxFrames,
+        workspace === undefined ? undefined : workspaces.get(workspace)]));
+    },
     requestPrefixCapacity(selected) {
       const value = moon.clientProgramPreparedInstalledSerializationPrefixRequirements(selected);
       if (!Array.isArray(value) || value.length !== 6 ||

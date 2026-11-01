@@ -90,6 +90,23 @@ test "keyed Content constructs one Query and retains its actual prefix on the sa
   let run = begin_request_content_managed_run(parent, fixture.request).unwrap()
   assert_true(run.content is KeyedContent(original, _) && physical_equal(original, selected))
   assert_true(physical_equal(selected.prefix.unwrap(), prefix))
+  // The already-existing managed Source getter returns these exact selected
+  // originals. No new getter, query/capacity reconstruction or grant is needed.
+  let (read, requirement, acquisition, direct) = begin_installed_managed_capture_source_read(
+    run, fixture.prepared, fixture.request, fixture.original.declaration,
+    selected.direct_stage,
+  ).unwrap()
+  assert_true(physical_equal(direct, selected.direct))
+  assert_true(physical_equal(requirement, selected.direct.requirement))
+  assert_true(selected.direct.acquisition is Some(original) &&
+    physical_equal(original, acquisition))
+  let ledger = prepare_installed_managed_run_ledger(
+    run, fixture.prepared, fixture.request, [direct], [8192L], [4096L],
+    fixture.contracts, source_query_original_values,
+    Some(source_query_original_fragment), None,
+  ).unwrap()
+  assert_true(physical_equal(ledger, parent.ledger))
+  retire_installed_source_read(read).unwrap()
   assert_false(@resources.return_preparation_body_borrow(fixture.holder).unwrap())
   retire_installed_managed_run(run).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)

@@ -56,6 +56,31 @@ test('Content Host uses the same original content control that owns its workspac
   assert.equal(nativeConstructors,1);
 });
 
+test('keyed Content facade forwards original Request constructor inputs and unwraps only its own retained workspace',()=>{
+  const parent={},input={},request={},keyed={},direct={},content={},contracts={},rawWorkspace={},selected={};
+  const transfers=[11n,12n],executions=[13n,14n],q='original query contract',e='original evidence contract';
+  const limits={maxRows:3,maxWork:20,maxEntries:30,maxValueBytes:40,maxValueNodes:50,maxValueDepth:6,maxFrames:7};
+  let calls=0,primary;
+  const moon={clientProgramEffectInputExportLimits:()=>({}),
+    clientProgramSerializationWorkspaceCapacity:()=>rawWorkspace,
+    clientProgramSerializationCapacityBytes:()=>({_0:11n,_1:12n}),
+    clientProgramPrepareRequestKeyedContentPlan(...args){assert.equal(this,moon);
+      assert.deepEqual(args,[parent,input,request,keyed,direct,content,80,80,90,q,e,transfers,executions,
+        80,90,contracts,1,2,3,20,30,40,50,6,7,rawWorkspace]);
+      assert.equal(args[11],transfers);assert.equal(args[12],executions);calls++;
+      if(primary!==undefined)throw primary;return{$tag:1,_0:selected};}};
+  const control=contentGenerationControl(moon,{});
+  const workspace=control.workspaceCapacity({generation:{maxBytes:100,maxValueNodes:100,maxValueDepth:10,maxFrames:10},
+    reference:{maxBytes:100,maxNodes:100,maxDepth:10},contract:localContractLimits,output:localOutputLimits,identitySlots:100});
+  const prepare=actual=>control.prepareRequestKeyedPlan(parent,input,request,keyed,direct,content,
+    80,90,q,e,transfers,executions,contracts,1,2,limits,actual);
+  assert.equal(prepare(workspace),selected);assert.equal(calls,1);
+  assert.throws(()=>prepare({...workspace}),/Foreign Content workspace capacity/);assert.equal(calls,1);
+  primary=new Error('same original typed constructor failure');assert.throws(()=>prepare(workspace),cause=>cause===primary);
+  assert.equal(calls,2);delete moon.clientProgramPrepareRequestKeyedContentPlan;
+  assert.throws(()=>prepare(workspace),/Request keyed Content constructor unavailable/);assert.equal(calls,2);
+});
+
 function managerFixture({compileFailure,completeFailure}={}) {
   const prepared={},request={},identity={},parent={},input={},graph={},artifact={},selected={},value={},original={};
   const holder={},admission={},calls=[],runs=new WeakMap(),liveRuns=new Set(),view={};

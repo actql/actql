@@ -357,10 +357,8 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
     try {
       retainOriginalPreparation(preparedProgram, original);
       const {task, step} = serializationGraph;
-      const prefix = control.prefixCapacity(preparedProgram, task, step,
-        bodies, prefixLimits, workspace, true);
       original.recipe = Object.freeze({...bodies, task, step, keyedAcquisition,
-        prefixRetainedBytes: prefix.retainedBytes, prefixExecutionBytes: prefix.executionBytes});
+        prefixLimits, workspace});
       original.managed = prepareKeyedManagedRun(preparedProgram, request, serializationGraph, original.recipe, original);
       if (original.managed === undefined || original.managed.value === undefined ||
           original.managed.selectedKeyed === undefined || original.managed.contentCompilation === undefined) {
