@@ -1068,8 +1068,35 @@ fn prepare_installed_managed_run_ledger_owned(
       values_body, fragment_body, ordered_body, ledger,
     )
   }
-  if value.content is SerializationContent(_) {
-    return Err(Unsupported)
+  if value.content is SerializationContent(content) {
+    // The acquired Model already adopted this SAME module/compiler and
+    // prefix. Borrow its retained Source inventory without widening a bare
+    // terminal Content Run or reconstructing capacity after adoption.
+    guard value.captured_preparation is Some(plan) &&
+      physical_equal(content.prepared, plan.prepared) &&
+      physical_equal(content.request, plan.request) &&
+      plan.compilation is Some(@publication_host.Tasks(compilation)) &&
+      compilation.infers.length() == 1 &&
+      compilation.infers[0].serialization is Some(component) &&
+      @publication_host.client_task_compilation_serialization(compilation)
+      is Some(original_component) &&
+      physical_equal(component, original_component) &&
+      @publication_host.client_compiled_run_matches_tasks(
+        content._observed_compiled,
+        plan.prepared,
+        compilation,
+      ) &&
+      @publication_host.check_client_compiled_run_definition(
+        content._observed_compiled,
+        content._observed_definition,
+      )
+      is Ok(_) else {
+      return Err(Unsupported)
+    }
+    return prepare_retained_installed_capture_ledger(
+      value, plan, capacities, transport_bytes, transport_execution_bytes, installed_contracts,
+      values_body, fragment_body, ordered_body, ledger,
+    )
   }
   let owner = match installed_managed_run_owner(value) {
     Err(issue) => return Err(issue)
