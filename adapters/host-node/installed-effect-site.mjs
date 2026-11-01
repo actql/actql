@@ -278,7 +278,7 @@ function cleanupCustody(physical, requirePhysical = false) {
       // Opening may have begun physical work before returning an owner.
       // Missing custody is not evidence that the operation stopped.
       if (!await releaseAuthorizations()) return false;
-      if (requirePhysical && physical === undefined) return false;
+      if (requirePhysical && !physicalReleased && physical === undefined) return false;
       await releaseInputs();
       if (physical !== undefined && !physicalReleased) {
         const cleaned = await physical.cleanup();
@@ -307,7 +307,7 @@ function cleanupCustody(physical, requirePhysical = false) {
     cleanupPending() {
       return authorizations.some(state => !state.released) ||
         !inputsReleased && typeof stage?.releaseInputs === 'function' ||
-        requirePhysical && physical === undefined ||
+        requirePhysical && !physicalReleased && physical === undefined ||
         physical !== undefined && !physicalReleased ||
         release !== undefined && !released ||
         !disposed && stage?.dispose !== undefined || recoveryResources !== undefined;

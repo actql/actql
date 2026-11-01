@@ -140,6 +140,27 @@ test('actual Effect custody releases original stage and payload aliases before r
   assert.deepEqual(events, ['inputs','payloads','dispose','resource','resource']);
 });
 
+test('released physical child stays released while SAME resource cleanup remains pending', async () => {
+  const text = source('./installed-effect-site.mjs');
+  const cleanupCustody = construct(`${declaration(text, 'cleanupCustody')}; return cleanupCustody;`,
+    {fail:code => {throw error(code);}});
+  let physicalPending = true, resourcePending = true, physicalCleanups = 0, resourceCloses = 0;
+  const physical = {close() {}, cleanup() {physicalCleanups++; physicalPending = false; return true;},
+    cleanupPending:() => physicalPending};
+  const custody = cleanupCustody(undefined, true);
+  custody.attachPhysical(physical);
+  custody.retainRecoveryResources({close() {resourceCloses++; return !resourcePending;},
+    status:() => ({pending:resourcePending})});
+  assert.equal(await custody.cleanup(), false);
+  assert.equal(custody.cleanupPending(), true); assert.equal(physicalCleanups, 1); assert.equal(resourceCloses, 1);
+  resourcePending = false;
+  assert.equal(await custody.cleanup(), true); assert.equal(custody.cleanupPending(), false);
+  assert.equal(await custody.cleanup(), true);
+  assert.equal(physicalCleanups, 1); assert.equal(resourceCloses, 2);
+  const neverAcquired = cleanupCustody(undefined, true);
+  assert.equal(await neverAcquired.cleanup(), false); assert.equal(neverAcquired.cleanupPending(), true);
+});
+
 function recoveryFixture() {
   const text = source('./effect-run-recovery.mjs'), request = {}, definition = {identity:cid('3')};
   const retained = {runDefinition:definition, requestIdentity:request};
