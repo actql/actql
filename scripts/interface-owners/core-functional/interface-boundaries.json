@@ -43190,7 +43190,7 @@
     },
     {
       "module": "src/client_local_host/installed_managed_run.mbt",
-      "sha256": "0244195be9a1adbcbb69a72fb7713ccf9ee4bdeb03a368e94da0fb32299e8ab7",
+      "sha256": "99a30c7ae203537957dfd070f151fbfb601a460e326740221b6c71184fb07aef",
       "exports": [],
       "operations": [
         {
@@ -43398,6 +43398,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Model prefix on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original occurrence before a plain Model Graph"
               }
             ],
             "inputsOutputs": [
@@ -43408,6 +43412,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Model prefix on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original occurrence before a plain Model Graph"
               }
             ],
             "identity": [
@@ -43418,6 +43426,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Model prefix on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original occurrence before a plain Model Graph"
               }
             ],
             "ownership": [
@@ -43428,6 +43440,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Model prefix on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original occurrence before a plain Model Graph"
               }
             ],
             "synchronization": [
@@ -43438,6 +43454,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Model prefix on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original occurrence before a plain Model Graph"
               }
             ],
             "failure": [
@@ -43448,6 +43468,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Model prefix on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original occurrence before a plain Model Graph"
               }
             ],
             "cancellation": [
@@ -43458,6 +43482,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Model prefix on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original occurrence before a plain Model Graph"
               }
             ],
             "resources": [
@@ -43468,6 +43496,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Model prefix on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original occurrence before a plain Model Graph"
               }
             ],
             "extension": [
@@ -43478,6 +43510,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Model prefix on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original occurrence before a plain Model Graph"
               }
             ],
             "verification": [
@@ -43504,6 +43540,14 @@
               {
                 "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
                 "anchor": "same Request acquired Model prefix"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original occurrence before a plain Model Graph"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
+                "anchor": "plain acquired Model constructs"
               }
             ]
           }
@@ -56192,6 +56236,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original occurrence before a plain Model Graph"
               }
             ],
             "inputsOutputs": [
@@ -56206,6 +56254,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original occurrence before a plain Model Graph"
               }
             ],
             "identity": [
@@ -56220,6 +56272,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original occurrence before a plain Model Graph"
               }
             ],
             "ownership": [
@@ -56234,6 +56290,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original occurrence before a plain Model Graph"
               }
             ],
             "synchronization": [
@@ -56248,6 +56308,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original occurrence before a plain Model Graph"
               }
             ],
             "failure": [
@@ -56262,6 +56326,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original occurrence before a plain Model Graph"
               }
             ],
             "cancellation": [
@@ -56276,6 +56344,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original occurrence before a plain Model Graph"
               }
             ],
             "resources": [
@@ -56290,6 +56362,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original occurrence before a plain Model Graph"
               }
             ],
             "extension": [
@@ -56304,6 +56380,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original occurrence before a plain Model Graph"
               }
             ],
             "verification": [
@@ -56330,13 +56410,21 @@
               {
                 "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
                 "anchor": "Request acquired Node Model binds"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original occurrence before a plain Model Graph"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
+                "anchor": "plain acquired Model constructs"
               }
             ]
           }
         }
       ],
       "referenceQualification": "Original Scope/census construction and same-parent continuation only; not full Host/provider/runtime backing or ordinary acceptance.",
-      "sha256": "e413f61bcacd978980cc4f1f305b74bee2ccc6d8916af706b9a8ae304c9eea1a"
+      "sha256": "29c12d14c54a0bb4999ee21176bce6acedf966de301a4302beb3a3c08efc717b"
     },
     {
       "module": "src/client_local_host/preparation_request_model_scope.mbt",
