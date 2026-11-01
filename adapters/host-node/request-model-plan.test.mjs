@@ -10,10 +10,11 @@ const node = parse(source, {ecmaVersion: 'latest', sourceType: 'module'}).body
   .find(value => value.type === 'FunctionDeclaration' && value.id.name === 'prepareRequestMockModelPlan');
 assert(node);
 function fixture({count = 0, timed = false, refuseCapture, expire = false, missingModule = false,
-  serialized = false, expirePrefix = false, missingPrefix = false, physical = false, missingPhysical = false} = {}) {
+  serialized = false, expirePrefix = false, missingPrefix = false, physical = false, missingPhysical = false, missingProvider = false, expireProvider = false} = {}) {
   const parent = {}, input = {}, prepared = {}, request = {}, compilation = {}, module = {}, plan = {};
   const graph = {}, occurrence = {}, bounds = {}, q = {}, admission = {}, initialControl = {};
-  const declarations = [{}, {}];
+  const declarations = [{}, {}], provider = {}, sourceRef = {}, selectedSource = {};
+  const sourceProfile = {sources: []};
   const calls = [], model = {graph, occurrence, compiled: {}, runDefinition: {}, scope: undefined};
   const run = {prepared, request, model, queryTimePreparation: timed ? q : undefined};
   const serializationGraph = {}, prefix = {}, prefixLimits = {}, workspace = {};
@@ -58,10 +59,31 @@ function fixture({count = 0, timed = false, refuseCapture, expire = false, missi
         occurrence, graph, bounds, model.originalReadInstallation]);
       calls.push('bind-Node-layout'); return plan;
     };
-    if (missingPhysical) delete control.prepareCheckedClientRequestNodeModelSourceFreePlan;
+    control.prepareCheckedClientRequestNodeModelCapturePlan = function(...args) {
+      assert.equal(this, control);
+      assert.deepEqual(args, [parent, input, module, request, model.compiled, model.runDefinition,
+        occurrence, graph, bounds, model.originalReadInstallation]);
+      calls.push('bind-Node-capture-layout'); return plan;
+    };
+    if (missingPhysical) {
+      delete control.prepareCheckedClientRequestNodeModelSourceFreePlan;
+      delete control.prepareCheckedClientRequestNodeModelCapturePlan;
+    }
   }
   model.control = control;
   const moon = {
+    clientProgramSelectInstalledSourceInput(p, stage, index) {
+      assert.equal(p, prepared); assert.equal(stage, 0); assert.equal(index, 0); return ok(selectedSource);
+    },
+    clientProgramInstalledSourceInputKind(value) {assert.equal(value, selectedSource); return 'query';},
+    clientProgramInstalledSourceInputRef(value) {assert.equal(value, selectedSource); return sourceRef;},
+    clientProgramPrepareRequestModelProviderCaptureModule(...args) {
+      assert.deepEqual(args, [parent, input, request, model.compiled, model.runDefinition, compilation,
+        declarations[0], provider, 'query', 'evidence', 512n, 256n,
+        admission, true, timed ? q : undefined]);
+      assert.equal(run.serialization, prefix);
+      calls.push('provider-capture-module'); if (expire) current = false; return ok(module);
+    },
     clientProgramAcquisitionCount: value => {assert.equal(value, prepared); return count;},
     clientProgramPreparedComposedInferBounds(o, g) {
       assert.equal(o, occurrence); assert.equal(g, graph); calls.push('bounds'); return ok(bounds);
@@ -92,10 +114,18 @@ function fixture({count = 0, timed = false, refuseCapture, expire = false, missi
   if (missingModule) {
     delete moon.clientProgramPrepareRequestModelSourceFreeModule;
     delete moon.clientProgramPrepareRequestModelCaptureModule;
+    delete moon.clientProgramPrepareRequestModelProviderCaptureModule;
   }
   run.runtime = moon;
   const originals = {installation: {projectRuntime: moon, initialControl, retainedRelationOutput: true,
-    computeRuns: new WeakMap([[prepared, run]])}};
+    computeRuns: new WeakMap([[prepared, run]]), managedSourceProfile: sourceProfile}};
+  run.sourceProfile = sourceProfile;
+  const adapter = {managedEffectPlanSelection() {
+    assert.equal(this, adapter); calls.push('original provider selection');
+    if (expireProvider) current = false;
+    return Object.freeze({declaration: declarations[0], provider: missingProvider ? undefined : provider,
+      transferBytes: 512n, executionBytes: 256n});
+  }};
   const ports = {assertSourceManagedHostPreparation(value) {
     assert.equal(value, originals); if (!current) throw primary;
   }, originalSourceManagedHostRequest(value, p) {assert.equal(value, originals); assert.equal(p, prepared);},
@@ -103,6 +133,7 @@ function fixture({count = 0, timed = false, refuseCapture, expire = false, missi
   runtimeCore: actual => {assert.equal(actual, moon); return {publicationControl: control};},
   checked: value => {assert.equal(value.$tag, 1); return value._0;},
   clientOperationError: code => Object.assign(new Error(code), {code}),
+  installedSourceFor(profile, ref) {assert.equal(profile, sourceProfile); assert.equal(ref, sourceRef); return adapter;},
   readInstalledMockPreparation: () => ({sources: declarations.map(declaration => ({declaration}))}),
   readInitialControlInstallationAsset(c, o, path) {
     assert.equal(c, initialControl); assert.equal(o, originals);
@@ -187,4 +218,24 @@ test('Request Node Model caller refuses absent layout-bound Plan and keeps parti
   assert.throws(f.construct, cause => cause === f.primary);
   assert.equal(f.run.preparedSequences, f.module); assert.equal(f.run.modelPlan, undefined);
   assert(f.model.originalReadInstallation); assert.equal(f.model.budget.readRetainedBytes, 70n);
+});
+
+
+test('Request acquired Node Model retains original provider and prefix before same Request module and physical Plan', () => {
+  const f = fixture({count: 1, physical: true, serialized: true, timed: true});
+  assert.equal(f.construct(), f.plan);
+  assert.equal(f.run.preparedSequences, f.module); assert.equal(f.run.serialization, f.prefix);
+  assert.deepEqual(f.calls, ['bounds', 'original provider selection', 'same Request prefix',
+    'provider-capture-module', 'bind-Node-capture-layout']);
+  assert.equal(f.run.modelSourceSelection.transferBytes, 512n);
+});
+
+test('Request acquired Node Model refuses absent original provider and keeps partials through original current failure', () => {
+  const missing = fixture({count: 1, physical: true, serialized: true, missingProvider: true});
+  assert.throws(missing.construct, {code: 'InstalledModelSourcePreparationUnavailable'});
+  assert(!missing.calls.includes('same Request prefix'));
+  const f = fixture({count: 1, physical: true, serialized: true, expire: true});
+  assert.throws(f.construct, cause => cause === f.primary);
+  assert.equal(f.run.preparedSequences, f.module); assert.equal(f.run.serialization, f.prefix);
+  assert.equal(f.run.modelPlan, undefined);
 });
