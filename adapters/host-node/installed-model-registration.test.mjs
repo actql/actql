@@ -68,11 +68,33 @@ test('installed read recipe binds only the same selected Graph identities withou
 
 test('installed read recipe refuses partial identities and competing fixed installations before provider construction', () => {
   for (const change of [value => {value.originalReadRecipe.nodeInstallation.layout.program_definition_cid = 'copied';},
-    value => {value.originalReadInstallation = originalInstallation();}]) {
+    value => {value.originalReadInstallation = originalInstallation();},
+    value => {value.originalReadRecipe.nodeInstallation.layout.retained_bytes = 0n;},
+    value => {value.originalReadRecipe.nodeInstallation.layout.execution_bytes = 1;},
+    value => {value.originalReadRecipe.nodeInstallation.layout.prepared_rows = -1n;}]) {
     const {moon, entry, counts} = fixture(), value = {...entry, originalReadRecipe: originalRecipe()};
     change(value);
     assert.throws(() => installModelProviders(moon, () => [value]), /InvalidInstalledInferOriginalReadInstallation/u);
     assert.deepEqual(counts(), {installations: 0, sends: 0, lookups: 0});
+  }
+});
+
+test('installed read recipe preserves native census work and refuses additive overflow', () => {
+  const {moon, entry} = fixture(), graph = {}, value = originalRecipe(), id = letter => `sha256:${letter.repeat(64)}`;
+  value.currentStateCodec = {quantum: 1, comparisonWork: 1, decode: {maxWork: 100,
+    parse: {max_input_bytes: 100, max_nodes: 10, max_depth: 4},
+    tree: {max_nodes: 10, max_depth: 4, max_string_bytes: 100, max_total_string_bytes: 100}}};
+  const recipe = installModelProviders(moon, () => [{...entry, originalReadRecipe: value}])
+    .get(entry.providerId).originalReadRecipe;
+  moon.clientProgramInferPlanProgramCid = () => id('a');
+  moon.clientProgramInferPlanParametersCid = () => id('b');
+  moon.clientProgramInferPlanBoundary = () => ({_3: id('c')});
+  const bound = bindInferOriginalReadRecipe(moon, recipe, graph, nativeRecipeLimits);
+  assert.equal(bound.currentStateCodec.comparisonWork, 2 + 9 + 10 + 11);
+  for (const index of [0, 1, 2, 3, 4, 5]) {
+    const limits = [...nativeRecipeLimits]; limits[index] = 9223372036854775807n;
+    assert.throws(() => bindInferOriginalReadRecipe(moon, recipe, graph, limits),
+      {code: 'InferOriginalReadRecipeUnavailable'});
   }
 });
 

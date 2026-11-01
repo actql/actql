@@ -2884,7 +2884,6 @@ async function openInstalledHost(originalInstallation, preparation) {
         const originalReadInstallation = physical.originalReadRecipe === undefined
           ? physical.originalReadInstallation : bindInferOriginalReadRecipe(moon, physical.originalReadRecipe, graph,
             moon.clientProgramComposedInferRetainedLimits(selectedBounds));
-        physical.assertNewTrustedRuntime?.();
         admissionBoundary = 'provider_binding';
         const providerId = moon.clientProgramInferProviderId(execution);
         const providerBinding = durableModel

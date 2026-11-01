@@ -198,6 +198,8 @@ function retainOriginalReadDeclaration(value, recipe) {
   const installation=snapshotData(node.installation,undefined,[],fail);
   const sdk=installation.sdk===undefined || installation.sdk===null ? installation.sdk
     : snapshotData(installation.sdk,undefined,[],fail);
+  if (recipe && (!int64(layout.retained_bytes, 1n) ||
+      !int64(layout.execution_bytes, 1n) || !int64(layout.prepared_rows, 0n))) fail();
   if (!int64(bootstrap.bootstrapRetainedBytes, 1n) ||
       !int64(bootstrap.bootstrapExecutionBytes, 0n) ||
       !['maxReservations', 'maxHoldings', 'maxDelegations'].every(name =>
