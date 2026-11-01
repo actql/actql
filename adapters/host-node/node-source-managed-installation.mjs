@@ -3,7 +3,7 @@ import {types} from 'node:util';
 import {prepareOrdinarySourceManagedInstallation, prepareOrdinaryProjectSourceManagedInstallation,
   assertOrdinarySourcePreparationCurrent}
   from './ordinary-source-managed.mjs';
-import {assertSourceManagedHostPreparation, prepareInstalledMockSourcePreparation,
+import {assertSourceManagedHostPreparation, assertRetainedSourceManagedHost, prepareInstalledMockSourcePreparation,
   readInstalledMockPreparation, readInstalledProjectSourcePreparation,
   originalSourceManagedHostRequest, sourceManagedSubmittedIntentCid,
   managedComputeSubmittedIntentCid, readSourceManagedRunRequirements, readManagedComputeRunRequirements,
@@ -132,7 +132,7 @@ function borrowSourceInitializationMaterial(originals) {
 // never a callback table or purpose Boolean supplied by an application.
 export function prepareSourceManagedInstallation(originals) {
   if (!explicitStartup) return prepareOrdinarySourceManagedInstallation(originals, {
-    validator: assertSourceManagedHostPreparation, borrowSourceInitializationMaterial, prepare: prepareInstalledMockSourcePreparation,
+    validator: assertSourceManagedHostPreparation, retainedValidator: assertRetainedSourceManagedHost, borrowSourceInitializationMaterial, prepare: prepareInstalledMockSourcePreparation,
     read: readInstalledMockPreparation, request: originalSourceManagedHostRequest,
     intent: sourceManagedSubmittedIntentCid, requirements: readSourceManagedRunRequirements,
     effectRequirements: readSourceManagedEffectRunRequirements,
@@ -146,7 +146,7 @@ export function prepareManagedComputeInstallation(originals) {
   if (!explicitStartup) {
     prepareInstalledSequenceContractOriginal(originals);
     return prepareOrdinarySourceManagedInstallation(originals, {
-    validator: assertSourceManagedHostPreparation, borrowSourceInitializationMaterial, request: originalSourceManagedHostRequest,
+    validator: assertSourceManagedHostPreparation, retainedValidator: assertRetainedSourceManagedHost, borrowSourceInitializationMaterial, request: originalSourceManagedHostRequest,
     intent: managedComputeSubmittedIntentCid, requirements: readManagedComputeRunRequirements,
     effectRequirements: readSourceManagedEffectRunRequirements,
     preparationContext: readLocalPreparationContext,
@@ -163,7 +163,7 @@ export function prepareManagedComputeInstallation(originals) {
 export function prepareProjectSourceManagedInstallation(originals) {
   if (explicitStartup) unavailable();
   return prepareOrdinaryProjectSourceManagedInstallation(originals, {
-    validator: assertSourceManagedHostPreparation, borrowSourceInitializationMaterial,
+    validator: assertSourceManagedHostPreparation, retainedValidator: assertRetainedSourceManagedHost, borrowSourceInitializationMaterial,
     prepare: () => {readInstalledProjectSourcePreparation(originals);},
     read: readInstalledProjectSourcePreparation, request: originalSourceManagedHostRequest,
     intent: sourceManagedSubmittedIntentCid, requirements: readSourceManagedRunRequirements,

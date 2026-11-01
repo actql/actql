@@ -41767,7 +41767,7 @@
     {
       "module": "adapters/host-node/embedded-local-lifecycle.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "cbfd3f568227e8ac13a8f970b12af8f1e754ed3ac387ad423b8df09dab48f35c",
+      "sha256": "5d2a127fcaae30e12173e03a5289aae1f1865eaea0e7887ecb38b99b0d4917c4",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
@@ -41797,6 +41797,15 @@
         },
         {
           "name": "createEmbeddedHostRegistry/init:assertPreparation/init:assertPreparation",
+          "parameters": [
+            "host",
+            "installation",
+            "generation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEmbeddedHostRegistry/init:assertRetainedPreparation/init:assertRetainedPreparation",
           "parameters": [
             "host",
             "installation",
@@ -43512,6 +43521,72 @@
               {
                 "path": "adapters/host-node/host-journal-writer-exclusion.test.mjs",
                 "anchor": "actual Store-opening failure drains its already acquired Journal independently of the dependent child"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createEmbeddedHostRegistry/init:assertRetainedPreparation/init:assertRetainedPreparation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "// An already admitted Run retains this same Host through graceful drain."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "assertRetainedPreparation(host, installation, generation)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "function retainedRunCurrent(run)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "!liveRuns.has(run)"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "assertRetainedPreparation(host, installation, generation)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "fail('ForeignInstalledSourceProducer');"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Identity validation does not request cancellation or issue a physical stop acknowledgement; existing Run and shutdown owners retain those duties."
+            },
+            "resources": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "resourceRuntime.assertOrdinaryManagedRunCurrent(run.original, run.producer.receipt);"
+              }
+            ],
+            "extension": {
+              "notApplicable": "Private fixed Host/manager correspondence only, not a caller-selected authority or new Resource protocol."
+            },
+            "verification": [
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('graceful drain retains the original Host identity without reopening preparation'"
+              },
+              {
+                "path": "adapters/host-node/client-publication-capacity.test.mjs",
+                "anchor": "test('normal Local close preserves accepted publication through immediate prewait and sibling paths'"
               }
             ]
           }
@@ -83653,7 +83728,7 @@
     },
     {
       "module": "adapters/host-node/node-source-managed-installation.mjs",
-      "sha256": "a183cdfa5782a9212188fe063867ffca22605aceccfea2fb81a595211cc2289c",
+      "sha256": "d95dc348310be3ee12cc518a1590286ecb68a2a1aaa6bbe937085a2f4a2c68f6",
       "exports": [
         "assertManagedComputeInstallationCurrent",
         "assertManagedComputePreparationCurrent",
@@ -106878,7 +106953,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-source-managed.mjs",
-      "sha256": "3032028c990857f704fb22b7c47edab37155967840315097dfca3d2bf837470e",
+      "sha256": "f62cf62398308e57585627231447bc7c59eb7ef299d817a5405bce16fb0a52a1",
       "exports": [
         "assertOrdinarySourcePreparationCurrent",
         "prepareOrdinaryProjectSourceManagedInstallation",
@@ -107050,6 +107125,13 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/publicationRunFor",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/readBytes",
           "parameters": [
             "run",
@@ -107089,6 +107171,13 @@
           "name": "prepareOrdinaryManagedInstallation/releaseFinishedProducer/releaseFinishedProducer",
           "parameters": [
             "producer"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/retainedRunCurrent",
+          "parameters": [
+            "run"
           ],
           "async": false
         },
@@ -110714,6 +110803,73 @@
               {
                 "path": "adapters/host-node/request-content-caller.test.mjs",
                 "anchor": "Request Content manager compiles one original graph"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "prepareOrdinaryManagedInstallation/publicationRunFor",
+            "prepareOrdinaryManagedInstallation/retainedRunCurrent"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "// An already admitted Run retains this same Host through graceful drain."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "function retainedRunCurrent(run)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "function retainedRunCurrent(run)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "!liveRuns.has(run)"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "assertRetainedPreparation(host, installation, generation)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "fail('ForeignInstalledSourceProducer');"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Identity validation does not request cancellation or issue a physical stop acknowledgement; existing Run and shutdown owners retain those duties."
+            },
+            "resources": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "resourceRuntime.assertOrdinaryManagedRunCurrent(run.original, run.producer.receipt);"
+              }
+            ],
+            "extension": {
+              "notApplicable": "Private fixed Host/manager correspondence only, not a caller-selected authority or new Resource protocol."
+            },
+            "verification": [
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('graceful drain retains the original Host identity without reopening preparation'"
+              },
+              {
+                "path": "adapters/host-node/client-publication-capacity.test.mjs",
+                "anchor": "test('normal Local close preserves accepted publication through immediate prewait and sibling paths'"
               }
             ]
           }
