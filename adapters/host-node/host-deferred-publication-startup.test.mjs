@@ -110,17 +110,24 @@ nodeTest('installed Host fixture requires its actual preparation owner before ac
   assert.equal(initialized,0);
 });
 
-nodeTest('selected ordinary Host cannot borrow Journal coverage for Publication activation',()=>{
+nodeTest('selected ordinary Host cannot borrow Journal coverage for Publication activation',async()=>{
   const initializer=nodes.find(node=>node.type==='VariableDeclarator'&&
     node.id.name==='initializePublicationServices');
   const guard=initializer.init.body.body[0].block.body[0];
   assert.equal(guard.type,'IfStatement');
-  const check=compileFunction(source.slice(guard.start,guard.end),
-    ['preparation','originalSourcePreparation','clientOperationError']);
-  const error=code=>Object.assign(new Error(code),{code});
-  for(const originalSource of [undefined,{}])assert.throws(()=>check({},originalSource,error),
-    {code:'InstalledPublicationPreparationUnavailable'});
-  assert.doesNotThrow(()=>check(undefined,undefined,error));
+  const check=compileFunction(`return async preparation=>{${source.slice(guard.start,guard.end)}};`)();
+  let journalCalls=0;
+  for(const preparation of [{},{prepareHostJournal(){journalCalls++;}}]){
+    await assert.rejects(check(preparation),TypeError);
+  }
+  assert.equal(journalCalls,0);
+  const original=new Error('OriginalPublicationPreparationFailure');
+  await assert.rejects(check({prepareResultPublication(){throw original;}}),error=>error===original);
+  const waiting=deferred();let returned=false,calls=0;
+  const pending=check({prepareResultPublication(){calls++;return waiting.promise;}})
+    .then(()=>{returned=true;});
+  await Promise.resolve();assert.equal(calls,1);assert.equal(returned,false);
+  waiting.resolve();await pending;assert.equal(returned,true);
 });
 
 for(const withSource of [true,false]){
