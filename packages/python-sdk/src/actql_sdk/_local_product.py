@@ -1060,7 +1060,7 @@ class InstalledLocalHost:
                 raise LocalProductCleanupPending(self)
             return raw
 
-    def _retain_original_result_read(self, reference: object, result_name: str) -> _Output:
+    def _retain_original_result_read(self, reference: object, result_name: str) -> tuple[_Output, dict[str, Any]]:
         """Retain Core's actual stored-chain reader, never an executable plan.
 
         Its private wire carries metadata only. A later Result delivery must
@@ -1069,6 +1069,9 @@ class InstalledLocalHost:
         existing Owners. No reconstruction from these strings is authorized.
         Partial preparation, changed history or output close keeps the original
         input/output reachable for same-handle cleanup.
+
+        Return the same bounded, checked metadata with its original output so
+        the private caller need not parse it again. The data is not currentness.
         """
         installation = self._active()
         configuration = self._configuration
@@ -1097,7 +1100,7 @@ class InstalledLocalHost:
                     or any(packet[key] not in tuple(str(i) for i in range(8))
                            for key in ('resultOrdinal', 'bindingOrdinal'))):
                 raise ValueError('Foreign original saved Local Result projection')
-            return output
+            return output, packet
 
     def _close_projection(self, output: _Output) -> bool:
         """Release only original transport loans after successful cleanup."""
@@ -1282,9 +1285,22 @@ class InstalledLocalHost:
             candidate = captured[0]
             fields = {'run_key', 'submission_key', 'preparing', 'run', 'submitted',
                       'issued_revision', 'issued_body'}
-            if (set(candidate) not in (fields, fields | {'task_materials'})
+            if (not fields | {'reference_locator'} <= set(candidate) <= fields | {'task_materials', 'reference_locator'}
                     or any(type(candidate[key]) is not str for key in fields)):
                 raise ValueError('Invalid original Core Run row projection')
+            locator = candidate['reference_locator']
+            if (type(locator) is not dict or set(locator) != {'key', 'body'}
+                    or type(locator['key']) is not str or len(locator['key']) != 64
+                    or any(ch not in '0123456789abcdef' for ch in locator['key'])
+                    or type(locator['body']) is not str):
+                raise ValueError('Invalid original Core Run reference locator')
+            locator_body = locator['body'].encode('utf-8')
+            if not 0 < len(locator_body) <= 4096:
+                raise ValueError('Invalid bounded original Run reference locator')
+            # Core owns the exact original tuple/key/wire. This subordinate
+            # DATA shares the original ready transaction, never a Run grant.
+            locator_write = ByteWrite(store.namespaced_key('client_run_reference_index',
+                                         locator['key']), None, locator_body)
             material_writes: list[ByteWrite] = []
             if 'task_materials' in candidate:
                 chunks = candidate['task_materials']
@@ -1319,7 +1335,7 @@ class InstalledLocalHost:
                           None, candidate['run'].encode('utf-8')),
                 ByteWrite(store.namespaced_key('client_submitted_intents', candidate['submission_key']),
                           0, candidate['submitted'].encode('utf-8')),
-            ) + tuple(material_writes)
+            ) + tuple(material_writes) + (locator_write,)
             with installation.binding.fenced() as fences:
                 def inspect(reader: Any) -> None:
                     installation.binding.inspect_reader(reader, lambda current:

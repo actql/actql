@@ -626,6 +626,36 @@ or deletion; retained evidence and saved records are not relabeled. This is the
 Python byte store's closed physical format, not Native publication Store format
 interoperability.
 
+The physical connection selects its existing `temp_store = FILE` configuration
+before its first catalog or snapshot observation, including on reopen. Later
+TEMP configuration changes may discard the schema underneath prepared SQLite
+observations; the constructor does not change that configuration after any
+such observation has begun. This ordering adds no schema, Owner or authority.
+
+The existing one-time owned-file initializer selects private format 3 when the
+same SQLite library supports the existing Run-Definition expression. It adds
+only the actual UNIQUE index over the nested Run Definition CID, adapted from
+the Native physical index to `core_bytes`. It is not uniqueness by Program or
+user-supplied Run name. A distinct Definition remains distinct; SQL NULL or an
+index entry is never typed Run admission. Fresh writes still pass the complete
+existing Core registration checks before their original transaction.
+
+The raw constructor and existing format-2 files retain their closed legacy
+format. A known missing optional `json_extract` function selects that existing
+format before any index mutation; other probe errors propagate unchanged and
+never select a fallback. Reopen performs no index installation, metadata repair,
+backfill or migration. Missing or colliding format-3 catalog entries refuse.
+
+A same-reader catalog observation compares the original application identity,
+version, complete bounded main catalog, required expression and absence of TEMP
+shadowing. It retains the same physical transaction, thread, original current
+callbacks, query-work ceiling and failure latch. Its scalar selects an existing
+read algorithm; it is not an Account Allow, custody proof, reusable current token
+or a substitute for selected nested-original validation. Unknown observations
+refuse rather than imply legacy absence. Private ABI84 adds this physical scalar
+import and keeps exact generated Python and compiler-C declarations; older
+installed modules are refused through the existing ABI/source binding.
+
 The private `reserve_capacity`, `read_capacity`, `capacity_usage` and
 `release_capacity` port preserves the Native physical contract: namespace and
 material key remain exact UTF-8 strings, amounts are nonnegative signed 64-bit
@@ -1951,6 +1981,12 @@ remain with their existing owners.
 
 ## Original saved-journal physical port
 
+The selected private image uses the original scalar Journal scan and exact-row
+requests. A Saved read compares every retained key, revision and complete byte
+body in its original Store snapshot. Original typed current checks enclose
+each physical query and transfer; no encoded equality packet or retained
+comparison result supplies later currentness or permission.
+
 Within one borrowed SQL reader, request blocks and copies of its already-read
 immutable row use the Store's private frame check. It checks the exact reader,
 active lifetime, original thread, non-reentrancy and latched failure; it observes
@@ -1961,15 +1997,27 @@ typed current before and after the complete transfer. File, settings, epoch,
 Account and authorization checks remain at those protected boundaries. No
 frame, row or successful decision survives the enclosing reader.
 
-The actual Store reader can also enclose the Journal's required current
-observer in its existing query. Its three fences remain before physical read,
-after physical read and after consumption, each with complete SQL metadata and
-original physical-current checks. Only callback identity suppresses an adjacent
-duplicate observation already performed by that same fence; a different
-observer runs separately at every boundary. A private reader without this port
-keeps the original outer before/after checks. Neither shape returns bytes after
-a latched failure, changes query/copy bounds or turns a physical miss into a
-semantic absence fact.
+The actual Store reader encloses the Journal's required current observer in
+its existing query and returns bounded immutable row DATA directly. Complete
+SQL metadata and original physical-current checks run before physical read and
+before returning that DATA. No external consumer runs between those checks:
+the Journal only validates and packages the row for its existing ABI transfer.
+The generic `read` and `scan_after` paths retain their arbitrary consumer and
+all three fences, including the separate post-consumer check. Only callback
+identity suppresses an adjacent duplicate observation already performed by the
+same fence; a different observer runs separately at every boundary. A private
+reader without the direct port keeps the original outer before/after checks.
+Neither shape returns bytes after a latched failure, changes query/copy bounds
+or turns a physical miss into a semantic absence fact.
+
+The installed Host's own adoption/settings inventories use that same direct
+row port for their fixed raw membership comparisons. Their local list-append
+consumers are removed; no arbitrary caller runs between the query and those
+comparisons. Both full inventories still run before and after protected Core
+work, including each trailing absence query and every original byte/revision.
+The exact Local Store always supplies this port; an incomplete Local reader
+refuses rather than selecting a compatibility path. Independent physical
+adapters retain their complete metadata checks through the same Store reader.
 
 Within that same live reader, the exact stdlib SQLite adapter can retain a
 completed immutable metadata-fence observation. Reuse requires the same
@@ -1987,9 +2035,10 @@ observation, and physical suppliers without this exact port keep full checks.
 
 Every physical/current callback still runs, including file/settings/epoch and
 Account checks. The typed original-current query uses that same immutable
-metadata observation at all three query fences, each with fresh complete
+metadata observation at both physical query boundaries, each with fresh complete
 snapshot and mutable-current checks. Its actual physical row is always read;
-raw readers and other physical suppliers retain all metadata-row reads. The
+raw readers and other physical suppliers retain complete metadata-row reads at
+their respective query and consumer boundaries. The
 outer read/write and precommit fences remain complete. Copy/thread/reentry, retired transaction, callback or
 schema-probe failure poisons the same reader. There is no current/Allow cache,
 new owner, retry, changed bound, Native ABI, or persistent snapshot token.
@@ -2245,6 +2294,20 @@ Python supplies physical observations to these codecs rather than defining
 another scope/preimage or repairing saved originals with current defaults.
 
 ## Original adopted/current transaction frames
+
+After observing every original file FD/name, root and Store generation, the Host
+may consume the exact same frozen snapshot object retained by that reader.
+Distinct snapshots still require their complete value comparison. Object
+identity never bypasses the preceding physical observations, nominal ownership
+or retirement checks and is not a reusable currentness result.
+
+The borrowed namespace reader reuses shape and bound admission only for the
+same immutable fence objects in the same admitted order. A newly constructed
+outer tuple may hold those exact objects; equal copies, reordered members and
+subsets still take the complete required-fence validator. Each call first
+observes the actual current transaction and both schema catalogs. Successor
+writes still prevent selecting the prior fence as current metadata. This
+shares only immutable DATA validation, never a currentness or permission result.
 
 Private ABI50 `actql_current_*` retains one original metadata input and one
 physical query/cleanup ticket. Core chooses the `client_local_adoption`
@@ -3099,6 +3162,13 @@ modules must match the existing exact generated ABI contract.
 
 ### Saved Run observations and Result reads
 
+The private saved-Result acquisition returns its already bounded and checked
+metadata together with the same retained Core output. Its immediate caller
+uses that original parsed DATA instead of reparsing the output inside another
+current observation. This adds no cache, permission or lifetime token. Later
+payload acquisition, physical reads, callbacks and delivery keep their existing
+current checks and original failure/cleanup ownership.
+
 A repeated submit first observes the authenticated original submission under
 the same current Store snapshot. A ready record with the same intent returns
 its existing admission without preparation, dispatch or a new executable Run.
@@ -3137,18 +3207,41 @@ Missing historical state remains unavailable, and refused validation retains
 the same output/input loans. The live Run status/observation path stays separate.
 
 A durable Client reference identifies saved originals, rather than a process-local
-Run object. The original installation binding reads the complete submitted-row
-inventory in one current Store snapshot. Core validates the saved observation
-originals, Run and submission identities, current authorization, and original
-adoption scope before exposing attach or lookup. Missing older observation
-originals remain unavailable; they are not backfilled from a newly compiled
-Program, current defaults or another Run.
+Run object. The original installation binding observes one current Store
+snapshot. The legacy format retains its complete submitted-row inventory;
+the indexed owned format uses the existing selected-original reader. Both
+validate the saved observation originals, Run and submission identities, current
+authorization, cancellation and original adoption scope before exposing attach
+or lookup. Missing older observation originals remain unavailable; they are not
+backfilled from a newly compiled Program, current defaults or another Run.
 
 First acceptance supplies the same captured observation originals to both the
 submitted-row Owner and the same-transaction Run inventory/CAS candidate. Their
 complete initial row bodies must agree before any write. The optional original
 is checked against the Run definition; legacy candidates keep their existing
 bytes, and retained lookup does not backfill missing originals.
+
+The SDK ready-row producer also projects the existing subordinate Run-reference
+locator from the same admitted Submission reference, original Request and Run
+Definition. Python saves its exact bounded key and reference wire with the Run,
+ready row, issuance CAS and task-material chunks in that original transaction.
+It neither derives a second identity nor interprets the locator as custody,
+current authority, an admission, a completeness witness or COMMIT acknowledgement.
+A locator insert conflict rolls back the same transaction; attempted-COMMIT
+uncertainty retains the same original output and never repeats the write.
+
+This retained DATA does not by itself select an indexed read or complete legacy
+coverage. The actual original format-3 catalog and same-source mandatory atomic
+writer supply that connection; an expired reference still selects its saved
+original and never renews admission. A cold Run reference reads the exact tuple
+locator, original Submission and linked Run, including their bounded task
+materials and complete selected nested validator. Missing, ambiguous, corrupt or
+foreign locators refuse; an indexed-read error never falls through to a scan,
+fresh preparation, reissue or resend. Explicit unrelated integrity inspection
+is separate from this selected read. The existing complete Python route remains
+unchanged for legacy format 2 and private physical suppliers without the new
+catalog port. Absent historical locators are not reconstructed on a read.
+Native's explicitly indexed route and maintenance keep their separate profile.
 
 A saved Result read validates the complete stored publication graph and the
 selected manifest occurrence through the existing publication Owner. Its nominal

@@ -542,8 +542,10 @@ function requestGraphFixture({serialized = true, missingPort = false, replaceAft
     () => {if (replaceAfter && state.modelGraph !== undefined) state.contentGraph = {};},
     value => {assert.equal(value, request); return producer;}, fail, originals,
     (actual, result, issue) => {assert.equal(actual, moon); assert.equal(issue, moon.clientProgramRequestProgramModuleIssueCode); return result.value;});
-  return {state, calls, graph, invoke: () => object.prepareModelGraph(prepared, request, occurrence, execution, component),
-    foreign: () => object.prepareModelGraph(prepared, request, occurrence, execution, {})};
+  const constructSerialized = missingPort ? undefined : (...args) =>
+    Reflect.apply(moon.clientProgramPrepareRequestSerializedModelGraph, moon, args);
+  return {state, calls, graph, invoke: () => object.prepareModelGraph(prepared, request, occurrence, execution, component, constructSerialized),
+    foreign: () => object.prepareModelGraph(prepared, request, occurrence, execution, {}, constructSerialized)};
 }
 
 test('Request Model Graph forwards the same retained Content original to one typed parent constructor', () => {
@@ -796,4 +798,82 @@ test('actual acquired Model admission retains one Request compiler prefix and Sc
   const plain = installedModelRequestFixture({acquisitions: 1});
   assert.throws(plain.invoke, {code: 'HostResultPublicationPurposeUnavailable'});
   assert.equal(plain.early(), undefined);
+});
+
+// Exercise the actual facade -> Host -> manager path. A facade carries no
+// native owner; only the existing runtime-core WeakMap can supply that original.
+const graphCoreSource = readFileSync(new URL('../host-common/runtime-core.mjs', import.meta.url), 'utf8');
+const acquiredGraphStart = graphCoreSource.indexOf('  const prepareAcquiredSerializationGraph =');
+const acquiredGraphEnd = graphCoreSource.indexOf('  const snapshotTokens =', acquiredGraphStart);
+const graphCoreProperties = new Map();
+function findGraphCoreMethods(node) {
+  if (!node || typeof node !== 'object') return;
+  if (node.type === 'Property' && node.method && ['prepareCheckedClientRequestAcquiredSerializationGraph',
+    'prepareClientRequestSerializedInferGraph'].includes(node.key.name)) graphCoreProperties.set(node.key.name, node);
+  for (const value of Object.values(node)) {
+    if (Array.isArray(value)) value.forEach(findGraphCoreMethods);
+    else if (value && typeof value === 'object') findGraphCoreMethods(value);
+  }
+}
+findGraphCoreMethods(parse(graphCoreSource, {ecmaVersion: 'latest', sourceType: 'module'}));
+const requestGraphHostStart = hostSource.indexOf('    prepareManagedModelGraph(runtime,');
+const requestGraphHostEnd = hostSource.indexOf('    prepareManagedModelCompilation(', requestGraphHostStart);
+function originalFacadeGraphFixture() {
+  const prepared = {}, request = {}, parent = {}, input = {}, holder = {}, occurrence = {}, execution = {};
+  const rawContent = {owner: prepared}, modelGraph = {}, admission = {}, calls = [];
+  let host;
+  const moon = {
+    clientProgramPreparationBorrowRead(value) {assert.strictEqual(value, holder); return prepared;},
+    clientProgramRequestProgramModuleIssueCode() {assert.fail('No successful issue classification');},
+    clientProgramPrepareRequestAcquiredSerializationGraph(...args) {
+      assert.deepEqual(args, [parent, input, 0, 2, 1, 128, false, admission]);
+      return {value: rawContent};
+    },
+    clientProgramSerializationPlanGraphWire(value) {assert.strictEqual(value, rawContent); return '{}';},
+    clientProgramPrepareRequestSerializedModelGraph(...args) {
+      assert.strictEqual(this, moon);
+      assert.strictEqual(args[3], rawContent, 'Pass the SAME native Content Graph, never its public facade');
+      assert.deepEqual(args, [parent, input, occurrence, rawContent, execution, admission]);
+      calls.push('same native Content');
+      assert.throws(() => host.prepareManagedModelGraph(moon, prepared, occurrence, execution, selected),
+        {code: 'ForeignInstalledSourceProducer'});
+      return {value: modelGraph};
+    },
+  };
+  const properties = [...graphCoreProperties.values()].map(node => graphCoreSource.slice(node.start, node.end));
+  const control = Function('moon', 'compiledRunResult',
+    'const serializationPlanTokens=new WeakMap();' + graphCoreSource.slice(acquiredGraphStart, acquiredGraphEnd) +
+    'return {' + properties.join(',') + '};')(moon, result => result.value);
+  const selected = control.prepareCheckedClientRequestAcquiredSerializationGraph(parent, input,
+    admission, prepared, {task: 0, step: 2, maxRows: 1, maxBytes: 128}, true);
+  assert.notStrictEqual(selected, rawContent);
+  assert.deepEqual(selected, {task: 0, step: 2, wire: '{}'});
+  const state = {prepared, parent, holder, contentGraph: selected, compilationFamily: 'model', context: {runtime: moon}};
+  const producer = {preparation: state, receipt: input};
+  const originals = {installation: {sequenceContractOriginal: {moon, admission}}};
+  const fail = code => {throw Object.assign(new Error(code), {code});};
+  const manager = Function('current', 'producerForRequest', 'fail', 'originals', 'checkedRequestProgramPreparation',
+    `const pendingRunRegistrations=new Set();${managerHelpers}return ({${managerSource.slice(graphMethodStart, graphMethodEnd).trim().replace(/,$/u, '')}});`)(
+    () => {}, value => {assert.strictEqual(value, request); return producer;}, fail, originals,
+    (runtime, result) => {assert.strictEqual(runtime, moon); return result.value;});
+  host = Function('moon', 'sourceManaged', 'computeManaged', 'originals', 'clientOperationError',
+    'assertSourceManagedInstallationCurrent', 'assertManagedComputeInstallationCurrent',
+    'originalSourceManagedHostRequest', 'runtimeCore',
+    'return ({' + hostSource.slice(requestGraphHostStart, requestGraphHostEnd).trim().replace(/,$/u, '') + '});')(
+    moon, manager, undefined, originals, code => Object.assign(new Error(code), {code}),
+    () => {}, () => {}, () => request, runtime => {
+      assert.strictEqual(runtime, moon); return {publicationControl: control};
+    });
+  return {invoke: () => host.prepareManagedModelGraph(moon, prepared, occurrence, execution, selected),
+    calls, state, modelGraph, control, parent, input, occurrence, selected, execution, admission};
+}
+
+test('Request serialized Model preserves native Graph across actual facade Host and manager', () => {
+  const f = originalFacadeGraphFixture();
+  assert.strictEqual(f.invoke(), f.modelGraph);
+  assert.strictEqual(f.state.modelGraph, f.modelGraph);
+  assert.deepEqual(f.calls, ['same native Content']);
+  assert.throws(() => f.control.prepareClientRequestSerializedInferGraph(f.parent, f.input,
+    f.occurrence, {...f.selected}, f.execution, f.admission), /Foreign Content compilation graph/u);
+  assert.deepEqual(f.calls, ['same native Content'], 'A copied facade never enters the Core constructor');
 });

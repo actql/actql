@@ -80,6 +80,9 @@ struct NativeRuntimeBundleStore {
   mut retention_initialized : Bool
   mut component_reader : @filesystem.Reader?
   mut component_open_failure : @filesystem.NativeReaderOpenFailure?
+  mut component_writer : @filesystem.Writer?
+  mut component_writer_open_failure : @filesystem.NativeWriterOpenFailure?
+  mut component_hasher : @signature.Sha256Hasher?
 }
 
 ///|
@@ -1230,7 +1233,10 @@ fn require_open(
     Err(Closed)
   } else if store.retiring ||
     store.component_reader is Some(_) ||
-    store.component_open_failure is Some(_) {
+    store.component_open_failure is Some(_) ||
+    store.component_writer is Some(_) ||
+    store.component_writer_open_failure is Some(_) ||
+    store.component_hasher is Some(_) {
     Err(CleanupPending)
   } else {
     Ok(())
@@ -1477,6 +1483,9 @@ fn open_runtime_bundle_store_with_authorities_and_custody(
     retention_initialized: false,
     component_reader: None,
     component_open_failure: None,
+    component_writer: None,
+    component_writer_open_failure: None,
+    component_hasher: None,
   }
   match database.read("runtime_bundle", "catalog") {
     Ok(value) =>
@@ -1606,24 +1615,43 @@ pub fn open_runtime_bundle_store_with_trust(
   max_owners : Int,
   max_record_bytes : Int64,
 ) -> Result[NativeRuntimeBundleStore, NativeRuntimeBundleStoreIssue] {
-  if trust.is_empty() || trust.length() > 1024 {
-    return Err(InvalidConfiguration)
-  }
-  let authorities : Array[NativeRuntimeBundleAuthority] = []
-  let admission_authorities : Array[NativeRuntimeBundleAuthority] = []
-  for entry in trust {
-    for prior in authorities {
-      if prior.issuer_authority == entry.authority.issuer_authority &&
-        prior.key_id == entry.authority.key_id {
-        return Err(InvalidConfiguration)
-      }
-    }
-    authorities.push(entry.authority)
-    if entry.admit_new_bundles {
-      admission_authorities.push(entry.authority)
+  match
+    open_runtime_bundle_store_with_trust_and_custody(
+      sqlite_library, signature_library, root_path, trust, target_triple, capacity_bytes,
+      max_bundles, max_owners, max_record_bytes,
+    ) {
+    Ok(value) => Ok(value)
+    Err(RefusedBeforeAcquisition(issue)) => Err(issue)
+    Err(CleanupRequired(original)) => {
+      // Preserve this legacy issue-only API; actual installed callers retain
+      // the same acquired receiver through the explicit custody entry below.
+      ignore(original.retry_cleanup())
+      Err(original.issue())
     }
   }
-  open_runtime_bundle_store_with_authorities(
+}
+
+///|
+/// Same trust partition and physical Store Owner as the legacy entry. A failed
+/// acquired child is returned intact, never flattened into refusal or closed
+/// on behalf of a caller that must retain its original cleanup responsibility.
+pub fn open_runtime_bundle_store_with_trust_and_custody(
+  sqlite_library : @sqlite.Library,
+  signature_library : @signature.Library,
+  root_path : String,
+  trust : Array[NativeRuntimeBundleTrust],
+  target_triple : String,
+  capacity_bytes : Int64,
+  max_bundles : Int,
+  max_owners : Int,
+  max_record_bytes : Int64,
+) -> Result[NativeRuntimeBundleStore, NativeRuntimeBundleStoreOpenError] {
+  let (authorities, admission_authorities) = match
+    runtime_bundle_trust_sets(trust) {
+    Ok(value) => value
+    Err(issue) => return Err(RefusedBeforeAcquisition(issue))
+  }
+  open_runtime_bundle_store_with_authorities_and_custody(
     sqlite_library, signature_library, root_path, authorities, admission_authorities,
     target_triple, capacity_bytes, max_bundles, max_owners, max_record_bytes,
   )
@@ -1690,6 +1718,7 @@ fn verify_component(
         return Err(Signature(issue))
       }
     }
+    store.component_hasher = Some(hash)
     let mut remaining = expected_component_bytes
     while remaining > 0L {
       let limit = if remaining < 65536L { remaining.to_int() } else { 65536 }
@@ -1727,7 +1756,11 @@ fn verify_component(
       }
     }
     let digest = match hash.finish_hex() {
-      Ok(value) => value
+      Ok(value) => {
+        // Successful digest completion is the existing context Owner's ACK.
+        store.component_hasher = None
+        value
+      }
       Err(issue) => {
         ignore(
           close_bundle_component_reader(store, original_reader=Some(reader)),
@@ -2282,14 +2315,26 @@ pub fn NativeRuntimeBundleStore::begin_install(
   let next = with_catalog_staging(current, current.entries, staging)
   match persist_catalog(self, current, next) {
     Ok(_) => ()
-    Err(issue) => return Err(issue)
+    Err(issue) => {
+      self.component_hasher = Some(hash)
+      ignore(close_bundle_component_reader(self))
+      return Err(issue)
+    }
   }
   let physical = match
-    filesystem_result(
-      self.root.create_writer(candidate.staging_name, component_bytes),
+    self.root.create_writer_with_custody(
+      candidate.staging_name,
+      component_bytes,
     ) {
     Ok(value) => value
-    Err(issue) =>
+    Err(original) => {
+      let issue = Filesystem(original.issue())
+      self.component_hasher = Some(hash)
+      self.component_writer_open_failure = Some(original)
+      // Metadata recovery cannot precede the actual failed constructors' ACK.
+      guard close_bundle_component_reader(self) is Ok(_) else {
+        return Err(CleanupPending)
+      }
       return match issue {
         Filesystem(@filesystem.Conflict) =>
           match remove_staging_record(self, candidate) {
@@ -2302,11 +2347,16 @@ pub fn NativeRuntimeBundleStore::begin_install(
             Err(_) => Err(CleanupPending)
           }
       }
+    }
   }
   match
     record_staging_phase(self, candidate, StagingOwned(physical.ownership())) {
     Ok(_) => ()
-    Err(_) => return Err(CleanupPending)
+    Err(_) => {
+      self.component_hasher = Some(hash)
+      ignore(cancel_bundle_component_writer(self, physical))
+      return Err(CleanupPending)
+    }
   }
   self.active_installers[install_id] = true
   Ok({
@@ -2421,6 +2471,12 @@ pub fn NativeRuntimeBundleInstaller::seal(
       Err(issue) => return Err(issue)
     }
   }
+  // Multi-component verification has independent contexts. The constructor's
+  // original context is otherwise unused; it still needs its own explicit ACK.
+  match self.hash.close_checked() {
+    Ok(_) => ()
+    Err(issue) => return Err(Signature(issue))
+  }
   let current = match load_catalog(self.store) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -2451,6 +2507,14 @@ pub fn NativeRuntimeBundleInstaller::cancel(
 ) -> Result[Unit, NativeRuntimeBundleStoreIssue] {
   if self.closed {
     return Ok(())
+  }
+  match self.hash.close_checked() {
+    Ok(_) => ()
+    Err(issue) => return Err(Signature(issue))
+  }
+  match close_bundle_component_reader(self.store) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
   }
   match filesystem_result(self.physical.cancel()) {
     Ok(_) => ()
@@ -2989,28 +3053,30 @@ pub fn NativeRuntimeBundleStore::materialize_active_component(
     Err(issue) => return Err(issue)
   }
   let writer = match
-    filesystem_result(
-      self.root.create_writer(staging_name, source.component_bytes),
-    ) {
+    self.root.create_writer_with_custody(staging_name, source.component_bytes) {
     Ok(value) => value
-    Err(issue) => return Err(issue)
+    Err(original) => {
+      self.component_writer_open_failure = Some(original)
+      return Err(Filesystem(original.issue()))
+    }
   }
   let owned = match
     record_copy_phase(self, intent, StagingOwned(writer.ownership())) {
     Ok(value) => value
     Err(issue) => {
-      ignore(writer.cancel())
+      ignore(cancel_bundle_component_writer(self, writer))
       return Err(issue)
     }
   }
   let reader = match
-    filesystem_result(
-      self.root.open_reader(source.artifact_name, source.generation),
-    ) {
+    self.root.open_reader_with_custody(source.artifact_name, source.generation) {
     Ok(value) => value
-    Err(issue) => {
-      ignore(writer.cancel())
-      return Err(issue)
+    Err(original) => {
+      // Retain even a rejected partial Reader before any later cleanup. The
+      // existing Store fence keeps catalog operations behind its actual ACK.
+      self.component_open_failure = Some(original)
+      ignore(cancel_bundle_component_writer(self, writer))
+      return Err(Filesystem(original.issue()))
     }
   }
   let mut skip = source.offset
@@ -3019,14 +3085,16 @@ pub fn NativeRuntimeBundleStore::materialize_active_component(
     let chunk = match filesystem_result(reader.next(limit)) {
       Ok(value) => value
       Err(issue) => {
-        ignore(reader.close())
-        ignore(writer.cancel())
+        ignore(
+          close_bundle_component_reader(self, original_reader=Some(reader)),
+        )
+        ignore(cancel_bundle_component_writer(self, writer))
         return Err(issue)
       }
     }
     if chunk.bytes.is_empty() || chunk.bytes.length().to_int64() > skip {
-      ignore(reader.close())
-      ignore(writer.cancel())
+      ignore(close_bundle_component_reader(self, original_reader=Some(reader)))
+      ignore(cancel_bundle_component_writer(self, writer))
       return Err(ComponentMismatch)
     }
     skip = skip - chunk.bytes.length().to_int64()
@@ -3034,67 +3102,78 @@ pub fn NativeRuntimeBundleStore::materialize_active_component(
   let hash = match self.signature_library.sha256_hasher() {
     Ok(value) => value
     Err(issue) => {
-      ignore(reader.close())
-      ignore(writer.cancel())
+      ignore(close_bundle_component_reader(self, original_reader=Some(reader)))
+      ignore(cancel_bundle_component_writer(self, writer))
       return Err(Signature(issue))
     }
   }
+  self.component_hasher = Some(hash)
   let mut remaining = source.component_bytes
   while remaining > 0L {
     let limit = if remaining < 65536L { remaining.to_int() } else { 65536 }
     let chunk = match filesystem_result(reader.next(limit)) {
       Ok(value) => value
       Err(issue) => {
-        ignore(reader.close())
-        ignore(writer.cancel())
+        ignore(
+          close_bundle_component_reader(self, original_reader=Some(reader)),
+        )
+        ignore(cancel_bundle_component_writer(self, writer))
         return Err(issue)
       }
     }
     if chunk.bytes.is_empty() || chunk.bytes.length().to_int64() > remaining {
-      ignore(reader.close())
-      ignore(writer.cancel())
+      ignore(close_bundle_component_reader(self, original_reader=Some(reader)))
+      ignore(cancel_bundle_component_writer(self, writer))
       return Err(ComponentMismatch)
     }
     match filesystem_result(writer.append(chunk.bytes)) {
       Ok(_) => ()
       Err(issue) => {
-        ignore(reader.close())
-        ignore(writer.cancel())
+        ignore(
+          close_bundle_component_reader(self, original_reader=Some(reader)),
+        )
+        ignore(cancel_bundle_component_writer(self, writer))
         return Err(issue)
       }
     }
     match hash.update(chunk.bytes) {
       Ok(_) => ()
       Err(issue) => {
-        ignore(reader.close())
-        ignore(writer.cancel())
+        ignore(
+          close_bundle_component_reader(self, original_reader=Some(reader)),
+        )
+        ignore(cancel_bundle_component_writer(self, writer))
         return Err(Signature(issue))
       }
     }
     remaining = remaining - chunk.bytes.length().to_int64()
   }
-  match filesystem_result(reader.close()) {
-    Ok(_) => ()
-    Err(issue) => {
-      ignore(writer.cancel())
-      return Err(issue)
-    }
-  }
   let digest = match hash.finish_hex() {
-    Ok(value) => value
+    Ok(value) => {
+      self.component_hasher = None
+      value
+    }
     Err(issue) => {
-      ignore(writer.cancel())
+      ignore(close_bundle_component_reader(self, original_reader=Some(reader)))
+      ignore(cancel_bundle_component_writer(self, writer))
       return Err(Signature(issue))
     }
   }
+  match close_bundle_component_reader(self, original_reader=Some(reader)) {
+    Ok(_) => ()
+    Err(issue) => {
+      ignore(cancel_bundle_component_writer(self, writer))
+      return Err(issue)
+    }
+  }
   if "sha256:" + digest != source.component_cid {
-    ignore(writer.cancel())
+    ignore(cancel_bundle_component_writer(self, writer))
     return Err(ComponentMismatch)
   }
   let generation = match filesystem_result(writer.seal(artifact_name)) {
     Ok(value) => value
     Err(issue) => {
-      ignore(writer.cancel())
+      ignore(cancel_bundle_component_writer(self, writer))
       return Err(issue)
     }
   }

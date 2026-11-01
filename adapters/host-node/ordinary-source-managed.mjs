@@ -56,6 +56,9 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
   };
   let closing = false, closed = false, bundle, flight, checkingBundle = false;
   const receipts = new WeakMap(), producers = new Set(), runs = new WeakMap();
+  // The existing live inventory owns producers. Request lookup retains only
+  // a weak reference; a held retired Request cannot keep its payload alive or
+  // be rebound to another producer after its original owner has retired.
   const requestProducers = new WeakMap();
   // Exact Prepared lookup is provenance, not a second strong payload root.
   // The live inventory owns each record until its actual retirement.
@@ -148,8 +151,8 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
     return false;
   };
   const producerForRequest = request => {
-    const producer = requestProducers.get(request);
-    return producer !== undefined && producers.has(producer) &&
+    const producer = requestProducers.get(request)?.deref();
+    return !closing && !closed && producer !== undefined && producers.has(producer) &&
       receipts.get(producer.receipt) === producer && producer.request === request &&
       !producer.finished ? producer : undefined;
   };
@@ -424,7 +427,10 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       // module; no shape scan selects a second preparation protocol.
       if (context !== undefined) {
         const state = {context, original: undefined, admission: undefined, parent: undefined,
-          prepared: undefined, holder: undefined, adopting: false};
+          prepared: undefined, holder: undefined, adopting: false,
+          originalCheckResult: undefined,
+          projectOriginalCheck: Object.getOwnPropertyDescriptor(context.runtime,
+            'clientProgramProjectRequestCheckOutcome')?.value};
         producer.preparation = state;
         try {
           if (sourceEnvironment !== undefined &&
@@ -526,13 +532,15 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
     bindSourceRequest(receipt, body, request) {
       current(); const producer = producerFor(receipt);
       if (producer.body !== body || producer.request !== undefined || producer.finished ||
-          request === null || !['object', 'function'].includes(typeof request) ||
-          requestProducers.has(request)) fail('ForeignInstalledSourceProducer');
+          request === null || (typeof request !== 'object' && typeof request !== 'function') ||
+          requestProducers.has(request)) {
+        fail('ForeignInstalledSourceProducer');
+      }
+      requestProducers.set(request, new WeakRef(producer));
       producer.request = request;
       // Keep the original weak association through finish/retirement. Lookup
       // requires live inventory and the same request; a stale key cannot bind
       // another producer. No strong alias collection or cleanup owner is added.
-      requestProducers.set(request, producer);
     },
     submittedIntentOriginal(request) {
       current();
@@ -547,6 +555,40 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       const intent = moon.clientProgramRequestSubmittedIntentOriginal(state.parent, producer.receipt);
       if (intent === undefined) fail('ForeignInstalledSourceProducer');
       return intent;
+    },
+    observeOriginalCheckOutcome(request, failure, visit) {
+      current();
+      const producer = producerForRequest(request), state = producer?.preparation;
+      // No retained original is reconstructed after completion/retirement, or
+      // for a foreign failure merely carrying a public-looking error code.
+      if (state === undefined || state.parent === undefined || state.preparing ||
+          !state.preparationFailed || state.preparationFailure !== failure ||
+          state.originalCheckResult === undefined || typeof state.projectOriginalCheck !== 'function') return undefined;
+      if (typeof visit !== 'function') fail('InvalidOriginalCheckObservation');
+      const parent = state.parent, result = state.originalCheckResult;
+      const project = state.projectOriginalCheck, moon = state.context.runtime;
+      const assertSame = () => {
+        current();
+        if (producer.finished || producer.request !== request || producer.preparation !== state ||
+            state.parent !== parent || state.originalCheckResult !== result ||
+            state.preparing || !state.preparationFailed || state.preparationFailure !== failure) {
+          fail('ForeignInstalledSourceProducer');
+        }
+      };
+      // Availability is decided from this SAME failed state before any
+      // Source/account/namespace metadata visitor can await or do work.
+      assertSame();
+      return visit(metadata => {
+        if (!Array.isArray(metadata) || metadata.length !== 11) fail('InvalidOriginalCheckObservation');
+        assertSame();
+        // Preserve the original Result wrapper. Only the typed C bridge may
+        // match its terminal; no Err/Option or Error.cause is rebuilt in JS.
+        const wire = checked(Reflect.apply(project, moon,
+          [parent, producer.receipt, result, ...metadata]));
+        assertSame();
+        if (wire !== undefined && typeof wire !== 'string') fail('InvalidOriginalCheckObservation');
+        return wire;
+      });
     },
     async fundedPreparation(request, environment, originalVerifier, signal) {
       current();
@@ -599,10 +641,15 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
             }
             assertPreparingOriginal();
             const valuesMaxRows = Object.getOwnPropertyDescriptor(state.context, 'valuesMaxRows')?.value;
-            checkedRequestProgramPreparation(moon, Reflect.apply(prepareCheck, moon, [
+            const originalCheckResult = Reflect.apply(prepareCheck, moon, [
               parent, producer.receipt, producer.body.input, producer.body.parameters,
               environment, state.context.preparedEnvironment, valuesMaxRows,
-            ]), projectIssue);
+            ]);
+            // This failed Request already owns the child and its cleanup.
+            // Retain only its actual result until that same owner retires it.
+            state.originalCheckResult = originalCheckResult;
+            checkedRequestProgramPreparation(moon, originalCheckResult, projectIssue);
+            state.originalCheckResult = undefined;
             assertPreparingOriginal();
             if (originalVerifier !== undefined) {
               const [prepareSubjects, readSubject, bindSubject, finishSubjects] = policyMethods;
@@ -787,7 +834,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         return state.modelProviderBinding;
       });
     },
-    prepareModelGraph(prepared, request, occurrence, execution, serializationGraph) {
+    prepareModelGraph(prepared, request, occurrence, execution, serializationGraph, constructSerialized) {
       current();
       const producer = producerForRequest(request), state = producer?.preparation;
       if (state?.preparationFailed) throw state.preparationFailure;
@@ -802,12 +849,15 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       const construct = serializationGraph === undefined ? moon.clientProgramPrepareRequestModelGraph
         : moon.clientProgramPrepareRequestSerializedModelGraph;
       const issue = moon.clientProgramRequestProgramModuleIssueCode;
-      if (typeof construct !== 'function' || typeof issue !== 'function') fail('NodeManagedRunRuntimeUnavailable');
+      if (typeof construct !== 'function' || typeof issue !== 'function' ||
+          serializationGraph !== undefined && typeof constructSerialized !== 'function') fail('NodeManagedRunRuntimeUnavailable');
       return constructRequestDomain(state, () => {
-        state.modelGraph = checkedRequestProgramPreparation(moon, Reflect.apply(construct, moon,
-          serializationGraph === undefined
-            ? [state.parent, producer.receipt, occurrence, execution, contracts.admission]
-            : [state.parent, producer.receipt, occurrence, serializationGraph, execution, contracts.admission]), issue);
+        const result = serializationGraph === undefined
+          ? Reflect.apply(construct, moon,
+            [state.parent, producer.receipt, occurrence, execution, contracts.admission])
+          : constructSerialized(state.parent, producer.receipt, occurrence,
+            serializationGraph, execution, contracts.admission);
+        state.modelGraph = checkedRequestProgramPreparation(moon, result, issue);
         if (state.modelGraph === undefined) fail('NodeManagedRunCompilationUnavailable');
         current();
         if (producer.finished || producer.preparation !== state || state.prepared !== prepared ||
@@ -1341,7 +1391,8 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       state.prepared = state.snapshot = state.snapshotDocument = state.parametersCursor = undefined;
       state.capturePlan = state.effectPlan = run.operationPlan = run.content = undefined;
       state.modelProviderBinding = undefined;
-      state.preparationFailure = undefined;state.preparationFailed = false;
+      state.preparationFailure = state.originalCheckResult = state.projectOriginalCheck = undefined;
+      state.preparationFailed = false;
       const holder = state.holder;state.holder = undefined;
       checked(state.effectBorrowMethods === undefined
         ? state.context.runtime.clientProgramPreparationBorrowReturn(holder)
@@ -1359,7 +1410,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       liveRuns.delete(run);producer.liveRuns--;
       producer.preparation=undefined;
       state.parent=state.admission=state.original=state.context=undefined;
-      state.compilationKind=state.preparationFailure=undefined;state.preparationFailed=false;
+      state.compilationKind=state.preparationFailure=state.originalCheckResult=state.projectOriginalCheck=undefined;state.preparationFailed=false;
       state.compilationFamily=undefined;
       state.policyVerifier=state.policySignal=undefined;state.policyVerifierSelected=false;
       run.value=run.producer=undefined;

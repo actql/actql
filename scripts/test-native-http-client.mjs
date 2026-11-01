@@ -25,8 +25,6 @@ import {fileURLToPath, pathToFileURL} from 'node:url';
 import {runtimeCore} from '../adapters/host-common/runtime-core.mjs';
 import {startNativeEffectCheckpointServer} from './fixtures/native-effect-checkpoint-server.mjs';
 import {startNativeBearerServers} from './fixtures/native-bearer-servers.mjs';
-import {installNodeClientProgramPreparation} from
-  '../adapters/host-node/client-program-preparation.mjs';
 import {startHttpsOutboundSiteGateway} from
   '../adapters/host-node/outbound-site-gateway.mjs';
 import {signRemoteRuntimeBundle} from
@@ -2076,10 +2074,14 @@ verification: try {
     canonical(environment), environment.evidence_bundle_cid,
     false, false, true, false, false, false, false);
   assert.ok(applicationCheckEnvironment);
-  const applicationProgram = installNodeClientProgramPreparation({
-    moon: moonModule, environment: applicationCheckEnvironment,
-  })({kind: 'aql', input: {text: applicationFiles.get('program.json'),
-    format: 'json'}, parameters: {minimum: 1}});
+  // Independent issuing-side compiler fixture, not an installed Node Host
+  // preparation or a fabricated funded Request. The actual Native receiver
+  // separately admits the emitted original Run/materials wire.
+  const applicationPreparation = moonModule.clientProgramPrepareEffectFreeWithParameters(
+    applicationFiles.get('program.json'), 'json', applicationCheckEnvironment,
+    JSON.stringify({minimum: 1}));
+  const applicationProgram = moonModule.clientProgramPreparationReady(applicationPreparation);
+  assert.ok(applicationProgram, 'Independent Native application compiler preparation rejected');
   const applicationCompiled = portableRuntime.publicationControl
     .prepareCheckedClientCompiledRun(applicationProgram, 'tasks', {
       executionContextCid: physicalCid('native-application-execution-context'),

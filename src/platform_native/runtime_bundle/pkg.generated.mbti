@@ -36,6 +36,8 @@ pub fn open_runtime_bundle_store_with_custody(@sqlite.Library, @signature.Librar
 
 pub fn open_runtime_bundle_store_with_trust(@sqlite.Library, @signature.Library, String, Array[NativeRuntimeBundleTrust], String, Int64, Int, Int, Int64) -> Result[NativeRuntimeBundleStore, NativeRuntimeBundleStoreIssue]
 
+pub fn open_runtime_bundle_store_with_trust_and_custody(@sqlite.Library, @signature.Library, String, Array[NativeRuntimeBundleTrust], String, Int64, Int, Int, Int64) -> Result[NativeRuntimeBundleStore, NativeRuntimeBundleStoreOpenError]
+
 // Errors
 
 // Types and methods

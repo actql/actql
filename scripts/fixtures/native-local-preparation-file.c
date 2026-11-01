@@ -18,7 +18,7 @@ extern void *actql_native_filesystem_adopt_private_file_projection(
 );
 extern int32_t actql_native_filesystem_private_file_projection_ready(void *);
 
-struct curl_slist { char *text; struct curl_slist *next; };
+static actql_native_http_library *original_http_library;
 static int sends, cleanups, scenarios;
 static bool lose_response, replace_during_configuration, cancel_during_configuration;
 static char original_path[4096], replacement_path[4096];
@@ -86,70 +86,48 @@ static void passed(const char *name) {
   printf("ok %d - %s\n", scenarios, name);
 }
 
-static CURL *fixture_init(void) { return (CURL *)1; }
-static CURLcode fixture_setopt(CURL *curl, CURLoption option, ...) {
-  (void)curl;
+static void fixture_configuration(int option, void *value, void *unused) {
+  (void)unused;
   if (option == ACTQL_CURLOPT_XFERINFODATA && replace_during_configuration) {
     assert(rename(original_path, replacement_path) == 0);
     write_secret(original_path, "fixture-token\n");
     replace_during_configuration = false;
   }
   if (option == ACTQL_CURLOPT_XFERINFODATA && cancel_during_configuration) {
-    va_list args; va_start(args, option);
-    actql_native_http_client *client = va_arg(args, actql_native_http_client *);
-    va_end(args);
-    assert(actql_native_http_client_cancel(client));
+    assert(actql_native_http_client_cancel(value));
     cancel_during_configuration = false;
   }
-  return ACTQL_CURLE_OK;
 }
-static CURLcode fixture_perform(CURL *curl) {
-  (void)curl; sends += 1;
+static int fixture_perform(void *unused) {
+  (void)unused; sends += 1;
   return lose_response ? ACTQL_CURLE_WRITE_ERROR : ACTQL_CURLE_OK;
 }
-static CURLcode fixture_getinfo(CURL *curl, CURLINFO info, ...) {
-  (void)curl; (void)info;
-  va_list args; va_start(args, info);
-  *va_arg(args, long *) = 204;
-  va_end(args);
-  return ACTQL_CURLE_OK;
-}
-static void fixture_cleanup(CURL *curl) { (void)curl; cleanups += 1; }
-static const char *fixture_error(CURLcode code) { (void)code; return "fixture response lost"; }
-static curl_slist *fixture_append(curl_slist *list, const char *text) {
-  curl_slist *entry = calloc(1, sizeof(*entry)); assert(entry != NULL);
-  entry->text = strdup(text); assert(entry->text != NULL);
-  if (list == NULL) return entry;
-  curl_slist *tail = list; while (tail->next != NULL) tail = tail->next;
-  tail->next = entry; return list;
-}
-static void fixture_free(curl_slist *list) {
-  while (list != NULL) {
-    curl_slist *next = list->next; free(list->text); free(list); list = next;
-  }
-}
+static void fixture_cleanup(void *unused) { (void)unused; cleanups += 1; }
 
 static int request_with_deadline(
   actql_native_private_file_projection *original, bool unknown, int64_t expires_at
 ) {
-  actql_native_http_library library = {
-    .easy_init = fixture_init, .easy_setopt = fixture_setopt,
-    .easy_perform = fixture_perform, .easy_getinfo = fixture_getinfo,
-    .easy_cleanup = fixture_cleanup, .easy_strerror = fixture_error,
-    .slist_append = fixture_append, .slist_free_all = fixture_free,
-  };
-  actql_native_http_client client = { .library = &library, .max_response_bytes = 64 };
-  atomic_init(&client.cancelled, false);
+  // Real same-namespace constructors establish the Library/Client relation.
+  // Callback transport remains test-only; no manual current/holder flags and
+  // no fake Library pointer can bypass the production lifecycle preflight.
+  moonbit_bytes_t ca = bytes("fixture-unused-ca"), bearer = bytes("fixture-unused-bearer");
+  actql_native_http_client *client = actql_native_http_create_authenticated_client(
+    original_http_library, ca, 17, NULL, 0, NULL, 0, bearer, 21, 64, 10, 20
+  );
+  moonbit_decref(ca); moonbit_decref(bearer);
+  assert(actql_native_http_client_ready(client));
   moonbit_bytes_t method = bytes("GET"), url = bytes("https://example.invalid/observe");
   moonbit_bytes_t headers = bytes("accept: application/json\n"), body = bytes("");
   lose_response = unknown;
   int result = actql_native_http_client_get_local_preparation(
-    &client, method, 3, url, 31, headers, 25, body, 0, original,
+    client, method, 3, url, 31, headers, 25, body, 0, original,
     expires_at
   );
   moonbit_decref(method); moonbit_decref(url);
   moonbit_decref(headers); moonbit_decref(body);
-  free(client.error); free(client.response);
+  assert(actql_native_http_client_close_checked(client) == 0);
+  moonbit_decref(client);
+  assert(actql_native_http_test_live_children(original_http_library) == 0);
   return result;
 }
 
@@ -158,7 +136,17 @@ static int request(actql_native_private_file_projection *original, bool unknown)
 }
 
 int main(int argc, char **argv) {
-  assert(argc == 2);
+  assert(argc == 3);
+  void *observer = dlopen(argv[2], RTLD_NOW | RTLD_LOCAL); assert(observer);
+  void (*bind)(void (*)(int, void *, void *), int (*)(void *), void (*)(void *), void *) =
+    dlsym(observer, "fixture_transport_callbacks");
+  assert(bind); bind(fixture_configuration, fixture_perform, fixture_cleanup, NULL);
+  moonbit_bytes_t module_path = bytes(argv[2]);
+  original_http_library = actql_native_http_load_library_with_custody(
+    module_path, (int32_t)strlen(argv[2]), 256
+  );
+  moonbit_decref(module_path);
+  assert(actql_native_http_library_ready(original_http_library));
   const char *root_path = argv[1];
   moonbit_bytes_t path = bytes(root_path);
   void *root = actql_native_filesystem_open_private_root(path, (int32_t)strlen(root_path));
@@ -260,6 +248,11 @@ int main(int argc, char **argv) {
   passed("directory replacement refuses retained fd with lost namespace custody");
   moonbit_decref(original); moonbit_decref(root);
   assert(scenarios == 14 && sends == 2 && cleanups == 4);
+  assert(actql_native_http_test_live_children(original_http_library) == 0);
+  // Transport entry leaves the same global/runtime retirement pending, even
+  // for this callback module. Keep the original and observer through exit;
+  // process reaping is not a global Library or whole Host acknowledgement.
+  assert(actql_native_http_library_close_checked(original_http_library) != 0);
   printf("{\"cases\":14,\"transport_entries\":2,\"transport_cleanups\":4,\"public_acceptance\":false}\n");
   return 0;
 }

@@ -351,24 +351,6 @@ pub fn client_program_installed_managed_keyed_content_check_preparation(
 }
 
 ///|
-#export_name("clientProgramInstalledManagedKeyedContentRunBegin")
-pub fn client_program_installed_managed_keyed_content_run_begin(
-  admission : @resources.NodeManagedRunAdmission[
-    @publication_host.PreparedClientProgram,
-  ],
-  prepared : @publication_host.PreparedClientProgram,
-  request : @publication_host.ClientRequestIdentity,
-  selected : @client_local_host.ClientInstalledManagedKeyedPreparation,
-) -> Result[
-  @client_local_host.ClientInstalledManagedRun,
-  @client_local_host.ClientInstalledManagedRunIssue,
-] {
-  @client_local_host.begin_installed_managed_keyed_content_run(
-    admission, prepared, request, selected,
-  )
-}
-
-///|
 #export_name("clientProgramInstalledManagedKeyedSourceRead")
 pub fn client_program_installed_managed_keyed_source_read(
   value : @client_local_host.ClientInstalledManagedRun,

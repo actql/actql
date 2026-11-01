@@ -226,6 +226,14 @@ function capturePackageCustody(inventory, localRoot, consumerEntry, publicPreloa
     if (apply(preloading, module, []) !== !ordinary) fail('InitialControlPackageCustodyUnavailable');
     loader.assertCurrent();
     if (initialized) return namespace;
+    if (ordinary) {
+      // Use the already captured helper before compiling the static Host graph.
+      // This only enables Node's optional code cache, never ActQL checking.
+      const cache = originalRequire(join(root, 'adapters/host-node/compile-cache.mjs'));
+      const enable = descriptor(cache, 'enableNodeCompileCache')?.value;
+      if (typeof enable !== 'function') fail('InitialControlPackageImageChanged');
+      apply(enable, cache, []);
+    }
     // Actual Source delivery precedes this compilation. Do not capture a
     // mutable pathname later or initialize a replacement caller namespace.
     const loaded = originalRequire(join(root, hostModule));

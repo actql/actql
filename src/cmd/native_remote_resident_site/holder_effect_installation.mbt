@@ -5,11 +5,16 @@
 priv struct HolderEffectResumeInstallation {
   database : @sqlite.Database
   client : @http.Client
+  http_library : @http.Library
   configuration : @effect_review.NativeResidentEffectCloudResumeInstallation
   scope : @effect_resource.NativeCredentialScope
   current : () -> Bool
+  pending_input : Ref[@bounded_files.NativeBoundedTextFailure?]
+  retiring : Ref[Bool]
+  mut input_closed : Bool
   mut client_closed : Bool
   mut database_closed : Bool
+  mut library_closed : Bool
 }
 
 ///|
@@ -63,6 +68,7 @@ fn holder_effect_provider_scope(
 /// path; invalid configuration preserves the existing task/Review responsibility.
 fn open_holder_effect_resume_installation(
   matches : @argparse.Matches,
+  entry : ResidentInitialControl,
   sqlite_library : @sqlite.Library,
   resources : HolderOutputResources,
   dispatch : @remote.DispatchRequest,
@@ -90,8 +96,7 @@ fn open_holder_effect_resume_installation(
     }
   }
   let read = (index : Int) => snapshot[index].1
-  let crypto = match
-    @signature.load_library(required(matches, "crypto-library")) {
+  let crypto = match entry.load_crypto(required(matches, "crypto-library")) {
     Ok(value) => value
     Err(_) => stop("Effect Resume signature library unavailable")
   }
@@ -141,27 +146,58 @@ fn open_holder_effect_resume_installation(
     ) {
     stop("Effect Resume credential dispatch refused")
   }
+  let pending_input : Ref[@bounded_files.NativeBoundedTextFailure?] = Ref(None)
+  let retiring = Ref(false)
   let current = () => {
+    if retiring.val || pending_input.val is Some(_) {
+      return false
+    }
     // Rotation/removal never backfills the retained installation. This checks
     // configuration continuity only. Current Reviewer rights come from the
     // separate Cloud read; grant expiry/revocation remain credential-owned.
     snapshot.all(entry => {
-      match @bounded_files.read_bounded_text_file(root, entry.0, file_limit) {
+      match
+        @bounded_files.read_bounded_text_file_with_custody(
+          root,
+          entry.0,
+          file_limit,
+        ) {
         Ok(value) => value == entry.1
-        Err(_) => false
+        Err(original) => {
+          // A failed current read is denial, not a fresh read/regrant. The
+          // same installation keeps the actual cleanup carrier until close.
+          pending_input.val = Some(original)
+          false
+        }
       }
     })
   }
-  let http = match @http.load_library(required(matches, "http-library")) {
+  let http = match
+    @http.load_library_with_custody(
+      required(matches, "http-library"),
+      diagnostic_ceiling=Some(entry.diagnostic_bytes),
+    ) {
     Ok(value) => value
-    Err(_) => stop("Effect Resume HTTP library unavailable")
+    Err(RefusedBeforeAcquisition(_)) =>
+      stop("Effect Resume HTTP library unavailable")
+    Err(CleanupRequired(original)) => {
+      // Preserve this actual failed initializer until its own cleanup returns.
+      // A later poll cannot replace its Library or treat GC as that ACK.
+      let mut wait_ms = 50
+      while original.retry_cleanup() is Err(_) {
+        report("cleanup-pending", [("step", "effect-resume-library-setup")])
+        @slot.native_wait_milliseconds(wait_ms)
+        wait_ms = holder_effect_installation_backoff(wait_ms)
+      }
+      stop("Effect Resume HTTP library unavailable")
+    }
   }
   let max_response = required_int64(matches, "max-response-bytes")
   let connect_timeout = required_int(matches, "connect-timeout-ms")
   let total_timeout = required_int(matches, "total-timeout-ms")
   let max_record = required_int64(matches, "max-record-bytes")
   let client = match
-    http.create_client(
+    http.create_client_with_custody(
       read(14),
       "",
       "",
@@ -170,12 +206,30 @@ fn open_holder_effect_resume_installation(
       total_timeout,
     ) {
     Ok(value) => value
-    Err(_) => stop("Effect Resume Provider client unavailable")
+    Err(RefusedBeforeAcquisition(_)) => {
+      close_holder_effect_installation_setup(http, None, None)
+      stop("Effect Resume Provider client unavailable")
+    }
+    Err(CleanupRequired(original)) => {
+      close_holder_effect_installation_setup(
+        http,
+        None,
+        None,
+        failed_client=Some(original),
+      )
+      stop("Effect Resume Provider client unavailable")
+    }
   }
-  let database = match sqlite_library.open_database(read(15), max_record) {
+  let database = match
+    sqlite_library.open_database_with_custody(read(15), max_record) {
     Ok(value) => value
-    Err(_) => {
-      close_holder_effect_installation_setup(client, None)
+    Err(original) => {
+      close_holder_effect_installation_setup(
+        http,
+        Some(client),
+        None,
+        failed_database=Some(original),
+      )
       stop("Effect Resume credential database unavailable")
     }
   }
@@ -204,7 +258,7 @@ fn open_holder_effect_resume_installation(
     ) {
     Ok(value) => value
     Err(_) => {
-      close_holder_effect_installation_setup(client, Some(database))
+      close_holder_effect_installation_setup(http, Some(client), Some(database))
       stop("Effect Resume credential service refused")
     }
   }
@@ -253,11 +307,16 @@ fn open_holder_effect_resume_installation(
   Some({
     database,
     client,
+    http_library: http,
     configuration,
     scope,
     current,
+    pending_input,
+    retiring,
+    input_closed: false,
     client_closed: false,
     database_closed: false,
+    library_closed: false,
   })
 }
 
@@ -266,20 +325,41 @@ fn open_holder_effect_resume_installation(
 /// physical handles. No Provider send/use has occurred at this boundary; the
 /// existing Source/Compute/Review and slot responsibilities remain with caller.
 fn close_holder_effect_installation_setup(
-  client : @http.Client,
+  library : @http.Library,
+  client : @http.Client?,
   database : @sqlite.Database?,
+  failed_client? : @http.NativeHttpClientCreateFailure? = None,
+  failed_database? : @sqlite.NativeSqliteOpenFailure? = None,
 ) -> Unit {
-  let mut client_closed = false
+  let mut client_closed = client is None
   let mut database_closed = database is None
+  let mut failed_client_closed = failed_client is None
+  let mut failed_database_closed = failed_database is None
+  let mut library_closed = false
   let mut wait_ms = 50
-  while !client_closed || !database_closed {
-    if !client_closed {
-      client_closed = client.close()
+  while !library_closed {
+    if !failed_client_closed && failed_client is Some(original) {
+      failed_client_closed = match original.retry_cleanup() {
+        Ok(residual) => physical_equal(residual, library)
+        Err(_) => false
+      }
+    }
+    if !client_closed && client is Some(original) {
+      client_closed = original.close_checked() is Ok(_)
+    }
+    if !failed_database_closed && failed_database is Some(original) {
+      failed_database_closed = original.retry_cleanup() is Ok(_)
     }
     if !database_closed && database is Some(value) {
       database_closed = value.close_checked() is Ok(_)
     }
-    if !client_closed || !database_closed {
+    if client_closed &&
+      database_closed &&
+      failed_client_closed &&
+      failed_database_closed {
+      library_closed = library.close_checked() is Ok(_)
+    }
+    if !library_closed {
       report("cleanup-pending", [("step", "effect-resume-installation-setup")])
       @slot.native_wait_milliseconds(wait_ms)
       wait_ms = holder_effect_installation_backoff(wait_ms)
@@ -304,6 +384,7 @@ fn HolderEffectResumeInstallation::for_dispatch(
   if !(self.current)() ||
     self.client_closed ||
     self.database_closed ||
+    self.library_closed ||
     !holder_effect_provider_dispatch_matches(
       self.scope,
       @remote.dispatch_request_execution_scope(dispatch),
@@ -340,11 +421,31 @@ fn holder_effect_provider_dispatch_matches(
 fn HolderEffectResumeInstallation::close(
   self : HolderEffectResumeInstallation,
 ) -> Bool {
+  // Denial only: beginning retirement permits no new current read or send.
+  // The separate input_closed field still requires the actual cleanup ACK.
+  self.retiring.val = true
+  if !self.input_closed {
+    self.input_closed = match self.pending_input.val {
+      None => true
+      Some(original) => original.retry_cleanup() is Ok(_)
+    }
+    if !self.input_closed {
+      return false
+    }
+    // Keep the failed observation latched: cleanup must not reactivate the
+    // configuration/current callback or authorize another resource read.
+  }
   if !self.client_closed {
-    self.client_closed = self.client.close()
+    self.client_closed = self.client.close_checked() is Ok(_)
   }
   if !self.database_closed {
     self.database_closed = self.database.close_checked() is Ok(_)
   }
-  self.client_closed && self.database_closed
+  if self.client_closed && self.database_closed && !self.library_closed {
+    self.library_closed = self.http_library.close_checked() is Ok(_)
+  }
+  self.input_closed &&
+  self.client_closed &&
+  self.database_closed &&
+  self.library_closed
 }

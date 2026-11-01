@@ -1633,6 +1633,30 @@ available. Cancellation requests stop; actual transport close, pending callback
 completion, accounting disposition and provider/binding retirement remain
 separate duties on the original reader.
 
+### Typed standard REST pages
+
+An unchanged standard REST page keeps the original parsed row subtree inside
+the same Core namespace through the existing managed reader. The opaque page
+does not contain a Source permission, Resource owner or cleanup receipt. Its
+RowRun consumes the original response charge once, then applies the existing
+complete row/schema, cardinality, value and retention admission. A page from
+another compiled namespace refuses; it never falls back to encoding or parsing
+the foreign object. The shared reader compares the actual admitted row count
+with the page count before advancing its original pagination state.
+
+Without an author transform, the selected array is not encoded as a String,
+copied to a Buffer and parsed again. The legacy wire projection and an author
+transform still use the same original envelope parser and cursor rules. An
+unchanged transform result reuses that parsed page; changed wire is bounded
+and parsed as a new input before the same schema admission. External wire and
+ordinary JS-row consumers retain their existing checked entrances. No JS JSON
+parser, numeric conversion, cursor fallback or independent Reader is added.
+
+The same reader retains response bytes, pending consumption, cancellation,
+charge disposition and physical binding retirement. A thrown charge remains
+unconfirmed even after transport close. Stop cannot acknowledge an unfinished
+consumption or replace the original schema failure with successful cleanup.
+
 The common Credential reader borrows the original Site's bound credential,
 transport, read authorization and current check. Each exact received response
 enters the reader's custody before accounting or projection. A pending read,

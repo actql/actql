@@ -1,4 +1,28 @@
 ///|
+// These isolated recovery constructor cases supply actual existing nominal
+// test Libraries. They do not substitute an installed command entry or claim
+// scoped Resident/component qualification. Production uses its own carrier.
+fn recovery_open_test_environment(
+  matches : @argparse.Matches,
+) -> ControlEnvironment raise CommandStop {
+  let library = @sqlite.load_library(required(matches, "sqlite-library")).unwrap()
+  {
+    sqlite_library: library,
+    crypto_library: path => {
+      @signature.load_library(path).map_err(_ => "fixture Crypto load failed")
+    },
+    journal_path: required(matches, "journal"),
+    max_record_bytes: required_int64(matches, "max-record-bytes"),
+    site_key: required(matches, "site-key"),
+    site_generation: required_int(matches, "site-generation"),
+    runtime_bundle_cid: required(matches, "runtime-bundle-cid"),
+    max_operations: required_int(matches, "max-operations"),
+    max_transfers: required_int(matches, "max-transfers"),
+    max_bytes: required_int64(matches, "max-bytes"),
+  }
+}
+
+///|
 fn recovery_open_test_matches(
   path : String,
   journal_path : String,
@@ -63,7 +87,12 @@ test "failed release preparation holds original Bundle Journal and Slot through 
   assert_true(slot.try_acquire().unwrap())
   let identity = @remote.dispatch_request_identity(request)
   let original = match
-    open_release_recovery_with_custody(matches, slot, identity) {
+    open_release_recovery_with_custody(
+      matches,
+      recovery_open_test_environment(matches),
+      slot,
+      identity,
+    ) {
     Err(value) => value
     Ok(_) => {
       fail("missing original Bundle was accepted as prepared recovery")
@@ -125,7 +154,15 @@ test "failed release preparation holds original Bundle Journal and Slot through 
   // The real controller caller must return pending after failed preparation,
   // not throw out of the controller and discard its other responsibilities.
   let retained : Ref[StoppedReleaseRecovery?] = Ref(None)
-  assert_false(recover_stopped_release(matches, request, retained, Ref(0)))
+  assert_false(
+    recover_stopped_release(
+      matches,
+      recovery_open_test_environment(matches),
+      request,
+      retained,
+      Ref(0),
+    ),
+  )
   assert_true(retained.val is None)
   let next = @slot.open_native_executor_slot(path + "/original.slot").unwrap()
   assert_true(next.try_acquire().unwrap())
@@ -147,7 +184,12 @@ test "release preparation retains failed Journal construction without opening Bu
   let slot = @slot.open_native_executor_slot(path + "/original.slot").unwrap()
   assert_true(slot.try_acquire().unwrap())
   let original = match
-    open_release_recovery_with_custody(matches, slot, "original-recovery") {
+    open_release_recovery_with_custody(
+      matches,
+      recovery_open_test_environment(matches),
+      slot,
+      "original-recovery",
+    ) {
     Err(value) => value
     Ok(_) => {
       fail("failed Journal construction was accepted")
@@ -188,7 +230,10 @@ test "successful release preparation transfers original handles without cleanup 
   let slot = @slot.open_native_executor_slot(path + "/original.slot").unwrap()
   assert_true(slot.try_acquire().unwrap())
   let owner = open_release_recovery_with_custody(
-    matches, slot, "original-recovery",
+    matches,
+    recovery_open_test_environment(matches),
+    slot,
+    "original-recovery",
   ).unwrap()
   assert_true(physical_equal(owner.slot, slot))
   assert_eq(owner.request_identity, "original-recovery")

@@ -1831,6 +1831,8 @@ pub fn client_program_retire_installed_effect_capture_recovery(@client_local_hos
 
 pub fn client_program_row_source_accept_charged_page(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, Bytes) -> Result[Int, @client_row_source_host.RowHostIssue]
 
+pub fn client_program_row_source_accept_charged_projected_page(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, @client_row_source_host.RowSourceProjectedJsonPage) -> Result[Int, @client_row_source_host.RowHostIssue]
+
 pub fn client_program_row_source_accept_charged_values(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, Array[String], Array[Array[@value_admission.CheckedValue]]) -> Result[Int, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_row_source_accept_page(@client_row_source_host.RowRun, Bytes) -> Result[Int, @client_row_source_host.RowHostIssue]
@@ -1887,6 +1889,8 @@ pub fn client_program_row_source_json_page_has_next_cursor(@client_row_source_ho
 
 pub fn client_program_row_source_json_page_next_cursor(@client_row_source_host.RowSourceJsonPage) -> Result[String, @client_row_source_host.RowSourceJsonPageIssue]
 
+pub fn client_program_row_source_json_page_original(@client_row_source_host.RowSourceJsonPage) -> @client_row_source_host.RowSourceProjectedJsonPage
+
 pub fn client_program_row_source_json_page_row_count(@client_row_source_host.RowSourceJsonPage) -> Int
 
 pub fn client_program_row_source_json_page_rows_wire(@client_row_source_host.RowSourceJsonPage) -> String
@@ -1902,6 +1906,8 @@ pub fn client_program_row_source_prepare_acquisition_with_contracts(@client_row_
 pub fn client_program_row_source_prepare_mapping(@client_row_source_host.RowDeclaration, String, String, String) -> String
 
 pub fn client_program_row_source_project_json_page(Bytes, Array[String], Bool, Array[String], Int, Int, Int, Int, Int) -> Result[@client_row_source_host.RowSourceJsonPage, @client_row_source_host.RowSourceJsonPageIssue]
+
+pub fn client_program_row_source_project_typed_json_page(Bytes, Array[String], Bool, Array[String], Int, Int, Int, Int, Int) -> Result[@client_row_source_host.RowSourceProjectedJsonPage, @client_row_source_host.RowSourceJsonPageIssue]
 
 pub fn client_program_row_source_provider_capacity(Int64, Int64) -> @execution_relation.ExecutionCapacity?
 
@@ -1924,6 +1930,12 @@ pub fn client_program_row_source_start_listing_accounted(@client_row_source_host
 pub fn client_program_row_source_start_provider_accounted(@client_row_source_host.RowAcquisition, @execution_relation.ExecutionCapacity?, String, (@client_row_source_host.RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64) -> Result[@client_row_source_host.RowRun, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_row_source_target(@client_row_source_host.RowDeclaration, @query_planning.QueryRequirement) -> Result[Array[String], @client_row_source_host.RowHostIssue]
+
+pub fn client_program_row_source_typed_json_page_has_next_cursor(@client_row_source_host.RowSourceProjectedJsonPage) -> Bool
+
+pub fn client_program_row_source_typed_json_page_next_cursor(@client_row_source_host.RowSourceProjectedJsonPage) -> Result[String, @client_row_source_host.RowSourceJsonPageIssue]
+
+pub fn client_program_row_source_typed_json_page_row_count(@client_row_source_host.RowSourceProjectedJsonPage) -> Int
 
 pub fn client_program_run_observation_key(String, Int64, Bool, Bool, Bool, Bool) -> String?
 

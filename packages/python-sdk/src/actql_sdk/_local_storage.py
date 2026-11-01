@@ -10,17 +10,10 @@ from threading import RLock, get_ident
 from ._local_files import LocalFileRoot, _PayloadFile
 from ._local_storage_physical import (
     _PhysicalByteDatabase, _SQLiteByteDatabase,
-    _PhysicalCapacityCollision, _PhysicalCapacityExceeded)
+    _PhysicalCapacityCollision, _PhysicalCapacityExceeded, _RUN_DEFINITION_INDEX,
+    _APPLICATION_ID, _SCHEMA, _CAPACITY_SCHEMA, _RUN_DEFINITION_PROBE)
 
-_APPLICATION_ID = 0x41514C42
-_SCHEMA = '''CREATE TABLE core_bytes (
-    key TEXT PRIMARY KEY COLLATE BINARY NOT NULL,
-    generation INTEGER NOT NULL CHECK(generation >= 0),
-    payload BLOB NOT NULL CHECK(typeof(payload) = 'blob')
-) STRICT, WITHOUT ROWID'''
-# Match the existing Native SQLite physical reservation fields. Core supplies
-# the namespace, material key and amounts; this table carries no Run state.
-_CAPACITY_SCHEMA = '''CREATE TABLE actql_capacity(namespace TEXT NOT NULL,reservation_key TEXT NOT NULL,reserved_bytes INTEGER NOT NULL CHECK(reserved_bytes >= 0),reserved_objects INTEGER NOT NULL CHECK(reserved_objects >= 0),PRIMARY KEY(namespace, reservation_key)) STRICT'''
+
 
 
 @dataclass(frozen=True)
@@ -46,8 +39,14 @@ class _NamespaceReader:
     # Only the actual Store supplies this live-thread/frame check. It is not
     # a current observation; queries and protected decisions keep their fences.
     check_frame: Callable[['_NamespaceReader'], None] | None = None
+    # The closed journal transport returns only immutable physical row DATA.
+    # Arbitrary consumers keep read/scan_after and their post-consumer fence.
     query_current: Callable[['_NamespaceReader', int, str, str,
-                             _NamespaceConsumer, Callable[[], object]], None] | None = None
+                             Callable[[], object]], tuple[str, StoredBytes] | None] | None = None
+
+    # Actual same-transaction catalog observation, not an indexed-custody proof.
+    # Absence keeps existing private suppliers on their full legacy route.
+    journal_schema: Callable[['_NamespaceReader', Callable[[], object]], int] | None = None
 
 
 _InventoryInspection = Callable[[_NamespaceReader], object]
@@ -162,12 +161,17 @@ class LocalByteStore:
         self._connection = sqlite3.connect(path, isolation_level=None,
                                            timeout=1.0, check_same_thread=False)
         try:
-            self._physical = _SQLiteByteDatabase(self._connection)
+            database = _SQLiteByteDatabase(self._connection)
+            self._physical = database
             self._observe_generation()
+            # Select TEMP storage before the first catalog/snapshot statement.
+            # Changing it later discards TEMP while SQLite may retain prepared
+            # schema observations from this same connection's constructor.
+            self._connection.execute('PRAGMA temp_store = FILE')
             self._connection.execute('BEGIN IMMEDIATE')
             try:
-                schema = self._connection.execute('''SELECT name, sql FROM sqlite_schema
-                    WHERE name NOT LIKE 'sqlite_%' ORDER BY name''').fetchall()
+                schema = self._connection.execute('''SELECT 1 FROM main.sqlite_schema
+                    WHERE name NOT LIKE 'sqlite_%' LIMIT 1''').fetchone()
                 application = self._connection.execute('PRAGMA application_id').fetchone()[0]
                 version = self._connection.execute('PRAGMA user_version').fetchone()[0]
                 if not schema and application == 0 and version == 0:
@@ -176,10 +180,31 @@ class LocalByteStore:
                     self._connection.execute(_SCHEMA)
                     self._connection.execute(_CAPACITY_SCHEMA)
                     self._connection.execute(f'PRAGMA application_id = {_APPLICATION_ID}')
-                    self._connection.execute('PRAGMA user_version = 2')
-                elif (schema != [('actql_capacity', _CAPACITY_SCHEMA), ('core_bytes', _SCHEMA)]
-                      or application != _APPLICATION_ID or version != 2):
-                    raise LocalStorageError('Unknown Local physical storage format')
+                    version = 2
+                    if _new_file is not None:
+                        # Probe only the original library before index mutation.
+                        # Missing optional JSON support keeps the existing full
+                        # legacy route; unrelated failure is never a fallback.
+                        try:
+                            probe = self._connection.execute(_RUN_DEFINITION_PROBE).fetchone()
+                        except sqlite3.OperationalError as error:
+                            if (getattr(error, 'sqlite_errorcode', None) != sqlite3.SQLITE_ERROR
+                                    or str(error) != 'no such function: json_extract'):
+                                raise
+                        else:
+                            if probe != ('probe',):
+                                raise LocalStorageError('Original index expression probe was inconsistent')
+                            version = 3
+                    if version == 3:
+                        # Only the existing one-time original file acquisition
+                        # creates this format. Reopen never installs or repairs it.
+                        self._connection.execute(_RUN_DEFINITION_INDEX)
+                    self._connection.execute(f'PRAGMA user_version = {version}')
+                else:
+                    try:
+                        database._journal_schema()
+                    except ValueError as error:
+                        raise LocalStorageError('Unknown Local physical storage format') from error
                 self._connection.execute('COMMIT')
             except BaseException:
                 if self._physical.in_transaction:
@@ -189,7 +214,6 @@ class LocalByteStore:
             self._connection.execute('PRAGMA synchronous = FULL')
             self._connection.execute('PRAGMA cache_size = -64')
             self._connection.execute('PRAGMA mmap_size = 0')
-            self._connection.execute('PRAGMA temp_store = FILE')
             self._observe_generation()
             self._ready = True
         except BaseException as original:
@@ -963,9 +987,14 @@ class LocalByteStore:
                 if view is not reader or type(required) is not tuple:
                     raise ValueError('Copied or foreign Local inventory snapshot')
                 current_snapshot()
-                if required:
+                # Only the SAME frozen members, in the SAME admitted order,
+                # reuse their shape/bounds checks. Physical current above is
+                # fresh on every call; copied/subset DATA keeps full admission.
+                same_originals = len(required) == len(fences) and all(
+                    wanted is original for wanted, original in zip(required, fences))
+                if required and not same_originals:
                     self._validate_metadata_fences(required, ())
-                if (any(value not in fences for value in required)
+                if ((not same_originals and any(value not in fences for value in required))
                         or any(write.key == value.key for write in successors for value in required)):
                     raise LocalStorageError('Original Local snapshot is missing required physical fences')
             except BaseException as error:
@@ -987,8 +1016,9 @@ class LocalByteStore:
                 failure = error
                 raise
 
-        def observe(namespace: str, after: str, consume: _NamespaceConsumer, *,
-                    scan: bool, required_current: Callable[[], object] | None = None) -> None:
+        def observe(namespace: str, after: str, consume: _NamespaceConsumer | None, *,
+                    scan: bool, required_current: Callable[[], object] | None = None
+                    ) -> tuple[str, StoredBytes] | None:
             nonlocal reading, reads, copied, failure
             entered = False
             try:
@@ -996,7 +1026,8 @@ class LocalByteStore:
                         or failure is not None):
                     raise ValueError('Local inventory reader is not active')
                 self._capacity_name(namespace)
-                if type(after) is not str or not callable(consume):
+                if (type(after) is not str or not callable(consume)
+                        and (consume is not None or required_current is None)):
                     raise ValueError('Invalid Local inventory cursor or consumer')
                 # Use the same injective namespace/key encoding as physical
                 # writes. Empty cursor means start, not an empty logical key.
@@ -1027,12 +1058,18 @@ class LocalByteStore:
                     copied += len(payload)
                     observation = (logical, StoredBytes(generation, payload))
                 fence(required_current, reuse_snapshot=required_current is not None)
+                if consume is None:
+                    # No caller callback runs between the SQL read and return.
+                    # The returned row is bounded immutable DATA, not current
+                    # permission or a snapshot usable for a later operation.
+                    return observation
                 # The Host completes transfer into its reserved Core input and
                 # returns the same input/output loan before requesting a row.
                 if consume(observation) is not None:
                     raise ValueError('Invalid Local inventory consumer result')
                 del observation, row
                 fence(required_current, reuse_snapshot=required_current is not None)
+                return None
             except BaseException as error:
                 failure = error
                 raise
@@ -1041,32 +1078,63 @@ class LocalByteStore:
                     reading = False
 
         def query_current(view: _NamespaceReader, mode: int, namespace: str,
-                          key: str, consume: _NamespaceConsumer,
-                          required_current: Callable[[], object]) -> None:
+                          key: str, required_current: Callable[[], object]
+                          ) -> tuple[str, StoredBytes] | None:
             nonlocal failure
             try:
                 check_frame(view)
                 if type(mode) is not int or mode not in (0, 1) or not callable(required_current):
                     raise ValueError('Invalid original Local current query')
-                # The same actual query owns all three physical/current fences.
-                # Equal-looking callbacks are not merged; only this exact
-                # original observer is already included by the enclosing fence.
-                observe(namespace, key, consume, scan=mode == 0,
-                        required_current=required_current)
+                # One physical query, fenced before IO and before returning its
+                # DATA. The arbitrary-consumer path retains all three fences.
+                # Distinct current callbacks are still observed independently.
+                return observe(namespace, key, None, scan=mode == 0,
+                               required_current=required_current)
             except BaseException as error:
                 failure = error
                 raise
 
+        def journal_schema(view: _NamespaceReader, required_current: Callable[[], object]) -> int:
+            nonlocal failure, reading, reads
+            entered = False
+            try:
+                check_frame(view)
+                if not callable(required_current):
+                    raise ValueError('Invalid original Journal schema current')
+                if reads >= self._max_inspection_queries:
+                    raise LocalStorageError('Local inventory inspection capacity exceeded')
+                reading = entered = True
+                fence(required_current, reuse_snapshot=True)
+                value = database._journal_schema() if type(database) is _SQLiteByteDatabase else 0
+                reads += 1
+                fence(required_current, reuse_snapshot=True)
+                if failure is not None:
+                    raise failure
+                if type(value) is not int or value not in (0, 1):
+                    raise ValueError('Invalid original Journal physical schema observation')
+                return value
+            except BaseException as error:
+                if failure is None:
+                    failure = error
+                raise failure
+            finally:
+                if entered:
+                    reading = False
+
+        def scan_after(namespace: str, after: str, consume: _NamespaceConsumer) -> None:
+            observe(namespace, after, consume, scan=True)
+
+        def read(namespace: str, key: str, consume: _NamespaceConsumer) -> None:
+            observe(namespace, key, consume, scan=False)
+
         try:
             fence()
             reader = _NamespaceReader(
-                scan_after=lambda namespace, after, consume:
-                    observe(namespace, after, consume, scan=True),
-                read=lambda namespace, key, consume:
-                    observe(namespace, key, consume, scan=False),
+                scan_after=scan_after, read=read,
                 owner=self, current=current_snapshot, check_fences=check_fences,
                 check_fences_and_current=check_fences_and_current,
-                check_frame=check_frame, query_current=query_current)
+                check_frame=check_frame, query_current=query_current,
+                journal_schema=journal_schema)
             result = inspect(reader)
             if failure is not None:
                 raise failure

@@ -61,9 +61,18 @@ fn load_text(
   name : String,
   max_bytes : Int64,
 ) -> String raise CommandStop {
-  match @bounded_files.read_bounded_text_file(root, name, max_bytes) {
+  match
+    @bounded_files.read_bounded_text_file_with_custody(root, name, max_bytes) {
     Ok(value) => value
-    Err(_) => stop("failed to read " + name)
+    Err(original) => {
+      // Keep the failed original, never repeat the read. Only its checked
+      // cleanup can precede unwinding this frame and its initial Read.
+      while original.retry_cleanup() is Err(_) {
+        resident_control_diagnostic_ffi(5)
+        wait_resident_initial_cleanup()
+      }
+      stop("failed to read " + name)
+    }
   }
 }
 
@@ -317,6 +326,9 @@ priv struct SiteEnvironment {
 /// The installed runtime and delegated Connector are Site configuration.
 priv struct ControlEnvironment {
   sqlite_library : @sqlite.Library
+  // This loader captures the SAME command carrier. It supplies a nominal
+  // Library only; current Site/Run permission and cleanup remain independent.
+  crypto_library : (String) -> Result[@signature.Library, String]
   journal_path : String
   max_record_bytes : Int64
   site_key : String
@@ -330,22 +342,32 @@ priv struct ControlEnvironment {
 ///|
 fn open_control_environment(
   matches : @argparse.Matches,
+  entry : ResidentInitialControl,
 ) -> ControlEnvironment raise CommandStop {
-  let sqlite_library = match
-    @sqlite.load_library(required(matches, "sqlite-library")) {
+  let sqlite_path = required(matches, "sqlite-library")
+  let journal_path = required(matches, "journal")
+  let max_record_bytes = required_int64(matches, "max-record-bytes")
+  let site_key = required(matches, "site-key")
+  let site_generation = required_int(matches, "site-generation")
+  let runtime_bundle_cid = required(matches, "runtime-bundle-cid")
+  let max_operations = required_int(matches, "max-operations")
+  let max_transfers = required_int(matches, "max-transfers")
+  let max_bytes = required_int64(matches, "max-bytes")
+  let sqlite_library = match entry.load_sqlite(sqlite_path) {
     Ok(value) => value
     Err(_) => stop("SQLite library load failed")
   }
   {
     sqlite_library,
-    journal_path: required(matches, "journal"),
-    max_record_bytes: required_int64(matches, "max-record-bytes"),
-    site_key: required(matches, "site-key"),
-    site_generation: required_int(matches, "site-generation"),
-    runtime_bundle_cid: required(matches, "runtime-bundle-cid"),
-    max_operations: required_int(matches, "max-operations"),
-    max_transfers: required_int(matches, "max-transfers"),
-    max_bytes: required_int64(matches, "max-bytes"),
+    crypto_library: path => entry.load_crypto(path),
+    journal_path,
+    max_record_bytes,
+    site_key,
+    site_generation,
+    runtime_bundle_cid,
+    max_operations,
+    max_transfers,
+    max_bytes,
   }
 }
 
@@ -368,6 +390,7 @@ fn holder_site_active_runtime_current(
 fn open_site_environment(
   matches : @argparse.Matches,
   process_hold_id : String,
+  entry : ResidentInitialControl,
 ) -> Result[SiteEnvironment, SiteEnvironmentOpenCustody] raise CommandStop {
   let max_file_bytes = required_int64(matches, "max-file-bytes")
   let max_record_bytes = required_int64(matches, "max-record-bytes")
@@ -404,12 +427,12 @@ fn open_site_environment(
     stop("resident Site executable identity mismatch")
   }
   let sqlite_library = match
-    @sqlite.load_library(required(matches, "sqlite-library")) {
+    entry.load_sqlite(required(matches, "sqlite-library")) {
     Ok(value) => value
     Err(_) => stop("SQLite library load failed")
   }
   let signature_library = match
-    @signature.load_library(required(matches, "crypto-library")) {
+    entry.load_crypto(required(matches, "crypto-library")) {
     Ok(value) => value
     Err(_) => stop("signature library load failed")
   }
@@ -572,27 +595,24 @@ fn open_site_environment(
 /// in its own process, so the control process reads the durable record anew
 /// for every operation instead of keeping an in-memory copy.
 fn fresh_journal(environment : ControlEnvironment) -> @journal.Journal? {
-  guard @site.create_site(
-      environment.site_key,
-      environment.site_generation,
-      environment.runtime_bundle_cid,
-      environment.max_operations,
-      environment.max_transfers,
-      environment.max_bytes,
-      environment.max_bytes,
-    )
-    is Some(site) else {
-    return None
-  }
-  match @remote.create_site_dispatch_journal(site, "actql-remote-site/0.1") {
-    Ok(control) =>
-      @journal.open_journal(
-        environment.sqlite_library,
-        environment.journal_path,
-        environment.max_record_bytes,
-        control,
-      ).to_option()
-    Err(_) => None
+  let retained : Ref[ControlReplayJournalCustody?] = Ref(None)
+  match open_control_replay_journal(environment, retained) {
+    Some(original) => {
+      // Transfer the SAME ready handle to the existing caller. It still owns
+      // its checked close; dropping this temporary reference is not an ACK.
+      retained.val = None
+      Some(original)
+    }
+    None => {
+      // A failed constructor can own a real database/root/reader. Keep its
+      // actual existing partial until cleanup ACK, before returning refusal
+      // or allowing the outer Library/Read/arena to retire.
+      while !retry_control_replay_journal_cleanup(retained) {
+        resident_control_diagnostic_ffi(5)
+        wait_resident_initial_cleanup()
+      }
+      None
+    }
   }
 }
 
@@ -746,11 +766,9 @@ fn budget(
 ///|
 fn control_client(
   matches : @argparse.Matches,
+  entry : ResidentInitialControl,
 ) -> @http.Client raise CommandStop {
-  let library = match @http.load_library(required(matches, "http-library")) {
-    Ok(value) => value
-    Err(_) => stop("HTTP library load failed")
-  }
+  let library_path = required(matches, "http-library")
   let authentication : @http.NativeHttpAuthentication = match
     (
       optional(matches, "control-cert"),
@@ -766,16 +784,33 @@ fn control_client(
         "control authentication needs a bearer file or a certificate and key",
       )
   }
-  match
-    library.create_authenticated_client(
-      required(matches, "ca"),
-      authentication,
-      required_int64(matches, "max-response-bytes"),
-      required_int(matches, "connect-timeout-ms"),
-      required_int(matches, "total-timeout-ms"),
-    ) {
+  let ca = required(matches, "ca")
+  let max_response = required_int64(matches, "max-response-bytes")
+  let connect_timeout = required_int(matches, "connect-timeout-ms")
+  let total_timeout = required_int(matches, "total-timeout-ms")
+  let library = match entry.load_http(library_path) {
     Ok(value) => value
-    Err(_) => stop("HTTP client creation failed")
+    Err(_) => stop("HTTP library load failed")
+  }
+  // Latch this original constructor before physical entry. Its actual ready
+  // or failed child remains on the SAME entry through Library/Read cleanup.
+  if entry.http_client_attempted {
+    stop("original HTTP Client already attempted")
+  }
+  entry.http_client_attempted = true
+  match
+    library.create_authenticated_client_with_custody(
+      ca, authentication, max_response, connect_timeout, total_timeout,
+    ) {
+    Ok(original) => {
+      entry.http_client = Some(original)
+      original
+    }
+    Err(RefusedBeforeAcquisition(_)) => stop("HTTP client creation refused")
+    Err(CleanupRequired(original)) => {
+      entry.failed_http_client = Some(original)
+      stop("HTTP client creation cleanup pending")
+    }
   }
 }
 
@@ -829,6 +864,7 @@ fn holder_can_receive(
 
 ///|
 priv struct RunningHolder {
+  spawn_custody : @slot.NativeScopedExecutorHolder
   child : @slot.NativeExecutorSlotChild
   channel : @slot.NativeHolderChannel
   attempt : String
@@ -870,16 +906,21 @@ priv enum OrphanReclaim {
 /// owner. The Store is closed and the slot released before any holder
 /// starts. Execution is never resumed or repeated.
 fn reclaim_orphaned_outputs(
-  matches : @argparse.Matches,
+  settings : ControlOrphanStoreSettings,
   environment : ControlEnvironment,
   slot : @slot.NativeExecutorSlot,
   held : @publication_store.Store?,
-) -> OrphanReclaim raise CommandStop {
-  let publication_root = required(matches, "publication-root")
+  replay_journal : Ref[ControlReplayJournalCustody?],
+  failed_store : Ref[@publication_store.NativePublicationStoreOpenFailure?],
+) -> OrphanReclaim {
+  let publication_root = settings.root
   let close_held = fn(store : @publication_store.Store) -> OrphanReclaim {
+    if !retry_control_replay_journal_cleanup(replay_journal) {
+      return OrphanStoreOpen(store)
+    }
     match store.close() {
       Ok(_) => {
-        ignore(slot.close())
+        retain_control_reclaim_slot_close(slot)
         OrphansPending
       }
       Err(@publication_store.RecoveryRequired) => {
@@ -896,7 +937,8 @@ fn reclaim_orphaned_outputs(
       }
     }
   }
-  guard fresh_journal(environment) is Some(journal) else {
+  guard open_control_replay_journal(environment, replay_journal)
+    is Some(journal) else {
     report("orphan-reclaim-pending", [("reason", "journal-open")])
     return match held {
       Some(store) => close_held(store)
@@ -906,7 +948,7 @@ fn reclaim_orphaned_outputs(
   let intents = match journal.pending_output_intents() {
     Ok(value) => value
     Err(_) => {
-      ignore(journal.close())
+      close_control_replay_journal(replay_journal)
       report("orphan-reclaim-pending", [("reason", "journal-read")])
       return match held {
         Some(store) => close_held(store)
@@ -916,8 +958,11 @@ fn reclaim_orphaned_outputs(
   }
   let pending = intents.length()
   if pending == 0 && held is None {
-    ignore(journal.close())
-    return OrphansDone
+    return if retry_control_replay_journal_cleanup(replay_journal) {
+      OrphansDone
+    } else {
+      OrphansPending
+    }
   }
   let store = match held {
     Some(value) => value
@@ -925,28 +970,24 @@ fn reclaim_orphaned_outputs(
       match slot.try_acquire() {
         Ok(true) => ()
         Ok(false) => {
-          ignore(journal.close())
+          close_control_replay_journal(replay_journal)
           report("orphan-reclaim-pending", [("reason", "slot-busy")])
           return OrphansPending
         }
         Err(_) => {
-          ignore(journal.close())
-          stop("executor slot lock failed")
+          close_control_replay_journal(replay_journal)
+          report("orphan-reclaim-pending", [("reason", "slot-lock")])
+          return OrphansPending
         }
       }
-      let opened = @publication_store.open_store(
-        environment.sqlite_library,
-        required(matches, "publication-root"),
-        required(matches, "publication-authority-cid"),
-        required_int64(matches, "publication-capacity-bytes"),
-        required_int(matches, "max-transfers").to_int64(),
-        environment.max_record_bytes,
-      )
-      match opened {
-        Ok(value) => value
-        Err(_) => {
-          ignore(journal.close())
-          ignore(slot.close())
+      match open_control_orphan_store(environment, settings, failed_store) {
+        Some(value) => value
+        None => {
+          // The failed Store was constructed after this Journal. Retain both
+          // and the Slot until reverse-order cleanup acknowledges originals.
+          if failed_store.val is None {
+            retain_control_orphan_reader_cleanup(replay_journal, slot)
+          }
           report("orphan-reclaim-pending", [("reason", "store-open")])
           return OrphansPending
         }
@@ -964,7 +1005,7 @@ fn reclaim_orphaned_outputs(
       ])
     }
   }
-  ignore(journal.close())
+  close_control_replay_journal(replay_journal)
   match remaining {
     Ok(0) => report("orphans-reclaimed", [("intents", pending.to_string())])
     Ok(count) =>
@@ -1009,10 +1050,12 @@ priv struct StoppedReleaseRecovery {
 /// original partial constructors and inherited Slot with checked ACKs.
 fn open_release_recovery(
   matches : @argparse.Matches,
+  environment : ControlEnvironment,
   slot : @slot.NativeExecutorSlot,
   identity : String,
 ) -> StoppedReleaseRecovery raise CommandStop {
-  match open_release_recovery_with_custody(matches, slot, identity) {
+  match
+    open_release_recovery_with_custody(matches, environment, slot, identity) {
     Ok(owner) => owner
     Err(original) => {
       finish_failed_release_recovery_open(original)
@@ -1052,6 +1095,7 @@ fn close_recovery_bundle(
 /// holdings are checked before the common owner selects a transition.
 fn recover_stopped_release(
   matches : @argparse.Matches,
+  environment : ControlEnvironment,
   request : @remote.DispatchRequest,
   retained : Ref[StoppedReleaseRecovery?],
   close_failures : Ref[Int],
@@ -1065,12 +1109,15 @@ fn recover_stopped_release(
         Ok(value) => value
         Err(_) => return false
       }
-      if slot.try_acquire() != Ok(true) {
-        ignore(slot.close())
-        return false
+      match acquire_release_recovery_slot_with_custody(slot, identity) {
+        Ok(_) => ()
+        Err(original) => {
+          finish_failed_release_recovery_open(original)
+          return false
+        }
       }
       let value = match
-        open_release_recovery_with_custody(matches, slot, identity) {
+        open_release_recovery_with_custody(matches, environment, slot, identity) {
         Ok(owner) => owner
         Err(original) => {
           // Keep all other controller responsibilities on this same stack.
@@ -1543,7 +1590,9 @@ fn reconcile_saved_cancellation(
       }
       next.val = @env.now() + backoff_ms.to_uint64()
       if !already_released &&
-        !recover_stopped_release(matches, request, recovery, close_failures) {
+        !recover_stopped_release(
+          matches, environment, request, recovery, close_failures,
+        ) {
         report("cancel-cleanup-pending", [("request_cid", identity)])
         return
       }
@@ -1580,17 +1629,15 @@ fn reconcile_saved_cancellation(
 }
 
 ///|
-fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
+fn run_control(
+  matches : @argparse.Matches,
+  entry : ResidentInitialControl,
+) -> Unit raise CommandStop {
   if !@slot.install_native_termination_request() {
     stop("termination handling could not be installed")
   }
-  let environment = open_control_environment(matches)
+  let environment = open_control_environment(matches, entry)
   let slot_path = required(matches, "executor-slot")
-  let mut slot = match @slot.open_native_executor_slot(slot_path) {
-    Ok(value) => value
-    Err(_) => stop("executor slot open failed")
-  }
-  let client = control_client(matches)
   let poll_url = required(matches, "poll-url")
   let observation_url = required(matches, "observation-url")
   let dispatch_budget = budget(matches)
@@ -1657,6 +1704,7 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
     val: required_int(matches, "release-recovery-close-failures"),
   }
   let mut holder : RunningHolder? = None
+  let pending_spawn : Ref[@slot.NativeScopedExecutorHolder?] = Ref(None)
   // The original ended executor keeps its existing admission until report,
   // Channel and descendant-stop facts are independently confirmed. No new
   // holder starts while that responsibility is pending.
@@ -1684,13 +1732,41 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
   let next_checkpoint_report : Ref[UInt64] = Ref(0UL)
   let checkpoint_report_cursor : Ref[String] = { val: "", }
   let report_kill_at = required(matches, "control-report-kill-at")
+  // Extract fallible operator options before acquiring the HTTP/Slot pair.
+  let orphan_settings : ControlOrphanStoreSettings = {
+    root: required(matches, "publication-root"),
+    authority_cid: required(matches, "publication-authority-cid"),
+    capacity_bytes: required_int64(matches, "publication-capacity-bytes"),
+  }
+  let failed_orphan_store : Ref[
+    @publication_store.NativePublicationStoreOpenFailure?,
+  ] = Ref(None)
   let report_checkpoint = fn(point : String) {
     if point == report_kill_at {
       report("control-report-killed", [("point", point)])
       @slot.native_kill_self()
     }
   }
+  // Complete fallible configuration, bounded input preparation and the HTTP
+  // constructor before opening the slot. The entry retains every ready or
+  // failed Library/Client if a constructor refuses; no slot can be orphaned
+  // by those earlier CommandStop paths.
+  let client = control_client(matches, entry)
+  let mut slot = match @slot.open_native_executor_slot(slot_path) {
+    Ok(value) => value
+    Err(_) => stop("executor slot open failed")
+  }
   while !@slot.native_termination_requested() {
+    // The original preparation is retained before fallible channel/spawn work.
+    // Partial close uncertainty cannot be replaced by another spawn attempt.
+    if pending_spawn.val is Some(original) {
+      if !original.cleanup() {
+        report("holder-spawn-cleanup-pending", [])
+        @slot.native_wait_milliseconds(max_backoff_ms)
+        continue
+      }
+      pending_spawn.val = None
+    }
     // Retiring owns the original Store/Slot. Neither another constructor nor
     // a poll/start/reclaim may bypass it. The existing loop supplies pacing.
     match pending_custody {
@@ -1706,6 +1782,14 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
         continue
       }
       _ => ()
+    }
+    // A failed Store was acquired after its original Journal and Slot.
+    if !retry_control_orphan_store_cleanup(
+        failed_orphan_store, replay_journal, slot,
+      ) {
+      report("orphan-store-cleanup-pending", [])
+      @slot.native_wait_milliseconds(idle_wait_ms)
+      continue
     }
     // A failed replay constructor/close owns this same original handle. Do not
     // poll, dispatch, or open another journal until its checked cleanup ACK.
@@ -1827,6 +1911,18 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
     })
     unsettled.clear()
     unsettled.append(still_unsettled)
+    // Observe the existing scoped stop before a new description takes the
+    // slot for reclaim. Its original anchor pins the same inode until close.
+    let mut physical_pending = false
+    for current in unsettled {
+      if !retire_ended_holder_process(current) {
+        physical_pending = true
+      }
+    }
+    if physical_pending {
+      @slot.native_wait_milliseconds(idle_wait_ms)
+      continue
+    }
     // Start the oldest accepted attempt when the slot is free. The lock is
     // taken here and passed to the holder without a gap.
     if holder is None && !slot.is_open() {
@@ -1844,7 +1940,10 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
         (reclaim_due && @env.now() >= next_reclaim_ms)
       ) &&
       !skip_reclaim(reclaim_failures) {
-      match reclaim_orphaned_outputs(matches, environment, slot, orphan_store) {
+      match
+        reclaim_orphaned_outputs(
+          orphan_settings, environment, slot, orphan_store, replay_journal, failed_orphan_store,
+        ) {
         OrphansDone => {
           reclaim_due = false
           orphan_store = None
@@ -1914,13 +2013,25 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
                     @env.now().to_string() +
                     "-" +
                     holders.to_string()
-                  match
-                    slot.spawn_holder_with_channel(
-                      executable,
-                      holder_arguments(attempt, claimant),
-                    ) {
-                    Ok((child, channel)) => {
+                  let prepared = slot.prepare_scoped_holder()
+                  let original = match prepared {
+                    Ready(original) | Refused(original, _) => original
+                  }
+                  pending_spawn.val = Some(original)
+                  let spawned = match prepared {
+                    Ready(_) =>
+                      original.spawn_with_channel(
+                        executable,
+                        holder_arguments(attempt, claimant),
+                      )
+                    Refused(_, issue) => Err(issue)
+                  }
+                  match (original.child(), original.channel()) {
+                    (Ok(child), Ok(channel)) => {
+                      // An error can retain an actually started child. Keep
+                      // that same child/channel; never classify it as absent.
                       holder = Some({
+                        spawn_custody: original,
                         child,
                         channel,
                         attempt,
@@ -1928,15 +2039,19 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
                         next_report_ms: 0,
                         reported_revision: None,
                       })
-                      report("holder-started", [
-                        ("attempt", attempt),
-                        ("claimant", claimant),
-                      ])
+                      pending_spawn.val = None
+                      report(
+                        if spawned is Ok(_) {
+                          "holder-started"
+                        } else {
+                          "holder-start-observation-pending"
+                        },
+                        [("attempt", attempt), ("claimant", claimant)],
+                      )
                     }
-                    Err(_) => {
-                      // Nothing started; the slot is released and the
-                      // attempt stays queued for a later pass.
-                      ignore(slot.close())
+                    _ => {
+                      // The same preparation retains every partial endpoint
+                      // or unexpected child until its own cleanup confirms.
                       report("holder-spawn-failed", [("attempt", attempt)])
                       @slot.native_wait_milliseconds(max_backoff_ms)
                     }
@@ -2281,7 +2396,7 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
             continue
           }
           if recover_stopped_release(
-              matches, request, recovery, recovery_close_failures,
+              matches, environment, request, recovery, recovery_close_failures,
             ) {
             report("release-recovered", [("request_cid", identity)])
           }
@@ -2554,14 +2669,17 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
   // Neither report ACK nor child exit discards physical responsibility at the
   // terminal controller boundary. Keep it in the existing lifetime shell.
   if !unsettled.is_empty() ||
+    pending_spawn.val is Some(_) ||
     holder is Some(_) ||
     orphan_store is Some(_) ||
+    failed_orphan_store.val is Some(_) ||
     recovery.val is Some(_) ||
     pending_custody is Some(_) ||
     replay_journal.val is Some(_) {
     slot = retain_control_ended_holder_lifetime(
       unsettled, holder, environment, client, observation_url, slot, slot_path, orphan_store,
       recovery, matches, recovery_close_failures, pending_custody, replay_journal,
+      pending_spawn, failed_orphan_store,
     )
     holder = None
     orphan_store = None
@@ -2579,9 +2697,10 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
       }
     None => ()
   }
-  ignore(client.close())
-  ignore(slot.close())
-  report("stopped", [])
+  retain_control_terminal_handles(client, slot)
+  // Library and backing retirement happen after this command's aliases
+  // unwind. The terminal report is emitted only after those Owners close.
+  entry.controller_returned = true
 }
 
 ///|
@@ -2632,7 +2751,9 @@ priv struct HolderOutputResources {
   retained_max_bytes : Int64
   retained_max_objects : Int64
   control : @http.Client
+  control_library : @http.Library
   transfer : @http.Client
+  transfer_library : @http.Library
   store : @publication_store.Store
   transfer_journal : @transfer_journal.Journal
   observation_url : String
@@ -2786,6 +2907,12 @@ fn open_holder_output_resources(
       )
     }
   }
+  guard original.control_library is Some(control_library) &&
+    original.transfer_library is Some(transfer_library) else {
+    return Err(
+      HolderOutputSetupPending(original, "original HTTP Libraries unavailable"),
+    )
+  }
   Ok({
     retained_delegation,
     effect_host_setup: Ref(None),
@@ -2799,7 +2926,9 @@ fn open_holder_output_resources(
     retained_max_bytes: max_bytes,
     retained_max_objects: max_transfers.to_int64(),
     control,
+    control_library,
     transfer,
+    transfer_library,
     store,
     transfer_journal,
     observation_url,
@@ -4115,6 +4244,7 @@ fn settle_holder_cleanup(
 ///|
 fn run_holder(
   matches : @argparse.Matches,
+  entry : ResidentInitialControl,
   holder : @argparse.Matches,
 ) -> HolderCommandClose raise CommandStop {
   // Validate the optional retained profile before acquiring Site custody.
@@ -4134,7 +4264,8 @@ fn run_holder(
   if slot.verify_current_hold() != Ok(()) {
     stop("completed holder current slot unavailable")
   }
-  let inspection = match fresh_journal(open_control_environment(matches)) {
+  let inspection = match
+    fresh_journal(open_control_environment(matches, entry)) {
     Some(value) => value
     None => stop("holder saved journal unavailable")
   }
@@ -4173,7 +4304,7 @@ fn run_holder(
       // The actual exclusive slot confirms the old process has stopped. The
       // journal selects its exact holding; retain is idempotent and Runtime
       // returns this holding only after its physical cleanup completes.
-       process_hold_identity,
+       process_hold_identity, entry,
     ) {
     Ok(value) => value
     Err(original) => return finish_failed_site_environment_open(original, slot)
@@ -4475,6 +4606,7 @@ fn run_holder(
           if effect_resume.val is None {
             let installed = open_holder_effect_resume_installation(
               matches,
+              entry,
               environment.sqlite_library,
               resources,
               request,
@@ -4627,9 +4759,10 @@ fn restore_holder_attempt(
 /// An unconfirmed observation can be sent again on the next call.
 fn recover_release_command(
   matches : @argparse.Matches,
+  entry : ResidentInitialControl,
   child : @argparse.Matches,
 ) -> Unit raise CommandStop {
-  let environment = open_control_environment(matches)
+  let environment = open_control_environment(matches, entry)
   let request = match
     accepted_request(environment, required(child, "attempt"), [0]) {
     Some(value) => value
@@ -4667,11 +4800,14 @@ fn recover_release_command(
     Ok(value) => value
     Err(_) => stop("release recovery slot unavailable")
   }
-  if slot.try_acquire() != Ok(true) {
-    ignore(slot.close())
-    stop("release recovery slot busy")
+  match acquire_release_recovery_slot_with_custody(slot, identity) {
+    Ok(_) => ()
+    Err(original) => {
+      finish_failed_release_recovery_open(original)
+      stop(original.failure)
+    }
   }
-  let owner = open_release_recovery(matches, slot, identity)
+  let owner = open_release_recovery(matches, environment, slot, identity)
   owner.recorded_source = recorded_source
   owner.recorded_consumer = recorded_consumer
   owner.completed_input_producer = optional(
@@ -4739,10 +4875,12 @@ fn recover_release_command(
     stop("release recovery publication custody unconfirmed")
   }
   let retained : Ref[StoppedReleaseRecovery?] = { val: Some(owner), }
-  if !recover_stopped_release(matches, request, retained, { val: 0, }) {
+  if !recover_stopped_release(matches, environment, request, retained, {
+      val: 0,
+    }) {
     stop("release recovery pending")
   }
-  let client = control_client(matches)
+  let client = control_client(matches, entry)
   guard fresh_journal(environment) is Some(journal) else {
     stop("release recovery observation journal unavailable")
   }
@@ -4796,6 +4934,7 @@ fn saved_output_bundle_current(
 /// command never acquires Source, enters an executor or reuploads payload.
 fn recover_output_command(
   matches : @argparse.Matches,
+  entry : ResidentInitialControl,
   child : @argparse.Matches,
 ) -> Unit raise CommandStop {
   let attempt = required(child, "attempt")
@@ -4807,19 +4946,22 @@ fn recover_output_command(
   let delegated = delegation(matches, budget(matches))
   let max_transfers = required_int(matches, "max-transfers")
   let target = required(matches, "target-triple")
-  let environment = open_control_environment(matches)
+  let environment = open_control_environment(matches, entry)
   let slot = match
     @slot.open_native_executor_slot(required(matches, "executor-slot")) {
     Ok(value) => value
     Err(_) => stop("Output recovery slot unavailable")
   }
-  if slot.try_acquire() != Ok(true) {
-    ignore(slot.close())
-    stop("Output recovery slot busy")
+  match acquire_release_recovery_slot_with_custody(slot, expected) {
+    Ok(_) => ()
+    Err(original) => {
+      finish_failed_release_recovery_open(original)
+      stop(original.failure)
+    }
   }
   // Reuse the maintenance owner: it verifies saved custody without selecting
   // an executor or claiming that this tool is the original runtime component.
-  let owner = open_release_recovery(matches, slot, expected)
+  let owner = open_release_recovery(matches, environment, slot, expected)
   let resources = open_holder_output_resources(
     matches,
     environment.sqlite_library,
@@ -4938,40 +5080,29 @@ fn recover_output_command(
         CommandStop(issue) => Some(issue)
       }
   }
-  // Attempt every close independently. Output reservations and cleanup
-  // intents remain durable; successful ACK does not claim formal release.
-  let mut closed = true
+  // Keep the same completed-setup originals in the existing recovery lifetime.
+  // Pending child/Library cleanup must precede journal, Bundle and slot close.
   match resources {
     Ok(value) => {
-      if !value.transfer_journal.close() {
-        closed = false
-      }
-      if !(value.store.close() is Ok(true)) {
-        closed = false
-      }
-      if !value.transfer.close() {
-        closed = false
-      }
-      if !value.control.close() {
-        closed = false
-      }
+      let original = new_holder_partial_output_resources()
+      original.retained_root = value.retained_root
+      original.control = Some(value.control)
+      original.control_library = Some(value.control_library)
+      original.transfer = Some(value.transfer)
+      original.transfer_library = Some(value.transfer_library)
+      original.store = Some(value.store)
+      original.transfer_journal = Some(value.transfer_journal)
+      retain_partial_output_recovery_setup(
+        original,
+        owner,
+        slot,
+        match primary {
+          Some(issue) => issue
+          None => "Output recovery resource retirement pending"
+        },
+      )
     }
     Err(_) => ()
-  }
-  if !owner.journal.close() {
-    closed = false
-  }
-  if !(owner.bundles.close() is Ok(true)) {
-    closed = false
-  }
-  if !slot.close() {
-    closed = false
-  }
-  if !closed {
-    report("output-recovery-cleanup-pending", [
-      ("step", "owners"),
-      ("request_cid", expected),
-    ])
   }
   match primary {
     Some(issue) => {
@@ -4981,12 +5112,11 @@ fn recover_output_command(
       ])
       stop("Output recovery pending")
     }
-    None if closed =>
+    None =>
       report("output-recovery-acknowledged", [
         ("request_cid", expected),
         ("intent_cid", intent),
       ])
-    None => stop("Output recovery owner close pending")
   }
 }
 
@@ -5141,21 +5271,29 @@ fn command() -> @argparse.Command {
 ///|
 fn run_command(
   matches : @argparse.Matches,
+  entry : ResidentInitialControl,
 ) -> HolderTerminalFailure? raise CommandStop {
   match matches.subcommand {
-    Some(("run", _)) => run_control(matches)
+    Some(("run", _)) => run_control(matches, entry)
     Some(("execute", child)) =>
-      return finish_holder_command(run_holder(matches, child))
-    Some(("recover-output", child)) => recover_output_command(matches, child)
+      return finish_holder_command(run_holder(matches, entry, child))
+    Some(("recover-output", child)) =>
+      recover_output_command(matches, entry, child)
     Some(("recover-retained-input", child)) =>
-      recover_retained_input_command(matches, child)
+      recover_retained_input_command(matches, entry, child)
     Some(("recover-cancelled-receiver", child)) =>
-      recover_retained_input_command(matches, child, cancelled_receiver=true)
+      recover_retained_input_command(
+        matches,
+        entry,
+        child,
+        cancelled_receiver=true,
+      )
     Some(("recover-source-output", child)) =>
-      recover_retained_input_command(matches, child, source_output=true)
-    Some(("recover-release", child)) => recover_release_command(matches, child)
+      recover_retained_input_command(matches, entry, child, source_output=true)
+    Some(("recover-release", child)) =>
+      recover_release_command(matches, entry, child)
     Some(("output-reports", _)) => {
-      let environment = open_control_environment(matches)
+      let environment = open_control_environment(matches, entry)
       guard fresh_journal(environment) is Some(journal) else {
         stop("journal unavailable")
       }
@@ -5197,7 +5335,7 @@ fn run_command(
       }
     }
     Some(("retry-output-report", child)) => {
-      let environment = open_control_environment(matches)
+      let environment = open_control_environment(matches, entry)
       guard fresh_journal(environment) is Some(journal) else {
         stop("journal unavailable")
       }
@@ -5234,13 +5372,57 @@ fn run_command(
 }
 
 ///|
-fn main {
-  let matches = command().parse() catch { error => abort(error.to_string()) }
-  try {
-    if run_command(matches) is Some(terminal) {
+fn run_resident_with_initial_control(control : ResidentInitialControl) -> Bool {
+  let succeeded = try {
+    control.require_current()
+    let matches = command().parse() catch { error => stop(error.to_string()) }
+    control.require_current()
+    if run_command(matches, control) is Some(terminal) {
       consume_holder_terminal_failure(terminal.operation, terminal.failure)
     }
+    true
   } catch {
-    CommandStop(issue) => abort("actql-native-remote-resident-site: " + issue)
+    CommandStop(issue) => {
+      // Consume the managed diagnostic before leaving its original Read.
+      let message = @utf8.encode("actql-native-remote-resident-site: " + issue)
+      resident_command_failure_ffi(message, message.length())
+      false
+    }
+  }
+  // Command environments and their aliases have unwound. The same carrier
+  // retains every ready/failed component until its actual close acknowledges;
+  // a pending child must keep the parent Read/domain/arena alive.
+  while !control.close_libraries() {
+    resident_control_diagnostic_ffi(3)
+    wait_resident_initial_cleanup()
+  }
+  succeeded
+}
+
+///|
+fn main {
+  let control = capture_resident_initial_control()
+  let ready = try {
+    control.acquire()
+    control.enter()
+    true
+  } catch {
+    CommandStop(_) => {
+      resident_control_diagnostic_ffi(1)
+      false
+    }
+  }
+  let succeeded = ready && run_resident_with_initial_control(control)
+  while !control.close() {
+    resident_control_diagnostic_ffi(2)
+    wait_resident_initial_cleanup()
+  }
+  if succeeded && control.controller_returned {
+    if resident_controller_retired_ffi(control.original) != 0 {
+      resident_control_exit_failure_ffi()
+    }
+  }
+  if !succeeded {
+    resident_control_exit_failure_ffi()
   }
 }

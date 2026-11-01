@@ -70,7 +70,7 @@ fn control_bundle_custody_response(
     Ok(_) => ()
   }
   let signature_library = match
-    @signature.load_library(required(matches, "crypto-library")) {
+    (environment.crypto_library)(required(matches, "crypto-library")) {
     Ok(value) => value
     Err(_) =>
       return control_bundle_custody_cleanup(

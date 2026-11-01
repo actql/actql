@@ -58,10 +58,25 @@ pub fn prepare_installed_managed_keyed_content(
   ClientInstalledManagedRunIssue,
 ] {
   prepare_installed_managed_keyed_content_owned(
-    prepared, direct, keyed, declaration, row_limits, transport_bytes,
-    transport_execution_bytes, max_bytes, max_work, installed_contracts,
-    values_body, fragment_body, ordered_body, task, step,
-    prefix_retained_bytes, prefix_execution_bytes, None, None,
+    prepared,
+    direct,
+    keyed,
+    declaration,
+    row_limits,
+    transport_bytes,
+    transport_execution_bytes,
+    max_bytes,
+    max_work,
+    installed_contracts,
+    values_body,
+    fragment_body,
+    ordered_body,
+    task,
+    step,
+    prefix_retained_bytes,
+    prefix_execution_bytes,
+    None,
+    None,
   )
 }
 
@@ -217,53 +232,6 @@ pub fn check_installed_managed_keyed_content_preparation(
   } else {
     Err(ForeignOriginal)
   }
-}
-
-///|
-/// Retain the actual purpose-confined admission before calling this entry.
-/// A failed start/take remains with that same issuer's cleanup carrier.
-pub fn begin_installed_managed_keyed_content_run(
-  admission : @resources.NodeManagedRunAdmission[
-    @publication_host.PreparedClientProgram,
-  ],
-  prepared : @publication_host.PreparedClientProgram,
-  request : @publication_host.ClientRequestIdentity,
-  selected : ClientInstalledManagedKeyedPreparation,
-) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue] {
-  match
-    @resources.check_node_local_content_run_preparation(admission, prepared) {
-    Err(issue) => return Err(Resource(issue))
-    Ok(_) => ()
-  }
-  let identity = @publication_host.prepared_client_identity(prepared)
-  if !physical_equal(selected.prepared, prepared) ||
-    identity.program_definition_cid !=
-    @publication_host.client_request_program_cid(request) ||
-    identity.parameter_values_cid !=
-    @publication_host.client_request_parameters_cid(request) {
-    return Err(ForeignOriginal)
-  }
-  let ledger = match @resources.start_node_managed_run_admission(admission) {
-    Err(issue) => return Err(Resource(issue))
-    Ok(value) => value
-  }
-  let required = selected.limits
-  let available = @resources.ledger_limits(ledger)
-  if required.planning_work > available.planning_work ||
-    required.attempts > available.attempts ||
-    required.holdings > available.holdings ||
-    required.transfer_bytes > available.transfer_bytes ||
-    required.retained_bytes > available.retained_bytes ||
-    required.execution_bytes > available.execution_bytes {
-    return Err(InsufficientCapacity)
-  }
-  let value = new_installed_managed_run_owned(
-    ContentManaged(admission, prepared),
-    request,
-    ledger,
-  )
-  value.content = KeyedContent(selected, None)
-  require_installed_managed_run(value).map(_ => value)
 }
 
 ///|
@@ -527,7 +495,6 @@ fn prepare_retained_installed_keyed_content_ledger(
     return Err(ForeignOriginal)
   }
   let prepared = match run.preparation {
-    Some(ContentManaged(_, prepared)) => prepared
     Some(PreparationContentManaged(_, prepared)) => prepared
     _ => return Err(ForeignOriginal)
   }

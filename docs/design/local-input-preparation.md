@@ -179,6 +179,23 @@ substitute for the original. The Common owner remains authoritative across
 the SDK's derived request associations and the Node manager/handler/dispatch
 holders. No serialized receipt recreates that authority.
 
+### Request lookup within the existing producer owner
+
+The installed manager indexes each original Request with a weak reference to
+its producer. Its existing live producer inventory remains the cleanup owner.
+Lookup checks that inventory membership, the same Request and the producer's
+unfinished state after the normal Host current boundary. It also compares the
+same Host's closing flags after callback reentry; it does not scan the other
+live Requests or create a new current observation.
+
+A bound Request cannot be rebound to another producer, including after its
+original producer has finished. The weak-key association may retain that
+minimal spent identity while the caller retains the Request, but its weak
+value cannot retain a retired producer's payload. Clearing the original
+request alias or removing the producer from the live inventory makes lookup
+refuse immediately. Pending cleanup stays on the existing producer and Run
+inventories; the index supplies no Resource, permission or physical ACK.
+
 Stopping forbids new funded work and reservation growth. Cleanup may construct
 its required wrappers and has a separate same-original check
 that permits disposal after stopping while still rejecting an unavailable or
@@ -4858,6 +4875,13 @@ two constructor calls. Protocol/Query construction and the module's retained
 input references coexist with these outputs in the same parent debit. Fixed
 installed Host controls remain trusted; these DATA costs issue no authority.
 
+A captured Stage may also contain its own serialization and Model continuation.
+Its positive task count can equal the captured prefix count, leaving an empty
+Compute tail. The same module still owns its fixed container packet, all capture
+and dispatch arrays, protocol/Query construction, and retained prefix/compiler
+outputs. An empty tail neither erases the original capture nor permits a zero-task
+Program, and it does not return any Source, Scope, Store or parent holding.
+
 The module retains the exact generated prefix and optional suffix. Its pure
 accessors return those originals without preparing, growing, observing current,
 or sampling QueryTime again. The one-component construction callback receives
@@ -4945,3 +4969,227 @@ provider buffers and all simultaneous/failed-child output remain separate
 construction demand. The envelope is not recomputed from each new JavaScript
 closure or carrier spelling. Existing Host retirement cuts these aliases only
 after its checked native retirement; returning a borrow is a separate duty.
+
+### Original installed Model read recipe
+
+An installed physical Model provider may retain either its complete fixed original
+read installation or an immutable read recipe, never both. The recipe retains
+the same opaque response Profile, installed runtime/layout references and the
+separately declared Node controls and buffer overlap. It retains no Graph,
+Request, Run, read, Scope or physical acknowledgement.
+
+The ordinary Request first constructs its selected Graph under its existing
+parent. Its original stored Bounds are selected once. The recipe binds Program,
+parameter and barrier identities directly from that same Graph without another
+check, lowering, compiler, Definition or Request issuer. The resulting fixed
+installation keeps the complete native bootstrap/read/Model amounts and adds
+the Node amounts; live census maxima and comparator work cannot decrease.
+Overflow and missing native identity ports refuse before module/Scope entry.
+A fixed installation keeps its original strict identity checks and is never
+silently rebound as a recipe.
+
+This binding is a bounded copy of installed DATA within the existing trusted
+Host/Request control envelope, not physical funding. The same Request still
+backs the original Graph, compiler, module, serialization prefix, Model Plan
+and Scope before construction, including their simultaneous and failed-child
+retention. All declared prepared rows remain covered, including masked rows.
+Node request/response/decoder buffers and metadata/publication roles remain
+separate from the native bounds and from Source/Content Store custody.
+
+The original Scope/read and Source/Content cleanup paths retain their physical
+duties. Neither binding the recipe nor retiring its aliases acknowledges a
+provider, Source, writer, holding, Store or parent release.
+
+## Live original Request refusal observation
+
+A public check observation can borrow the same still-live Request check refusal.
+The Node projection accepts the original `Result` returned by that Request's
+check call, together with its existing parent and original input receipt. The
+portable Request boundary matches the nominal outcome, Program and arguments;
+JavaScript does not reconstruct an error, decode a check constructor or issue
+another Request. A successful original check has no negative observation.
+
+The trusted Host binds input kind, revisions and byte counts to its original
+SDK snapshot. It supplies current Source publication and optional nominal
+selector namespace only after the current audience's authorization awaits.
+These report fields are DATA, never Source permission or resource backing.
+Namespace correspondence uses the same admitted environment wire owner. A
+Source dependency whose original collected inputs are unavailable stays
+unresolved; reporting does not collect or resolve it again. Native originals
+without an authored text mapping do not acquire invented text coordinates.
+
+Before reading current publication metadata or constructing report output,
+the same Request grows its retained and working extents for the bounded report
+writer, findings, labels, publication/index views and sequential Source-reference
+strings. Cached original Program admission geometry bounds those strings;
+they are constructed once per original input rather than once per visible
+alias. The original semantic data envelope remains live. Existing trusted
+Host/Request controls cover the synchronous call frame and borrowed references.
+The existing busy guard excludes reentrant preparation and retirement, and the
+post-current fence verifies the same parent, input, arguments, outcome and
+original Source registration/collection before projection.
+
+Projection does not parse another Program or Parameters document, repeat a
+semantic check, lower or compile, transfer the original outcome, or cache a
+report in Journal. Missing or undisclosable original input obligations remain
+undetermined even when an individual requirement label cannot be emitted. A
+cleared, transferred or retired original yields no optional observation. The
+Host can retain its existing coarse current-audience problem, but a fresh
+check is not evidence of that former original. Alias retirement and absence of
+a report do not settle the parent or acknowledge physical cleanup; the same
+existing Request and child cleanup duties still apply.
+
+
+### Node caller and transient disclosure
+
+The existing Node Request state captures the installation's original projection
+method before input capture can await. It retains the exact result of its
+semantic check before the typed failure projection throws. Only the same failed
+Request, parent, input receipt and failure object can supply that result; a
+later compiler, provider or physical failure cannot become an original Check
+observation. The existing Resource parent continues to own the check child and
+its report overlap while audience authorization is awaited. Synchronous current
+fences reject replacement or retirement before the projected wire is returned. Availability is
+selected from that exact existing failed state before invoking the private
+metadata continuation. A resource, policy or constructor failure without the
+retained Check result performs no Source/account/namespace metadata work. The
+continuation closes only over that same parent/result and verifies them again
+when metadata awaits return; it issues no holder, token or cache.
+
+The existing checker installation issues fresh HMAC context/input bindings and
+collects current audience visibility for this optional projection. It does not
+run its public semantic checker to produce the original report. The text path
+never substitutes its query-alias namespace for a nominal Source selector
+namespace. Missing or retired originals omit the observation; projection failure
+also omits it without replacing the refusal or acknowledging cleanup. The
+ordinary Request retirement cuts clear these aliases only through their
+existing cleanup protocol.
+
+Only the initial response may carry this transient observation. Journal stores
+the original coarse Problem and acceptance facts, never the report. A separate
+fresh checker still gates disclosure of that stored Source-dependent Problem:
+losing access hides it, and restored access can reveal it again. Reference-only
+lookup and a repeated submission do not reconstruct an original observation.
+Connection authorization is checked again after optional asynchronous reporting.
+No public request option, owner, resource grant or reporting cache is added.
+
+Focused caller tests exercise exact result/receiver/receipt forwarding, absent
+and retired omission, currentness reentry, HMAC input binding, reporting failure
+and current-audience authorization. Explicit Core ports are identified as such;
+the matching compiled-parent case separately exercises actual Request/check and
+report constructors. Neither category establishes packed ordinary Run, Saved or
+physical Host-close acceptance.
+
+
+### Required installed Request preparation
+
+The private installed Host constructor is reached by the Local and HTTP
+entrances with the same fixed preparation owner. It refuses an absent owner
+before reading installation metadata. Its preparation adapter always forwards
+to that owner's funded Request path; it does not select the standalone raw
+compiler serializer when funding is missing. The ordinary dispatch path likewise
+requires the original managed preparation borrow. A missing borrow method or
+an explicit legacy `None` is a failure, never permission to continue without
+custody. A returned holder must still read as the same Prepared and use the
+existing return protocol on mismatch and retirement.
+
+The generic compiler adapter retains its standalone raw preparation APIs for
+actual compiler and fixture Run-definition issuers. Those calls are not ordinary
+installed preparation or a dispatch-custody exemption. Explicit-port controls
+exercise the installed entry/forwarding and exact dispatch borrow helpers;
+they grant no Resource or Account authority and do not establish a packed Host,
+physical stop, Saved result or Native/Resident ordinary qualification.
+
+
+### Installed environment image has one original route
+
+After the installed entry requires its existing preparation owner, both Local
+and HTTP borrow that owner's selected startup environment image. The old
+unprepared pathname branch is removed from this caller. Failure or retirement
+of the original Scope cannot fall back to reading the package pathname. The
+existing environment selector still receives the same runtime and explicit
+capacity/lookup policy DATA; Source/custody/currentness and close duties do not
+change. Public publication and standalone compiler readers remain separate.
+The corresponding routing fixture selects the actual entry precondition and
+current lookup-policy expression, preserves its original Scope/current/closing
+controls, and rejects a missing owner before asset, pathname or selector work.
+These are source/Owner component controls, not normal startup admission.
+
+## Effect signing consumes the same live recovery
+
+The Local signing loader keeps the original recovered capture, schema/material
+owners and Request resource frame live through its existing asynchronous
+signing consumer. The consumer runs inside that same loader and is awaited
+before recovery cleanup. Returning a borrowed metadata object and closing the
+parent before its consumer runs is not a valid ownership handoff.
+
+The fixed consumer uses the same materials, submitted reference, invocation
+and current checks. Existing Reviewer policy, claim-before-signature, exact
+saved-use binding and Unknown rules remain unchanged. A missing, late or
+repeated consumer call cannot select another signing operation. This is a
+private fixed caller connection, not a public callback, lease or resource owner.
+
+After consumption, its borrowed original alias is cut before the loader
+releases the actual recovery. The loader invalidates its borrowed current view
+and drops its own heavy alias before the existing release continuation may
+return the parent. Failed signing and failed cleanup preserve the original
+primary reason, including null or undefined, together with the same existing
+cleanup retry. No cleanup exception acknowledges physical stop, refunds a
+resource or permits another recovery/signature to replace the original duty.
+
+
+### Installed managed starts retain the prepared parent
+
+The installed Local and HTTP Content caller always forwards the same selected
+preparation owner's current, retained-preparation, Model, serialization and
+keyed-Content methods. Absence of that owner cannot select the component-only
+Content route. The installed entry already requires its Request preparation;
+these downstream bindings preserve that requirement instead of offering an
+unprepared alternative.
+
+Effect parents are created from the original recorded Effect plan. The former
+unplanned Effect and Mock-Model starts, and the standalone keyed-Content managed
+start, no longer construct private managed-Run variants. Request-owned Content
+keeps its existing original admission and retirement path. This does not remove
+the raw serialization compiler entries used by query integration, or grant a
+raw compiler fixture an installed Host admission.
+
+
+### Request serialized Model keeps the original Content graph
+
+The installed Content selector exposes immutable task, step and wire DATA.
+Its opaque compilation graph remains in the same runtime facade's existing
+private WeakMap. The fixed Request Model caller passes that selection through
+its original manager; the facade retrieves the same native graph immediately
+before the existing typed constructor receives it. The selection DATA itself
+cannot substitute for that original, and a copied selection refuses before the
+native call. No parsing, graph reissue or equal-CID replacement occurs.
+
+The same parent, input, occurrence, execution and installed sequence contracts
+cross this boundary. The constructor's original Result returns to the manager's
+existing error projection, which retains failures and partial output on that
+Request. The fixed callback is transient; no additional graph or constructor
+alias is retained. Foreign/current/reentry fences, adoption, Scope and physical
+cleanup responsibilities remain with their existing owners.
+
+
+### Model selector and module use retained invocation originals
+
+The installed Model constructor selects its single Source input with the same
+Prepared and original Request already retained by the Host carrier. It uses the
+existing selected-input kind and optional reference projections. An unavailable
+projection, absent reference or unsupported input kind refuses before provider
+selection and module construction; a Query failure never selects another route.
+
+Compiled Run and Definition objects exposed by the runtime facade are views.
+The existing source-free, Mock-capture and provider-capture module bindings look
+up their opaque originals in that same facade's private maps before invoking
+their fixed typed constructors. They forward the original Request, raw Task
+compilation, declarations, provider capacities, contracts, QueryTime and optional
+original-component binder unchanged. A copied or foreign view never enters a
+native constructor. No token is parsed from wire, copied or reissued.
+
+The returned module remains on the original Host record before the next current
+check or Plan binding. Failures retain the same partial prefix/module and parent
+for existing cleanup. The binding adds no retained constructor/token alias and
+changes no reservation, Scope, Source/read, Store, adoption or retirement owner.

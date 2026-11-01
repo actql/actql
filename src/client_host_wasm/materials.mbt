@@ -272,6 +272,21 @@ fn submitted_rows_material_wire(
   } else {
     None
   }
+  // The same original tuple supplies subordinate locator DATA. It is saved
+  // with these ready rows, not reconstructed by the physical Python caller.
+  let reference_locator = if issued is Some(_) {
+    match
+      @host.client_saved_run_reference_locator(
+        reference,
+        @local_run.local_run_request(plan),
+        @local_run.local_run_definition(plan),
+      ) {
+      Ok(value) => Some(value)
+      Err(_) => return Err(-31)
+    }
+  } else {
+    None
+  }
   // Preserve any existing nominal row Owner held by an observation child.
   if submission.rows is None {
     submission.rows = Some(rows)
@@ -297,6 +312,15 @@ fn submitted_rows_material_wire(
       @encode.string_value(writer, revision.to_string())
       @encode.key(writer, "issued_body")
       @encode.string_value(writer, @utf8.decode(count))
+    }
+    if reference_locator is Some((key, body)) {
+      @encode.key(writer, "reference_locator")
+      @encode.begin_object(writer)
+      @encode.key(writer, "key")
+      @encode.string_value(writer, key)
+      @encode.key(writer, "body")
+      @encode.string_value(writer, @utf8.decode(body))
+      @encode.end_object(writer)
     }
     if task_materials is Some(original) {
       @encode.key(writer, "task_materials")

@@ -46,12 +46,12 @@ function releaseDispatchPreparationHost(entry) {
 }
 function retainDispatchPreparationHost(entry, moon, managedRun, prepared, request, hasCustody) {
   const acquire = moon.clientProgramInstalledManagedPreparationBorrow;
-  if (typeof acquire !== 'function') return; // Older, unowned preparation path.
+  if (typeof acquire !== 'function') throw new Error('PreparationHostCustodyUnavailable');
   if (entry.preparationHostBorrow !== undefined) throw new Error('DuplicatePreparationHostBorrow');
   const release = moon.clientProgramPreparationBorrowReturn, read = moon.clientProgramPreparationBorrowRead;
   if (typeof release !== 'function' || typeof read !== 'function') throw new Error('PreparationHostCustodyUnavailable');
   const holder = checked(Reflect.apply(acquire, moon, [managedRun, prepared, request]));
-  if (holder === undefined) return; // Same runtime's explicit legacy None.
+  if (holder === undefined) throw new Error('PreparationHostCustodyUnavailable');
   entry.preparationHostBorrow = holder;
   entry.preparationHostReturn = release;
   entry.preparationHostRuntime = moon;

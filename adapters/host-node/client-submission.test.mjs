@@ -18,6 +18,7 @@ import {installNodeClientCheck} from './client-check.mjs';
 import {installNodeClientProgramPreparation} from './client-program-preparation.mjs';
 import {canonicalText} from '../../scripts/check-canonical-json.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
+import {prepareOrdinarySourceManagedInstallation} from './ordinary-source-managed.mjs';
 
 const valuesWire = JSON.parse(await readFile(new URL(
   '../../packages/sdk/fixtures/values.environment.json', import.meta.url), 'utf8'));
@@ -44,6 +45,7 @@ async function fixture(t, callbacks = {}) {
     lookupRequest: async value => callbacks.lookup?.(value) ?? {kind: 'not_found'},
     checkSubmissionInput: callbacks.check ?? checkValues,
     admitPreparedSubmission: callbacks.admit,
+    observeOriginalPreparationFailure: callbacks.originalObservation,
   });
   install();
   const ref = {epoch: await service.issueEpoch({principalId, connection}), nonce: 'original-nonce'};
@@ -604,7 +606,7 @@ test('reference-only lookup returns original acceptance without diagnostic enric
     throw Object.assign(new Error('independent syntax fixture'), {code: 'ClientProgramInvalidInput'});
   }});
   const original = await f.service.submitIntent(f.body('SELECT ('));
-  assert.equal(original.checkObservation.report.verdict, 'invalid');
+  assert.equal(Object.hasOwn(original, 'checkObservation'), false);
   f.restart();
   let lookup;
   // A known closed-schema rejection is an assertion failure for this valid
@@ -654,10 +656,7 @@ test('retained Source input problems recheck original intent and current disclos
   assert.deepEqual(hidden.submissionRef, first.submissionRef);
   const replay = await f.service.submitIntent(f.body('SELECT missing AS n FROM records'));
   assert.deepEqual(acceptanceFacts(replay), hidden);
-  assert.equal(replay.checkObservation.report.verdict, 'undetermined');
-  assert.deepEqual(replay.checkObservation.report.reasons, []);
-  assert.deepEqual(replay.checkObservation.report.coverage, {limits: [], unresolved: [
-    {boundary: 'source_resolution', reason: 'unresolved_protected'}]});
+  assert.equal(Object.hasOwn(replay, 'checkObservation'), false);
   visible = true;
   const restored = await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref});
   assertReferenceOnly(restored, first, '[check-mutation:submission-disclosure]');
@@ -1204,4 +1203,87 @@ test('selected Journal metadata envelope derives durable/inspection policy and S
   assert.throws(() => operands(['12345678', '123456789']), {code: 'ClientRequestJournalSqlUnavailable'});
   operands(['猫'.repeat(5), 'x']);
   assert.throws(() => operands(['猫'.repeat(5), 'xx']), {code: 'ClientRequestJournalSqlUnavailable'});
+});
+
+
+test('original Request observation is transient initial metadata and never Journal or replay evidence', async t => {
+  const failure = Object.assign(new Error('original typed preparation'), {code: 'ClientProgramInvalidInput'});
+  let observations = 0;
+  const f = await fixture(t, {prepare() {throw failure;}, async originalObservation(error, value) {
+    assert.strictEqual(error, failure); observations++;
+    return checkValues({...value, kind: 'text', scope: 'bound_input'});
+  }});
+  const initial = await f.service.submitIntent(f.body('SELECT ('));
+  assert.equal(initial.checkObservation.report.verdict, 'invalid');
+  assert.equal(observations, 1);
+  f.restart();
+  assertReferenceOnly(await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref}), initial);
+  assertReferenceOnly(await f.service.submitIntent(f.body('SELECT (')), initial);
+  assert.equal(observations, 1); assert.deepEqual(f.counts, {prepare: 1, submit: 0});
+});
+
+test('original Request observation failure omits report while authorization loss refuses disclosure', async t => {
+  for (const loseAuthorization of [false, true]) {
+    let f;
+    f = await fixture(t, {prepare() {throw Object.assign(new Error('original typed preparation'),
+      {code: 'ClientProgramInvalidInput'});}, async originalObservation() {
+      await Promise.resolve();
+      if (loseAuthorization) f.authorize(false);
+      throw new Error('original report unavailable');
+    }});
+    const pending = f.service.submitIntent(f.body('SELECT ('));
+    if (loseAuthorization) await assert.rejects(pending, {code: 'ClientRequestLookupDenied'});
+    else {const result = await pending; assert.equal(result.kind, 'not_accepted');
+      assert.equal(Object.hasOwn(result, 'checkObservation'), false);}
+    assert.deepEqual(f.counts, {prepare: 1, submit: 0});
+  }
+});
+
+
+test('original Request compiled Check observation uses actual parent preparation report and retirement', async () => {
+  const publication = {environmentCid: moon.clientProgramCheckingEnvironmentCid(valuesEnvironment), aliases: []};
+  const preparedEnvironment = moon.clientProgramPreparePublicSourceEnvironment(valuesEnvironment, JSON.stringify(publication));
+  assert.ok(preparedEnvironment);
+  const registry = await readFile(new URL('../../spec/dependencies/aoa-pipeline-registry.json', import.meta.url), 'utf8');
+  const contracts = JSON.parse(await readFile(new URL('../../spec/contracts/actql-aoa.json', import.meta.url), 'utf8'));
+  const {checked} = await import('../host-common/runtime-result.mjs');
+  const admission = checked(moon.clientPrepareInstalledSequenceContracts(registry,
+    JSON.stringify(contracts.execution_contracts['REL.values']), undefined, undefined));
+  const context = Object.freeze({runtime: moon, environment: valuesEnvironment,
+    preparedEnvironment, retainedRelationOutput: false});
+  const originals = {installation: {sequenceContractOriginal: {moon, admission}}};
+  const view = await prepareOrdinarySourceManagedInstallation(originals, {
+    validator(actual) {assert.strictEqual(actual, originals);},
+    preparationContext(actual) {assert.strictEqual(actual, originals); return context;},
+  }, false);
+  const checker = installNodeClientCheck({moon, environment: valuesEnvironment, publication});
+  // Independent invalid operator argument, checked by the real original Core.
+  const program = {version: 'actql/0.1', id: 'original-observation', stages: [{id: 's', inputs: {},
+    steps: [{values: {schema: {id: {type: 'number', nullable: false}}, rows: []}, as: 'v'},
+      {take: -1, as: 'bad'}], results: {rows: {from: 'bad', fields: ['id']}}}],
+    results: {rows: {from: {stage: 's', result: 'rows'}}}};
+  const originalConnection = Object.freeze({mode: 'local', owner: 'local',
+    consentRefs: Object.freeze([]), runners: Object.freeze([])});
+  const request = {};
+  const receipt = view.beforeSourceSnapshot('program', program, {parameters: null}, originalConnection);
+  const {snapshotClientRequest} = await import('../../packages/client-wire/index.mjs');
+  const body = view.captureSourceSnapshot(receipt, {kind: 'program', input: program, parameters: null}, snapshotClientRequest);
+  view.bindSourceSnapshot(receipt, body); view.bindSourceRequest(receipt, body, request);
+  let failure;
+  try {
+    await assert.rejects(view.fundedPreparation(request, valuesEnvironment), error => {
+      assert.equal(error.code, 'ClientProgramInvalidInput'); failure = error; return true;
+    });
+    const outcome = await view.observeOriginalCheckOutcome(request, failure, project =>
+      checker.projectOriginal({principalId, kind: 'program', scope: 'bound_input',
+        input: body.input, parameters: body.parameters}, project));
+    assert.equal(validCheckOutcome(outcome), true); assert.equal(outcome.report.verdict, 'invalid');
+    assert.equal(outcome.report.scope.kind, 'bound_input');
+    assert.equal(outcome.report.inputs[0].byte_length, Buffer.byteLength(JSON.stringify(body.input)));
+    assert.equal(view.observeOriginalCheckOutcome(request, new Error('foreign failure'), () =>
+      assert.fail('No metadata for a foreign failure')), undefined);
+    view.finishSourceProducer(receipt, 'failed');
+    assert.equal(await view.observeOriginalCheckOutcome(request, failure, () =>
+      assert.fail('No metadata after original retirement')), undefined);
+  } finally {await view.close();}
 });

@@ -807,6 +807,15 @@ cannot replace an existing native schema. A failed initial COMMIT remains Unknow
 was committed or rolled back; later format completion does not rewrite that
 original failure or replay any Run.
 
+Current-format schema admission prepares one statement on that same original
+SQLite connection for its fixed 24-entry validation loop. Every entry still
+executes its own ordered schema read and exact SQL comparison; no schema row or
+admission result is cached. The statement's managed reference stays inside the
+opening block, while its native lifetime remains with the same database and
+existing close path. A mismatch retains the original refusal and cleanup. The
+later physical-preparation fence, transactions, FULL synchronization and
+acknowledgements are unchanged.
+
 The bounded legacy migration reads each original attempt and referenced grant,
 refuses ambiguous keys or excess uses, and commits complete coverage once.
 Its attempt and grant readers explicitly acquire their original legacy files;

@@ -115,7 +115,7 @@ class OriginalSavedResultRead:
             configuration = host._configuration
             if configuration is None or not configuration.sdk:
                 raise ValueError('Original saved lookup configuration is unavailable')
-            source = host._retain_original_result_read(reference, name)
+            source, _ = host._retain_original_result_read(reference, name)
             self._source = source
             projection = OriginalCommitProjection.from_saved_read(core, source,
                 configuration.handle, cleanup=lambda: True)
@@ -148,9 +148,8 @@ class OriginalSavedResultRead:
         store, results = installation._store, installation._results
         if store is None or results is None:
             raise ValueError('Original saved Result physical installation is unavailable')
-        source = host._retain_original_result_read(reference, name)
+        source, metadata = host._retain_original_result_read(reference, name)
         self._source = source
-        metadata = self._current(lambda: _object(core._inputs[source.ticket].payload, 1048576))
         result = _original_decimal(metadata['resultOrdinal'], 7)
         binding = _original_decimal(metadata['bindingOrdinal'], 7)
         projection = OriginalCommitProjection.from_saved_read(core, source,

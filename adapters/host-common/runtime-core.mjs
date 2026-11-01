@@ -2425,6 +2425,16 @@ function publicationControl(moon) {
     prepareCheckedClientRequestSerializationGraph(parent, input, contracts, checkedProgram, options, intermediate) {
       return prepareSerializationGraph(checkedProgram, options, intermediate, {parent, input, contracts});
     },
+    // Keep the selected facade outside Core. Only this existing private map
+    // supplies the SAME opaque Content original to the Request constructor.
+    // Return its original Result to the manager's existing error projection.
+    prepareClientRequestSerializedInferGraph(parent, input, occurrence, selected, execution, contracts) {
+      const graph = serializationPlanTokens.get(selected);
+      if (graph === undefined) throw new TypeError('Foreign Content compilation graph');
+      const prepare = moon.clientProgramPrepareRequestSerializedModelGraph;
+      if (typeof prepare !== 'function') throw new TypeError('Request serialized Model Graph constructor unavailable');
+      return Reflect.apply(prepare, moon, [parent, input, occurrence, graph, execution, contracts]);
+    },
     prepareCheckedClientSerializedInferGraph(occurrence, selected, execution) {
       const graph = serializationPlanTokens.get(selected);
       if (graph === undefined) throw new TypeError('Foreign Content compilation graph');
@@ -3475,6 +3485,52 @@ function publicationControl(moon) {
       // Effect/compilation/definition/occurrence tuple without another issuer.
       return checked(moon.clientProgramInstalledEffectModelDemandPrepare(
         prepared, value, compilation, token(definition), occurrence, graph));
+    },
+    prepareCheckedClientRequestModelSourceFreeModule(parent, input, request, compiled, definition, compilation, contracts, retainedOutput, queryTime) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      const prepare = moon.clientProgramPrepareRequestModelSourceFreeModule;
+      if (typeof prepare !== 'function') throw new TypeError('Request Model module constructor unavailable');
+      // Same existing private originals, never the wire/identity facade.
+      return checked(Reflect.apply(prepare, moon, [parent, input, request, value, token(definition), compilation, contracts, retainedOutput, queryTime]));
+    },
+    prepareCheckedClientRequestModelCaptureModule(parent, input, request, compiled, definition, compilation,
+      declarations, query, evidence, transport, scratch, contracts, retainedOutput, queryTime) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      const prepare = moon.clientProgramPrepareRequestModelCaptureModule;
+      if (typeof prepare !== 'function') throw new TypeError('Request Model module constructor unavailable');
+      // Same existing private originals, never the wire/identity facade.
+      return checked(Reflect.apply(prepare, moon, [parent, input, request, value, token(definition), compilation, declarations, query, evidence,
+        transport, scratch, contracts, retainedOutput, queryTime]));
+    },
+    prepareCheckedClientRequestModelProviderCaptureModule(parent, input, request, compiled, definition, compilation,
+      declaration, provider, query, evidence, transport, scratch, contracts, retainedOutput, queryTime) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      const prepare = moon.clientProgramPrepareRequestModelProviderCaptureModule;
+      if (typeof prepare !== 'function') throw new TypeError('Request Model module constructor unavailable');
+      // Same existing private originals, never the wire/identity facade.
+      return checked(Reflect.apply(prepare, moon, [parent, input, request, value, token(definition), compilation, declaration, provider, query, evidence,
+        transport, scratch, contracts, retainedOutput, queryTime]));
+    },
+    prepareCheckedClientRequestModelProviderComponentCaptureModule(parent, input, request, compiled, definition, compilation,
+      declaration, provider, query, evidence, transport, scratch, contracts, retainedOutput, queryTime, bindOriginal) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      const prepare = moon.clientProgramPrepareRequestModelProviderComponentCaptureModule;
+      if (typeof prepare !== 'function') throw new TypeError('Request Model module constructor unavailable');
+      // Same existing private originals, never the wire/identity facade.
+      return checked(Reflect.apply(prepare, moon, [parent, input, request, value, token(definition), compilation, declaration, provider, query, evidence,
+        transport, scratch, contracts, retainedOutput, queryTime, bindOriginal]));
     },
     prepareCheckedClientRequestModelSourceFreePlan(parent, input, original, request, compiled, definition,
       occurrence, graph, selected) {

@@ -1416,6 +1416,10 @@ pub fn client_program_infer_plan_graph(@run_publication_host.PreparedClientProgr
 
 pub fn client_program_infer_plan_graph_wire(@run_publication_host.ClientInferPlanGraph) -> String
 
+pub fn client_program_infer_plan_parameters_cid(@run_publication_host.ClientInferPlanGraph) -> String
+
+pub fn client_program_infer_plan_program_cid(@run_publication_host.ClientInferPlanGraph) -> String
+
 pub fn client_program_infer_plan_request_wire(@run_publication_host.ClientInferPlanGraph) -> String
 
 pub fn client_program_infer_plan_serialization_graph(@run_publication_host.ClientInferPlanGraph) -> @run_publication_host.ClientSerializationPlanGraph?
@@ -1651,8 +1655,6 @@ pub fn client_program_installed_managed_keyed_content_check_preparation(@client_
 pub fn client_program_installed_managed_keyed_content_prepare(@run_publication_host.PreparedClientProgram, @client_local_host.ClientInstalledCaptureCapacity, @run_publication_host.ClientKeyedAcquisition, @client_row_source_host.RowDeclaration, Int, Int, Int, Array[Int64], Array[Int64], Int, Int, @client_local_host.ClientInstalledSequenceContracts, String, String?, String?, Int, Int, Int64, Int64) -> Result[@client_local_host.ClientInstalledManagedKeyedPreparation, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_managed_keyed_content_requirements(@client_local_host.ClientInstalledManagedKeyedPreparation) -> Array[Int64]
-
-pub fn client_program_installed_managed_keyed_content_run_begin(@physical_resources.NodeManagedRunAdmission[@run_publication_host.PreparedClientProgram], @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, @client_local_host.ClientInstalledManagedKeyedPreparation) -> Result[@client_local_host.ClientInstalledManagedRun, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_managed_keyed_serialization_prefix_cleanup(@client_local_host.ClientInstalledManagedRun, @client_local_host.ClientInstalledManagedKeyedPreparation) -> Result[Bool, @client_local_host.ClientInstalledManagedRunIssue]
 
@@ -2836,6 +2838,8 @@ pub fn client_program_project_openai_chat_request(@model_execution.AdmittedModel
 
 pub fn client_program_project_public_model_task_environment(String, String, Array[@check_environment.NormalizedPublicModelTask], Int, Int, Int, Int, Int, Int, Int, Int) -> Result[(String, String, Int), @check_environment.ModelTaskIssue]
 
+pub fn client_program_project_request_check_outcome(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Result[Unit, @client_local_host.ClientRequestTerminalIssue], String, String, String, String, Int, String?, Int, String?, Int, String, @client_local_preparation.ClientCheckSourceSelectorNamespace?) -> Result[String?, @client_local_host.ClientRequestPreparationIssue]
+
 pub fn client_program_public_model_task_name(@check_environment.PublicModelTaskDeclaration) -> String
 
 pub fn client_program_public_source_environment_matches(@client_source_publication.PreparedPublishedQueryEnvironment, @program_check.CheckEnvironment) -> Bool
@@ -3112,6 +3116,8 @@ pub fn client_program_row_reference_issuer((String, String) -> Bool, (String?, S
 
 pub fn client_program_row_source_accept_charged_page(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, Bytes) -> Result[Int, @client_row_source_host.RowHostIssue]
 
+pub fn client_program_row_source_accept_charged_projected_page(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, @client_row_source_host.RowSourceProjectedJsonPage) -> Result[Int, @client_row_source_host.RowHostIssue]
+
 pub fn client_program_row_source_accept_charged_values(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, Array[String], Array[Array[@value_admission.CheckedValue]]) -> Result[Int, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_row_source_accept_page(@client_row_source_host.RowRun, Bytes) -> Result[Int, @client_row_source_host.RowHostIssue]
@@ -3176,6 +3182,8 @@ pub fn client_program_row_source_json_page_has_next_cursor(@client_row_source_ho
 
 pub fn client_program_row_source_json_page_next_cursor(@client_row_source_host.RowSourceJsonPage) -> Result[String, @client_row_source_host.RowSourceJsonPageIssue]
 
+pub fn client_program_row_source_json_page_original(@client_row_source_host.RowSourceJsonPage) -> @client_row_source_host.RowSourceProjectedJsonPage
+
 pub fn client_program_row_source_json_page_row_count(@client_row_source_host.RowSourceJsonPage) -> Int
 
 pub fn client_program_row_source_json_page_rows_wire(@client_row_source_host.RowSourceJsonPage) -> String
@@ -3193,6 +3201,8 @@ pub fn client_program_row_source_prepare_acquisition_with_contracts(@client_row_
 pub fn client_program_row_source_prepare_mapping(@client_row_source_host.RowDeclaration, String, String, String) -> String
 
 pub fn client_program_row_source_project_json_page(Bytes, Array[String], Bool, Array[String], Int, Int, Int, Int, Int) -> Result[@client_row_source_host.RowSourceJsonPage, @client_row_source_host.RowSourceJsonPageIssue]
+
+pub fn client_program_row_source_project_typed_json_page(Bytes, Array[String], Bool, Array[String], Int, Int, Int, Int, Int) -> Result[@client_row_source_host.RowSourceProjectedJsonPage, @client_row_source_host.RowSourceJsonPageIssue]
 
 pub fn client_program_row_source_provider_capacity(Int64, Int64) -> @execution_relation.ExecutionCapacity?
 
@@ -3215,6 +3225,12 @@ pub fn client_program_row_source_start_listing_accounted(@client_row_source_host
 pub fn client_program_row_source_start_provider_accounted(@client_row_source_host.RowAcquisition, @execution_relation.ExecutionCapacity?, String, (@client_row_source_host.RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64) -> Result[@client_row_source_host.RowRun, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_row_source_target(@client_row_source_host.RowDeclaration, @query_planning.QueryRequirement) -> Result[Array[String], @client_row_source_host.RowHostIssue]
+
+pub fn client_program_row_source_typed_json_page_has_next_cursor(@client_row_source_host.RowSourceProjectedJsonPage) -> Bool
+
+pub fn client_program_row_source_typed_json_page_next_cursor(@client_row_source_host.RowSourceProjectedJsonPage) -> Result[String, @client_row_source_host.RowSourceJsonPageIssue]
+
+pub fn client_program_row_source_typed_json_page_row_count(@client_row_source_host.RowSourceProjectedJsonPage) -> Int
 
 pub fn client_program_run_captured_content_candidate(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientKeyedAcquisition, @run_publication_host.ClientKeyedRequest, String, String, String, Int, Int, Int, Int, Int) -> Result[@run_publication_host.ClientCapturedContent, @run_publication.GeneratedContentReferenceIssue]
 

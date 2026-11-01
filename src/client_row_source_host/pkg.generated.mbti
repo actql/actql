@@ -29,6 +29,8 @@ pub fn accept_charged_mock_churn_risk_document(RowRun, RowPageCharge, RowAcquisi
 
 pub fn accept_charged_row_run_page(RowRun, RowPageCharge, Bytes) -> Result[Int, RowHostIssue]
 
+pub fn accept_charged_row_run_projected_page(RowRun, RowPageCharge, RowSourceProjectedJsonPage) -> Result[Int, RowHostIssue]
+
 pub fn accept_charged_row_run_values(RowRun, RowPageCharge, Array[String], Array[Array[@value_admission.CheckedValue]]) -> Result[Int, RowHostIssue]
 
 pub fn accept_keyed_row_page(RowSourceRead, Bytes) -> Result[Int, RowSourceIssue]
@@ -193,6 +195,8 @@ pub fn project_row_declaration(String, String, String, String, String, Array[Str
 
 pub fn project_row_source_json_page(Bytes, Array[String], Bool, Array[String], Int, Int, Int, Int, Int) -> Result[RowSourceJsonPage, RowSourceJsonPageIssue]
 
+pub fn project_row_source_typed_json_page(Bytes, Array[String], Bool, Array[String], Int, Int, Int, Int, Int) -> Result[RowSourceProjectedJsonPage, RowSourceJsonPageIssue]
+
 pub fn restore_relation_row_declaration(String, String, String, String, String?) -> Result[RowDeclaration, RowHostIssue]
 
 pub fn restore_row_declaration(String, String, String, String, String?) -> Result[RowDeclaration, RowHostIssue]
@@ -271,6 +275,8 @@ pub fn row_source_json_page_has_next_cursor(RowSourceJsonPage) -> Bool
 
 pub fn row_source_json_page_next_cursor(RowSourceJsonPage) -> Result[String, RowSourceJsonPageIssue]
 
+pub fn row_source_json_page_original(RowSourceJsonPage) -> RowSourceProjectedJsonPage
+
 pub fn row_source_json_page_row_count(RowSourceJsonPage) -> Int
 
 pub fn row_source_json_page_rows_wire(RowSourceJsonPage) -> String
@@ -278,6 +284,12 @@ pub fn row_source_json_page_rows_wire(RowSourceJsonPage) -> String
 pub fn row_source_requirement(RowSourcePreparation) -> @query_planning.QueryRequirement
 
 pub fn row_source_target(RowDeclaration, @query_planning.QueryRequirement) -> Result[(String, Array[String]), RowHostIssue]
+
+pub fn row_source_typed_json_page_has_next_cursor(RowSourceProjectedJsonPage) -> Bool
+
+pub fn row_source_typed_json_page_next_cursor(RowSourceProjectedJsonPage) -> Result[String, RowSourceJsonPageIssue]
+
+pub fn row_source_typed_json_page_row_count(RowSourceProjectedJsonPage) -> Int
 
 pub fn start_accounted_keyed_row_acquisition(RowKeyedAcquisition, String, (RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64, (RowAttempt) -> Bool) -> Result[RowRun, RowHostIssue]
 
@@ -575,6 +587,8 @@ pub(all) enum RowSourceJsonPageIssue {
 } derive(Eq, @debug.Debug)
 
 type RowSourcePreparation
+
+type RowSourceProjectedJsonPage
 
 type RowSourceRead
 

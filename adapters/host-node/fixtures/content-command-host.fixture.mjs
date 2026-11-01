@@ -7,6 +7,7 @@ import {open, readFile, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {userInfo} from 'node:os';
 import {join} from 'node:path';
+import {openManagedContentSourceFixture} from './managed-content-source.fixture.mjs';
 import {setTimeout as delay} from 'node:timers/promises';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
 import {inspect} from 'node:util';
@@ -15,7 +16,7 @@ import {connectEmbeddedLocal, openInstalledRemoteHttpHost} from '../embedded-loc
 import {connect as connectRemote} from '../../../packages/sdk/index.mjs';
 import {fixtureCertificates} from '../../site-node/https-exchange-fixture.mjs';
 import {createInstalledConnectorTable} from '../installed-connectors.mjs';
-import {createInstalledRowSource, installRowSourceAuthorization} from '../installed-row-source.mjs';
+import {installRowSourceAuthorization} from '../installed-row-source.mjs';
 import {createInstalledRowEffect} from '../installed-row-effect.mjs';
 import {selectInstalledHostEnvironment} from '../installed-host-policy.mjs';
 import {contentCommandFixture} from './content-command.fixture.mjs';
@@ -24,7 +25,7 @@ import {canonical, cid, resource, token} from './file-listing-source.fixture.mjs
 export async function openContentCommandHost({scratch, generated, keys, entrance,
   allowSourceRead = true, fault, modelInstallation, registerModelProviders, hostCapacityPolicy,
   faultInjection, modelApprovalRequired = false, generatedCommand = false,
-  onPrepareContent, prepareContentChild, originalContentValue}) {
+  onPrepareContent, prepareContentChild, originalContentValue, installEffects = true}) {
   const content = JSON.parse(generated.description.wire);
   const destination = resource('d');
   const fixture = contentCommandFixture({contentMime: 'text/csv', inputMime: 'text/csv',
@@ -98,14 +99,14 @@ export async function openContentCommandHost({scratch, generated, keys, entrance
     assert.equal(generated.store.status().storedBytes, 3);
   };
   const requestOf = (value, target) => ({value, target});
+  const managedSource = await openManagedContentSourceFixture({scratch, keys, account,
+    generated, destination, content, fixture, allowSourceRead, onRead: () => reads++});
   const sourceVersion = 'actql-installed-command-fixture-source/0.1';
   const effectVersion = 'actql-installed-command-fixture-effect/0.1';
   const connectorTable = createInstalledConnectorTable([{name: 'fixture',
     registration: 'fixture', revision: 'fixture/0.1', source: {profileVersion: sourceVersion,
       load: async () => ({check: p => p, identityParts: p => [p],
         async load(_profile, options) {
-          const authorization = await installRowSourceAuthorization({accountConfiguration: account,
-            principalId: owner, root: options.root, connectorRegistration: 'fixture'});
           const baseIssuer = moon.clientProgramRowReferenceIssuer((kind, wire) =>
             kind === 'file' && wire === canonical(destination),
           (media, wire) => generated.admitsContent === undefined
@@ -121,21 +122,7 @@ export async function openContentCommandHost({scratch, generated, keys, entrance
               moon.clientProgramCapturedContentReissuer((media, wire) =>
                 (media === undefined || media === generated.description.mediaType) &&
                 wire === generated.description.wire ? originalContentValue : undefined));
-          return createInstalledRowSource({moon, declaration: fixture.declaration,
-            declared: fixture.declared, environmentWire: fixture.environmentWire,
-            connectorId: 'content-fixture', connectorRegistration: 'fixture',
-            connectorRevision: 'fixture/0.1', bindingCid: token('c'), referenceIssuer: issuer,
-            authorization, site: {connection: 'fixture:files', issueReadGrant: () => ({}),
-              close: () => authorization.close()}, readOperation: 'read',
-            physicalTarget: (resource, fields) => ({resource, fields}),
-            limits: {maxPages: 1, maxPageBytes: 8192, maxPageRows: 1, maxCaptureRows: 1},
-            async readPages({resource: name, consumePage}) {
-              assert.equal(name, 'transfers');
-              assert.ok(allowSourceRead, 'recovery must not reacquire the Source');
-              await generated.issue();
-              reads++;
-              await consumePage([{destination, content, name: 'approved.csv'}]);
-            }});
+          return managedSource.load(_profile, options, issuer);
         }}),
     }, effect: {profileVersion: effectVersion, load: async () => ({
       check: p => p, identityParts: p => [p], async load(_profile, options) {
@@ -234,10 +221,13 @@ export async function openContentCommandHost({scratch, generated, keys, entrance
   const queryAliases = fixture.declared.views.map(view => ({name: 'files.transfers',
     sourceRef: view.source_ref, sourceViewContractCid: view.view_cid,
     schemaContractCid: view.carrier_schema_cid}));
-  await writeFile(sourceProfilePath, canonical({version: sourceVersion, queryAliases}));
+  await writeFile(sourceProfilePath, canonical({version: sourceVersion, connectorId: 'content-fixture',
+    sourceOrigin: managedSource.origin, queryAliases}));
   await writeFile(effectProfilePath, canonical({version: effectVersion}));
   const installation = {directory: join(scratch.path, 'host'), connectorTable, sourceProfilePath,
-      effectProfilePath, modelInstallation, registerModelProviders, hostCapacityPolicy,
+      ...(installEffects ? {effectProfilePath} : {}),
+      modelInstallation, registerModelProviders, hostCapacityPolicy,
+      resolveSourceSecret: managedSource.resolveSecret,
       authorization: {accountConfiguration: account,
         faultInjection: Object.assign(async (event, facts) => {
           if (event === 'effect_content_generation_retained' ||
@@ -258,6 +248,7 @@ export async function openContentCommandHost({scratch, generated, keys, entrance
       await new Promise(resolve => server.close(resolve));
     }
     await host?.close();
+    await managedSource.close();
     if (previousCertificates !== undefined) setDefaultCACertificates(previousCertificates);
     closed = true;
   };
@@ -279,6 +270,8 @@ export async function openContentCommandHost({scratch, generated, keys, entrance
       };
       visit(error);
       console.error(JSON.stringify({fixture: 'independent-source-command', failures}));
+      // This endpoint is a fixture child, not the rejected Host's cleanup ACK.
+      await managedSource.close();
       throw error;
     }
   } else {

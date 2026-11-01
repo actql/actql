@@ -2672,6 +2672,13 @@ export async function createInstalledRowSource({moon, declaration, commands,
         consumeObservation: ledger === undefined ? undefined : function consumeObservation(charge) {
           return checked(moon.clientProgramRowSourceConsumeObservationCharge(run, charge));
         },
+        consumeProjectedPage: (page, {charge} = {}) => {
+          // The same compiled RowRun checks opaque page provenance and the
+          // original response ticket before full schema/retention admission.
+          // Foreign pages never fall back to serialization or another parse.
+          if (charge === undefined) fail('InvalidInstalledSourcePageCharge');
+          return checked(moon.clientProgramRowSourceAcceptChargedProjectedPage(run, charge, page));
+        },
         consumePageWire: (wire, {charge} = {}) => {
           if (typeof wire !== 'string') fail('InvalidInstalledSourcePageWire');
           const bytes = Buffer.from(wire, 'utf8');

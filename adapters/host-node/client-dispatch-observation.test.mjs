@@ -537,3 +537,110 @@ test('restored local stop refuses changed originals and permits only nominal bou
     else{await assert.rejects(observeRestoredLocal(facts),/ClientRunStopObservationChanged/);assert.deepEqual(stopped,[]);}
   }
 });
+
+
+// These execute the original private helper declarations with explicit Core
+// ports. They do not construct a Host, issue capacity or certify physical stop.
+function requiredDispatchBorrowFixture() {
+  const selected = ast.body.filter(node => node.type === 'FunctionDeclaration' &&
+    ['retainDispatchPreparationHost', 'releaseDispatchPreparationHost'].includes(node.id.name));
+  assert.equal(selected.length, 2);
+  const {checked} = awaitResultReader;
+  return compileFunction(selected.map(node => source.slice(node.start, node.end)).join('\n') +
+    '\nreturn retainDispatchPreparationHost;', ['checked'])(checked);
+}
+const awaitResultReader = await import('../host-common/runtime-result.mjs');
+
+test('required dispatch preparation never skips a missing or legacy None borrow', () => {
+  for (const mode of ['missing', 'legacy-none']) {
+    const moon = mode === 'missing' ? {} : {
+      clientProgramInstalledManagedPreparationBorrow: () => ({$tag: 1, _0: undefined}),
+      clientProgramPreparationBorrowRead: () => assert.fail('No holder to read'),
+      clientProgramPreparationBorrowReturn: () => assert.fail('No holder to return'),
+    };
+    assert.throws(() => requiredDispatchBorrowFixture(moon)({}, moon, {}, {}, {}, true),
+      /PreparationHostCustodyUnavailable/u);
+  }
+});
+
+test('required installed preparation rejects missing owner before installation metadata', async () => {
+  const text = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
+  const declaration = parse(text, {ecmaVersion: 'latest', sourceType: 'module'}).body.find(node =>
+    node.type === 'FunctionDeclaration' && node.id.name === 'openInstalledHost');
+  assert.ok(declaration);
+  const firstRead = declaration.body.body.find(node => node.type === 'VariableDeclaration' &&
+    node.declarations.some(value => value.init?.type === 'Identifier' && value.init.name === 'originalInstallation'));
+  assert.ok(firstRead);
+  // Select the actual entry prefix through its first installation read. The
+  // unrelated later module loader/import.meta is outside this explicit port.
+  const prefix = text.slice(declaration.body.start + 1, firstRead.end);
+  const open = compileFunction('return async function(originalInstallation, preparation) {' + prefix + '};', [])();
+  let reads = 0;
+  const installation = new Proxy({}, {get() {reads++; throw new Error('UnexpectedInstallationMetadataRead');}});
+  await assert.rejects(open(installation, undefined), /InstalledRequestPreparationUnavailable/u);
+  assert.equal(reads, 0);
+});
+
+
+test('required preparation borrow keeps exact originals and returns a foreign holder through the original helper', () => {
+  const prepared = {}, request = {}, run = {}, holder = {};
+  for (const foreign of [false, true]) {
+    let returns = 0;
+    const moon = {
+      clientProgramInstalledManagedPreparationBorrow(actualRun, actualPrepared, actualRequest) {
+        assert.strictEqual(this, moon); assert.strictEqual(actualRun, run);
+        assert.strictEqual(actualPrepared, prepared); assert.strictEqual(actualRequest, request);
+        return {$tag: 1, _0: holder};
+      },
+      clientProgramPreparationBorrowRead(actual) {assert.strictEqual(this, moon); assert.strictEqual(actual, holder);
+        return foreign ? {} : prepared;},
+      clientProgramPreparationBorrowReturn(actual) {assert.strictEqual(this, moon); assert.strictEqual(actual, holder);
+        returns++; return {$tag: 1, _0: undefined};},
+    };
+    const retain = requiredDispatchBorrowFixture(moon), entry = {};
+    if (foreign) {
+      assert.throws(() => retain(entry, moon, run, prepared, request, true), /ForeignPreparationHostCustody/u);
+      assert.equal(returns, 1); assert.equal(entry.preparationHostBorrow, undefined);
+    } else {
+      retain(entry, moon, run, prepared, request, true);
+      assert.strictEqual(entry.preparationHostBorrow, holder); assert.equal(returns, 0);
+      const node = ast.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'releaseDispatchPreparationHost');
+      const release = compileFunction('return (' + source.slice(node.start, node.end) + ');', ['checked'])(awaitResultReader.checked);
+      release(entry); release(entry);
+      assert.equal(returns, 1); assert.equal(entry.preparationHostBorrow, undefined);
+    }
+  }
+});
+
+test('required installed preparation forwards only its same funded callback without raw serialization', async () => {
+  const text = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
+  const tree = parse(text, {ecmaVersion: 'latest', sourceType: 'module'});
+  let options;
+  const walk = node => {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'CallExpression' && node.callee.name === 'installNodeClientProgramPreparation') options = node.arguments[0];
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(walk);
+      else if (value && typeof value === 'object' && value.type) walk(value);
+    }
+  };
+  walk(tree); assert.ok(options);
+  const environment = {}, prepared = {}, request = {kind: 'program', input: {
+    toJSON() {assert.fail('Funded caller must not serialize a second document');}}, parameters: null};
+  let calls = 0;
+  const preparation = {fundedPreparation(actual, selected) {
+    assert.strictEqual(this, preparation); assert.strictEqual(actual, request); assert.strictEqual(selected, environment);
+    calls++; return {kind: 'effect_free', prepared, originalInputs: {environment}};
+  }};
+  const names = ['moon', 'environment', 'sourcePublication', 'valuesMaxRows', 'check', 'preparation',
+    'preparedSourceEnvironment', 'getPreparedSourceEnvironment', 'verifyRequestValuePolicy',
+    'updateTargetOriginals', 'control', 'calendarArtifact', 'localContractLimits', 'effectInstallation'];
+  const selected = compileFunction('return (' + text.slice(options.start, options.end) + ');', names)(
+    {}, environment, undefined, undefined, undefined, preparation, undefined, undefined, undefined,
+    {}, {}, undefined, {}, undefined);
+  assert.equal(typeof selected.getFundedPreparation, 'function');
+  const {installNodeClientProgramPreparation} = await import('./client-program-preparation.mjs');
+  const prepare = installNodeClientProgramPreparation(selected);
+  assert.strictEqual(await prepare(request), prepared); assert.equal(calls, 1);
+  prepare.retireOriginal(prepared); prepare.retireReferences();
+});

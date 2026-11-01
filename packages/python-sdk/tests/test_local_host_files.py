@@ -58,6 +58,92 @@ class LocalHostFilePinsTests(unittest.TestCase):
             self.assertEqual([observed.count(value.reader.descriptor) for value in originals], [1] * 5)
             self.assertEqual(named, ['original-' + str(i) for i in range(5)])
 
+    def test_current_keeps_each_physical_member_without_deep_comparing_same_snapshot(self):
+        from actql_sdk._local_files import PhysicalFileSnapshot
+        _, root, _, pins = self.fixture()
+        originals = (pins.read_original('account.json', max_bytes=11),
+                     pins.read_original('policy.json', max_bytes=16))
+        for value in originals:
+            self.assertIs(value.snapshot, value.reader.result)
+        equal = PhysicalFileSnapshot.__eq__
+        comparisons = []
+        def compare(left, right):
+            comparisons.append(left is right)
+            return equal(left, right)
+        with patch.object(PhysicalFileSnapshot, '__eq__', compare), \
+                patch.object(root, '_validate_original_member',
+                             wraps=root._validate_original_member) as members, \
+                patch.object(root, '_validate_original_directory',
+                             wraps=root._validate_original_directory) as directory:
+            self.assertIsNone(pins.current())
+        self.assertEqual(members.call_count, 2)
+        self.assertEqual(directory.call_count, 2)
+        self.assertEqual(comparisons, [])
+        self.assertTrue(pins.close())
+        self.assertTrue(root.close())
+
+    def _assert_distinct_snapshot(self, outcome):
+        from dataclasses import replace
+        from actql_sdk._local_files import PhysicalFileSnapshot
+        _, root, _, pins = self.fixture()
+        pins.read_original('account.json', max_bytes=11)
+        pins.read_original('policy.json', max_bytes=16)
+        observe = root._observe_originals
+        equal = PhysicalFileSnapshot.__eq__
+        comparisons = []
+        original_error = OSError('original snapshot comparison refused')
+        def distinct(readers):
+            snapshots = tuple(replace(value) for value in observe(readers))
+            if outcome == 'changed':
+                return (replace(snapshots[0], physical_digest='sha256:' + '0' * 64),
+                        snapshots[1])
+            return snapshots
+        def compare(left, right):
+            comparisons.append(left is right)
+            if outcome == 'error': raise original_error
+            return equal(left, right)
+        with patch.object(root, '_observe_originals', side_effect=distinct), \
+                patch.object(PhysicalFileSnapshot, '__eq__', compare), \
+                patch.object(root, '_validate_original_member',
+                             wraps=root._validate_original_member) as members:
+            if outcome == 'equal':
+                self.assertIsNone(pins.current())
+            elif outcome == 'changed':
+                with self.assertRaises(ValueError): pins.current()
+            else:
+                with self.assertRaises(OSError) as failed: pins.current()
+                self.assertIs(failed.exception, original_error)
+        self.assertEqual(members.call_count, 2)
+        self.assertEqual(comparisons, [False, False] if outcome == 'equal' else [False])
+        self.assertFalse(root.close())
+        self.assertTrue(pins.close())
+        self.assertTrue(root.close())
+
+    def test_equal_distinct_snapshot_keeps_full_value_comparison(self):
+        self._assert_distinct_snapshot('equal')
+
+    def test_changed_distinct_snapshot_keeps_original_value_error(self):
+        self._assert_distinct_snapshot('changed')
+
+    def test_distinct_snapshot_propagates_original_comparison_error(self):
+        self._assert_distinct_snapshot('error')
+
+    def test_same_snapshot_alias_does_not_hide_actual_file_generation_change(self):
+        from actql_sdk._local_files import PhysicalFileSnapshot
+        path, root, _, pins = self.fixture()
+        value = pins.read_original('account.json', max_bytes=11)
+        before = (path / 'account.json').stat()
+        os.utime(path / 'account.json', ns=(before.st_atime_ns, before.st_mtime_ns + 1))
+        self.assertIs(value.snapshot, value.reader.result)
+        with patch.object(PhysicalFileSnapshot, '__eq__',
+                          side_effect=AssertionError('Physical failure must precede DATA comparison')):
+            with self.assertRaises(LocalFileError): pins.current()
+        self.assertIs(pins._files[value.name], value)
+        self.assertFalse(root.close())
+        self.assertTrue(pins.close())
+        self.assertTrue(root.close())
+        self.assertEqual((path / 'account.json').read_bytes(), b'null/e\xcc\x81\r\n')
+
     def test_exact_original_bytes_and_current_preserve_files_store_and_no_scope(self):
         path, root, store, pins = self.fixture()
         changes = store._connection.total_changes

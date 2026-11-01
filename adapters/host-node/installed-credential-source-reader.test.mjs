@@ -8,6 +8,109 @@ import {startInstalledRowRun} from './installed-row-run.mjs';
 const ok = value => ({$tag: 1, _0: value});
 const error = value => ({$tag: 0, _0: value});
 const deferred = () => {let resolve; const promise = new Promise(r => {resolve = r;}); return {resolve, promise};};
+
+// Real shared page-reader lifecycle with explicit Site/charge/schema ports.
+// A returned opaque page is DATA; these ports establish no normal authority,
+// numerical backing or compiled row-schema acceptance.
+function projectedReaderFixture({page, chargeFailure, consumeFailure, consumePending, acceptedCount = 2} = {}) {
+  const events = [], projectedPage = Object.freeze({}), charge = Object.freeze({});
+  const response = Object.freeze({accepted: true, statusCode: 200, body: Buffer.from('original provider bytes')});
+  const original = Object.freeze({grant: {}, useId: 'original', scope: Object.freeze({operation: 'read'})});
+  let sends = 0, charges = 0, consumes = 0, closes = 0;
+  const consumed = deferred();
+  const acquisition = Object.freeze({credential: Object.freeze({}), close() {
+    assert.equal(this, acquisition);closes++;events.push('close');return 'closed';
+  }});
+  const site = Object.freeze({}), originalSite = Object.freeze({site,
+    referenceCurrent() {return true;}, authorizationPurpose(value) {
+      assert.equal(value, original);return {kind: 'read'};
+    }, bindRunAcquisition(value, callbacks) {
+      assert.equal(value, original);callbacks.assertCurrent();return acquisition;
+    }, async callResource(input) {
+      assert.equal(this, site);sends++;await input.currentBeforeSend();
+      input.responseCustody.retain(response);events.push('receive');return response;
+    }});
+  const factory = createInstalledCredentialSourceReader({capacity: {}, originalSite,
+    assertCurrent() {}, operation: 'read', maxResponses: 1, maxResponseBytes: 128, maxSecretBytes: 128,
+    preparePageReader() {return Object.freeze({fetchPage() {return {method: 'GET', path: '/one'};},
+      decodePage(actual) {
+        assert.equal(actual, response);events.push('decode');
+        return page ?? {projectedPage, rowCount: 2, done: true};
+      }});}});
+  const options = Object.freeze({originalAuthorization: original, columns: ['id'],
+    verifyRead() {}, authorizationFor() {return original;},
+    consumePage() {assert.fail('No JS row fallback');},
+    consumePageWire() {assert.fail('No wire encode/decode fallback');},
+    chargePage(bytes) {
+      assert.equal(bytes, response.body);charges++;events.push('charge');
+      if (chargeFailure !== undefined) throw chargeFailure;
+      return charge;
+    }, async consumeProjectedPage(actual, metadata) {
+      assert.equal(actual, projectedPage);assert.equal(metadata.charge, charge);
+      consumes++;events.push('consume');consumed.resolve();
+      if (consumePending !== undefined) await consumePending;
+      if (consumeFailure !== undefined) throw consumeFailure;
+      return acceptedCount;
+    }});
+  const reader = factory.prepare(options);
+  return {reader, factory, events, projectedPage, consumed: consumed.promise,
+    counts: () => ({sends, charges, consumes, closes})};
+}
+
+test('shared reader typed page keeps the same response charge and opaque page through first close', async () => {
+  const f = projectedReaderFixture();
+  assert.deepEqual(await f.reader.read(), {pages: 1, rowCount: 2});
+  assert.deepEqual(f.events, ['receive', 'charge', 'decode', 'consume']);
+  assert.equal(f.reader.observe().cleanupConfirmed, false);
+  f.reader.requestStop();assert.equal(f.reader.observe().cleanupConfirmed, true);
+  assert.equal(f.factory.retire(), true);
+  assert.deepEqual(f.counts(), {sends: 1, charges: 1, consumes: 1, closes: 1});
+});
+
+test('shared reader typed page rejects mixed representations before schema consumption', async () => {
+  const f = projectedReaderFixture({page: {projectedPage: {}, rowsWire: '[]', rowCount: 0, done: true}});
+  await assert.rejects(f.reader.read(), {code: 'InvalidInstalledSourceDecodedPage'});
+  assert.equal(f.counts().consumes, 0);f.reader.requestStop();
+  assert.equal(f.reader.observe().cleanupConfirmed, true);assert.equal(f.factory.retire(), true);
+});
+
+test('shared reader typed page cannot replace the actual admitted row count', async () => {
+  const f = projectedReaderFixture({acceptedCount: 1});
+  await assert.rejects(f.reader.read(), {code: 'InvalidInstalledSourceDecodedPage'});
+  assert.equal(f.counts().consumes, 1);f.reader.requestStop();
+  assert.equal(f.reader.observe().cleanupConfirmed, true);assert.equal(f.factory.retire(), true);
+});
+
+test('shared reader typed page charge failure remains pending without decode consumption or fake close ACK', async () => {
+  const cause = new Error('original unknown charge disposition'), f = projectedReaderFixture({chargeFailure: cause});
+  await assert.rejects(f.reader.read(), error => error === cause);
+  f.reader.requestStop();
+  assert.equal(f.reader.observe().cleanupConfirmed, false);
+  assert.equal(f.factory.retire(), false);
+  assert.deepEqual(f.events, ['receive', 'charge', 'close']);
+  assert.deepEqual(f.counts(), {sends: 1, charges: 1, consumes: 0, closes: 1});
+});
+
+test('shared reader typed page preserves schema refusal and closes only its original binding', async () => {
+  const cause = new Error('original row-schema refusal'), f = projectedReaderFixture({consumeFailure: cause});
+  await assert.rejects(f.reader.read(), error => error === cause);
+  f.reader.requestStop();assert.equal(f.reader.observe().cleanupConfirmed, true);
+  assert.equal(f.factory.retire(), true);
+  assert.deepEqual(f.counts(), {sends: 1, charges: 1, consumes: 1, closes: 1});
+});
+
+test('shared reader typed page stop retains the pending original consumption until it settles', async () => {
+  const gate = deferred(), f = projectedReaderFixture({consumePending: gate.promise});
+  const pending = f.reader.read();
+  await f.consumed;f.reader.requestStop(new Error('same original caller stop'));
+  assert.equal(f.reader.observe().readPending, true);
+  assert.equal(f.reader.observe().cleanupConfirmed, false);
+  assert.equal(f.factory.retire(), false);
+  gate.resolve();await assert.rejects(pending);
+  assert.equal(f.reader.observe().cleanupConfirmed, true);assert.equal(f.factory.retire(), true);
+  assert.deepEqual(f.counts(), {sends: 1, charges: 1, consumes: 1, closes: 1});
+});
+
 function fixture({pendingRead, pendingBinding = false} = {}) {
   const events = [], raw = {grant: {}, scope: {operation: 'read'}}, credential = {}, capacity = {}, charge = {}, began = deferred();
   const response = Object.freeze({body: Buffer.from('same received bytes')});

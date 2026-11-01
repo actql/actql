@@ -3210,6 +3210,22 @@ pub fn client_program_infer_plan_boundary(
 }
 
 ///|
+#export_name("clientProgramInferPlanProgramCid")
+pub fn client_program_infer_plan_program_cid(
+  value : @publication_host.ClientInferPlanGraph,
+) -> String {
+  @publication_host.client_infer_plan_program_cid(value)
+}
+
+///|
+#export_name("clientProgramInferPlanParametersCid")
+pub fn client_program_infer_plan_parameters_cid(
+  value : @publication_host.ClientInferPlanGraph,
+) -> String {
+  @publication_host.client_infer_plan_parameters_cid(value)
+}
+
+///|
 #export_name("clientProgramInferCallScopeUnitId")
 pub fn client_program_infer_call_scope_unit_id(
   active : @infer_host.Execution,

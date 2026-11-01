@@ -35,6 +35,9 @@ const issueCodes = Object.freeze({
   source_declarations: 'ClientParametersInvalid',
   source_limit: 'ClientProgramRejected',
   source_encoding: 'ClientProgramPreparationFailure',
+  // Exact Common quote failure before provider construction/Run admission.
+  // No numeric amounts are available, and unrelated failures stay uncertain.
+  source_free_metadata_capacity_unavailable: 'ClientProgramRejected',
 });
 const effectIssueCodes = Object.freeze({
   invalid_format: 'ClientProgramInvalidInput',

@@ -11,7 +11,10 @@ fn request_model_module_container_bytes(
   provider_captures? : Int = 0,
   input_segments? : Int = 0,
 ) -> Int64? {
-  guard tasks > captures &&
+  // A captured Stage can also own the serialized Model continuation. Its
+  // Compute tail is then empty, but the module's fixed containers still exist.
+  guard tasks > 0 &&
+    tasks >= captures &&
     captures >= 0 &&
     installed_providers >= 0 &&
     provider_captures >= 0 &&
