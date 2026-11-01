@@ -119185,7 +119185,7 @@
     },
     {
       "module": "adapters/host-node/installed-credential-source-reader.mjs",
-      "sha256": "2ee6349eeab84f91d0d34d24031d6a62e801babd48758632fee7e6b4297e115a",
+      "sha256": "285c2eca6d2008492079b918a7721b2e9d62405f307d5214136fc382c02d38ef",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "C \u2014 existing standard Host Source/Effect service originals",
@@ -119199,6 +119199,13 @@
           "name": "createInstalledCredentialSourceReader",
           "parameters": [
             "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledCredentialSourceReader/createInstalledCredentialSourceReader",
+          "parameters": [
+            "name"
           ],
           "async": false
         },
@@ -119254,77 +119261,10 @@
           "async": true
         },
         {
-          "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:read/init:read/init:read",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:read/init:read/init:read#2",
-          "parameters": [
-            "input"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:read/init:read/init:read#3",
-          "parameters": [
-            "input"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:read/init:read/init:read#4",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:read/init:read/init:read#5",
-          "parameters": [
-            "cause"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:read/init:read/init:read#6",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:requestStop/init:requestStop",
           "parameters": [
             "reason"
           ],
-          "async": false
-        },
-        {
-          "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:requestStop/init:requestStop/failed/failed",
-          "parameters": [
-            "cause"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:requestStop/init:requestStop/init:requestStop",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:requestStop/init:requestStop/init:requestStop#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:requestStop/init:requestStop/init:requestStop#3",
-          "parameters": [
-            "cause"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:requestStop/init:requestStop/settled/settled",
-          "parameters": [],
           "async": false
         },
         {
@@ -119540,7 +119480,8 @@
           "name": "ownMethod",
           "parameters": [
             "value",
-            "name"
+            "name",
+            "optional"
           ],
           "async": false
         },
@@ -119555,7 +119496,6 @@
       "imports": [
         "../host-common/http-exchange.mjs",
         "../host-common/owned-invocation-context.mjs",
-        "../site-node/https-credential-resource.mjs",
         "node:util"
       ],
       "compilerFields": [],
@@ -119563,21 +119503,20 @@
       "contracts": [
         {
           "operations": [
+            "<module>",
             "createInstalledCredentialSourceReader",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/check/check",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/cleanup",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:observe/init:observe",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:read/init:read",
-            "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:read/init:read/init:read",
-            "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:read/init:read/init:read#2",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:requestStop/init:requestStop",
-            "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:requestStop/init:requestStop/init:requestStop",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:retry/init:retry",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/responseCustody/init:retain/init:retain",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/verify/verify",
             "createInstalledCredentialSourceReader/init:retire/init:retire",
-            "fail/fail"
+            "fail/fail",
+            "createInstalledCredentialSourceReader/createInstalledCredentialSourceReader"
           ],
           "exports": [
             "createInstalledCredentialSourceReader",
@@ -119638,7 +119577,7 @@
             "failure": [
               {
                 "path": "adapters/host-node/installed-credential-source-reader.mjs",
-                "anchor": "if (!stopped || readPending || stopPending || pendingCallbacks.size !== 0 || escapedResponseGraph ||"
+                "anchor": "if (!stopped || readPending || pendingCallbacks.size !== 0 || escapedResponseGraph ||"
               },
               {
                 "path": "adapters/host-node/installed-credential-source-reader.test.mjs",
@@ -119648,7 +119587,7 @@
             "cancellation": [
               {
                 "path": "adapters/host-node/installed-credential-source-reader.mjs",
-                "anchor": "if (!stopped || readPending || stopPending || pendingCallbacks.size !== 0 || escapedResponseGraph ||"
+                "anchor": "if (!stopped || readPending || pendingCallbacks.size !== 0 || escapedResponseGraph ||"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -119696,14 +119635,6 @@
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/applySynchronousProjection/applySynchronousProjection",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/callProjection",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/closeTransport",
-            "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:read/init:read/init:read#3",
-            "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:read/init:read/init:read#4",
-            "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:read/init:read/init:read#5",
-            "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:read/init:read/init:read#6",
-            "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:requestStop/init:requestStop/failed/failed",
-            "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:requestStop/init:requestStop/init:requestStop#2",
-            "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:requestStop/init:requestStop/init:requestStop#3",
-            "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:requestStop/init:requestStop/settled/settled",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/preparation/init:retire/init:retire",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/preparation/init:retire/init:retire/init:retire",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence",
@@ -119809,9 +119740,7 @@
           }
         },
         {
-          "operations": [
-            "<module>"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -119867,7 +119796,7 @@
             "failure": [
               {
                 "path": "adapters/host-node/installed-credential-source-reader.mjs",
-                "anchor": "if (!stopped || readPending || stopPending || pendingCallbacks.size !== 0 || escapedResponseGraph ||"
+                "anchor": "if (!stopped || readPending || pendingCallbacks.size !== 0 || escapedResponseGraph ||"
               },
               {
                 "path": "adapters/host-node/installed-credential-source-reader.test.mjs",
@@ -119877,7 +119806,7 @@
             "cancellation": [
               {
                 "path": "adapters/host-node/installed-credential-source-reader.mjs",
-                "anchor": "if (!stopped || readPending || stopPending || pendingCallbacks.size !== 0 || escapedResponseGraph ||"
+                "anchor": "if (!stopped || readPending || pendingCallbacks.size !== 0 || escapedResponseGraph ||"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -120613,7 +120542,7 @@
     },
     {
       "module": "adapters/host-node/installed-host-services.mjs",
-      "sha256": "9297b27b6811b4aa2b0e6b3e03707674afbf1592f757eed0cc6195f537be0c29",
+      "sha256": "86f613556ff3048496fa65b9223ec5fc3bade0906aeb7dd2f2e1e6740da3e60a",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C \u2014 existing standard Host Source/Effect service originals",
@@ -121538,6 +121467,7 @@
       "contracts": [
         {
           "operations": [
+            "<module>",
             "createInstalledHostServices",
             "createInstalledHostServices/current/current",
             "createInstalledHostServices/services/init:createSourceReader/init:createSourceReader",
@@ -121974,9 +121904,7 @@
           }
         },
         {
-          "operations": [
-            "<module>"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [

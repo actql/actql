@@ -118,7 +118,8 @@ test('generic provider capture selection uses the same original declaration acqu
     },
   };
   const ports = {moon, declaration, queryContract: 'query', evidenceContract: 'evidence',
-    listingPolicy: undefined, prepareAcquisition: undefined, originalReader: {capacity: provider}, site,
+    listingPolicy: undefined, prepareAcquisition: undefined, retainedAcquisitionContracts:false,
+    originalReader: {capacity: provider}, site,
     maxTransferBytes: 7n, limits: {maxPageBytes: 11}, checked: value => value,
     fail(code) {throw Object.assign(new Error(code), {code});}};
   const select = Function(...Object.keys(ports), text.slice(start, end) +

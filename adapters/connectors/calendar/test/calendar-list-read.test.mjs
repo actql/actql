@@ -18,7 +18,7 @@ test('actual Calendar TLS pages use original signed grants Account and one accou
     assert.equal(url.searchParams.get('maxResults'),'2');assert.equal(url.searchParams.get('showHidden'),'true');
     assert.equal(url.searchParams.get('showDeleted'),'false');assert.equal(request.authorization,'Bearer calendar-fixture-secret');}
   assert.equal(new URL('https://fixture'+f.state.requests[1].path).searchParams.get('pageToken'),'opaque /+é');
-  f.row.finish();assert.equal(f.row.captureCount(),2);
+  reader.requestStop();f.row.finish();assert.equal(f.row.captureCount(),2);
 });
 
 test('Calendar original operation and invalid page selections refuse before token resolution or I/O', async t=>{
@@ -105,7 +105,7 @@ test('Calendar actual shared Host reader retires only after original stop and ke
   const f=await calendarFixture(t),reader=f.create();
   assert.equal(reader.observe().phase,'ready');assert.equal(reader.observe().cleanupConfirmed,false);
   const result=await reader.read();assert.equal(result.rowCount,2);assert.deepEqual(f.state.rows,originalRows);
-  assert.equal(reader.observe().responseCount,2);assert.equal(reader.observe().transportClosed,true);
+  assert.equal(reader.observe().responseCount,2);assert.equal(reader.observe().transportClosed,false);
   assert.equal(reader.observe().cleanupConfirmed,false);
   reader.requestStop();assert.equal(reader.observe().cleanupConfirmed,true);
   reader.retry();await assert.rejects(reader.read(),{code:'InstalledSourceReaderAlreadyStarted'});

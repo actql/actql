@@ -1612,6 +1612,17 @@ the connector. Codec policy DATA and the typed reader representation describe
 rejection and construction bounds; they do not admit a Run, authorize a read,
 or fund other connector-specific constructor graphs.
 
+The installation selects exactly one processing protocol: standard page
+preparation or the existing managed read sequence. Its own data methods and
+receiver are captured once. The common reader retains both protocols under
+one lifetime owner; Gmail thread and Slack sequence semantics remain in their
+existing provider functions. The removed child-constructor, direct-sequence
+callback and unhosted raw-credential alternatives are not installation modes.
+The generic Row Source driver callback is a different interface and remains
+available. Cancellation requests stop; actual transport close, pending callback
+completion, accounting disposition and provider/binding retirement remain
+separate duties on the original reader.
+
 The common Credential reader borrows the original Site's bound credential,
 transport, read authorization and current check. Each exact received response
 enters the reader's custody before accounting or projection. A pending read,
