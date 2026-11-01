@@ -179,6 +179,22 @@ substitute for the original. The Common owner remains authoritative across
 the SDK's derived request associations and the Node manager/handler/dispatch
 holders. No serialized receipt recreates that authority.
 
+### Request lookup within the existing producer owner
+
+The installed manager indexes each original Request with a weak reference to
+its producer. Its existing live producer inventory remains the cleanup owner.
+Lookup checks that inventory membership, the same Request and the producer's
+unfinished state after the normal Host current boundary; it does not scan the
+other live Requests or create a new current observation.
+
+A bound Request cannot be rebound to another producer, including after its
+original producer has finished. The weak-key association may retain that
+minimal spent identity while the caller retains the Request, but its weak
+value cannot retain a retired producer's payload. Clearing the original
+request alias or removing the producer from the live inventory makes lookup
+refuse immediately. Pending cleanup stays on the existing producer and Run
+inventories; the index supplies no Resource, permission or physical ACK.
+
 Stopping forbids new funded work and reservation growth. Cleanup may construct
 its required wrappers and has a separate same-original check
 that permits disposal after stopping while still rejecting an unavailable or
