@@ -5,6 +5,8 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 import unittest
+import os
+from collections import Counter
 from unittest.mock import patch
 
 from actql_sdk._local_distribution import LocalInstallationError
@@ -24,6 +26,29 @@ class Library(CDLL):
 
 
 class NativeProviderLinkTests(unittest.TestCase):
+    def test_one_linkage_observation_hashes_each_original_file_once(self):
+        opens, read_bytes, descriptors = Counter(), Counter(), {}
+        physical_open, physical_read = os.open, os.read
+        selected = {str(self.runtime_path), str(self.provider_path)}
+        def opened(path, *args, **options):
+            descriptor = physical_open(path, *args, **options)
+            if str(path) in selected:
+                opens[str(path)] += 1
+                descriptors[descriptor] = str(path)
+            return descriptor
+        def read(descriptor, count):
+            block = physical_read(descriptor, count)
+            if descriptor in descriptors:
+                read_bytes[descriptors[descriptor]] += len(block)
+            return block
+        with patch('actql_sdk._local_distribution.os.open', side_effect=opened), \
+                patch('actql_sdk._local_distribution.os.read', side_effect=read):
+            _verify_original_provider_link(self.image, self.runtime, self.provider)
+        self.assertEqual(opens, {str(self.runtime_path): 1, str(self.provider_path): 1})
+        self.assertEqual(read_bytes, {str(self.runtime_path): len(b'independent runtime library fixture'),
+                                     str(self.provider_path): len(PROVIDER)})
+        self.assertEqual(self.calls, [])
+
     def setUp(self):
         tmp=TemporaryDirectory();self.addCleanup(tmp.cleanup)
         self.root=Path(tmp.name)/'_wasmtime';self.platform=self.root/'darwin-aarch64'
