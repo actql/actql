@@ -232,6 +232,11 @@ pub fn[I] prepare_request_model_capture_module(
             evidence_contract_body
           }
         })
+        is Some(protocol_bytes) &&
+        request_local_query_construction_bytes() is Some(query_bytes) &&
+        @execution.checked_preparation_add_product(
+          protocol_bytes, query_bytes, 2L,
+        )
         is Some(bytes) else {
         return Err(Preparation(Policy))
       }
@@ -240,6 +245,8 @@ pub fn[I] prepare_request_model_capture_module(
         Err(issue) => return Err(issue)
         Ok(_) => ()
       }
+      // The two actual Query/material constructors and their protocol overlap
+      // are backed before the first parse/Query call on this SAME Request.
       // Both acquisitions borrow these SAME admitted protocol originals. Do
       // not parse/check the identical installation bodies for a second Source.
       let protocols = match

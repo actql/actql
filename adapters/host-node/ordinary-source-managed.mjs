@@ -1041,6 +1041,48 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         throw cause;
       }
     },
+    selectDomainSourceInput(prepared, request, identity, stage, sourceIndex) {
+      current();
+      const producer = producerForRequest(request), state = producer?.preparation;
+      if (state?.preparationFailed) throw state.preparationFailure;
+      if (state === undefined) return undefined; // A separately owned legacy purpose.
+      if (state.prepared !== prepared || state.compilationKind !== 'effect_free') fail('ForeignInstalledSourceProducer');
+      if (state.compilationFamily === 'pure') return undefined;
+      if (!['model', 'content'].includes(state.compilationFamily) || state.holder === undefined ||
+          state.parent === undefined || state.inventoryHolder !== undefined || state.preparing ||
+          !Number.isSafeInteger(stage) || stage < 0 || !Number.isSafeInteger(sourceIndex) || sourceIndex < 0) {
+        fail('ForeignInstalledSourceProducer');
+      }
+      const moon = state.context.runtime, holder = state.holder, parent = state.parent;
+      // Submission revisits the SAME Prepared after Plan adoption. The
+      // original live Run bag, not another preparation, supplies that custody.
+      const adopted = state.adopting === true;
+      const run = adopted ? runs.get(prepared) : undefined;
+      if (adopted && (run === undefined || run.closed || run.producer !== producer ||
+          run.prepared !== prepared || run.request !== request || run.original !== state.original ||
+          run.value === undefined)) fail('ForeignInstalledSourceProducer');
+      const value = run?.value;
+      const select = Object.getOwnPropertyDescriptor(moon, 'clientProgramSelectInstalledSourceInput')?.value;
+      if (typeof select !== 'function') fail('NodeManagedRunRuntimeUnavailable');
+      if (moon.clientProgramPreparationBorrowRead(holder) !== prepared) fail('ForeignInstalledSourceProducer');
+      // The actual Model/Content Plan borrow already owns this Request's
+      // variable construction input. Select only its nominal Source original;
+      // the backed domain constructor creates the complete Query exactly once.
+      state.preparing = true;
+      try {
+        const selected = checked(Reflect.apply(select, moon, [prepared, identity, stage, sourceIndex]));
+        current();
+        if (producer.finished || producer.preparation !== state || state.prepared !== prepared ||
+            state.parent !== parent || state.holder !== holder || state.context.runtime !== moon ||
+            (state.adopting === true) !== adopted ||
+            adopted && (runs.get(prepared) !== run || run.closed || run.value !== value ||
+              run.request !== request || run.producer !== producer || run.original !== state.original) ||
+            moon.clientProgramPreparationBorrowRead(holder) !== prepared) fail('ForeignInstalledSourceProducer');
+        return selected;
+      } catch (cause) {
+        state.preparationFailed = true; state.preparationFailure = cause; throw cause;
+      } finally {state.preparing = false;}
+    },
     retainContentPreparation(prepared, request, contentPreparation) {
       current();
       const producer = producerForRequest(request), state = producer?.preparation;

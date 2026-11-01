@@ -2936,15 +2936,22 @@ async function openInstalledHost(originalInstallation, preparation) {
             : moon.clientProgramKeyedDirectAcquisitionCoordinates(keyedAcquisition);
           const stage = runtimeOptionalField(coordinates, 0) ?? task;
           const input = runtimeOptionalField(coordinates, 1) ?? 0;
-          const selected = checked(moon.clientProgramSelectInstalledSourceInput(
-            preparedProgram, requested, stage, input));
+          const selectDomain = preparation?.selectManagedDomainSourceInput;
+          if (preparation !== undefined && typeof selectDomain !== 'function') {
+            throw clientOperationError('NodeManagedRunRuntimeUnavailable');
+          }
+          const domainSelection = preparation === undefined ? undefined
+            : Reflect.apply(selectDomain, preparation, [moon, preparedProgram, requested, stage, input]);
+          const selected = domainSelection === undefined
+            ? checked(moon.clientProgramSelectInstalledSourceInput(preparedProgram, requested, stage, input))
+            : domainSelection;
           const kind = moon.clientProgramSelectedSourceInputKind(selected);
           if (kind !== 'query' && kind !== 'whole-input' ||
               kind === 'whole-input' && (acquisitionCount !== 1 || keyedAcquisition !== undefined)) {
             throw new Error('InstalledSourcePreparationMismatch');
           }
           const sourceRef = moon.clientProgramSelectedSourceInputRef(selected);
-          if (kind === 'query') {
+          if (kind === 'query' && domainSelection === undefined) {
             const requirement = checked(moon.clientProgramPrepareLocalQueryRequirement(
               preparedProgram, stage, input, registry, values, fragment, ordered));
             if (moon.clientProgramQueryRequirementSourceRef(requirement) !== sourceRef) {
@@ -5872,6 +5879,14 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       return selected;
     },
     managesInstalledSources() {return record.managedSourceProfile !== undefined;},
+    selectManagedDomainSourceInput(runtime, prepared, identity, stage, sourceIndex) {
+      const manager = sourceManaged ?? computeManaged;
+      if (runtime !== moon || manager === undefined || typeof manager.selectDomainSourceInput !== 'function') {
+        throw clientOperationError('NodeManagedRunRuntimeUnavailable');
+      }
+      return manager.selectDomainSourceInput(prepared,
+        originalSourceManagedHostRequest(originals, prepared), identity, stage, sourceIndex);
+    },
     prepareManagedSourceRun(runtime, prepared, request, sourceProfile, prepareInvocation) {
       if (sourceProfile === undefined || sourceProfile !== record.managedSourceProfile) {
         throw clientOperationError('ForeignInstalledSourcePreparation');
