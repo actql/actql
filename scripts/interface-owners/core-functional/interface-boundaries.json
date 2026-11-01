@@ -4343,6 +4343,69 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:prepareCheckedClientRequestModelCaptureModule/init:prepareCheckedClientRequestModelCaptureModule",
+          "parameters": [
+            "parent",
+            "input",
+            "request",
+            "compiled",
+            "definition",
+            "compilation",
+            "declarations",
+            "query",
+            "evidence",
+            "transport",
+            "scratch",
+            "contracts",
+            "retainedOutput",
+            "queryTime"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareCheckedClientRequestModelProviderCaptureModule/init:prepareCheckedClientRequestModelProviderCaptureModule",
+          "parameters": [
+            "parent",
+            "input",
+            "request",
+            "compiled",
+            "definition",
+            "compilation",
+            "declaration",
+            "provider",
+            "query",
+            "evidence",
+            "transport",
+            "scratch",
+            "contracts",
+            "retainedOutput",
+            "queryTime"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareCheckedClientRequestModelProviderComponentCaptureModule/init:prepareCheckedClientRequestModelProviderComponentCaptureModule",
+          "parameters": [
+            "parent",
+            "input",
+            "request",
+            "compiled",
+            "definition",
+            "compilation",
+            "declaration",
+            "provider",
+            "query",
+            "evidence",
+            "transport",
+            "scratch",
+            "contracts",
+            "retainedOutput",
+            "queryTime",
+            "bindOriginal"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:prepareCheckedClientRequestModelSerializationPlan/init:prepareCheckedClientRequestModelSerializationPlan",
           "parameters": [
             "parent",
@@ -4352,6 +4415,21 @@
             "definition",
             "limits",
             "workspace",
+            "queryTime"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareCheckedClientRequestModelSourceFreeModule/init:prepareCheckedClientRequestModelSourceFreeModule",
+          "parameters": [
+            "parent",
+            "input",
+            "request",
+            "compiled",
+            "definition",
+            "compilation",
+            "contracts",
+            "retainedOutput",
             "queryTime"
           ],
           "async": false
@@ -11217,6 +11295,10 @@
         {
           "operations": [
             "publicationControl/init:bindCheckedClientMockModelCapturePlan/init:bindCheckedClientMockModelCapturePlan",
+            "publicationControl/init:prepareCheckedClientRequestModelCaptureModule/init:prepareCheckedClientRequestModelCaptureModule",
+            "publicationControl/init:prepareCheckedClientRequestModelProviderCaptureModule/init:prepareCheckedClientRequestModelProviderCaptureModule",
+            "publicationControl/init:prepareCheckedClientRequestModelProviderComponentCaptureModule/init:prepareCheckedClientRequestModelProviderComponentCaptureModule",
+            "publicationControl/init:prepareCheckedClientRequestModelSourceFreeModule/init:prepareCheckedClientRequestModelSourceFreeModule",
             "publicationControl/init:prepareCheckedClientRequestModelSourceFreePlan/init:prepareCheckedClientRequestModelSourceFreePlan",
             "publicationControl/init:prepareCheckedClientRequestNodeModelCapturePlan/init:prepareCheckedClientRequestNodeModelCapturePlan",
             "publicationControl/init:prepareCheckedClientRequestNodeModelSourceFreePlan/init:prepareCheckedClientRequestNodeModelSourceFreePlan"
@@ -11239,6 +11321,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model selector and module use retained invocation originals"
               }
             ],
             "inputsOutputs": [
@@ -11257,6 +11343,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model selector and module use retained invocation originals"
               }
             ],
             "identity": [
@@ -11275,6 +11365,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model selector and module use retained invocation originals"
               }
             ],
             "ownership": [
@@ -11293,6 +11387,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model selector and module use retained invocation originals"
               }
             ],
             "synchronization": [
@@ -11311,6 +11409,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model selector and module use retained invocation originals"
               }
             ],
             "failure": [
@@ -11329,6 +11431,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model selector and module use retained invocation originals"
               }
             ],
             "cancellation": [
@@ -11347,6 +11453,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model selector and module use retained invocation originals"
               }
             ],
             "resources": [
@@ -11365,6 +11475,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model selector and module use retained invocation originals"
               }
             ],
             "extension": [
@@ -11383,6 +11497,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model selector and module use retained invocation originals"
               }
             ],
             "verification": [
@@ -11405,6 +11523,14 @@
               {
                 "path": "adapters/host-node/request-content-caller.test.mjs",
                 "anchor": "Request acquired Model Content borrows"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model selector and module use retained invocation originals"
+              },
+              {
+                "path": "adapters/host-node/request-model-plan.test.mjs",
+                "anchor": "Request Model module unwraps same compiler and Definition before its existing native constructor"
               }
             ]
           }
@@ -12574,7 +12700,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "bc80786c290b085484359228a0bc7400ae8f8c78d80e876556db491b4ec34813"
+      "sha256": "f9c568b6a2935afada42972b4e51ccd475ebf1908b3956a005dc70cd1d03a626"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",

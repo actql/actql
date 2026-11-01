@@ -490,9 +490,25 @@ export function createClientHttpHandler({
           // persisting its receipt and succeeded record. Only their successful
           // return authorizes HTTP EOF; failure destroys the partial response.
           requestLifetime?.beforeReply();
+          // A closed response cannot acknowledge the original native end.
+          // Settle its transport failure so the same Request can finish.
           await new Promise((resolve, reject) => {
-            if (response.destroyed) { reject(new Error('ClientDisconnected')); return; }
-            response.end(error => error ? reject(error) : resolve());
+            let settled = false;
+            const complete = (failure, error) => {
+              if (settled) return;
+              settled = true;
+              response.off('close', disconnected);
+              response.off('error', failed);
+              if (failure) reject(error);
+              else resolve();
+            };
+            const disconnected = () => complete(true, new Error('ClientDisconnected'));
+            const failed = error => complete(true, error);
+            response.once('close', disconnected);
+            response.once('error', failed);
+            if (response.destroyed) { disconnected(); return; }
+            try { response.end(error => complete(Boolean(error), error)); }
+            catch (error) { complete(true, error); }
           });
         } finally { observer.release(); }
       }

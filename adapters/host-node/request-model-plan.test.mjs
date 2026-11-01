@@ -7,17 +7,34 @@ import {openNodeComposedInferProvider} from './infer-operation.mjs';
 // Actual Host constructor with explicit Core/current/installation ports.
 // This does not issue Common originals or prove physical constructor backing.
 const source = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
+const runtimeSource = readFileSync(new URL('../host-common/runtime-core.mjs', import.meta.url), 'utf8');
+const modulePorts = Object.freeze({
+  prepareCheckedClientRequestModelSourceFreeModule: 'clientProgramPrepareRequestModelSourceFreeModule',
+  prepareCheckedClientRequestModelCaptureModule: 'clientProgramPrepareRequestModelCaptureModule',
+  prepareCheckedClientRequestModelProviderCaptureModule: 'clientProgramPrepareRequestModelProviderCaptureModule',
+  prepareCheckedClientRequestModelProviderComponentCaptureModule: 'clientProgramPrepareRequestModelProviderComponentCaptureModule',
+});
+const actualModuleMethods = new Map();
+function findModuleMethods(node) {
+  if (!node || typeof node !== 'object') return;
+  if (node.type === 'Property' && node.method && Object.hasOwn(modulePorts, node.key.name)) actualModuleMethods.set(node.key.name, node);
+  for (const value of Object.values(node)) {if (Array.isArray(value)) value.forEach(findModuleMethods); else if (value && typeof value === 'object') findModuleMethods(value);}
+}
+findModuleMethods(parse(runtimeSource, {ecmaVersion: 'latest', sourceType: 'module'}));
 const node = parse(source, {ecmaVersion: 'latest', sourceType: 'module'}).body
   .find(value => value.type === 'FunctionDeclaration' && value.id.name === 'prepareRequestMockModelPlan');
 assert(node);
 function fixture({count = 0, timed = false, refuseCapture, expire = false, missingModule = false,
-  serialized = false, expirePrefix = false, missingPrefix = false, physical = false, missingPhysical = false, missingProvider = false, expireProvider = false, expireComponent = false, missingComponent = false} = {}) {
+  serialized = false, expirePrefix = false, missingPrefix = false, physical = false, missingPhysical = false, missingProvider = false, expireProvider = false, expireComponent = false, missingComponent = false, facadeBindings = false, missingSelectorPort, absentSourceRef = false, throwSelector = false, selectorCause} = {}) {
   const parent = {}, input = {}, prepared = {}, request = {}, compilation = {}, module = {}, plan = {};
   const graph = {}, occurrence = {}, bounds = {}, q = {}, admission = {}, initialControl = {};
-  const declarations = [{}, {}], provider = {}, sourceRef = {}, selectedSource = {};
+  const declarations = [{}, {}], provider = {}, sourceRef = 'fixture/transfers', selectedSource = {};
   const sourceProfile = {sources: []};
   const inputPrefix = {}, componentProvider = {}, suffixBinder = () => assert.fail('construction does not execute suffix');
-  const calls = [], model = {graph, occurrence, compiled: {}, runDefinition: {}, scope: undefined, component: undefined};
+  const rawCompiled = {}, rawDefinition = {};
+  const compiled = facadeBindings ? Object.freeze({kind: 'infer'}) : rawCompiled;
+  const definition = facadeBindings ? Object.freeze({kind: 'run_definition', identity: 'fixture-definition'}) : rawDefinition;
+  const calls = [], model = {graph, occurrence, compiled, runDefinition: definition, scope: undefined, component: undefined};
   const run = {prepared, request, model, queryTimePreparation: timed ? q : undefined};
   const serializationGraph = {}, prefix = {}, prefixLimits = {}, workspace = {};
   if (serialized) {
@@ -82,7 +99,7 @@ function fixture({count = 0, timed = false, refuseCapture, expire = false, missi
       return componentProvider;
     },
     clientProgramPrepareRequestModelProviderComponentCaptureModule(...args) {
-      assert.deepEqual(args.slice(0, 15), [parent, input, request, model.compiled, model.runDefinition, compilation,
+      assert.deepEqual(args.slice(0, 15), [parent, input, request, rawCompiled, rawDefinition, compilation,
         declarations[0], provider, 'query', 'evidence', 512n, 256n,
         admission, true, timed ? q : undefined]);
       assert.equal(args.length, 16); assert.equal(model.component, undefined);
@@ -91,13 +108,16 @@ function fixture({count = 0, timed = false, refuseCapture, expire = false, missi
       assert.strictEqual(model.component.provider, componentProvider);
       return ok(module);
     },
-    clientProgramSelectInstalledSourceInput(p, stage, index) {
-      assert.equal(p, prepared); assert.equal(stage, 0); assert.equal(index, 0); return ok(selectedSource);
+    clientProgramSelectInstalledSourceInput(...args) {
+      assert.deepEqual(args, [prepared, request, 0, 0],
+        'Select with the SAME original Request in the actual four-argument ABI');
+      if (throwSelector) throw selectorCause;
+      return ok(selectedSource);
     },
-    clientProgramInstalledSourceInputKind(value) {assert.equal(value, selectedSource); return 'query';},
-    clientProgramInstalledSourceInputRef(value) {assert.equal(value, selectedSource); return sourceRef;},
+    clientProgramSelectedSourceInputKind(value) {assert.equal(value, selectedSource); return 'query';},
+    clientProgramSelectedSourceInputRef(value) {assert.equal(value, selectedSource); return absentSourceRef ? undefined : sourceRef;},
     clientProgramPrepareRequestModelProviderCaptureModule(...args) {
-      assert.deepEqual(args, [parent, input, request, model.compiled, model.runDefinition, compilation,
+      assert.deepEqual(args, [parent, input, request, rawCompiled, rawDefinition, compilation,
         declarations[0], provider, 'query', 'evidence', 512n, 256n,
         admission, true, timed ? q : undefined]);
       assert.equal(run.serialization, prefix);
@@ -111,14 +131,14 @@ function fixture({count = 0, timed = false, refuseCapture, expire = false, missi
       assert.equal(value, bounds); return [11n, 12n, 13n, 14n, 15n, 16n, 17n, 18n, 19n];
     },
     clientProgramPrepareRequestModelSourceFreeModule(...args) {
-      assert.deepEqual(args, [parent, input, request, model.compiled, model.runDefinition,
+      assert.deepEqual(args, [parent, input, request, rawCompiled, rawDefinition,
         compilation, admission, true, timed ? q : undefined]);
       assert.equal(model.selectedBounds, bounds); assert.equal(model.budget.readRetainedBytes, physical ? 70n : 13n);
       if (serialized) assert.equal(run.serialization, prefix, 'Retain original prefix before module constructor');
       calls.push('source-free-module'); if (expire) current = false; return ok(module);
     },
     clientProgramPrepareRequestModelCaptureModule(...args) {
-      assert.deepEqual(args, [parent, input, request, model.compiled, model.runDefinition, compilation,
+      assert.deepEqual(args, [parent, input, request, rawCompiled, rawDefinition, compilation,
         declarations, 'query', 'evidence', [1048576n, 1048576n], [1048576n, 1048576n],
         admission, true, timed ? q : undefined]);
       assert.equal(args[9], args[10], 'Reuse the original fixed document bound vector');
@@ -136,6 +156,21 @@ function fixture({count = 0, timed = false, refuseCapture, expire = false, missi
     delete moon.clientProgramPrepareRequestModelProviderCaptureModule;
   }
   if (missingComponent) delete moon.clientProgramPrepareRequestModelProviderComponentCaptureModule;
+  if (missingSelectorPort !== undefined) delete moon[missingSelectorPort];
+  const checkedResult = value => {assert.equal(value.$tag, 1); return value._0;};
+  if (facadeBindings) {
+    const compiledRunTokens = new WeakMap([[compiled, rawCompiled]]), tokens = new WeakMap([[definition, rawDefinition]]);
+    const tokenStart = runtimeSource.indexOf('  const token = value => {');
+    const tokenEnd = runtimeSource.indexOf('  const inspectEvidence =', tokenStart);
+    const methods = [...actualModuleMethods.values()].map(value => runtimeSource.slice(value.start, value.end)).join(',');
+    const bindings = Function('moon', 'compiledRunTokens', 'tokens', 'checked',
+      runtimeSource.slice(tokenStart, tokenEnd) + ';return {' + methods + '};')(moon, compiledRunTokens, tokens, checkedResult);
+    Object.assign(control, bindings);
+  } else {
+    for (const [name, native] of Object.entries(modulePorts)) {
+      control[name] = (...args) => checkedResult(Reflect.apply(moon[native], moon, args));
+    }
+  }
   run.runtime = moon;
   const originals = {installation: {projectRuntime: moon, initialControl, retainedRelationOutput: true,
     computeRuns: new WeakMap([[prepared, run]]), managedSourceProfile: sourceProfile}};
@@ -160,7 +195,7 @@ function fixture({count = 0, timed = false, refuseCapture, expire = false, missi
     return path.endsWith('actql-query-acquisition.json') ? 'query' : 'evidence';
   }};
   const construct = Function(...Object.keys(ports), `return (${source.slice(node.start, node.end)});`)(...Object.values(ports));
-  return {run, model, compilation, module, plan, bounds, calls, primary, prefix,
+  return {run, model, compilation, module, plan, bounds, calls, primary, prefix, control, parent, input, request, rawCompiled, rawDefinition,
     construct: () => construct(originals, run, model, compilation, parent, input)};
 }
 
@@ -321,4 +356,42 @@ test('Request plain Node Model retains its partial deferred component through or
   assert.strictEqual(f.run.preparedSequences, undefined);
   assert.strictEqual(f.run.modelPlan, undefined);
   assert.deepEqual(f.calls, ['bounds', 'original provider selection', 'backed component module', 'component provider']);
+});
+
+
+test('Request Model module unwraps same compiler and Definition before its existing native constructor', () => {
+  for (const options of [{}, {count: 1, physical: true, serialized: true},
+    {count: 1, physical: true}, {count: 2}]) {
+    const f = fixture({...options, facadeBindings: true});
+    assert.equal(f.construct(), f.plan);
+    assert.equal(f.run.preparedSequences, f.module);
+    const before = f.calls.length;
+    assert.throws(() => f.control.prepareCheckedClientRequestModelSourceFreeModule(f.parent, f.input,
+      f.request, {...f.model.compiled}, f.model.runDefinition, f.compilation), /Foreign Client compiled Infer preparation/u);
+    assert.throws(() => f.control.prepareCheckedClientRequestModelSourceFreeModule(f.parent, f.input,
+      f.request, f.model.compiled, {...f.model.runDefinition}, f.compilation), /Foreign publication contract/u);
+    assert.equal(f.calls.length, before, 'Foreign facades never enter a native module constructor');
+  }
+});
+
+
+test('Request acquired Node Model selector refuses missing originals before any provider module', () => {
+  for (const missingSelectorPort of ['clientProgramSelectInstalledSourceInput',
+    'clientProgramSelectedSourceInputKind', 'clientProgramSelectedSourceInputRef']) {
+    const f = fixture({count: 1, physical: true, serialized: true, missingSelectorPort});
+    assert.throws(f.construct, {code: 'NodeManagedRunRuntimeUnavailable'});
+    assert.deepEqual(f.calls, ['bounds']);
+    assert.equal(f.run.modelSourceSelection, undefined);
+  }
+  const absent = fixture({count: 1, physical: true, serialized: true, absentSourceRef: true});
+  assert.throws(absent.construct, {code: 'InstalledModelSourcePreparationUnavailable'});
+  assert.deepEqual(absent.calls, ['bounds']);
+  for (const selectorCause of [undefined, null, new Error('original selector refusal')]) {
+    const f = fixture({count: 1, physical: true, serialized: true, throwSelector: true, selectorCause});
+    let thrown = false;
+    try {f.construct();} catch (cause) {thrown = true; assert.strictEqual(cause, selectorCause);}
+    assert(thrown);
+    assert.deepEqual(f.calls, ['bounds']);
+    assert.equal(f.run.preparedSequences, undefined);
+  }
 });
