@@ -68,10 +68,78 @@ def _hex(value: object, length: int) -> bool:
     return type(value) is str and re.fullmatch('[0-9a-f]{' + str(length) + '}', value) is not None
 
 
+class _OriginalComponentFile:
+    """One initialization's exact hashed file and existing descriptor carrier.
+
+    This is neither a path cache nor a loaded-code/ABI/funding observation.
+    Only read-only linkage checks reuse it; the native-load boundary still
+    obtains its own complete byte observation. No descriptor is reopened.
+    """
+    def __init__(self, path: Path, *, expected: int, digest: str) -> None:
+        self._original = self
+        self.path, self.expected, self.digest = path, expected, digest
+        self._source: _OriginalDescriptor | None = None
+        self._stamp: tuple[int, ...] | None = None
+        self._closing = False
+
+    @staticmethod
+    def _snapshot(value: os.stat_result) -> tuple[int, ...]:
+        return (value.st_dev, value.st_ino, value.st_size, value.st_mtime_ns,
+                value.st_ctime_ns, value.st_mode, value.st_uid)
+
+    def _retain(self, source: _OriginalDescriptor, before: os.stat_result,
+                digest: str) -> None:
+        if (self._original is not self or self._closing or self._source is not None
+                or before.st_size != self.expected or digest != self.digest):
+            raise LocalInstallationError('Foreign or changed original component read')
+        self._source, self._stamp = source, self._snapshot(before)
+
+    def read(self) -> None:
+        if self._original is not self or self._closing or self._source is not None:
+            raise LocalInstallationError('Original component read is unavailable')
+        _read_file(self.path, maximum=self.expected, expected=self.expected,
+                   digest=self.digest, _original=self)
+
+    def observe(self) -> None:
+        if (self._original is not self or self._closing or self._source is None
+                or self._stamp is None):
+            raise LocalInstallationError('Original component descriptor is unavailable')
+        descriptor = os.fstat(self._source.value)
+        named = self.path.stat(follow_symlinks=False)
+        if (not stat.S_ISREG(named.st_mode) or self._snapshot(descriptor) != self._stamp
+                or self._snapshot(named) != self._stamp):
+            raise LocalInstallationError('Original component changed during initialization')
+
+    def __exit__(self, kind: Any, primary: BaseException | None, trace: Any) -> None:
+        try:
+            self.close()
+        except LocalComponentReadCleanupPending as pending:
+            pending.original_error = primary
+            raise
+
+    def close(self) -> None:
+        if self._original is not self:
+            raise LocalInstallationError('Copied original component descriptor')
+        self._closing = True
+        if self._source is not None:
+            source = self._source
+            try:
+                source.close()
+            except BaseException as error:
+                pending = LocalComponentReadCleanupPending(source)
+                pending.cleanup_error = error
+                raise pending from error
+            self._source = None
+
+
 def _read_file(path: Path, *, maximum: int, expected: int | None = None,
-               digest: str | None = None, capture: bool = False, prefix: int = 0) -> bytes:
+               digest: str | None = None, capture: bool = False, prefix: int = 0,
+               _original: _OriginalComponentFile | None = None) -> bytes:
     if type(prefix) is not int or prefix < 0 or prefix > maximum or capture and prefix:
         raise LocalInstallationError('Invalid installed Local prefix read')
+    if _original is not None and (type(_original) is not _OriginalComponentFile
+            or _original.path != path or _original.expected != expected or _original.digest != digest):
+        raise LocalInstallationError('Foreign original component reader')
     from ._local_worker_slot import _OriginalDescriptor
     # Prepare the same existing physical FD carrier before acquisition. Avoid a
     # second buffered-reader constructor that could fail after open but before
@@ -79,6 +147,7 @@ def _read_file(path: Path, *, maximum: int, expected: int | None = None,
     source = _OriginalDescriptor(-1)
     pending = LocalComponentReadCleanupPending(source)
     primary: BaseException | None = None
+    retained = False
     # Installed wheels are ordinary nofollow files, never extracted archives.
     source.value = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC)
     try:
@@ -103,13 +172,18 @@ def _read_file(path: Path, *, maximum: int, expected: int | None = None,
                                                       after.st_mtime_ns, after.st_ctime_ns)
                 or digest is not None and checksum.hexdigest() != digest):
             raise LocalInstallationError('Installed Local component changed or digest mismatched')
-        return bytes(captured) if captured is not None else b''
+        result = bytes(captured) if captured is not None else b''
+        if _original is not None:
+            _original._retain(source, before, checksum.hexdigest())
+            retained = True
+        return result
     except BaseException as failure:
         primary = failure
         raise
     finally:
         try:
-            source.close()
+            if not retained:
+                source.close()
         except BaseException as cleanup:
             # Failure does not establish whether close consumed the OS FD.
             # Keep both causes and the original one-shot carrier; no retry on
