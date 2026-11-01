@@ -625,19 +625,26 @@ fn request_acquired_model_capture_fixture(
     module_plan.ordered_body,
   ).unwrap()
   assert_true(physical_equal(ledger, f.parent.ledger))
-  let source = start_installed_source_read_rows(
-    read,
-    acquisition,
-    "same-request-acquired-model",
-    _ => {
-      if verify_hook.val is Some(hook) {
-        hook()
-      }
-      true
-    },
-    4096L,
-    2048L,
-  ).unwrap()
+  let source = match
+    start_installed_source_read_rows(
+      read,
+      acquisition,
+      "same-request-acquired-model",
+      _ => {
+        if verify_hook.val is Some(hook) {
+          hook()
+        }
+        true
+      },
+      4096L,
+      2048L,
+    ) {
+    Ok(value) => value
+    Err(issue) => {
+      let original : Error = issue
+      fail("same Request managed Source read: " + @debug.to_string(original))
+    }
+  }
   @row_source_host.begin_row_run(source, 128, 1, 1).unwrap()
   assert_eq(
     @row_source_host.accept_row_run_page(
