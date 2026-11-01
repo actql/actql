@@ -576,3 +576,90 @@ test('Request Model Graph keeps constructor failure or changed Content on the sa
   assert.throws(changed.invoke, cause => cause === retained);
   assert.deepEqual(changed.calls, ['same Request Content Model']);
 });
+
+
+function installedModelRequestFixture({serialized = false, refusePlan, refuseScope} = {}) {
+  let constructor;
+  const walk = n => {
+    if (!n || typeof n !== 'object') return;
+    if (n.type === 'FunctionDeclaration' && n.id.name === 'prepareInstalledRequestModelRun') constructor = n;
+    for (const v of Object.values(n)) {if (Array.isArray(v)) v.forEach(walk); else if (v && typeof v === 'object') walk(v);}
+  };
+  walk(parse(hostSource, {ecmaVersion: 'latest', sourceType: 'module'})); assert(constructor);
+  const prepared = {}, request = {}, graph = {}, compilation = {}, definition = {}, scope = {}, queryTime = {}, calls = [];
+  const selected = {graph, occurrence: {}, originalReadInstallation: {}, serializationGraph: serialized ? {} : undefined};
+  const plan = {compiled: compilation, runDefinition: definition, inferGraph: graph,
+    serializationGraph: selected.serializationGraph, queryTimePreparation: queryTime};
+  const inferSelections = new WeakMap([[prepared, selected]]), earlyMockInferPlans = new WeakMap();
+  const control = {}, moon = {clientProgramAcquisitionCount: () => 0};
+  let invoke, managed;
+  const clientOperationError = code => Object.assign(new Error(code), {code});
+  const preparation = {prepareManagedModelRun(runtime, p, r, model) {
+    assert.deepEqual([runtime, p, r], [moon, prepared, request]);
+    assert.equal(earlyMockInferPlans.get(prepared).model, model);
+    assert.equal(model.compiled, compilation); assert.equal(model.runDefinition, definition);
+    assert.equal(model.originalReadInstallation, selected.originalReadInstallation);
+    assert.equal(model.queryTimePreparation, queryTime);
+    if (managed !== undefined) {assert.equal(managed.model, model); calls.push('same adopted Run'); return managed;}
+    assert.equal(Object.getOwnPropertyDescriptor(model, 'scope').writable, true);
+    assert.equal(model.scope, undefined); calls.push('construct');
+    managed = {model, value: {}}; model.scope = scope;
+    if (refuseScope !== undefined) throw refuseScope;
+    return managed;
+  }};
+  const runContent = {prepareModelRun({preparedProgram, plan: actual, request: original, model}) {
+    assert.deepEqual([preparedProgram, actual, original], [prepared, plan, request]); calls.push('same prefix');
+    model.contentPreparation = {managed: preparation.prepareManagedModelRun(moon, prepared, request, model)};
+  }};
+  const ports = {moon, control, preparation, inferSelections, earlyMockInferPlans, runContent, clientOperationError,
+    planFor(submission, wire, original, keyed, early) {
+      assert.equal(earlyMockInferPlans.get(prepared), early); assert.equal(early.model.prepared, prepared);
+      assert.equal(early.selecting, true); assert.equal(early.plan, undefined);
+      assert.deepEqual([submission.preparedProgram, wire, original, keyed], [prepared, undefined, request, undefined]);
+      assert.throws(invoke, {code: 'InstalledModelPlanSelectionPending'}); calls.push('compile/Definition');
+      if (refusePlan !== undefined) throw refusePlan; return plan;
+    }};
+  const construct = Function(...Object.keys(ports), 'return ' + hostSource.slice(constructor.start, constructor.end))(...Object.values(ports));
+  const submission = {preparedProgram: prepared, requestId: 'original-request'};
+  invoke = () => construct(submission, request, selected);
+  return {invoke, calls, scope, prepared, selected, plan, request, early: () => earlyMockInferPlans.get(prepared),
+    foreignRequest: () => construct(submission, {}, selected),
+    get managed() {return managed;}};
+}
+
+test('installed Model caller retains the same Request carrier before one compiler and Scope constructor', () => {
+  for (const serialized of [false, true]) {
+    const f = installedModelRequestFixture({serialized}); const model = f.invoke();
+    assert.equal(f.early().model, model); assert.equal(model.scope, f.scope);
+    assert.equal(f.early().managed, f.managed); assert.equal(f.invoke(), model);
+    assert.equal(f.calls.filter(v => v === 'compile/Definition').length, 1);
+    assert.equal(f.calls.filter(v => v === 'construct').length, 1);
+    assert.equal(f.calls.filter(v => v === 'same prefix').length, serialized ? 1 : 0);
+    assert.throws(f.foreignRequest, {code: 'ForeignInstalledModelPreparation'});
+  }
+});
+
+test('installed Model caller retains original compiler or partial Scope failures without reissuing', () => {
+  for (const phase of ['refusePlan', 'refuseScope']) {
+    const primary = new Error('original installed Model ' + phase), f = installedModelRequestFixture({[phase]: primary});
+    assert.throws(f.invoke, cause => cause === primary); assert.throws(f.invoke, cause => cause === primary);
+    const early = f.early(); assert.equal(early.failure, primary); assert.equal(early.selecting, false);
+    assert.equal(f.calls.filter(v => v === 'compile/Definition').length, 1);
+    assert.equal(early.model.scope, phase === 'refuseScope' ? f.scope : undefined);
+    if (phase === 'refuseScope') assert.throws(() => Reflect.apply(early.model.releaseAliases, early.model, []),
+      {code: 'InstalledModelCleanupPending'});
+  }
+});
+
+test('installed Model caller cuts its same managed aliases only after original read and Scope cleanup', () => {
+  const f = installedModelRequestFixture({serialized: true}), model = f.invoke(), release = model.releaseAliases;
+  assert.throws(() => Reflect.apply(release, {}, []), {code: 'ForeignInstalledModelPreparation'});
+  assert.throws(() => Reflect.apply(release, model, []), {code: 'InstalledModelCleanupPending'});
+  model.scopeFinished = true; model.read = {};
+  assert.throws(() => Reflect.apply(release, model, []), {code: 'InstalledModelCleanupPending'});
+  model.read = undefined; Reflect.apply(release, model, []);
+  assert.equal(model.compiled, undefined); assert.equal(model.originalReadInstallation, undefined);
+  assert.equal(f.early().plan, undefined); assert.equal(f.early().managed, undefined);
+  assert.equal(f.early().requested, undefined); assert.equal(model.closed, true);
+  Reflect.apply(release, model, []); assert.equal(f.early().aliasesReleased, true);
+});

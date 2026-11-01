@@ -6434,7 +6434,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
           run.closed = true;
           return;
         }
-        if (modelRetirement && modelOriginal.originalReadInstallation !== undefined &&
+        if (modelRetirement && modelOriginal?.originalReadInstallation !== undefined &&
             !modelOriginal.taken && modelOriginal.read === undefined &&
             modelOriginal.scope !== undefined && modelOriginal.scopeFinished !== true) {
           if (modelOriginal.control.finishCheckedClientInferOriginalReadScope(modelOriginal.compiled,
