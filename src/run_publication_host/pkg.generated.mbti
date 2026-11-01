@@ -349,6 +349,8 @@ pub fn client_compilation_grammar_manifest_cid(ClientCompilationManifests) -> St
 
 pub fn client_compiled_effect_program(ClientCompiledRun, PreparedClientEffectComputation) -> PreparedClientProgram?
 
+pub fn client_compiled_local_execution_owner(ClientCompiledRun, @run_publication.PublicationContract) -> Bool
+
 pub fn client_compiled_run_admission(ClientCompiledRun) -> @run_publication.RunPublicationAdmission
 
 pub fn client_compiled_run_authorization(ClientCompiledRun) -> @run_publication.RunEvidenceValue
