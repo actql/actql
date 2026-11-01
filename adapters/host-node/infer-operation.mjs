@@ -118,7 +118,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
   physicalPreflight, egressAdmission, computeSuffix, acquiredInput, composedInput, keyedInput,
   signal, quantum = 256, observeProgress, durableCalls = false, restoredInput, retainOperation,
   ioNotification, originalPreparation, rawCaptureBinder, serializedInput, restoredReferenceIssuer,
-  assertRuntimeCurrent}) {
+  assertRuntimeCurrent, bindComputeSuffix}) {
   if (rawCaptureBinder !== undefined && typeof rawCaptureBinder !== 'function') {
     throw new TypeError('InvalidInferRawCaptureBinder');
   }
@@ -126,6 +126,10 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       (originalPreparation === undefined || typeof assertRuntimeCurrent !== 'function' ||
         typeof moon.clientProgramBindInferPhysicalPreflightCurrent !== 'function')) {
     throw new TypeError('InferTrustedRuntimeScopeUnavailable');
+  }
+  if (bindComputeSuffix !== undefined && (typeof bindComputeSuffix !== 'function' ||
+      originalPreparation === undefined || computeSuffix !== undefined)) {
+    throw new TypeError('InvalidInferOriginalSuffixBinding');
   }
   let rawCaptureBound = false;
   let preparedRawCaptureBinders;
@@ -1085,7 +1089,8 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
         limits.tokens, limits.costUnits, limits.durationMs,
         perAttempt.tokens, perAttempt.costUnits, perAttempt.durationMs));
     }
-    if (computeSuffix !== undefined && keyedInput === undefined) checked(moon.clientProgramBindInferComputeSuffix(active, computeSuffix));
+    if (bindComputeSuffix !== undefined) checked(bindComputeSuffix(active));
+    else if (computeSuffix !== undefined && keyedInput === undefined) checked(moon.clientProgramBindInferComputeSuffix(active, computeSuffix));
     if (physicalPreflight !== undefined) {
       // Reuse this operation's nominal wake endpoint for SDK preparation and
       // physical I/O. It carries no ACK, outcome, authority or send permission.
@@ -1124,11 +1129,14 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
 export function openNodeComposedInferProvider({moon, selected, sources,
   control, plan, principalId, now, signal, retainOperation, retainCompleted,
   durableCalls = false, restoredInput, generatedInput, originalPreparation, deferred = false,
-  inputPrefix = selected?.computePrefix}) {
+  inputPrefix = selected?.computePrefix, bindComputeSuffix}) {
   if (selected?.occurrence === undefined ||
       typeof deferred !== 'boolean' || !deferred && typeof retainOperation !== 'function' ||
       deferred && (generatedInput !== undefined || originalPreparation !== undefined || retainOperation !== undefined)) {
     throw new TypeError('InvalidComposedInferProvider');
+  }
+  if (bindComputeSuffix !== undefined && typeof bindComputeSuffix !== 'function') {
+    throw new TypeError('InvalidInferOriginalSuffixBinding');
   }
   let prepareRead = originalPreparation?.prepareRead;
   let deferredRead = prepareRead !== undefined;
@@ -1191,7 +1199,7 @@ export function openNodeComposedInferProvider({moon, selected, sources,
           quantityCapacity: selected.quantityCapacity,
           physicalPreflight: selected.physicalPreflight,
           egressAdmission: selected.egressAdmission, signal, durableCalls, restoredInput,
-          originalPreparation: preparation,
+          originalPreparation: preparation, bindComputeSuffix,
           retainOperation(value) { operation = value; retainOperation(value); }});
         operation.bindRun(control, plan);
         if (!durableCalls) operation.bindDispatch(control, {...plan, account: selected.account,

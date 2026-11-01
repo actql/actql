@@ -491,7 +491,7 @@ pub fn client_program_prepare_request_model_provider_component_capture_module(
   construct : (
     @execution.ExecutionCapacity,
     @execution.GeneratedSequence,
-    @execution.GeneratedSequence?,
+    (@infer_host.Execution) -> Result[Unit, @infer_host.Issue],
   ) -> @local.ManagedProvider,
 ) -> Result[
   @client_local_host.ClientInstalledManagedCapturePlan,
@@ -515,6 +515,15 @@ pub fn client_program_prepare_request_model_provider_component_capture_module(
     installed_client_family_providers,
     query_time~,
     providers=Some([provider]),
-    component_factory=Some(construct),
+    // Keep the optional sequence in this typed closure. JS forwards the
+    // binder unchanged; it never unwraps/reboxes this original Option.
+    component_factory=Some((capacity, prefix, suffix) => {
+      construct(capacity, prefix, active => {
+        match suffix {
+          None => Ok(())
+          Some(original) => @infer_host.bind_compute_suffix(active, original)
+        }
+      })
+    }),
   ).map_err(issue => Preparation(issue))
 }

@@ -107,6 +107,7 @@ import {prepareSourceManagedInstallation, assertSourceManagedInstallationCurrent
   prepareProjectSourceManagedInstallation}
   from './node-source-managed-installation.mjs';
 import {installNodeInferRun} from './installed-infer-run.mjs';
+import {openNodeComposedInferProvider} from './infer-operation.mjs';
 import {installNodeModelContinuation} from './installed-model-continuation.mjs';
 import {originalModelRunWire} from './installed-model-originals.mjs';
 import {installNodeClientCheck} from './client-check.mjs';
@@ -682,9 +683,14 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
     maxDelegations: physical === undefined ? Number(limits[8]) : Math.max(Number(limits[8]), physical.bootstrap.maxDelegations)});
   current();
   if (count === 1) {
-    if (physical === undefined || model.serializationGraph === undefined ||
-        run.sourceProfile !== originals.installation.managedSourceProfile ||
-        typeof moon.clientProgramPrepareRequestModelProviderCaptureModule !== 'function') {
+    const plain = model.serializationGraph === undefined;
+    const construct = plain ? moon.clientProgramPrepareRequestModelProviderComponentCaptureModule
+      : moon.clientProgramPrepareRequestModelProviderCaptureModule;
+    if (physical === undefined ||
+        plain && (model.selection?.graph !== model.graph || model.selection?.occurrence !== model.occurrence ||
+          Object.getOwnPropertyDescriptor(model, 'component')?.value !== undefined ||
+          Object.getOwnPropertyDescriptor(model, 'component')?.writable !== true) ||
+        run.sourceProfile !== originals.installation.managedSourceProfile || typeof construct !== 'function') {
       throw clientOperationError('InstalledModelSourcePreparationUnavailable');
     }
     const selected = checked(moon.clientProgramSelectInstalledSourceInput(run.prepared, 0, 0));
@@ -742,11 +748,32 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
       'spec/contracts/actql-query-acquisition.json');
     const evidence = readInitialControlInstallationAsset(initialControl, originals,
       'spec/contracts/actql-query-process-evidence.json');
-    run.preparedSequences = checked(moon.clientProgramPrepareRequestModelProviderCaptureModule(
-      parent, input, run.request, model.compiled, model.runDefinition, compilation,
+    const plain = model.serializationGraph === undefined;
+    const construct = plain ? moon.clientProgramPrepareRequestModelProviderComponentCaptureModule
+      : moon.clientProgramPrepareRequestModelProviderCaptureModule;
+    const args = [parent, input, run.request, model.compiled, model.runDefinition, compilation,
       original.declaration, original.provider, query, evidence,
       original.transferBytes, original.executionBytes, installed.admission,
-      retainedRelationOutput, run.queryTimePreparation));
+      retainedRelationOutput, run.queryTimePreparation];
+    if (plain) args.push((_capacity, prefix, bindSuffix) => {
+      current();
+      if (model.component !== undefined || typeof bindSuffix !== 'function') {
+        throw clientOperationError('ForeignInstalledModelPreparation');
+      }
+      const component = openNodeComposedInferProvider({moon, selected: model.selection,
+        inputPrefix: prefix, bindComputeSuffix: bindSuffix, deferred: true});
+      // The deferred constructor has entered no physical read. Fence the
+      // original bag without a callback before retaining this same output;
+      // then keep it through any fallible current observation or Plan step.
+      if (run.closed || Object.hasOwn(run, 'failure') || run.model !== model ||
+          originals.installation.computeRuns?.get(run.prepared) !== run) {
+        throw clientOperationError('ForeignInstalledModelPreparation');
+      }
+      model.component = component;
+      current();
+      return component.provider;
+    });
+    run.preparedSequences = checked(Reflect.apply(construct, moon, args));
     current();
     run.modelPlan = model.control.prepareCheckedClientRequestNodeModelCapturePlan(parent, input,
       run.preparedSequences, run.request, model.compiled, model.runDefinition,
@@ -3394,7 +3421,8 @@ async function openInstalledHost(originalInstallation, preparation) {
       managed: undefined, selecting: true, aliasesReleased: false};
     const model = {prepared, control, compiled: undefined, runDefinition: undefined,
       graph: selection.graph, occurrence: selection.occurrence, serializationGraph: selection.serializationGraph,
-      originalReadInstallation: selection.originalReadInstallation, scope: undefined, read: undefined,
+      originalReadInstallation: selection.originalReadInstallation, selection, component: undefined,
+      scope: undefined, read: undefined,
       releaseAliases() {
         if (this !== model) throw clientOperationError('ForeignInstalledModelPreparation');
         if (early.aliasesReleased) return;

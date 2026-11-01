@@ -17,7 +17,7 @@ function fixture({count = 0, timed = false, refuseCapture, expire = false, missi
   const declarations = [{}, {}], provider = {}, sourceRef = {}, selectedSource = {};
   const sourceProfile = {sources: []};
   const inputPrefix = {}, componentProvider = {}, suffixBinder = () => assert.fail('construction does not execute suffix');
-  const calls = [], model = {graph, occurrence, compiled: {}, runDefinition: {}, scope: undefined};
+  const calls = [], model = {graph, occurrence, compiled: {}, runDefinition: {}, scope: undefined, component: undefined};
   const run = {prepared, request, model, queryTimePreparation: timed ? q : undefined};
   const serializationGraph = {}, prefix = {}, prefixLimits = {}, workspace = {};
   if (serialized) {
