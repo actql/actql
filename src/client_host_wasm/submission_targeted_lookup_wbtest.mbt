@@ -370,14 +370,20 @@ test "indexed saved cold lookup selects exact original without unrelated Run aud
       rows,
       "client_runs",
       @host.client_request_scope_cid(ready.run_admission.unwrap().0),
-    ).unwrap().unwrap(),
+    )
+    .unwrap()
+    .unwrap(),
   ).unwrap()
   let (key, body) = @host.client_saved_run_reference_locator(
-    ready.reference, run.request, run.definition,
+    ready.reference,
+    run.request,
+    run.definition,
   ).unwrap()
   rows.push(("client_run_reference_index", { key, body, revision: 0L, }))
   // Unrelated integrity inspection is not a selected read of this original.
-  rows.push(("client_runs", { key: "unrelated", body: b"invalid", revision: 0L, }))
+  rows.push(
+    ("client_runs", { key: "unrelated", body: b"invalid", revision: 0L, }),
+  )
   let reads : Array[String] = []
   let mut nested = 0
   let mut cancellation = 0
@@ -408,7 +414,128 @@ test "indexed saved cold lookup selects exact original without unrelated Run aud
     ),
     @host.client_submission_reference_record_wire(ready.reference),
   )
-  assert_eq(reads, ["client_run_reference_index", "client_submitted_intents", "client_runs"])
+  assert_eq(reads, [
+    "client_run_reference_index", "client_submitted_intents", "client_runs",
+  ])
   assert_eq(nested, 1)
   assert_eq(cancellation, 1)
+}
+
+///|
+fn indexed_targeted_rows() -> Array[(String, @host.ClientJournalPhysicalRow)] {
+  let rows = targeted_snapshot_rows()
+  let reference = @host.decode_client_submitted_journal_row(
+      @utf8.encode(targeted_submission_ready),
+    ).unwrap().reference
+  let request = @host.client_saved_submission_record(targeted_original(rows)).run_admission.unwrap().0
+  let run = submission_append_run_inspection(
+    targeted_row_read(
+      rows,
+      "client_runs",
+      @host.client_request_scope_cid(request),
+    )
+    .unwrap()
+    .unwrap(),
+  ).unwrap()
+  let (key, body) = @host.client_saved_run_reference_locator(
+    reference,
+    run.request,
+    run.definition,
+  ).unwrap()
+  rows.push(("client_run_reference_index", { key, body, revision: 0L, }))
+  rows
+}
+
+///|
+test "indexed saved cold lookup refuses missing ambiguous corrupt and foreign original selectors" {
+  let complete = indexed_targeted_rows()
+  for mode in 0..<5 {
+    let rows = complete
+      .filter(pair => mode != 0 || pair.0 != "client_run_reference_index")
+      .map(pair => {
+        let (table, row) = pair
+        (
+          table,
+          if table == "client_run_reference_index" && mode == 1 {
+            { ..row, body: b"ambiguous", }
+          } else if table == "client_submitted_intents" && mode == 2 {
+            { ..row, body: b"{}", }
+          } else if table == "client_runs" && mode == 3 {
+            { ..row, body: b"{}", }
+          } else {
+            row
+          },
+        )
+      })
+    let mut scans = 0
+    let actual = submission_run_reference_snapshot(
+      if mode == 4 {
+        "foreign"
+      } else {
+        "scope"
+      },
+      "sha256:" + "b".repeat(64),
+      "sha256:7a12ebea352eee2a7d88bf6df5c5b6d7b56d6383f7e6e5fc9231fef79412fafc",
+      None,
+      (_, _) => {
+        scans += 1
+        Err(-88)
+      },
+      (table, key) => targeted_row_read(rows, table, key),
+      submission_append_run_inspection,
+      () => Ok(()),
+      physical_schema=1,
+    )
+    assert_true(actual is Err(-31))
+    assert_eq(scans, 0)
+  }
+}
+
+///|
+test "indexed saved cold lookup retains original nested query and cancellation failures" {
+  let rows = indexed_targeted_rows()
+  for mode in 0..<3 {
+    let actual = submission_run_reference_snapshot(
+      "scope",
+      "sha256:" + "b".repeat(64),
+      "sha256:7a12ebea352eee2a7d88bf6df5c5b6d7b56d6383f7e6e5fc9231fef79412fafc",
+      None,
+      (_, _) => Err(-88),
+      (table, key) => if mode == 0 { Err(-74) } else { targeted_row_read(rows, table, key) },
+      row => if mode == 1 { Err(-32) } else { submission_append_run_inspection(row) },
+      () => Err(-97),
+      physical_schema=1,
+    )
+    assert_true(actual is Err(if mode == 0 { -74 } else if mode == 1 { -32 } else { -97 }))
+  }
+}
+
+///|
+test "indexed saved cold lookup rejects unknown physical format before any original IO" {
+  let mut observed = 0
+  let actual = submission_run_reference_snapshot(
+    "scope",
+    "sha256:" + "b".repeat(64),
+    "sha256:7a12ebea352eee2a7d88bf6df5c5b6d7b56d6383f7e6e5fc9231fef79412fafc",
+    None,
+    (_, _) => {
+      observed += 1
+      Err(-88)
+    },
+    (_, _) => {
+      observed += 1
+      Err(-88)
+    },
+    _ => {
+      observed += 1
+      Err(-88)
+    },
+    () => {
+      observed += 1
+      Err(-88)
+    },
+    physical_schema=2,
+  )
+  assert_true(actual is Err(-41))
+  assert_eq(observed, 0)
 }

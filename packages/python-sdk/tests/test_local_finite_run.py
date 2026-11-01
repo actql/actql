@@ -196,6 +196,18 @@ class FiniteRunSQLiteTests(unittest.TestCase):
                 self.assertIs(host._pending_run_write, output)
                 self.assertTrue(host.close())
 
+    def test_sdk_ready_material_without_original_locator_refuses_before_transaction(self):
+        with TemporaryDirectory(prefix='actql-missing-original-locator-') as directory:
+            host, _, output, _, _, candidate = self.host(Path(directory))
+            del candidate['reference_locator']
+            store = host._installation._store
+            with patch.object(store, 'compare_exchange_many_inspected', wraps=store.compare_exchange_many_inspected) as write:
+                with self.assertRaises(ValueError):
+                    host._commit_original_run_rows(output)
+                self.assertEqual(write.call_count, 0)
+            self.assertIsNone(self.rows(host)[1])
+            self.assertTrue(host.close())
+
     def test_original_reference_locator_shape_refuses_before_write(self):
         for locator in ({}, {'key': 'a' * 64, 'body': 'x', 'extra': None},
                         {'key': 'a' * 63, 'body': 'x'}, {'key': 'A' * 64, 'body': 'x'},
