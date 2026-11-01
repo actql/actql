@@ -333,37 +333,14 @@ fn retain_partial_output_recovery_setup(
   slot : @slot.NativeExecutorSlot,
   failure : String,
 ) -> Unit {
-  let original : PartialOutputRecoveryCleanup = {
-    resources,
-    recovery,
-    slot,
-    failure,
-    step: Ref(0),
-    slot_close_unknown: false,
-  }
+  let original = partial_output_recovery_cleanup(
+    resources, recovery, slot, failure,
+  )
   install_partial_holder_cleanup_signal()
   ignore(
     retain_holder_cleanup_lifetime(
       original,
-      custody => {
-        advance_holder_cleanup_pass(custody, custody.step, 4, (owner, step) => {
-          match step {
-            0 => retry_partial_holder_output_resources(owner.resources)
-            1 => owner.recovery.journal.close_checked() is Ok(_)
-            2 => owner.recovery.bundles.close_checked() is Ok(_)
-            _ =>
-              if owner.slot_close_unknown {
-                false
-              } else {
-                let closed = owner.slot.close()
-                if !closed {
-                  owner.slot_close_unknown = true
-                }
-                closed
-              }
-          }
-        })
-      },
+      retry_partial_output_recovery_cleanup,
       () => CleanupInputEnded,
       wait_holder_cleanup_lifetime_signal,
       (owner, control_ended) => {
@@ -375,4 +352,59 @@ fn retain_partial_output_recovery_setup(
       },
     ),
   )
+}
+
+///|
+fn partial_output_recovery_cleanup(
+  resources : HolderPartialOutputResources,
+  recovery : StoppedReleaseRecovery,
+  slot : @slot.NativeExecutorSlot,
+  failure : String,
+) -> PartialOutputRecoveryCleanup {
+  let original : PartialOutputRecoveryCleanup = {
+    resources,
+    recovery,
+    slot,
+    failure,
+    step: Ref(0),
+    slot_close_unknown: false,
+  }
+  original
+}
+
+///|
+/// The already-admitted cleanup must finish before its borrowed parents close.
+/// Progress records that observation locally; it never issues Run settlement
+/// or sets physical_cleanup_done from handle closure or an empty resource set.
+fn retry_partial_output_recovery_cleanup(
+  original : PartialOutputRecoveryCleanup,
+) -> Bool {
+  advance_holder_cleanup_pass(original, original.step, 5, (owner, step) => {
+    match step {
+      0 =>
+        match owner.recovery.physical_cleanup {
+          Some(retry) if !owner.recovery.physical_cleanup_done => retry()
+          _ => true
+        }
+      1 => {
+        if owner.recovery.transfer_journal is Some(journal) {
+          guard journal.close_checked() is Ok(_) else { return false }
+          owner.recovery.transfer_journal = None
+        }
+        retry_partial_holder_output_resources(owner.resources)
+      }
+      2 => owner.recovery.journal.close_checked() is Ok(_)
+      3 => owner.recovery.bundles.close_checked() is Ok(_)
+      _ =>
+        if owner.slot_close_unknown {
+          false
+        } else {
+          let closed = owner.slot.close()
+          if !closed {
+            owner.slot_close_unknown = true
+          }
+          closed
+        }
+    }
+  })
 }

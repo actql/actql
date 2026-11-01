@@ -4800,9 +4800,12 @@ fn recover_release_command(
     Ok(value) => value
     Err(_) => stop("release recovery slot unavailable")
   }
-  if slot.try_acquire() != Ok(true) {
-    ignore(slot.close())
-    stop("release recovery slot busy")
+  match acquire_release_recovery_slot_with_custody(slot, identity) {
+    Ok(_) => ()
+    Err(original) => {
+      finish_failed_release_recovery_open(original)
+      stop(original.failure)
+    }
   }
   let owner = open_release_recovery(matches, environment, slot, identity)
   owner.recorded_source = recorded_source
@@ -4949,9 +4952,12 @@ fn recover_output_command(
     Ok(value) => value
     Err(_) => stop("Output recovery slot unavailable")
   }
-  if slot.try_acquire() != Ok(true) {
-    ignore(slot.close())
-    stop("Output recovery slot busy")
+  match acquire_release_recovery_slot_with_custody(slot, expected) {
+    Ok(_) => ()
+    Err(original) => {
+      finish_failed_release_recovery_open(original)
+      stop(original.failure)
+    }
   }
   // Reuse the maintenance owner: it verifies saved custody without selecting
   // an executor or claiming that this tool is the original runtime component.

@@ -76,14 +76,17 @@ fn recover_retained_input_command(
     Ok(value) => value
     Err(_) => stop("retained cleanup slot unavailable")
   }
-  if slot.try_acquire() != Ok(true) {
-    ignore(slot.close())
-    stop("retained cleanup slot busy")
+  match acquire_release_recovery_slot_with_custody(slot, expected_consumer) {
+    Ok(_) => ()
+    Err(original) => {
+      finish_failed_release_recovery_open(original)
+      stop(original.failure)
+    }
   }
   let owner = open_release_recovery(
     matches, environment, slot, expected_consumer,
   )
-  let receiver : Ref[@transfer_journal.Journal?] = { val: None, }
+  let resources = new_holder_partial_output_resources()
   let failure = try {
     for
       (attempt, expected) in [
@@ -117,12 +120,18 @@ fn recover_retained_input_command(
     if !current() {
       stop("retained cleanup current custody unconfirmed")
     }
-    let root = match @filesystem.open_root(root_path) {
-      Ok(value) => value
-      Err(_) => stop("retained cleanup Root unavailable")
+    let root = match @filesystem.open_root_with_custody(root_path) {
+      Ok(value) => {
+        resources.retained_root = Some(value)
+        value
+      }
+      Err(original) => {
+        resources.failed_root = Some(original)
+        stop("retained cleanup Root unavailable")
+      }
     }
     let journal = match
-      @transfer_journal.open_journal(
+      @transfer_journal.open_journal_with_custody(
         environment.sqlite_library,
         transfer_path,
         environment.max_record_bytes,
@@ -130,10 +139,17 @@ fn recover_retained_input_command(
         1048576,
         environment.max_bytes,
       ) {
-      Ok(value) => value
-      Err(_) => stop("retained cleanup Transfer journal unavailable")
+      Ok(value) => {
+        resources.transfer_journal = Some(value)
+        value
+      }
+      Err(RefusedBeforeAcquisition(_)) =>
+        stop("retained cleanup Transfer journal configuration refused")
+      Err(CleanupRequired(original)) => {
+        resources.failed_transfer_journal = Some(original)
+        stop("retained cleanup Transfer journal unavailable")
+      }
     }
-    receiver.val = Some(journal)
     let limits : @output.NativeRemoteStandardTransferBindingLimits = {
       max_binding_bytes: 1048576,
       max_chunks: 65536,
@@ -159,7 +175,12 @@ fn recover_retained_input_command(
         Ok(retry) =>
           match retry() {
             Ok(_) => None
-            Err(_) => Some("cancelled receiver cleanup retry pending")
+            Err(_) => {
+              // The existing Owner admitted this exact retry. Keep the same
+              // closure through handle cleanup; never prepare a replacement.
+              owner.physical_cleanup = Some(() => retry() is Ok(_))
+              Some("cancelled receiver cleanup retry pending")
+            }
           }
         Err(NotCurrent) =>
           Some("cancelled receiver current custody unconfirmed")
@@ -222,29 +243,17 @@ fn recover_retained_input_command(
   } catch {
     CommandStop(issue) => Some(issue)
   }
-  // Attempt every close without replacing the primary failure. All pending
-  // physical cleanup responsibilities remain in their existing journals.
-  let mut closed = true
-  if receiver.val is Some(journal) && !journal.close() {
-    closed = false
-  }
-  if !owner.journal.close() {
-    closed = false
-  }
-  if !(owner.bundles.close() is Ok(true)) {
-    closed = false
-  }
-  if !slot.close() {
-    closed = false
-  }
-  if !closed {
-    report("retained-input-recovery-cleanup-pending", [("step", "owners")])
-  }
+  // The same admitted cleanup and constructor originals stay on the existing
+  // maintenance lifetime until checked retirement. The initial failure is
+  // retained even if later cleanup succeeds; no Run release is fabricated.
+  retain_partial_output_recovery_setup(
+    resources,
+    owner,
+    slot,
+    failure.unwrap_or("retained cleanup handle retirement"),
+  )
   if failure is Some(issue) {
     stop(issue)
-  }
-  if !closed {
-    stop("retained cleanup owner close unconfirmed")
   }
   report(
     if cancelled_receiver {
