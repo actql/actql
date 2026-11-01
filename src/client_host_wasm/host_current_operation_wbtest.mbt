@@ -348,26 +348,23 @@ test "closed observation refuses replacement originals during physical sampling"
       })
     }).unwrap()
     record.material = Some(material)
+    let account_text = @utf8.decode(record.account_original.unwrap())
+    let account_copy = @authorization.admit_account_configuration_json(
+      account_text,
+    ).unwrap()
+    let original_copy = @utf8.encode(account_text)
+    let adoption_copy = @utf8.encode(
+      @utf8.decode(record.adoption_original.unwrap()),
+    )
     let calls = Ref(0)
     let result = host_current_observe_original(
       record,
       () => {
         calls.val += 1
         match field {
-          0 =>
-            record.account = Some(
-              @authorization.admit_account_configuration_json(
-                @utf8.decode(record.account_original.unwrap()),
-              ).unwrap(),
-            )
-          1 =>
-            record.account_original = Some(
-              @utf8.encode(@utf8.decode(record.account_original.unwrap())),
-            )
-          2 =>
-            record.adoption_original = Some(
-              @utf8.encode(@utf8.decode(record.adoption_original.unwrap())),
-            )
+          0 => record.account = Some(account_copy)
+          1 => record.account_original = Some(original_copy)
+          2 => record.adoption_original = Some(adoption_copy)
           3 => record.generation = Some((7, 10))
           4 => record.material = None
           5 =>
