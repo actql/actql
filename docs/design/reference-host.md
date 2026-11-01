@@ -2524,3 +2524,13 @@ fixed additional Plan scalar and quote scratch use one shared layout at the
 Request's pre-construction quote and at the resulting Plan, rather than relying
 on a later allowance. These are implementation lifetime facts, not a cap change,
 new heap service, broader purpose acceptance or ordinary qualification.
+
+
+Original Request provenance uses a per-installation weak Request-to-producer
+index. Cleanup retains the existing strong producer inventory; the index is
+not a second payload owner. Lookup requires that same live inventory member,
+receipt association, original Request and unfinished state, without scanning
+other requests or calling current again. The weak original association survives
+finish and retirement so a stale Request cannot be attached to another producer.
+Existing payload severing, failed initialization and physical cleanup duties
+remain on their original records.

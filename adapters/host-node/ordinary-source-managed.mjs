@@ -50,6 +50,7 @@ export async function prepareOrdinaryProjectSourceManagedInstallation(originals,
 async function prepareOrdinaryManagedInstallation(originals, callbacks, source, project) {
   let closing = false, closed = false, bundle, flight, checkingBundle = false;
   const receipts = new WeakMap(), producers = new Set(), runs = new WeakMap();
+  const requestProducers = new WeakMap();
   // Exact Prepared lookup is provenance, not a second strong payload root.
   // The live inventory owns each record until its actual retirement.
   const liveRuns = new Set();
@@ -140,8 +141,10 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
     return false;
   };
   const producerForRequest = request => {
-    for (const producer of producers) if (producer.request === request && !producer.finished) return producer;
-    return undefined;
+    const producer = requestProducers.get(request);
+    return producer !== undefined && producers.has(producer) &&
+      receipts.get(producer.receipt) === producer && producer.request === request &&
+      !producer.finished ? producer : undefined;
   };
   const current = () => {
     if (closing || closed) fail('SourceManagedPreparationUnavailable');
@@ -466,8 +469,14 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
     },
     bindSourceRequest(receipt, body, request) {
       current(); const producer = producerFor(receipt);
-      if (producer.body !== body || producer.request !== undefined || producer.finished) fail('ForeignInstalledSourceProducer');
+      if (producer.body !== body || producer.request !== undefined || producer.finished ||
+          request === null || !['object', 'function'].includes(typeof request) ||
+          requestProducers.has(request)) fail('ForeignInstalledSourceProducer');
       producer.request = request;
+      // Keep the original weak association through finish/retirement. Lookup
+      // requires live inventory and the same request; a stale key cannot bind
+      // another producer. No strong alias collection or cleanup owner is added.
+      requestProducers.set(request, producer);
     },
     submittedIntentOriginal(request) {
       current();
