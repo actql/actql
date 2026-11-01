@@ -680,7 +680,7 @@ fn request_node_model_plan_inputs() -> (
     None,
     None,
   ).unwrap()
-  let module = prepare_request_model_source_free_module(
+  let selected_module = prepare_request_model_source_free_module(
     f.parent,
     f.input,
     f.request,
@@ -692,18 +692,18 @@ fn request_node_model_plan_inputs() -> (
     0,
     _ => [],
   ).unwrap()
-  (f, module, prefix)
+  (f, selected_module, prefix)
 }
 
 ///|
 test "Request Node Model Plan retains actual layout extent before Scope read and shared prefix retirement" {
-  let (f, module, prefix) = request_node_model_plan_inputs()
+  let (f, selected_module, prefix) = request_node_model_plan_inputs()
   let layout = request_node_model_layout_declaration(f.graph)
   let installation = request_node_model_layout_installation()
   let plan = prepare_request_node_model_source_free_plan(
     f.parent,
     f.input,
-    module,
+    selected_module,
     f.request,
     f.compiled,
     f.definition,
@@ -743,7 +743,7 @@ test "Request Node Model Plan retains actual layout extent before Scope read and
     after.reserved_execution_bytes - before.reserved_execution_bytes,
     3000L,
   )
-  assert_true(physical_equal(run.ledger, f.parent.ledger))
+  assert_true(physical_equal(run.ledger.unwrap(), f.parent.ledger))
   assert_true(retire_installed_managed_run(run) is Err(CleanupPending))
   @publication_host.stop_client_model_read(read).unwrap()
   @publication_host.settle_client_model_read(read, true).unwrap()
@@ -766,7 +766,7 @@ test "Request Node Model Plan retains actual layout extent before Scope read and
 
 ///|
 test "Request Node Model Plan keeps original layout refusal before Scope and leaves same parent cleanup" {
-  let (f, module, _) = request_node_model_plan_inputs()
+  let (f, selected_module, _) = request_node_model_plan_inputs()
   let layout = request_node_model_layout_declaration(f.graph)
   let installation = request_node_model_layout_installation()
   let before = @resources.ledger_usage(f.parent.ledger)
@@ -774,7 +774,7 @@ test "Request Node Model Plan keeps original layout refusal before Scope and lea
     prepare_request_node_model_source_free_plan(
       f.parent,
       f.input,
-      module,
+      selected_module,
       f.request,
       f.compiled,
       f.definition,
