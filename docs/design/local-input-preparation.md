@@ -4851,3 +4851,20 @@ Model Run. The Node selection defers its previous direct prefix/suffix lowering
 for this installed Request route; unmanaged, source-free and serialized paths
 retain their existing construction contracts. The physical driver must still
 bind the module's same component, Source read and adopted Run before entry.
+
+### Installed layout consumer for composed Model input
+
+The Node composed component can receive its exact already-backed input prefix
+at construction, before native input-dependent capacity selection. Its immutable
+Graph selection need not carry a separately prepared prefix or be mutated to
+install one. Deferred binding still accepts the same selection once and refuses
+entry before its actual original read/execution context is bound.
+
+A composed input with an installed Node layout uses the existing authenticated
+layout claim on the same compiled Run, Definition, Graph and read. That claim
+returns the single original consumer used by the existing original composed
+start. It cannot select the private numeric-envelope claim, replay a failed
+claim, or fall back to an unowned composed start. Existing no-layout composed
+callers and single-stage installed layout callers retain their own entrances.
+The same original read cleanup observation remains tied to actual Core execution
+cleanup; a layout claim, constructor refusal or provider return is not that ACK.
