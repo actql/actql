@@ -39,6 +39,35 @@ class SnapshotTransportTests(unittest.TestCase):
             store.inspect_namespaces((ByteFence('epoch', 0, b'original-epoch'),),
                 inspect=inspect, current=current)
 
+    def test_current_query_keeps_three_currents_and_actual_row_with_same_snapshot_metadata(self):
+        with TemporaryDirectory(prefix='actql-query-immutable-metadata-') as directory:
+            store = LocalByteStore(Path(directory) / 'original.sqlite', max_records=16,
+                max_record_bytes=4096, max_payload_bytes=16384)
+            self.addCleanup(store.close)
+            fences = tuple(ByteFence('epoch:' + str(i), 0, b'original-metadata') for i in range(7))
+            for fence in fences: store.compare_exchange(fence.key, None, fence.payload)
+            store.compare_exchange(store.namespaced_key('original', 'one'), None, b'original-row')
+            currents = []
+            def current(): currents.append(True)
+            def inspect(reader):
+                sql = []
+                observed = []
+                before = len(currents)
+                store._connection.set_trace_callback(sql.append)
+                try:
+                    reader.query_current(reader, 1, 'original', 'one', observed.append, current)
+                finally:
+                    store._connection.set_trace_callback(None)
+                self.assertEqual(len(currents) - before, 3)
+                self.assertEqual(len(observed), 1)
+                self.assertEqual(observed[0][0], 'one')
+                self.assertEqual(observed[0][1].payload, b'original-row')
+                reads = [query for query in sql if query.lstrip().upper().startswith('SELECT')]
+                self.assertEqual(len(reads), 1)  # SAME actual physical row is not cached
+                probes = [query for query in sql if query.startswith('PRAGMA')]
+                self.assertEqual(probes, ['PRAGMA schema_version', 'PRAGMA temp.schema_version'] * 6)
+            store.inspect_namespaces(fences, inspect=inspect, current=current)
+
     def test_snapshot_reuse_refuses_mutation_in_current_and_latches_original_failure(self):
         from actql_sdk._local_storage import LocalStorageError
         with TemporaryDirectory(prefix='actql-sql-current-mutation-') as directory:
