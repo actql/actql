@@ -124284,7 +124284,7 @@
     },
     {
       "module": "adapters/host-node/http-request-preparation.mjs",
-      "sha256": "470c8f96c73d41b48ba2e01faa77f6e265e9a5ff96cfedace0d60b43b45a34af",
+      "sha256": "5755d0b2933dbe465b0c2266bf96cfb3ed1dbe968cc6f7e41c000c24d0189e0e",
       "exports": [
         "installHttpRequestPreparation"
       ],
@@ -124450,6 +124450,10 @@
               {
                 "path": "adapters/host-node/embedded-local-lifecycle.test.mjs",
                 "anchor": "test('Remote constructor failure retains the original cause and retires the same preparation'"
+              },
+              {
+                "path": "adapters/host-node/client-http.test.mjs",
+                "anchor": "test('HTTP publication current refusal keeps its primary and still finishes the original producer'"
               }
             ]
           }
