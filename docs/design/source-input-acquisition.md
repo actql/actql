@@ -304,3 +304,22 @@ that graph through pending original consumers and invalid asynchronous provider
 callbacks; it then joins protocol retirement with its existing response, physical
 binding and original binding-retirement duties. A closed protocol, completed row,
 process exit or stopped socket alone is not a physical cleanup acknowledgement.
+
+## Keyed Content original reader variant
+
+The shared installed reader may receive the already-adopted Request Content
+Run and its original reader. Its existing input-kind query must recognize the
+same nominal keyed Content Plan's Direct Row acquisition as the `query`
+variant before the existing original acquisition handoff. This classification
+uses the same live Run, Prepared and Request; it does not construct another
+Query, declaration, provider, acquisition, Ledger or resource owner.
+
+The selected keyed Plan must retain its original Direct Row acquisition and
+requirement, without a provider replacement. Serialization-only Content has
+no such Direct input and does not acquire one through this getter. The Pure
+Plan keeps its existing Query/whole-input distinction. Foreign originals and
+retired Run payloads refuse. Variant selection is immutable DATA and invokes
+no current callback; the following original read constructor retains its own
+pre-call admission, current fence, partial-child retention and cleanup duties.
+Neither the variant nor release of a read alias acknowledges physical stop or
+parent retirement.
