@@ -365,8 +365,9 @@ fn validate_saved_result_fences(
   packet : (String) -> Result[Bool?, Int],
 ) -> Result[Unit, Int] {
   let mut index = 0
+  let mut scalar_only = false
   while index < fences.length() {
-    match saved_result_fence_packet(fences, index) {
+    match if scalar_only { None } else { saved_result_fence_packet(fences, index) } {
       Some((wire, end)) =>
         match packet(wire) {
           Err(code) => return Err(code)
@@ -375,7 +376,7 @@ fn validate_saved_result_fences(
             index = end
             continue
           }
-          Ok(None) => ()
+          Ok(None) => scalar_only = true
         }
       None => ()
     }
