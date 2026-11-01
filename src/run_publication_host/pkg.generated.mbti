@@ -1675,6 +1675,10 @@ pub fn issue_source_free_client_effect_local_table_artifact(PreparedClientEffect
 
 pub fn issue_source_free_exported_client_effect_local_result_artifact(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, @physical_strategy_host.CapturedEffectLocalResultExport, ClientEffectLocalResultDefinition, ClientEffectLocalInvocation, @execution_relation.CompletedRelationExportReceipt, @run_publication.PublicationContract, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[ClientEffectLocalResultArtifact, ClientEffectLocalResultArtifactIssue]
 
+pub fn measure_client_model_provider_binding_construction(String) -> (Int, Int, Int)?
+
+pub fn measure_installed_client_composed_infer_graph_construction(ClientInferOccurrence, @check_environment.ModelExecutionContract, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientInferGraphConstruction, ClientInferPlanGraphIssue]
+
 pub fn measure_prepared_client_execution_material(PreparedClientProgram, ClientCompilationManifests, Int, Int, Int) -> Result[(Int, Int, Int), ClientExecutionMaterialIssue]
 
 pub fn measure_prepared_client_model_compilation_construction(PreparedClientProgram, Array[ClientInferPlanGraph], ClientCompilationManifests, @lowering_relation.SequenceLimits, Int, Int, Int, Int, Int) -> Result[ClientPureCompilationConstruction, ClientValuesExecutablePlanIssue]
@@ -1690,6 +1694,10 @@ pub fn measure_prepared_client_result_graph_construction(PreparedClientProgram, 
 pub fn measure_prepared_client_result_plan(PreparedClientProgram, Int, Int, Int, Int) -> Result[(Int, Int, Int), ClientResultPlanIssue]
 
 pub fn measure_prepared_client_serialization_compilation_construction(PreparedClientProgram, ClientSerializationPlanGraph, ClientCompilationManifests, ClientPureCompilationLimits) -> Result[ClientPureCompilationConstruction, ClientValuesExecutablePlanIssue]
+
+pub fn measure_prepared_client_serialization_graph_construction(PreparedClientProgram, Int, Int, Int, Int, Int, @lowering_relation.SequenceLimits, Int, Int, Int, include_results? : Bool) -> Result[ClientSerializationGraphConstruction, ClientSerializationPlanGraphIssue]
+
+pub fn measure_prepared_client_serialization_prefix_construction(PreparedClientProgram, Int, Int, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientTaskFragmentConstruction, ClientSerializationPrefixIssue]
 
 pub fn measure_prepared_client_task_fragment_construction(PreparedClientProgram, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientTaskFragmentConstruction, ClientTaskFragmentIssue]
 
@@ -1985,6 +1993,8 @@ pub fn prepared_client_identity(PreparedClientProgram) -> ClientProgramIdentity
 
 pub fn prepared_client_infer_execution_occurrence(PreparedClientProgram, Int) -> ClientInferOccurrence?
 
+pub fn prepared_client_infer_graph_measurement_storage(ClientInferOccurrence) -> @execution_relation.PreparationRepresentationUnits?
+
 pub fn prepared_client_infer_host_item_ceiling(PreparedClientProgram, Int) -> Result[Int64, ClientInferHostCapacityIssue]
 
 pub fn prepared_client_infer_host_request_ceiling(PreparedClientProgram, Int) -> Result[Int64, ClientInferHostCapacityIssue]
@@ -2018,6 +2028,8 @@ pub fn prepared_client_result_name(PreparedClientProgram, Int) -> String?
 pub fn prepared_client_serialization_measurement_storage(PreparedClientProgram, ClientSerializationPlanGraph, ClientPureCompilationLimits) -> Result[@execution_relation.PreparationRepresentationUnits, ClientValuesExecutablePlanIssue]
 
 pub fn prepared_client_serialization_occurrences(PreparedClientProgram) -> Array[(Int, Int)]
+
+pub fn prepared_client_serialization_policy_construction(PreparedClientProgram, Int) -> Result[@program_check.SerializationPolicyConstruction, ClientSerializationPlanGraphIssue]
 
 pub fn prepared_client_source_evidence_facts(PreparedClientProgram, Int, Int) -> @query_planning.QuerySourceEvidenceFacts?
 
@@ -2975,6 +2987,20 @@ pub(all) struct ClientInferEgressObservation {
   provider_retention : Bool
   training_use : Bool
 } derive(Eq, @debug.Debug)
+
+pub(all) struct ClientInferGraphConstruction {
+  fragments : Array[ClientTaskFragmentConstruction]
+  request : (Int, Int, Int)
+  barrier : (Int, Int, Int)
+  node : (Int, Int, Int)
+  output_contract : (Int, Int, Int)
+  nodes : Array[(Int, Int, Int)]
+  edges : Array[(Int, Int, Int)]
+  roots : Array[(Int, Int, Int)]
+  projections : Array[ClientResultGraphConstruction]
+  results : Array[(Int, Int, Int)]
+  graph : (Int, Int, Int)
+}
 
 pub(all) enum ClientInferHostCapacityIssue {
   UnsupportedProgram
@@ -4207,6 +4233,21 @@ pub(all) enum ClientSerializationGenerationIssue {
   PolicyMismatch
   Output(ClientSerializationOutputIssue)
   Evidence(@run_publication.RunEvidenceValueIssue)
+}
+
+pub(all) struct ClientSerializationGraphConstruction {
+  prefix : ClientTaskFragmentConstruction?
+  input_contract : (Int, Int, Int)?
+  output_contract : (Int, Int, Int)
+  barrier : (Int, Int, Int)
+  node : (Int, Int, Int)
+  input_edge : (Int, Int, Int)?
+  results : Array[(Int, Int, Int)]
+  projections : Array[ClientResultGraphConstruction]
+  nodes : Array[(Int, Int, Int)]
+  edges : Array[(Int, Int, Int)]
+  roots : Array[(Int, Int, Int)]
+  graph : (Int, Int, Int)
 }
 
 type ClientSerializationInput

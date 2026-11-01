@@ -117,6 +117,8 @@ fn whole_source_result_publication_fixture(
     Ok(_) => ()
     Err(Preparation(_)) => fail("whole module: Preparation")
     Err(QueryTime(_)) => fail("whole module: QueryTime")
+    Err(ModelGraph(_) | SerializationGraph(_) | ModelBinding(_)) =>
+      fail("whole module: unexpected domain constructor")
     Err(Installed(_)) => fail("whole module: Installed")
     Err(Construction(issue)) => {
       let label = match issue {

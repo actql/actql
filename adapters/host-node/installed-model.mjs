@@ -429,7 +429,35 @@ export function installModelProviders(moon, register, assertHostRuntime,
   return result;
 }
 
-export function readInstalledModelDependencies(moon, execution, installation) {
+export function readInstalledModelDependencies(moon, execution, installation, beforeRead) {
+  if (beforeRead !== undefined) {
+    const original = originalModelMaterialArrays(installation);
+    const references = moon.clientProgramInferDependencyReferences(execution);
+    const media = moon.clientProgramInferMediaDependencyReferences(execution);
+    const read = media.length !== 0 ? moon.clientProgramReadInferModelDependenciesWithMedia
+      : moon.clientProgramReadInferModelDependencies;
+    beforeRead(3 + media.length, index => {
+      const cid = index < 3 ? runtimeField(references, index) : runtimeField(media[index - 3], 1);
+      // Empty is sizing DATA for an absent body only. The actual reader below
+      // still receives undefined and keeps its original missing-body refusal.
+      return original.bodies.find(entry => entry.cid === cid)?.bodyWire ?? '';
+    }, original.executions.length + original.bodies.length);
+    checkInstallation(installation);
+    const bodies = new Map(original.bodies.map(entry => [entry.cid, entry.bodyWire]));
+    if (media.length !== 0) {
+      return checked(Reflect.apply(read, moon, [execution,
+        bodies.get(runtimeField(references, 0)), bodies.get(runtimeField(references, 1)), bodies.get(runtimeField(references, 2)),
+        media.filter(entry => bodies.has(runtimeField(entry, 1))).map(entry =>
+          runtimePair(runtimeField(entry, 0), bodies.get(runtimeField(entry, 1))))]));
+    }
+    return checked(Reflect.apply(read, moon, [execution,
+      bodies.get(runtimeField(references, 0)), bodies.get(runtimeField(references, 1)),
+      bodies.get(runtimeField(references, 2))]));
+  }
+  return readInstalledModelDependenciesLegacy(moon, execution, installation);
+}
+
+function readInstalledModelDependenciesLegacy(moon, execution, installation) {
   checkInstallation(installation);
   const references = moon.clientProgramInferDependencyReferences(execution);
   const bodies = new Map((installation.dependencyBodies ?? [])
@@ -463,7 +491,7 @@ export function admitInstalledModelProvider(moon, execution, dependencies,
 // Bind the actual Host-selected provider to its nonsecret installation and
 // configuration originals. MoonBit owns their canonical admission and all
 // resulting identities; callback text and display names are not revisions.
-export function admitInstalledModelProviderBinding(moon, providerId, physical) {
+export function admitInstalledModelProviderBinding(moon, providerId, physical, constructOriginal) {
   const originals = physical?.bindingOriginals;
   if (originals === undefined) {
     throw Object.assign(new Error('InstalledModelProviderBindingUnavailable'),
@@ -473,9 +501,12 @@ export function admitInstalledModelProviderBinding(moon, providerId, physical) {
     throw Object.assign(new Error('InstalledModelProviderBindingRuntimeUnavailable'),
       {code: 'InstalledModelProviderBindingRuntimeUnavailable'});
   }
-  const value = checked(moon.clientProgramModelProviderBinding(providerId,
-    originals.installationRevision.wire, originals.configurationContract.wire,
-    originals.configuration.wire));
+  const value = constructOriginal === undefined
+    ? checked(moon.clientProgramModelProviderBinding(providerId,
+      originals.installationRevision.wire, originals.configurationContract.wire,
+      originals.configuration.wire))
+    : constructOriginal(providerId, originals.installationRevision.wire,
+      originals.configurationContract.wire, originals.configuration.wire);
   return retainAdmittedProviderBinding(moon, providerId, originals, value);
 }
 
@@ -506,8 +537,31 @@ export function installedModelEnvironment(moon, baseWire, currentWire,
 // Normal submit uses its original prepared owner. The metadata lookup does
 // not admit a body: MoonBit checks canonical bytes, self-CID, exact Task and
 // ceilings. Returning this contract does not admit prompt/retry/egress policy.
-export function readInstalledModelExecution(moon, prepared, installation,
-  occurrence) {
+export function readInstalledModelExecution(moon, prepared, installation, occurrence, beforeRead) {
+  if (beforeRead !== undefined) {
+    const original = originalModelMaterialArrays(installation);
+    const step = occurrence === undefined ? moon.clientProgramSelectedInferStep(prepared)
+      : runtimeField(moon.clientProgramInferOccurrenceCoordinates(occurrence), 2);
+    if (step === undefined) return undefined;
+    const taskCid = occurrence === undefined ? moon.clientProgramInferModelTaskCid(prepared, step)
+      : moon.clientProgramInferOccurrenceModelTaskCid(occurrence);
+    const entry = original.executions.find(item => item.modelTaskCid === taskCid);
+    if (entry === undefined) {
+      throw Object.assign(new Error('InstalledInferModelExecutionUnavailable'),
+        {code: 'InstalledInferModelExecutionUnavailable'});
+    }
+    const wire = entry.bodyWire, cid = entry.cid;
+    const read = occurrence === undefined ? moon.clientProgramReadInferModelExecution
+      : moon.clientProgramReadComposedInferModelExecution;
+    beforeRead(1, () => wire, original.executions.length + original.bodies.length);
+    checkInstallation(installation);
+    return Object.freeze({step, execution: checked(Reflect.apply(read, moon,
+      occurrence === undefined ? [prepared, step, wire, cid] : [occurrence, wire, cid]))});
+  }
+  return readInstalledModelExecutionLegacy(moon, prepared, installation, occurrence);
+}
+
+function readInstalledModelExecutionLegacy(moon, prepared, installation, occurrence) {
   const step = occurrence === undefined
     ? moon.clientProgramSelectedInferStep(prepared)
     : runtimeField(moon.clientProgramInferOccurrenceCoordinates(occurrence), 2);
@@ -526,5 +580,36 @@ export function readInstalledModelExecution(moon, prepared, installation,
       entry.cid)
     : moon.clientProgramReadComposedInferModelExecution(occurrence,
       entry.bodyWire, entry.cid))});
+}
+
+// Only the actual normal Mock factory's frozen DATA envelope enters the
+// funded Request path. This captures original arrays, not another registry,
+// contract validator, canonical reader or Provider/Account permission.
+function originalModelMaterialArrays(installation) {
+  if (installation === null || typeof installation !== 'object' || !Object.isFrozen(installation)) {
+    throw new TypeError('InstalledModelMaterialOriginalUnavailable');
+  }
+  const executions = Object.getOwnPropertyDescriptor(installation, 'executionContracts');
+  const bodies = Object.getOwnPropertyDescriptor(installation, 'dependencyBodies');
+  if (!executions || !Object.hasOwn(executions, 'value') ||
+      !bodies || !Object.hasOwn(bodies, 'value') ||
+      !Array.isArray(executions.value) || !Array.isArray(bodies.value) ||
+      !Object.isFrozen(executions.value) || !Object.isFrozen(bodies.value)) {
+    throw new TypeError('InstalledModelMaterialOriginalUnavailable');
+  }
+  const ownString = (entry, key) => {
+    if (entry === null || typeof entry !== 'object' || !Object.isFrozen(entry)) {
+      throw new TypeError('InstalledModelMaterialOriginalUnavailable');
+    }
+    const field = Object.getOwnPropertyDescriptor(entry, key);
+    if (!field || !Object.hasOwn(field, 'value') || typeof field.value !== 'string') {
+      throw new TypeError('InstalledModelMaterialOriginalUnavailable');
+    }
+  };
+  for (const entry of executions.value) {
+    ownString(entry, 'modelTaskCid'); ownString(entry, 'bodyWire'); ownString(entry, 'cid');
+  }
+  for (const entry of bodies.value) {ownString(entry, 'bodyWire'); ownString(entry, 'cid');}
+  return {executions: executions.value, bodies: bodies.value};
 }
 

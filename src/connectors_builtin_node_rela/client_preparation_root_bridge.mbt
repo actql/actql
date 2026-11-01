@@ -80,6 +80,42 @@ pub fn client_program_borrow_request_model_plan_input(
 }
 
 ///|
+#export_name("clientProgramPrepareRequestModelContractMaterials")
+pub fn client_program_prepare_request_model_contract_materials(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  count : Int,
+  wire_at : (Int) -> String,
+  container_count : Int,
+) -> Result[Unit, ClientRequestProgramModuleBridgeIssue] {
+  @client_local_host.prepare_request_model_contract_materials(
+    parent, input, count, wire_at, container_count,
+  ).map_err(issue => Preparation(issue))
+}
+
+///|
+#export_name("clientProgramPrepareRequestModelProviderBinding")
+pub fn client_program_prepare_request_model_provider_binding(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  provider_id : String,
+  installation : String,
+  contract : String,
+  configuration : String,
+) -> Result[
+  @publication.RunEvidenceValue,
+  ClientRequestProgramModuleBridgeIssue,
+] {
+  @client_local_host.prepare_request_model_provider_binding(
+    parent, input, provider_id, installation, contract, configuration,
+  ).map_err(issue => Preparation(issue))
+}
+
+///|
 #export_name("clientProgramPrepareRequestModelGraph")
 pub fn client_program_prepare_request_model_graph(
   parent : @client_local_host.ClientRequestPreparation[

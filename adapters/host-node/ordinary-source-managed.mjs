@@ -678,6 +678,53 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         originalInputs: Object.freeze({environment, parameters: undefined,
           parametersCursor: state.parametersCursor})});
     },
+    prepareModelMaterials(prepared, request, count, wireAt, containerCount) {
+      current();
+      const producer = producerForRequest(request), state = producer?.preparation;
+      if (state?.preparationFailed) throw state.preparationFailure;
+      if (state === undefined || state.prepared !== prepared || state.compilationFamily !== 'model' ||
+          state.holder === undefined || state.inventoryHolder !== undefined || state.adopting ||
+          state.preparing || state.modelCompilation !== undefined || typeof wireAt !== 'function') fail('ForeignInstalledSourceProducer');
+      const moon = state.context.runtime;
+      if (moon.clientProgramPreparationBorrowRead(state.holder) !== prepared) fail('ForeignInstalledSourceProducer');
+      const prepare = moon.clientProgramPrepareRequestModelContractMaterials;
+      const issue = moon.clientProgramRequestProgramModuleIssueCode;
+      if (typeof prepare !== 'function' || typeof issue !== 'function') fail('NodeManagedRunRuntimeUnavailable');
+      state.preparing = true;
+      try {
+        checkedRequestProgramPreparation(moon, Reflect.apply(prepare, moon,
+          [state.parent, producer.receipt, count, wireAt, containerCount]), issue);
+        current();
+        if (producer.finished || producer.preparation !== state || state.prepared !== prepared ||
+            moon.clientProgramPreparationBorrowRead(state.holder) !== prepared) fail('ForeignInstalledSourceProducer');
+      } catch (cause) {
+        state.preparationFailed = true; state.preparationFailure = cause; throw cause;
+      } finally {state.preparing = false;}
+    },
+    prepareModelBinding(prepared, request, providerId, installation, contract, configuration) {
+      current();
+      const producer = producerForRequest(request), state = producer?.preparation;
+      if (state?.preparationFailed) throw state.preparationFailure;
+      if (state === undefined || state.prepared !== prepared || state.compilationFamily !== 'model' ||
+          state.holder === undefined || state.inventoryHolder !== undefined || state.adopting ||
+          state.preparing || state.modelCompilation !== undefined || state.modelProviderBinding !== undefined) fail('ForeignInstalledSourceProducer');
+      const moon = state.context.runtime;
+      if (moon.clientProgramPreparationBorrowRead(state.holder) !== prepared) fail('ForeignInstalledSourceProducer');
+      const prepare = moon.clientProgramPrepareRequestModelProviderBinding;
+      const issue = moon.clientProgramRequestProgramModuleIssueCode;
+      if (typeof prepare !== 'function' || typeof issue !== 'function') fail('NodeManagedRunRuntimeUnavailable');
+      state.preparing = true;
+      try {
+        state.modelProviderBinding = checkedRequestProgramPreparation(moon, Reflect.apply(prepare, moon,
+          [state.parent, producer.receipt, providerId, installation, contract, configuration]), issue);
+        current();
+        if (producer.finished || producer.preparation !== state || state.prepared !== prepared ||
+            moon.clientProgramPreparationBorrowRead(state.holder) !== prepared) fail('ForeignInstalledSourceProducer');
+        return state.modelProviderBinding;
+      } catch (cause) {
+        state.preparationFailed = true; state.preparationFailure = cause; throw cause;
+      } finally {state.preparing = false;}
+    },
     prepareModelGraph(prepared, request, occurrence, execution) {
       current();
       const producer = producerForRequest(request), state = producer?.preparation;
@@ -986,7 +1033,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
           children: [], fileIdentity: undefined, value};
         producer.liveRuns++;
         runs.set(prepared, run); liveRuns.add(run);
-        state.modelCompilation = state.modelGraph = state.modelPlan = state.contentGraph = undefined;
+        state.modelCompilation = state.modelGraph = state.modelPlan = state.modelProviderBinding = state.contentGraph = undefined;
         return run;
       } catch (cause) {
         state.adopting = false;
@@ -1207,6 +1254,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       run.prepared = run.request = undefined;
       state.prepared = state.snapshot = state.snapshotDocument = state.parametersCursor = undefined;
       state.capturePlan = state.effectPlan = run.operationPlan = run.content = undefined;
+      state.modelProviderBinding = undefined;
       state.preparationFailure = undefined;state.preparationFailed = false;
       const holder = state.holder;state.holder = undefined;
       checked(state.effectBorrowMethods === undefined

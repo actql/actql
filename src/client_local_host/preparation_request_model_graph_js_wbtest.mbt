@@ -78,11 +78,11 @@ test "Model Graph keeps the same Request capacity and original through sourcefre
       manifests~,
       compilation_limits=limits,
     ).unwrap()
-    assert_true(
-      @publication_host.client_task_compilation_infer(compilation)
-      is Some(original) &&
-      physical_equal(original, graph),
+    let components = @publication_host.client_task_compilation_infers(
+      compilation,
     )
+    assert_eq(components.length(), 1)
+    assert_true(physical_equal(components[0], graph))
     assert_true(physical_equal(parent.program_capacity.unwrap(), capacity))
     assert_false(@resources.return_preparation_body_borrow(holder).unwrap())
     abort_request_preparation_after_cleanup(parent).unwrap()

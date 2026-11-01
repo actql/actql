@@ -354,6 +354,7 @@ pub suberror ClientRequestProgramPlanIssue {
   QueryTime(@publication_host.ClientQueryTimeIssue)
   SerializationGraph(@publication_host.ClientSerializationPlanGraphIssue)
   ModelGraph(@publication_host.ClientInferPlanGraphIssue)
+  ModelBinding(@publication.RunEvidenceValueIssue)
 }
 
 ///|

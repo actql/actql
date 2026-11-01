@@ -1577,6 +1577,8 @@ pub fn client_program_prepare_query_acquisition_at_query_time(@run_publication_h
 
 pub fn client_program_prepare_query_time(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, String) -> Result[@run_publication_host.ClientQueryTimePreparation, @run_publication_host.ClientQueryTimeIssue]
 
+pub fn client_program_prepare_request_acquired_serialization_graph(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Int, Int, Int, Int, Bool, @client_local_host.ClientInstalledSequenceContracts) -> Result[@run_publication_host.ClientSerializationPlanGraph, ClientRequestProgramModuleBridgeIssue]
+
 pub fn client_program_prepare_request_computation_check(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @program_check.CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], @run_publication_host.ClientProgramPreparationLimits, @run_publication_host.ClientEffectComputationLimits, @program_check.PreparedSourceCatalog?, @stage_parameters.Source?) -> Result[@client_local_host.ClientProgramCheckPreparation[ClientLocalPreparationInputOriginal, Unit], @client_local_host.ClientRequestPreparationIssue]
 
 pub fn client_program_prepare_request_effect_model_read_scope(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @client_local_host.ClientInstalledEffectManagedPlan) -> Result[@run_publication_host.ClientModelReadScope, @client_local_host.ClientInstalledManagedRunIssue]
@@ -1584,6 +1586,12 @@ pub fn client_program_prepare_request_effect_model_read_scope(@client_local_host
 pub fn client_program_prepare_request_keyed_serialization_compilation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @client_local_host.ClientInstalledManagedKeyedPreparation, @run_publication_host.ClientSerializationPlanGraph) -> Result[@run_publication_host.ClientTaskCompilation, ClientRequestProgramModuleBridgeIssue]
 
 pub fn client_program_prepare_request_model_compilation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.ClientInferPlanGraph, @client_local_host.ClientInstalledSequenceContracts) -> Result[@run_publication_host.ClientTaskCompilation, ClientRequestProgramModuleBridgeIssue]
+
+pub fn client_program_prepare_request_model_contract_materials(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Int, (Int) -> String, Int) -> Result[Unit, ClientRequestProgramModuleBridgeIssue]
+
+pub fn client_program_prepare_request_model_graph(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.ClientInferOccurrence, @check_environment.ModelExecutionContract, @client_local_host.ClientInstalledSequenceContracts) -> Result[@run_publication_host.ClientInferPlanGraph, ClientRequestProgramModuleBridgeIssue]
+
+pub fn client_program_prepare_request_model_provider_binding(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, String, String, String, String) -> Result[@run_publication.RunEvidenceValue, ClientRequestProgramModuleBridgeIssue]
 
 pub fn client_program_prepare_request_model_read_scope(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @client_local_host.ClientInstalledManagedModelPlan) -> Result[@run_publication_host.ClientModelReadScope, @client_local_host.ClientInstalledManagedRunIssue]
 
@@ -1602,6 +1610,8 @@ pub fn client_program_prepare_request_program_json(@client_local_host.ClientRequ
 pub fn client_program_prepare_request_program_module_body(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @client_local_host.ClientInstalledSequenceContracts, Bool, (@run_publication_host.ClientQueryTimePreparation, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract)?) -> Result[Unit, ClientRequestProgramModuleBridgeIssue]
 
 pub fn client_program_prepare_request_serialization_compilation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.ClientSerializationPlanGraph, @client_local_host.ClientInstalledSequenceContracts) -> Result[@run_publication_host.ClientTaskCompilation, ClientRequestProgramModuleBridgeIssue]
+
+pub fn client_program_prepare_request_serialization_graph(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Int, Int, String, String, Int, Int, Bool, @client_local_host.ClientInstalledSequenceContracts) -> Result[@run_publication_host.ClientSerializationPlanGraph, ClientRequestProgramModuleBridgeIssue]
 
 pub fn client_program_prepare_request_source_computation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, NativeJsonValue, NativeJsonValue, @program_check.CheckEnvironment, @client_source_publication.PreparedPublishedQueryEnvironment, Int?) -> Result[Unit, @client_local_host.ClientRequestTerminalIssue]
 
