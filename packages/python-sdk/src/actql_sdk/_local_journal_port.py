@@ -150,7 +150,11 @@ class _JournalCallbacks:
             def consume(row: tuple[str, StoredBytes] | None) -> None:
                 if row is None:
                     return
+                if type(row) is not tuple or len(row) != 2:
+                    raise ValueError('Invalid original Local journal physical row')
                 name, body = row
+                if type(name) is not str:
+                    raise ValueError('Invalid original Local journal physical row')
                 encoded = name.encode('utf-8')
                 if (not 0 < len(encoded) <= _KEY_BYTES or type(body) is not StoredBytes
                         or type(body.payload) is not bytes or len(body.payload) > _ROW_BYTES
@@ -161,7 +165,10 @@ class _JournalCallbacks:
                 self.row = (encoded, body)
 
             if query_current is not None:
-                query_current(reader, self.mode, namespace, key, consume, self.current)
+                # The original Store has completed the query/current fences.
+                # Only this closed bounded packaging runs before ABI transfer;
+                # there is no external consumer callback to fence separately.
+                consume(query_current(reader, self.mode, namespace, key, self.current))
             elif self.mode == 0:
                 reader.scan_after(namespace, key, consume)
             else:
