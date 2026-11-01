@@ -1,6 +1,6 @@
 {
   "source": "d5d66cd86ac2e153f31a511e7d37c78e0cc28ae3",
-  "syntaxProjectionSha256": "e0b4d1349c0496b915f7f939bbf775d316099f1f2da07e8f9b7fa21e3e9a15d6",
+  "syntaxProjectionSha256": "40bf26b27ecc537fc00a69c3f90f02e2721dbef33612a1baddbfcf07ab63efc8",
   "qualification": "Source-reference coverage only; original Native/FFI/Python executions retain their own source, artifact and target qualifications. No normal funding, VM or installed product admission.",
   "generated": [
     {
@@ -26565,13 +26565,6 @@
         },
         {
           "async": false,
-          "name": "OriginalHostBinding/_adoption_inventory/receive",
-          "parameters": [
-            "row"
-          ]
-        },
-        {
-          "async": false,
           "name": "OriginalHostBinding/_nominal",
           "parameters": [
             "self"
@@ -26608,13 +26601,6 @@
           "parameters": [
             "self",
             "reader"
-          ]
-        },
-        {
-          "async": false,
-          "name": "OriginalHostBinding/_settings_inventory/receive",
-          "parameters": [
-            "row"
           ]
         },
         {
@@ -26670,7 +26656,7 @@
           ]
         }
       ],
-      "sha256": "a4a66958593f0e5264a82bb4d09f2ec214d85e6b9fb881b6094a42ab88526722",
+      "sha256": "29a6f7b8fef28a03cfb2cc4ad72237150b04e68b8717a108fd432bfa05e50f8e",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -26813,7 +26799,6 @@
             "OriginalHostBinding/_physical_current",
             "OriginalHostBinding/_reserve",
             "OriginalHostBinding/_settings_inventory",
-            "OriginalHostBinding/_settings_inventory/receive",
             "OriginalHostBinding/close",
             "OriginalHostBinding/current",
             "OriginalHostBinding/fenced",
@@ -26832,6 +26817,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## First-adoption bootstrap metadata"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The installed Host's own adoption/settings inventories use that same direct"
               }
             ],
             "inputsOutputs": [
@@ -26842,6 +26831,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## First-adoption bootstrap metadata"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The installed Host's own adoption/settings inventories use that same direct"
               }
             ],
             "identity": [
@@ -26856,6 +26849,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Handles are never serialized Client references"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The installed Host's own adoption/settings inventories use that same direct"
               }
             ],
             "ownership": [
@@ -26870,6 +26867,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Failed stop or cleanup retains the same"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The installed Host's own adoption/settings inventories use that same direct"
               }
             ],
             "synchronization": [
@@ -26880,6 +26881,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_host_binding.py",
                 "anchor": "class OriginalHostBinding:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The installed Host's own adoption/settings inventories use that same direct"
               }
             ],
             "failure": [
@@ -26894,6 +26899,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Interrupted physical bridge calls"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The installed Host's own adoption/settings inventories use that same direct"
               }
             ],
             "cancellation": [
@@ -26904,6 +26913,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_host_binding.py",
                 "anchor": "class OriginalHostBinding:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The installed Host's own adoption/settings inventories use that same direct"
               }
             ],
             "resources": [
@@ -26918,6 +26931,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Transfer custody"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The installed Host's own adoption/settings inventories use that same direct"
               }
             ],
             "extension": [
@@ -26928,6 +26945,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_host_binding.py",
                 "anchor": "class OriginalHostBinding:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The installed Host's own adoption/settings inventories use that same direct"
               }
             ],
             "verification": [
@@ -26942,6 +26963,30 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_host_binding.py",
                 "anchor": "class OriginalHostBinding:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The installed Host's own adoption/settings inventories use that same direct"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_host_binding.py",
+                "anchor": "def test_owned_inventory_uses_direct_rows_without_arbitrary_consumer_callbacks("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_host_binding.py",
+                "anchor": "def test_owned_inventory_return_observes_changed_file_and_temp_schema("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_host_binding.py",
+                "anchor": "def test_owned_inventory_sql_failure_keeps_original_cause_without_fallback("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_host_binding.py",
+                "anchor": "def test_owned_inventory_direct_rows_keep_independent_physical_adapter_checks("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_host_binding.py",
+                "anchor": "def test_incomplete_owned_inventory_port_refuses_before_core_binding("
               }
             ]
           }
@@ -27201,6 +27246,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Original observation data within one Host operation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The installed Host's own adoption/settings inventories use that same direct"
               }
             ],
             "inputsOutputs": [
@@ -27211,6 +27260,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Original observation data within one Host operation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The installed Host's own adoption/settings inventories use that same direct"
               }
             ],
             "identity": [
@@ -27221,6 +27274,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Original observation data within one Host operation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The installed Host's own adoption/settings inventories use that same direct"
               }
             ],
             "ownership": [
@@ -27231,6 +27288,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Original observation data within one Host operation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The installed Host's own adoption/settings inventories use that same direct"
               }
             ],
             "synchronization": [
@@ -27241,6 +27302,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Original observation data within one Host operation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The installed Host's own adoption/settings inventories use that same direct"
               }
             ],
             "failure": [
@@ -27251,6 +27316,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Original observation data within one Host operation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The installed Host's own adoption/settings inventories use that same direct"
               }
             ],
             "cancellation": [
@@ -27261,6 +27330,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Original observation data within one Host operation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The installed Host's own adoption/settings inventories use that same direct"
               }
             ],
             "resources": [
@@ -27271,6 +27344,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Original observation data within one Host operation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The installed Host's own adoption/settings inventories use that same direct"
               }
             ],
             "extension": [
@@ -27281,6 +27358,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Original observation data within one Host operation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The installed Host's own adoption/settings inventories use that same direct"
               }
             ],
             "verification": [
@@ -27291,114 +27372,30 @@
               {
                 "path": "src/client_host_wasm/host_current_operation_wbtest.mbt",
                 "anchor": "test \"original operation observation reuses only admitted data and still checks current and Account\""
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "OriginalHostBinding/_adoption_inventory/receive"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_local_host_binding.py",
-                "anchor": "def _adoption_inventory("
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "### Original observation data within one Host operation"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_local_host_binding.py",
-                "anchor": "def _adoption_inventory("
+                "anchor": "The installed Host's own adoption/settings inventories use that same direct"
               },
               {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "### Original observation data within one Host operation"
-              }
-            ],
-            "identity": [
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_local_host_binding.py",
-                "anchor": "def _adoption_inventory("
+                "path": "packages/python-sdk/tests/test_local_host_binding.py",
+                "anchor": "def test_owned_inventory_uses_direct_rows_without_arbitrary_consumer_callbacks("
               },
               {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "### Original observation data within one Host operation"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_local_host_binding.py",
-                "anchor": "def _adoption_inventory("
+                "path": "packages/python-sdk/tests/test_local_host_binding.py",
+                "anchor": "def test_owned_inventory_return_observes_changed_file_and_temp_schema("
               },
               {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "### Original observation data within one Host operation"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_local_host_binding.py",
-                "anchor": "def _adoption_inventory("
+                "path": "packages/python-sdk/tests/test_local_host_binding.py",
+                "anchor": "def test_owned_inventory_sql_failure_keeps_original_cause_without_fallback("
               },
               {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "### Original observation data within one Host operation"
-              }
-            ],
-            "failure": [
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_local_host_binding.py",
-                "anchor": "def _adoption_inventory("
+                "path": "packages/python-sdk/tests/test_local_host_binding.py",
+                "anchor": "def test_owned_inventory_direct_rows_keep_independent_physical_adapter_checks("
               },
               {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "### Original observation data within one Host operation"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_local_host_binding.py",
-                "anchor": "def _adoption_inventory("
-              },
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "### Original observation data within one Host operation"
-              }
-            ],
-            "resources": [
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_local_host_binding.py",
-                "anchor": "def _adoption_inventory("
-              },
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "### Original observation data within one Host operation"
-              }
-            ],
-            "extension": [
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_local_host_binding.py",
-                "anchor": "def _adoption_inventory("
-              },
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "### Original observation data within one Host operation"
-              }
-            ],
-            "verification": [
-              {
-                "path": "packages/python-sdk/tests/test_local_original_operation_current.py",
-                "anchor": "def test_metadata_requires_same_verified_frame_and_cleanup_keeps_full_checks("
-              },
-              {
-                "path": "src/client_host_wasm/host_current_operation_wbtest.mbt",
-                "anchor": "test \"original operation observation reuses only admitted data and still checks current and Account\""
+                "path": "packages/python-sdk/tests/test_local_host_binding.py",
+                "anchor": "def test_incomplete_owned_inventory_port_refuses_before_core_binding("
               }
             ]
           }
