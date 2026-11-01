@@ -178,6 +178,29 @@ class OriginalBulkTransferTests(unittest.TestCase):
                 self.assertEqual(core._output_copy_bytes(size), final)
                 core._ordinary_host = True
 
+    def test_actual_input_and_output_constructors_forward_prior_copy_reservation(self):
+        import sys
+        core, _, _ = self.bridge()
+        core._next_ticket = 17
+        calls = []
+        def call(family, operation, *args):
+            calls.append((family, operation, args))
+            return 101 if family == 'buffer' else 102
+        core._call = call
+        payload = b'original'
+        source = core.reserve_input(payload, cleanup=lambda: True, stopped=lambda _: True)
+        self.assertEqual(calls[0], ('buffer', 'reserve',
+            (17, len(payload), sys.getsizeof(payload) + len(payload) + sys.getsizeof(bytearray()))))
+        self.assertIs(core._inputs[17].payload, payload)
+        output = core.reserve_submission_projection(77, source, 1, cleanup=lambda: True)
+        limit = 4096
+        expected_copy = (3 * limit + 2 * sys.getsizeof(bytearray()) + sys.getsizeof(b'')
+                         + sys.getsizeof(output))
+        self.assertEqual(calls[1], ('submission', 'reserve', (77, 101, 1, 18, expected_copy)))
+        self.assertIs(core._loans[17], source)
+        self.assertIs(core._loans[18], output)
+        self.assertEqual(core._inputs[18].payload, b'')
+
     def test_journal_current_change_cannot_replace_original_query_or_row(self):
         from actql_sdk._local_storage import StoredBytes
         for mode in ('query', 'row'):

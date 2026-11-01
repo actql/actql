@@ -1640,9 +1640,12 @@ Core obtains only a source-pinned wasm32 payload offset through a private
 nonshared fixed memory, checks the complete bounded range, copies synchronously
 and checks original currentness/loan identity afterward. No address or view is
 public, retained beyond copying or used as a Run, grant or cleanup identity.
-An incomplete transfer refuses without caching a partial output. A failure
-retains the same original ticket and cleanup duties; no physical ACK follows
-from copying bytes.
+An incomplete transfer refuses without caching a partial output. The original
+constructor reserves the bounded Host temporary and the small-output overlap
+before allocation; the original wire limit, pool and parent remain unchanged.
+Insufficient backing refuses instead of omitting that charge. A failure retains
+the same original ticket and cleanup duties; no physical ACK follows from
+copying bytes.
 
 The separately selected raw diagnostic facade retains `fill`, `byte` and
 `read_packed`. Ordinary input/output use `fill_block` and `read_block`; a refused
