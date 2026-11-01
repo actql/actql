@@ -186,4 +186,3 @@ test "live Request projection backs output before publication decoding and retai
   assert_true(physical_equal(child.check_outcome.unwrap(), outcome))
   abort_request_preparation_after_cleanup(parent).unwrap()
 }
-
