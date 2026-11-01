@@ -5,6 +5,7 @@ import unittest
 from actql_sdk._local_core import LocalCoreError, _Input, _PUBLICATION_COMMIT_EXPORT_SIGNATURES
 from actql_sdk._local_storage import ByteWrite, LocalByteStore
 import test_local_sdk_read_original as original_fixture
+from local_abi_declaration_fixture import original_byte_fixture_port
 
 
 class SDKReadStoreScalarTests(unittest.TestCase):
@@ -99,7 +100,7 @@ class SDKReadStoreProjectionTests(unittest.TestCase):
             if family == 'buffer' and name == 'byte' and args[0] in outputs:
                 return outputs[args[0]][args[1]]
             return previous(family, name, *args)
-        core._call = call
+        core._call = original_byte_fixture_port(call)
         return core, parent, request, projection, calls, state, identity, body
 
     def test_exact_key_bytes_and_pair_custody_are_consumed_before_retirement(self):
@@ -179,7 +180,7 @@ class SDKReadStoreReconciliationTests(unittest.TestCase):
             if family == 'buffer' and name == 'byte' and args[0] in outputs:
                 return outputs[args[0]][args[1]]
             return previous(family, name, *args)
-        core._call = call
+        core._call = original_byte_fixture_port(call)
         return core, record, projection, facts, transfers, caller, calls, state, request
 
     def test_original_facts_surround_every_read_projection_without_store_writes(self):

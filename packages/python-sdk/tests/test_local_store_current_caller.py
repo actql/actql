@@ -9,6 +9,7 @@ from actql_sdk._local_storage import ByteFence, CapacityReservation, StoredBytes
 from actql_sdk._local_store_reconciliation import OriginalStoreReconciliation
 import test_local_host_binding as binding_fixture
 import test_local_reader_facts as file_fixture
+from local_abi_declaration_fixture import original_byte_fixture_port
 
 
 class StoreCurrentCallerTests(unittest.TestCase):
@@ -65,7 +66,7 @@ class StoreCurrentCallerTests(unittest.TestCase):
                 if name in ('fill', 'seal'): return 0
                 if name == 'byte': return core._inputs[args[0] - 200].payload[args[1]]
             return before(family, name, *args)
-        core._call = call
+        core._call = original_byte_fixture_port(call)
         transfers = [OriginalObservationTransfer(projection, publisher,
             max_source_bytes=512, max_packet_bytes=512, cleanup=lambda: True,
             stopped=lambda _: True, workspace_cleanup=lambda: True, workspace_stopped=lambda: True)

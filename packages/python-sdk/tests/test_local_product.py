@@ -10,6 +10,7 @@ from actql_sdk._local_core import LocalCoreError
 from actql_sdk._local_files import LocalFileError
 from actql_sdk._local_product import InstalledLocalHost, LocalProductCleanupPending
 import test_local_installation as installation_fixture
+from local_abi_declaration_fixture import original_byte_fixture_port
 
 
 class LocalProductAssemblyTests(unittest.TestCase):
@@ -79,7 +80,7 @@ class LocalProductAssemblyTests(unittest.TestCase):
                 return 0
             raise AssertionError('Unexpected execution or operation')
 
-        core._call = call
+        core._call = original_byte_fixture_port(call)
         return core, calls, codes, scope
 
     def create(self, core, path):

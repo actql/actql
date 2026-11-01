@@ -12,6 +12,7 @@ from actql_sdk._local_product import InstalledLocalHost
 from actql_sdk._local_storage import LocalStorageCommitUnknown, LocalStorageError
 from actql_sdk._local_submission import LocalSubmissionIdentityError
 import test_local_product as product_fixture
+from local_abi_declaration_fixture import original_byte_fixture_port
 
 REQUEST = 'sha256:' + 'c' * 64
 INTENT = b'{"kind":"aql","input":{"format":"sql","text":"/*\xf0\x9f\x98\x80*/\\r\\nSELECT 1 AS n"},"parameters":{"e\xcc\x81/~":null}}'
@@ -107,7 +108,7 @@ class LocalSubmissionAppendTests(unittest.TestCase):
                 return outputs[args[0]][args[1]]
             return base(family, name, *args)
 
-        core._call = call
+        core._call = original_byte_fixture_port(call)
         host = InstalledLocalHost(core, path, now=lambda: 0, observed_at='2026-10-12T00:00:00.000Z')
         self.addCleanup(host.close)
         return host, core, calls, counters

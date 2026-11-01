@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 from actql_sdk._local_storage import LocalStorageError
 import test_local_product_commit_candidate as candidate_fixture
+from local_abi_declaration_fixture import original_byte_fixture_port
 
 
 INDEX_CID = b'sha256:' + b'e' * 64
@@ -84,7 +85,7 @@ class ProductStoreObservationTests(unittest.TestCase):
                 if name == 'finish_observation': return 4 if stored else 3
                 return 0
             return previous(family, name, *args)
-        core._call = call
+        core._call = original_byte_fixture_port(call)
         return host, core, held, projection, store, scope, packets, faults, calls
 
     def test_confirmed_same_key_not_found_returns_only_owner_action_without_write_or_replay(self):

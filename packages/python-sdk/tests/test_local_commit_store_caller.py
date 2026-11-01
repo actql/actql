@@ -12,6 +12,7 @@ from actql_sdk._local_core import LocalCore, LocalCoreError, _Output
 from actql_sdk._local_storage import (
     ByteFence, CapacityReservation, LocalByteStore, StoredBytes,
 )
+from local_abi_declaration_fixture import original_byte_fixture_port
 
 
 class OriginalCommitStoreCallerTests(unittest.TestCase):
@@ -98,7 +99,7 @@ class OriginalCommitStoreCallerTests(unittest.TestCase):
                 return 0
             self.fail(f'Unexpected Core operation: {name}')
 
-        core._call = call
+        core._call = original_byte_fixture_port(call)
         caller = OriginalCommitProjection(core, parent, 31, cleanup=lambda: state['cleanup'])
         return core, parent, publisher, caller, calls, state, identities, wires, key
 
@@ -133,7 +134,7 @@ class OriginalCommitStoreCallerTests(unittest.TestCase):
                 capacities.pop(args[0], None)
             return result
 
-        core._call = call
+        core._call = original_byte_fixture_port(call)
         delivered = []
         def consume(write):
             self.assertEqual(len(caller.pending_outputs), 2)

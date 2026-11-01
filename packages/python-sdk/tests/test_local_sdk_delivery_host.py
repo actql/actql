@@ -10,6 +10,7 @@ from actql_sdk._local_storage import LocalStorageError, StoredBytes
 import test_local_reader_facts as file_fixture
 import test_local_sdk_read_evidence_host as host_fixture
 import test_local_sdk_delivery_storage as storage_fixture
+from local_abi_declaration_fixture import original_byte_fixture_port
 
 
 class SDKDeliveryHostTests(unittest.TestCase):
@@ -34,7 +35,7 @@ class SDKDeliveryHostTests(unittest.TestCase):
             if family == 'buffer' and name == 'byte' and args[0] in outputs:
                 return outputs[args[0]][args[1]]
             return previous(family, name, *args)
-        core._call = call
+        core._call = original_byte_fixture_port(call)
         return host, run, values, rows, calls
 
     def test_same_host_run_store_and_holder_survive_original_physical_cas(self):

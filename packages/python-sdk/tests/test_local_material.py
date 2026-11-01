@@ -4,6 +4,7 @@ from threading import RLock
 import unittest
 
 from actql_sdk._local_core import LocalCore, LocalCoreError, _Input
+from local_abi_declaration_fixture import original_byte_fixture_port
 
 
 class MaterialCustodyTests(unittest.TestCase):
@@ -35,7 +36,7 @@ class MaterialCustodyTests(unittest.TestCase):
                 return -9 if pending[0] else core._cleanup(1)
             raise AssertionError('Unexpected physical ABI invocation')
 
-        core._call = call
+        core._call = original_byte_fixture_port(call)
         return core, calls, pending
 
     def test_reservation_precedes_destination_and_cleanup_retains_same_loan(self):
@@ -85,7 +86,7 @@ class MaterialCustodyTests(unittest.TestCase):
                 if name == refusal:
                     return 1_048_577 if refusal == 'length' else -5
                 return original(family, name, *args)
-            core._call = call
+            core._call = original_byte_fixture_port(call)
             with self.assertRaises(LocalCoreError):
                 core.read_material(loan)
             self.assertEqual(core._inputs[loan.ticket].payload, b'')
@@ -96,7 +97,7 @@ class MaterialCustodyTests(unittest.TestCase):
         loan = core.reserve_material(7, 1, cleanup=lambda: True)
         def trapped(*_):
             raise RuntimeError('Independent interrupted Core call')
-        core._call = trapped
+        core._call = original_byte_fixture_port(trapped)
         with self.assertRaises(RuntimeError):
             core.produce_material(loan)
         self.assertIs(core._loans[loan.ticket], loan)

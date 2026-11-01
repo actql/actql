@@ -4,6 +4,7 @@ from threading import RLock
 import unittest
 
 from actql_sdk._local_core import LocalCore, LocalCoreError, _Input, _Output
+from local_abi_declaration_fixture import original_byte_fixture_port
 
 
 class PublicationCustodyTests(unittest.TestCase):
@@ -41,7 +42,7 @@ class PublicationCustodyTests(unittest.TestCase):
                 return len(wire)
             return 0
 
-        core._call = call
+        core._call = original_byte_fixture_port(call)
         return core, source, request, calls, state, wire
 
     def test_original_configuration_and_quantum_are_forwarded_without_execution(self):
@@ -75,7 +76,7 @@ class PublicationCustodyTests(unittest.TestCase):
                 self.assertEqual(core._cleanup(value.ticket), 0)
             return code
 
-        core._call = call
+        core._call = original_byte_fixture_port(call)
         self.assertTrue(core.retire_publication_output(value))
         self.assertNotIn(value.ticket, core._inputs)
         self.assertIs(core._loans[value.ticket], value)
@@ -102,9 +103,9 @@ class PublicationCustodyTests(unittest.TestCase):
         value = core.reserve_publication(source, request, cleanup=cleanup)
         core.read_publication(value)
         original_call = core._call
-        core._call = lambda family, name, *args: (
+        core._call = original_byte_fixture_port(lambda family, name, *args: (
             core._cleanup(value.ticket) * -9 if name == 'retire_output'
-            else original_call(family, name, *args))
+            else original_call(family, name, *args)))
         core._closing = True
         self.assertFalse(core.retire_publication_output(value))
         self.assertIs(core._loans[value.ticket], value)
@@ -119,7 +120,7 @@ class PublicationCustodyTests(unittest.TestCase):
     def test_incomplete_transport_retirement_is_not_success(self):
         core, source, request, calls, state, wire = self.bridge()
         value = core.reserve_publication(source, request, cleanup=lambda: True)
-        core._call = lambda family, name, *args: -33
+        core._call = original_byte_fixture_port(lambda family, name, *args: -33)
         with self.assertRaises(LocalCoreError) as caught:
             core.retire_publication_output(value)
         self.assertEqual(caught.exception.code, -33)

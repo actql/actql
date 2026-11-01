@@ -4,6 +4,7 @@ from threading import RLock
 import unittest
 
 from actql_sdk._local_core import LocalCore, LocalCoreError, _Output
+from local_abi_declaration_fixture import original_byte_fixture_port
 
 
 class CommitMaterialCustodyTests(unittest.TestCase):
@@ -39,7 +40,7 @@ class CommitMaterialCustodyTests(unittest.TestCase):
                 return 0 if core._cleanup(8) == 0 else -9
             return state[name]
 
-        core._call = call
+        core._call = original_byte_fixture_port(call)
         return core, parent, calls, state, wire
 
     def test_bounded_field_retains_same_original_parent_and_actual_copy_reservation(self):
@@ -53,7 +54,7 @@ class CommitMaterialCustodyTests(unittest.TestCase):
                 self.assertLess(args[3], 4096)
                 return 29
             return previous(family, name, *args)
-        core._call = call
+        core._call = original_byte_fixture_port(call)
         output = core.reserve_publication_commit_export(parent, cleanup=lambda: True, maximum=71)
         self.assertEqual(output.limit, 71)
         self.assertIs(core._loans[8], output)

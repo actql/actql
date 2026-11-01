@@ -14,6 +14,7 @@ from actql_sdk._local_product import LocalProductCleanupPending
 from actql_sdk._local_submission import LocalSubmissionIdentityError
 from actql_sdk._local_storage import LocalStorageError
 import test_local_submission_append as append_fixture
+from local_abi_declaration_fixture import original_byte_fixture_port
 
 
 class LocalSubmissionLookupTests(unittest.TestCase):
@@ -267,7 +268,7 @@ class LocalSubmissionLookupTests(unittest.TestCase):
                 return outputs[args[0]][args[1]]
             return base(family, name, *args)
 
-        core._call = call
+        core._call = original_byte_fixture_port(call)
         return host, core, calls, counters, reference
 
     def test_ready_lookup_uses_original_admission_without_preparation_or_resend(self):

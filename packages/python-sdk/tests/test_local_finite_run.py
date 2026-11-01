@@ -11,6 +11,7 @@ from actql_sdk._local_core import LocalCoreError, _Output
 from actql_sdk._local_storage import LocalStorageCommitUnknown, LocalStorageError
 import test_local_run as run_fixture
 import test_local_submission_append as append_fixture
+from local_abi_declaration_fixture import original_byte_fixture_port
 
 RUN_KEY = 'sha256:' + 'a' * 64
 RUN_BODY = b'{"opaque":"original Core Run and packet e\xcc\x81/~","null":null}'
@@ -193,7 +194,7 @@ class FiniteRunSQLiteTests(unittest.TestCase):
             if family == 'buffer' and name == 'byte' and args[0] in output_handle:
                 return json.dumps(candidate, ensure_ascii=False).encode()[args[1]]
             return original(family, name, *args)
-        core._call = call
+        core._call = original_byte_fixture_port(call)
         output = core.reserve_submitted_run_rows(7, host._configuration.handle, source, cleanup=lambda: True)
         host._row_outputs.append(output)
         self.addCleanup(host.close)
@@ -349,7 +350,7 @@ class FiniteRunAssemblyTests(unittest.TestCase):
             if family == 'buffer' and name == 'byte' and args[0] in journal_tickets:
                 return admission[args[1]]
             return previous(family, name, *args)
-        core._call = call
+        core._call = original_byte_fixture_port(call)
         return host, core, events, admission
 
     def test_preparation_write_and_saved_admission_use_same_original_assembly(self):

@@ -6,6 +6,7 @@ import unittest
 from actql_sdk._local_core import (
     LocalCore, LocalCoreError, _Compute, _Input, _Output, _RUN_INVOCATION_SIGNATURES,
 )
+from local_abi_declaration_fixture import original_byte_fixture_port
 
 
 class SourceFreeInvocationCustodyTests(unittest.TestCase):
@@ -43,7 +44,7 @@ class SourceFreeInvocationCustodyTests(unittest.TestCase):
                 return len(wire)
             return state[name]
 
-        core._call = call
+        core._call = original_byte_fixture_port(call)
         return core, compute, source, calls, state, wire
 
     def test_exact_closed_export_signatures(self):
