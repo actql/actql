@@ -21,6 +21,33 @@ class OriginalOperationCurrentTests(unittest.TestCase):
         calls.clear()
         return store, core, calls, binding, fuel
 
+    def test_same_operation_cannot_hide_new_adoption_member_between_original_readers(self):
+        from actql_sdk._local_storage import LocalStorageError
+        store, core, calls, binding, _ = self.fixture()
+        original_call = core._call
+        def selected(family, operation, *args):
+            if family == 'current' and operation in ('bind', 'validate'):
+                callbacks = core._journal_callbacks(binding._current.ticket)
+                rows = []
+                callbacks.reader.scan_after('client_local_adoption', '',
+                    lambda row: rows.append(row))
+                callbacks.reader.scan_after('client_local_adoption', 'adoption',
+                    lambda row: rows.append(row))
+                if rows[0] is None or rows[0][0] != 'adoption' or rows[1] is not None:
+                    raise LocalStorageError('Original complete adoption singleton changed')
+            return original_call(family, operation, *args)
+        core._call = selected
+        original_input, original_current = binding._input, binding._current
+        with core._host_operation():
+            binding.inspect(lambda _: None)
+            self.assertEqual(store.compare_exchange(store.namespaced_key(
+                'client_local_adoption', 'extra'), None, b'foreign singleton member'), 0)
+            with self.assertRaises(LocalStorageError):
+                binding.inspect(lambda _: None)
+            self.assertIsNone(binding._bound_operation)
+        self.assertIs(core._loans[original_input.ticket], original_input)
+        self.assertIs(core._loans[original_current.ticket], original_current)
+
     def test_same_existing_operation_reuses_bound_original_but_every_reader_remains_current(self):
         store, core, calls, binding, fuel = self.fixture()
         frames, actions = [], []
