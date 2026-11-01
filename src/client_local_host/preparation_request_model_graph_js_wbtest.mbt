@@ -722,6 +722,7 @@ test "Request Node Model Plan retains actual layout extent before Scope read and
   let scope = prepare_request_model_read_scope(f.parent, f.input, plan).unwrap()
   complete_request_model_preparation(f.parent, f.input, plan).unwrap()
   let run = begin_request_model_managed_run(f.parent, f.request, scope).unwrap()
+  request_node_model_complete_prefix(run, f, prefix)
   let before = @resources.ledger_usage(f.parent.ledger)
   let read = @publication_host.prepare_client_node_model_read_layout(
     scope,
@@ -743,6 +744,25 @@ test "Request Node Model Plan retains actual layout extent before Scope read and
     after.reserved_execution_bytes - before.reserved_execution_bytes,
     3000L,
   )
+  let consumer = @publication_host.claim_client_node_model_preparation_layout(
+    read,
+    f.compiled,
+    f.definition,
+    f.graph,
+    Some(layout),
+    installation,
+    layout.runtime_artifact_cid,
+    layout.layout_artifact_cid,
+    None,
+  ).unwrap()
+  @publication_host.enter_client_model_read_consumer(
+    consumer,
+    f.compiled,
+    f.definition,
+    f.graph,
+    7000L,
+    3000L,
+  ).unwrap()
   assert_true(physical_equal(run.ledger.unwrap(), f.parent.ledger))
   assert_true(retire_installed_managed_run(run) is Err(CleanupPending))
   @publication_host.stop_client_model_read(read).unwrap()
@@ -796,5 +816,104 @@ test "Request Node Model Plan keeps original layout refusal before Scope and lea
   assert_eq(@resources.ledger_usage(f.parent.ledger), before)
   @resources.return_preparation_body_borrow(f.holder).unwrap() |> ignore
   abort_request_preparation_after_cleanup(f.parent).unwrap()
+  assert_eq(@resources.ledger_usage(f.parent.ledger).live_reservations, 0)
+}
+
+///|
+fn request_node_model_complete_prefix(
+  run : ClientInstalledManagedRun,
+  f : RequestSerializedModelFixture,
+  prefix : ClientInstalledManagedSerializationPreparation,
+) -> Unit raise {
+  let child = start_installed_managed_serialization_prefix(
+    run,
+    f.prepared,
+    prefix,
+  ).unwrap()
+  let mut complete = false
+  for _ in 0..<1000 {
+    match advance_client_serialization_prefix(child, 1).unwrap() {
+      @local.Complete(output, ..) => {
+        assert_eq(@execution.completed_row_count(output), 1)
+        complete = true
+        break
+      }
+      @local.Continue(..) | @local.Waiting(..) | @local.Settling(_, ..) => ()
+      _ => fail("same original Request Model prefix")
+    }
+  }
+  assert_true(complete)
+}
+
+///|
+test "Request Node Model read issued before prefix cannot refresh or claim the changed original Ledger" {
+  let (f, selected_module, prefix) = request_node_model_plan_inputs()
+  let layout = request_node_model_layout_declaration(f.graph)
+  let installation = request_node_model_layout_installation()
+  let plan = prepare_request_node_model_source_free_plan(
+    f.parent,
+    f.input,
+    selected_module,
+    f.request,
+    f.compiled,
+    f.definition,
+    f.occurrence,
+    f.graph,
+    effect_model_plan_limits,
+    Some(layout),
+    installation,
+    layout.runtime_artifact_cid,
+    layout.layout_artifact_cid,
+    None,
+    20,
+    20,
+    20,
+  ).unwrap()
+  let scope = prepare_request_model_read_scope(f.parent, f.input, plan).unwrap()
+  complete_request_model_preparation(f.parent, f.input, plan).unwrap()
+  let run = begin_request_model_managed_run(f.parent, f.request, scope).unwrap()
+  let early_read = @publication_host.prepare_client_node_model_read_layout(
+    scope,
+    f.compiled,
+    f.definition,
+    f.graph,
+    Some(layout),
+    installation,
+    layout.runtime_artifact_cid,
+    layout.layout_artifact_cid,
+    None,
+  ).unwrap()
+  request_node_model_complete_prefix(run, f, prefix)
+  assert_true(
+    @publication_host.claim_client_node_model_preparation_layout(
+      early_read,
+      f.compiled,
+      f.definition,
+      f.graph,
+      Some(layout),
+      installation,
+      layout.runtime_artifact_cid,
+      layout.layout_artifact_cid,
+      None,
+    )
+    is Err(Read(Resource(@resources.ChangedOriginalState))),
+  )
+  // Retire this failed original; never issue a replacement read in its Scope.
+  @publication_host.stop_client_model_read(early_read).unwrap()
+  @publication_host.settle_client_model_read(early_read, true).unwrap()
+  assert_true(
+    cleanup_installed_managed_serialization_prefix(run, prefix).unwrap(),
+  )
+  assert_true(
+    @publication_host.finish_client_model_read_scope(
+      scope,
+      f.compiled,
+      f.definition,
+      f.graph,
+      true,
+    ).unwrap(),
+  )
+  @resources.return_preparation_body_borrow(f.holder).unwrap() |> ignore
+  retire_installed_managed_run(run).unwrap()
   assert_eq(@resources.ledger_usage(f.parent.ledger).live_reservations, 0)
 }
