@@ -47805,7 +47805,7 @@
     {
       "module": "adapters/host-node/in-process-client.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "9cbbfec214faab7d629684b1e4c72e16496e12068fa259af2a46427160987e2e",
+      "sha256": "9fa3826469f973110bcaaa68fb5c3b01030bddddcabed05570b6551e30b41994",
       "role": "physical-io",
       "owner": "Existing Client Host admission/read services and physical Node ingress",
       "exports": [
@@ -48155,6 +48155,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "bindManagedComputeRunObservation(prepared, ref) {"
+              },
+              {
+                "path": "adapters/host-node/in-process-client.mjs",
+                "anchor": "// Lookup control is transport-only, not part of the journal's canonical"
               }
             ],
             "ownership": [
@@ -48259,6 +48263,10 @@
               {
                 "path": "adapters/host-node/in-process-result-observation.test.mjs",
                 "anchor": "test('partial or failed rows never fabricate quiescent usage and observation errors preserve rows'"
+              },
+              {
+                "path": "adapters/host-node/in-process-client.mjs",
+                "anchor": "// request snapshot. Keep its handler alive until settlement; an abort"
               }
             ],
             "resources": [
@@ -48349,6 +48357,18 @@
               {
                 "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
                 "anchor": "test('managed usage reader selects only the same admitted Run and releases its installation alias'"
+              },
+              {
+                "path": "adapters/host-node/client-submission.test.mjs",
+                "anchor": "test('public submission lookup keeps live signals outside the canonical request and original identity'"
+              },
+              {
+                "path": "adapters/host-node/client-submission.test.mjs",
+                "anchor": "test('public submission lookup observes later abort after handler settlement without cancelling the original'"
+              },
+              {
+                "path": "adapters/host-node/client-submission.test.mjs",
+                "anchor": "test('public submission lookup preserves sanitized handler rejection when its signal also aborts'"
               }
             ]
           }
