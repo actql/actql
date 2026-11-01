@@ -7,7 +7,7 @@ test "same-stage acquired serialized Model preserves original capture module inp
   let declaration = request_model_module_declaration()
   let (environment, _) = effect_model_plan_source(declaration=Some(declaration))
   let document =
-    #|{"version":"actql/0.1","id":"same-stage-acquired-serialized-model","stages":[{"id":"main","inputs":{"remote":{"connector":"model/source-fixture","resource":"r","view":"records"}},"steps":[{"from":"remote","filter":"id >= 0","as":"scan"},{"select":["id"],"as":"captured"},{"assert_rows":{"unique_by":["id"]},"as":"unique_input"},{"serialize":{"format":"jsonl","fields":["id"],"name":"out.jsonl","preserve_order":true,"bounds":{"max_rows":1,"max_bytes":128}},"as":"attachment"},{"assert_rows":{"unique_by":["name"]},"as":"unique_attachment"},{"infer":{"contract":"model-task:risk-score.v1","key":"name","input":{"text":{"field":"name"}}},"as":"inferred"}],"results":{"answer":{"from":"inferred","fields":["name","outcome","value"]}}}],"results":{"answer":{"from":{"stage":"main","result":"answer"}}}}
+    #|{"version":"actql/0.1","id":"same-stage-acquired-serialized-model","stages":[{"id":"main","inputs":{"remote":{"connector":"model/source-fixture","resource":"r","view":"records"}},"steps":[{"from":"remote","filter":"id >= 0","as":"scan"},{"select":["id"],"as":"captured"},{"assert_rows":{"unique_by":["id"]},"as":"unique_input"},{"serialize":{"format":"jsonl","fields":["id"],"name":"out.jsonl","order_by":[{"id":"asc"}],"bounds":{"max_rows":1,"max_bytes":128}},"as":"attachment"},{"assert_rows":{"unique_by":["name"]},"as":"unique_attachment"},{"infer":{"contract":"model-task:risk-score.v1","key":"name","input":{"text":{"field":"name"}}},"as":"inferred"}],"results":{"answer":{"from":"inferred","fields":["name","outcome","value"]}}}],"results":{"answer":{"from":{"stage":"main","result":"answer"}}}}
   let ordinary = client_local_preparation_initial_limits(
     client_local_resource_policy(),
   ).unwrap()
@@ -186,7 +186,7 @@ test "same-stage acquired serialized Model preserves original capture module inp
     3,
     1,
     128,
-    true,
+    false,
     contracts,
     manifests~,
     compilation_limits~,
