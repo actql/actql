@@ -168,7 +168,7 @@ test "live Request projection backs output before publication decoding and retai
   )
   assert_true(physical_equal(child.check_outcome.unwrap(), outcome))
   assert_true(parent.phase == ProgramCheck && !child.busy)
-  @resources.release_capacity(blocker).unwrap()
+  @resources.settle_capacity(parent.ledger, blocker).unwrap()
   let report = request_observation_project(parent, input, terminal, publication)
     .unwrap()
     .unwrap()

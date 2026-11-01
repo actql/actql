@@ -81,8 +81,8 @@ pub fn client_program_project_original_check_outcome(
       let input = @sourceview_input.at(inputs, index).unwrap()
       if !(unregistered is Some(original) && physical_equal(original, input)) &&
         !(input.view is Some(view) &&
-        aliases.any(alias => {
-          check_program_public_text(alias, "sourceRef") ==
+        aliases.any(entry => {
+          check_program_public_text(entry, "sourceRef") ==
           Some(
             "connector://" + input.connector + "/" + input.resource + "#" + view,
           )
