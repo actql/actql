@@ -1,6 +1,6 @@
 {
   "source": "d5d66cd86ac2e153f31a511e7d37c78e0cc28ae3",
-  "syntaxProjectionSha256": "7b904ffd0a0f741f61e32a615af1c05703909cbd18155e2dcae3d6a5173e721e",
+  "syntaxProjectionSha256": "b4e2b588e31be95e2e97cbacfc133c4f6a0b24d40e734d2f781f0c1c672cd515",
   "qualification": "Source-reference coverage only; original Native/FFI/Python executions retain their own source, artifact and target qualifications. No normal funding, VM or installed product admission.",
   "generated": [
     {
@@ -65,7 +65,7 @@
     },
     {
       "module": "packages/python-sdk/src/actql_sdk/_local_wasm_abi.py",
-      "sha256": "13b8efe0badec518fc97b24f4b579ec311280480f98cdfca5b122b07ab1a1609",
+      "sha256": "893deee3311549335d9f4bead5547a75ff52fb877c804825e372bfe51b5b8e0c",
       "generator": {
         "path": "scripts/generate-local-wasm-abi.py",
         "anchor": "def render("
@@ -5179,6 +5179,24 @@
         },
         {
           "async": false,
+          "name": "LocalCore/_bulk_memory",
+          "parameters": [
+            "self",
+            "caller",
+            "offset",
+            "length"
+          ]
+        },
+        {
+          "async": false,
+          "name": "LocalCore/_bulk_memory_current",
+          "parameters": [
+            "self",
+            "memory"
+          ]
+        },
+        {
+          "async": false,
           "name": "LocalCore/_call",
           "parameters": [
             "self",
@@ -5277,6 +5295,18 @@
         },
         {
           "async": false,
+          "name": "LocalCore/_input_copy",
+          "parameters": [
+            "self",
+            "caller",
+            "ticket",
+            "start",
+            "offset",
+            "length"
+          ]
+        },
+        {
+          "async": false,
           "name": "LocalCore/_journal_begin",
           "parameters": [
             "self",
@@ -5302,6 +5332,19 @@
           "parameters": [
             "self",
             "ticket"
+          ]
+        },
+        {
+          "async": false,
+          "name": "LocalCore/_journal_copy",
+          "parameters": [
+            "self",
+            "caller",
+            "ticket",
+            "field",
+            "index",
+            "offset",
+            "length"
           ]
         },
         {
@@ -5337,6 +5380,18 @@
             "ticket",
             "index",
             "byte"
+          ]
+        },
+        {
+          "async": false,
+          "name": "LocalCore/_journal_query_copy",
+          "parameters": [
+            "self",
+            "caller",
+            "ticket",
+            "index",
+            "offset",
+            "length"
           ]
         },
         {
@@ -5539,6 +5594,18 @@
         },
         {
           "async": false,
+          "name": "LocalCore/_publisher_copy",
+          "parameters": [
+            "self",
+            "caller",
+            "ticket",
+            "index",
+            "offset",
+            "length"
+          ]
+        },
+        {
+          "async": false,
           "name": "LocalCore/_publisher_current",
           "parameters": [
             "self",
@@ -5571,6 +5638,16 @@
             "family",
             "operation",
             "abi_family"
+          ]
+        },
+        {
+          "async": false,
+          "name": "LocalCore/_read_output_block",
+          "parameters": [
+            "self",
+            "value",
+            "start",
+            "length"
           ]
         },
         {
@@ -7821,7 +7898,7 @@
           ]
         }
       ],
-      "sha256": "c2906a5a2f44981d9ee91e4872552d238f79e973fe2bfdcecb006c912f2415da",
+      "sha256": "3a340c902146b31001a8ff43469bcbd303e1551170606889cf15409872975b93",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -13966,6 +14043,128 @@
               {
                 "path": "packages/python-sdk/tests/test_local_check_ports.py",
                 "anchor": "def test_failed_child_cleanup_keeps_original_input_until_separate_return("
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "LocalCore/_bulk_memory",
+            "LocalCore/_bulk_memory_current",
+            "LocalCore/_input_copy",
+            "LocalCore/_journal_copy",
+            "LocalCore/_journal_query_copy",
+            "LocalCore/_publisher_copy",
+            "LocalCore/_read_output_block"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Bounded ordinary transfers"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "    def _bulk_memory("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Bounded ordinary transfers"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "    def _bulk_memory("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Bounded ordinary transfers"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "    def _bulk_memory("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Bounded ordinary transfers"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "    def _bulk_memory("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Bounded ordinary transfers"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "    def _bulk_memory("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Bounded ordinary transfers"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "    def _bulk_memory("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Bounded ordinary transfers"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "    def _bulk_memory("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Bounded ordinary transfers"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "    def _bulk_memory("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Bounded ordinary transfers"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "    def _bulk_memory("
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Bounded ordinary transfers"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "    def _bulk_memory("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_original_bulk_transfer.py",
+                "anchor": "    def test_current_or_original_output_change_during_copy_keeps_no_partial_payload("
+              },
+              {
+                "path": "src/client_host_wasm/original_bulk_output_wbtest.mbt",
+                "anchor": "test \"original bulk output keeps exact range and cleanup guards without copying or reissuing\""
               }
             ]
           }
@@ -28431,6 +28630,15 @@
         },
         {
           "async": false,
+          "name": "_JournalCallbacks/query_copy",
+          "parameters": [
+            "self",
+            "index",
+            "payload"
+          ]
+        },
+        {
+          "async": false,
           "name": "_JournalCallbacks/release",
           "parameters": [
             "self"
@@ -28451,9 +28659,19 @@
             "field",
             "index"
           ]
+        },
+        {
+          "async": false,
+          "name": "_JournalCallbacks/row_copy",
+          "parameters": [
+            "self",
+            "field",
+            "index",
+            "length"
+          ]
         }
       ],
-      "sha256": "a8cb0c1de48b990217f942fbb130edcb02b2728dfd348b61aee555f904ad6bf6",
+      "sha256": "8dfeaa690a4dce4b602689575d8d9a34657a7c4006ca92d360ee76899769b97c",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -28694,6 +28912,123 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_journal_port.py",
                 "anchor": "\"\"\"Bounded physical query transport; original Core Owners decide inventory facts.\"\"\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "_JournalCallbacks/query_copy",
+            "_JournalCallbacks/row_copy"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Bounded ordinary transfers"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_journal_port.py",
+                "anchor": "    def query_copy("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Bounded ordinary transfers"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_journal_port.py",
+                "anchor": "    def query_copy("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Bounded ordinary transfers"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_journal_port.py",
+                "anchor": "    def query_copy("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Bounded ordinary transfers"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_journal_port.py",
+                "anchor": "    def query_copy("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Bounded ordinary transfers"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_journal_port.py",
+                "anchor": "    def query_copy("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Bounded ordinary transfers"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_journal_port.py",
+                "anchor": "    def query_copy("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Bounded ordinary transfers"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_journal_port.py",
+                "anchor": "    def query_copy("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Bounded ordinary transfers"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_journal_port.py",
+                "anchor": "    def query_copy("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Bounded ordinary transfers"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_journal_port.py",
+                "anchor": "    def query_copy("
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Bounded ordinary transfers"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_journal_port.py",
+                "anchor": "    def query_copy("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_original_bulk_transfer.py",
+                "anchor": "    def test_current_or_original_output_change_during_copy_keeps_no_partial_payload("
+              },
+              {
+                "path": "src/client_host_wasm/original_bulk_output_wbtest.mbt",
+                "anchor": "test \"original bulk output keeps exact range and cleanup guards without copying or reissuing\""
               }
             ]
           }
