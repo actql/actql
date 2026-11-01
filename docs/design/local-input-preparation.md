@@ -4667,3 +4667,30 @@ The entire runtime Plan allowance is never added to preparation as a proxy
 for construction. This accounts for the Scope and census only: complete
 physical Host/provider/material/output and failed-child coexistence still
 requires its actual original lifetime and inventory before allocation.
+
+
+### Fixed Request controls and synchronous domain construction
+
+The Request keeps a named conservative control envelope for its existing fixed
+parent, borrower, handoff and cleanup records. Its retained allowance remains
+14,464 logical bytes: the common representation tariff for 220 headers, 401
+references and 455 words, plus the existing 4,096-byte fixed allowance. The
+original input, AST, rows, operation counts and simultaneous domain payloads
+remain proportionally reserved on the same parent. The fixed envelope does not
+price individual JavaScript closure or compiler Option representations.
+
+The ordinary manager shares busy cleanup and original failure retention only
+across synchronous Model and Content constructors. Each domain still retains
+its original Graph, compiler, Plan and Scope before its next fallible callback.
+An explicit failed flag preserves even a thrown null or undefined. The async
+policy verifier keeps its separate existing lifetime.
+
+Run registration checks the original Prepared duplicate and the existing 4,096
+live-record limit before Core adoption. A transient synchronous registration
+set includes constructors currently reserving those same slots; other existing
+Run entrances respect it during reentry. On success the returned native Run is
+stored in the original live inventory before any later current callback. On
+construction failure the transient slot is removed, while partial native
+materials stay on the same Request and domain carrier for original cleanup.
+This bookkeeping neither acknowledges physical release nor adds a Resource
+owner. Existing Scope, Content prefix and Effect cleanup duties remain separate.

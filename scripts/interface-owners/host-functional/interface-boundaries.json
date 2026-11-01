@@ -27795,7 +27795,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -27958,7 +27958,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -28590,7 +28590,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -106860,7 +106860,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-source-managed.mjs",
-      "sha256": "7b2b670354cb024a2e0853789f7cb347af8acddc851cb0e65e9b4460a0bb4904",
+      "sha256": "59edd09cb3752778aade2438c8c0ca494f4cad2912839b3a8ca1b3fb58b1a0ea",
       "exports": [
         "assertOrdinarySourcePreparationCurrent",
         "prepareOrdinaryProjectSourceManagedInstallation",
@@ -106940,6 +106940,14 @@
           "name": "prepareOrdinaryManagedInstallation/closeChild/work/work",
           "parameters": [],
           "async": true
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/constructRequestDomain",
+          "parameters": [
+            "state",
+            "construct"
+          ],
+          "async": false
         },
         {
           "name": "prepareOrdinaryManagedInstallation/current/current",
@@ -107068,6 +107076,14 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/registerRequestRun",
+          "parameters": [
+            "run",
+            "construct"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/releaseFinishedProducer/releaseFinishedProducer",
           "parameters": [
             "producer"
@@ -107119,6 +107135,11 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/view/init:adoptCapturePreparation/init:adoptCapturePreparation/init:adoptCapturePreparation",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/view/init:adoptContentPreparation/init:adoptContentPreparation",
           "parameters": [
             "prepared",
@@ -107126,6 +107147,11 @@
             "contentPlan",
             "serialization"
           ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:adoptContentPreparation/init:adoptContentPreparation/init:adoptContentPreparation",
+          "parameters": [],
           "async": false
         },
         {
@@ -107167,6 +107193,11 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/view/init:adoptModelPreparation/init:adoptModelPreparation/init:adoptModelPreparation#2",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/view/init:adoptPreparation/init:adoptPreparation",
           "parameters": [
             "prepared",
@@ -107174,6 +107205,11 @@
             "identity",
             "constructInvocation"
           ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:adoptPreparation/init:adoptPreparation/init:adoptPreparation",
+          "parameters": [],
           "async": false
         },
         {
@@ -107371,12 +107407,22 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareContentCompilation/init:prepareContentCompilation/init:prepareContentCompilation",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/view/init:prepareContentGraph/init:prepareContentGraph",
           "parameters": [
             "prepared",
             "request",
             "constructOriginal"
           ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareContentGraph/init:prepareContentGraph/init:prepareContentGraph",
+          "parameters": [],
           "async": false
         },
         {
@@ -107390,6 +107436,11 @@
             "compileOriginal",
             "contentPreparation"
           ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareKeyedContentRun/init:prepareKeyedContentRun/init:prepareKeyedContentRun",
+          "parameters": [],
           "async": false
         },
         {
@@ -107446,6 +107497,11 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelBinding/init:prepareModelBinding/init:prepareModelBinding",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelCompilation/init:prepareModelCompilation",
           "parameters": [
             "prepared",
@@ -107455,13 +107511,24 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelCompilation/init:prepareModelCompilation/init:prepareModelCompilation",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelGraph/init:prepareModelGraph",
           "parameters": [
             "prepared",
             "request",
             "occurrence",
-            "execution"
+            "execution",
+            "serializationGraph"
           ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelGraph/init:prepareModelGraph/init:prepareModelGraph",
+          "parameters": [],
           "async": false
         },
         {
@@ -107476,6 +107543,11 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelMaterials/init:prepareModelMaterials/init:prepareModelMaterials",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelRun/init:prepareModelRun",
           "parameters": [
             "prepared",
@@ -107484,6 +107556,11 @@
             "model",
             "constructPlan"
           ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelRun/init:prepareModelRun/init:prepareModelRun",
+          "parameters": [],
           "async": false
         },
         {
@@ -107551,6 +107628,11 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareSerializationRun/init:prepareSerializationRun/init:prepareSerializationRun",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/view/init:publicationPreparation/init:publicationPreparation",
           "parameters": [
             "prepared"
@@ -107613,6 +107695,11 @@
             "stage",
             "sourceIndex"
           ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:selectDomainSourceInput/init:selectDomainSourceInput/init:selectDomainSourceInput",
+          "parameters": [],
           "async": false
         },
         {
@@ -108621,8 +108708,10 @@
         {
           "operations": [
             "prepareOrdinaryManagedInstallation/producerForRequest/producerForRequest",
+            "prepareOrdinaryManagedInstallation/registerRequestRun",
             "prepareOrdinaryManagedInstallation/retireInitialPreparation/retireInitialPreparation",
             "prepareOrdinaryManagedInstallation/view/init:adoptPreparation/init:adoptPreparation",
+            "prepareOrdinaryManagedInstallation/view/init:adoptPreparation/init:adoptPreparation/init:adoptPreparation",
             "prepareOrdinaryManagedInstallation/view/init:beforeSourceSnapshot/init:beforeSourceSnapshot/assertOriginalCurrent/assertOriginalCurrent",
             "prepareOrdinaryManagedInstallation/view/init:borrowPreparation/init:borrowPreparation",
             "prepareOrdinaryManagedInstallation/view/init:captureSourceSnapshot/init:captureSourceSnapshot",
@@ -108655,6 +108744,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Fixed Request controls and synchronous domain construction"
               }
             ],
             "inputsOutputs": [
@@ -108677,6 +108770,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Fixed Request controls and synchronous domain construction"
               }
             ],
             "identity": [
@@ -108699,6 +108796,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Fixed Request controls and synchronous domain construction"
               }
             ],
             "ownership": [
@@ -108721,6 +108822,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Fixed Request controls and synchronous domain construction"
               }
             ],
             "synchronization": [
@@ -108743,6 +108848,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Fixed Request controls and synchronous domain construction"
               }
             ],
             "failure": [
@@ -108765,6 +108874,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Fixed Request controls and synchronous domain construction"
               }
             ],
             "cancellation": [
@@ -108787,6 +108900,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Fixed Request controls and synchronous domain construction"
               }
             ],
             "resources": [
@@ -108809,6 +108926,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Fixed Request controls and synchronous domain construction"
               }
             ],
             "extension": [
@@ -108831,6 +108952,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Fixed Request controls and synchronous domain construction"
               }
             ],
             "verification": [
@@ -108849,6 +108974,14 @@
               {
                 "path": "adapters/host-node/content-preparation-retirement.test.mjs",
                 "anchor": "retired keyed Content does not exhaust the unchanged 4096 live-preparation limit"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Fixed Request controls and synchronous domain construction"
+              },
+              {
+                "path": "adapters/host-node/request-domain-preparation.test.mjs",
+                "anchor": "test('Request registration refuses every full or duplicate original before native adoption'"
               }
             ]
           }
@@ -109041,12 +109174,19 @@
         },
         {
           "operations": [
+            "prepareOrdinaryManagedInstallation/constructRequestDomain",
             "prepareOrdinaryManagedInstallation/view/init:adoptCapturePreparation/init:adoptCapturePreparation",
+            "prepareOrdinaryManagedInstallation/view/init:adoptCapturePreparation/init:adoptCapturePreparation/init:adoptCapturePreparation",
             "prepareOrdinaryManagedInstallation/view/init:prepareContentGraph/init:prepareContentGraph",
+            "prepareOrdinaryManagedInstallation/view/init:prepareContentGraph/init:prepareContentGraph/init:prepareContentGraph",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelBinding/init:prepareModelBinding",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelBinding/init:prepareModelBinding/init:prepareModelBinding",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelGraph/init:prepareModelGraph",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelGraph/init:prepareModelGraph/init:prepareModelGraph",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelMaterials/init:prepareModelMaterials",
-            "prepareOrdinaryManagedInstallation/view/init:selectDomainSourceInput/init:selectDomainSourceInput"
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelMaterials/init:prepareModelMaterials/init:prepareModelMaterials",
+            "prepareOrdinaryManagedInstallation/view/init:selectDomainSourceInput/init:selectDomainSourceInput",
+            "prepareOrdinaryManagedInstallation/view/init:selectDomainSourceInput/init:selectDomainSourceInput/init:selectDomainSourceInput"
           ],
           "exports": [],
           "attributes": {
@@ -109058,6 +109198,10 @@
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
                 "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan, constructInvocation)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Fixed Request controls and synchronous domain construction"
               }
             ],
             "inputsOutputs": [
@@ -109072,6 +109216,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Accounted captured module before Run adoption"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Fixed Request controls and synchronous domain construction"
               }
             ],
             "identity": [
@@ -109082,6 +109230,10 @@
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
                 "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan, constructInvocation)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Fixed Request controls and synchronous domain construction"
               }
             ],
             "ownership": [
@@ -109092,6 +109244,10 @@
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
                 "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan, constructInvocation)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Fixed Request controls and synchronous domain construction"
               }
             ],
             "synchronization": [
@@ -109102,6 +109258,10 @@
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
                 "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan, constructInvocation)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Fixed Request controls and synchronous domain construction"
               }
             ],
             "failure": [
@@ -109112,6 +109272,10 @@
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
                 "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan, constructInvocation)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Fixed Request controls and synchronous domain construction"
               }
             ],
             "cancellation": [
@@ -109122,6 +109286,10 @@
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
                 "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan, constructInvocation)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Fixed Request controls and synchronous domain construction"
               }
             ],
             "resources": [
@@ -109132,6 +109300,10 @@
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
                 "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan, constructInvocation)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Fixed Request controls and synchronous domain construction"
               }
             ],
             "extension": [
@@ -109142,6 +109314,10 @@
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
                 "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan, constructInvocation)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Fixed Request controls and synchronous domain construction"
               }
             ],
             "verification": [
@@ -109156,6 +109332,14 @@
               {
                 "path": "adapters/host-node/request-preparation-parent.test.mjs",
                 "anchor": "test('captured Request constructs its accounted module before original Run adoption on the same borrow'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Fixed Request controls and synchronous domain construction"
+              },
+              {
+                "path": "adapters/host-node/request-domain-preparation.test.mjs",
+                "anchor": "test('Request registration refuses every full or duplicate original before native adoption'"
               }
             ]
           }
@@ -109839,9 +110023,12 @@
         {
           "operations": [
             "prepareOrdinaryManagedInstallation/view/init:adoptContentPreparation/init:adoptContentPreparation",
+            "prepareOrdinaryManagedInstallation/view/init:adoptContentPreparation/init:adoptContentPreparation/init:adoptContentPreparation",
             "prepareOrdinaryManagedInstallation/view/init:adoptModelPreparation/init:adoptModelPreparation",
             "prepareOrdinaryManagedInstallation/view/init:adoptModelPreparation/init:adoptModelPreparation/init:adoptModelPreparation",
-            "prepareOrdinaryManagedInstallation/view/init:prepareModelCompilation/init:prepareModelCompilation"
+            "prepareOrdinaryManagedInstallation/view/init:adoptModelPreparation/init:adoptModelPreparation/init:adoptModelPreparation#2",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelCompilation/init:prepareModelCompilation",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelCompilation/init:prepareModelCompilation/init:prepareModelCompilation"
           ],
           "exports": [],
           "attributes": {
@@ -110029,7 +110216,8 @@
         },
         {
           "operations": [
-            "prepareOrdinaryManagedInstallation/view/init:prepareModelRun/init:prepareModelRun"
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelRun/init:prepareModelRun",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelRun/init:prepareModelRun/init:prepareModelRun"
           ],
           "exports": [],
           "attributes": {
@@ -110134,7 +110322,9 @@
         {
           "operations": [
             "prepareOrdinaryManagedInstallation/view/init:prepareContentCompilation/init:prepareContentCompilation",
-            "prepareOrdinaryManagedInstallation/view/init:prepareSerializationRun/init:prepareSerializationRun"
+            "prepareOrdinaryManagedInstallation/view/init:prepareContentCompilation/init:prepareContentCompilation/init:prepareContentCompilation",
+            "prepareOrdinaryManagedInstallation/view/init:prepareSerializationRun/init:prepareSerializationRun",
+            "prepareOrdinaryManagedInstallation/view/init:prepareSerializationRun/init:prepareSerializationRun/init:prepareSerializationRun"
           ],
           "exports": [],
           "attributes": {
@@ -110318,7 +110508,8 @@
         },
         {
           "operations": [
-            "prepareOrdinaryManagedInstallation/view/init:prepareKeyedContentRun/init:prepareKeyedContentRun"
+            "prepareOrdinaryManagedInstallation/view/init:prepareKeyedContentRun/init:prepareKeyedContentRun",
+            "prepareOrdinaryManagedInstallation/view/init:prepareKeyedContentRun/init:prepareKeyedContentRun/init:prepareKeyedContentRun"
           ],
           "exports": [],
           "attributes": {
@@ -118604,7 +118795,7 @@
       "sha256": "2ee6349eeab84f91d0d34d24031d6a62e801babd48758632fee7e6b4297e115a",
       "responsibilityFacet": "primary",
       "role": "physical-io",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "createInstalledCredentialSourceReader",
         "installedJsonSourceReaderLimitNames",
@@ -119343,7 +119534,7 @@
       "sha256": "b316bbda6a28ab1c3feea0dadc964e01612d9085a0095f6a8a21abbc17ae5cc9",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "finishInstalledEffectModelScope",
         "installedEffectModelPreparation",
@@ -120032,7 +120223,7 @@
       "sha256": "9297b27b6811b4aa2b0e6b3e03707674afbf1592f757eed0cc6195f537be0c29",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "assertInstalledSourceConstruction",
         "beginInstalledSourceInitialization",
