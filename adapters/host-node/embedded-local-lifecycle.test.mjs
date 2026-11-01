@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {inspect} from 'node:util';
+import {readFileSync} from 'node:fs';
+import {resolve} from 'node:path';
+import {parse} from 'acorn';
+import {beginInitialControlInstallation, assertInitialControlInstallationCurrent,
+  readInitialControlInstallationInput} from './node-initial-control-installation.mjs';
+import {retainInstalledHostInitializationFailure, retainInstalledHostRuntimeFailure} from './installed-host-cleanup.mjs';
 import {createEmbeddedHostRegistry} from './embedded-local-lifecycle.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
@@ -294,4 +300,271 @@ test('failed negotiation keeps a sanitized recovery operation when physical clos
   assert.doesNotMatch(inspect(failure, {showHidden: true, depth: 8}), /private-source-secret/);
   ready = true;
   assert.deepEqual(await failure.cleanupHandle.retry(), {pending: false});
+});
+
+
+test('prepared HTTP Request uses the same registry identity and retires only its original handling', async () => {
+  const registry = createEmbeddedHostRegistry(() => true);
+  const host = {}, installation = {}, request = {}, alias = {};
+  registry.registerPreparation(host, installation, host);
+  const done = deferred();
+  registry.retainRequest(host, installation, host, request, done.promise);
+  registry.bindSourceRequest(host, installation, host, request, alias);
+  assert.strictEqual(registry.originalSourceRequest(host, installation, host, alias), request);
+  assert.throws(() => registry.retainRequest(host, {}, host, {}, Promise.resolve()),
+    /InstalledHostPreparationChanged/);
+  await Promise.resolve();
+  assert.strictEqual(registry.originalSourceRequest(host, installation, host, alias), request);
+  done.resolve();
+  await done.promise;
+  assert.throws(() => registry.originalSourceRequest(host, installation, host, alias),
+    /InstalledHostPreparationChanged/);
+  registry.retirePreparation(host, installation, host);
+  assert.throws(() => registry.assertPreparation(host, installation, host),
+    /InstalledHostPreparationChanged/);
+});
+
+
+function remoteOpeningFixture(failure) {
+  const source = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
+  const tree = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
+  const declaration = tree.body.find(node => node.type === 'FunctionDeclaration' &&
+    node.id.name === 'openPreparedInstalledHost');
+  assert.ok(declaration);
+  const body = source.slice(declaration.start, declaration.end);
+  assert.equal(body.split('import.meta').length, 2);
+  const registry = createEmbeddedHostRegistry(() => true);
+  const events = [];
+  let selected, sameHost, sameInstallation;
+  const prepareRequest = () => {};
+  const options = {directory: '/component/remote', authenticate() {},
+    beforeDispatch() {}, loopbackHttp: true, valuesMaxRows: 7};
+  // Execute the actual complete shared opening. The final Host constructor,
+  // runtime namespace and HTTP constructor are explicit ports: no real
+  // Resource/Journal/Store/Run or ordinary acceptance is claimed here.
+  const context = {profiles: registry, moduleLifetime: {}, resolve,
+    beginInitialControlInstallation, assertInitialControlInstallationCurrent,
+    readInitialControlInstallationInput, retainInstalledHostInitializationFailure,
+    retainInstalledHostRuntimeFailure,
+    clientOperationError: code => Object.assign(new Error(code), {code}),
+    snapshotInstalledCalendar: x => x, snapshotHostCapacityPolicy: x => x,
+    snapshotHostLookupExecutionPolicy: x => x,
+    runtimeUrl: new URL('data:text/javascript,export const componentRuntime = true'),
+    async openInstalledHost(installation, preparation) {
+      events.push('open');
+      selected = preparation; sameHost = preparation.host; sameInstallation = installation;
+      assert.equal(installation.mode, 'remote');
+      assert.equal(installation.root, '/component/remote');
+      assert.equal(installation.retainedRelationOutput, false);
+      assert.equal(installation.projectRuntime.componentRuntime, true);
+      assert.equal(installation.project, undefined);
+      assert.equal(installation.projectProfile, undefined);
+      assert.strictEqual(installation.initialControl, readControl(preparation));
+      registry.assertPreparation(sameHost, installation, sameHost);
+      if (failure !== undefined) throw failure;
+      return Object.assign(sameHost, {initialControl: preparation.initialControl});
+    },
+    installedHostShutdown(host) {
+      assert.strictEqual(host, sameHost);
+      return {close: () => host.initialControl.close()};
+    },
+    installHttpRequestPreparation(preparation, actualRegistry, originals) {
+      assert.strictEqual(preparation, selected); assert.strictEqual(actualRegistry, registry);
+      assert.strictEqual(originals.host, sameHost);
+      assert.strictEqual(originals.installation, sameInstallation);
+      assert.strictEqual(originals.generation, sameHost);
+      assert.strictEqual(originals.supplier, opening);
+      events.push('request-preparation'); return prepareRequest;
+    },
+    installedRemoteHttpTransport(host, input, shutdown, prepared) {
+      assert.strictEqual(host, sameHost); assert.strictEqual(prepared, prepareRequest);
+      assert.strictEqual(input.authenticate, options.authenticate);
+      assert.equal(input.loopbackHttp, true);
+      events.push('http'); return {close: shutdown.close};
+    },
+  };
+  function readControl(preparation) {
+    // The actual constructor receives this same ordinary scope through the
+    // original installation; the public cleanup adapter is a distinct duty.
+    assert.notStrictEqual(sameInstallation.initialControl, preparation.initialControl);
+    return sameInstallation.initialControl;
+  }
+  const opening = new Function(...Object.keys(context), 'return (' +
+    body.replace('import.meta', 'moduleLifetime') + ');')(...Object.values(context));
+  return {options, events, open: () => opening(options, 'remote'),
+    assertRetired() {assert.throws(() => registry.assertPreparation(sameHost, sameInstallation, sameHost),
+      /InstalledHostPreparationChanged/);}};
+}
+
+test('Remote opening retains the same prepared Host without Local discovery and releases its original scope', async () => {
+  const f = remoteOpeningFixture();
+  const host = await f.open();
+  assert.deepEqual(f.events, ['open', 'request-preparation', 'http']);
+  const observation = await host.close();
+  assert.equal(observation.pending, false);
+  f.assertRetired();
+  assert.strictEqual(await host.close(), observation);
+});
+
+test('Remote constructor failure retains the original cause and retires the same preparation', async () => {
+  const primary = new Error('OriginalRemoteConstructorFailure');
+  const f = remoteOpeningFixture(primary);
+  await assert.rejects(f.open(), error => error === primary);
+  assert.deepEqual(f.events, ['open']);
+  f.assertRetired();
+});
+
+// Execute the unchanged registry declaration with counted JS containers.
+// These are operation counts, not latency, ordinary Host or capacity proof.
+function countedRequestRegistry() {
+  const source = readFileSync(new URL('./embedded-local-lifecycle.mjs', import.meta.url), 'utf8');
+  const declaration = parse(source, {ecmaVersion: 'latest', sourceType: 'module'}).body
+    .find(node => node.type === 'ExportNamedDeclaration' &&
+      node.declaration?.id?.name === 'createEmbeddedHostRegistry').declaration;
+  const counts = {visits: 0, mapGets: 0, weakGets: 0};
+  const originals = new Map();
+  class CountedMap extends Map {
+    get(key) {counts.mapGets++; return super.get(key);}
+    *values() {for (const value of super.values()) {counts.visits++; yield value;}}
+    *entries() {for (const value of super.entries()) {counts.visits++; yield value;}}
+    *keys() {for (const value of super.keys()) {counts.visits++; yield value;}}
+    [Symbol.iterator]() {return this.entries();}
+    forEach(use, receiver) {
+      return super.forEach((value, key) => {counts.visits++; Reflect.apply(use, receiver, [value, key, this]);});
+    }
+  }
+  class CountedWeakMap extends WeakMap {
+    get(key) {counts.weakGets++; return super.get(key);}
+    set(key, value) {originals.set(key, value); return super.set(key, value);}
+  }
+  const factory = new Function('Map', 'WeakMap',
+    `return (${source.slice(declaration.start, declaration.end)});`)(CountedMap, CountedWeakMap);
+  return {registry: factory(() => true), counts, originals,
+    reset() {counts.visits = counts.mapGets = counts.weakGets = 0;}};
+}
+
+test('prepared Request identity lookup and binding use linear counted index work at N and 2N', async () => {
+  const samples = [];
+  for (const count of [64, 128]) {
+    const f = countedRequestRegistry(), host = {}, installation = {};
+    f.registry.registerPreparation(host, installation, host);
+    const requests = Array.from({length: count}, () => ({}));
+    const aliases = requests.map(() => ({})), pending = requests.map(() => deferred());
+    try {
+      for (let index = 0; index < count; index++) {
+        f.registry.retainRequest(host, installation, host, requests[index], pending[index].promise);
+        f.registry.bindSourceRequest(host, installation, host, requests[index], aliases[index]);
+      }
+      f.reset();
+      for (let index = 0; index < count; index++) {
+        assert.strictEqual(f.registry.originalSourceRequest(host, installation, host, requests[index]), requests[index]);
+        assert.strictEqual(f.registry.originalSourceRequest(host, installation, host, aliases[index]), requests[index]);
+        f.registry.bindSourceRequest(host, installation, host, aliases[index], aliases[index]);
+      }
+      samples.push({count, ...f.counts});
+    } finally {
+      for (const original of pending) original.resolve();
+      await Promise.all(pending.map(original => original.promise));
+      f.registry.retirePreparation(host, installation, host);
+    }
+  }
+  console.log('ACTQL_REQUEST_INDEX_COUNTER ' + JSON.stringify(samples));
+  for (const sample of samples) {
+    assert.equal(sample.visits, 0, 'Identity lookup must not enumerate the strong drain inventory');
+    assert(sample.weakGets > 0 && sample.mapGets > 0, 'Count actual index and pending-membership lookups');
+    assert(sample.weakGets + sample.mapGets <= 12 * sample.count);
+  }
+  assert.equal(samples[1].weakGets, samples[0].weakGets * 2);
+  assert.equal(samples[1].mapGets, samples[0].mapGets * 2);
+});
+
+test('prepared Request aliases refuse cross-request foreign generation and retired rebinding', async () => {
+  const registry = createEmbeddedHostRegistry(() => true);
+  const host = {}, installation = {}, otherHost = {}, otherInstallation = {};
+  registry.registerPreparation(host, installation, host);
+  registry.registerPreparation(otherHost, otherInstallation, otherHost);
+  const a = {}, b = {}, alias = {}, nested = {}, first = deferred(), second = deferred();
+  registry.retainRequest(host, installation, host, a, first.promise);
+  registry.retainRequest(host, installation, host, b, second.promise);
+  try {
+    registry.bindSourceRequest(host, installation, host, a, alias);
+    registry.bindSourceRequest(host, installation, host, alias, nested);
+    registry.bindSourceRequest(host, installation, host, a, alias);
+    assert.strictEqual(registry.originalSourceRequest(host, installation, host, nested), a);
+    for (const derived of [a, alias, nested]) {
+      assert.throws(() => registry.bindSourceRequest(host, installation, host, b, derived),
+        /InstalledHostPreparationChanged/);
+    }
+    assert.throws(() => registry.originalSourceRequest(otherHost, otherInstallation, otherHost, alias),
+      /InstalledHostPreparationChanged/);
+    assert.throws(() => registry.originalSourceRequest(host, installation, otherHost, alias),
+      /InstalledHostPreparationChanged/);
+    assert.throws(() => registry.retainRequest(host, installation, host, a, Promise.resolve()),
+      /InstalledHostPreparationChanged/);
+    first.resolve(); await first.promise;
+    assert.throws(() => registry.originalSourceRequest(host, installation, host, nested),
+      /InstalledHostPreparationChanged/);
+    assert.throws(() => registry.bindSourceRequest(host, installation, host, b, nested),
+      /InstalledHostPreparationChanged/);
+    assert.strictEqual(registry.originalSourceRequest(host, installation, host, b), b);
+    registry.retirePreparation(host, installation, host);
+    assert.throws(() => registry.originalSourceRequest(host, installation, host, b),
+      /InstalledHostPreparationChanged/);
+  } finally {
+    first.resolve(); second.resolve(); await Promise.all([first.promise, second.promise]);
+    registry.retirePreparation(otherHost, otherInstallation, otherHost);
+  }
+});
+
+test('prepared Request cancellation does not retire pending work and settled index records cut heavy references', async () => {
+  const f = countedRequestRegistry(), host = {}, installation = {}, request = {}, alias = {};
+  const controller = new AbortController(), done = deferred();
+  f.registry.registerPreparation(host, installation, host);
+  f.registry.retainRequest(host, installation, host, request, done.promise);
+  f.registry.bindSourceRequest(host, installation, host, request, alias);
+  const record = f.originals.get(request);
+  assert(record !== undefined);
+  assert.strictEqual(f.originals.get(alias), record, 'The index points to the same existing pending record');
+  controller.abort(new Error('Original component cancellation request'));
+  assert.strictEqual(f.registry.originalSourceRequest(host, installation, host, alias), request);
+  assert.strictEqual(record.request, request);
+  done.resolve(); await done.promise;
+  assert.throws(() => f.registry.originalSourceRequest(host, installation, host, alias),
+    /InstalledHostPreparationChanged/);
+  for (const field of ['request', 'pending', 'generation', 'owner']) assert.equal(record[field], undefined);
+  f.registry.retirePreparation(host, installation, host);
+});
+
+test('prepared Client pending request index preserves original close drain and retirement order', async () => {
+  const registry = createEmbeddedHostRegistry(() => true), calls = [], gate = deferred(), entered = deferred();
+  const host = {}, installation = {}, alias = {};
+  let actualRequest;
+  Object.assign(host, {
+    port: {async perform(operation, request) {
+      assert.strictEqual(registry.originalSourceRequest(host, installation, host, request), request);
+      if (operation === 'connect') return profile;
+      assert.equal(operation, 'attach'); actualRequest = request;
+      registry.bindSourceRequest(host, installation, host, request, alias);
+      calls.push('attach-entered'); entered.resolve(); await gate.promise; calls.push('attach-returned');
+      return {ref, durability: 'durable', revision: 1};
+    }},
+    checkpoints: {stop() {calls.push('stop');}, close() {calls.push('checkpoint');}},
+    dispatchOwner: {drain() {calls.push('drain');}},
+    retireTerminalEffects() {calls.push('retire');},
+    journal: {close() {calls.push('journal');}}, store: {close() {calls.push('store');}},
+  });
+  registry.registerPreparation(host, installation, host);
+  const client = await registry.connect('/test/index-owned', 'same', async () => host,
+    {mode: 'local', owner: 'local'}, host);
+  const attached = client.attach(ref);
+  await Promise.race([entered.promise, attached.then(() => assert.fail('Original attach returned before its barrier'))]);
+  assert.strictEqual(registry.originalSourceRequest(host, installation, host, alias), actualRequest);
+  let closed = false;
+  const closing = client.close().then(() => {closed = true;});
+  await Promise.resolve(); assert.equal(closed, false);
+  assert.deepEqual(calls, ['attach-entered']);
+  gate.resolve(); await attached; await closing;
+  assert.deepEqual(calls, ['attach-entered', 'attach-returned', 'stop', 'drain', 'retire', 'checkpoint', 'journal', 'store']);
+  assert.throws(() => registry.originalSourceRequest(host, installation, host, alias),
+    /InstalledHostPreparationChanged/);
 });

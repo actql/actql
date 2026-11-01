@@ -75,6 +75,92 @@ function fixture() {
     intent: () => actual('managedComputeSubmittedIntentCid', ports)};
 }
 
+// Select the existing open-side handoff and preparation method themselves.
+// Resource/Core/current replies are explicit fixture ports; parse/stringify
+// counts describe these actual bodies, not product timing or physical reads.
+function openSequenceContracts(f) {
+  const methods = [], blocks = [];
+  function walk(node) {
+    if (node === null || typeof node !== 'object') return;
+    if (node.type === 'Property' && node.key.name === 'readSequenceContracts') methods.push(node.value);
+    if (node.type === 'BlockStatement' && node.body.some(statement =>
+      statement.type === 'VariableDeclaration' && statement.declarations.some(declaration =>
+        ['registryWire', 'sequenceContracts'].includes(declaration.id.name)))) blocks.push(node);
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(walk);
+      else if (value !== null && typeof value === 'object') walk(value);
+    }
+  }
+  walk(ast);
+  assert.equal(methods.length, 1); assert.equal(blocks.length, 1);
+  const method = methods[0], block = blocks[0];
+  const start = block.body.findIndex(statement => statement.type === 'VariableDeclaration' &&
+    statement.declarations.some(declaration => ['registryWire', 'sequenceContracts'].includes(declaration.id.name)));
+  const end = block.body.findIndex((statement, index) => index > start &&
+    statement.type === 'ExpressionStatement' && statement.expression.type === 'AwaitExpression' &&
+    statement.expression.argument.callee.name === 'mkdir');
+  assert.ok(start >= 0 && end > start);
+  const prepare = actual('prepareInstalledSequenceContractOriginal', f.ports);
+  const read = new Function('prepareInstalledSequenceContractOriginal', 'originals',
+    `return function()${source.slice(method.body.start, method.body.end)};`)(prepare, f.originals);
+  const preparation = {readSequenceContracts: read, readAsset(path) {
+    return f.ports.readInitialControlInstallationAsset(f.originals.installation.initialControl, f.originals, path);
+  }};
+  return new Function('preparation', 'moon', 'JSON', 'readFile', 'join', 'packageRoot', 'checked',
+    `return async function(){let registry, values, fragment, ordered;
+      ${source.slice(block.body[start].start, block.body[end - 1].end)}
+      return {registry, values, fragment, ordered};};`)(preparation, f.moon, f.ports.JSON ?? JSON,
+    () => assert.fail('No pathname fallback'), () => assert.fail('No pathname fallback'),
+    'unused-package-root', f.ports.checked);
+}
+
+test('open borrows the one installed AoA projection through the same sequence original', async () => {
+  const f = fixture(); let parses = 0, stringifies = 0;
+  f.ports.JSON = {parse(wire) {parses++; return JSON.parse(wire);},
+    stringify(body) {stringifies++; return JSON.stringify(body);}};
+  const opened = await openSequenceContracts(f)();
+  const original = f.originals.installation.sequenceContractOriginal;
+  assert.strictEqual(opened.registry, original.admission);
+  assert.strictEqual(original.contracts, f.originals.installation.managedRunContracts);
+  assert.deepEqual([opened.values, opened.fragment, opened.ordered],
+    [original.contracts.values, original.contracts.expression, original.contracts.ordered]);
+  f.requirements()(f.originals, f.prepared); f.requirements()(f.originals, f.prepared);
+  assert.equal(parses, 1, 'Open and later requirements retain the one actual AoA parse');
+  assert.equal(stringifies, 3, 'The three contracts are extracted once');
+  assert.deepEqual(f.installationCalls, ['manifests', 'sequence']);
+  assert.strictEqual(original.moon, f.moon);
+  assert.strictEqual(original.control, f.originals.installation.initialControl);
+});
+
+test('open refuses a closed or foreign contract original before parsing another AoA image', async () => {
+  for (const changed of ['current', 'runtime', 'control']) {
+    const f = fixture(); let parses = 0;
+    f.ports.JSON = {parse(wire) {parses++; return JSON.parse(wire);}, stringify: JSON.stringify};
+    const open = openSequenceContracts(f);
+    await open(); assert.equal(parses, 1);
+    if (changed === 'current') f.stop();
+    else if (changed === 'runtime') f.originals.installation.projectRuntime = {};
+    else f.originals.installation.initialControl = {};
+    await assert.rejects(open(), error => changed === 'current' ? /CurrentRefused/u.test(error.message)
+      : error.code === 'ForeignInstalledManagedRunContracts');
+    assert.equal(parses, 1);
+    assert.deepEqual(f.installationCalls, ['manifests', 'sequence']);
+  }
+});
+
+test('open preserves original manifest and sequence failure without a fallback or partial admission', async () => {
+  for (const phase of ['manifests', 'sequence']) {
+    const f = fixture(), failure = new Error('OriginalInstalledContractFailure'); let parses = 0;
+    f.ports.JSON = {parse(wire) {parses++; return JSON.parse(wire);}, stringify: JSON.stringify};
+    const rejected = phase === 'manifests' ? f.manifestAdmission : f.contractAdmission;
+    f.ports.checked = value => {if (value === rejected) throw failure; return value;};
+    await assert.rejects(openSequenceContracts(f)(), error => error === failure);
+    assert.equal(f.originals.installation.sequenceContractOriginal, undefined);
+    assert.equal(parses, phase === 'manifests' ? 0 : 1);
+    assert.deepEqual(f.installationCalls, phase === 'manifests' ? ['manifests'] : ['manifests', 'sequence']);
+  }
+});
+
 test('installed managed contract strings are projected once across distinct Host Run requests', () => {
   const f = fixture(), second = {}, requests = new Set([f.prepared, second]);
   let parses = 0, stringifies = 0;
@@ -95,7 +181,7 @@ test('installed managed contract strings are projected once across distinct Host
   f.stop();
   assert.throws(() => read(f.originals, second), /CurrentRefused/);
   assert.equal(f.calls.length, 3, 'Static strings cannot supply current Run admission');
-  assert.deepEqual(f.installationCalls, ['manifests', 'contracts'],
+  assert.deepEqual(f.installationCalls, ['manifests', 'sequence'],
     'Fixed installation admission is retained, not repeated for each Run quote');
 });
 

@@ -308,6 +308,16 @@ Provider registration alone supplies no Model I/O admission, quantity budget,
 current authorization or permission to send. Model preparation and dispatch
 retain their original Common Scope, same-Run limits and physical child cleanup.
 
+Local and Remote HTTP opening retain the same original Host preparation and
+ordinary initialization control. Remote keeps its Remote connection scope and
+never discovers a Local Project. After HTTP authentication and connection
+admission, the existing Request producer covers its immutable input snapshot,
+checked compilation and typed submitted intent. Derived handler inputs remain
+aliases of that original pending Request in the same Host registry; transport
+completion neither retires a live Run nor acknowledges physical cleanup.
+An absent selected preparation refuses before dispatch. Initialization failure
+and first close retain the original child cleanup and ordinary control duty.
+
 Each Host owns its active/closing/closed lifecycle. Independent Hosts and reopen
 are supported within the same process, subject to actual directory locks and
 resource limits. A shared module/runtime cache does not become a Host child
@@ -760,6 +770,25 @@ Sealing refuses new query/read work but still permits the same producer's
 alias-retirement retry. A pending producer prevents both its lease and a last
 sibling lease from finalizing the Host; Result forwarding supplies no Source
 admission, Result permission or physical close acknowledgement.
+
+Each Host indexes original requests and derived aliases in a private WeakMap
+that points to the same pending handling record. Lookup validates that record's
+Host generation and its continued membership in the original handling Map;
+the index supplies identity routing only. A foreign, rebound or retired alias
+cannot select another request. The strong handling inventory remains responsible
+for drain and shutdown, including failed initialization and cancellation while
+an original call is pending. When that Promise settles, its weak-index tombstone
+cuts request, Promise, Host and generation references without enumerating aliases.
+Promise settlement itself acknowledges neither physical stop nor child cleanup.
+
+Selecting the private Local Source preparation receiver requires its complete
+snapshot, current, publication, request-binding, intent and retirement protocol.
+The SDK captures these own DATA methods and their original receiver once during
+initialization. Missing required methods refuse before connection or caller
+input access; a selected request cannot substitute standalone capture, omit its
+current fence or skip snapshot publication. Remote transport without a Local
+preparation receiver remains independent. Query-specific acquisition and the
+Result read/current pair retain their separate capability and refusal boundaries.
 
 The ordinary selected Node Host has a separate finite Local Result/publication
 service. Its actual package prefix retains the same startup/runtime/module and
@@ -1592,6 +1621,17 @@ Site, the Source loader supplies that same service object and installation to
 the connector. Codec policy DATA and the typed reader representation describe
 rejection and construction bounds; they do not admit a Run, authorize a read,
 or fund other connector-specific constructor graphs.
+
+The installation selects exactly one processing protocol: standard page
+preparation or the existing managed read sequence. Its own data methods and
+receiver are captured once. The common reader retains both protocols under
+one lifetime owner; Gmail thread and Slack sequence semantics remain in their
+existing provider functions. The removed child-constructor, direct-sequence
+callback and unhosted raw-credential alternatives are not installation modes.
+The generic Row Source driver callback is a different interface and remains
+available. Cancellation requests stop; actual transport close, pending callback
+completion, accounting disposition and provider/binding retirement remain
+separate duties on the original reader.
 
 The common Credential reader borrows the original Site's bound credential,
 transport, read authorization and current check. Each exact received response

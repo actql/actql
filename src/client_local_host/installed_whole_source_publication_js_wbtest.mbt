@@ -100,6 +100,8 @@ test "whole input publication binds the same RowRun originals and one adopted in
     ) {
     Ok(_) => ()
     Err(Preparation(_)) => fail("whole module: Preparation")
+    Err(CapacityExceeded(_)) =>
+      fail("whole module: unexpected source-free capacity refusal")
     Err(QueryTime(_)) => fail("whole module: QueryTime")
     Err(
       ModelGraph(_)

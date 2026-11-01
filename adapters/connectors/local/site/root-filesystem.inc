@@ -4,6 +4,9 @@
 #include <stdio.h>
 #include <sys/file.h>
 
+#include "root-filesystem-platform.inc"
+
+#define LOCAL_MAX_ENTRIES 100000
 #define LOCAL_NAME_BYTES 1024
 #define LOCAL_ROOT_BYTES 4096
 #define LOCAL_READ_BYTES 65536
@@ -18,7 +21,8 @@ typedef struct local_fs_original {
   napi_ref retained, parent_reference;
   int descriptor, failure, close_error;
   bool consumed, closed, stopping, directory, writable, published, unlinked;
-  bool write_active, write_lock;
+  bool write_active, write_lock, owner_lease;
+  char lease_identity[37];
   struct local_fs_original *write_root;
   uint32_t children, depth;
   uint64_t entries, max_entries;
@@ -163,7 +167,7 @@ static napi_value local_fs_open_child(napi_env env, napi_callback_info info, boo
   if (napi_get_cb_info(env, info, &count, args, NULL, &data) != napi_ok ||
       count != (directory ? 3u : 2u) || !data ||
       !local_fs_text(env, args[1], name, LOCAL_NAME_BYTES, false, directory) ||
-      (directory && !bound(env, args[2], DIRECTORY_MAX_ENTRIES, &entries)))
+      (directory && !bound(env, args[2], LOCAL_MAX_ENTRIES, &entries)))
     return unavailable(env, "InvalidLocalFileChild");
   local_fs_original *parent = local_fs_argument(env, args[0], data);
   if (!parent || !parent->directory || parent->depth >= LOCAL_DEPTH ||
@@ -195,13 +199,8 @@ static napi_value local_fs_stat(napi_env env, napi_callback_info info) {
   local_fs_original *original = local_fs_one(env, info); struct stat value; napi_value result;
   if (!local_fs_current(original) || fstat(original->descriptor, &value) != 0)
     return unavailable(env, "LocalFileOriginalChanged");
-#if defined(__APPLE__)
-  int64_t modified_seconds = value.st_mtimespec.tv_sec, modified_nanos = value.st_mtimespec.tv_nsec;
-  int64_t changed_seconds = value.st_ctimespec.tv_sec, changed_nanos = value.st_ctimespec.tv_nsec;
-#else
-  int64_t modified_seconds = value.st_mtim.tv_sec, modified_nanos = value.st_mtim.tv_nsec;
-  int64_t changed_seconds = value.st_ctim.tv_sec, changed_nanos = value.st_ctim.tv_nsec;
-#endif
+  int64_t modified_seconds, modified_nanos, changed_seconds, changed_nanos;
+  local_fs_times(&value, &modified_seconds, &modified_nanos, &changed_seconds, &changed_nanos);
   /* Keep the native seconds/nanos pair exact; no binary64 timestamp/size path. */
   if (napi_create_object(env, &result) != napi_ok ||
       !local_fs_bigint(env, result, "dev", value.st_dev) ||
@@ -213,6 +212,96 @@ static napi_value local_fs_stat(napi_env env, napi_callback_info info) {
       !local_fs_bigint(env, result, "changedSeconds", changed_seconds) ||
       !local_fs_bigint(env, result, "changedNanos", changed_nanos) ||
       napi_object_freeze(env, result) != napi_ok) return NULL;
+  return result;
+}
+/* A single stable anchor extends the SAME Store exclusion. Opaque original
+ * custody and child-before-parent close use the existing Files handles. */
+static bool local_fs_lease_identity(const char *value) {
+  for (size_t i = 0; i < 36; i++) {
+    if (i == 8 || i == 13 || i == 18 || i == 23) {if (value[i] != '-') return false;}
+    else if (!((value[i] >= '0' && value[i] <= '9') || (value[i] >= 'a' && value[i] <= 'f'))) return false;
+  }
+  return value[36] == 0;
+}
+static napi_value local_fs_open_lease(napi_env env, napi_callback_info info) {
+  napi_value args[2]; size_t count = 2; void *data = NULL; char identity[LOCAL_ROOT_BYTES + 1];
+  if (napi_get_cb_info(env, info, &count, args, NULL, &data) != napi_ok || count != 2 || !data ||
+      !local_fs_text(env, args[1], identity, 36, false, false) || !local_fs_lease_identity(identity))
+    return unavailable(env, "InvalidPublicationOwnerLease");
+  local_fs_original *parent = local_fs_argument(env, args[0], data);
+  if (!local_fs_current(parent) || !parent->directory || parent->depth != 0 ||
+      parent->identity.st_uid != geteuid() || (parent->identity.st_mode & 077) != 0)
+    return unavailable(env, "ForeignPublicationOwnerRoot");
+  napi_value object = local_fs_allocate(env, data, parent, args[0], "owner-lease", false, 0);
+  if (!object) return NULL;
+  local_fs_original *original = local_fs_argument(env, object, data);
+  if (!original || original->failure) return object;
+  int flags = O_RDWR | O_NOFOLLOW | O_CLOEXEC | O_NONBLOCK;
+  original->descriptor = openat(parent->descriptor, original->name, flags | O_CREAT | O_EXCL, 0600);
+  bool created = original->descriptor >= 0;
+  if (!created && errno == EEXIST) original->descriptor = openat(parent->descriptor, original->name, flags);
+  if (original->descriptor < 0) {original->failure = errno; return object;}
+  if (fstat(original->descriptor, &original->identity) != 0) {original->failure = errno; return object;}
+  if (!S_ISREG(original->identity.st_mode) || original->identity.st_uid != geteuid() ||
+      (original->identity.st_mode & 077) != 0 || !local_fs_current(original)) {
+    original->failure = ESTALE; return object;
+  }
+  if (flock(original->descriptor, LOCK_EX | LOCK_NB) != 0) {original->failure = errno; return object;}
+  if (created) {
+    size_t offset = 0;
+    while (offset < 36) {
+      ssize_t wrote = pwrite(original->descriptor, identity + offset, 36 - offset, (off_t)offset);
+      if (wrote < 0 && errno == EINTR) continue;
+      if (wrote <= 0) {original->failure = wrote < 0 ? errno : EIO; return object;}
+      offset += (size_t)wrote;
+    }
+    if (fsync(original->descriptor) != 0 || fsync(parent->descriptor) != 0) {
+      original->failure = errno; return object;
+    }
+  }
+  struct stat status;
+  if (fstat(original->descriptor, &status) != 0 || status.st_size != 36) {
+    original->failure = EINVAL; return object;
+  }
+  size_t offset = 0;
+  while (offset < 36) {
+    ssize_t read = pread(original->descriptor, original->lease_identity + offset, 36 - offset, (off_t)offset);
+    if (read < 0 && errno == EINTR) continue;
+    if (read <= 0) {original->failure = read < 0 ? errno : EIO; return object;}
+    offset += (size_t)read;
+  }
+  original->lease_identity[36] = 0;
+  if (!local_fs_lease_identity(original->lease_identity) || !local_fs_current(original)) {
+    original->failure = ESTALE; return object;
+  }
+  original->owner_lease = true;
+  return object;
+}
+static napi_value local_fs_lease_receipt(napi_env env, napi_callback_info info) {
+  local_fs_original *original = local_fs_one(env, info); napi_value result, identity;
+  if (original && (original->failure == EWOULDBLOCK || original->failure == EAGAIN))
+    return unavailable(env, "PublicationStoreBusy");
+  struct stat status, root_status; char identity_bytes[36];
+  if (!original || !original->owner_lease || !local_fs_current(original) ||
+      fstat(original->descriptor, &status) != 0 || status.st_uid != geteuid() ||
+      (status.st_mode & 077) != 0 || status.st_size != 36 || !original->parent ||
+      fstat(original->parent->descriptor, &root_status) != 0 || root_status.st_uid != geteuid() ||
+      (root_status.st_mode & 077) != 0)
+    return unavailable(env, "PublicationStoreLeaseUnavailable");
+  size_t offset = 0;
+  while (offset < sizeof(identity_bytes)) {
+    ssize_t read = pread(original->descriptor, identity_bytes + offset, sizeof(identity_bytes) - offset, (off_t)offset);
+    if (read < 0 && errno == EINTR) continue;
+    if (read <= 0) return unavailable(env, "PublicationStoreLeaseUnavailable");
+    offset += (size_t)read;
+  }
+  if (memcmp(identity_bytes, original->lease_identity, sizeof(identity_bytes)) || !local_fs_current(original))
+    return unavailable(env, "PublicationStoreLeaseUnavailable");
+  if (napi_create_object(env, &result) != napi_ok ||
+      napi_create_string_utf8(env, original->lease_identity, 36, &identity) != napi_ok ||
+      napi_set_named_property(env, result, "identity", identity) != napi_ok ||
+      !local_fs_bigint(env, result, "device", status.st_dev) ||
+      !local_fs_bigint(env, result, "inode", status.st_ino) || napi_object_freeze(env, result) != napi_ok) return NULL;
   return result;
 }
 static napi_value local_fs_entry_kind(napi_env env, napi_callback_info info) {
@@ -336,10 +425,10 @@ static bool initialize_local_files(napi_env env, napi_value exports) {
   owner->tag.lower = (uint64_t)(uintptr_t)owner; owner->tag.upper = UINT64_C(0x414354514c46494c);
   const char *names[] = {"openFileRoot", "openFileDirectory", "openRootFile", "fileRootCurrent",
     "fileRootStat", "fileRootNext", "fileRootRead", "fileRootClose", "fileRootEntryKind",
-    "openRootFileWriter", "fileRootWrite", "fileRootPublish"};
+    "openRootFileWriter", "fileRootWrite", "fileRootPublish", "openStoreOwnerLease", "storeOwnerLeaseReceipt"};
   napi_callback callbacks[] = {local_fs_open_root, local_fs_open_directory, local_fs_open_file,
     local_fs_check, local_fs_stat, local_fs_next, local_fs_read, local_fs_close, local_fs_entry_kind,
-    local_fs_open_writer, local_fs_write, local_fs_publish};
+    local_fs_open_writer, local_fs_write, local_fs_publish, local_fs_open_lease, local_fs_lease_receipt};
   for (size_t index = 0; index < sizeof(callbacks) / sizeof(callbacks[0]); index++) {
     napi_value function;
     if (napi_create_function(env, names[index], NAPI_AUTO_LENGTH, callbacks[index], owner, &function) != napi_ok ||

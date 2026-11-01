@@ -82,7 +82,13 @@ pub fn start_accounted_provider_row_acquisition(
   }
   let execution = executing + execution_scratch
   let reservation = match
-    @resources.reserve_attempt(ledger, transfer_bytes, retained, execution) {
+    @resources.reserve_attempt(
+      ledger,
+      transfer_bytes,
+      retained,
+      execution,
+      quantities=@resources.quantity_neutral_amounts(ledger),
+    ) {
     Ok(value) => value
     Err(issue) => return Err(Physical(issue))
   }

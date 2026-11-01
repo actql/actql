@@ -498,3 +498,42 @@ test('single Source publication missing or refused checked Result policy never f
   assert.throws(refused.run,error=>error===primary);
   assert.deepEqual(refused.counts,{policy:1,owner:0,source:0,invocation:0});
 });
+
+const observeRestoredLocal = compileFunction(declarations.join('\n') +
+  '\nreturn observeNodeRestoredLocalStop;')();
+
+test('restored local stop separates proven failure from pending cleanup and rechecks original custody', async () => {
+  for (const mode of ['pending-cleanup','later-owner','none','committed','cancel-requested','publication-unknown']) {
+    const ref={}, frame={runDefinition:{},physicalCloseConfirmed:false,cancellationRequested:mode==='cancel-requested'};
+    let owner=true; const stopped=[];
+    const facts={ref,moon:{},control:{runCancellationConfirmed(){assert.fail('Not a cancellation observation');}},
+      journal:{lookupRunDefinition:()=>frame,lookupReconciliationState:()=>undefined,
+        observeStoppedLocalExecutionOwner:()=>owner&&!frame.physicalCloseConfirmed,
+        markPhysicalClose(actual,outcome,original){assert.equal(actual,ref);assert.equal(original,frame);
+          stopped.push(outcome);frame.physicalCloseConfirmed=true;}},
+      store:{localExecutionCleanupConfirmed(){assert.fail('Physical stop is not cleanup acknowledgement');},
+        async confirmCommittedIndex(){
+          if(mode==='later-owner')owner=false;
+          if(mode==='publication-unknown')throw Error('PublicationObservationUnknown');
+          return mode==='committed'?{}:undefined;}}};
+    if(mode==='publication-unknown')await assert.rejects(observeRestoredLocal(facts), /PublicationObservationUnknown/);
+    else await observeRestoredLocal(facts);
+    assert.deepEqual(stopped,mode==='later-owner'||mode==='publication-unknown'?[]:mode==='committed'?[null]:['failed']);
+    if(mode!=='publication-unknown')await observeRestoredLocal(facts);
+    assert.ok(stopped.length<=1,'repeat observation never issues a second stop');
+  }
+});
+
+test('restored local stop refuses changed originals and permits only nominal bounded state reinspection', async () => {
+  for (const reinspect of [false, true]) {
+    const original={runDefinition:{},physicalCloseConfirmed:false}, next={...original};
+    let frame=original, inspections=0; const stopped=[];
+    const facts={ref:{},moon:{},control:{},journal:{lookupRunDefinition:()=>frame,
+      observeStoppedLocalExecutionOwner:()=>true,lookupReconciliationState:()=>undefined,
+      canReinspectRunStopAfterStatePublication:(before,after)=>reinspect&&before===original&&after===next,
+      markPhysicalClose(_ref,outcome,retained){assert.equal(retained,next);stopped.push(outcome);}},
+      store:{async confirmCommittedIndex(){inspections++;frame=next;return undefined;}}};
+    if(reinspect){await observeRestoredLocal(facts);assert.deepEqual(stopped,['failed']);assert.equal(inspections,2);}
+    else{await assert.rejects(observeRestoredLocal(facts),/ClientRunStopObservationChanged/);assert.deepEqual(stopped,[]);}
+  }
+});

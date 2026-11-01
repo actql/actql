@@ -6,31 +6,50 @@ import {captureSourcePreparation, sourcePreparationPort} from
 // Explicit private-port doubles. These cases establish forwarding and capture
 // order only, not an actual installed Source issuer or physical resource loan.
 test('private Source forwarding retains the same receiver and original arguments', () => {
-  const receipt = {}, input = {}, options = {}, body = {}, packet = {};
+  const receipt = {}, input = {}, options = {}, body = {}, packet = {}, publication = {};
+  const snapshot = value => {assert.strictEqual(value, input); return body;};
   const calls = [];
-  const receiver = {
+  const required = ['beforeSourceSnapshot', 'bindSourceSnapshot', 'bindSourceRequest',
+    'finishSourceProducer', 'intentCid', 'captureSourceSnapshot',
+    'assertSourceSnapshotCurrent', 'publishSourceSnapshot'];
+  const reads = new Map(required.map(name => [name, 0]));
+  const originalMethods = {
+    captureSourceSnapshot(...args) {calls.push([this, 'capture', ...args]); return args[2](args[1]);},
+    assertSourceSnapshotCurrent(...args) {calls.push([this, 'current', ...args]);},
+    publishSourceSnapshot(...args) {calls.push([this, 'publish', ...args]);},
     beforeSourceSnapshot(...args) {calls.push([this, 'before', ...args]); return receipt;},
     bindSourceSnapshot(...args) {calls.push([this, 'snapshot', ...args]);},
     bindSourceRequest(...args) {calls.push([this, 'request', ...args]);},
     finishSourceProducer(...args) {calls.push([this, 'finish', ...args]);},
     intentCid(...args) {calls.push([this, 'intent', ...args]); return 'sha256:' + 'a'.repeat(64);},
   };
+  const receiver = new Proxy(originalMethods, {getOwnPropertyDescriptor(target, name) {
+    if (reads.has(name)) reads.set(name, reads.get(name) + 1);
+    return Reflect.getOwnPropertyDescriptor(target, name);
+  }});
   const port = {[sourcePreparationPort]: receiver};
   const captured = captureSourcePreparation(port);
   port[sourcePreparationPort] = {};
-  for (const name of Object.keys(receiver)) receiver[name] = () => assert.fail('ReplacementCalled');
+  for (const name of required) originalMethods[name] = () => assert.fail('ReplacementCalled');
   assert.equal(captured.beforeSourceSnapshot('aql', input, options), receipt);
+  captured.assertSourceSnapshotCurrent(receipt);
+  assert.strictEqual(captured.captureSourceSnapshot(receipt, input, snapshot), body);
   captured.bindSourceSnapshot(receipt, body);
+  captured.publishSourceSnapshot(receipt, body, publication);
   assert.equal(captured.intentCid(receipt, body), 'sha256:' + 'a'.repeat(64));
   captured.bindSourceRequest(receipt, body, packet);
   captured.finishSourceProducer(receipt, 'returned');
   assert.deepEqual(calls, [
     [receiver, 'before', 'aql', input, options, undefined],
+    [receiver, 'current', receipt],
+    [receiver, 'capture', receipt, input, snapshot],
     [receiver, 'snapshot', receipt, body],
+    [receiver, 'publish', receipt, body, publication],
     [receiver, 'intent', receipt, body],
     [receiver, 'request', receipt, body, packet],
     [receiver, 'finish', receipt, 'returned'],
   ]);
+  assert.deepEqual([...reads.values()], required.map(() => 1));
 });
 
 test('unselected ports have no Source preparation connection', () => {
@@ -56,6 +75,9 @@ test('asynchronous Source admission cannot move the synchronous snapshot past an
   let release;
   const pending = new Promise(resolve => {release = resolve;});
   const captured = captureSourcePreparation({[sourcePreparationPort]: {
+    captureSourceSnapshot(_receipt, value, snapshot) {return snapshot(value);},
+    assertSourceSnapshotCurrent() {},
+    publishSourceSnapshot() {},
     beforeSourceSnapshot() {return pending;},
     bindSourceSnapshot() {assert.fail('NoOriginalSnapshot');},
     bindSourceRequest() {assert.fail('NoOriginalPacket');},
@@ -73,6 +95,9 @@ test('asynchronous Source admission cannot move the synchronous snapshot past an
 test('original Source preparation failure retains its original cleanup handle', () => {
   const cleanupHandle = {}, original = Object.assign(new Error('OriginalPending'), {cleanupHandle});
   const captured = captureSourcePreparation({[sourcePreparationPort]: {
+    captureSourceSnapshot(_receipt, value, snapshot) {return snapshot(value);},
+    assertSourceSnapshotCurrent() {},
+    publishSourceSnapshot() {},
     beforeSourceSnapshot() {throw original;},
     bindSourceSnapshot() {}, bindSourceRequest() {}, finishSourceProducer() {},
     intentCid() {assert.fail('NoIntent');},
@@ -82,7 +107,11 @@ test('original Source preparation failure retains its original cleanup handle', 
 });
 
 test('a selected Source receiver cannot omit the original intent identity operation', () => {
-  const receiver = {beforeSourceSnapshot() {}, bindSourceSnapshot() {},
+  const receiver = {
+    captureSourceSnapshot(_receipt, value, snapshot) {return snapshot(value);},
+    assertSourceSnapshotCurrent() {},
+    publishSourceSnapshot() {},
+    beforeSourceSnapshot() {}, bindSourceSnapshot() {},
     bindSourceRequest() {}, finishSourceProducer() {}};
   assert.throws(() => captureSourcePreparation({[sourcePreparationPort]: receiver}),
     {code: 'NodeSourceManagedAdmissionUnavailable'});
@@ -91,6 +120,9 @@ test('a selected Source receiver cannot omit the original intent identity operat
 test('Source intent identity refuses asynchronous or malformed observations without assimilation', async () => {
   let observed, reads = 0;
   const captured = captureSourcePreparation({[sourcePreparationPort]: {
+    captureSourceSnapshot(_receipt, value, snapshot) {return snapshot(value);},
+    assertSourceSnapshotCurrent() {},
+    publishSourceSnapshot() {},
     beforeSourceSnapshot() {}, bindSourceSnapshot() {}, bindSourceRequest() {}, finishSourceProducer() {},
     intentCid() {return observed;},
   }});
@@ -103,9 +135,12 @@ test('Source intent identity refuses asynchronous or malformed observations with
 });
 
 
-test('native snapshot fence captures the original optional receipt method and refuses accessor or async replacements', async () => {
+test('native snapshot fence captures the original required receipt method and refuses accessor or async replacements', async () => {
   const receipt = {}, calls = [];
-  const receiver = {beforeSourceSnapshot() {}, bindSourceSnapshot() {}, bindSourceRequest() {},
+  const receiver = {
+    captureSourceSnapshot(_receipt, value, snapshot) {return snapshot(value);},
+    publishSourceSnapshot() {},
+    beforeSourceSnapshot() {}, bindSourceSnapshot() {}, bindSourceRequest() {},
     finishSourceProducer() {}, intentCid() {},
     assertSourceSnapshotCurrent(actual) {assert.equal(this, receiver);assert.equal(actual, receipt);calls.push(actual);}};
   const captured = captureSourcePreparation({[sourcePreparationPort]: receiver});
@@ -119,7 +154,10 @@ test('native snapshot fence captures the original optional receipt method and re
   assert.equal(reads, 0);
   let release;
   const pending = new Promise(resolve => {release = resolve;});
-  const asyncReceiver = {beforeSourceSnapshot() {}, bindSourceSnapshot() {}, bindSourceRequest() {},
+  const asyncReceiver = {
+    captureSourceSnapshot(_receipt, value, snapshot) {return snapshot(value);},
+    publishSourceSnapshot() {},
+    beforeSourceSnapshot() {}, bindSourceSnapshot() {}, bindSourceRequest() {},
     finishSourceProducer() {}, intentCid() {}, assertSourceSnapshotCurrent() {return pending;}};
   const asyncCaptured = captureSourcePreparation({[sourcePreparationPort]: asyncReceiver});
   assert.throws(() => asyncCaptured.assertSourceSnapshotCurrent(receipt),

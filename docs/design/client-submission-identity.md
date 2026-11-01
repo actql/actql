@@ -14,10 +14,19 @@ An unverified ticket must not be passed to execution as an authenticated fact.
 
 ## Fresh Journal initialization durability
 
-A new request Journal is not exposed until all original SQLite initialization
-transactions and marker-file writes, file syncs and closes have completed,
-followed by one actual sync of their common containing directory. These names
-belong to the same unpublished initialization, not separate business commits.
+A fresh request Journal builds the current tables, indexes, triggers, initial
+counters and private schema version in one original SQLite FULL transaction.
+It uses the same DDL definitions as additive adoption of older admitted formats;
+only genuinely older data needs the bounded historical custody census. The
+optional selected Source-operation table joins that same fresh transaction.
+
+No format marker is published before that schema commit. Each original marker
+file still completes its write, fsync and close, followed by the existing final
+sync of their common directory before the Journal is exposed. A crash before
+all required markers are complete leaves an unready state that the next open
+refuses without deleting, resetting or reconstructing its original database.
+A current-format reopen neither repeats schema transactions nor issues a key.
+These names belong to one unpublished initialization, not business commits.
 An existing database's additive format adoption retains its immediate per-marker
 directory acknowledgement. Unchanged reopening does not repeat initialization
 writes or issue another epoch key. A failed final directory acknowledgement
@@ -57,6 +66,14 @@ they are not rewritten or relabeled as epoch-bound submissions. A submission
 identity must not be presented as a Run-definition CID before a Run exists.
 
 ## Admission and custody
+
+The SDK captures and deeply freezes the original submitted body before
+publishing it. Its public snapshot shares those exact input and parameter
+subtrees in a shallow-frozen wrapper. The connection owner freezes its captured
+wire and scalar arrays; the SDK freezes the new lookup context separately.
+Constructing the wrapper does not traverse the submitted body again. External
+input still takes full capture and deep protection, including mutable children
+of a caller's shallow-frozen object.
 
 The Common input preparation can consume the admitted intent together with its
 same immutable canonical value and bounded decoder view. An already canonical

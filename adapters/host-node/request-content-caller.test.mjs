@@ -6,18 +6,20 @@ import {installNodeContentRun} from './installed-content-run.mjs';
 import {finishInstalledEffectModelScope} from './installed-effect-managed-run.mjs';
 import {contentGenerationControl} from '../host-common/runtime-core.mjs';
 import {localOutputLimits, localContractLimits} from './local-values-plan.mjs';
+import {cleanupRequestInput} from '../local-node/request-preparation-adapter.mjs';
 
 // Actual methods with explicit Core/current ports. These are not a compiled
 // Common ABI, a physical capacity admission or an ordinary Content receipt.
-function method(file, name, ports) {
+function method(file, name, ports, {methodOnly = false} = {}) {
   const source=readFileSync(new URL(file,import.meta.url),'utf8');let found;
   const walk=node=>{if(!node||typeof node!=='object')return;
-    if(node.type==='Property'&&node.key?.name===name){assert(!found);found=node;}
+    if(node.type==='Property'&&node.key?.name===name&&(!methodOnly||node.method===true)){assert(!found);found=node;}
     for(const value of Object.values(node)){
       if(Array.isArray(value))value.forEach(walk);else if(value&&typeof value==='object')walk(value);
     }};
   walk(parse(source,{ecmaVersion:'latest',sourceType:'module'}));assert(found,name);
-  return Function(...Object.keys(ports),`return ({${source.slice(found.start,found.end)}}).${name};`)(...Object.values(ports));
+  const helpers = file === './ordinary-source-managed.mjs' ? source.slice(source.indexOf('  function constructRequestDomain('), source.indexOf('  const view = Object.freeze({')) : '';
+  return Function(...Object.keys(ports),`const pendingRunRegistrations=new Set();${helpers}return ({${source.slice(found.start,found.end)}}).${name};`)(...Object.values(ports));
 }
 const fail=code=>{throw Object.assign(new Error(code),{code});};
 
@@ -283,4 +285,224 @@ test('Request Content manager cuts its selected Plan alias before a consumed bor
   const sever=method('./ordinary-source-managed.mjs','severPreparation',{runs,fail,checked:v=>v});
   assert.throws(()=>sever(prepared,original),e=>e===primary);assert.equal(run.content,undefined);
   sever(prepared,original);assert.equal(returns,1);
+});
+
+
+function modelContentFixture({constructorFailure} = {}) {
+  const prepared = {}, request = {}, sdkRequest = {}, parent = {}, input = {}, compilation = {}, holder = {};
+  const graph = {}, component = {}, scope = {}, value = {}, original = {}, prefix = {}, calls = [];
+  const plan = {kind: 'infer', inferGraph: graph, serializationGraph: component,
+    compiled: {owner: prepared}, runDefinition: {wire: '{"valid_until":"2027-01-01T00:00:00.000Z"}'}};
+  const model = {compiled: plan.compiled, runDefinition: plan.runDefinition,
+    graph, serializationGraph: component, scope: undefined,
+    control: {}, releaseAliases() {
+      assert.equal(this, model); assert.equal(model.scope, undefined);
+      calls.push('model alias cut');
+    }};
+  let retired = false, returns = 0, retained;
+  const moon = {clientProgramAcquisitionCount: () => 0,
+    clientProgramPreparationBorrowRead: actual => {assert.equal(actual, holder); return prepared;},
+    clientProgramPreparationBorrowRetirementStarted: actual => {assert.equal(actual, holder); return retired;},
+    clientProgramPreparationBorrowReturn: actual => {assert.equal(actual, holder); returns++; return {$tag: 1, _0: true};},
+    clientProgramAbortRequestPreparation: actual => {assert.equal(actual, parent); retired = true; return {$tag: 1, _0: undefined};},
+    clientProgramInstalledManagedRunRetire() {assert.fail('No independent Model or Content parent retirement');},
+    clientProgramInstalledManagedRunCheck(v, p, r) {assert.deepEqual([v, p, r], [value, prepared, request]);},
+  };
+  const state = {prepared, parent, holder, compilationFamily: 'model', context: {runtime: moon}};
+  const producer = {receipt: input, preparation: state};
+  const retain = method('./ordinary-source-managed.mjs', 'retainContentPreparation', {
+    current() {}, producerForRequest: actual => {assert.equal(actual, sdkRequest); return producer;}, fail});
+  const record = {}, originals = {}, originalInstallation = {releaseRequestDomainAliases(p) {
+    assert.equal(p, prepared); calls.push('selection alias cut');
+  }};
+  const contentControl = {workspaceCapacity: () => ({}),
+    requestPrefixCapacity(actual) {assert.equal(actual, prefix); return {retainedBytes: 11n, executionBytes: 13n};},
+    cleanupRequestPrefix() {assert.fail('No prefix starts in constructor fixture');}};
+  const manager = {prepareModelRun(p, r, identity, m, construct) {
+    assert.deepEqual([p, r, identity, m], [prepared, sdkRequest, request, model]);
+    assert.equal(state.contentPreparation, retained);
+    assert.equal(retained.inputHolder, holder);
+    construct(parent, input, compilation);
+    model.scope = scope;
+    return {original, value};
+  }};
+  const ports = {sourceManaged: undefined, computeManaged: manager, moon, record, originals, originalInstallation,
+    runtimeCore: () => ({publicationControl: model.control}), checked: result => result,
+    assertManagedComputeInstallationCurrent() {}, originalSourceManagedHostRequest: () => sdkRequest,
+    clientOperationError: code => Object.assign(new Error(code), {code}), finishInstalledEffectModelScope,
+    prepareRequestMockModelPlan(o, run, m, c, p, i) {
+      assert.deepEqual([o, m, c, p, i], [originals, model, compilation, parent, input]);
+      assert.equal(record.computeRuns.get(prepared), run);
+      assert.equal(record.computeLiveRuns.has(run), true);
+      assert.equal(run.contentPreparation, retained);
+      assert.equal(retained.managed, run);
+      assert.equal(run.content, contentControl);
+      assert.equal(retained.plan, plan);
+      calls.push('same Model Request constructor');
+      if (constructorFailure) throw constructorFailure;
+      run.serialization = prefix;
+      return {};
+    }};
+  const prepare = method('./embedded-local.mjs', 'prepareManagedModelRun', ports, {methodOnly: true});
+  const retire = method('./embedded-local.mjs', 'retireManagedComputeRun', ports);
+  const content = installNodeContentRun({moon, preparedRunRequired: true, assertRunCurrent() {},
+    registry: '{}', values: '{}', ownerPrincipal: 'owner', storeAuthorityCid: 'store', now: () => '2026-11-01T00:00:00.000Z',
+    authorize: () => true,
+    retainPreparation(p, actual) {
+      assert.equal(p, prepared); retained = actual;
+      actual.releaseSelection = originalInstallation.releaseRequestDomainAliases;
+      retain(prepared, sdkRequest, actual);
+      calls.push('same Request record retained');
+    },
+    prepareModelManagedRun: (p, r, m) => prepare(moon, p, r, m),
+    prepareSerializationManagedRun() {assert.fail('No separate terminal Content adoption');},
+    core: {contentGenerationControl: contentControl,
+      publicationControl: {checkClientCompiledRunOwner(c, p) {assert.equal(c.owner, p);},
+        checkedClientSerializationGenerationLimits: () => ({maxRows: 1, maxBytes: 128})}}});
+  const begin = () => content.prepareModelRun({preparedProgram: prepared, plan, request, model});
+  return {begin, content, state, model, calls, prepared, plan, request, record,
+    retained: () => retained, returns: () => returns,
+    abort: () => cleanupRequestInput(state, p => {assert.equal(p, prepared); retire(p);})};
+}
+
+test('Model Content caller retains the same Request and Host record before one shared constructor', () => {
+  const f = modelContentFixture(); f.begin(); f.begin();
+  const original = f.retained(), run = f.record.computeRuns.get(f.prepared);
+  assert.equal(f.state.contentPreparation, original);
+  assert.equal(f.model.contentPreparation, original);
+  assert.equal(original.managed, run);
+  assert.equal(run.serializationCleaned, false);
+  assert.equal(typeof f.content.generate, 'function');
+  assert.deepEqual(f.calls, ['same Request record retained', 'same Model Request constructor']);
+});
+
+test('Model Content caller preserves partial constructor failure until same Request abort and original holder retirement', () => {
+  const primary = new Error('original mixed constructor'), f = modelContentFixture({constructorFailure: primary});
+  assert.throws(f.begin, cause => cause === primary);
+  assert.throws(f.begin, cause => cause === primary);
+  const original = f.retained();
+  assert.equal(f.state.contentPreparation, original);
+  assert.equal(f.model.contentPreparation, original);
+  assert.equal(f.record.computeRuns.get(f.prepared).failure, primary);
+  assert.throws(() => Reflect.apply(original.releaseAliases, original, [undefined, original.inputHolder]),
+    /InstalledContentRunCleanupPending/);
+  f.abort();
+  assert.equal(original.retired, true);
+  assert.equal(original.plan, undefined);
+  assert.equal(original.model, undefined);
+  assert.equal(f.state.contentPreparation, undefined);
+  assert.equal(f.returns(), 1);
+  assert.equal(f.record.computeLiveRuns.size, 0);
+  assert.throws(f.begin, /ForeignInstalledContentRun/);
+  assert.equal(f.calls.filter(value => value === 'same Model Request constructor').length, 1);
+});
+
+test('Model Content generate refuses missing original preparation before writer or prefix starts', async () => {
+  const f = modelContentFixture();
+  await assert.rejects(() => f.content.generate({preparedProgram: f.prepared, plan: f.plan,
+    store: {storeAuthorityCid: 'store', status: () => ({closed: false}),
+      createPreparedObjectWriter() {assert.fail('No Store child before original preparation');}},
+    principalId: 'owner', retainExecution() {assert.fail('No generated child before original preparation');}}),
+  /InstalledContentRunPreparationUnavailable/);
+  assert.deepEqual(f.calls, []);
+});
+
+
+test('Request acquired Model Content borrows its adopted Source Ledger and starts only with the original Row capture', async () => {
+  const preparedProgram = {}, request = {}, selected = {}, compiled = {}, graph = {},
+    ledger = {}, rawCapture = {}, source = {}, sourceCapacity = {};
+  const managed = {value: {}, serialization: selected, closed: false};
+  const plan = {kind: 'infer', compiled, inferGraph: graph, serializationGraph: {task: 1, step: 2},
+    runDefinition: {identity: 'definition', wire: '{"valid_until":"2099-01-01T00:00:00.000Z"}'}};
+  const model = {compiled, runDefinition: plan.runDefinition, graph, serializationGraph: plan.serializationGraph};
+  const primary = new Error('original acquired prefix child failure');
+  let execution, cleanupReady = false, starts = 0, captures = 0, ledgerCalls = 0, cleanups = 0;
+  const control = {workspaceCapacity: () => ({}), requestPrefixCapacity: actual => {
+    assert.equal(actual, selected); return {retainedBytes: 7n, executionBytes: 9n};
+  }, prefixCapacity() {assert.fail('Do not reconstruct the adopted Model prefix');},
+  prefix() {assert.fail('No independent acquired Content prefix');},
+  startRequestPrefix() {assert.fail('An empty prefix cannot substitute the original Row capture');},
+  startRequestAcquiredPrefix(r, p, s, c) {
+    assert.deepEqual([r, p, s, c], [managed.value, preparedProgram, selected, rawCapture]);
+    starts++; throw primary;
+  }, cleanupRequestPrefix(r, s) {
+    assert.deepEqual([r, s], [managed.value, selected]); cleanups++; return cleanupReady;
+  }};
+  const moon = {clientProgramAcquisitionCount: () => 1,
+    clientProgramPrepareSerializationCapturedLedger() {assert.fail('No second Model Ledger');},
+    clientProgramInstalledManagedRunPrepareLedger(...args) {
+      assert.deepEqual(args.slice(0, 6), [managed.value, preparedProgram, request, [sourceCapacity], [512n], [256n]]);
+      ledgerCalls++; return {$tag: 1, _0: ledger};
+    }};
+  const run = installNodeContentRun({moon,
+    core: {contentGenerationControl: control, publicationControl: {checkClientCompiledRunOwner() {},
+      checkedClientSerializationGenerationLimits: () => ({maxRows: 1, maxBytes: 16}),
+      bindCheckedClientSerializationCapture(p, g, c, a) {
+        assert.equal(p, preparedProgram); assert.equal(g, plan.serializationGraph);
+        assert.equal(c, acquiredContent.captured); assert.equal(a, acquiredContent); return {};
+      }}}, preparedRunRequired: true, assertRunCurrent() {},
+    retainPreparation(p, record) {assert.equal(p, preparedProgram); record.inputHolder = {};},
+    prepareModelManagedRun(p, r, m) {assert.deepEqual([p, r, m], [preparedProgram, request, model]); return managed;},
+    ownerPrincipal: 'principal', storeAuthorityCid: 'store', now: () => '2026-11-01T00:00:00.000Z', authorize: () => true});
+  run.prepareModelRun({preparedProgram, plan, request, model});
+  const capacity = {managedRun: managed.value, capacity: sourceCapacity, transferBytes: 512n, executionBytes: 256n};
+  assert.equal(run.prepareAcquiredLedger({preparedProgram, plan, sourceCapacity: capacity}), ledger);
+  const acquiredContent = {ledger, captured: {capture: {source: () => source,
+    originalRowCapture() {assert.equal(this, acquiredContent.captured.capture); captures++; return rawCapture;}}}};
+  const store = {storeAuthorityCid: 'store', status: () => ({closed: false}), confirmCommittedIndex: async () => undefined};
+  await assert.rejects(run.generate({preparedProgram, plan, store, principalId: 'principal', acquiredContent,
+    retainExecution: value => {execution = value;}}), cause => cause === primary);
+  assert.equal(ledgerCalls, 1); assert.equal(captures, 1); assert.equal(starts, 1);
+  assert.equal(await execution.cleanup(), false);
+  cleanupReady = true; assert.equal(await execution.cleanup(), true);
+  assert.equal(await execution.cleanup(), true); assert.equal(cleanups, 2);
+  assert.equal(starts, 1); assert.equal(captures, 1);
+});
+
+test('Request acquired prefix facade forwards same opaque capture and retains only its original returned prefix', () => {
+  const run = {}, program = {}, selected = {}, capture = {}, prefix = {}, prefixes = new WeakSet();
+  const primary = new Error('original typed acquired prefix failure'); let fail = false, calls = 0;
+  const moon = {clientProgramInstalledManagedAcquiredSerializationPrefixStart(...args) {
+    assert.equal(this, moon); assert.deepEqual(args, [run, program, selected, capture]); calls++;
+    if (fail) throw primary; return prefix;
+  }};
+  const start = method('../host-common/runtime-core.mjs', 'startRequestAcquiredPrefix', {moon, prefixes, checked: v => v});
+  assert.equal(start(run, program, selected, capture), prefix); assert(prefixes.has(prefix));
+  fail = true; assert.throws(() => start(run, program, selected, capture), cause => cause === primary);
+  assert.equal(calls, 2);
+});
+
+
+test('Request acquired Model Ledger projection cannot resurrect retired Content aliases across its original callback', () => {
+  const source = readFileSync(new URL('./installed-content-run.mjs', import.meta.url), 'utf8');
+  let selected;
+  const walk = node => {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'AssignmentExpression' && node.left?.object?.name === 'run' &&
+        node.left?.property?.name === 'prepareAcquiredLedger') {assert(!selected); selected = node.right;}
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(walk); else if (value && typeof value === 'object') walk(value);
+    }
+  };
+  walk(parse(source, {ecmaVersion: 'latest', sourceType: 'module'})); assert(selected);
+  const preparedProgram = {}, plan = {compiled: {}}, ledger = {}, parent = {}, original = {
+    prepared: preparedProgram, plan, request: {}, model: {}, managed: {value: parent, closed: false}};
+  const preparedRuns = new WeakMap([[preparedProgram, original]]), acquiredLedgers = new WeakMap();
+  let calls = 0;
+  const ports = {publications: {checkClientCompiledRunOwner() {}}, preparedRunRequired: true, preparedRuns,
+    acquiredLedgers, assertRunCurrent() {}, checked: value => value._0,
+    registry: {}, values: {}, fragment: {}, ordered: {},
+    moon: {clientProgramInstalledManagedRunPrepareLedger() {
+      calls++;
+      for (const key of Object.keys(original)) original[key] = undefined;
+      original.retired = true;
+      return {$tag: 1, _0: ledger};
+    }}};
+  const project = Function(...Object.keys(ports), 'return (' + source.slice(selected.start, selected.end) + ')')(...Object.values(ports));
+  assert.throws(() => project({preparedProgram, plan, sourceCapacity: {managedRun: {}}}), /InstalledContentRunPreparationUnavailable/);
+  assert.equal(calls, 0);
+  assert.throws(() => project({preparedProgram, plan, sourceCapacity: {managedRun: parent,
+    capacity: {}, transferBytes: 1n, executionBytes: 1n}}), /ForeignInstalledContentRun/);
+  assert.equal(original.retired, true); assert.equal(original.acquiredLedger, undefined);
+  assert.equal(acquiredLedgers.has(ledger), false); assert.equal(calls, 1);
 });

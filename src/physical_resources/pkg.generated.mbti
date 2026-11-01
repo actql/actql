@@ -420,7 +420,7 @@ pub fn reserve_capacity(Ledger, Int64, Int64) -> Result[CapacityReservation, Led
 
 pub fn reserve_execution_delegation(Ledger, LedgerLimits, Int64, Int64) -> Result[ExecutionDelegation, LedgerIssue]
 
-pub fn[P] reserve_node_managed_run_attempt(NodeManagedRunAdmission[P], P, Ledger, Int64, Int64, Int64) -> Result[Reservation, ImportedChildLedgerIssue]
+pub fn[P] reserve_node_managed_run_attempt(NodeManagedRunAdmission[P], P, Ledger, Int64, Int64, Int64, quantities? : QuantityAmounts?) -> Result[Reservation, ImportedChildLedgerIssue]
 
 pub fn[P, E] reserve_node_managed_run_operation(NodeManagedRunAdmission[P], P, Ledger, () -> Result[Unit, E], CapacityReservation?, Int64, Int64, Bool, Int64, Int64, Int64) -> Result[(CapacityReservation, Result[NodeManagedRunOperationBacking, LedgerIssue]), NodeManagedRunOperationIssue[E]]
 

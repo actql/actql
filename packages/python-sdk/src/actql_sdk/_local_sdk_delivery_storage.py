@@ -533,9 +533,7 @@ class OriginalSDKDeliveryStore:
                     def project(ordinal: int, consume: Callable[[ByteWrite], None]) -> None:
                         if len(writes) != 6 or not 0 <= ordinal < 6:
                             raise ValueError('Incomplete original SDK delivery write material')
-                        observation._validate_facts()
                         consume(writes[ordinal])
-                        observation._validate_facts()
                     def before_commit() -> None:
                         observation._before_lookup()
                         outputs = observation._projection.pending_outputs
@@ -569,7 +567,13 @@ class OriginalSDKDeliveryStore:
                                 if attempt_key in self._keys_attempted:
                                     raise LocalStorageError('Original delivery key requires lookup; replay is unavailable')
                                 self._keys_attempted.add(attempt_key)
+                                # One bounded proposal is consumed inside this
+                                # same locked transaction. Keep its full facts
+                                # before/after the group, plus the independent
+                                # precommit checks; no COMMIT occurs in take().
+                                observation._validate_facts()
                                 take()
+                                observation._validate_facts()
                             observation._projection.project_sdk_read_delivery_storage(
                                 request, original_run, transfer)
                         binding.inspect_reader(reader, prepare)

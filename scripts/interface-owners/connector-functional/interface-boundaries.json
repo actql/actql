@@ -8556,7 +8556,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-run.mjs",
-      "sha256": "14e886f3bc62e5ce5627d1461de0ad51f9c5829e81ba17f8d44aec539a9b5dbb",
+      "sha256": "0fc435be1e05f832751d9d172106be17981017a7488f7ec6c7fbe8a53f2b69f7",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing RowRun acquisition/capture/release plumbing; physical provider and original current authority stay with the adapter",
@@ -8654,6 +8654,11 @@
             "dag",
             "task"
           ],
+          "async": false
+        },
+        {
+          "name": "startInstalledRowRun/complete/captureAccess/init:originalRowCapture/init:originalRowCapture",
+          "parameters": [],
           "async": false
         },
         {
@@ -9098,6 +9103,7 @@
         },
         {
           "operations": [
+            "startInstalledRowRun/complete/captureAccess/init:originalRowCapture/init:originalRowCapture",
             "startInstalledRowRun/complete/captureAccess/init:originalWholeInput/init:originalWholeInput"
           ],
           "exports": [],
@@ -9106,54 +9112,90 @@
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "Whole-input publication binds the same adopted Run"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "typed Source evidence and the same native capture"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "exact Run association"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "same retained inventory and admitted row bound"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "before issuance and again before retaining the completed invocation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "one-shot invocation slot remains consumed on semantic failure"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "original provider/RowRun retirement confirms and the body borrow is returned"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "before capacity construction, so Result-publication reservation reuses that"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "the Query issuer keeps its original QueryRequirement array"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
               }
             ],
             "verification": [
@@ -9164,6 +9206,14 @@
               {
                 "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
                 "anchor": "whole Source publication forwards the same native capture and never a Query requirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request acquired Model Content borrows"
               }
             ]
           }
@@ -9541,7 +9591,7 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
-      "sha256": "26856fcec59e5a3c8e655d73b88d96c82017c31d0b6c2f690a126c5b023adced",
+      "sha256": "81fa57d432d98c223dd545165e5519b0077fffb3c42c5c28a17044031f909981",
       "operations": [
         {
           "name": "byCid/byCid",
@@ -10174,6 +10224,14 @@
           "name": "createInstalledRowSource/ordinaryRecoveryBinding",
           "parameters": [
             "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/ordinaryRecoveryBinding/ordinaryRecoveryBinding",
+          "parameters": [
+            "field",
+            "index"
           ],
           "async": false
         },
@@ -10816,6 +10874,54 @@
           "async": false
         },
         {
+          "name": "prepareImmutablePhysicalTargets",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareImmutablePhysicalTargets/arrayValues/arrayValues",
+          "parameters": [
+            "input"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareImmutablePhysicalTargets/init:prepare/init:prepare",
+          "parameters": [
+            "resource",
+            "fields"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareImmutablePhysicalTargets/init:prepare/init:prepare/init:prepare",
+          "parameters": [
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareImmutablePhysicalTargets/init:prepare/init:prepare/target/target",
+          "parameters": [
+            "target"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareImmutablePhysicalTargets/mismatch/mismatch",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareImmutablePhysicalTargets/prepareImmutablePhysicalTargets",
+          "parameters": [
+            "field"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareInstallationMetadataSite",
           "parameters": [
             "options"
@@ -11181,6 +11287,8 @@
             "createInstalledRowSource/acquire/readerOptions/readerOptions#3",
             "createInstalledRowSource/acquire/readerOptions/readerOptions#4",
             "createInstalledRowSource/acquire/readerOptions/readerOptions#5",
+            "createInstalledRowSource/acquire/readerOptions/readerOptions/readerOptions",
+            "createInstalledRowSource/acquire/readerOptions/readerOptions/selected/selected",
             "createInstalledRowSource/captureCapacity/captureCapacity",
             "createInstalledRowSource/createInstalledRowSource",
             "createInstalledRowSource/createInstalledRowSource#10",
@@ -11224,6 +11332,7 @@
             "createInstalledRowSource/openKeyedLookup/stop/stop",
             "createInstalledRowSource/operationBindings/operationBindings",
             "createInstalledRowSource/ordinaryRecoveryBinding",
+            "createInstalledRowSource/ordinaryRecoveryBinding/ordinaryRecoveryBinding",
             "createInstalledRowSource/ordinarySubject/ordinarySubject",
             "createInstalledRowSource/prepare",
             "createInstalledRowSource/prepare/authorizePreparation/authorizePreparation",
@@ -11282,12 +11391,17 @@
             "openRowSourceCredentialSite/openRowSourceCredentialSite#2",
             "openRowSourceCredentialSite/synchronous",
             "openRowSourceCredentialSite/synchronous/synchronous",
+            "prepareImmutablePhysicalTargets",
+            "prepareImmutablePhysicalTargets/arrayValues/arrayValues",
+            "prepareImmutablePhysicalTargets/init:prepare/init:prepare",
+            "prepareImmutablePhysicalTargets/init:prepare/init:prepare/init:prepare",
+            "prepareImmutablePhysicalTargets/mismatch/mismatch",
+            "prepareImmutablePhysicalTargets/prepareImmutablePhysicalTargets",
             "rowSourceCheckEnvironment",
             "rowSourceMapping",
             "text/text",
             "valueCid/valueCid",
-            "createInstalledRowSource/acquire/readerOptions/readerOptions/readerOptions",
-            "createInstalledRowSource/acquire/readerOptions/readerOptions/selected/selected"
+            "prepareImmutablePhysicalTargets/init:prepare/init:prepare/target/target"
           ],
           "exports": [
             "createInstalledRowSource",
@@ -11414,6 +11528,10 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "clientProgramInstalledSourceReadAttachAcquisition("
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Standard REST installations hand their complete frozen physical-target DATA"
               }
             ],
             "ownership": [
@@ -11836,6 +11954,10 @@
               {
                 "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
                 "anchor": "whole Source transfers its original reference only after the RowRun constructor returns"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-binding-originals.test.mjs",
+                "anchor": "test('same immutable binding removes generation/hash work without removing Account or Core target observations'"
               }
             ]
           }
@@ -12537,7 +12659,7 @@
             "resources": [
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "occurrence, physicalBindingCid, providerCaptureCapacity, originalRead, managedRun}));"
+                "anchor": "occurrence, physicalBindingCid, providerCaptureCapacity, originalRead, managedRun,"
               },
               {
                 "path": "adapters/host-node/source-managed-phase-envelope.cjs",

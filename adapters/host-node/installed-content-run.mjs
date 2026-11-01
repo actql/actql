@@ -17,7 +17,8 @@ import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.
 export function installNodeContentRun({moon, core, registry, values, fragment, ordered,
   namespaceId, authorityScopeCid, storeAuthorityCid, ownerPrincipal, now, authorize,
   faultInjection, assertRunCurrent, preparedRunRequired = false,
-  prepareKeyedManagedRun, borrowKeyedManagedLedger, prepareSerializationManagedRun, retainPreparation}) {
+  prepareKeyedManagedRun, borrowKeyedManagedLedger, prepareSerializationManagedRun,
+  prepareModelManagedRun, retainPreparation}) {
   const control = core.contentGenerationControl;
   const publications = core.publicationControl;
   const bodies = {registry, values, fragment, ordered};
@@ -101,7 +102,7 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
     }};
   };
   const execute = async ({preparedProgram, plan, store, principalId, signal, retainExecution,
-    acquiredContent}, intermediate) => {
+    acquiredContent}, intermediate = false) => {
     publications.checkClientCompiledRunOwner(plan.compiled, preparedProgram);
     if (plan.kind !== (intermediate ? 'infer' : 'serialization') ||
         plan.serializationGraph === undefined || principalId !== ownerPrincipal ||
@@ -122,7 +123,7 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
     if (!live()) throw new Error('InstalledContentAuthorityUnavailable');
     const source = acquiredContent?.captured.capture.source();
     let ledger, managed, capacity, selectedKeyed;
-    if (acquiredContent === undefined && !intermediate) {
+    if (acquiredContent === undefined || intermediate) {
       const original = preparedRuns.get(preparedProgram);
       if (original === undefined || original.retired || original.plan !== plan || original.attempted ||
           original.failure !== undefined || original.managed === undefined || original.managed.closed) {
@@ -130,10 +131,17 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
       }
       // Consume before fallible currentness or prefix construction. Failure
       // remains attached to this Run, never a new scalar-ledger fallback.
+      if (acquiredContent !== undefined && (original.model === undefined ||
+          original.acquiredLedger !== acquiredContent.ledger ||
+          typeof acquiredContent.captured?.capture?.originalRowCapture !== 'function' ||
+          typeof control.startRequestAcquiredPrefix !== 'function')) {
+        throw new TypeError('InstalledModelCapturedContentPreparationUnavailable');
+      }
       original.attempted = true;
       assertRunCurrent();
       managed = original.managed; capacity = original.capacity;
-    } else if (preparedRunRequired && !intermediate) {
+      if (acquiredContent !== undefined) ledger = acquiredContent.ledger;
+    } else if (preparedRunRequired) {
       const original = preparedKeyedRuns.get(preparedProgram);
       if (original === undefined || original.retired || original.plan !== plan || original.attempted ||
           original.failed || original.managed === undefined || original.managed.closed ||
@@ -150,9 +158,9 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
       ledger = acquiredContent.ledger;
     } else {
       capacity = control.prefixCapacity(preparedProgram, task, step, bodies, prefixLimits, workspace, source);
-      ledger = acquiredContent === undefined
-        ? checked(moon.clientProgramAcquisitionLedger(1, 0, 0n,
-          capacity.retainedBytes, capacity.executionBytes, 0)) : acquiredContent.ledger;
+      // The source-free case already selected its same Request above. This
+      // remaining explicit acquired route borrows its original Source Ledger.
+      ledger = acquiredContent.ledger;
     }
     if (acquiredContent !== undefined && acquiredLedgers.get(ledger) !== plan.compiled) {
       throw new TypeError('Foreign Content acquisition ledger');
@@ -173,7 +181,9 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
       if (cleaned) return Promise.resolve(true);
       if (cleanupFlight !== undefined) return cleanupFlight;
       let flight;
-      flight = (async () => {
+      // Install the existing flight before entering any callback, including
+      // synchronous cancellation. Reentry joins this same cleanup operation.
+      flight = Promise.resolve().then(async () => {
         if (prefix !== undefined) control.prefixCancel(prefix);
         if (input !== undefined) control.inputCancel(input);
         if (failureCleanup !== undefined) {
@@ -192,12 +202,19 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
         // Confirm the exact original index before selecting lawful retirement.
         // A failed observation retains custody; it is not proof of no commit.
         const committed = await store.confirmCommittedIndex(key);
-        // Intermediate bytes have their own committed generation/evidence
-        // holdings and declared lifetime. A Model approval wait or unknown
-        // outcome has no public index; that is not permission to delete them.
+        for (const holding of retained?.holdings ?? []) {
+          await holding.abort();
+          // False can mean an already committed holding. Its original owner
+          // must still have reconciled and released every prepared child.
+          const status = holding.status();
+          if (status.operationPending !== false || status.preparedPending !== false ||
+              (status.committed !== true && status.abandoned !== true)) return false;
+        }
+        // A retained intermediate generation keeps its original committed
+        // holdings for the Model's fixed-input receipt, including Unknown.
+        // Unreturned/failed generation stays on this same cleanup record.
         if (committed === undefined && !generatedRetained) {
           retired = true;
-          for (const holding of retained?.holdings ?? []) await holding.abort();
           for (const cid of [byteHolding?.holding_cid,
             ...(retained?.bindings ?? []).map(binding => binding.holdingCid)].filter(Boolean)) {
             let child = retirement.get(cid);
@@ -209,19 +226,32 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
             if (child.status().pending) return false;
           }
         }
+        // The actual writer/prepared/holding/Store duties above acknowledged
+        // cleanup. Forget only this execution's aliases before fallible native
+        // prefix settlement; the same managed Run retains a pending prefix.
+        input = undefined;
+        writer = undefined;
+        physical = undefined;
+        byteHolding = undefined;
+        retained = undefined;
+        publication = undefined;
+        retirement.clear();
         if (managed !== undefined) {
+          prefix = undefined;
           // This also retrieves cleanup after the original start retained a
           // prefix but threw before returning it to this JS caller.
           const acknowledged = selectedKeyed === undefined
             ? control.cleanupRequestPrefix(managed.value, managed.serialization)
             : control.cleanupRequestKeyedPrefix(managed.value, selectedKeyed);
           if (acknowledged !== true) return false;
+          if (ledger !== undefined) acquiredLedgers.delete(ledger);
         } else if (prefix !== undefined) {
           if (!stopGeneratedContentPrefix({control, prefix, chargeWork})) return false;
+          prefix = undefined;
         }
         cleaned = true;
         return true;
-      })().finally(() => { if (cleanupFlight === flight) cleanupFlight = undefined; });
+      }).finally(() => { if (cleanupFlight === flight) cleanupFlight = undefined; });
       cleanupFlight = flight;
       return flight;
     };
@@ -238,7 +268,10 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
         ? control.prefix(preparedProgram, task, step, bodies, prefixLimits, ledger, workspace,
           source, acquiredContent?.keyedLookup)
         : selectedKeyed === undefined
-          ? control.startRequestPrefix(managed.value, preparedProgram, managed.serialization)
+          ? acquiredContent === undefined
+            ? control.startRequestPrefix(managed.value, preparedProgram, managed.serialization)
+            : control.startRequestAcquiredPrefix(managed.value, preparedProgram, managed.serialization,
+              acquiredContent.captured.capture.originalRowCapture())
           : control.startRequestKeyedPrefix(managed.value, preparedProgram, selectedKeyed,
             source, acquiredContent.keyedLookup);
       await faultInjection?.('content_workspace_reserved', {capacity});
@@ -306,7 +339,7 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
       throw error;
     }
   };
-  const run = options => execute(options, false);
+  const run = options => execute(options);
   // The ordinary trusted Host prepares this exact checked Run before durable
   // admission. This Ledger expresses managed limits; platform allocation is
   // the supplier, and no successful allocation, authority or physical ACK is
@@ -345,6 +378,48 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
       assertRunCurrent();
     } catch (error) {if (!original.retired) {original.failed = true; original.failure = error;} throw error;}
   };
+  // Intermediate Model generation uses the same Request/Run as its Model
+  // Scope. Retain the original Content record before the Host constructor;
+  // no separate Content completion, adoption or scalar Ledger is selected.
+  run.prepareModelRun = ({preparedProgram, plan, request, model}) => {
+    if (!preparedRunRequired || typeof assertRunCurrent !== 'function' ||
+        typeof prepareModelManagedRun !== 'function' || typeof retainPreparation !== 'function' ||
+        request === undefined) throw new TypeError('InstalledContentRunPreparationUnavailable');
+    assertRunCurrent();
+    publications.checkClientCompiledRunOwner(plan.compiled, preparedProgram);
+    const acquisitions = moon.clientProgramAcquisitionCount(preparedProgram);
+    if (plan.kind !== 'infer' || plan.serializationGraph === undefined ||
+        (acquisitions !== 0 && acquisitions !== 1) ||
+        model?.compiled !== plan.compiled || model.runDefinition !== plan.runDefinition ||
+        model.graph !== plan.inferGraph || model.serializationGraph !== plan.serializationGraph) {
+      throw new TypeError('InstalledContentRunPreparationUnsupported');
+    }
+    const prior = preparedRuns.get(preparedProgram);
+    if (prior !== undefined) {
+      if (prior.retired || prior.plan !== plan || prior.request !== request || prior.model !== model ||
+          prior.attempted) throw new TypeError('ForeignInstalledContentRun');
+      if (prior.failed) throw prior.failure;
+      return;
+    }
+    if (preparedRunCount === 4096) throw new TypeError('InstalledContentRunLimit');
+    preparedRunCount++;
+    const original = {prepared: preparedProgram, plan, request, model, attempted: false,
+      capacity: undefined, managed: undefined, inputHolder: undefined, localPreparation: undefined,
+      releaseSelection: undefined, contentControl: control, prefixLimits, workspace,
+      retired: false, failed: false, failure: undefined};
+    preparedRuns.set(preparedProgram, original);
+    try {
+      retainOriginalPreparation(preparedProgram, original);
+      model.contentPreparation = original;
+      original.managed = prepareModelManagedRun(preparedProgram, request, model);
+      if (original.managed?.value === undefined || original.managed.serialization === undefined) {
+        throw new TypeError('InstalledContentRunPreparationUnavailable');
+      }
+      original.capacity = control.requestPrefixCapacity(original.managed.serialization);
+      assertRunCurrent();
+    } catch (error) {if (!original.retired) {original.failed = true; original.failure = error;} throw error;}
+  };
+  run.generate = options => execute(options, true);
   // The selected existing Source owner creates the same-Run Content parent
   // before durable admission or I/O. This finite prefix recipe is DATA; the
   // callback must retain its real Resource original and partial cleanup.
@@ -469,9 +544,6 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
       inventory: original, verifyRead});
     return frame;
   };
-  // The enclosing Model custody retains this same child before allocation.
-  // No second Run, encoder, publication or dispatch cleanup owner is created.
-  run.generate = options => execute(options, true);
   run.effectFamily = ({prepared, plan, store, principalId, signal, restored, retainCleanup}) =>
     installEffectContentFamily({moon, control, publications, bodies,
       prepared, plan, store, principalId, ownerPrincipal, now, authorize, signal,
@@ -485,6 +557,48 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
   // opaque and requirement-bound in the common owner, never estimated from rows.
   run.prepareAcquiredLedger = ({preparedProgram, plan, sourceCapacity}) => {
     publications.checkClientCompiledRunOwner(plan.compiled, preparedProgram);
+    if (preparedRunRequired) {
+      const original = preparedRuns.get(preparedProgram), managed = original?.managed;
+      if (original === undefined || original.retired || original.failed || original.attempted ||
+          original.acquiredLedgerAttempted || original.plan !== plan || original.model === undefined ||
+          managed === undefined || managed.closed || managed.value === undefined ||
+          sourceCapacity.managedRun !== managed.value ||
+          typeof moon.clientProgramInstalledManagedRunPrepareLedger !== 'function') {
+        throw new TypeError('InstalledContentRunPreparationUnavailable');
+      }
+      original.acquiredLedgerAttempted = true;
+      const parent = managed.value, request = original.request;
+      try {
+        assertRunCurrent();
+        if (preparedRuns.get(preparedProgram) !== original || original.retired || original.failed ||
+            original.plan !== plan || original.request !== request ||
+            original.managed !== managed || managed.closed || managed.value !== parent) {
+          throw new TypeError('ForeignInstalledContentRun');
+        }
+        const ledger = checked(moon.clientProgramInstalledManagedRunPrepareLedger(parent,
+          preparedProgram, request, [sourceCapacity.capacity], [sourceCapacity.transferBytes],
+          [sourceCapacity.executionBytes], registry, values, fragment, ordered));
+        // This getter borrows the existing Ledger, so a callback that retired
+        // the record creates no new child. Never resurrect its spent aliases.
+        if (preparedRuns.get(preparedProgram) !== original || original.retired || original.failed ||
+            original.plan !== plan || original.request !== request ||
+            original.managed !== managed || managed.closed || managed.value !== parent) {
+          throw new TypeError('ForeignInstalledContentRun');
+        }
+        original.acquiredLedger = ledger;
+        assertRunCurrent();
+        if (preparedRuns.get(preparedProgram) !== original || original.retired || original.failed ||
+            original.plan !== plan || original.request !== request ||
+            original.managed !== managed || managed.closed || managed.value !== parent) {
+          throw new TypeError('ForeignInstalledContentRun');
+        }
+        acquiredLedgers.set(ledger, plan.compiled);
+        return ledger;
+      } catch (cause) {
+        if (!original.retired) {original.failed = true; original.failure = cause;}
+        throw cause;
+      }
+    }
     const {task, step} = plan.serializationGraph;
     const prefix = control.prefixCapacity(preparedProgram, task, step,
       bodies, prefixLimits, workspace, true);

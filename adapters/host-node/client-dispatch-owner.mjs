@@ -5,7 +5,7 @@ import {runtimeField, runtimeOptionalField, runtimeTag} from '../host-common/com
 import {CapturedRunPublicationError,
   runPublishedCapturedStrategy} from './entry.mjs';
 import {acquiredTaskPublicationPlan, acquiredMultiTaskPublicationPlan,
-  acquiredKeyedTaskPublicationPlan} from './local-values-plan.mjs';
+  acquiredKeyedTaskPublicationPlan, sourceFreePlanExecutionOwner} from './local-values-plan.mjs';
 import {installedSourceFor} from './installed-source.mjs';
 import {ordinarySourceDescriptors, verifyOrdinarySourceBinding} from './ordinary-source-binding.mjs';
 import {acquisitionEndHandoff} from '../host-common/acquisition-outcome.mjs';
@@ -117,6 +117,30 @@ export async function cancelNodeRunContinuation({currentDispatchIdle, ...facts})
   }
   return facts.checkpoints.cancelEffectContinuation(
     facts.control.runDefinitionRunId(retained.runDefinition), facts.ref.runDefinitionCid);
+}
+
+export async function observeNodeRestoredLocalStop(facts) {
+  // Same-process original stop is an execution observation, not a cleanup
+  // acknowledgement or proof that a requested cancellation was honored.
+  // Publication/Carrier cleanup remains owned by its actual original APIs.
+  for (let inspection = 0; inspection < 2; inspection++) {
+    const before = facts.journal.lookupRunDefinition(facts.ref, facts.moon, facts.control);
+    if (before === undefined || before.physicalCloseConfirmed === true ||
+        facts.journal.observeStoppedLocalExecutionOwner?.(facts.ref, before) !== true) return;
+    const committed = await facts.store.confirmCommittedIndex(facts.ref) !== undefined;
+    const retained = facts.journal.lookupRunDefinition(facts.ref, facts.moon, facts.control, before);
+    if (retained?.physicalCloseConfirmed === true) return;
+    if (retained !== before) {
+      if (inspection === 0 &&
+          facts.journal.canReinspectRunStopAfterStatePublication?.(before, retained) === true) continue;
+      throw new Error('ClientRunStopObservationChanged');
+    }
+    if (facts.journal.observeStoppedLocalExecutionOwner(facts.ref, retained) !== true ||
+        facts.journal.lookupReconciliationState(facts.ref) !== undefined) return;
+    facts.journal.markPhysicalClose(facts.ref, committed ? null : 'failed', retained);
+    return;
+  }
+  throw new Error('ClientRunStopObservationChanged');
 }
 
 export async function observeNodeRestoredModelStop(facts) {
@@ -722,9 +746,11 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         if (ledger === undefined) throw new Error('InstalledMultiSourceLedgerUnavailable');
         entry.acquisitionLedger = ledger;
       }
-      if (generatingContent && acquiring && keyedSelection === undefined) {
+      const requestModelAcquired = inferring && !generatingContent && acquiring && !multiple &&
+        keyedSelection === undefined && held.managedRun !== undefined;
+      if ((generatingContent || requestModelAcquired) && acquiring && keyedSelection === undefined) {
         if (multiple ||
-            typeof runContent.prepareAcquiredLedger !== 'function' ||
+            typeof (requestModelAcquired ? runInfer : runContent).prepareAcquiredLedger !== 'function' ||
             typeof installedSource?.ledgerCapacity !== 'function') {
           throw new Error('InstalledContentAcquiredDispatchUnavailable');
         }
@@ -734,7 +760,12 @@ export function installNodeClientDispatchOwner({moon, control, journal,
           held.preparedSource = await prepareAcquisition(preparedProgram, access);
           held.preparedSourceAccess = access;
         }
-        ledger = runContent.prepareAcquiredLedger({preparedProgram, plan: held.plan,
+        if (requestModelAcquired) {
+          retainDispatchPreparationHost(entry, moon, held.managedRun, preparedProgram, requested, preparationLease !== undefined);
+          ledger = runInfer.prepareAcquiredLedger({preparedProgram, plan: held.plan,
+            sourceCapacity: installedSource.ledgerCapacity(held.preparedSource)});
+          entry.borrowedSources = true;
+        } else ledger = runContent.prepareAcquiredLedger({preparedProgram, plan: held.plan,
           sourceCapacity: installedSource.ledgerCapacity(held.preparedSource)});
         entry.acquisitionLedger = ledger;
       }
@@ -828,6 +859,9 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         namespaceId, ref: accepted.ref,
         currentAuthorization: hostConnection({principalId: actual,
           connection, ref: accepted.ref}),
+        ...(!acquiring && !inferring && !serializing && !generatingContent ? {
+          localExecutionOwner: sourceFreePlanExecutionOwner(held.plan),
+        } : {}),
         ...(acquiring && journal.sourceOperationConfigured === true ? {
           captureSourceOperation: {program: preparedProgram, compiled: held.plan.compiled, store,
             capture(scope) {entry.sourceOperationScope = scope;}},
@@ -958,8 +992,8 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         }
         const {captureStartedAt, captureCompletedAt, sourceEvidence, sourceEvidenceWire} =
           await acquireSource(entry, preparedProgram, held.preparedSource, sourceAccess,
-            {captureOnly: generatingContent, originalEvidence: singleAccounted || inferring && !generatingContent,
-              ledger: generatingContent || singleAccounted ? ledger : undefined});
+            {captureOnly: generatingContent || requestModelAcquired, originalEvidence: singleAccounted || inferring && !generatingContent,
+              ledger: generatingContent || singleAccounted || requestModelAcquired ? ledger : undefined});
         if (generatingContent) {
           acquiredContent = {captured: entry.sourceCapture, ledger, sourceEvidenceWire,
             authorityScopeCid, captureStartedAt, captureCompletedAt,
@@ -967,10 +1001,11 @@ export function installNodeClientDispatchOwner({moon, control, journal,
               {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 100})};
         } else if (inferring) {
           const captured = entry.sourceCapture;
-          const input = captured.composedInfer ? undefined : control.admitInferCapturedInput(
+          const input = requestModelAcquired || captured.composedInfer ? undefined : control.admitInferCapturedInput(
             preparedProgram, captured, sourceEvidence, authorityScopeCid,
             captured.checkedSource.sourceDataPolicyCid, captureStartedAt, captureCompletedAt);
           acquiredInfer = {input, captured, preparedSource: held.preparedSource, sourceAccess,
+            ...(requestModelAcquired ? {ledger, managedRun: held.managedRun} : {}),
             sourceEvidenceWire: sourceEvidence.wire, captureStartedAt, captureCompletedAt, sourceEvidence};
         } else {
           held.plan = acquiredTaskPublicationPlan({moon, control,
@@ -1035,6 +1070,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       }
       if (inferring) {
         const result = await runInfer({preparedProgram, plan: held.plan, store,
+          preparationHolder: entry.preparationHostBorrow,
           acquiredInfer, acquiredContent,
           ...(acquiredInfer?.sources === undefined ? {} : {
             originalPreparation: sourceProfile.modelPreparation(preparedProgram, held.plan)}),

@@ -40,6 +40,27 @@ class _JournalCallbacks:
         except BaseException as error:
             return self._fail(error)
 
+    def check_frame(self) -> int:
+        """Borrow transport only; query/current checks still observe originals.
+
+        Request blocks and the immutable returned row do not make a decision.
+        They remain inside the same non-reentrant SQL reader and ticket. A
+        private scalar reader without this actual port retains full checks.
+        """
+        if self.failure is not None:
+            return -41
+        try:
+            reader = self.reader
+            if reader is None or reader.owner is not self.store:
+                raise ValueError('Original Local journal snapshot is unavailable')
+            frame = getattr(reader, 'check_frame', None)
+            if frame is None:
+                return self.check_current()
+            frame(reader)
+            return 0
+        except BaseException as error:
+            return self._fail(error)
+
     def begin(self, mode: int, namespace_length: int, key_length: int) -> int:
         try:
             if (self.request is not None or self.queried or self.row is not None
@@ -49,7 +70,7 @@ class _JournalCallbacks:
                     or (mode == 1 and key_length == 0)
                     or namespace_length + key_length > _QUERY_BYTES):
                 raise ValueError('Invalid original Local journal physical query')
-            if self.check_current() != 0:
+            if self.check_frame() != 0:
                 return -41
             # The Core buffer's prior reservation covers request/row copies.
             self.request = bytearray(namespace_length + key_length)
@@ -82,7 +103,7 @@ class _JournalCallbacks:
                     or index < 0 or index > len(original)
                     or len(payload) > len(original) - index):
                 raise ValueError('Invalid original Local query block')
-            if self.check_current() != 0:
+            if self.check_frame() != 0:
                 return -41
             if self.request is not original or self.received != index or self.queried:
                 raise ValueError('Original Local query changed during current check')
@@ -102,7 +123,7 @@ class _JournalCallbacks:
         payload = original[0] if field == 0 else original[1].payload
         if index > len(payload) or length > len(payload) - index:
             raise ValueError('Original Local row block exceeds its field')
-        if self.check_current() != 0:
+        if self.check_frame() != 0:
             raise ValueError('Original Local row current check failed')
         if self.row is not original or not self.queried:
             raise ValueError('Original Local row changed during current check')
@@ -113,14 +134,17 @@ class _JournalCallbacks:
             if (self.request is None or self.received != len(self.request)
                     or self.queried):
                 raise ValueError('Incomplete original Local journal physical query')
-            if self.check_current() != 0:
+            reader = self.reader
+            if reader is None:
+                raise ValueError('Original Local journal transaction loan expired')
+            query_current = getattr(reader, 'query_current', None)
+            if (self.check_current() if query_current is None else self.check_frame()) != 0:
                 return -41
             self.queried = True
             namespace = self.request[:self.namespace_length].decode('utf-8')
             key = self.request[self.namespace_length:].decode('utf-8')
             self.request = None
-            reader = self.reader
-            if reader is None:
+            if self.reader is not reader:
                 raise ValueError('Original Local journal transaction loan expired')
 
             def consume(row: tuple[str, StoredBytes] | None) -> None:
@@ -136,11 +160,13 @@ class _JournalCallbacks:
                 # ticket until Core finishes copying/consuming and releases it.
                 self.row = (encoded, body)
 
-            if self.mode == 0:
+            if query_current is not None:
+                query_current(reader, self.mode, namespace, key, consume, self.current)
+            elif self.mode == 0:
                 reader.scan_after(namespace, key, consume)
             else:
                 reader.read(namespace, key, consume)
-            if self.check_current() != 0:
+            if (self.check_current() if query_current is None else self.check_frame()) != 0:
                 return -41
             # Only the actual physical reader's confirmed miss/end yields 1.
             return 1 if self.row is None else 0

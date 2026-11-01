@@ -468,11 +468,15 @@ class LocalCore:
                     raise RuntimeError('Python Local requires the optional Wasmtime runtime') from error
                 if _compiled_image is not None:
                     _compiled_image.recipe.validate()
-                    from ._local_engine import _configure_selected_engine, _verify_loaded_runtime
+                    from ._local_engine import (_configure_selected_engine, _verify_loaded_runtime,
+                                                _InitializationLibraryFiles)
                     ffi = import_module(runtime_name + '._ffi')
-                    _verify_loaded_runtime(_compiled_image, ffi)
-                    if self._physical_holding is not None:
-                        self._physical_holding._verify_library(ffi.dll, _installed_image=_compiled_image)
+                    with _InitializationLibraryFiles(_compiled_image.recipe,
+                                                     _compiled_image.runtime_library) as originals:
+                        _verify_loaded_runtime(_compiled_image, ffi, _initialization_files=originals)
+                        if self._physical_holding is not None:
+                            self._physical_holding._verify_library(ffi.dll, _installed_image=_compiled_image,
+                                                                  _initialization_files=originals)
                 self._engine_configuration = wasmtime.Config()
                 if _compiled_image is None:
                     # Original raw-Wasm physical diagnostics remain separately
@@ -924,7 +928,7 @@ class LocalCore:
         It is not an Allow, permission cache, reader handle or continuation.
         """
         callbacks = self._journal_callbacks(ticket)
-        if callbacks is None or callbacks.check_current() != 0:
+        if callbacks is None or callbacks.failure is not None:
             return -41
         loan = self._loans.get(ticket)
         if type(loan) is not _Output or loan.family != 'current':
@@ -937,18 +941,22 @@ class LocalCore:
                 or self._host_fuel_phase != 'operation'
                 or getattr(self, '_host_cleanup_depth', 0) != 0
                 or self._closing or self._closed or self._retired):
-            return 0
+            return 0 if callbacks.check_current() == 0 else -41
         # Only the standard original receiver has completed the full physical
         # singleton/settings fence in this very reader. Other private/raw
         # suppliers keep Core's complete observation path, never an error fallback.
         from ._local_host_binding import OriginalHostBinding
         receiver = getattr(callbacks.current, '__self__', None)
-        if type(receiver) is not OriginalHostBinding:
-            return 0
+        if (type(receiver) is not OriginalHostBinding
+                or callbacks.current is not receiver._current_observer):
+            return 0 if callbacks.check_current() == 0 else -41
         try:
+            # This checks the SAME reader's complete required SQL fences and
+            # original physical current together. A preceding check_current
+            # would repeat that same observation before this synchronous call.
             receiver._require_observation_frame(self, loan, callbacks.reader)
-        except ValueError:
-            return -41
+        except BaseException as error:
+            return callbacks._fail(error)
         operation = getattr(self, '_host_operation_id', 0)
         if (not self._invoking or type(operation) is not int
                 or not 0 < operation < 2**63
@@ -1683,6 +1691,19 @@ class LocalCore:
     def read_submission_lookup(self, value: _Output, current: _Output) -> bytes:
         with self._lock:
             self.validate_submission_lookup(value, current)
+            raw = self._read_output(value, 'submission_lookup', 'length', abi_family='submission')
+            self.validate_submission_lookup(value, current)
+            return raw
+
+    def produce_and_read_submission_lookup(self, value: _Output, current: _Output) -> bytes:
+        """One synchronous handoff in the same original Host read snapshot.
+
+        Production's postcheck is also the adjacent transfer precheck. The
+        standalone methods keep their contracts; post-copy validation remains.
+        No successful validation is retained or reused by another operation.
+        """
+        with self._lock:
+            self.produce_submission_lookup(value, current)
             raw = self._read_output(value, 'submission_lookup', 'length', abi_family='submission')
             self.validate_submission_lookup(value, current)
             return raw

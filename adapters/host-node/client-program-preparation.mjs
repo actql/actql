@@ -54,13 +54,46 @@ if ([...Object.values(issueCodes), ...Object.values(effectIssueCodes)]
   throw new Error('StaleClientProgramErrorProjection');
 }
 
+// Only this projection owns these immutable facts. A copied/mutable error
+// property or a lookalike Host exception cannot issue a capacity diagnostic.
+const capacityRefusals = new WeakMap();
+export function requestProgramCapacityRefusal(error) {
+  return error !== null && (typeof error === 'object' || typeof error === 'function')
+    ? capacityRefusals.get(error) : undefined;
+}
+function projectCapacityRefusal(moon, result) {
+  const project = moon.clientProgramRequestProgramModuleCapacityRefusal;
+  if (typeof project !== 'function') fail('InvalidHostRuntimeResult');
+  const value = Reflect.apply(project, moon, [result]);
+  if (value === undefined) fail('InvalidHostRuntimeResult');
+  const phase = runtimeField(value, 0), dimension = runtimeField(value, 1);
+  const amounts = [2, 3, 4, 5].map(index => runtimeField(value, index));
+  if (phase !== 'source_free_plan' || !['retention', 'execution'].includes(dimension) ||
+      amounts.some(amount => typeof amount !== 'bigint' || amount < 0n || amount > 9223372036854775807n) ||
+      (dimension === 'retention' ? amounts[0] <= amounts[2]
+        : amounts[0] > amounts[2] || amounts[1] <= amounts[3])) fail('InvalidHostRuntimeResult');
+  return Object.freeze({phase, dimension,
+    requiredRetentionBytes: amounts[0].toString(), requiredExecutionBytes: amounts[1].toString(),
+    availableRetentionBytes: amounts[2].toString(), availableExecutionBytes: amounts[3].toString()});
+}
+
 // Read only the original typed Request result. The existing Common projection
 // owns categories; JS never decodes an error constructor or checks input again.
-// Foreign/current/capacity/Host failures stay outside semantic nonacceptance.
+// Foreign/current/general capacity/Host failures stay uncertain. Only the exact
+// configured source-free Plan refusal below proves pre-admission nonexecution.
 export function checkedRequestProgramPreparation(moon, result,
   projectIssue = moon.clientProgramRequestPreparationIssueCode) {
   if (runtimeIsError(result)) {
     const category = projectIssue.call(moon, result);
+    if (category === 'source_free_capacity_exceeded') {
+      const capacity = projectCapacityRefusal(moon, result);
+      // Existing operation_failed refusal: no claim that the Program is
+      // semantically invalid or unsupported, and no public wire extension.
+      const error = Object.assign(new Error('ClientProgramRejected', {cause: runtimeField(result, 0)}),
+        {code: 'ClientProgramRejected', capacity});
+      capacityRefusals.set(error, capacity);
+      throw error;
+    }
     const code = issueCodes[category] ?? effectIssueCodes[category];
     if (code !== undefined) {
       throw Object.assign(new Error(code, {cause: runtimeField(result, 0)}), {code});
@@ -124,7 +157,7 @@ export function installNodeClientProgramPreparation({moon, environment,
     throw new TypeError('InvalidClientProgramPreparationInstallation');
   }
   if (valuesMaxRows !== undefined && (!Number.isSafeInteger(valuesMaxRows) ||
-      valuesMaxRows < 1 || valuesMaxRows > 10000 ||
+      valuesMaxRows < 1 || valuesMaxRows > 2147483647 ||
       (funded ? typeof moon.clientProgramValuesMaxRows !== 'function'
         : typeof moon.clientProgramWithValuesRowLimit !== 'function') || allowEffects)) {
     throw new TypeError('InvalidLocalValuesRowLimit');

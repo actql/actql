@@ -72,7 +72,13 @@ pub fn start_accounted_listing_row_acquisition(
     Err(issue) => return Err(issue)
   }
   let reservation = match
-    @resources.reserve_attempt(ledger, transfer_bytes, retained, execution) {
+    @resources.reserve_attempt(
+      ledger,
+      transfer_bytes,
+      retained,
+      execution,
+      quantities=@resources.quantity_neutral_amounts(ledger),
+    ) {
     Ok(value) => value
     Err(issue) => return Err(Physical(issue))
   }

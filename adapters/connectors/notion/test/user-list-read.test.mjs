@@ -22,17 +22,18 @@ test('Notion actual SQL and AQL original paged Credential reads capture person a
     assert.equal(NOTION_USER_LIST_API_VERSION,'2026-03-11');
     assert.equal(f.state.resolutions,2);assert.equal(f.state.charges,2);
     assert.equal(ledgerUsageSnapshot(f.row.usage()).transferredBytes,reader.observe().receivedBodyBytes);
+    assert.equal(reader.observe().transportClosed,false);reader.requestStop();
     f.row.finish();assert.equal(f.row.captureCount(),2);
     assert.deepEqual(f.journal.recover().map(x=>x.outcome),['succeeded','succeeded']);
     assert.equal(new Set(f.journal.recover().map(x=>x.grantCid)).size,1);
-    assert.equal(reader.observe().cleanupConfirmed,false);
+    assert.equal(reader.observe().cleanupConfirmed,true);
   }
 });
 
 test('Notion empty continued page keeps the opaque cursor while an empty terminal page finishes',async t=>{
   const f=await userListFixture(t);
   f.state.pages=[userPage([],'opaque+/= cursor'),userPage([],null)];
-  const result=await f.create().read();
+  const reader=f.create(),result=await reader.read();reader.requestStop();
   assert.equal(result.pages,2);assert.equal(result.rowCount,0);
   assert.deepEqual(f.state.requests.map(x=>x.path),originalPaths);
   f.row.finish();assert.equal(f.row.captureCount(),0);
@@ -156,7 +157,7 @@ test('Notion original reader snapshots functions selection and limits before the
   const project=moon.notionProjectUserList;
   Object.defineProperty(moon,'notionProjectUserList',{get(){reads++;return reads===1?project:()=>{throw new Error('second read');};}});
   f.state.resolved=()=>{limits.maxPages=1;options.names[0]='foreign';options.current=()=>{throw new Error('replaced current');};};
-  const result=await f.create(options).read();assert.equal(reads,1);assert.equal(result.rowCount,2);
+  const reader=f.create(options),result=await reader.read();reader.requestStop();assert.equal(reads,1);assert.equal(result.rowCount,2);
   assert.deepEqual(f.state.requests.map(x=>x.path),originalPaths);assert.deepEqual(f.state.rows,[one,two]);
   f.row.finish();assert.equal(f.row.captureCount(),2);
 });

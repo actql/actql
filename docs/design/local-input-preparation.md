@@ -25,6 +25,29 @@ Installed contract originals contain validated immutable contract data. They
 do not issue resources or permit dispatch. Request originals, installed
 contracts and resource children are separate identities.
 
+The installed sequence-contract original retains the registry wire, the three
+extracted contract strings and their actual admission under the same runtime
+and initial control. Host open borrows that complete original instead of
+parsing the AoA asset and extracting those contracts again. The holder keeps
+its current/runtime/control checks, and compiler manifests remain prepared
+during installation. Later Request requirements reuse those strings without
+issuing another admission or moving installation work into the first query.
+
+The Environment composer retains its same-call body, exact wire and evidence
+CID, runtime and actual checking original. Existing wire consumers and the
+Host's private record projection use one constructor. Independently supplied
+publications still require encoding, self-CID, size and semantic admission;
+the composer's own newly encoded body does not need another parse or hash.
+No path, CID or previous Host result selects a cached admission.
+
+Host open uses that body while its complete input is unchanged. A changed
+Model or Task result keeps its own document and evidence CID; changed Host
+policy and Calendar metadata keep their original encoding rules. The final
+graph/text/Calendar checker remains mandatory with its actual flags and law
+CIDs. The startup body alias is cut before that check, without claiming a
+physical release or changing failed-initialization custody. Same-call sorting
+hashes each distinct member once, and needs no hash for zero or one member.
+
 ## Captured native Program input
 
 The normal Node representation reader projects DATA from the SDK's detached
@@ -4041,8 +4064,8 @@ handler and dispatch borrows and finishes that same parent. A refused
 construction retains its partial module and issued Scope for original cleanup;
 pending children or an unacknowledged Scope cannot become alias retirement.
 An inventory shape selects custody only when the same Request supplies an
-actual Core borrower. It does not authorize Model construction or adopt Content
-into this Model route.
+actual Core borrower. That inventory alone does not authorize Model construction
+or retain the Content component of a serialized Model.
 
 These input and handoff contracts do not supply physical backing. Complete
 compiler, module, provider, codec, output, constructor and failed-child overlap
@@ -4061,10 +4084,11 @@ Host, generation, Store, output or failed-child backing.
 The selected serialization Plan's record and its Ledger limits are reserved on
 that same Request before the prefix constructor. Their field inventory is
 separate from the compiler artifact and from the provider, output and physical
-Store domains. Model Scope and Content construction are mutually exclusive and
-share the Request's existing absolute-quote slot. A declined grow preserves
-that target; continuing it does not add the record again. Reentry cannot select
-another constructor or retire the parent while the original grow is active.
+Store domains. Model Scope and Content constructors use the Request's existing
+absolute-quote slot sequentially. Their completed originals can coexist in
+separate retained fields. A declined grow preserves that target; continuing it
+does not add the record again. Reentry cannot select another constructor or
+retire the parent while the original grow is active.
 
 The installed Content cleanup retains physical writer/holding duties before
 settling its original prefix. A failed prefix start remains reachable through
@@ -4073,6 +4097,32 @@ that prefix's acknowledged cleanup once before parent payload severing; a later
 consumed-borrow settlement failure retries the original parent continuation,
 not a new prefix or a query of a severed Content payload. Keyed Content and
 intermediate Model serialization remain distinct constructor purposes.
+
+### Serialized Model on the original Request
+
+The Request retains the checked Serialization component before constructing its
+Model Graph. The Model constructor measures that same original component and
+retains its completed prefix and consumer lowerings. The composed Task compiler
+carries the original Content graph and Content contract profile through its
+artifact; it does not parse a graph wire or issue a replacement component.
+
+A source-free serialized Model retains its prefix provider, compiler, Request,
+Definition and workspace before constructing its configured module. The typed
+Request Plan binds that same module and prefix. A module-only Plan cannot drop
+the Content component. The Model Scope and Content prefix remain independent
+live duties on the same adopted Run, with additive requirements checked against
+the original parent. Prefix construction uses the existing parsed-input extent
+while the Model Graph and compiler stay retained; the Plan link fields have
+their own fixed record inventory. These are construction and overlap debits,
+not execution permission or a replacement physical supplier.
+
+Starting the prefix reserves its actual attempt and bytes on that same adopted
+Run. It explicitly selects the existing neutral quantity amount because prefix
+execution consumes no Model tokens, cost or duration. The original Ledger still
+checks configuration, currentness and each limit. A prefix ACK cannot finish a
+Model Scope, acknowledge a Store writer or return another Request borrower.
+Failed construction retains the same prefix and compiler for original cleanup;
+retirement prevents a replacement prefix or a consumed borrower from reissuing.
 
 ### Original Contract Value body construction
 
@@ -4508,11 +4558,49 @@ alias release. A pending Local read or failed observation preserves the same
 aliases and slot. A consumed parent return cannot repeat already-spent alias
 release. No alias step acknowledges physical cleanup or refunds work.
 
+An executing Content prefix keeps its original provider until that provider's
+cleanup acknowledges reclamation. It then retains only the original cumulative
+work Result and reservation controller; invalid work remains invalid, and a
+failed reservation settlement cannot restore the provider or repeat its spent
+cleanup. The existing controller excludes cleanup, advance and cancellation
+reentry while that same callback is running.
+
+The Node execution retains its input, writer, prepared objects and evidence
+holdings while their original cleanup is pending. A holding's false abort can
+mean an already committed holding, so its original status and the Store's
+retirement handles govern completion. Once those duties acknowledge cleanup,
+the execution drops those aliases before its same managed prefix settlement,
+which may still decline or throw. A legacy prefix remains retained until its
+own stop acknowledgement. Cleanup callbacks join the existing single flight;
+neither process exit nor a missing JavaScript alias acknowledges a child.
+
+The installed terminal Content driver exposes no intermediate generation
+entrance. Effect Content uses its existing family owner and original capture
+binding, output holdings and cleanup. It does not enter the terminal driver's
+former private Model/intermediate branch or reconstruct a scalar Run there.
+
 Before Run adoption, the same Request abort and original input borrow's
 retirement phase govern alias release. Failed construction does not fabricate
 a managed Run or a successful physical outcome. The Request retains partial
 records until this fence, spends their alias duty before returning the same
 borrow, and retains the parent if that consumed return or its settlement fails.
+
+### Original Effect capture recovery controls
+
+The existing Host retains recovery custody before opening the selected
+Request or adopted Run resource constructor. The same opened Store extent
+grows that original allowance before ciphertext, temporary plaintext, JSON,
+typed capture and schema construction overlap. Physical read/schema cleanup
+precedes release of the reservation; an unavailable original child stays
+pending rather than being replaced.
+
+After those children acknowledge cleanup, variable capture aliases may retire
+before a consumed parent return. The original current callback remains until
+that same Request's settlement acknowledges completion: the existing imported
+Resource fence still calls it during retirement. Clearing the callback early
+would manufacture a missing-method failure in place of the original current
+observation. No extra current probe, settlement witness or cleanup owner is
+introduced; a consumed-return retry uses the same original parent.
 A declined extent grow before prefix construction retains the same absolute
 quote for a controlled continuation. After the original constructor fails,
 that Request body stays failed through Abort; different workspace or execution
@@ -4602,3 +4690,258 @@ The entire runtime Plan allowance is never added to preparation as a proxy
 for construction. This accounts for the Scope and census only: complete
 physical Host/provider/material/output and failed-child coexistence still
 requires its actual original lifetime and inventory before allocation.
+
+
+### Fixed Request controls and synchronous domain construction
+
+The Request keeps a named conservative control envelope for its existing fixed
+parent, borrower, handoff and cleanup records. Its retained allowance remains
+14,464 logical bytes: the common representation tariff for 220 headers, 401
+references and 455 words, plus the existing 4,096-byte fixed allowance. The
+original input, AST, rows, operation counts and simultaneous domain payloads
+remain proportionally reserved on the same parent. The fixed envelope does not
+price individual JavaScript closure or compiler Option representations.
+
+The ordinary manager shares busy cleanup and original failure retention only
+across synchronous Model and Content constructors. Each domain still retains
+its original Graph, compiler, Plan and Scope before its next fallible callback.
+An explicit failed flag preserves even a thrown null or undefined. The async
+policy verifier keeps its separate existing lifetime.
+
+Run registration checks the original Prepared duplicate and the existing 4,096
+live-record limit before Core adoption. A transient synchronous registration
+set includes constructors currently reserving those same slots; other existing
+Run entrances respect it during reentry. On success the returned native Run is
+stored in the original live inventory before any later current callback. On
+construction failure the transient slot is removed, while partial native
+materials stay on the same Request and domain carrier for original cleanup.
+This bookkeeping neither acknowledges physical release nor adds a Resource
+owner. Existing Scope, Content prefix and Effect cleanup duties remain separate.
+
+
+### Request-owned Node Model layout
+
+The installed Node Model Plan binding takes the original response-profile
+layout beside the same Request, module, compiler, Definition, occurrence and
+Graph. The existing layout checker validates its profile, runtime and layout
+artifacts, checked Program/Parameters/barrier and all-row bound. The Plan uses
+the declared complete read extents and preserves the checked Model non-byte
+dimensions. Its declared Model extents must cover the selected checked demand;
+they cannot shrink that demand. The existing parent Plan/Scope reservation
+still admits the simultaneous construction and execution inventories.
+
+Installed execution may consume the same already adopted Model Scope through
+its fixed private caller. It retains the original read on that Request carrier
+before a post-constructor current check. The existing execution custody keeps
+failed read construction and Scope binding attached to that same original.
+Only actual read settlement and the original Scope census can mark those duties
+finished. This handoff issues neither an independent Scope nor a replacement
+Run, and a missing or foreign selected carrier cannot fall back to one.
+
+
+The normal source-free installed Model caller retains its carrier in the
+existing early-Plan inventory before the compiler/Definition call. Its same
+Host Run bag owns partial module, Plan and Scope construction; a serialized
+component additionally retains its original Content record before entry. A
+previously started saved Run stays with its existing recovery owner and cannot
+receive a newly issued Scope from fresh admission.
+
+The Scope precedes prefix execution, but its read descriptor follows prefix
+Ledger mutations. The descriptor then retains the actual complete read envelope
+immediately before the original Model claim. Issuing it before prefix execution
+would leave a changed-original snapshot; that failed read is retired, never
+refreshed. If cleanup wins while a prefix await unwinds, the same original Scope
+is retired and no subsequent read or fallback Model start is allowed. An adopted
+but never-entered Scope is closed by the existing Host retirement path before
+its native Run and input borrower; callback reentry keeps the same record.
+
+### Acquired Model prefix on the original Request
+
+An acquired serialized Model retains its Content prefix before constructing
+the Model module. The prefix keeps the existing acquired provider and sequence;
+the module creates and retains the original Query requirement, acquisition and
+capture capacity once. The same compiler retains the Model and serialization
+components. Scope selection and adoption bind that module and prefix to the
+same Request, rather than admitting a second Source or Content Run.
+
+The installed Source-read entrance borrows that adopted module's original
+inventory and Ledger. A Model prefix cannot use the empty-input start entrance.
+Its acquired entrance requires the actual accounted capture and the module's
+same Query requirement on that Ledger. The parent reserves and retains its
+single prefix child before producer-read/input construction or provider entry.
+Input liveness callbacks are followed by the same physical Run's current
+observation and callback-free Plan, capacity and child identity fences.
+
+Source and prefix work consume no Model quantities. Their existing attempts,
+transfer and byte reservations use the Resource owner's neutral quantity value
+when the shared Ledger has Model dimensions; they neither omit those dimensions
+nor reset, replace or spend the Model's actual quote. The normal reservation
+still validates the current configuration and every existing limit.
+
+The Source capture remains alive through prefix execution and original child
+cleanup. A refused input constructor keeps the retained prefix reservation for
+its original cleanup. Once provider entry has occurred, missing or failed child
+return remains pending; absence is not a Source or provider cleanup ACK. Only
+the existing Source-read owner closes its RowRun, and Scope and parent retirement
+remain separate duties after those actual children settle.
+
+Failed-before-adoption Model cleanup keeps its existing Host bag and original
+Scope carrier through Scope finish. That finish can invoke reservation/current
+callbacks. Its successful return is followed by same bag membership, Model,
+request, original input and cleanup-method checks before managed aliases or
+records retire. A changed Scope tuple cannot inherit the old Scope's cleanup
+result. Pending or throwing finish retains the same failed preparation; it does
+not fabricate an adopted Run or replace the Request's original abort duty.
+
+### Acquired Node Model provider and capture handoff
+
+A serialized Node Model with one Query Source retains the installed Source's
+original declaration, opaque provider capacity and transport bounds on the same
+Request. The typed module constructor creates the original Query and acquisition
+once and composes their capacity with that exact provider. Its additional bounded
+provider vector joins the module container debit before Query construction. An
+absent provider cannot select the base Row or Mock constructor. The existing
+source-free and two-Query Mock routes keep their original constructors.
+
+The Request constructs its serialization prefix before the module, then binds
+that same module, compiler, Definition, occurrence, Graph, prefix and installed
+physical read layout into its Model Plan. The Scope and adoption retain these
+originals together. A plain acquired Model instead uses the module's original
+input prefix through its retained composed component; an absent component factory
+refuses before any legacy constructor. The read snapshot follows prefix Ledger
+mutations; it cannot refresh an older snapshot or create another Scope.
+
+Source preparation consumes the adopted Plan's existing acquisition. Content
+borrows that same Run's Ledger and passes the same retained Row capture to the
+acquired prefix entry. Its private capture accessor checks the original receiver,
+live Source and retirement state without capturing again. Missing captured input
+cannot select the empty-input entry or construct an independent Content Ledger.
+
+The existing Content record retains a partial prefix and Store children until
+physical cleanup, then acknowledges the same prefix once. Source and Model Scope
+retirement stay independent. Pure provider-selection DATA and a borrowed Ledger
+must pass post-callback original-record checks before attaching aliases; callbacks
+that retire a record cannot resurrect its spent fields. Failures stay with the
+same Request and never reissue the compiler, module, prefix or physical operation.
+
+### Original occurrence before a plain Model Graph
+
+The checked Model occurrence selects the same Request's Graph construction
+before the Graph exists. That occurrence must belong to the original Prepared
+value, and the existing single-Model shape and complete no-Serialization inventory
+remain checked. The ordinary purpose and the legacy shape lookup without this
+original occurrence retain their separate refusal; a capture count alone cannot
+select Model construction.
+
+After Graph construction, compilation and module binding consume that exact
+retained Graph. A plain Model has no Content component; a serialized Model must
+retain the exact compiler-selected Content component. The module, original
+provider capacity, physical read layout and Scope bind to the same compiler,
+Definition, Request and parent. The Source read borrows the module's original
+Query/acquisition and that parent's existing Ledger, and refuses an equal copied
+capacity. Its retirement remains separate from the Model Scope and parent.
+
+The installed Node caller carries the original input prefix and read consumer
+through this module's actual adoption and composed driver. Its fixed component
+is constructed inside the funded module factory and bound once to the same
+selection, Source and execution context. An independent single-stage or unowned
+composed start cannot substitute for that connection.
+
+### Original Model input before its component factory
+
+A plain one-Source Model lowers its actual pre-INFER input on the original
+Request after the Graph/compiler debit and before invoking any installed
+provider factory. A nonterminal Model also lowers its actual post-INFER suffix
+there. Each lowering retains the existing complete Program variable frame;
+the existing checked representation cost is multiplied by the actual one or
+two constructor calls. Protocol/Query construction and the module's retained
+input references coexist with these outputs in the same parent debit. Fixed
+installed Host controls remain trusted; these DATA costs issue no authority.
+
+The module retains the exact generated prefix and optional suffix. Its pure
+accessors return those originals without preparing, growing, observing current,
+or sampling QueryTime again. The one-component construction callback receives
+the same original prefix before constructing its native ManagedProvider, so
+that provider's input-dependent capacity is selected from the actual sequence.
+The callback is transient, and the parent retains the constructed module before
+any later callback/current failure. The same original QueryTime, if present,
+remains bound to the original Request and compiler.
+
+Input construction refusal enters no provider factory and leaves the original
+Request's failure/abort cleanup in charge. Generated input DATA has no physical
+read or cleanup ACK. A module, component or Source that has entered its physical
+owner still requires that owner's original cleanup before Scope and parent
+retirement. A pending child cannot be replaced by an empty sequence or a new
+Model Run. The Node selection defers its previous direct prefix/suffix lowering
+for this installed Request route; unmanaged, source-free and serialized paths
+retain their existing construction contracts. The physical driver must still
+bind the module's same component, Source read and adopted Run before entry.
+
+### Installed layout consumer for composed Model input
+
+The Node composed component can receive its exact already-backed input prefix
+at construction, before native input-dependent capacity selection. Its immutable
+Graph selection need not carry a separately prepared prefix or be mutated to
+install one. Deferred binding still accepts the same selection once and refuses
+entry before its actual original read/execution context is bound.
+
+A composed input with an installed Node layout uses the existing authenticated
+layout claim on the same compiled Run, Definition, Graph and read. That claim
+returns the single original consumer used by the existing original composed
+start. It cannot select the private numeric-envelope claim, replay a failed
+claim, or fall back to an unowned composed start. Existing no-layout composed
+callers and single-stage installed layout callers retain their own entrances.
+The same original read cleanup observation remains tied to actual Core execution
+cleanup; a layout claim, constructor refusal or provider return is not that ACK.
+
+### Adopted Node Model Source and failed setup custody
+
+The ordinary installed one-Source Model retains its component in the existing
+Host Model carrier while constructing the Request module. That carrier already
+holds the selected Graph, compiler, Definition and physical installation, and
+stays in the same Host Run inventory before the first fallible constructor.
+The prefix is an original opaque sequence; its optional suffix stays inside a
+typed binder closure. JavaScript forwards that binder without interpreting or
+reboxing the Option. Local calls it only after retaining the actual execution.
+
+Before Source acquisition, dispatch retains the existing Core preparation borrow
+and obtains the original adopted Run's Ledger with its same original capacity.
+The Model carrier records the single getter attempt and exact failure, including
+null or undefined. A foreign capacity or a callback-retired carrier cannot
+attach a new Ledger alias. The native Plan and Source acquisition remain those
+already bound to the same Request; no second compiler, Source requirement,
+Model Scope, Ledger or Root is issued. Dispatch passes the nominal Run value,
+not the private JavaScript record that retains it.
+
+The composed driver binds the module's existing component and opens that same
+adopted capture Host. It retains the captured Source on the original DAG before
+entry. Its original read is prepared only when Local supplies the actual input,
+after earlier Source/Compute Ledger changes. The same installed layout claim
+supplies its one read consumer, and runtime current uses the retained Scope.
+The previous direct segment preparation and independent composed Host are not
+used on this installed Request route.
+
+Source, Model read, Site installation, Store/output and Scope cleanup stay
+separate. The driver first stops/closes its actual child outputs; dispatch closes
+the borrowed Source before retrying the same pending cleanup. Scope finishing
+checks the whole original child inventory. The existing preparation-usage
+isolation operation can then distinguish only that original parent's remaining
+debit; it does not replace stop, output-close or child cleanup acknowledgements.
+A changed Model carrier after any cleanup callback remains pending. An already
+successful native finish is not repeated just because its alias duty refused.
+
+The fixed Node entry forwards the installed cleanup envelope separately from
+Program options. An entry-refused setup transfers its exact existing partial
+Site/preflight owner into the same driver slot before that owner stops it.
+Retry invokes that original owner and retains its failure; no replacement
+cleanup engine, empty custody or process-exit acknowledgement is created.
+The original first nullable component or physical-cleanup failure remains first,
+independent of a later execution projection or another child's failure.
+
+The carrier's selection, component, managed record, one Ledger attempt/failure
+and returned Ledger are fixed Host controls under the named common Request
+envelope. Input/AST/row/operation storage, native module sequences, installed
+provider buffers and all simultaneous/failed-child output remain separate
+construction demand. The envelope is not recomputed from each new JavaScript
+closure or carrier spelling. Existing Host retirement cuts these aliases only
+after its checked native retirement; returning a borrow is a separate duty.

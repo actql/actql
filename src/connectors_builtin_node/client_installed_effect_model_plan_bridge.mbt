@@ -46,8 +46,12 @@ pub fn client_program_installed_effect_model_read_window(
 ///|
 /// Retain the actual early selected bounds. This later original binding does
 /// not invoke their numerical selector again or accept a raw Ledger vector.
-#export_name("clientProgramInstalledMockModelSourceFreePlanPrepare")
-pub fn client_program_installed_mock_model_source_free_plan_prepare(
+#export_name("clientProgramPrepareRequestModelSourceFreePlan")
+pub fn client_program_prepare_request_model_source_free_plan(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
   original : @client_local_host.ClientInstalledManagedSourceFreePreparation,
   request : @publication_host.ClientRequestIdentity,
   compiled : @publication_host.ClientCompiledRun,
@@ -59,7 +63,9 @@ pub fn client_program_installed_mock_model_source_free_plan_prepare(
   @client_local_host.ClientInstalledManagedModelPlan,
   @client_local_host.ClientInstalledManagedRunIssue,
 ] {
-  @client_local_host.prepare_installed_mock_model_source_free_plan(
+  @client_local_host.prepare_request_model_source_free_plan(
+    parent,
+    input,
     original,
     request,
     compiled,
@@ -72,6 +78,132 @@ pub fn client_program_installed_mock_model_source_free_plan_prepare(
     selected.input.rows.operation_entries,
     selected.input.rows.retained_entries,
     selected.input.rows.metadata_entries,
+  )
+}
+
+///|
+/// Keep the original checked bounds' non-byte dimensions. The installed Node
+/// declaration must cover those SAME Model extents; it cannot shrink them.
+/// The fixed Request/Plan/Scope owns admission, never these numeric inputs.
+#export_name("clientProgramPrepareRequestNodeModelSourceFreePlan")
+pub fn client_program_prepare_request_node_model_source_free_plan(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  original : @client_local_host.ClientInstalledManagedSourceFreePreparation,
+  request : @publication_host.ClientRequestIdentity,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  occurrence : @publication_host.ClientInferOccurrence,
+  graph : @publication_host.ClientInferPlanGraph,
+  selected : @infer_host.Limits,
+  layout : @publication_host.ClientNodeModelPreparationLayout?,
+  installation : @check_environment.ModelResponseProfileInstallation,
+  runtime_artifact_cid : String,
+  layout_artifact_cid : String,
+  probability : @check_environment.DecisionProbabilityProfile?,
+  model_retained_bytes : Int64,
+  model_execution_bytes : Int64,
+  max_reservations : Int,
+  max_holdings : Int,
+  max_delegations : Int,
+) -> Result[
+  @client_local_host.ClientInstalledManagedModelPlan,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  guard model_retained_bytes >= selected.model.ledger.retained_bytes &&
+    model_execution_bytes >= selected.model.ledger.execution_bytes &&
+    max_reservations >= 0 &&
+    max_holdings >= 0 &&
+    max_delegations >= 0 else {
+    return Err(InsufficientCapacity)
+  }
+  @client_local_host.prepare_request_node_model_source_free_plan(
+    parent,
+    input,
+    original,
+    request,
+    compiled,
+    definition,
+    occurrence,
+    graph,
+    {
+      ..selected.model.ledger,
+      retained_bytes: model_retained_bytes,
+      execution_bytes: model_execution_bytes,
+    },
+    layout,
+    installation,
+    runtime_artifact_cid,
+    layout_artifact_cid,
+    probability,
+    Int::max(selected.input.rows.operation_entries, max_reservations),
+    Int::max(selected.input.rows.retained_entries, max_holdings),
+    Int::max(selected.input.rows.metadata_entries, max_delegations),
+  )
+}
+
+///|
+/// Keep the original checked bounds' non-byte dimensions. The installed Node
+/// declaration must cover those SAME Model extents; it cannot shrink them.
+/// The fixed Request/Plan/Scope owns admission, never these numeric inputs.
+#export_name("clientProgramPrepareRequestNodeModelCapturePlan")
+pub fn client_program_prepare_request_node_model_capture_plan(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  original : @client_local_host.ClientInstalledManagedCapturePlan,
+  request : @publication_host.ClientRequestIdentity,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  occurrence : @publication_host.ClientInferOccurrence,
+  graph : @publication_host.ClientInferPlanGraph,
+  selected : @infer_host.Limits,
+  layout : @publication_host.ClientNodeModelPreparationLayout?,
+  installation : @check_environment.ModelResponseProfileInstallation,
+  runtime_artifact_cid : String,
+  layout_artifact_cid : String,
+  probability : @check_environment.DecisionProbabilityProfile?,
+  model_retained_bytes : Int64,
+  model_execution_bytes : Int64,
+  max_reservations : Int,
+  max_holdings : Int,
+  max_delegations : Int,
+) -> Result[
+  @client_local_host.ClientInstalledManagedModelPlan,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  guard model_retained_bytes >= selected.model.ledger.retained_bytes &&
+    model_execution_bytes >= selected.model.ledger.execution_bytes &&
+    max_reservations >= 0 &&
+    max_holdings >= 0 &&
+    max_delegations >= 0 else {
+    return Err(InsufficientCapacity)
+  }
+  @client_local_host.prepare_request_node_model_capture_plan(
+    parent,
+    input,
+    original,
+    request,
+    compiled,
+    definition,
+    occurrence,
+    graph,
+    {
+      ..selected.model.ledger,
+      retained_bytes: model_retained_bytes,
+      execution_bytes: model_execution_bytes,
+    },
+    layout,
+    installation,
+    runtime_artifact_cid,
+    layout_artifact_cid,
+    probability,
+    Int::max(selected.input.rows.operation_entries, max_reservations),
+    Int::max(selected.input.rows.retained_entries, max_holdings),
+    Int::max(selected.input.rows.metadata_entries, max_delegations),
   )
 }
 
@@ -263,4 +395,135 @@ pub fn client_program_installed_effect_plan_matches_model_demand(
   model : @client_local_host.ClientInstalledEffectModelDemand,
 ) -> Bool {
   @client_local_host.installed_effect_plan_matches_model_demand(plan, model)
+}
+
+///|
+/// The original installed reader capacity is an opaque Option from this same
+/// runtime. Construct the fixed vector here; JS neither unwraps nor reissues it.
+#export_name("clientProgramPrepareRequestModelProviderCaptureModule")
+pub fn client_program_prepare_request_model_provider_capture_module(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  request : @publication_host.ClientRequestIdentity,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  compilation : @publication_host.ClientTaskCompilation,
+  declaration : @client_row_source_host.RowDeclaration,
+  provider : @execution.ExecutionCapacity?,
+  query_contract_body : String,
+  evidence_contract_body : String,
+  transport_bytes : Int64,
+  transport_execution_bytes : Int64,
+  contracts : @client_local_host.ClientInstalledSequenceContracts,
+  retained_output : Bool,
+  query_time : @publication_host.ClientQueryTimePreparation?,
+) -> Result[
+  @client_local_host.ClientInstalledManagedCapturePlan,
+  ClientRequestProgramModuleBridgeIssue,
+] {
+  @client_local_host.prepare_request_model_capture_module(
+    parent,
+    input,
+    request,
+    compiled,
+    definition,
+    compilation,
+    [declaration],
+    query_contract_body,
+    evidence_contract_body,
+    [transport_bytes],
+    [transport_execution_bytes],
+    contracts,
+    retained_output,
+    installed_client_family_provider_count(),
+    installed_client_family_providers,
+    query_time~,
+    providers=Some([provider]),
+  ).map_err(issue => Preparation(issue))
+}
+
+///|
+#export_name("clientProgramPreparedRequestModelInputPrefix")
+pub fn client_program_prepared_request_model_input_prefix(
+  original : @client_local_host.ClientInstalledManagedCapturePlan,
+) -> Result[
+  @execution.GeneratedSequence,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.prepared_request_model_input_prefix(original)
+}
+
+///|
+#export_name("clientProgramPreparedRequestModelInputSuffix")
+pub fn client_program_prepared_request_model_input_suffix(
+  original : @client_local_host.ClientInstalledManagedCapturePlan,
+) -> Result[
+  @execution.GeneratedSequence?,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.prepared_request_model_input_suffix(original)
+}
+
+///|
+/// The original installed reader capacity is an opaque Option from this same
+/// runtime. Construct the fixed vector here; JS neither unwraps nor reissues it.
+#export_name("clientProgramPrepareRequestModelProviderComponentCaptureModule")
+pub fn client_program_prepare_request_model_provider_component_capture_module(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  request : @publication_host.ClientRequestIdentity,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  compilation : @publication_host.ClientTaskCompilation,
+  declaration : @client_row_source_host.RowDeclaration,
+  provider : @execution.ExecutionCapacity?,
+  query_contract_body : String,
+  evidence_contract_body : String,
+  transport_bytes : Int64,
+  transport_execution_bytes : Int64,
+  contracts : @client_local_host.ClientInstalledSequenceContracts,
+  retained_output : Bool,
+  query_time : @publication_host.ClientQueryTimePreparation?,
+  construct : (
+    @execution.ExecutionCapacity,
+    @execution.GeneratedSequence,
+    (@infer_host.Execution) -> Result[Unit, @infer_host.Issue],
+  ) -> @local.ManagedProvider,
+) -> Result[
+  @client_local_host.ClientInstalledManagedCapturePlan,
+  ClientRequestProgramModuleBridgeIssue,
+] {
+  @client_local_host.prepare_request_model_capture_module(
+    parent,
+    input,
+    request,
+    compiled,
+    definition,
+    compilation,
+    [declaration],
+    query_contract_body,
+    evidence_contract_body,
+    [transport_bytes],
+    [transport_execution_bytes],
+    contracts,
+    retained_output,
+    installed_client_family_provider_count() + 1,
+    installed_client_family_providers,
+    query_time~,
+    providers=Some([provider]),
+    // Keep the optional sequence in this typed closure. JS forwards the
+    // binder unchanged; it never unwraps/reboxes this original Option.
+    component_factory=Some((capacity, prefix, suffix) => {
+      construct(capacity, prefix, active => {
+        match suffix {
+          None => Ok(())
+          Some(original) => @infer_host.bind_compute_suffix(active, original)
+        }
+      })
+    }),
+  ).map_err(issue => Preparation(issue))
 }

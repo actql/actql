@@ -54,6 +54,51 @@ const cid = value => `sha256:${createHash('sha256')
 // Keep exact version/target text; NFC must not broaden read approval identity.
 const valueCid = value => `sha256:${createHash('sha256')
   .update(canonicalValueJson(value, {dataKeys: true})).digest('hex')}`;
+
+// Private standard installation DATA, not a callback-currentness promise.
+// Callback targets keep their original full revalidation below, even when a
+// callback happens to return a frozen object. No public or restored wire can
+// replace an original prepared target through this constructor input.
+function prepareImmutablePhysicalTargets(value) {
+  if (typeof value === 'function') return undefined;
+  const mismatch = () => fail('InstalledSourcePreparationMismatch');
+  const arrayValues = input => {
+    if (!Array.isArray(input) || nodeTypes.isProxy(input) || !Object.isFrozen(input) ||
+        Object.getPrototypeOf(input) !== Array.prototype) mismatch();
+    const length = Object.getOwnPropertyDescriptor(input, 'length').value;
+    if (Reflect.ownKeys(input).length !== length + 1) mismatch();
+    for (let index = 0; index < length; index++) {
+      const property = Object.getOwnPropertyDescriptor(input, index);
+      if (!property || !Object.hasOwn(property, 'value')) mismatch();
+    }
+    return input;
+  };
+  const resources = new Set();
+  const inventory = arrayValues(value);
+  for (const input of inventory) {
+    if (input === null || typeof input !== 'object' || nodeTypes.isProxy(input) ||
+        !Object.isFrozen(input) || Object.getPrototypeOf(input) !== Object.prototype) mismatch();
+    for (const key of Reflect.ownKeys(input)) {
+      const property = Object.getOwnPropertyDescriptor(input, key);
+      if (typeof key !== 'string' || !Object.hasOwn(property, 'value') ||
+          !property.enumerable || key !== 'fields' && typeof property.value !== 'string') mismatch();
+    }
+    if (!text(input.resource) || resources.has(input.resource) || !Object.hasOwn(input, 'fields')) mismatch();
+    const fields = arrayValues(input.fields);
+    if (fields.some(field => !text(field)) || new Set(fields).size !== fields.length) mismatch();
+    resources.add(input.resource);
+  }
+  if (inventory.length === 0) mismatch();
+  resources.clear();
+  // The existing Source constructor already retains these exact immutable
+  // outputs. Do not allocate another inventory, target Map or field arrays.
+  return Object.freeze({inventory, prepare(resource, fields) {
+    const target = inventory.find(target => target.resource === resource);
+    if (target === undefined || !Array.isArray(fields) || new Set(fields).size !== fields.length ||
+        fields.some(field => !target.fields.includes(field))) mismatch();
+    return Object.freeze({...target, fields: Object.freeze([...fields])});
+  }});
+}
 const contractRoot = new URL('../../spec/contracts/', import.meta.url);
 
 const byCid = values => values.map(value => JSON.parse(value))
@@ -1243,6 +1288,8 @@ export async function openRowSourceCredentialSite({profile, principalId,
 // observation remain the installed driver's responsibility; this is no grant.
 // ordinary rows use consumePage. Completion is never the driver's return alone;
 // `physicalTarget(resource, fields)` the exact target an approval covers.
+// Standard installations may instead supply their frozen full target DATA
+// inventory. It has no authorization/current/physical cleanup methods.
 export async function createInstalledRowSource({moon, declaration, commands,
   declared, environmentWire, environment, sourceInitialization, connectorId, connectorRegistration,
   connectorRevision, site, authorization, readOperation, physicalTarget,
@@ -1439,6 +1486,9 @@ export async function createInstalledRowSource({moon, declaration, commands,
       [...operationBindings].some(([resource, operation]) => !resources.has(resource) || !text(operation))) {
     fail('InvalidInstalledRowSourceOperations');
   }
+  const immutableTargets = prepareImmutablePhysicalTargets(physicalTarget);
+  if (immutableTargets !== undefined) physicalTarget = immutableTargets.prepare;
+  let physicalTargetGeneration = immutableTargets?.inventory;
   const preparations = new WeakMap();
   // SAME prepared read, retained until the accounted RowRun takes custody.
   const preparingSourceReads = new Set();
@@ -1506,16 +1556,29 @@ export async function createInstalledRowSource({moon, declaration, commands,
     connectorRevision, bindingCid});
   function ordinaryRecoveryBinding(prepared) {
     const owner = preparations.get(prepared);
-    if (owner === undefined || !validInstallationBinding(installationBinding) ||
-        valueCid(prepared.physicalBinding) !== owner.physicalBindingCid) {
+    if (owner === undefined || !validInstallationBinding(installationBinding)) {
+      fail('InstalledSourcePreparationMismatch');
+    }
+    if (immutableTargets === undefined
+      ? valueCid(prepared.physicalBinding) !== owner.physicalBindingCid
+      : physicalTargetGeneration === undefined || owner.physicalTargetGeneration !== physicalTargetGeneration ||
+        prepared.physicalBinding !== owner.physicalBindingOriginal) {
       fail('InstalledSourcePreparationMismatch');
     }
     const [resource, ...fields] = owner.wholeInput
       ? moon.clientProgramWholeSourceTarget(owner.acquisition)
       : checked(moon.clientProgramRowSourceTarget(declaration, owner.requirement));
     if (resource !== owner.resource || prepared.readTuple.connection !== site.connection ||
-        prepared.readTuple.resource !== resource || prepared.readTuple.operation !== 'read' ||
-        valueCid(physicalTarget(resource, fields)) !== owner.physicalBindingCid) {
+        prepared.readTuple.resource !== resource || prepared.readTuple.operation !== 'read') {
+      fail('InstalledSourcePreparationMismatch');
+    }
+    // The same immutable target was fully constructed and hashed at prepare.
+    // Still obtain the exact Core target and compare all ordered field names;
+    // this is not an Account decision or a substitute for its current checks.
+    if (immutableTargets === undefined
+      ? valueCid(physicalTarget(resource, fields)) !== owner.physicalBindingCid
+      : fields.length !== owner.physicalBindingOriginal.fields.length ||
+        fields.some((field, index) => field !== owner.physicalBindingOriginal.fields[index])) {
       fail('InstalledSourcePreparationMismatch');
     }
     return installationBinding;
@@ -1683,6 +1746,9 @@ export async function createInstalledRowSource({moon, declaration, commands,
     fragment, ordered, sourceAccess: access = sourceAccess,
     queryTimePreparation, requestIdentity, managedRun,
     occurrence = {stage: 0, input: 0, task: 0}}) {
+    if (immutableTargets !== undefined && physicalTargetGeneration === undefined) {
+      fail('InstalledSourceInitializationClosed');
+    }
     if ((preparedProgram === undefined) === (preparedEffect === undefined)) {
       fail('InvalidInstalledSourcePreparation');
     }
@@ -1819,7 +1885,9 @@ export async function createInstalledRowSource({moon, declaration, commands,
       }
       preparations.set(prepared, Object.freeze({checkedOwner, effectful,
         requirement, resource, access, acquisition, wholeInput,
-        occurrence, physicalBindingCid, providerCaptureCapacity, originalRead, managedRun}));
+        occurrence, physicalBindingCid, providerCaptureCapacity, originalRead, managedRun,
+        ...(immutableTargets === undefined ? {} : {physicalBindingOriginal: prepared.physicalBinding,
+          physicalTargetGeneration})}));
       ordinaryRecoveryBinding(prepared);
       return prepared;
     } catch (error) {
@@ -2725,6 +2793,9 @@ export async function createInstalledRowSource({moon, declaration, commands,
     },
     prepare, prepareKeyed, verifyKeyedRead, keyedRecoveryBinding, open, openCapture, openKeyed, openKeyedLookup,
     close() {
+      // Invalidate this installation's immutable target selection as soon as
+      // retirement starts. Physical pending/ACK handling remains below.
+      physicalTargetGeneration = undefined;
       for (const read of preparingSourceReads) {
         checked(moon.clientProgramInstalledSourceReadRetire(read));
         preparingSourceReads.delete(read);

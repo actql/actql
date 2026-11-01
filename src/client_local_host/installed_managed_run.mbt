@@ -168,6 +168,7 @@ pub(all) enum ClientInstalledManagedRunIssue {
   Preparation(@resources.PreparationCapacityIssue)
   Ledger(@resources.LedgerIssue)
   ModelRead(@publication_host.ClientModelReadPreparationIssue)
+  ModelLayout(@publication_host.ClientModelPreparationLayoutIssue)
   Sequence(@lower.SequenceIssue)
   SerializationPrefix(ClientSerializationPrefixIssue)
 }
@@ -193,9 +194,17 @@ fn installed_managed_run_shape_supported(
 fn installed_managed_owner_shape_supported(
   owner : ClientLocalSequenceOwner,
   mock_model : Bool,
+  model? : @publication_host.ClientInferPlanGraph? = None,
+  model_occurrence? : @publication_host.ClientInferOccurrence? = None,
 ) -> Bool {
   let graph = installed_managed_owner_graph(owner)
   let captured = @strategy.graph_captured_prefix(graph)
+  // A Graph constructor has the original occurrence before the Graph exists.
+  // Later module/Plan callers must supply their actual checked Graph instead.
+  let selected_occurrence = match model {
+    Some(selected) => Some(selected.occurrence)
+    None => model_occurrence
+  }
   let boundary_count = match owner {
     Pure(prepared) =>
       @publication_host.prepared_client_composed_infer_occurrences(prepared).map(value => {
@@ -221,12 +230,46 @@ fn installed_managed_owner_shape_supported(
       )
   }
   (
-    (captured > 0 && (!mock_model || captured == 2)) ||
+    (
+      captured > 0 &&
+      (
+        !mock_model ||
+        captured == 2 ||
+        (selected_occurrence is Some(_) && captured == 1)
+      )
+    ) ||
     (captured == 0 && @strategy.graph_source_free_inputs_complete(graph))
   ) &&
   boundary_count is Some(count) &&
   count == (if mock_model { 1 } else { 0 }) &&
-  serialized.is_empty()
+  (match model {
+    None =>
+      serialized.is_empty() &&
+      (match (model_occurrence, owner) {
+        (None, _) => true
+        (Some(original), Pure(prepared)) =>
+          mock_model &&
+          @publication_host.client_infer_occurrence_matches(original, prepared)
+        _ => false
+      })
+    Some(selected) =>
+      mock_model &&
+      (match owner {
+        Pure(prepared) =>
+          physical_equal(selected.owner, prepared) &&
+          @publication_host.client_infer_occurrence_matches_plan(
+            selected.occurrence,
+            selected,
+          ) &&
+          (match selected.serialization {
+            None => serialized.is_empty()
+            Some(component) =>
+              physical_equal(component.owner, prepared) &&
+              serialized == [(component.task, component.step)]
+          })
+        Effect(_) => false
+      })
+  })
 }
 
 ///|
@@ -237,6 +280,7 @@ fn source_free_installed_managed_preparation_owned(
   fragment_body : String?,
   ordered_body : String?,
   mock_model : Bool,
+  model? : @publication_host.ClientInferPlanGraph? = None,
   query_time? : (
     @publication_host.ClientQueryTimePreparation,
     @publication_host.ClientRequestIdentity,
@@ -246,7 +290,7 @@ fn source_free_installed_managed_preparation_owned(
   ClientInstalledManagedRunIssue,
 ] {
   let graph = installed_managed_owner_graph(owner)
-  if !installed_managed_owner_shape_supported(owner, mock_model) ||
+  if !installed_managed_owner_shape_supported(owner, mock_model, model~) ||
     @strategy.graph_captured_prefix(graph) != 0 ||
     !@strategy.graph_source_free_inputs_complete(graph) {
     return Err(Unsupported)
@@ -1050,8 +1094,35 @@ fn prepare_installed_managed_run_ledger_owned(
       values_body, fragment_body, ordered_body, ledger,
     )
   }
-  if value.content is SerializationContent(_) {
-    return Err(Unsupported)
+  if value.content is SerializationContent(content) {
+    // The acquired Model already adopted this SAME module/compiler and
+    // prefix. Borrow its retained Source inventory without widening a bare
+    // terminal Content Run or reconstructing capacity after adoption.
+    guard value.captured_preparation is Some(plan) &&
+      physical_equal(content.prepared, plan.prepared) &&
+      physical_equal(content.request, plan.request) &&
+      plan.compilation is Some(@publication_host.Tasks(compilation)) &&
+      compilation.infers.length() == 1 &&
+      compilation.infers[0].serialization is Some(component) &&
+      @publication_host.client_task_compilation_serialization(compilation)
+      is Some(original_component) &&
+      physical_equal(component, original_component) &&
+      @publication_host.client_compiled_run_matches_tasks(
+        content._observed_compiled,
+        plan.prepared,
+        compilation,
+      ) &&
+      @publication_host.check_client_compiled_run_definition(
+        content._observed_compiled,
+        content._observed_definition,
+      )
+      is Ok(_) else {
+      return Err(Unsupported)
+    }
+    return prepare_retained_installed_capture_ledger(
+      value, plan, capacities, transport_bytes, transport_execution_bytes, installed_contracts,
+      values_body, fragment_body, ordered_body, ledger,
+    )
   }
   let owner = match installed_managed_run_owner(value) {
     Err(issue) => return Err(issue)

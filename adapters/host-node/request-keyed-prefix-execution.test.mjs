@@ -63,7 +63,9 @@ test('keyed Content returned prefix remains pending until its original cleanup A
   const f=fixture({returnPrefix:true});await assert.rejects(f.invoke,e=>e===f.primary);
   assert.equal(f.starts(),1);assert.equal(await f.execution().cleanup(),false);
   assert.equal(f.calls.filter(x=>x==='cancel').length,1);
-  f.ready();assert.equal(await f.execution().cleanup(),true);assert.equal(f.calls.filter(x=>x==='cancel').length,2);
+  f.ready();assert.equal(await f.execution().cleanup(),true);
+  assert.equal(f.calls.filter(x=>x==='cancel').length,1,'JS alias is cut after physical ACK; native cleanup owns the same pending prefix');
+  assert.equal(f.calls.filter(x=>x==='cleanup').length,2,'retry the same native cleanup rather than reenter the JS prefix');
   assert.equal(f.starts(),1);assert.deepEqual(f.execution().resourceUsage(),[1n]);
 });
 

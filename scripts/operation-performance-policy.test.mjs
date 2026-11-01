@@ -2,8 +2,9 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import test from 'node:test';
 import {operationTargets, calibrateSqliteComparisonProfile, calibratedLatencyTarget,
-  assessLatency} from './operation-performance.mjs';
+  assessLatency, publicLatencyTarget, assessPublicLatencySamples} from './operation-performance.mjs';
 import {syntheticSQLiteBaseline, syntheticResultStorageControl} from './fixtures/operation-performance-comparison.mjs';
+import {nodeWarmSmallQueryFixtures} from './benchmark-node-operations.mjs';
 
 // Independent arithmetic and policy expectations. Synthetic timings never
 // establish a measured baseline or product latency.
@@ -15,9 +16,13 @@ function evidence(operation, ms = 1) {
     cohortSha256: cohort, fixtureSha256: fixture, environmentSha256: environment,
     samples: Array.from({length: target.samples}, (_, iteration) => ({iteration,
       wallNs: ms * 1e6, cpuUserUs: 0, cpuSystemUs: 0, cpuScope: 'synthetic-oracle-test',
+      peakRssBytes: 1024, rssScope: 'synthetic oracle RSS',
       cohortSha256: cohort, fixtureSha256: fixture,
       pid: operation === 'cold-existing' ? iteration + 1 : 1,
       hostId: 'same-warm-host', stateId: operation === 'first-init' ? `new-${iteration}` : 'same-state',
+      publicTiming: operation.startsWith('warm-')
+        ? {kind: operation === 'warm-status' ? 'public-status' : 'public-result', startNs: 1, observedNs: 2, endNs: 3}
+        : {kind: 'process-result-close', startNs: 1, observedNs: 2, closeStartNs: 3, closeEndNs: 4, endNs: 5},
       completed: true, verified: true}))};
 }
 const comparison = baseline => ({baseline, profile: calibrateSqliteComparisonProfile(baseline)});
@@ -49,9 +54,10 @@ function matchedDiagnostic(operation, control) {
   return row;
 }
 
-test('warm targets require measured comparison instead of immutable absolute thresholds', () => {
+test('warm targets require both absolute public E2E limits and measured comparison', () => {
   for (const operation of warm) {
-    assert.deepEqual(operationTargets[operation], {samples: 100, comparison: 'local-sqlite'});
+    assert.deepEqual(operationTargets[operation], {samples: 100, comparison: 'local-sqlite',
+      publicEndToEnd: true, p95Ms: 200, maxMs: 200});
     assert.equal(assessLatency(evidence(operation)).status, 'incomplete');
   }
 });
@@ -73,6 +79,23 @@ test('diagnostic calibration uses a fixed ratio, raw jitter and one measured min
   }
   assert.match(profile.qualification, /not an unconditional SDK SLA/u);
 });
+test('parameter comparison binds the separate public values and declaration options', () => {
+  const control = comparison(syntheticSQLiteBaseline());
+  const query = nodeWarmSmallQueryFixtures.find(row => row.operation === 'warm-parameters');
+  const entry = control.profile.entries.find(row => row.operation === query.operation);
+  const hash = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
+  assert.equal(entry.fixtureSha256, hash(query));
+  assert.deepEqual(entry.conditions.parameters, [7]); // Actual SQLite positional binding.
+  const row = matchedDiagnostic(query.operation, control);
+  row.fixtureSha256 = hash(query);
+  row.samples.forEach(sample => {sample.fixtureSha256 = row.fixtureSha256;});
+  const result = calibratedLatencyTarget(row, control);
+  assert(!result.missing.includes('matched public fixture/oracle'));
+  assert(result.missing.includes('matched minimum public essential-work comparator'));
+  assert.deepEqual([result.target.p95Ms, result.target.maxMs], [200, 200]);
+  row.fixtureSha256 = hash({...query, parameters: {id: 8}});
+  assert(calibratedLatencyTarget(row, control).missing.includes('matched public fixture/oracle'));
+});
 test('matching literal data cannot supply missing public durable-transition correspondence', () => {
   const control = comparison(syntheticSQLiteBaseline());
   for (const operation of ['warm-select', 'warm-result', 'warm-status', 'warm-join', 'warm-union']) {
@@ -80,9 +103,9 @@ test('matching literal data cannot supply missing public durable-transition corr
     for (const ms of [0.001, 187, 968]) {
       row.samples.forEach(sample => {sample.wallNs = ms * 1e6;});
       const result = assessLatency(row, control);
-      assert.equal(result.status, 'incomplete');
+      assert.equal(result.status, ms > 200 ? 'failed' : 'incomplete');
       assert(result.missing.includes('matched minimum public essential-work comparator'));
-      assert.equal(result.target.p95Ms, undefined);
+      assert.equal(result.target.p95Ms, 200);
     }
   }
   assert.equal(control.profile.entries.some(row => row.operation === 'warm-decimal-sum'), false);
@@ -139,7 +162,7 @@ test('Result storage evidence retains public total and incomplete non-storage wo
   assert(result.missing.includes('required public work coverage outside the storage control'));
   assert.deepEqual(result.resultStorage.medianMs, {publicMs: 20, storageControlMs: 4, ratio: 5,
     deltaMs: 16, diagnosticLimitMs: 12, publicAcceptance: 'unmatched'});
-  assert.equal(result.target.p95Ms, undefined);
+  assert.equal(result.target.p95Ms, 200);
 });
 test('Result storage success samples cannot hide failed cleanup, changed groups, foreign runtime or missing raw facts', () => {
   for (const mutate of [c => {c.cleanup.closed = false;}, c => {c.failure = {message: 'close failed'};},
@@ -271,10 +294,11 @@ test('checkpoint equivalence refuses missing, invalid, fullfsync-off and unrelat
   resultRow.resultStorageMatch.bodyBytes.clock += 1;
   assert(calibratedLatencyTarget(resultRow, withResult).missing.includes('actual Result key/body/group correspondence'));
 });
-for (const [operation, p95Ms] of [['cold-existing', 2000], ['first-init', 5000], ['mock-workflow', 5000]]) {
+for (const [operation, p95Ms] of [['cold-existing', 200], ['first-init', 200], ['mock-workflow', 5000]]) {
   test(`${operation} retains its separately reported guardrail and sample minimum`, () => {
     const row = evidence(operation, p95Ms);
-    assert.deepEqual(operationTargets[operation], {samples: 30, p95Ms});
+    assert.deepEqual(operationTargets[operation], operation === 'mock-workflow' ? {samples: 30, p95Ms}
+      : {samples: 30, publicEndToEnd: true, p95Ms, maxMs: 200});
     assert.equal(assessLatency(row).status, 'passed');
     row.samples.slice(28).forEach(sample => {sample.wallNs += 1;});
     assert(assessLatency(row).failures.includes('p95 latency exceeds target'));
@@ -282,3 +306,50 @@ for (const [operation, p95Ms] of [['cold-existing', 2000], ['first-init', 5000],
     assert.equal(assessLatency(row).summary.p95Ms, null);
   });
 }
+
+test('public cold 300ms p95 and 400ms maximum fail even below the old two-second guardrail', () => {
+  const row = evidence('cold-existing', 300); row.samples.at(-1).wallNs = 400e6;
+  const result = assessLatency(row);
+  assert.equal(result.status, 'failed');
+  assert.equal(result.summary.p95Ms, 300); assert.equal(result.summary.maxMs, 400);
+  assert(result.failures.includes('public E2E p95 exceeds 200ms'));
+  assert(result.failures.includes('public E2E observed max exceeds 200ms'));
+});
+test('a fast warm median or p95 cannot hide slow cold or one over-budget maximum', () => {
+  const warm = evidence('warm-select', 5); warm.samples.at(-1).wallNs = 201e6;
+  const observed = assessLatency(warm); assert.equal(observed.summary.p95Ms, 5);
+  assert.equal(observed.status, 'failed'); assert.equal(observed.summary.maxMs, 201);
+  assert.equal(assessLatency(evidence('cold-existing', 1000)).status, 'failed');
+  assert.deepEqual(publicLatencyTarget, {p95Ms: 200, maxMs: 200});
+});
+test('every original raw sample remains in statistics, including a slow failed oracle', () => {
+  const row = evidence('cold-existing', 5);
+  Object.assign(row.samples.at(-1), {wallNs: 900e6, verified: false, completed: false});
+  const result = assessLatency(row); assert.equal(result.status, 'failed');
+  assert.equal(result.summary.count, 30); assert.equal(result.summary.maxMs, 900);
+  assert.equal(result.verifiedSummary.count, 29);
+});
+test('clipped Result clocks and work deferred past the first close cannot qualify public E2E', () => {
+  for (const timing of [
+    {kind: 'public-result', startNs: 1, observedNs: 300e6, endNs: 2},
+    {kind: 'process-result-close', startNs: 1, observedNs: 8, closeStartNs: 3, closeEndNs: 9, endNs: 10},
+    {kind: 'process-result-close', startNs: 1, observedNs: 2, closeStartNs: 3, closeEndNs: 300e6, endNs: 300e6},
+  ]) {
+    const operation = timing.kind === 'public-result' ? 'warm-select' : 'cold-existing';
+    const row = evidence(operation, 5); row.samples[0].publicTiming = timing;
+    assert.equal(assessLatency(row).status, 'failed');
+  }
+  const row = evidence('cold-existing', 5); delete row.samples[0].publicTiming;
+  assert.equal(assessLatency(row).status, 'incomplete');
+  assert.equal(assessPublicLatencySamples(row.samples, 30, row.operation).missing.length, 1);
+});
+
+
+test('separate parent first-Result clock cannot replace mandatory process-through-first-close',()=>{
+  const rows=evidence('cold-existing',5).samples;
+  for(const row of rows)row.publicTiming={kind:'process-first-result',startNs:0,observedNs:row.wallNs,endNs:row.wallNs};
+  assert.equal(assessPublicLatencySamples(rows,30,'cold-existing-state-process-first-result').failures.length,0);
+  assert(assessPublicLatencySamples(rows,30,'cold-existing').failures.length>0);
+  rows.at(-1).wallNs=201e6;rows.at(-1).publicTiming.endNs=201e6;rows.at(-1).publicTiming.observedNs=201e6;
+  assert(assessPublicLatencySamples(rows,30,'cold-existing-state-process-first-result').failures.includes('public E2E observed max exceeds 200ms'));
+});

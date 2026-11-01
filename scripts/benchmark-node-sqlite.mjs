@@ -18,6 +18,8 @@ export const sqliteQueryFixtures = Object.freeze([
   parameters: [], expected: [{id: 1, label: 'joined'}]},
   {operation: 'warm-union', sql: 'WITH items AS (SELECT 2 AS id UNION ALL SELECT 1 AS id) '
     + 'SELECT id FROM items ORDER BY id', parameters: [], expected: [{id: 1}, {id: 2}]},
+  {operation: 'warm-parameters', sql: 'SELECT ? AS id', parameters: [7], expected: [{id: 7}]},
+  {operation: 'warm-unicode', sql: "SELECT 'é😀' AS label", parameters: [], expected: [{label: 'é😀'}]},
 ]);
 export const sqliteBaselineProtocol = Object.freeze({
   binding: 'node:sqlite DatabaseSync', concurrency: 1,

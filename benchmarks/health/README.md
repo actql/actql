@@ -33,8 +33,13 @@ Installed bytes are logical file bytes, not filesystem-exclusive allocation.
 Bundled DuckDB/Wasmtime/Wasm members retain their actual names and sizes.
 Ten samples each cover retained-Host SELECT, the existing literal JOIN and
 Decimal SUM Aggregate, original saved Named Result and same-Run status. Five
-new processes each cover import/open/first query/Result/awaited close; inner
-open and first-query timings remain separate. Five complete Mock workflows
+new processes for each of two separate cold cases cover import/open/a NEW
+query/all Result rows/first awaited close. `cold-existing-state` is initialized
+and closed through the same installed candidate's public API in a separate
+preparation process; each timed process submits a different new Run against
+that state. It is not a Saved-only read or an older candidate's migration.
+`cold-new-state` gives every timed child a new state, including normal first
+initialization. Warm operations remain on one original open Host. Five complete Mock workflows
 reuse the exact tracked `mock-project-effect-public.mjs` consumer and original
 seven-file `churn-risk-mock` template: separate capture/approve/recover
 processes retain all 9/11/7 assertions, actual review/approval/continuation,
@@ -48,6 +53,19 @@ to bytes), excluding compiler/parent/other process memory. Build/prepack,
 packaging, browser bundling and installation remain separate reference work,
 never included in retained operation latency. Cold-process wall time includes
 process startup through natural exit; it does not mean a cold OS page cache.
+Parent launch-to-first-Result records the arrival of a fixed all-rows IPC
+notification, including its delivery delay. Parent launch-to-natural-exit is a
+separate clock. Child monotonic spans separate product import, public open,
+new-Run submission, wait/execution/publication, all-row materialization and
+first close. The import span covers the public `@actql/node` entry; Local
+provider imports selected inside `open` remain in the public-open span.
+Query spans retain their parent relationship; neither child
+phases nor nested Host work may be added to parent elapsed time. Activation,
+prepare/check/compile/Plan, execution and durable-commit internals remain
+explicitly unobserved until an actual Host diagnostic supplies them. No wall
+span is an exclusive CPU partition. Output/report writes stay outside child
+public spans; parent-to-exit retains collector setup, IPC and reporting costs.
+
 Missing CPU observations remain unavailable. Optional Native/Python Quick
 coverage is explicit unmeasured; supplied ordinary manifests can additionally
 measure their artifacts.
@@ -204,3 +222,43 @@ automation remain later phases.
 | 10 | Same command in fail-closed reusable/dispatch workflow; hosted execution unverified |
 | 11 | Monitor/collector adaptation only; no public API, Runtime or capacity change |
 | 12 | `node scripts/local-checks.mjs test node -- scripts/health-monitor.test.mjs`; no Runtime build |
+
+## Public end-to-end acceptance
+
+The existing operation assessor now requires both **p95 <= 200 ms** and
+**observed maximum <= 200 ms** for the in-scope public short-query operations,
+including retained SELECT, two-row UNION, parameters and short Unicode, saved
+Result, status, process-cold existing state and normal first initialization.
+Node `cold-existing` is a NEW query after same-candidate public initialization
+and close; `first-init` is cold-new-state. Historical Saved-only process
+measurements retain their original protocol and cannot qualify these cases.
+Normal initialization is included; a warm-only number cannot qualify the cold
+entry. The separate Mock workflow keeps its own workflow budget and cannot
+substitute for a short-query measurement. Native CLI launches remain process
+operations, never retained-Host warm samples.
+
+Final measurements retain the existing 100 warm/30 cold populations (the
+separate Native operation selection retains its existing 100 process samples).
+Every original duration, including a failed or slow sample, contributes to the
+raw summary; successful-oracle counts are reported separately. Diagnostic
+populations do not supply an acceptance p95. Failed, incomplete, profiled,
+undersampled, mixed-artifact or unmatched measurements cannot pass. The
+SQLite diagnostic comparison remains separate from a fully matched public
+work comparator; the absolute limit does not discharge missing comparison
+coverage.
+
+Public timing observations bind the actual call to materialized ordinary
+Result rows. SDK process observations retain Result-before-close, first close
+and whole-process timing separately. CLI observations retain actual child exit
+and the later materialized-output oracle without inventing a public close API
+or internal physical ACK. A timer stopped before its observed Result or close
+is rejected. CPU and peak RSS keep their actual process/child scopes; peak RSS
+is a high-water observation, not per-operation allocation or initialized bytes.
+
+Quick remains a small diagnostic with warning-only comparison semantics.
+Release additionally requires a reviewed, environment/build/load/fixture- and
+artifact-bound baseline. Its existing relative-plus-absolute thresholds apply
+to median, p95 and maximum latency as regressions, not warnings; CPU/RSS
+statistics and their scopes remain visible. Missing or incompatible baselines
+are incomplete. No source change, baseline adoption, final sampling campaign
+or release qualification follows merely from passing the assessor unit tests.

@@ -92,9 +92,9 @@ test('funded caller passes the same installed mode to one original Request compi
     const producer = {receipt, request, kind: 'program', body: captured, preparation: state};
     const originals = {installation: {sequenceContractOriginal: {moon, admission}}};
     const read = Function('current', 'producerForRequest', 'fail', 'originals', 'checked',
-      'checkedRequestProgramPreparation', 'requestPreparationAvailable',
+      'checkedRequestProgramPreparation', 'requestPreparationAvailable', 'reportCapacityRefusal',
       `const closing=false,closed=false;return ({${body}}).fundedPreparation;`)(() => {}, () => producer, fail,
-      originals, value => value, (_moon, value) => value, requestPreparationAvailable);
+      originals, value => value, (_moon, value) => value, requestPreparationAvailable, () => {});
     for(let i=0;i<2;i++){
       const original=await read(request, environment);
       assert.strictEqual(original.prepared, prepared);
@@ -176,11 +176,11 @@ test('Host retains the actual output mode in its original preparation context an
 
 
 test('selected row context requires finite own DATA without observing accessors', () => {
-  for (const valuesMaxRows of [undefined, 1, 10000]) {
+  for (const valuesMaxRows of [undefined, 1, 10000, 10001, 100000, 2147483647]) {
     assert.equal(requestPreparationAvailable(Object.freeze({
       ...context(ports(), false), valuesMaxRows})), true);
   }
-  for (const valuesMaxRows of [null, 0, -1, 1.5, 10001, Infinity, '2']) {
+  for (const valuesMaxRows of [null, 0, -1, 1.5, 2147483648, Number.MAX_SAFE_INTEGER, Infinity, '2']) {
     assert.equal(requestPreparationAvailable(Object.freeze({
       ...context(ports(), false), valuesMaxRows})), false);
   }

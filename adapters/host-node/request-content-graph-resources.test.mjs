@@ -22,8 +22,9 @@ function extract(file, name, ports, variable = false) {
   visit(parse(source, {ecmaVersion: 'latest', sourceType: 'module'}));
   assert(selected, name);
   const body = source.slice(selected.start, selected.end);
+  const helpers = file === './ordinary-source-managed.mjs' ? source.slice(source.indexOf('  function constructRequestDomain('), source.indexOf('  const view = Object.freeze({')) : '';
   return Function(...Object.keys(ports), variable ? `return (${body});`
-    : `return ({${body}}).${name};`)(...Object.values(ports));
+    : `const pendingRunRegistrations=new Set();${helpers}return ({${body}}).${name};`)(...Object.values(ports));
 }
 
 function fixture() {

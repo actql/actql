@@ -43,21 +43,62 @@ test "text-free capacity proof checks every typed child and original step" {
       ("SELECT STRUCT(1 AS x).x AS n", false, @frontend.Sql),
       (
         "SELECT COUNT(*) AS n FROM (SELECT 1 AS x UNION ALL SELECT 2 AS x)",
+        true,
+        @frontend.Sql,
+      ),
+      (
+        "SELECT x, COUNT(*) AS n FROM (SELECT 1 AS x UNION ALL SELECT 1 AS x UNION ALL SELECT 2 AS x) GROUP BY x HAVING COUNT(*) > 1",
+        true,
+        @frontend.Sql,
+      ),
+      (
+        "SELECT x, COUNT(x) AS n FROM (SELECT 1 AS x UNION ALL SELECT 2 AS x) GROUP BY x",
+        true,
+        @frontend.Sql,
+      ),
+      (
+        "SELECT x, COUNT(*) AS n, COUNTIF(x) AS hits FROM (SELECT TRUE AS x UNION ALL SELECT FALSE AS x UNION ALL SELECT CAST(NULL AS BOOL) AS x) GROUP BY x",
+        true,
+        @frontend.Sql,
+      ),
+      (
+        "SELECT COUNTIF(x > 0) AS n FROM (SELECT 1 AS x UNION ALL SELECT 2 AS x)",
+        false,
+        @frontend.Sql,
+      ),
+      (
+        "SELECT COUNTIF(LENGTH(REPEAT('x', 4)) > 0) AS n FROM (SELECT 1 AS x)",
+        false,
+        @frontend.Sql,
+      ),
+      ("SELECT COUNT(*) AS n FROM (SELECT [1,2] AS x)", false, @frontend.Sql),
+      ("SELECT COUNT(*) AS n FROM (SELECT 'text' AS x)", false, @frontend.Sql),
+      (
+        "SELECT x, COUNT(*) AS n FROM (SELECT 'text' AS x) GROUP BY x",
+        false,
+        @frontend.Sql,
+      ),
+      (
+        "SELECT COUNT(*) AS n FROM (SELECT CASE WHEN FALSE THEN LENGTH(REPEAT('x', 4)) ELSE 1 END AS x)",
         false,
         @frontend.Sql,
       ),
     ] {
-    let lowered = @frontend.lower(
-      query,
-      format,
-      Some(
-        @frontend.bind_query_context(
-          [],
-          "sha256:2217670f3f4f54047e764878501863d4eaf37cf069ab741d7306a9d8985cc94f",
-        ).unwrap(),
-      ),
-      public_primary=true,
-    ).unwrap()
+    let lowered = match
+      @frontend.lower(
+        query,
+        format,
+        Some(
+          @frontend.bind_query_context(
+            [],
+            "sha256:2217670f3f4f54047e764878501863d4eaf37cf069ab741d7306a9d8985cc94f",
+          ).unwrap(),
+        ),
+        public_primary=true,
+      ) {
+      Ok(value) => value
+      Err(_) => fail("query lowering failed: " + query)
+    }
     let prepared = @publication_host.prepare_effect_free_client_program(
       lowered.document,
       lowered.format,
@@ -79,7 +120,9 @@ test "text-free capacity proof checks every typed child and original step" {
       )
       .to_option()
       .unwrap()
-    assert_eq(client_local_text_free_scalar_sequences(sequences), expected)
+    if client_local_text_free_scalar_sequences(sequences) != expected {
+      fail("unexpected text-free proof: " + query)
+    }
     let rows = @publication_host.prepared_client_values_max_rows(prepared)
     let plan = client_local_capacity_plan(
       sequences,

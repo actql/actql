@@ -53,7 +53,7 @@ test('normal Host CI executes bounded Journal preparation and cursor regressions
   const step = jobs.host.steps.find(row =>
     row.name === 'Test bounded Journal preparation and execution');
   assert.ok(step);
-  assert.equal(step.run, 'node --test adapters/host-node/client-request-journal-sql-bounds.test.mjs adapters/host-node/client-request-journal-execution-bounds.test.mjs adapters/host-node/client-request-journal-wal-bounds.test.mjs');
+  assert.equal(step.run, 'node --test adapters/host-node/client-request-journal-sql-bounds.test.mjs adapters/host-node/client-request-journal-execution-bounds.test.mjs adapters/host-node/client-request-journal-wal-bounds.test.mjs adapters/host-node/client-request-journal-fresh-schema.test.mjs');
   assert.ok(jobs.host.steps.indexOf(step) > jobs.host.steps.findIndex(row =>
     row.run === 'npm run check:retained-boundary'));
 });
@@ -895,7 +895,10 @@ test('normal distribution keeps original Request resource and cleanup regression
   "adapters/host-node/request-content-graph-resources.test.mjs",
   "adapters/host-node/request-keyed-prefix-execution.test.mjs",
   "adapters/host-node/request-model-material-resources.test.mjs",
-  "adapters/store-local/private-evidence-consumer-lifetime.test.mjs"
+  "adapters/host-node/request-model-source-ledger.test.mjs",
+  "adapters/store-local/private-evidence-consumer-lifetime.test.mjs",
+  "adapters/host-node/request-domain-source-preflight.test.mjs",
+  "adapters/host-node/content-execution-alias-retirement.test.mjs"
 ]) {
     assert.equal(selected.filter(value => value === file).length, 1, file);
   }

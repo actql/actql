@@ -467,6 +467,31 @@ interfaces, schema/pins, fixtures, and the tracked Run Host service wrappers
 remain reviewed source artifacts. Regenerate wrapper changes explicitly;
 runtime preparation checks them but does not silently update them.
 
+### Local Files native delivery
+
+The ordinary Local package producer builds the Local Files descriptor binding
+on the pinned Node 22.22.0 toolchain for Darwin arm64/x64 and Linux x64. Linux
+uses the same reader, writer, bounds, currentness and cleanup implementation;
+only timestamp field access and atomic rename calls differ. Its private image
+exports the complete Local Files read/write interface, not the separate
+Darwin/APFS HostJournal directory inspector. File STORE installation and
+approval/claim ownership do not change by platform.
+
+Creation requires the filesystem's atomic no-replace rename operation; there
+is no existence-check or link/unlink fallback. Replacement swaps the directory
+entry without following its symlink and is not compare-and-swap. File fsync
+precedes rename, and directory fsync follows it. Failed or ambiguous publication
+never supplies a success observation or permission to replay. A successful
+local filesystem test does not establish arbitrary network filesystem behavior
+or power-loss durability. Unsupported operations fail without weakening these
+requirements.
+
+The normal build records the original source, compiler, Node headers and binary
+identities. Linux records its actual compiler/system header inputs, not an Apple
+SDK identity. Installed consumers use the package's ordinary platform-selected
+image; copying another build's native module into an installation is not normal
+delivery or acceptance evidence.
+
 ### Source-free Local scalar capacity
 
 Pure source-free Local preparation can use a smaller scalar value-node envelope
@@ -481,6 +506,18 @@ sequence budgets rather than assuming one kernel per task. It is
 never larger than the general 20,000-node envelope. Missing schemas, nested or
 other value contracts, and out-of-range products retain the general envelope.
 This is an implementation capacity derivation, not a language restriction.
+
+For source-free Request preparation, the configured Plan's complete execution
+and retention requirements must fit the same original initial admission before
+its module body completes or its custody transfers to a Run. A known byte
+refusal is reported as `ClientProgramRejected` / `operation_failed`, not as an
+invalid or unsupported Program. The existing bounded Host diagnostic observer
+can receive the best-effort event `preparation_capacity_refused` with immutable phase, dimension, and decimal
+required/available byte quantities. These diagnostic facts neither increase
+capacity nor authorize a retry. The public submission wire retains its existing
+coarse Problem shape; saved older failed Runs keep their original terminal
+projection. Unclassified, foreign, currentness and cleanup failures remain
+uncertain rather than becoming capacity refusals.
 
 The pre-admission inventory and configured providers/imports/exports use the
 same checked-sequence derivation. Text, expression/intermediate execution,

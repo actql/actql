@@ -116,6 +116,8 @@ fn whole_source_result_publication_fixture(
     ) {
     Ok(_) => ()
     Err(Preparation(_)) => fail("whole module: Preparation")
+    Err(CapacityExceeded(_)) =>
+      fail("whole module: unexpected source-free capacity refusal")
     Err(QueryTime(_)) => fail("whole module: QueryTime")
     Err(
       ModelGraph(_)

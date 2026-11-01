@@ -60,6 +60,11 @@ const directoryLimits = record({maxEntries: journal.maxInspectionEntries,
 // Internal allocator alternatives stay behind the same native receiver chain;
 // no live zone pointer or exclusive whole-heap reservation is asserted here.
 const phases = record({
+  ownershipLease: record({descriptors: 2, anchorBytes: 36,
+    lifetime: 'same Store owner before journal inspection through original child cleanup',
+    domains: freeze(['same delivered Local Files native image/loader and fixed opaque root/lease wrappers',
+      'original directory and regular-file descriptors, nonblocking flock, fixed UUID bytes and exact fstat/openat identity',
+      'original Store token and independently retained constructor/close failure custody'])}),
   shared: record({lifetime: 'same-selected-process-and-all-escaped-module-aliases',
     domains: freeze(['same managed runtime and lazy compiled modules',
       'SQLite initialization, default-or-created zone, classes/regions and allocator controls',
@@ -78,7 +83,7 @@ const phases = record({
     'managed records, external encodings/ArrayBuffers, cursors, callbacks and escaped outputs',
     'original epoch random/HMAC work, bounded marker and Store exclusion metadata',
     'transaction/CAS/COMMIT state and independently pending native/Store cleanup'])}),
-  composition: 'shared + retained aliases + max(closed-cold, writable-primary + writable-observation)',
+  composition: 'shared + retained aliases + ownership-lease + max(closed-cold, writable-primary + writable-observation)',
   phaseBarrier: 'original copy connection, source/output descriptors and temporary copy acknowledged closed',
   excludedPurposes: freeze(['publication or Content/Result payload', 'business Source or Compute',
     'Model or Effect', 'network or external VM', 'new key/Account/first-initialization authority']),
@@ -122,7 +127,8 @@ function declareHostJournalServiceRecipe(sharedControl) {
   return record({kind: 'selected-node-host-journal-service-recipe', sharedControl,
     journal, ownershipBounds, ownershipDirectoryLimits, rootFormatDirectoryLimits,
     directoryLimits, phases, selectArguments: selectHostJournalServiceArguments,
-    installationAttempts: 1, writableConnections: 2, isolatedCopyConnections: 1,
+    installationAttempts: 1, ownershipLeaseDescriptors: 2, ownershipLeaseBytes: 36,
+    writableConnections: 2, isolatedCopyConnections: 1,
     coldBeforeWritable: true, refilledOnClose: false,
     numericalBackingClaim: false, allocationSuccessGuaranteed: false});
 }

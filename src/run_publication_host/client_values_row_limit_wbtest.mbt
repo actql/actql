@@ -62,6 +62,17 @@ test "selected Values row limit preserves checker identity and other budgets" {
     is Ok(_),
   )
   assert_true(with_prepared_client_values_row_limit(prepared, 0) is None)
-  assert_true(with_prepared_client_values_row_limit(prepared, 10001) is None)
+  for rows in [10001, 100000, 2147483647] {
+    let larger = with_prepared_client_values_row_limit(prepared, rows).unwrap()
+    let larger_limits = prepared_client_values_sequence_limits(larger)
+    assert_eq(larger_limits.max_rows, rows)
+    assert_eq(larger_limits.max_cells, standard.max_cells)
+    assert_eq(larger_limits.expressions, standard.expressions)
+    assert_eq(
+      prepared_client_identity(larger),
+      prepared_client_identity(prepared),
+    )
+  }
+  assert_true(with_prepared_client_values_row_limit(prepared, -1) is None)
   assert_eq(prepared_client_values_sequence_limits(prepared).max_rows, 121)
 }

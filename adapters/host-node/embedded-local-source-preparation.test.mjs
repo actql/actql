@@ -18,7 +18,6 @@ const profile = {version: 'actql-client-host/0.1', mode: 'local', owner: 'local'
 
 async function fixture(receiver, perform, waitObservation) {
   // Protocol fixture only; exact Common identities have independent vectors.
-  receiver.intentCid ??= () => cid('d');
   let storeCloses = 0, sends = 0;
   const port = {[sourcePreparationPort]: receiver, async perform(operation, request) {
     if (operation === 'connect') return profile;
@@ -36,11 +35,53 @@ async function fixture(receiver, perform, waitObservation) {
   return {client, acquire, port, get storeCloses() {return storeCloses;}, get sends() {return sends;}};
 }
 
+for (const pendingCleanup of [false, true]) {
+  test(`incomplete selected Source initialization retains the same Host ${pendingCleanup ? 'pending cleanup' : 'close'}`, async () => {
+    let creates = 0, performs = 0, sourceCalls = 0, journals = 0, stores = 0;
+    const receiver = {beforeSourceSnapshot() {sourceCalls++;},
+      assertSourceSnapshotCurrent() {sourceCalls++;},
+      bindSourceSnapshot() {sourceCalls++;}, publishSourceSnapshot() {sourceCalls++;},
+      bindSourceRequest() {sourceCalls++;}, finishSourceProducer() {sourceCalls++;},
+      intentCid() {sourceCalls++; return cid('d');}};
+    // Missing captureSourceSnapshot must refuse before this actual registry
+    // lends a Client. Physical methods below are explicit ports, not FD proof.
+    const original = new Error('OriginalStoreCleanupPending');
+    const host = {port: {[sourcePreparationPort]: receiver,
+      perform() {performs++; assert.fail('NoConnectOrSubmission');}},
+      dispatchOwner: {drain() {}}, retireTerminalEffects() {},
+      journal: {close() {journals++;}},
+      store: {close() {stores++; if (pendingCleanup && stores === 1) throw original;}}};
+    const registry = createEmbeddedHostRegistry((a, b) => a === b);
+    let failure;
+    await assert.rejects(registry.connect('/incomplete/source', 'original', async () => {
+      creates++; return host;
+    }, {mode: 'local', owner: 'local'}), error => {
+      failure = error;
+      return error.code === (pendingCleanup
+        ? 'InstalledLocalConnectionCleanupPending' : 'NodeSourceManagedAdmissionUnavailable');
+    });
+    assert.equal(creates, 1); assert.equal(performs, 0); assert.equal(sourceCalls, 0);
+    assert.equal(journals, 1); assert.equal(stores, 1);
+    if (pendingCleanup) {
+      assert.equal(failure.cleanupPending, true);
+      assert.deepEqual(failure.cleanupHandle.status(), {pending: true});
+      assert.deepEqual(await failure.cleanupHandle.retry(), {pending: false});
+      assert.equal(failure.cleanupPending, false);
+      assert.equal(stores, 2); assert.equal(journals, 1); assert.equal(creates, 1);
+    }
+  });
+}
+
 test('installed Host lease delivers the original synchronous Source refusal before option reads', async () => {
   let reads = 0, before = 0;
   const refusal = Object.assign(new Error('OriginalSourceUnavailable'),
     {code: 'SourceManagedPreparationUnavailable'});
-  const receiver = {beforeSourceSnapshot(kind, input, options) {
+  const receiver = {
+    intentCid() {return cid('d');},
+    captureSourceSnapshot(_receipt, value, snapshot) {return snapshot(value);},
+    assertSourceSnapshotCurrent() {},
+    publishSourceSnapshot() {},
+    beforeSourceSnapshot(kind, input, options) {
     assert.equal(this, receiver); assert.equal(kind, 'aql'); assert.equal(input, 'original');
     assert.equal(options, raw); before++; throw refusal;
   }, bindSourceSnapshot() {assert.fail('NoSnapshot');},
@@ -56,7 +97,12 @@ test('installed Host lease delivers the original synchronous Source refusal befo
 test('installed Host lease retains one original receiver and complete Source snapshot/request/finish pair', async () => {
   const receipt = {}, order = [];
   let body, packet;
-  const receiver = {beforeSourceSnapshot(kind, input, options) {
+  const receiver = {
+    intentCid() {return cid('d');},
+    captureSourceSnapshot(_receipt, value, snapshot) {return snapshot(value);},
+    assertSourceSnapshotCurrent() {},
+    publishSourceSnapshot() {},
+    beforeSourceSnapshot(kind, input, options) {
     assert.equal(this, receiver); assert.equal(kind, 'aql'); assert.equal(input, 'SELECT 1 AS n');
     assert.equal(options, raw); order.push('before'); return receipt;
   }, bindSourceSnapshot(original, value) {
@@ -92,7 +138,12 @@ test('installed Host lease forwards query acquisition before raw options without
   let reads = 0, snapshots = 0, queries = 0;
   const refusal = new Error('OriginalQueryUnavailable');
   const raw = Object.defineProperty({}, 'signal', {get() {reads++; return undefined;}});
-  const receiver = {beforeSourceSnapshot() {snapshots++; assert.fail('NoSecondSnapshot');},
+  const receiver = {
+    intentCid() {return cid('d');},
+    captureSourceSnapshot(_receipt, value, snapshot) {return snapshot(value);},
+    assertSourceSnapshotCurrent() {},
+    publishSourceSnapshot() {},
+    beforeSourceSnapshot() {snapshots++; assert.fail('NoSecondSnapshot');},
     beforeSourceQuery(format, text, parameters, options) {
       assert.equal(this, receiver);assert.equal(format, 'sql');assert.equal(text, 'SELECT 1');
       assert.equal(parameters, undefined);assert.equal(options, raw);queries++;throw refusal;
@@ -105,7 +156,12 @@ test('installed Host lease forwards query acquisition before raw options without
 
 test('installed Host lease retains the original Result read pair at the eager query boundary', async () => {
   const queryRefusal = new Error('OriginalQueryUnavailable');let reads = 0, currents = 0;
-  const receiver = {beforeSourceSnapshot() {assert.fail('NoSnapshot');},
+  const receiver = {
+    intentCid() {return cid('d');},
+    captureSourceSnapshot(_receipt, value, snapshot) {return snapshot(value);},
+    assertSourceSnapshotCurrent() {},
+    publishSourceSnapshot() {},
+    beforeSourceSnapshot() {assert.fail('NoSnapshot');},
     beforeSourceQuery() {throw queryRefusal;},bindSourceSnapshot() {},bindSourceRequest() {},finishSourceProducer() {},
     beforeResultRead(schema, options) {
       assert.equal(this, receiver);assert.equal(schema, undefined);assert.equal(options, undefined);reads++;
@@ -122,7 +178,12 @@ test('installed Host lease retains the original Result read pair at the eager qu
 
 test('query alias cleanup retains the Host after sibling lease release until its same retry', async () => {
   const receipt = {}, finishes = [];let released = false, queries = 0;
-  const f = await fixture({beforeSourceSnapshot() {assert.fail('NoSecondSnapshot');},
+  const f = await fixture({
+    intentCid() {return cid('d');},
+    captureSourceSnapshot(_receipt, value, snapshot) {return snapshot(value);},
+    assertSourceSnapshotCurrent() {},
+    publishSourceSnapshot() {},
+    beforeSourceSnapshot() {assert.fail('NoSecondSnapshot');},
     beforeSourceQuery() {queries++;return receipt;},bindSourceSnapshot() {},bindSourceRequest() {},
     finishSourceProducer(original, terminal) {
       assert.equal(original, receipt);assert.equal(terminal, 'failed');finishes.push(original);
@@ -144,7 +205,12 @@ test('query alias cleanup retains the Host after sibling lease release until its
 test('close racing the first producer retirement retains the same retry and never releases Host custody early', async () => {
   const receipt = {};
   let finishes = 0, close;
-  const receiver = {beforeSourceSnapshot() {return receipt;},
+  const receiver = {
+    intentCid() {return cid('d');},
+    captureSourceSnapshot(_receipt, value, snapshot) {return snapshot(value);},
+    assertSourceSnapshotCurrent() {},
+    publishSourceSnapshot() {},
+    beforeSourceSnapshot() {return receipt;},
     bindSourceSnapshot() {}, bindSourceRequest() {},
     finishSourceProducer(original) {
       assert.equal(this, receiver); assert.equal(original, receipt);
@@ -168,7 +234,12 @@ test('close racing the first producer retirement retains the same retry and neve
 test('a sibling last lease cannot release another lease original pending Source producer', async () => {
   let finishes = 0, allowRetirement = false, closing;
   const receipt = {};
-  const f = await fixture({beforeSourceSnapshot() {return receipt;},
+  const f = await fixture({
+    intentCid() {return cid('d');},
+    captureSourceSnapshot(_receipt, value, snapshot) {return snapshot(value);},
+    assertSourceSnapshotCurrent() {},
+    publishSourceSnapshot() {},
+    beforeSourceSnapshot() {return receipt;},
     bindSourceSnapshot() {}, bindSourceRequest() {}, finishSourceProducer(original) {
       assert.equal(original, receipt); finishes++;
       if (!allowRetirement) throw new Error('OriginalProducerStillRetained');
@@ -195,6 +266,8 @@ test('installed Host lease forwards the same connection and funded snapshot thro
   const receipt = {}, order = [];let connection, reads = 0;
   const parameters = {get n() {reads++;return 7;}};
   const receiver = {
+    intentCid() {return cid('d');},
+    publishSourceSnapshot() {},
     beforeSourceSnapshot() {assert.fail('NoSecondSnapshotAdmission');},
     beforeSourceQuery(format, text, supplied, options, originalConnection) {
       assert.equal(this, receiver);assert.equal(format, 'sql');assert.equal(text, 'SELECT @n AS n');

@@ -219,6 +219,37 @@ pub fn client_program_prepare_request_model_graph(
 }
 
 ///|
+#export_name("clientProgramPrepareRequestSerializedModelGraph")
+pub fn client_program_prepare_request_serialized_model_graph(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  occurrence : @publication_host.ClientInferOccurrence,
+  serialization : @publication_host.ClientSerializationPlanGraph,
+  execution : @check_environment.ModelExecutionContract,
+  contracts : @client_local_host.ClientInstalledSequenceContracts,
+) -> Result[
+  @publication_host.ClientInferPlanGraph,
+  ClientRequestProgramModuleBridgeIssue,
+] {
+  let manifests = match client_generated_compilation_manifests() {
+    Ok(value) => value
+    Err(issue) => return Err(Manifests(issue))
+  }
+  @client_local_host.prepare_request_model_graph(
+    parent,
+    input,
+    occurrence,
+    execution,
+    contracts,
+    manifests~,
+    compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+    serialization=Some(serialization),
+  ).map_err(issue => Preparation(issue))
+}
+
+///|
 #export_name("clientProgramPrepareRequestModelCompilation")
 pub fn client_program_prepare_request_model_compilation(
   parent : @client_local_host.ClientRequestPreparation[
@@ -1038,8 +1069,32 @@ pub fn client_program_request_program_module_issue_code(
   result : Result[Unit, ClientRequestProgramModuleBridgeIssue],
 ) -> String? {
   match result {
+    Err(Preparation(CapacityExceeded(_))) =>
+      Some("source_free_capacity_exceeded")
     Err(Preparation(Installed(Sequence(ValuesFailure(_, ValuesLimit))))) =>
       Some("values_profile_unsupported")
+    _ => None
+  }
+}
+
+///|
+/// Diagnostic DATA from this exact typed module refusal, never an allowance.
+#export_name("clientProgramRequestProgramModuleCapacityRefusal")
+pub fn client_program_request_program_module_capacity_refusal(
+  result : Result[Unit, ClientRequestProgramModuleBridgeIssue],
+) -> (String, String, Int64, Int64, Int64, Int64)? {
+  match result {
+    Err(Preparation(CapacityExceeded(value))) =>
+      Some(
+        (
+          value.phase,
+          value.dimension,
+          value.required_retention,
+          value.required_execution,
+          value.available_retention,
+          value.available_execution,
+        ),
+      )
     _ => None
   }
 }

@@ -18,7 +18,7 @@ assert.ok(opening);
 const environmentSource = variable(opening.body, 'environmentSource');
 const environmentWire = variable(opening.body, 'baseEnvironmentWire');
 assert.ok(environmentSource && environmentWire);
-const connecting = declaration('connectEmbeddedLocal');
+const connecting = declaration('openPreparedInstalledHost');
 assert.ok(connecting);
 const preparation = variable(connecting.body, 'preparation').declarations[0].init;
 assert.equal(source.slice(preparation.callee.start, preparation.callee.end), 'Object.freeze');

@@ -154,7 +154,7 @@ class _OriginalFileReader:
     """Physical reader of saved originals, not an adoption or authority witness."""
 
     __slots__ = ('root', 'name', 'max_bytes', 'descriptor', 'identity', 'stamp',
-                 'offset', 'chunk', 'hash', 'invalid', 'closing', 'close_pending', 'eof', 'expected')
+                 'offset', 'chunk', 'hash', 'result', 'invalid', 'closing', 'close_pending', 'eof', 'expected')
 
     def __init__(self, root: 'LocalFileRoot', name: str, max_bytes: int) -> None:
         self.root = root
@@ -167,6 +167,7 @@ class _OriginalFileReader:
         self.offset = 0
         self.chunk: PhysicalFileChunk | None = None
         self.hash = hashlib.sha256()
+        self.result: PhysicalFileSnapshot | None = None
         self.invalid = False
         self.closing = False
         self.close_pending = False
@@ -1044,35 +1045,48 @@ class LocalFileRoot:
                 or self._original_readers.get(id(reader)) is not reader):
             raise ValueError('Foreign, copied or retired saved Local original reader')
 
+    def _validate_original_directory(self) -> int:
+        root = self._open()
+        directory = os.fstat(root)
+        if (PhysicalFileIdentity(directory.st_dev, directory.st_ino) != self._identity
+                or not stat.S_ISDIR(directory.st_mode) or directory.st_mode & 0o077
+                or directory.st_uid != os.getuid()):
+            raise LocalFileError('Original Local root generation changed')
+        return root
+
+    def _validate_original_member(self, reader: _OriginalFileReader, root: int) -> tuple[int, ...]:
+        self._owned_original(reader)
+        if (root != self._open() or reader.invalid or reader.closing
+                or reader.descriptor is None or reader.stamp is None):
+            raise LocalFileError('Saved Local original reader is invalid or closing')
+        if reader.expected is not None:
+            expected = reader.expected.observation
+            if (reader.stamp[:3] != (expected.identity.device, expected.identity.inode,
+                                    expected.size)):
+                raise LocalFileError('Saved Local payload differs from its recorded generation')
+        current = os.fstat(reader.descriptor)
+        named = os.stat(reader.name, dir_fd=root, follow_symlinks=False)
+        for value in (current, named):
+            stamp = (value.st_dev, value.st_ino, value.st_size,
+                     value.st_mtime_ns, value.st_ctime_ns)
+            if (not stat.S_ISREG(value.st_mode) or value.st_uid != os.getuid()
+                    or value.st_mode & 0o077 or stamp != reader.stamp
+                    or not 0 <= value.st_size <= reader.max_bytes):
+                raise LocalFileError('Saved Local original generation changed or exceeds its bound')
+        return reader.stamp
+
     def _validate_original(self, reader: _OriginalFileReader) -> tuple[int, ...]:
         self._owned_original(reader)
         root = self._open()
         if reader.invalid or reader.closing or reader.descriptor is None or reader.stamp is None:
             raise LocalFileError('Saved Local original reader is invalid or closing')
         try:
-            directory = os.fstat(root)
-            if (PhysicalFileIdentity(directory.st_dev, directory.st_ino) != self._identity
-                    or not stat.S_ISDIR(directory.st_mode) or directory.st_mode & 0o077
-                    or directory.st_uid != os.getuid()):
-                raise LocalFileError('Original Local root generation changed')
-            if reader.expected is not None:
-                expected = reader.expected.observation
-                if (reader.stamp[:3] != (expected.identity.device, expected.identity.inode,
-                                        expected.size)):
-                    raise LocalFileError('Saved Local payload differs from its recorded generation')
-            current = os.fstat(reader.descriptor)
-            named = os.stat(reader.name, dir_fd=root, follow_symlinks=False)
-            for value in (current, named):
-                stamp = (value.st_dev, value.st_ino, value.st_size,
-                         value.st_mtime_ns, value.st_ctime_ns)
-                if (not stat.S_ISREG(value.st_mode) or value.st_uid != os.getuid()
-                        or value.st_mode & 0o077 or stamp != reader.stamp
-                        or not 0 <= value.st_size <= reader.max_bytes):
-                    raise LocalFileError('Saved Local original generation changed or exceeds its bound')
+            if self._validate_original_directory() != root:
+                raise LocalFileError('Original Local root descriptor changed')
+            return self._validate_original_member(reader, root)
         except BaseException:
             reader.invalid = True
             raise
-        return reader.stamp
 
     def read_original(self, reader: _OriginalFileReader) -> PhysicalFileChunk:
         """Read one bounded chunk; reuses its loan without rereading or advancing."""
@@ -1110,19 +1124,50 @@ class LocalFileRoot:
             reader.eof = chunk.eof
             reader.chunk = None
 
+    def _observe_original_validated(self, reader: _OriginalFileReader,
+                                   stamp: tuple[int, ...]) -> PhysicalFileSnapshot:
+        if not reader.eof or reader.chunk is not None or reader.offset != stamp[2]:
+            raise LocalFileError('Saved Local original read is incomplete')
+        if reader.result is None:
+            reader.result = PhysicalFileSnapshot(
+                PhysicalFileObservation(PhysicalFileIdentity(stamp[0], stamp[1]), stamp[2]),
+                'sha256:' + reader.hash.hexdigest())
+        if reader.expected is not None and reader.result != reader.expected:
+            reader.invalid = True
+            raise LocalFileError('Saved Local payload content differs from its recorded digest')
+        return reader.result
+
     def observe_original(self, reader: _OriginalFileReader) -> PhysicalFileSnapshot:
         """Recheck original bytes after exact EOF; this is not Host/Commit evidence."""
         with self._lock:
             stamp = self._validate_original(reader)
-            if not reader.eof or reader.chunk is not None or reader.offset != stamp[2]:
-                raise LocalFileError('Saved Local original read is incomplete')
-            observed = PhysicalFileSnapshot(
-                PhysicalFileObservation(PhysicalFileIdentity(stamp[0], stamp[1]), stamp[2]),
-                'sha256:' + reader.hash.hexdigest())
-            if reader.expected is not None and observed != reader.expected:
-                reader.invalid = True
-                raise LocalFileError('Saved Local payload content differs from its recorded digest')
-            return observed
+            return self._observe_original_validated(reader, stamp)
+
+    def _observe_originals(self, readers: tuple[_OriginalFileReader, ...]) -> tuple[PhysicalFileSnapshot, ...]:
+        """Fence one original directory around read-only checks of all members.
+
+        No callback, read, write, await or current permission occurs inside.
+        Every original file FD and name is still observed on every call.
+        """
+        with self._lock:
+            if (type(readers) is not tuple or len(readers) > self._capacity_root._max_files
+                    or len({id(reader) for reader in readers}) != len(readers)):
+                raise ValueError('Invalid original Local file observation group')
+            for reader in readers:
+                self._owned_original(reader)
+                if reader.invalid or reader.closing or reader.descriptor is None or reader.stamp is None:
+                    raise LocalFileError('Saved Local original reader is invalid or closing')
+            try:
+                root = self._validate_original_directory()
+                observed = tuple(self._observe_original_validated(reader,
+                    self._validate_original_member(reader, root)) for reader in readers)
+                if self._validate_original_directory() != root:
+                    raise LocalFileError('Original Local directory changed during group observation')
+                return observed
+            except BaseException:
+                for reader in readers:
+                    reader.invalid = True
+                raise
 
     def close_original(self, reader: _OriginalFileReader) -> bool:
         """After input cleanup, stop the same descriptor without altering saved bytes.

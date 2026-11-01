@@ -43,6 +43,11 @@ class _NamespaceReader:
     check_fences: Callable[['_NamespaceReader', tuple['ByteFence', ...]], None]
     check_fences_and_current: Callable[
         ['_NamespaceReader', tuple['ByteFence', ...], Callable[[], object]], None]
+    # Only the actual Store supplies this live-thread/frame check. It is not
+    # a current observation; queries and protected decisions keep their fences.
+    check_frame: Callable[['_NamespaceReader'], None] | None = None
+    query_current: Callable[['_NamespaceReader', int, str, str,
+                             _NamespaceConsumer, Callable[[], object]], None] | None = None
 
 
 _InventoryInspection = Callable[[_NamespaceReader], object]
@@ -900,19 +905,54 @@ class LocalByteStore:
         reads = copied = 0
         failure: BaseException | None = None
 
-        def fence() -> None:
-            if not self._fences_match_locked(fences, successors):
-                raise LocalStorageError('Original Local inventory metadata changed')
+        database = self._physical
+        original_snapshot = (database._snapshot_identity()
+                             if type(database) is _SQLiteByteDatabase else None)
+        last_fenced_snapshot: tuple[object, int, int, tuple[int, int]] | None = None
+
+        def metadata_fence(*, reuse_snapshot: bool) -> None:
+            nonlocal last_fenced_snapshot
+            if self._physical is not database:
+                raise LocalStorageError('Original Local physical reader changed')
+            # Only the exact stdlib adapter supplies SQLite's own mutation
+            # counter. Other existing physical suppliers keep full SQL checks.
+            snapshot = (database._snapshot_identity()
+                        if type(database) is _SQLiteByteDatabase else None)
+            if snapshot is not None and (original_snapshot is None
+                    or snapshot[0] is not original_snapshot[0] or snapshot[1] != original_snapshot[1]
+                    or snapshot[3] != original_snapshot[3]):
+                raise LocalStorageError('Original Local transaction or schema snapshot was replaced')
+            if not reuse_snapshot or snapshot is None or snapshot != last_fenced_snapshot:
+                if not self._fences_match_locked(fences, successors):
+                    raise LocalStorageError('Original Local inventory metadata changed')
+                if (snapshot is not None and type(database) is _SQLiteByteDatabase
+                        and database._snapshot_identity() != snapshot):
+                    raise LocalStorageError('Original Local snapshot changed during metadata read')
+                last_fenced_snapshot = snapshot
+
+        def fence(required_current: Callable[[], object] | None = None, *,
+                  reuse_snapshot: bool = False) -> None:
+            metadata_fence(reuse_snapshot=reuse_snapshot)
             self._fenced_current(current)
-            if not self._fences_match_locked(fences, successors):
-                raise LocalStorageError('Original Local inventory metadata changed')
+            if required_current is not None and required_current is not current:
+                self._fenced_current(required_current)
+            metadata_fence(reuse_snapshot=reuse_snapshot)
+
+        def check_frame(view: _NamespaceReader) -> None:
+            nonlocal failure
+            try:
+                if (view is not reader or not active or reading
+                        or get_ident() != thread or failure is not None):
+                    raise ValueError('Local inventory reader is not active')
+            except BaseException as error:
+                failure = error
+                raise
 
         def current_snapshot() -> None:
             nonlocal failure
             try:
-                if not active or reading or get_ident() != thread or failure is not None:
-                    raise ValueError('Local inventory reader is not active')
-                fence()
+                check_frame(reader)
+                fence(reuse_snapshot=True)
             except BaseException as error:
                 failure = error
                 raise
@@ -948,7 +988,7 @@ class LocalByteStore:
                 raise
 
         def observe(namespace: str, after: str, consume: _NamespaceConsumer, *,
-                    scan: bool) -> None:
+                    scan: bool, required_current: Callable[[], object] | None = None) -> None:
             nonlocal reading, reads, copied, failure
             entered = False
             try:
@@ -967,7 +1007,7 @@ class LocalByteStore:
                 if reads >= self._max_inspection_queries:
                     raise LocalStorageError('Local inventory inspection capacity exceeded')
                 reading = entered = True
-                fence()
+                fence(required_current, reuse_snapshot=required_current is not None)
                 # A malformed empty logical key must be observed and refused,
                 # not silently excluded from the original namespace inventory.
                 row = self._physical.scan_range(lower, upper,
@@ -986,19 +1026,36 @@ class LocalByteStore:
                     self._key(logical)
                     copied += len(payload)
                     observation = (logical, StoredBytes(generation, payload))
-                fence()
+                fence(required_current, reuse_snapshot=required_current is not None)
                 # The Host completes transfer into its reserved Core input and
                 # returns the same input/output loan before requesting a row.
                 if consume(observation) is not None:
                     raise ValueError('Invalid Local inventory consumer result')
                 del observation, row
-                fence()
+                fence(required_current, reuse_snapshot=required_current is not None)
             except BaseException as error:
                 failure = error
                 raise
             finally:
                 if entered:
                     reading = False
+
+        def query_current(view: _NamespaceReader, mode: int, namespace: str,
+                          key: str, consume: _NamespaceConsumer,
+                          required_current: Callable[[], object]) -> None:
+            nonlocal failure
+            try:
+                check_frame(view)
+                if type(mode) is not int or mode not in (0, 1) or not callable(required_current):
+                    raise ValueError('Invalid original Local current query')
+                # The same actual query owns all three physical/current fences.
+                # Equal-looking callbacks are not merged; only this exact
+                # original observer is already included by the enclosing fence.
+                observe(namespace, key, consume, scan=mode == 0,
+                        required_current=required_current)
+            except BaseException as error:
+                failure = error
+                raise
 
         try:
             fence()
@@ -1008,7 +1065,8 @@ class LocalByteStore:
                 read=lambda namespace, key, consume:
                     observe(namespace, key, consume, scan=False),
                 owner=self, current=current_snapshot, check_fences=check_fences,
-                check_fences_and_current=check_fences_and_current)
+                check_fences_and_current=check_fences_and_current,
+                check_frame=check_frame, query_current=query_current)
             result = inspect(reader)
             if failure is not None:
                 raise failure

@@ -2883,7 +2883,7 @@
     {
       "module": "packages/node/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "3c12cd1b5e59b8e74955cc0539b2725e0ccd2a976c7acf83bef6727202b83eb8",
+      "sha256": "dc23069e57cdaa537f2b570b6f70acc8d6982ae519bf9a6fec422eeef2f12ebc",
       "exports": [
         "CalendarArtifactInstallation",
         "Client",
@@ -10404,9 +10404,10 @@
     {
       "module": "packages/sdk/internal/private-source-preparation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f7bcd310b5b8cfd09c7ca1d157bcdded5751d1039a7b620a096021de99d07b3f",
+      "sha256": "1bd0d2f032837127baca17a606e56a34bef4c5cff7e15c63738d80bc12bc54b3",
       "exports": [
         "captureSourcePreparation",
+        "freezeInput",
         "matchesPublishedSubmissionSnapshot",
         "sourcePreparationPort"
       ],
@@ -10562,6 +10563,7 @@
         }
       ],
       "imports": [
+        "./data.mjs",
         "./submission-observation.mjs"
       ],
       "compilerFields": [],
@@ -10772,12 +10774,20 @@
               {
                 "path": "packages/sdk/internal/private-source-preparation.mjs",
                 "anchor": "// connection. A generic Host port implementing these methods gains no grant."
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Selecting the private Local Source preparation receiver requires its complete"
               }
             ],
             "synchronization": [
               {
                 "path": "packages/sdk/internal/private-source-preparation.mjs",
                 "anchor": "// Do not defer the original synchronous SDK capture until an await."
+              },
+              {
+                "path": "packages/sdk/private-source-preparation.test.mjs",
+                "anchor": "assert.deepEqual([...reads.values()], required.map(() => 1));"
               }
             ],
             "failure": [
@@ -10812,6 +10822,10 @@
               {
                 "path": "packages/sdk/private-source-preparation.test.mjs",
                 "anchor": "Source intent identity refuses asynchronous or malformed observations without assimilation"
+              },
+              {
+                "path": "packages/sdk/source-preparation-submission.test.mjs",
+                "anchor": "selected Local Source rejects incomplete required methods before connect or caller access"
               }
             ]
           }
@@ -10987,6 +11001,99 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Native Source snapshot currentness"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [],
+          "exports": [
+            "freezeInput"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "anchor": "export {freezeInput} from './data.mjs';"
+              },
+              {
+                "path": "packages/sdk/internal/data.mjs",
+                "anchor": "export const freezeInput = value =>"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/sdk/internal/data.mjs",
+                "anchor": "export const freezeInput = value =>"
+              },
+              {
+                "path": "adapters/host-node/http-request-preparation.mjs",
+                "anchor": "freezeInput(body);"
+              }
+            ],
+            "identity": [
+              {
+                "path": "scripts/local-node-package-imports.test.mjs",
+                "anchor": "assert.strictEqual(bridge.freezeInput, original.freezeInput);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Local and Remote HTTP opening retain the same original Host preparation"
+              },
+              {
+                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "anchor": "// Reuse the SDK's exact snapshot freeze through this existing private bridge."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/http-request-preparation.mjs",
+                "anchor": "body = manager.captureSourceSnapshot(receipt, request, snapshotClientRequest);"
+              },
+              {
+                "path": "packages/sdk/internal/data.mjs",
+                "anchor": "Object.freeze(value);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "scripts/local-node-package-imports.test.mjs",
+                "anchor": "test('shallow and nested imports keep quotes and unknown package paths fail'"
+              },
+              {
+                "path": "adapters/host-node/http-request-preparation.mjs",
+                "anchor": "finish('failed');"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Re-exporting the existing synchronous data freeze starts no operation and owns no cancellation or physical-stop duty; the original HTTP Request retains those duties."
+            },
+            "resources": [
+              {
+                "path": "adapters/host-node/http-request-preparation.mjs",
+                "anchor": "manager.assertSourceSnapshotCurrent(receipt);"
+              },
+              {
+                "path": "packages/sdk/internal/data.mjs",
+                "anchor": "return value;"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/sdk/package.json",
+                "anchor": "\"./_internal/source-preparation\": \"./internal/private-source-preparation.mjs\""
+              },
+              {
+                "path": "scripts/local-node-package-imports.mjs",
+                "anchor": "['sdk/internal/private-source-preparation.mjs', '@actql/sdk/_internal/source-preparation']"
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/local-node-package-imports.test.mjs",
+                "anchor": "test('HTTP Request freeze uses the exact existing private bridge and packaged import'"
               }
             ]
           }
@@ -12414,7 +12521,7 @@
     {
       "module": "packages/sdk/internal/submission-observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "df2eb5e63adcbd6ae1da74438123ba2f078786d32652cdafbf192e02c93d3102",
+      "sha256": "a62955507ee19e11cb19613dd910a321df7f5d44aeeaad0b5d2512c9da8a4942",
       "exports": [
         "RequestHeld",
         "createSubmissionOperations",
@@ -13140,6 +13247,10 @@
               {
                 "path": "docs/design/client-submission-identity.md",
                 "anchor": "## Scoped durable request names"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "Its public snapshot shares those exact input and parameter"
               }
             ],
             "synchronization": [
@@ -13236,6 +13347,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "payloads, Result readers/frames, actual native/managed controls, failed"
+              },
+              {
+                "path": "packages/sdk/internal/submission-observation.mjs",
+                "anchor": "// The body is already SDK-deep-frozen."
               }
             ],
             "extension": [
@@ -13288,6 +13403,14 @@
               {
                 "path": "packages/sdk/named-submission.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "packages/sdk/source-preparation-submission.test.mjs",
+                "anchor": "submission wrapper shares SDK frozen input without a second deep traversal"
+              },
+              {
+                "path": "packages/sdk/source-preparation-submission.test.mjs",
+                "anchor": "external shallow freeze cannot skip deep protection of mutable descendants"
               }
             ]
           }

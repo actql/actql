@@ -1,5 +1,5 @@
 ///|
-// The existing fixed Model profile is selected by an original compiler and
+// The checked single Model component is selected by its original compiler and
 // its one retained occurrence, never by a caller mode or an equal CID.
 fn installed_mock_model_compilation_matches(
   prepared : @publication_host.PreparedClientProgram,
@@ -8,7 +8,20 @@ fn installed_mock_model_compilation_matches(
   physical_equal(compilation.owner, prepared) &&
   compilation.infers.length() == 1 &&
   physical_equal(compilation.infers[0].owner, prepared) &&
-  installed_managed_run_shape_supported(prepared, true)
+  installed_managed_owner_shape_supported(
+    Pure(prepared),
+    true,
+    model=Some(compilation.infers[0]),
+  ) &&
+  (match compilation.infers[0].serialization {
+    None =>
+      @publication_host.client_task_compilation_serialization(compilation)
+      is None
+    Some(component) =>
+      @publication_host.client_task_compilation_serialization(compilation)
+      is Some(original) &&
+      physical_equal(component, original)
+  })
 }
 
 ///|
@@ -48,6 +61,7 @@ pub fn prepare_installed_mock_model_source_free_with_contracts(
       fragment_body,
       ordered_body,
       true,
+      model=Some(compilation.infers[0]),
       query_time~,
     ) {
     Err(issue) => return Err(issue)
@@ -67,9 +81,9 @@ pub fn prepare_installed_mock_model_source_free_with_contracts(
 }
 
 ///|
-/// The actual two-Source Model profile retains the SAME supplied acquisition
+/// The single Model component retains the SAME supplied acquisition
 /// inventory, module and compilation. Its ordinary sibling still excludes
-/// Model, and neither entry widens the serialization/physical provider profile.
+/// Model. This checked component does not supply a physical provider or grant.
 pub fn prepare_installed_mock_model_capture_plan(
   prepared : @publication_host.PreparedClientProgram,
   request : @publication_host.ClientRequestIdentity,
@@ -105,6 +119,7 @@ pub fn prepare_installed_mock_model_capture_plan(
       retained_output~,
       provider_factory~,
       query_time~,
+      model=Some(compilation.infers[0]),
     ) {
     Err(issue) => return Err(issue)
     Ok(value) => value
@@ -146,6 +161,7 @@ struct ClientInstalledManagedModelPlan {
   _occurrence : @publication_host.ClientInferOccurrence
   source_free : ClientInstalledManagedSourceFreePreparation?
   captured : ClientInstalledManagedCapturePlan?
+  content_prefix : ClientInstalledManagedSerializationPreparation?
   limits : @resources.LedgerLimits
   max_reservations : Int
   max_holdings : Int
@@ -153,12 +169,12 @@ struct ClientInstalledManagedModelPlan {
 }
 
 ///|
-// This exact record above: one header, nine retained references and three
+// This exact record above: one header, ten retained references and three
 // scalar inventory words. The selected module/compiler, Option carriers,
 // Model Scope, provider and all nested construction frames are separate.
 let installed_model_plan_record : @execution.PreparationRepresentationUnits = {
   record_headers: 1L,
-  reference_slots: 9L,
+  reference_slots: 10L,
   scalar_words: 3L,
   owned_utf16_units: 0L,
   owned_wire_bytes: 0L,
@@ -174,7 +190,7 @@ pub fn prepared_installed_managed_model_requirements(
 }
 
 ///|
-pub fn prepare_installed_mock_model_source_free_plan(
+fn prepare_installed_mock_model_source_free_plan(
   original : ClientInstalledManagedSourceFreePreparation,
   request : @publication_host.ClientRequestIdentity,
   compiled : @publication_host.ClientCompiledRun,
@@ -187,6 +203,7 @@ pub fn prepare_installed_mock_model_source_free_plan(
   max_reservations : Int,
   max_holdings : Int,
   max_delegations : Int,
+  content_prefix? : ClientInstalledManagedSerializationPreparation? = None,
 ) -> Result[ClientInstalledManagedModelPlan, ClientInstalledManagedRunIssue] {
   guard original.owner is Pure(prepared) && original.configuration is Some(_) else {
     return Err(ForeignOriginal)
@@ -208,6 +225,7 @@ pub fn prepare_installed_mock_model_source_free_plan(
     max_reservations,
     max_holdings,
     max_delegations,
+    content_prefix~,
   )
 }
 
@@ -224,6 +242,7 @@ pub fn prepare_installed_mock_model_capture_plan_binding(
   max_reservations : Int,
   max_holdings : Int,
   max_delegations : Int,
+  content_prefix? : ClientInstalledManagedSerializationPreparation? = None,
 ) -> Result[ClientInstalledManagedModelPlan, ClientInstalledManagedRunIssue] {
   prepare_installed_mock_model_plan_owned(
     original.prepared,
@@ -242,6 +261,7 @@ pub fn prepare_installed_mock_model_capture_plan_binding(
     max_reservations,
     max_holdings,
     max_delegations,
+    content_prefix~,
   )
 }
 
@@ -263,6 +283,7 @@ fn prepare_installed_mock_model_plan_owned(
   max_reservations : Int,
   max_holdings : Int,
   max_delegations : Int,
+  content_prefix? : ClientInstalledManagedSerializationPreparation? = None,
 ) -> Result[ClientInstalledManagedModelPlan, ClientInstalledManagedRunIssue] {
   // The module's sequences already retain this original invocation. A later
   // equal-CID request or another saved Run cannot replace its bound context.
@@ -272,7 +293,8 @@ fn prepare_installed_mock_model_plan_owned(
       !@publication_host.client_query_time_preparation_context(original)
       .map(context => {
         physical_equal(
-          @publication.query_evaluation_time_definition(context), definition,
+          @publication.query_evaluation_time_definition(context),
+          definition,
         )
       })
       .unwrap_or(false) {
@@ -295,6 +317,21 @@ fn prepare_installed_mock_model_plan_owned(
     @publication_host.client_request_parameters_cid(request) {
     return Err(ForeignOriginal)
   }
+  match (graph.serialization, content_prefix) {
+    (None, None) => ()
+    (Some(component), Some(prefix)) => {
+      guard physical_equal(prefix.prepared, prepared) &&
+        physical_equal(prefix.request, request) &&
+        physical_equal(prefix._observed_compiled, compiled) &&
+        physical_equal(prefix._observed_definition, definition) &&
+        @publication_host.client_compiled_run_serialization(compiled)
+        is Some(original) &&
+        physical_equal(original, component) else {
+        return Err(ForeignOriginal)
+      }
+    }
+    _ => return Err(ForeignOriginal)
+  }
   guard max_reservations >= 0 &&
     max_holdings >= 0 &&
     max_delegations >= 0 &&
@@ -302,8 +339,16 @@ fn prepare_installed_mock_model_plan_owned(
       model_limits, read_retained_bytes, read_execution_bytes,
     )
     is Some(model) &&
-    @resources.add_ledger_limits(compute_limits, model) is Some(limits) else {
+    @resources.add_ledger_limits(compute_limits, model) is Some(model_limits) else {
     return Err(InsufficientCapacity)
+  }
+  let limits = match content_prefix {
+    None => model_limits
+    Some(prefix) =>
+      match @resources.add_ledger_limits(model_limits, prefix.limits) {
+        Some(limits) => limits
+        None => return Err(InsufficientCapacity)
+      }
   }
   Ok({
     prepared,
@@ -314,6 +359,7 @@ fn prepare_installed_mock_model_plan_owned(
     _occurrence: occurrence,
     source_free,
     captured,
+    content_prefix,
     limits,
     max_reservations,
     max_holdings,

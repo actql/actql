@@ -10,14 +10,15 @@ import {compareReports, finishReport, markdown, summarize, exitStatus, digest, m
 import {parseArguments, requiredQuickMetrics, missingReleaseInputs, recordGuardExit, applyComparison, environmentIdentity, verifyPythonInstalledAfter, verifyNativeInstalledAfter} from './health-monitor.mjs';
 import {packDistributionPackages} from './measure-distribution-artifacts.mjs';
 import {formalCollectorVerdict, pythonRuntimeIdentity, assertPythonCollectorRuntime, pythonInstalledInventory} from './health-monitor-release.mjs';
-import {quickNodeMetrics} from './health-monitor-adapters.mjs';
+import {quickNodeMetrics,execute} from './health-monitor-adapters.mjs';
 import {nodeWarmSmallQueryFixtures} from './benchmark-node-operations.mjs';
 import * as releaseAdapters from './health-monitor-release.mjs';
 import {nativeOperationsData} from './fixtures/health-native-operations.mjs';
 
 const policy = JSON.parse(await readFile(new URL('../benchmarks/health/config.json', import.meta.url)));
 const samples = (ms, count = 10) => Array.from({length: count}, (_, iteration) => ({iteration,
-  wallNs: ms * 1e6, cpuUserUs: 1, cpuSystemUs: 1, verified: true, completed: true}));
+  wallNs: ms * 1e6, cpuUserUs: 1, cpuSystemUs: 1, cpuScope: 'synthetic unit caller',
+  peakRssBytes: 1024, rssScope: 'synthetic child RSS', verified: true, completed: true}));
 
 test('missing Node comparison retains incomplete evidence without suppressing independent Native selection', async () => {
   const text = await readFile(new URL('./health-monitor-release.mjs', import.meta.url), 'utf8');
@@ -39,7 +40,7 @@ test('missing Node comparison retains incomplete evidence without suppressing in
     assert.equal(selections[0].options, options);
     assert.ok(metrics.some(row => row.id === 'formal-node-collector' && row.status === 'incomplete'));
     const warm = metrics.filter(row => row.target === 'native');
-    assert.deepEqual(warm.map(row => row.id), ['warm-select', 'warm-result', 'warm-status', 'warm-join', 'warm-decimal-sum']);
+    assert.deepEqual(warm.map(row => row.id), ['warm-select', 'warm-result', 'warm-status', 'warm-join', 'warm-union', 'warm-decimal-sum', 'warm-parameters', 'warm-unicode']);
     assert.ok(warm.every(row => row.status === 'incomplete' && row.required && row.requiredSamples === 100 &&
       row.temperature === 'warm' && row.reason.includes('no retained-Host warm entry') && row.samples === undefined));
   }
@@ -77,7 +78,7 @@ test('Release selects the existing Native operations collector instead of combin
   assert.equal(commands.length, 1);
   assert.deepEqual(metrics.filter(row => row.target === 'native' && row.temperature === 'cold').map(row => [row.id, row.samples.length, row.requiredSamples]),
     [['cold-new-run', 100, 100], ['cold-result', 100, 100]]);
-  assert.equal(metrics.filter(row => row.target === 'native' && row.id.startsWith('warm-')).length, 5);
+  assert.equal(metrics.filter(row => row.target === 'native' && row.id.startsWith('warm-')).length, 8);
   assert.ok(metrics.filter(row => row.target === 'native' && row.id.startsWith('warm-')).every(row => row.status === 'incomplete'));
   const report = fixture('release');
   for (const metric of metrics.filter(row => row.target === 'native')) {
@@ -86,7 +87,7 @@ test('Release selects the existing Native operations collector instead of combin
   }
   finishReport(report);
   const warm = report.verdicts.filter(row => row.target === 'native' && row.metric.startsWith('warm-'));
-  assert.equal(warm.length, 5); assert.ok(warm.every(row => row.status === 'incomplete' && row.reason.includes('no retained-Host warm entry')));
+  assert.equal(warm.length, 8); assert.ok(warm.every(row => row.status === 'incomplete' && row.reason.includes('no retained-Host warm entry')));
 });
 
 async function nativeReleaseDataCase({make = (source, cohort) => nativeOperationsData(source, cohort), commandError, omitRaw = false} = {}) {
@@ -199,6 +200,17 @@ function fixture(mode = 'quick') {
   if (mode === 'release') report.environment.pythonRuntime = {version: '3.12.12', executableSha256: '5'.repeat(64)};
   report.metrics = measurementProfile(mode, report.environment).map(row => ({...row, evidence: 'synthetic unit only',
     fixtureSha256: '4'.repeat(64), ...(row.kind === 'latency' ? {samples: samples(10, row.requiredSamples)} : {value: 1000})}));
+  if (mode === 'release') {
+    report.comparison = {available: true, comparable: true, baselineId: 'synthetic-unit-only', status: 'pass'};
+    for (const metric of report.metrics.filter(row => row.kind === 'latency')) {
+      const kind = metric.id.startsWith('warm-') ? (metric.id === 'warm-status' ? 'public-status' : 'public-result')
+        : metric.target === 'native' ? 'cli-result-exit' : 'process-result-close';
+      for (const row of metric.samples) row.publicTiming = kind === 'process-result-close'
+        ? {kind, startNs: 1, observedNs: 2, closeStartNs: 3, closeEndNs: 4, endNs: 5}
+        : kind === 'cli-result-exit' ? {kind, startNs: 1, exitNs: 2, observedNs: 3, endNs: 4}
+          : {kind, startNs: 1, observedNs: 2, endNs: 3};
+    }
+  }
   if (mode === 'release') report.metrics.push({id: 'synthetic-contained.wasm', target: 'python', kind: 'size',
     artifactKind: 'wasm', value: 1000, unit: 'bytes', required: true, fixtureSha256: '4'.repeat(64), evidence: 'synthetic unit only'});
   if (mode === 'release') {
@@ -238,7 +250,7 @@ test('Quick latency requires both relative and absolute warning conditions; warn
     [true, 10, 40, 'pass'], [true, 100, 150, 'warning']]) {
     const base = fixture(), current = fixture();
     for (const [report, ms] of [[base, before], [current, after]]) {
-      const metric = report.metrics.find(row => row.id === (cold ? 'cold-host-initialization' : 'warm-select'));
+      const metric = report.metrics.find(row => row.id === (cold ? 'cold-new-state-public-open' : 'warm-select'));
       metric.samples = samples(ms, metric.requiredSamples);
     }
     const comparison = compareReports(base, current, policy); assert.equal(comparison.status, expected);
@@ -348,8 +360,9 @@ test('normal pack adapter uses actual JSON filenames/versions, not a development
     run: async (cmd, args, cwd) => {
       const name = names[calls++], file = `actual-${name}-1.2.3.tgz`;
       assert.equal(cmd, 'npm'); assert.equal(args[0], 'pack'); assert.equal(cwd, join(root, 'packages', name));
+      assert(args.includes('--foreground-scripts=false'));
       await writeFile(join(root, file), 'unit');
-      return {stdout: 'lifecycle output\n' + JSON.stringify([{name: '@actql/' + name, version: '1.2.3', filename: file, size: 4}])};
+      return {stdout: JSON.stringify([{name: '@actql/' + name, version: '1.2.3', filename: file, size: 4}])};
     }});
   assert.equal(calls, 5); assert(packages.every(row => row.file.endsWith('1.2.3.tgz') && row.sha256 === digest('unit')));
 });
@@ -459,7 +472,7 @@ test('fixed Quick inventory cannot lose Aggregate or mark all required observati
   assert.equal(compareReports(fixture(), current, policy).comparable, false);
 });
 test('saved reports cannot reduce fixed ten warm or five cold samples to one', () => {
-  for (const id of ['warm-select', 'cold-process-first-result-close']) {
+  for (const id of ['warm-select', 'cold-new-state-process-first-result-close']) {
     const current = fixture(), metric = current.metrics.find(row => row.id === id);
     metric.samples = metric.samples.slice(0, 1); metric.requiredSamples = 1; metric.required = false;
     assert.equal(finishReport(current).status, 'incomplete');
@@ -485,13 +498,13 @@ test('saved size regression preserves its expected guard exit and remains compar
   const mismatch = finishReport(fixture()); mismatch.guardExitCode = 1;
   assert.equal(compareReports(base, mismatch, policy).comparable, false);
 });
-test('ordinary Python JOIN/Aggregate fixtures exactly match the existing Node literal oracles', () => {
+test('ordinary Python short-query fixtures exactly match the Node independent literal and parameter oracles', () => {
   const script = new URL('./benchmark-ordinary-processes.py', import.meta.url).pathname;
   const result = spawnSync('python3', ['-I', '-B', '-c',
     'import json,runpy,sys;print(json.dumps(runpy.run_path(sys.argv[1])["SMALL_QUERIES"]))', script], {encoding: 'utf8'});
   assert.equal(result.status, 0, result.stderr);
   const fixtures = JSON.parse(result.stdout);
-  for (const operation of ['warm-join', 'warm-decimal-sum']) {
+  for (const operation of ['warm-join', 'warm-union', 'warm-decimal-sum', 'warm-parameters', 'warm-unicode']) {
     assert.deepEqual(fixtures[operation], nodeWarmSmallQueryFixtures.find(row => row.operation === operation));
   }
 });
@@ -897,4 +910,138 @@ test('Release requires consistent actual Python installed before and after obser
   assert.equal(finishReport(changed).status, 'error');
   const inconsistent = fixture('release'); inconsistent.pythonInstalledInventoryAfter.files[0].bytes++;
   assert.equal(finishReport(inconsistent).status, 'incomplete');
+});
+
+test('Release public E2E rejects old two-second cold limits and a lone maximum over200ms', () => {
+  for (const [id, target, p95, maximum] of [['cold-existing', 'node-local', 300, 400],
+    ['first-init', 'python', 1000, 1000], ['warm-select', 'node-local', 5, 201]]) {
+    const report = fixture('release'), metric = report.metrics.find(row => row.id === id && row.target === target);
+    for (const row of metric.samples) row.wallNs = p95 * 1e6;
+    metric.samples.at(-1).wallNs = maximum * 1e6;
+    const checked = finishReport(report);
+    assert.equal(checked.status, 'regression'); assert.equal(checked.exitCode, 1);
+    assert(checked.verdicts.some(row => row.metric === id && row.target === target && /200ms/u.test(row.reason)));
+  }
+});
+test('Release cannot pass without complete samples, matching artifacts and a reviewed regression baseline', () => {
+  const absent = fixture('release'); delete absent.comparison;
+  assert.equal(finishReport(absent).status, 'incomplete');
+  const short = fixture('release'); short.metrics.find(row => row.id === 'warm-select').samples.pop();
+  assert.equal(finishReport(short).status, 'incomplete');
+  const foreign = fixture('release'); foreign.artifacts[0].sourceSha = 'f'.repeat(40);
+  assert.equal(compareReports(fixture('release'), foreign, policy).comparable, false);
+  const mismatched = fixture('release'); mismatched.environment.buildSettings.load = 'concurrent';
+  mismatched.environmentAfter = structuredClone(mismatched.environment);
+  assert.equal(compareReports(fixture('release'), mismatched, policy).comparable, false);
+});
+test('Release compares p95 and maximum as regressions even when the median is unchanged and under200ms', () => {
+  const base = fixture('release'), current = fixture('release');
+  for (const report of [base, current]) {
+    const metric = report.metrics.find(row => row.id === 'warm-select' && row.target === 'node-local');
+    for (const row of metric.samples) row.wallNs = 100e6;
+  }
+  current.metrics.find(row => row.id === 'warm-select' && row.target === 'node-local').samples.at(-1).wallNs = 190e6;
+  const compared = compareReports(base, current, policy);
+  assert.equal(compared.comparable, true); assert.equal(compared.status, 'regression');
+  const row = compared.verdicts.find(row => row.metric === 'warm-select' && row.target === 'node-local');
+  assert.deepEqual(row.statistics.medianMs, {before: 100, after: 100, absoluteDelta: 0});
+  assert.deepEqual(row.statistics.maxMs, {before: 100, after: 190, absoluteDelta: 90});
+  assert.equal(row.cpu.before.available, true); assert.equal(row.cpu.after.available, true);
+});
+test('Release refuses a timer stopped before Result or a Result materialized after close began', () => {
+  for (const timing of [
+    {kind: 'public-result', startNs: 1, observedNs: 300e6, endNs: 3},
+    {kind: 'process-result-close', startNs: 1, observedNs: 8, closeStartNs: 3, closeEndNs: 9, endNs: 10},
+  ]) {
+    const report = fixture('release');
+    const metric = report.metrics.find(row => row.id === (timing.kind === 'public-result' ? 'warm-select' : 'cold-existing') && row.target === 'node-local');
+    metric.samples[0].publicTiming = timing;
+    assert.equal(finishReport(report).status, 'regression');
+  }
+  const report = fixture('release'); delete report.metrics.find(row => row.id === 'warm-select').samples[0].publicTiming;
+  assert.equal(finishReport(report).status, 'incomplete');
+});
+
+test('Release retains unavailable CPU/RSS and refuses unlike resource scopes', () => {
+  for (const key of ['cpuScope', 'peakRssBytes', 'rssScope']) {
+    const report = fixture('release'); delete report.metrics.find(row => row.id === 'warm-select').samples[0][key];
+    assert.equal(finishReport(report).status, 'incomplete');
+  }
+  const base = fixture('release'), current = fixture('release');
+  for (const row of current.metrics.find(row => row.id === 'warm-select').samples) row.cpuScope = 'foreign CPU scope';
+  const compared = compareReports(base, current, policy);
+  assert.equal(compared.status, 'incomplete');
+  assert(compared.verdicts.some(row => /scopes differ/u.test(row.reason)));
+});
+
+test('Release reports malformed metric identity as error without bypassing the fixed profile', () => {
+  for (const id of [undefined, null, 7, '']) {
+    const report = fixture('release');
+    report.metrics.find(row => row.id === 'warm-select' && row.target === 'node-local').id = id;
+    const checked = finishReport(report);
+    assert.equal(checked.status, 'error');
+    assert(checked.verdicts.some(row => row.reason === 'Invalid measurement identity'));
+  }
+});
+
+
+// Real collector children around a synthetic public-port module. These are
+// clock/protocol tests, not ordinary ActQL performance or Source acceptance.
+async function coldCollectorFixture(t,{unknown=false}={}) {
+  const root=await mkdtemp(join(tmpdir(),'actql-health-cold-state-unit-'));
+  const consumer=join(root,'consumer'),module=join(consumer,'node_modules/@actql/node');await mkdir(module,{recursive:true});
+  const code=`import assert from 'node:assert/strict';import {mkdir,appendFile} from 'node:fs/promises';
+export async function open({stateDir}) {
+ await mkdir(stateDir,{recursive:true});const event=kind=>appendFile(stateDir+'/events',JSON.stringify({kind,pid:process.pid})+'\\n');
+ await event('open');
+ return {async startSource(text,options) {
+  assert.equal(text,'SELECT 1 AS id');await event('submit');
+  if(${unknown}&&options.requestId.startsWith('health-cold-existing-state-'))throw new Error('Synthetic Unknown; no resend');
+  return {ref:{id:process.pid+'-'+options.requestId},wait:async()=>({status:'succeeded'}),
+   status:async()=>({status:'succeeded',revision:1}),result:()=>({all:async()=>[{id:1}]})};
+ },attach(){assert.fail('No Saved-only cold existing');},
+ sql(text){return {all:async()=>text.includes('JOIN rhs')?[{id:1,label:'joined'}]:text.includes('SUM(amount)')?[{total:'4.00'}]:[{id:Number(text.match(/SELECT (\\d+) AS id/)?.[1]??1)}]};},
+ async close(){await event('close');}};
+}`;
+  await writeFile(join(module,'index.mjs'),code);
+  const commands=[],metrics=[];
+  const command=async(executable,args,options)=>{commands.push(JSON.parse(args[2]));return execute(executable,args,{...options,timeout:10000});};
+  return {root,commands,metrics,run:()=>quickNodeMetrics({root,prepared:{consumer},counts:{warmSamples:1,coldSamples:1},
+    command,onMetric:async metric=>metrics.push(structuredClone(metric))})};
+}
+
+test('Quick cold existing and new states use separate actual public children and parent clocks',async t=>{
+  const f=await coldCollectorFixture(t);await f.run();
+  assert.deepEqual(f.commands.map(x=>x.kind),['warm','prepare-existing-state','cold-existing-state','cold-new-state']);
+  const existing=f.metrics.find(x=>x.id==='cold-existing-state-process-first-result-close');
+  const fresh=f.metrics.find(x=>x.id==='cold-new-state-process-first-result-close');
+  assert.notEqual(existing.samples[0].pid,fresh.samples[0].pid);
+  const seed=JSON.parse(await readFile(join(f.root,'cold-existing-preparation.json')));
+  assert.equal(seed.cleanup.closed,true);assert.equal(existing.samples[0].stateDir,seed.stateDir);
+  assert.notEqual(existing.samples[0].originalRunSha256,seed.originalRunSha256);
+  assert.notEqual(fresh.samples[0].stateDir,seed.stateDir);
+  for(const row of [existing.samples[0],fresh.samples[0]]) {
+    assert.equal(row.verified,true);assert(row.firstResultNs>0&&row.firstResultNs<=row.wallNs);
+    assert.deepEqual(row.phaseSpans.map(x=>x.name),['product-import','public-open','new-run-submission',
+      'wait-execution-publication','all-result-rows','first-close']);
+    for(let n=0;n<row.phaseSpans.length;n++) {
+      const span=row.phaseSpans[n];assert(span.completed&&span.endNs>=span.startNs);
+      if(n)assert(span.startNs>=row.phaseSpans[n-1].endNs);
+    }
+    assert(row.phaseSpans.reduce((sum,x)=>sum+x.endNs-x.startNs,0)<=row.wallNs);
+    assert(row.unobservedHostPhases.includes('initial activation'));
+  }
+  assert.equal(measurementProfile('quick').filter(x=>x.id.endsWith('-process-first-result-close')).length,2);
+});
+
+test('Quick cold Unknown retains failed sample and unobserved first Result without a new-state retry',async t=>{
+  const f=await coldCollectorFixture(t,{unknown:true});await assert.rejects(f.run(),/exit 1/);
+  assert.deepEqual(f.commands.map(x=>x.kind),['warm','prepare-existing-state','cold-existing-state']);
+  const metric=f.metrics.find(x=>x.id==='cold-existing-state-process-first-result-close');
+  assert.equal(metric.samples.length,1);assert.equal(metric.samples[0].verified,false);
+  assert.equal(metric.samples[0].firstResultNs,null);
+  const first=f.metrics.find(x=>x.id==='cold-existing-state-process-first-result');
+  assert.equal(first.samples.length,0);assert.equal(first.status,'incomplete');
+  const failed=JSON.parse(await readFile(metric.samples[0].observation));
+  assert.equal(failed.cleanup.closed,true);assert.match(failed.failure.message,/Synthetic Unknown/);
 });

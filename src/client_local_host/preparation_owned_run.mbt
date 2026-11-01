@@ -57,6 +57,14 @@ pub fn[I] begin_preparation_owned_installed_managed_run(
     0 {
     return Err(Unsupported)
   }
+  let available = match
+    @resources.node_local_preparation_limits(initial, input) {
+    Err(issue) => return Err(Resource(issue))
+    Ok(value) => value
+  }
+  if !installed_effect_limits_fit(original.limits, available) {
+    return Err(InsufficientCapacity)
+  }
   match
     @resources.discard_unbound_preparation_capacity_inventory(capacity, input) {
     Err(issue) => return Err(Preparation(issue))

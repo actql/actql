@@ -24679,7 +24679,7 @@
     {
       "module": "adapters/host-node/client-http.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a1f904cec1e910d77819f9351586862670625f07d1ec03a5cc877f820efc8254",
+      "sha256": "63f31aced42d5e53ea3596fc471125d7284bbd95cd1df6344b20ade0b9c1d820",
       "role": "physical-io",
       "owner": "Existing Client Host admission/read services and physical Node ingress",
       "exports": [
@@ -24733,7 +24733,8 @@
             "runPlan",
             "maxRequestBytes",
             "observe",
-            "loopbackHttp"
+            "loopbackHttp",
+            "prepareRequest"
           ],
           "async": false
         },
@@ -24806,7 +24807,7 @@
           "async": true
         },
         {
-          "name": "createClientHttpHandler/createClientHttpHandler/invoke/invoke/invoke",
+          "name": "createClientHttpHandler/createClientHttpHandler/originalRequest/originalRequest",
           "parameters": [
             "key"
           ],
@@ -24934,7 +24935,6 @@
             "createClientHttpHandler/createClientHttpHandler/createClientHttpHandler#4",
             "createClientHttpHandler/createClientHttpHandler/createClientHttpHandler/createClientHttpHandler",
             "createClientHttpHandler/createClientHttpHandler/invoke/invoke",
-            "createClientHttpHandler/createClientHttpHandler/invoke/invoke/invoke",
             "createClientHttpHandler/createClientHttpHandler/sendJson/sendJson",
             "finish",
             "finish/finish",
@@ -24949,7 +24949,8 @@
             "sendError",
             "write",
             "write/write",
-            "write/write/write"
+            "write/write/write",
+            "createClientHttpHandler/createClientHttpHandler/originalRequest/originalRequest"
           ],
           "exports": [
             "createClientHttpHandler",
@@ -27062,13 +27063,14 @@
     {
       "module": "adapters/host-node/client-program-preparation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "78ced8995f78622b05f5eb65cb1324bb522a241f87547d1d49f118f9a3d0d7f1",
+      "sha256": "b3c67df2cb58c6ca5754c58dec3dae23d7fbf8f7ebc1307e7e1b267571d628c0",
       "role": "physical-io",
       "owner": "Existing static checker/Frontend/compiled preparation Owners; no Run permission",
       "exports": [
         "checkedRequestProgramPreparation",
         "installNodeClientEffectProgramPreparation",
-        "installNodeClientProgramPreparation"
+        "installNodeClientProgramPreparation",
+        "requestProgramCapacityRefusal"
       ],
       "operations": [
         {
@@ -27276,6 +27278,35 @@
           "name": "installNodeClientProgramPreparation/publicSourcePreparation/publicSourcePreparation",
           "parameters": [
             "selectedEnvironment"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectCapacityRefusal",
+          "parameters": [
+            "moon",
+            "result"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectCapacityRefusal/amounts/amounts",
+          "parameters": [
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectCapacityRefusal/projectCapacityRefusal",
+          "parameters": [
+            "amount"
+          ],
+          "async": false
+        },
+        {
+          "name": "requestProgramCapacityRefusal",
+          "parameters": [
+            "error"
           ],
           "async": false
         },
@@ -28614,6 +28645,95 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "projectCapacityRefusal",
+            "projectCapacityRefusal/amounts/amounts",
+            "projectCapacityRefusal/projectCapacityRefusal",
+            "requestProgramCapacityRefusal"
+          ],
+          "exports": [
+            "requestProgramCapacityRefusal"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/development.md",
+                "anchor": "For source-free Request preparation, the configured Plan's complete execution"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "function projectCapacityRefusal(moon, result) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "const capacityRefusals = new WeakMap();"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "capacityRefusals.set(error, capacity);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "const category = projectIssue.call(moon, result);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "if (category === 'source_free_capacity_exceeded') {"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "anchor": "// Best-effort diagnostics have no authority over execution. One bounded queue"
+              },
+              {
+                "path": "docs/development.md",
+                "anchor": "uncertain rather than becoming capacity refusals."
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "return Object.freeze({phase, dimension,"
+              },
+              {
+                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "anchor": "if (closed || active !== undefined && queue.length >= maxQueued) {"
+              },
+              {
+                "path": "docs/development.md",
+                "anchor": "capacity nor authorize a retry. The public submission wire retains its existing"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/development.md",
+                "anchor": "coarse Problem shape; saved older failed Runs keep their original terminal"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/preparation-capacity-refusal.test.mjs",
+                "anchor": "test('only an original typed module capacity refusal becomes an operation refusal'"
+              },
+              {
+                "path": "adapters/host-node/request-preparation-parent.test.mjs",
+                "anchor": "test('normal first Request Plan keeps its original typed row refusal"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
@@ -28629,7 +28749,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1a30d6ee152f71bd770ef06d60ccdf1969b5dc1efb0a0ab7daf28d8bd1aa14c2",
+      "sha256": "89b566cf613a0ad0794cc84537861cd98b1487e7155e879425a1396e942fcded",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -28697,8 +28817,9 @@
           "name": "adoptSubmissionUsageStorage",
           "parameters": [
             "database",
-            "transaction",
-            "previousMarker"
+            "transact",
+            "previousMarker",
+            "fresh"
           ],
           "async": false
         },
@@ -28711,34 +28832,6 @@
           "name": "adoptSubmissionUsageStorage/adoptSubmissionUsageStorage/adoptSubmissionUsageStorage",
           "parameters": [
             "n"
-          ],
-          "async": false
-        },
-        {
-          "name": "adoptSubmissionUsageStorage/adoptSubmissionUsageStorage/adoptSubmissionUsageStorage#2",
-          "parameters": [
-            "sql"
-          ],
-          "async": false
-        },
-        {
-          "name": "adoptSubmissionUsageStorage/adoptSubmissionUsageStorage/adoptSubmissionUsageStorage#3",
-          "parameters": [
-            "sql"
-          ],
-          "async": false
-        },
-        {
-          "name": "adoptSubmissionUsageStorage/adoptSubmissionUsageStorage/adoptSubmissionUsageStorage#4",
-          "parameters": [
-            "sql"
-          ],
-          "async": false
-        },
-        {
-          "name": "adoptSubmissionUsageStorage/adoptSubmissionUsageStorage/adoptSubmissionUsageStorage#5",
-          "parameters": [
-            "sql"
           ],
           "async": false
         },
@@ -28960,6 +29053,50 @@
           "name": "cid/cid",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalRowUsageStorage",
+          "parameters": [
+            "database",
+            "retainedRows"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalRowUsageStorage/createJournalRowUsageStorage",
+          "parameters": [
+            "sql"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalRowUsageStorage/createJournalRowUsageStorage#2",
+          "parameters": [
+            "sql"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSubmissionUsageStorage",
+          "parameters": [
+            "database",
+            "retained"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSubmissionUsageStorage/createSubmissionUsageStorage",
+          "parameters": [
+            "sql"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSubmissionUsageStorage/createSubmissionUsageStorage#2",
+          "parameters": [
+            "sql"
           ],
           "async": false
         },
@@ -29208,6 +29345,13 @@
           "name": "inspectJournalSnapshot/observe/observe",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "inspectLocalExecutionOwnerStorage",
+          "parameters": [
+            "database"
           ],
           "async": false
         },
@@ -29635,6 +29779,77 @@
           "async": false
         },
         {
+          "name": "openClientRequestJournal/initializeFeature/initializeFeature",
+          "parameters": [
+            "action"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/initializeSchema/initializeSchema",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/initializeSchema/initializeSchema/initializeSchema",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/initializeSchema/initializeSchema/initializeSchema/initializeSchema",
+          "parameters": [
+            "sql"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/initializeSchema/initializeSchema/initializeSchema/initializeSchema#2",
+          "parameters": [
+            "sql"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/initializeSchema/initializeSchema/initializeSchema#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/initializeSchema/initializeSchema/initializeSchema#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/initializeSchema/initializeSchema/initializeSchema#4",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/initializeSchema/initializeSchema/initializeSchema#5",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/initializeSchema/initializeSchema/initializeSchema#6",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/initializeSchema/initializeSchema/initializeSchema#7",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/initializeSchema/initializeSchema/initializeSchema#8",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/initializeSchema/initializeSchema/initializeSchema#9",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openClientRequestJournal/inspectEpoch/inspectEpoch",
           "parameters": [
             "epoch",
@@ -29936,6 +30151,14 @@
           "async": false
         },
         {
+          "name": "openClientRequestJournal/journal/init:observeStoppedLocalExecutionOwner/init:observeStoppedLocalExecutionOwner",
+          "parameters": [
+            "ref",
+            "originalFrame"
+          ],
+          "async": false
+        },
+        {
           "name": "openClientRequestJournal/journal/init:originalSubmittedIntent/init:originalSubmittedIntent",
           "parameters": [
             "identity",
@@ -30149,6 +30372,7 @@
             "ref",
             "currentAuthorization",
             "captureSourceOperation",
+            "localExecutionOwner",
             "requestControl",
             "publicationControl"
           ],
@@ -30278,61 +30502,7 @@
           "async": false
         },
         {
-          "name": "openClientRequestJournal/openClientRequestJournal/openClientRequestJournal",
-          "parameters": [
-            "sql"
-          ],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/openClientRequestJournal/openClientRequestJournal#2",
-          "parameters": [
-            "sql"
-          ],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/openClientRequestJournal#10",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "openClientRequestJournal/openClientRequestJournal#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/openClientRequestJournal#3",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/openClientRequestJournal#4",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/openClientRequestJournal#5",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/openClientRequestJournal#6",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/openClientRequestJournal#7",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/openClientRequestJournal#8",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/openClientRequestJournal#9",
           "parameters": [],
           "async": false
         },
@@ -30349,6 +30519,14 @@
           "name": "openClientRequestJournal/ownedCancellationRef/ownedCancellationRef",
           "parameters": [
             "ref"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/publishFormatMarker/publishFormatMarker",
+          "parameters": [
+            "name",
+            "bytes"
           ],
           "async": false
         },
@@ -30589,6 +30767,14 @@
           "async": false
         },
         {
+          "name": "openClientRequestJournal/writeFormatMarker/writeFormatMarker",
+          "parameters": [
+            "name",
+            "bytes"
+          ],
+          "async": false
+        },
+        {
           "name": "originalJournalFacilityField",
           "parameters": [
             "value",
@@ -30800,6 +30986,27 @@
           "async": false
         },
         {
+          "name": "validLocalExecutionOwnerReceipt",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "validLocalExecutionOwnerReceipt/coordinate/coordinate",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "validLocalExecutionOwnerReceipt/uuid/uuid",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "validSubmissionUsage/validSubmissionUsage",
           "parameters": [
             "row"
@@ -30875,6 +31082,11 @@
             "openClientRequestJournal/ensureOpen/ensureOpen",
             "openClientRequestJournal/epochClock/epochClock",
             "openClientRequestJournal/epochHandle/epochHandle",
+            "openClientRequestJournal/initializeSchema/initializeSchema/initializeSchema",
+            "openClientRequestJournal/initializeSchema/initializeSchema/initializeSchema#2",
+            "openClientRequestJournal/initializeSchema/initializeSchema/initializeSchema#3",
+            "openClientRequestJournal/initializeSchema/initializeSchema/initializeSchema#4",
+            "openClientRequestJournal/initializeSchema/initializeSchema/initializeSchema#5",
             "openClientRequestJournal/inspectEpoch/inspectEpoch",
             "openClientRequestJournal/journal/init:accept/init:accept",
             "openClientRequestJournal/journal/init:admitOrLookupDefinition/init:admitOrLookupDefinition",
@@ -30945,11 +31157,6 @@
             "openClientRequestJournal/journal/init:verifySubmissionEpoch/init:verifySubmissionEpoch",
             "openClientRequestJournal/lookupRecord/lookupRecord",
             "openClientRequestJournal/openClientRequestJournal",
-            "openClientRequestJournal/openClientRequestJournal#2",
-            "openClientRequestJournal/openClientRequestJournal#3",
-            "openClientRequestJournal/openClientRequestJournal#4",
-            "openClientRequestJournal/openClientRequestJournal#5",
-            "openClientRequestJournal/openClientRequestJournal#6",
             "openClientRequestJournal/originalIntent/originalIntent",
             "openClientRequestJournal/ownedCancellationRef/ownedCancellationRef",
             "openClientRequestJournal/readRunDefinitionRow/readRunDefinitionRow",
@@ -31790,13 +31997,13 @@
             "inspectNameStorage/fields/fields",
             "openClientRequestJournal/assertNameCustody/assertNameCustody",
             "openClientRequestJournal/authenticateName/authenticateName",
+            "openClientRequestJournal/initializeSchema/initializeSchema/initializeSchema#6",
+            "openClientRequestJournal/initializeSchema/initializeSchema/initializeSchema/initializeSchema",
+            "openClientRequestJournal/initializeSchema/initializeSchema/initializeSchema/initializeSchema#2",
             "openClientRequestJournal/journal/init:resolveNamedSubmissionAttempt/init:resolveNamedSubmissionAttempt",
             "openClientRequestJournal/journal/init:resolveNamedSubmissionAttempt/init:resolveNamedSubmissionAttempt/init:resolveNamedSubmissionAttempt",
             "openClientRequestJournal/journal/init:resolveOrBindSubmittedName/init:resolveOrBindSubmittedName",
             "openClientRequestJournal/journal/init:resolveOrBindSubmittedName/init:resolveOrBindSubmittedName/result/result",
-            "openClientRequestJournal/openClientRequestJournal#7",
-            "openClientRequestJournal/openClientRequestJournal/openClientRequestJournal",
-            "openClientRequestJournal/openClientRequestJournal/openClientRequestJournal#2",
             "openClientRequestJournal/recordIntentLocked/recordIntentLocked"
           ],
           "exports": [],
@@ -32013,10 +32220,10 @@
         },
         {
           "operations": [
+            "openClientRequestJournal/initializeSchema/initializeSchema/initializeSchema#7",
             "openClientRequestJournal/journal/init:lookupOriginalSourceOperation/init:lookupOriginalSourceOperation",
             "openClientRequestJournal/journal/init:reservePhysicalStart/init:reservePhysicalStart/started/started",
             "openClientRequestJournal/journal/init:reservePhysicalStart/init:reservePhysicalStart/started/started#2",
-            "openClientRequestJournal/openClientRequestJournal#8",
             "openClientRequestJournal/sourceOperations/sourceOperations"
           ],
           "exports": [],
@@ -32123,7 +32330,7 @@
             "openClientRequestJournal/captureDatabaseCleanup/captureDatabaseCleanup",
             "openClientRequestJournal/captureObservationCleanup/captureObservationCleanup",
             "openClientRequestJournal/initializationCleanup/init:close/init:close",
-            "openClientRequestJournal/openClientRequestJournal#9",
+            "openClientRequestJournal/initializeSchema/initializeSchema/initializeSchema#8",
             "originalJournalFacilityField",
             "selectJournalTemporaryStorage",
             "snapshotPrimaryExecutionLimits",
@@ -32372,12 +32579,12 @@
             "adoptSubmissionUsageStorage",
             "adoptSubmissionUsageStorage/adoptSubmissionUsageStorage",
             "adoptSubmissionUsageStorage/adoptSubmissionUsageStorage/adoptSubmissionUsageStorage",
-            "adoptSubmissionUsageStorage/adoptSubmissionUsageStorage/adoptSubmissionUsageStorage#2",
-            "adoptSubmissionUsageStorage/adoptSubmissionUsageStorage/adoptSubmissionUsageStorage#3",
-            "adoptSubmissionUsageStorage/adoptSubmissionUsageStorage/adoptSubmissionUsageStorage#4",
-            "adoptSubmissionUsageStorage/adoptSubmissionUsageStorage/adoptSubmissionUsageStorage#5",
             "adoptSubmissionUsageStorage/adoptSubmissionUsageStorage/retained/retained",
             "adoptSubmissionUsageStorage/adoptSubmissionUsageStorage/retainedRows/retainedRows",
+            "createJournalRowUsageStorage/createJournalRowUsageStorage",
+            "createJournalRowUsageStorage/createJournalRowUsageStorage#2",
+            "createSubmissionUsageStorage/createSubmissionUsageStorage",
+            "createSubmissionUsageStorage/createSubmissionUsageStorage#2",
             "inspectJournalRowUsage",
             "inspectJournalRowUsage/inspectJournalRowUsage",
             "inspectJournalRowUsage/inspectJournalRowUsage/inspectJournalRowUsage",
@@ -32410,7 +32617,7 @@
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "function adoptSubmissionUsageStorage(database, transaction, previousMarker)"
+                "anchor": "function adoptSubmissionUsageStorage(database, transact, previousMarker, fresh)"
               }
             ],
             "identity": [
@@ -32491,7 +32698,7 @@
           "operations": [
             "inspectJournalNativeStorage",
             "inspectJournalNativeStorage/fields/fields",
-            "openClientRequestJournal/openClientRequestJournal#10",
+            "openClientRequestJournal/openClientRequestJournal#2",
             "readJournalFormatFeatures"
           ],
           "exports": [],
@@ -33470,6 +33677,246 @@
               {
                 "path": "adapters/host-node/client-dispatch-observation.test.mjs",
                 "anchor": "test('actual installed failed Compute observes stop across public observation publication'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createJournalRowUsageStorage",
+            "createSubmissionUsageStorage",
+            "openClientRequestJournal/initializeFeature/initializeFeature",
+            "openClientRequestJournal/initializeSchema/initializeSchema",
+            "openClientRequestJournal/publishFormatMarker/publishFormatMarker",
+            "openClientRequestJournal/writeFormatMarker/writeFormatMarker"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "A fresh request Journal builds the current tables, indexes, triggers, initial"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "const initializeSchema=()=>{"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "function createSubmissionUsageStorage(database, retained) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "if (current !== existed)"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "assertOriginalPreparedLocalPublicationStoreOwnership(ownedOriginal,"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "originalDatabaseClose ??= connection.close;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "transaction.run(initializeSchema);"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "database.exec('PRAGMA synchronous = FULL');"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "throwSqliteInitializationFailure(initializationCleanup, error,"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "refuses without deleting, resetting or reconstructing its original database."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "primaryCurrent?.();"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "const initializationCleanup = {close() {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "boundJournalDatabaseExtent(database, maxDatabaseBytes"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "boundedPrimarySql(connection, primarySqlLimits"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "initializeFeature(() => database.exec(sourceOperationTable));"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "An existing database's additive format adoption retains its immediate per-marker"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-request-journal-fresh-schema.test.mjs",
+                "anchor": "test('fresh Journal commits its complete current schema once"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-fresh-schema.test.mjs",
+                "anchor": "test('abrupt fresh initialization at '"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-fresh-schema.test.mjs",
+                "anchor": "test('actual older base format adopts the same DDL"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "inspectLocalExecutionOwnerStorage",
+            "openClientRequestJournal/initializeSchema/initializeSchema/initializeSchema#9",
+            "openClientRequestJournal/journal/init:observeStoppedLocalExecutionOwner/init:observeStoppedLocalExecutionOwner",
+            "validLocalExecutionOwnerReceipt",
+            "validLocalExecutionOwnerReceipt/coordinate/coordinate",
+            "validLocalExecutionOwnerReceipt/uuid/uuid"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "observeStoppedLocalExecutionOwner(ref, originalFrame)"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "Run reconciliation only observes that execution: it MUST NOT submit or"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "observeStoppedLocalExecutionOwner(ref, originalFrame)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const value = compiledRunTokens.get(compiled);"
+              },
+              {
+                "path": "src/run_publication_host/client_source_free_observation.mbt",
+                "anchor": "pub fn client_compiled_local_execution_owner("
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.inc",
+                "anchor": "flock(original->descriptor, LOCK_EX | LOCK_NB)"
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.inc",
+                "anchor": "static napi_value local_fs_lease_receipt("
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "const original = retainRunStateFrame(originalFrame, ref);"
+              },
+              {
+                "path": "adapters/store-local/publication-owner-lease.mjs",
+                "anchor": "call('storeOwnerLeaseReceipt', lease)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "return entry.recoveryReady === true && entry.ownership.priorExecutionStopped(receipt);"
+              },
+              {
+                "path": "adapters/store-local/publication-owner-lease.mjs",
+                "anchor": "if (leaseClose?.outcome !== 'closed')"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "transact('physical_start', 'ClientRunPhysicalStartUnknown'"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "if (facts.journal.observeStoppedLocalExecutionOwner(facts.ref, retained) !== true ||"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/publication-owner-lease.mjs",
+                "anchor": "return undefined;"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "if (stored === undefined) return false;"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "facts.journal.markPhysicalClose(facts.ref, committed ? null : 'failed', retained);"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "The Host MUST distinguish confirmed business outcomes, pending cleanup and"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "This observation issues no cancellation or new start permission. Existing Run control still requires its original cancellation decision and confirmed physical stop."
+            },
+            "resources": [
+              {
+                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "anchor": "ownershipLease: record("
+              },
+              {
+                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "anchor": "ownershipLeaseDescriptors: 2"
+              },
+              {
+                "path": "adapters/store-local/publication-owner-lease.mjs",
+                "anchor": "const close = () => {"
+              }
+            ],
+            "extension": {
+              "notApplicable": "Private extensions of the same Store/Host/Journal and compiled Common originals; no public Run identity, new scheduler, arbitrary liveness callback or replacement resource authority."
+            },
+            "verification": [
+              {
+                "path": "adapters/host-node/client-source-operation.test.mjs",
+                "anchor": "test('local execution owner receipt atomically binds the original start"
+              },
+              {
+                "path": "adapters/host-node/client-source-operation.test.mjs",
+                "anchor": "test('local execution owner receipt rejects foreign and external-work originals"
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem-native.test.mjs",
+                "anchor": "test('Store lease locks the exact retained anchor"
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem-native.test.mjs",
+                "anchor": "test('Store lease rejects replacement of its exact opened anchor"
               }
             ]
           }
@@ -41851,7 +42298,7 @@
     {
       "module": "adapters/host-node/embedded-local-lifecycle.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "cbfd3f568227e8ac13a8f970b12af8f1e754ed3ac387ad423b8df09dab48f35c",
+      "sha256": "e204335504e5f69947a3e1d6cbbd2f75eac1bbe7f7b0126bc57745997129aab1",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
@@ -41872,6 +42319,14 @@
           "async": false
         },
         {
+          "name": "createEmbeddedHostRegistry/assertUnboundRequest",
+          "parameters": [
+            "entry",
+            "request"
+          ],
+          "async": false
+        },
+        {
           "name": "createEmbeddedHostRegistry/forget/forget",
           "parameters": [
             "root",
@@ -41881,6 +42336,15 @@
         },
         {
           "name": "createEmbeddedHostRegistry/init:assertPreparation/init:assertPreparation",
+          "parameters": [
+            "host",
+            "installation",
+            "generation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEmbeddedHostRegistry/init:assertRetainedPreparation/init:assertRetainedPreparation",
           "parameters": [
             "host",
             "installation",
@@ -42188,11 +42652,40 @@
           "async": false
         },
         {
+          "name": "createEmbeddedHostRegistry/init:retainRequest/init:retainRequest",
+          "parameters": [
+            "host",
+            "installation",
+            "generation",
+            "request",
+            "pending"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEmbeddedHostRegistry/init:retainRequest/init:retainRequest/init:retainRequest",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createEmbeddedHostRegistry/init:retainRequest/init:retainRequest/init:retainRequest#2",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "createEmbeddedHostRegistry/init:retirePreparation/init:retirePreparation",
           "parameters": [
             "host",
             "installation",
             "generation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEmbeddedHostRegistry/originalRequestRecord",
+          "parameters": [
+            "entry",
+            "request"
           ],
           "async": false
         },
@@ -42217,6 +42710,24 @@
             "host",
             "installation",
             "generation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEmbeddedHostRegistry/retainRequestRecord",
+          "parameters": [
+            "entry",
+            "request",
+            "pending"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEmbeddedHostRegistry/retireRequestRecord",
+          "parameters": [
+            "entry",
+            "pending",
+            "original"
           ],
           "async": false
         },
@@ -42316,7 +42827,10 @@
             "createEmbeddedHostRegistry/init:connect/init:connect/port/init:beforeResultRead/init:beforeResultRead",
             "createEmbeddedHostRegistry/init:connect/init:connect/port/init:beforeSourceQuery/init:beforeSourceQuery",
             "createEmbeddedHostRegistry/init:connect/init:connect/port/init:captureSourceSnapshot/init:captureSourceSnapshot",
-            "createEmbeddedHostRegistry/init:connect/init:connect/retainSourceProducer/retainSourceProducer"
+            "createEmbeddedHostRegistry/init:connect/init:connect/retainSourceProducer/retainSourceProducer",
+            "createEmbeddedHostRegistry/init:retainRequest/init:retainRequest",
+            "createEmbeddedHostRegistry/init:retainRequest/init:retainRequest/init:retainRequest",
+            "createEmbeddedHostRegistry/init:retainRequest/init:retainRequest/init:retainRequest#2"
           ],
           "exports": [],
           "attributes": {
@@ -42587,6 +43101,10 @@
               {
                 "path": "adapters/host-node/embedded-local-lifecycle.mjs",
                 "anchor": "const closeRequestJournal = host.closeRequestJournal;"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Selecting the private Local Source preparation receiver requires its complete"
               }
             ],
             "synchronization": [
@@ -42831,6 +43349,14 @@
               {
                 "path": "adapters/host-node/host-journal-writer-exclusion.test.mjs",
                 "anchor": "actual Store-opening failure drains its already acquired Journal independently of the dependent child"
+              },
+              {
+                "path": "packages/sdk/source-preparation-submission.test.mjs",
+                "anchor": "selected Local Source rejects incomplete required methods before connect or caller access"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-source-preparation.test.mjs",
+                "anchor": "incomplete selected Source initialization retains the same Host"
               }
             ]
           }
@@ -42962,7 +43488,11 @@
             "createEmbeddedHostRegistry/init:retirePreparation/init:retirePreparation",
             "createEmbeddedHostRegistry/originalSourceRequest",
             "createEmbeddedHostRegistry/preparationChanged/preparationChanged",
-            "createEmbeddedHostRegistry/preparationFor"
+            "createEmbeddedHostRegistry/preparationFor",
+            "createEmbeddedHostRegistry/assertUnboundRequest",
+            "createEmbeddedHostRegistry/originalRequestRecord",
+            "createEmbeddedHostRegistry/retainRequestRecord",
+            "createEmbeddedHostRegistry/retireRequestRecord"
           ],
           "exports": [],
           "attributes": {
@@ -42974,6 +43504,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "export function assertInitialControlHostPreparation(originals) {"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Each Host indexes original requests and derived aliases in a private WeakMap"
               }
             ],
             "inputsOutputs": [
@@ -42984,6 +43518,10 @@
               {
                 "path": "adapters/host-node/installed-project-configuration.mjs",
                 "anchor": "export function retireInstalledProjectConfiguration(project, moon) {"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Each Host indexes original requests and derived aliases in a private WeakMap"
               }
             ],
             "identity": [
@@ -42997,7 +43535,11 @@
               },
               {
                 "path": "adapters/host-node/embedded-local-lifecycle.mjs",
-                "anchor": "original.request === request ||"
+                "anchor": "entry.handling.get(original.pending) !== original) preparationChanged();"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Each Host indexes original requests and derived aliases in a private WeakMap"
               }
             ],
             "ownership": [
@@ -43016,6 +43558,10 @@
               {
                 "path": "adapters/host-node/embedded-local-lifecycle.mjs",
                 "anchor": "entry.mockPreparation = view;"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Each Host indexes original requests and derived aliases in a private WeakMap"
               }
             ],
             "synchronization": [
@@ -43026,6 +43572,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Synchronization snapshots each selected method and receiver"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Each Host indexes original requests and derived aliases in a private WeakMap"
               }
             ],
             "failure": [
@@ -43036,6 +43586,10 @@
               {
                 "path": "adapters/host-node/initial-control-shutdown.test.mjs",
                 "anchor": "test('throwing initialization cleanup getters retain the already acquired control holding'"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Each Host indexes original requests and derived aliases in a private WeakMap"
               }
             ],
             "cancellation": [
@@ -43046,6 +43600,10 @@
               {
                 "path": "adapters/host-node/embedded-local-lifecycle.test.mjs",
                 "anchor": "test('final close waits in-flight ingress and dispatch without cancelling a Run'"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Each Host indexes original requests and derived aliases in a private WeakMap"
               }
             ],
             "resources": [
@@ -43060,6 +43618,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Each Host indexes original requests and derived aliases in a private WeakMap"
               }
             ],
             "extension": [
@@ -43070,6 +43632,10 @@
               {
                 "path": "adapters/host-node/installed-project-configuration.mjs",
                 "anchor": "// do not acquire an operational admission by omitting these private inputs."
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Each Host indexes original requests and derived aliases in a private WeakMap"
               }
             ],
             "verification": [
@@ -43088,6 +43654,26 @@
               {
                 "path": "adapters/host-node/host-journal-preparation.test.mjs",
                 "anchor": "fixed Host Journal projection retains one original pair and refuses copies and replacement"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Each Host indexes original requests and derived aliases in a private WeakMap"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.test.mjs",
+                "anchor": "test('prepared Request identity lookup and binding use linear counted index work at N and 2N'"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.test.mjs",
+                "anchor": "test('prepared Request aliases refuse cross-request foreign generation and retired rebinding'"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.test.mjs",
+                "anchor": "test('prepared Request cancellation does not retire pending work and settled index records cut heavy references'"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.test.mjs",
+                "anchor": "test('prepared Client pending request index preserves original close drain and retirement order'"
               }
             ]
           }
@@ -43599,6 +44185,72 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "createEmbeddedHostRegistry/init:assertRetainedPreparation/init:assertRetainedPreparation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "// An already admitted Run retains this same Host through graceful drain."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "assertRetainedPreparation(host, installation, generation)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "function retainedRunCurrent(run)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "!liveRuns.has(run)"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "assertRetainedPreparation(host, installation, generation)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "fail('ForeignInstalledSourceProducer');"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Identity validation does not request cancellation or issue a physical stop acknowledgement; existing Run and shutdown owners retain those duties."
+            },
+            "resources": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "resourceRuntime.assertOrdinaryManagedRunCurrent(run.original, run.producer.receipt);"
+              }
+            ],
+            "extension": {
+              "notApplicable": "Private fixed Host/manager correspondence only, not a caller-selected authority or new Resource protocol."
+            },
+            "verification": [
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('graceful drain retains the original Host identity without reopening preparation'"
+              },
+              {
+                "path": "adapters/host-node/client-publication-capacity.test.mjs",
+                "anchor": "test('normal Local close preserves accepted publication through immediate prewait and sibling paths'"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
@@ -43613,7 +44265,7 @@
     {
       "module": "adapters/host-node/entry.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "78dc2438ff88c83d05a439ab1e0ed939327bc1cdbb4f828ab38c39b7e4154732",
+      "sha256": "30a9b3cbb5b562353695a31befb42b32d2f230cf741d79e25c90957bd074cc04",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
@@ -43667,7 +44319,8 @@
             "setup",
             "options",
             "signal",
-            "observer"
+            "observer",
+            "cleanup"
           ],
           "async": false
         },
@@ -43863,6 +44516,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "inputsOutputs": [
@@ -43877,6 +44534,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Program and stage execution"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "identity": [
@@ -43891,6 +44552,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "ownership": [
@@ -43909,6 +44574,10 @@
               {
                 "path": "adapters/host-node/client-values-fragment-capacity.test.mjs",
                 "anchor": "test('execution failure wrapper retains the exact first failure and cleanup handle'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "synchronization": [
@@ -43923,6 +44592,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "failure": [
@@ -43941,6 +44614,10 @@
               {
                 "path": "adapters/host-node/client-values-fragment-capacity.test.mjs",
                 "anchor": "test('execution failure wrapper retains the exact first failure and cleanup handle'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "cancellation": [
@@ -43955,6 +44632,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Program and stage execution"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "resources": [
@@ -43969,6 +44650,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "# Connector ownership and repository layout"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "extension": [
@@ -43983,6 +44668,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Program and stage execution"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "verification": [
@@ -44001,6 +44690,14 @@
               {
                 "path": "adapters/host-node/client-values-fragment-capacity.test.mjs",
                 "anchor": "test('execution failure wrapper retains the exact first failure and cleanup handle'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "adapters/host-node/infer-installed-original-cleanup.test.mjs",
+                "anchor": "Request-owned plain acquired Model"
               }
             ]
           }
@@ -45291,10 +45988,11 @@
     },
     {
       "module": "adapters/host-node/host-journal-directory.mjs",
-      "sha256": "873a8dcfb12d706e3d00fad61164899e1c10403e48c32198ca1523dba355f99e",
+      "sha256": "e20c5da6a6d88364fbe46b2531acfb2d6dba80dfe281965a29f06bd5c5ad48f3",
       "exports": [
         "assertHostJournalDirectoryInspector",
         "createHostJournalDirectoryInspector",
+        "hostJournalDirectoryNative",
         "inspectHostJournalDirectory",
         "inspectHostJournalDirectoryFirstEntry"
       ],
@@ -45359,6 +46057,13 @@
           "name": "fail/fail",
           "parameters": [
             "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "hostJournalDirectoryNative",
+          "parameters": [
+            "inspector"
           ],
           "async": false
         },
@@ -45443,7 +46148,7 @@
             "identity": [
               {
                 "path": "adapters/host-node/host-journal-directory.mjs",
-                "anchor": "apply(weakSet, inspectors, [inspect, freeze({maxEntries, first})]);"
+                "anchor": "apply(weakSet, inspectors, [inspect, freeze({maxEntries, first, native, assertCurrent})]);"
               },
               {
                 "path": "adapters/host-node/native/directory-darwin.c",
@@ -45563,7 +46268,7 @@
             "identity": [
               {
                 "path": "adapters/host-node/host-journal-directory.mjs",
-                "anchor": "apply(weakSet, inspectors, [inspect, freeze({maxEntries, first})]);"
+                "anchor": "apply(weakSet, inspectors, [inspect, freeze({maxEntries, first, native, assertCurrent})]);"
               },
               {
                 "path": "adapters/host-node/native/directory-darwin.c",
@@ -45650,6 +46355,134 @@
               {
                 "path": "adapters/host-node/host-journal-directory.test.mjs",
                 "anchor": "confirmed closes do not refill the captured original inspection allowance"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "hostJournalDirectoryNative"
+          ],
+          "exports": [
+            "hostJournalDirectoryNative"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/host-journal-directory.mjs",
+                "anchor": "export function hostJournalDirectoryNative(inspector)"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "Run reconciliation only observes that execution: it MUST NOT submit or"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/host-journal-directory.mjs",
+                "anchor": "export function hostJournalDirectoryNative(inspector)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const value = compiledRunTokens.get(compiled);"
+              },
+              {
+                "path": "src/run_publication_host/client_source_free_observation.mbt",
+                "anchor": "pub fn client_compiled_local_execution_owner("
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.inc",
+                "anchor": "flock(original->descriptor, LOCK_EX | LOCK_NB)"
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.inc",
+                "anchor": "static napi_value local_fs_lease_receipt("
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "const original = retainRunStateFrame(originalFrame, ref);"
+              },
+              {
+                "path": "adapters/store-local/publication-owner-lease.mjs",
+                "anchor": "call('storeOwnerLeaseReceipt', lease)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "return entry.recoveryReady === true && entry.ownership.priorExecutionStopped(receipt);"
+              },
+              {
+                "path": "adapters/store-local/publication-owner-lease.mjs",
+                "anchor": "if (leaseClose?.outcome !== 'closed')"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "transact('physical_start', 'ClientRunPhysicalStartUnknown'"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "if (facts.journal.observeStoppedLocalExecutionOwner(facts.ref, retained) !== true ||"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/publication-owner-lease.mjs",
+                "anchor": "return undefined;"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "if (stored === undefined) return false;"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "facts.journal.markPhysicalClose(facts.ref, committed ? null : 'failed', retained);"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "The Host MUST distinguish confirmed business outcomes, pending cleanup and"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "This observation issues no cancellation or new start permission. Existing Run control still requires its original cancellation decision and confirmed physical stop."
+            },
+            "resources": [
+              {
+                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "anchor": "ownershipLease: record("
+              },
+              {
+                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "anchor": "ownershipLeaseDescriptors: 2"
+              },
+              {
+                "path": "adapters/store-local/publication-owner-lease.mjs",
+                "anchor": "const close = () => {"
+              }
+            ],
+            "extension": {
+              "notApplicable": "Private extensions of the same Store/Host/Journal and compiled Common originals; no public Run identity, new scheduler, arbitrary liveness callback or replacement resource authority."
+            },
+            "verification": [
+              {
+                "path": "adapters/host-node/client-source-operation.test.mjs",
+                "anchor": "test('local execution owner receipt atomically binds the original start"
+              },
+              {
+                "path": "adapters/host-node/client-source-operation.test.mjs",
+                "anchor": "test('local execution owner receipt rejects foreign and external-work originals"
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem-native.test.mjs",
+                "anchor": "test('Store lease locks the exact retained anchor"
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem-native.test.mjs",
+                "anchor": "test('Store lease rejects replacement of its exact opened anchor"
               }
             ]
           }
@@ -45933,7 +46766,7 @@
     },
     {
       "module": "adapters/host-node/host-journal-native-image.cjs",
-      "sha256": "c98ce4fd86dff2345c681fd6d627d93c07fd3a9fda998d0a77e26446f05b7723",
+      "sha256": "83a0655c8f0c6c080c594d5686c9b8491958c05cf03f6463e53dcbb80bff4881",
       "exports": [
         "commonjs:loadHostJournalDirectoryNative"
       ],
@@ -46368,7 +47201,7 @@
     },
     {
       "module": "adapters/host-node/host-journal-schema-support.cjs",
-      "sha256": "29f17c802b94833db3141020ea99252f4de83025ea31c06758146c918f2c92a2",
+      "sha256": "0ab22360fd986e787e357735c5964d98b574fc49a0cc05b943a56a55b34b4534",
       "exports": [
         "commonjs:sql"
       ],
@@ -46536,7 +47369,7 @@
     },
     {
       "module": "adapters/host-node/host-journal-service-recipe.cjs",
-      "sha256": "f8796b17a4527aec546f701994c36c8a6140e3e5dab30844264fb5aa04f7ff3a",
+      "sha256": "7c2cd39f8bb5f1e8fe7a3217c29b72f251907ba5c867346d7b997faf41d419b3",
       "exports": [
         "commonjs:declareHostJournalServiceRecipe"
       ],
@@ -47864,7 +48697,7 @@
     {
       "module": "adapters/host-node/in-process-client.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "9cbbfec214faab7d629684b1e4c72e16496e12068fa259af2a46427160987e2e",
+      "sha256": "9fa3826469f973110bcaaa68fb5c3b01030bddddcabed05570b6551e30b41994",
       "role": "physical-io",
       "owner": "Existing Client Host admission/read services and physical Node ingress",
       "exports": [
@@ -48214,6 +49047,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "bindManagedComputeRunObservation(prepared, ref) {"
+              },
+              {
+                "path": "adapters/host-node/in-process-client.mjs",
+                "anchor": "// Lookup control is transport-only, not part of the journal's canonical"
               }
             ],
             "ownership": [
@@ -48318,6 +49155,10 @@
               {
                 "path": "adapters/host-node/in-process-result-observation.test.mjs",
                 "anchor": "test('partial or failed rows never fabricate quiescent usage and observation errors preserve rows'"
+              },
+              {
+                "path": "adapters/host-node/in-process-client.mjs",
+                "anchor": "// request snapshot. Keep its handler alive until settlement; an abort"
               }
             ],
             "resources": [
@@ -48408,6 +49249,18 @@
               {
                 "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
                 "anchor": "test('managed usage reader selects only the same admitted Run and releases its installation alias'"
+              },
+              {
+                "path": "adapters/host-node/client-submission.test.mjs",
+                "anchor": "test('public submission lookup keeps live signals outside the canonical request and original identity'"
+              },
+              {
+                "path": "adapters/host-node/client-submission.test.mjs",
+                "anchor": "test('public submission lookup observes later abort after handler settlement without cancelling the original'"
+              },
+              {
+                "path": "adapters/host-node/client-submission.test.mjs",
+                "anchor": "test('public submission lookup preserves sanitized handler rejection when its signal also aborts'"
               }
             ]
           }
@@ -56533,15 +57386,26 @@
     {
       "module": "adapters/host-node/installed-check-environment.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c3fa84178d67197612e9a15dd76f4d4bba78705b522e8de66853c19a86d3e689",
+      "sha256": "7457fc466e808c9c74633171f1db546bf9d71029c93c0fdafb83e1470c1e139c",
       "role": "physical-io",
       "owner": "Existing static checker/Frontend/compiled preparation Owners; no Run permission",
       "exports": [
         "composeInstalledCheckEnvironment",
+        "composeInstalledCheckEnvironmentOriginal",
         "installedCheckEnvironmentInputs",
         "verifyInstalledConnectorBindings"
       ],
       "operations": [
+        {
+          "name": "admitEnvironment",
+          "parameters": [
+            "moon",
+            "wire",
+            "evidenceCid",
+            "body"
+          ],
+          "async": false
+        },
         {
           "name": "admittedDocument",
           "parameters": [
@@ -56561,49 +57425,59 @@
           "async": false
         },
         {
-          "name": "composeInstalledCheckEnvironment/composeInstalledCheckEnvironment",
+          "name": "composeInstalledCheckEnvironmentOriginal",
+          "parameters": [
+            "moon",
+            "baseWire",
+            "sourceWire",
+            "effectWire"
+          ],
+          "async": false
+        },
+        {
+          "name": "composeInstalledCheckEnvironmentOriginal/composeInstalledCheckEnvironmentOriginal",
           "parameters": [
             "key"
           ],
           "async": false
         },
         {
-          "name": "composeInstalledCheckEnvironment/composeInstalledCheckEnvironment#2",
+          "name": "composeInstalledCheckEnvironmentOriginal/composeInstalledCheckEnvironmentOriginal#2",
           "parameters": [
             "section"
           ],
           "async": false
         },
         {
-          "name": "composeInstalledCheckEnvironment/composeInstalledCheckEnvironment#3",
+          "name": "composeInstalledCheckEnvironmentOriginal/composeInstalledCheckEnvironmentOriginal#3",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "composeInstalledCheckEnvironment/composeInstalledCheckEnvironment#4",
+          "name": "composeInstalledCheckEnvironmentOriginal/composeInstalledCheckEnvironmentOriginal#4",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "composeInstalledCheckEnvironment/composeInstalledCheckEnvironment#5",
+          "name": "composeInstalledCheckEnvironmentOriginal/composeInstalledCheckEnvironmentOriginal#5",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "composeInstalledCheckEnvironment/composeInstalledCheckEnvironment#6",
+          "name": "composeInstalledCheckEnvironmentOriginal/composeInstalledCheckEnvironmentOriginal#6",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "composeInstalledCheckEnvironment/composeInstalledCheckEnvironment#7",
+          "name": "composeInstalledCheckEnvironmentOriginal/composeInstalledCheckEnvironmentOriginal#7",
           "parameters": [
             "value"
           ],
@@ -56644,8 +57518,22 @@
         {
           "name": "mergeMembers/mergeMembers",
           "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "mergeMembers/mergeMembers#2",
+          "parameters": [
             "a",
             "b"
+          ],
+          "async": false
+        },
+        {
+          "name": "mergeMembers/mergeMembers#3",
+          "parameters": [
+            "member"
           ],
           "async": false
         },
@@ -56690,19 +57578,23 @@
       "contracts": [
         {
           "operations": [
+            "admitEnvironment",
             "admittedDocument",
             "composeInstalledCheckEnvironment",
-            "composeInstalledCheckEnvironment/composeInstalledCheckEnvironment",
-            "composeInstalledCheckEnvironment/composeInstalledCheckEnvironment#2",
-            "composeInstalledCheckEnvironment/composeInstalledCheckEnvironment#3",
-            "composeInstalledCheckEnvironment/composeInstalledCheckEnvironment#4",
-            "composeInstalledCheckEnvironment/composeInstalledCheckEnvironment#5",
-            "composeInstalledCheckEnvironment/composeInstalledCheckEnvironment#6",
-            "composeInstalledCheckEnvironment/composeInstalledCheckEnvironment#7",
+            "composeInstalledCheckEnvironmentOriginal",
+            "composeInstalledCheckEnvironmentOriginal/composeInstalledCheckEnvironmentOriginal",
+            "composeInstalledCheckEnvironmentOriginal/composeInstalledCheckEnvironmentOriginal#2",
+            "composeInstalledCheckEnvironmentOriginal/composeInstalledCheckEnvironmentOriginal#3",
+            "composeInstalledCheckEnvironmentOriginal/composeInstalledCheckEnvironmentOriginal#4",
+            "composeInstalledCheckEnvironmentOriginal/composeInstalledCheckEnvironmentOriginal#5",
+            "composeInstalledCheckEnvironmentOriginal/composeInstalledCheckEnvironmentOriginal#6",
+            "composeInstalledCheckEnvironmentOriginal/composeInstalledCheckEnvironmentOriginal#7",
             "mergeManifest",
             "mergeManifest/mergeManifest",
             "mergeMembers",
             "mergeMembers/mergeMembers",
+            "mergeMembers/mergeMembers#2",
+            "mergeMembers/mergeMembers#3",
             "refuse/refuse",
             "rejectConflictingSelectors",
             "verifyInstalledConnectorBindings",
@@ -56711,6 +57603,7 @@
           ],
           "exports": [
             "composeInstalledCheckEnvironment",
+            "composeInstalledCheckEnvironmentOriginal",
             "verifyInstalledConnectorBindings"
           ],
           "attributes": {
@@ -56726,6 +57619,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Environment composer retains its same-call body, exact wire and evidence"
               }
             ],
             "inputsOutputs": [
@@ -56740,6 +57637,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Run admission and identity"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Environment composer retains its same-call body, exact wire and evidence"
               }
             ],
             "identity": [
@@ -56754,6 +57655,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Environment composer retains its same-call body, exact wire and evidence"
               }
             ],
             "ownership": [
@@ -56768,6 +57673,10 @@
               {
                 "path": "docs/design/checked-program.md",
                 "anchor": "# Checked Program construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Environment composer retains its same-call body, exact wire and evidence"
               }
             ],
             "synchronization": [
@@ -56824,6 +57733,10 @@
               {
                 "path": "docs/design/checked-program.md",
                 "anchor": "# Checked Program construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Environment composer retains its same-call body, exact wire and evidence"
               }
             ],
             "extension": [
@@ -56838,6 +57751,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Run admission and identity"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Environment composer retains its same-call body, exact wire and evidence"
               }
             ],
             "verification": [
@@ -56848,6 +57765,18 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/installed-check-environment-original.test.mjs",
+                "anchor": "test('composer does not reparse or rehash its own newly encoded Environment'"
+              },
+              {
+                "path": "adapters/host-node/installed-check-environment-original.test.mjs",
+                "anchor": "test('selected Environment original retains the exact runtime, body, wire, CID and admission'"
+              },
+              {
+                "path": "adapters/host-node/installed-check-environment-original.test.mjs",
+                "anchor": "test('external wire encoding, CID and selected admission remain required'"
               }
             ]
           }
@@ -58832,7 +59761,7 @@
     {
       "module": "adapters/host-node/installed-content-run.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a2594293fefe96f0962eaf0446e0c3ce869fb5ab14b5e63585d050fdd9dde94e",
+      "sha256": "ccb0cdf83bf99bd204377dba1f01edc4c74300f44b388939d9ef9def43b28f4e",
       "role": "physical-io",
       "owner": "Existing Content/Reference/completion/publication Owners and physical Store writer",
       "exports": [
@@ -58860,6 +59789,7 @@
             "prepareKeyedManagedRun",
             "borrowKeyedManagedLedger",
             "prepareSerializationManagedRun",
+            "prepareModelManagedRun",
             "retainPreparation"
           ],
           "async": false
@@ -59092,6 +60022,15 @@
           "parameters": [
             "preparedProgram",
             "plan",
+            "sourceCapacity"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeContentRun/installNodeContentRun#11",
+          "parameters": [
+            "preparedProgram",
+            "plan",
             "direct",
             "acquisition",
             "capacity",
@@ -59100,7 +60039,7 @@
           "async": false
         },
         {
-          "name": "installNodeContentRun/installNodeContentRun#11",
+          "name": "installNodeContentRun/installNodeContentRun#12",
           "parameters": [
             "preparedProgram",
             "preparedEffect",
@@ -59117,6 +60056,23 @@
           "name": "installNodeContentRun/installNodeContentRun#2",
           "parameters": [
             "preparedProgram",
+            "plan",
+            "request",
+            "model"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeContentRun/installNodeContentRun#3",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeContentRun/installNodeContentRun#4",
+          "parameters": [
+            "preparedProgram",
             "serializationGraph",
             "request",
             "keyedAcquisition"
@@ -59124,7 +60080,7 @@
           "async": false
         },
         {
-          "name": "installNodeContentRun/installNodeContentRun#3",
+          "name": "installNodeContentRun/installNodeContentRun#5",
           "parameters": [
             "preparedProgram",
             "plan",
@@ -59134,14 +60090,14 @@
           "async": false
         },
         {
-          "name": "installNodeContentRun/installNodeContentRun#4",
+          "name": "installNodeContentRun/installNodeContentRun#6",
           "parameters": [
             "options"
           ],
           "async": false
         },
         {
-          "name": "installNodeContentRun/installNodeContentRun#5",
+          "name": "installNodeContentRun/installNodeContentRun#7",
           "parameters": [
             "preparedProgram",
             "plan",
@@ -59157,14 +60113,7 @@
           "async": true
         },
         {
-          "name": "installNodeContentRun/installNodeContentRun#6",
-          "parameters": [
-            "options"
-          ],
-          "async": false
-        },
-        {
-          "name": "installNodeContentRun/installNodeContentRun#7",
+          "name": "installNodeContentRun/installNodeContentRun#8",
           "parameters": [
             "prepared",
             "plan",
@@ -59177,18 +60126,9 @@
           "async": false
         },
         {
-          "name": "installNodeContentRun/installNodeContentRun#8",
-          "parameters": [
-            "options"
-          ],
-          "async": false
-        },
-        {
           "name": "installNodeContentRun/installNodeContentRun#9",
           "parameters": [
-            "preparedProgram",
-            "plan",
-            "sourceCapacity"
+            "options"
           ],
           "async": false
         },
@@ -59256,13 +60196,14 @@
             "installNodeContentRun/installNodeContentRun/recheck/recheck",
             "installNodeContentRun/installNodeContentRun/recheckBinding/recheckBinding",
             "installNodeContentRun/installNodeContentRun/verifyRead/verifyRead",
+            "installNodeContentRun/installNodeContentRun#10",
             "installNodeContentRun/installNodeContentRun#2",
             "installNodeContentRun/installNodeContentRun#3",
-            "installNodeContentRun/installNodeContentRun#4",
             "installNodeContentRun/installNodeContentRun#5",
             "installNodeContentRun/installNodeContentRun#6",
             "installNodeContentRun/installNodeContentRun#7",
             "installNodeContentRun/installNodeContentRun#8",
+            "installNodeContentRun/installNodeContentRun#9",
             "installNodeContentRun/run/run"
           ],
           "exports": [
@@ -59709,7 +60650,7 @@
         },
         {
           "operations": [
-            "installNodeContentRun/installNodeContentRun#9"
+            "installNodeContentRun/installNodeContentRun#11"
           ],
           "exports": [],
           "attributes": {
@@ -59869,7 +60810,7 @@
         },
         {
           "operations": [
-            "installNodeContentRun/installNodeContentRun#10"
+            "installNodeContentRun/installNodeContentRun#12"
           ],
           "exports": [],
           "attributes": {
@@ -60053,7 +60994,7 @@
         },
         {
           "operations": [
-            "installNodeContentRun/installNodeContentRun#11"
+            "installNodeContentRun/installNodeContentRun#4"
           ],
           "exports": [],
           "attributes": {
@@ -68541,8 +69482,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "src/client_local_host/installed_mock_model_run.mbt",
-                "anchor": "pub fn begin_installed_mock_model_managed_run("
+                "path": "src/client_local_host/preparation_request_model_body.mbt",
+                "anchor": "pub fn[I] prepare_request_model_read_scope("
               },
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
@@ -68551,8 +69492,8 @@
             ],
             "identity": [
               {
-                "path": "src/client_local_host/installed_mock_model_run.mbt",
-                "anchor": "pub fn begin_installed_mock_model_managed_run("
+                "path": "src/client_local_host/preparation_request_model_body.mbt",
+                "anchor": "pub fn[I] prepare_request_model_read_scope("
               }
             ],
             "ownership": [
@@ -68593,8 +69534,8 @@
                 "anchor": "###### Ordinary Host composition"
               },
               {
-                "path": "src/client_local_host/installed_mock_model_run.mbt",
-                "anchor": "pub fn begin_installed_mock_model_managed_run("
+                "path": "src/client_local_host/preparation_request_model_body.mbt",
+                "anchor": "pub fn[I] prepare_request_model_read_scope("
               }
             ],
             "extension": [
@@ -68609,8 +69550,12 @@
                 "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
               },
               {
-                "path": "adapters/host-node/ordinary-source-managed.test.mjs",
-                "anchor": "test('ordinary Mock purpose retains one request original and both real Source children without conversion'"
+                "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
+                "anchor": "test('Local Model retains the exact Request carrier before the actual Host constructor and never issues a standalone Run'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-project-source-managed.test.mjs",
+                "anchor": "test('Project Source distinguishes same-declaration occurrences and preserves pending child custody'"
               }
             ]
           }
@@ -69404,8 +70349,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "src/client_local_host/installed_mock_model_run.mbt",
-                "anchor": "pub fn begin_installed_mock_model_managed_run("
+                "path": "src/client_local_host/preparation_request_model_body.mbt",
+                "anchor": "pub fn[I] prepare_request_model_read_scope("
               },
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
@@ -69418,8 +70363,8 @@
             ],
             "identity": [
               {
-                "path": "src/client_local_host/installed_mock_model_run.mbt",
-                "anchor": "pub fn begin_installed_mock_model_managed_run("
+                "path": "src/client_local_host/preparation_request_model_body.mbt",
+                "anchor": "pub fn[I] prepare_request_model_read_scope("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -69480,8 +70425,8 @@
                 "anchor": "###### Ordinary Host composition"
               },
               {
-                "path": "src/client_local_host/installed_mock_model_run.mbt",
-                "anchor": "pub fn begin_installed_mock_model_managed_run("
+                "path": "src/client_local_host/preparation_request_model_body.mbt",
+                "anchor": "pub fn[I] prepare_request_model_read_scope("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -69504,12 +70449,16 @@
                 "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
               },
               {
-                "path": "adapters/host-node/ordinary-source-managed.test.mjs",
-                "anchor": "test('ordinary Mock purpose retains one request original and both real Source children without conversion'"
+                "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
+                "anchor": "Local Model pending Sources"
               },
               {
                 "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
-                "anchor": "Local Model pending Sources"
+                "anchor": "test('Local Model retains the exact Request carrier before the actual Host constructor and never issues a standalone Run'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-project-source-managed.test.mjs",
+                "anchor": "test('Project Source distinguishes same-declaration occurrences and preserves pending child custody'"
               }
             ]
           }
@@ -69532,8 +70481,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "src/client_local_host/installed_mock_model_run.mbt",
-                "anchor": "pub fn begin_installed_mock_model_managed_run("
+                "path": "src/client_local_host/preparation_request_model_body.mbt",
+                "anchor": "pub fn[I] prepare_request_model_read_scope("
               },
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
@@ -69546,8 +70495,8 @@
             ],
             "identity": [
               {
-                "path": "src/client_local_host/installed_mock_model_run.mbt",
-                "anchor": "pub fn begin_installed_mock_model_managed_run("
+                "path": "src/client_local_host/preparation_request_model_body.mbt",
+                "anchor": "pub fn[I] prepare_request_model_read_scope("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -69608,8 +70557,8 @@
                 "anchor": "###### Ordinary Host composition"
               },
               {
-                "path": "src/client_local_host/installed_mock_model_run.mbt",
-                "anchor": "pub fn begin_installed_mock_model_managed_run("
+                "path": "src/client_local_host/preparation_request_model_body.mbt",
+                "anchor": "pub fn[I] prepare_request_model_read_scope("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -69632,12 +70581,16 @@
                 "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
               },
               {
-                "path": "adapters/host-node/ordinary-source-managed.test.mjs",
-                "anchor": "test('ordinary Mock purpose retains one request original and both real Source children without conversion'"
+                "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
+                "anchor": "Local Model pending Sources"
               },
               {
                 "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
-                "anchor": "Local Model pending Sources"
+                "anchor": "test('Local Model retains the exact Request carrier before the actual Host constructor and never issues a standalone Run'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-project-source-managed.test.mjs",
+                "anchor": "test('Project Source distinguishes same-declaration occurrences and preserves pending child custody'"
               }
             ]
           }
@@ -69660,8 +70613,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "src/client_local_host/installed_mock_model_run.mbt",
-                "anchor": "pub fn begin_installed_mock_model_managed_run("
+                "path": "src/client_local_host/preparation_request_model_body.mbt",
+                "anchor": "pub fn[I] prepare_request_model_read_scope("
               },
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
@@ -69674,8 +70627,8 @@
             ],
             "identity": [
               {
-                "path": "src/client_local_host/installed_mock_model_run.mbt",
-                "anchor": "pub fn begin_installed_mock_model_managed_run("
+                "path": "src/client_local_host/preparation_request_model_body.mbt",
+                "anchor": "pub fn[I] prepare_request_model_read_scope("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -69736,8 +70689,8 @@
                 "anchor": "###### Ordinary Host composition"
               },
               {
-                "path": "src/client_local_host/installed_mock_model_run.mbt",
-                "anchor": "pub fn begin_installed_mock_model_managed_run("
+                "path": "src/client_local_host/preparation_request_model_body.mbt",
+                "anchor": "pub fn[I] prepare_request_model_read_scope("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -69760,12 +70713,16 @@
                 "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
               },
               {
-                "path": "adapters/host-node/ordinary-source-managed.test.mjs",
-                "anchor": "test('ordinary Mock purpose retains one request original and both real Source children without conversion'"
+                "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
+                "anchor": "Local Model pending Sources"
               },
               {
                 "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
-                "anchor": "Local Model pending Sources"
+                "anchor": "test('Local Model retains the exact Request carrier before the actual Host constructor and never issues a standalone Run'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-project-source-managed.test.mjs",
+                "anchor": "test('Project Source distinguishes same-declaration occurrences and preserves pending child custody'"
               }
             ]
           }
@@ -69806,8 +70763,8 @@
             ],
             "identity": [
               {
-                "path": "src/client_local_host/installed_mock_model_run.mbt",
-                "anchor": "pub fn begin_installed_mock_model_managed_run("
+                "path": "src/client_local_host/preparation_request_model_body.mbt",
+                "anchor": "pub fn[I] prepare_request_model_read_scope("
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -69868,8 +70825,8 @@
             ],
             "resources": [
               {
-                "path": "src/client_local_host/installed_mock_model_run.mbt",
-                "anchor": "pub fn begin_installed_mock_model_managed_run("
+                "path": "src/client_local_host/preparation_request_model_body.mbt",
+                "anchor": "pub fn[I] prepare_request_model_read_scope("
               },
               {
                 "path": "src/connectors_builtin_node/client_composed_infer_bridge.mbt",
@@ -76058,7 +77015,7 @@
     {
       "module": "adapters/host-node/local-values-capacity.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "fa2b2de7cb0b3a7d995bf37f7f596c83c48c18ea7d7390e71f6dc7279a335fb6",
+      "sha256": "938687233a985fe3b2ee5906551ed1058f1eb3946dacd71ed817120e7ffd7b31",
       "role": "physical-io",
       "owner": "Existing static checker/Frontend/compiled preparation Owners; no Run permission",
       "exports": [
@@ -83821,7 +84778,7 @@
     },
     {
       "module": "adapters/host-node/node-source-managed-installation.mjs",
-      "sha256": "a183cdfa5782a9212188fe063867ffca22605aceccfea2fb81a595211cc2289c",
+      "sha256": "d95dc348310be3ee12cc518a1590286ecb68a2a1aaa6bbe937085a2f4a2c68f6",
       "exports": [
         "assertManagedComputeInstallationCurrent",
         "assertManagedComputePreparationCurrent",
@@ -107046,7 +108003,6 @@
     },
     {
       "module": "adapters/host-node/ordinary-source-managed.mjs",
-      "sha256": "65e37cb083731767f7aa0d9eea7728e962d66c0eb07651196194776b3179e127",
       "exports": [
         "assertOrdinarySourcePreparationCurrent",
         "prepareOrdinaryProjectSourceManagedInstallation",
@@ -107126,6 +108082,14 @@
           "name": "prepareOrdinaryManagedInstallation/closeChild/work/work",
           "parameters": [],
           "async": true
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/constructRequestDomain",
+          "parameters": [
+            "state",
+            "construct"
+          ],
+          "async": false
         },
         {
           "name": "prepareOrdinaryManagedInstallation/current/current",
@@ -107218,6 +108182,13 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/publicationRunFor",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/readBytes",
           "parameters": [
             "run",
@@ -107254,9 +108225,31 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/registerRequestRun",
+          "parameters": [
+            "run",
+            "construct"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/releaseFinishedProducer/releaseFinishedProducer",
           "parameters": [
             "producer"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/reportCapacityRefusal/reportCapacityRefusal",
+          "parameters": [
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/retainedRunCurrent",
+          "parameters": [
+            "run"
           ],
           "async": false
         },
@@ -107305,6 +108298,11 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/view/init:adoptCapturePreparation/init:adoptCapturePreparation/init:adoptCapturePreparation",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/view/init:adoptContentPreparation/init:adoptContentPreparation",
           "parameters": [
             "prepared",
@@ -107312,6 +108310,11 @@
             "contentPlan",
             "serialization"
           ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:adoptContentPreparation/init:adoptContentPreparation/init:adoptContentPreparation",
+          "parameters": [],
           "async": false
         },
         {
@@ -107353,6 +108356,11 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/view/init:adoptModelPreparation/init:adoptModelPreparation/init:adoptModelPreparation#2",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/view/init:adoptPreparation/init:adoptPreparation",
           "parameters": [
             "prepared",
@@ -107360,6 +108368,11 @@
             "identity",
             "constructInvocation"
           ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:adoptPreparation/init:adoptPreparation/init:adoptPreparation",
+          "parameters": [],
           "async": false
         },
         {
@@ -107557,12 +108570,22 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareContentCompilation/init:prepareContentCompilation/init:prepareContentCompilation",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/view/init:prepareContentGraph/init:prepareContentGraph",
           "parameters": [
             "prepared",
             "request",
             "constructOriginal"
           ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareContentGraph/init:prepareContentGraph/init:prepareContentGraph",
+          "parameters": [],
           "async": false
         },
         {
@@ -107576,6 +108599,11 @@
             "compileOriginal",
             "contentPreparation"
           ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareKeyedContentRun/init:prepareKeyedContentRun/init:prepareKeyedContentRun",
+          "parameters": [],
           "async": false
         },
         {
@@ -107632,6 +108660,11 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelBinding/init:prepareModelBinding/init:prepareModelBinding",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelCompilation/init:prepareModelCompilation",
           "parameters": [
             "prepared",
@@ -107641,13 +108674,24 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelCompilation/init:prepareModelCompilation/init:prepareModelCompilation",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelGraph/init:prepareModelGraph",
           "parameters": [
             "prepared",
             "request",
             "occurrence",
-            "execution"
+            "execution",
+            "serializationGraph"
           ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelGraph/init:prepareModelGraph/init:prepareModelGraph",
+          "parameters": [],
           "async": false
         },
         {
@@ -107662,6 +108706,11 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelMaterials/init:prepareModelMaterials/init:prepareModelMaterials",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelRun/init:prepareModelRun",
           "parameters": [
             "prepared",
@@ -107670,6 +108719,11 @@
             "model",
             "constructPlan"
           ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelRun/init:prepareModelRun/init:prepareModelRun",
+          "parameters": [],
           "async": false
         },
         {
@@ -107737,6 +108791,11 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareSerializationRun/init:prepareSerializationRun/init:prepareSerializationRun",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/view/init:publicationPreparation/init:publicationPreparation",
           "parameters": [
             "prepared"
@@ -107791,6 +108850,22 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/view/init:selectDomainSourceInput/init:selectDomainSourceInput",
+          "parameters": [
+            "prepared",
+            "request",
+            "identity",
+            "stage",
+            "sourceIndex"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:selectDomainSourceInput/init:selectDomainSourceInput/init:selectDomainSourceInput",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/view/init:severPreparation/init:severPreparation",
           "parameters": [
             "prepared",
@@ -107826,6 +108901,7 @@
       "imports": [
         "../../packages/sdk/internal/private-source-preparation.mjs",
         "../host-common/compiler-binding.generated.mjs",
+        "../host-common/diagnostic-observer.mjs",
         "../host-common/runtime-result.mjs",
         "../local-node/request-preparation-adapter.mjs",
         "./client-program-preparation.mjs",
@@ -107872,7 +108948,8 @@
             "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead#3",
             "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead#4",
             "prepareOrdinaryManagedInstallation/view/init:prepareRun/init:prepareRun",
-            "prepareOrdinarySourceManagedInstallation"
+            "prepareOrdinarySourceManagedInstallation",
+            "<module>"
           ],
           "exports": [
             "assertOrdinarySourcePreparationCurrent",
@@ -108647,8 +109724,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "src/client_local_host/installed_mock_model_run.mbt",
-                "anchor": "pub fn begin_installed_mock_model_managed_run("
+                "path": "src/client_local_host/preparation_request_model_body.mbt",
+                "anchor": "pub fn[I] prepare_request_model_read_scope("
               },
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
@@ -108661,12 +109738,16 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_body.mbt",
+                "anchor": "pub fn[I] begin_request_model_managed_run("
               }
             ],
             "identity": [
               {
-                "path": "src/client_local_host/installed_mock_model_run.mbt",
-                "anchor": "pub fn begin_installed_mock_model_managed_run("
+                "path": "src/client_local_host/preparation_request_model_body.mbt",
+                "anchor": "pub fn[I] prepare_request_model_read_scope("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -108675,6 +109756,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_body.mbt",
+                "anchor": "pub fn[I] begin_request_model_managed_run("
               }
             ],
             "ownership": [
@@ -108747,8 +109832,8 @@
                 "anchor": "###### Ordinary Host composition"
               },
               {
-                "path": "src/client_local_host/installed_mock_model_run.mbt",
-                "anchor": "pub fn begin_installed_mock_model_managed_run("
+                "path": "src/client_local_host/preparation_request_model_body.mbt",
+                "anchor": "pub fn[I] prepare_request_model_read_scope("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -108757,6 +109842,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_body.mbt",
+                "anchor": "pub fn[I] begin_request_model_managed_run("
               }
             ],
             "extension": [
@@ -108779,16 +109868,24 @@
                 "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
               },
               {
-                "path": "adapters/host-node/ordinary-source-managed.test.mjs",
-                "anchor": "test('ordinary Mock purpose retains one request original and both real Source children without conversion'"
-              },
-              {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
               },
               {
                 "path": "adapters/host-node/request-content-caller.test.mjs",
                 "anchor": "Request Content manager compiles one original graph"
+              },
+              {
+                "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
+                "anchor": "test('Local Model retains the exact Request carrier before the actual Host constructor and never issues a standalone Run'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-project-source-managed.test.mjs",
+                "anchor": "test('Project Source distinguishes same-declaration occurrences and preserves pending child custody'"
+              },
+              {
+                "path": "adapters/host-node/request-model-plan.test.mjs",
+                "anchor": "test('Request acquired Node Model retains original provider and prefix before same Request module and physical Plan'"
               }
             ]
           }
@@ -108796,8 +109893,10 @@
         {
           "operations": [
             "prepareOrdinaryManagedInstallation/producerForRequest/producerForRequest",
+            "prepareOrdinaryManagedInstallation/registerRequestRun",
             "prepareOrdinaryManagedInstallation/retireInitialPreparation/retireInitialPreparation",
             "prepareOrdinaryManagedInstallation/view/init:adoptPreparation/init:adoptPreparation",
+            "prepareOrdinaryManagedInstallation/view/init:adoptPreparation/init:adoptPreparation/init:adoptPreparation",
             "prepareOrdinaryManagedInstallation/view/init:beforeSourceSnapshot/init:beforeSourceSnapshot/assertOriginalCurrent/assertOriginalCurrent",
             "prepareOrdinaryManagedInstallation/view/init:borrowPreparation/init:borrowPreparation",
             "prepareOrdinaryManagedInstallation/view/init:captureSourceSnapshot/init:captureSourceSnapshot",
@@ -108830,6 +109929,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Fixed Request controls and synchronous domain construction"
               }
             ],
             "inputsOutputs": [
@@ -108852,6 +109955,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Fixed Request controls and synchronous domain construction"
               }
             ],
             "identity": [
@@ -108874,6 +109981,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Fixed Request controls and synchronous domain construction"
               }
             ],
             "ownership": [
@@ -108896,6 +110007,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Fixed Request controls and synchronous domain construction"
               }
             ],
             "synchronization": [
@@ -108918,6 +110033,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Fixed Request controls and synchronous domain construction"
               }
             ],
             "failure": [
@@ -108940,6 +110059,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Fixed Request controls and synchronous domain construction"
               }
             ],
             "cancellation": [
@@ -108962,6 +110085,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Fixed Request controls and synchronous domain construction"
               }
             ],
             "resources": [
@@ -108984,6 +110111,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Fixed Request controls and synchronous domain construction"
               }
             ],
             "extension": [
@@ -109006,6 +110137,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Fixed Request controls and synchronous domain construction"
               }
             ],
             "verification": [
@@ -109024,6 +110159,14 @@
               {
                 "path": "adapters/host-node/content-preparation-retirement.test.mjs",
                 "anchor": "retired keyed Content does not exhaust the unchanged 4096 live-preparation limit"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Fixed Request controls and synchronous domain construction"
+              },
+              {
+                "path": "adapters/host-node/request-domain-preparation.test.mjs",
+                "anchor": "test('Request registration refuses every full or duplicate original before native adoption'"
               }
             ]
           }
@@ -109216,11 +110359,19 @@
         },
         {
           "operations": [
+            "prepareOrdinaryManagedInstallation/constructRequestDomain",
             "prepareOrdinaryManagedInstallation/view/init:adoptCapturePreparation/init:adoptCapturePreparation",
+            "prepareOrdinaryManagedInstallation/view/init:adoptCapturePreparation/init:adoptCapturePreparation/init:adoptCapturePreparation",
             "prepareOrdinaryManagedInstallation/view/init:prepareContentGraph/init:prepareContentGraph",
+            "prepareOrdinaryManagedInstallation/view/init:prepareContentGraph/init:prepareContentGraph/init:prepareContentGraph",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelBinding/init:prepareModelBinding",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelBinding/init:prepareModelBinding/init:prepareModelBinding",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelGraph/init:prepareModelGraph",
-            "prepareOrdinaryManagedInstallation/view/init:prepareModelMaterials/init:prepareModelMaterials"
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelGraph/init:prepareModelGraph/init:prepareModelGraph",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelMaterials/init:prepareModelMaterials",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelMaterials/init:prepareModelMaterials/init:prepareModelMaterials",
+            "prepareOrdinaryManagedInstallation/view/init:selectDomainSourceInput/init:selectDomainSourceInput",
+            "prepareOrdinaryManagedInstallation/view/init:selectDomainSourceInput/init:selectDomainSourceInput/init:selectDomainSourceInput"
           ],
           "exports": [],
           "attributes": {
@@ -109232,6 +110383,10 @@
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
                 "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan, constructInvocation)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Fixed Request controls and synchronous domain construction"
               }
             ],
             "inputsOutputs": [
@@ -109246,6 +110401,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Accounted captured module before Run adoption"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Fixed Request controls and synchronous domain construction"
               }
             ],
             "identity": [
@@ -109256,6 +110415,10 @@
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
                 "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan, constructInvocation)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Fixed Request controls and synchronous domain construction"
               }
             ],
             "ownership": [
@@ -109266,6 +110429,10 @@
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
                 "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan, constructInvocation)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Fixed Request controls and synchronous domain construction"
               }
             ],
             "synchronization": [
@@ -109276,6 +110443,10 @@
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
                 "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan, constructInvocation)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Fixed Request controls and synchronous domain construction"
               }
             ],
             "failure": [
@@ -109286,6 +110457,10 @@
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
                 "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan, constructInvocation)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Fixed Request controls and synchronous domain construction"
               }
             ],
             "cancellation": [
@@ -109296,6 +110471,10 @@
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
                 "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan, constructInvocation)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Fixed Request controls and synchronous domain construction"
               }
             ],
             "resources": [
@@ -109306,6 +110485,10 @@
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
                 "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan, constructInvocation)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Fixed Request controls and synchronous domain construction"
               }
             ],
             "extension": [
@@ -109316,6 +110499,10 @@
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
                 "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan, constructInvocation)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Fixed Request controls and synchronous domain construction"
               }
             ],
             "verification": [
@@ -109330,6 +110517,14 @@
               {
                 "path": "adapters/host-node/request-preparation-parent.test.mjs",
                 "anchor": "test('captured Request constructs its accounted module before original Run adoption on the same borrow'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Fixed Request controls and synchronous domain construction"
+              },
+              {
+                "path": "adapters/host-node/request-domain-preparation.test.mjs",
+                "anchor": "test('Request registration refuses every full or duplicate original before native adoption'"
               }
             ]
           }
@@ -110013,9 +111208,12 @@
         {
           "operations": [
             "prepareOrdinaryManagedInstallation/view/init:adoptContentPreparation/init:adoptContentPreparation",
+            "prepareOrdinaryManagedInstallation/view/init:adoptContentPreparation/init:adoptContentPreparation/init:adoptContentPreparation",
             "prepareOrdinaryManagedInstallation/view/init:adoptModelPreparation/init:adoptModelPreparation",
             "prepareOrdinaryManagedInstallation/view/init:adoptModelPreparation/init:adoptModelPreparation/init:adoptModelPreparation",
-            "prepareOrdinaryManagedInstallation/view/init:prepareModelCompilation/init:prepareModelCompilation"
+            "prepareOrdinaryManagedInstallation/view/init:adoptModelPreparation/init:adoptModelPreparation/init:adoptModelPreparation#2",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelCompilation/init:prepareModelCompilation",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelCompilation/init:prepareModelCompilation/init:prepareModelCompilation"
           ],
           "exports": [],
           "attributes": {
@@ -110203,7 +111401,8 @@
         },
         {
           "operations": [
-            "prepareOrdinaryManagedInstallation/view/init:prepareModelRun/init:prepareModelRun"
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelRun/init:prepareModelRun",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelRun/init:prepareModelRun/init:prepareModelRun"
           ],
           "exports": [],
           "attributes": {
@@ -110308,7 +111507,9 @@
         {
           "operations": [
             "prepareOrdinaryManagedInstallation/view/init:prepareContentCompilation/init:prepareContentCompilation",
-            "prepareOrdinaryManagedInstallation/view/init:prepareSerializationRun/init:prepareSerializationRun"
+            "prepareOrdinaryManagedInstallation/view/init:prepareContentCompilation/init:prepareContentCompilation/init:prepareContentCompilation",
+            "prepareOrdinaryManagedInstallation/view/init:prepareSerializationRun/init:prepareSerializationRun",
+            "prepareOrdinaryManagedInstallation/view/init:prepareSerializationRun/init:prepareSerializationRun/init:prepareSerializationRun"
           ],
           "exports": [],
           "attributes": {
@@ -110492,7 +111693,8 @@
         },
         {
           "operations": [
-            "prepareOrdinaryManagedInstallation/view/init:prepareKeyedContentRun/init:prepareKeyedContentRun"
+            "prepareOrdinaryManagedInstallation/view/init:prepareKeyedContentRun/init:prepareKeyedContentRun",
+            "prepareOrdinaryManagedInstallation/view/init:prepareKeyedContentRun/init:prepareKeyedContentRun/init:prepareKeyedContentRun"
           ],
           "exports": [],
           "attributes": {
@@ -110740,154 +111942,158 @@
         },
         {
           "operations": [
-            "<module>"
+            "prepareOrdinaryManagedInstallation/reportCapacityRefusal/reportCapacityRefusal"
           ],
           "exports": [],
           "attributes": {
             "responsibility": [
               {
-                "path": "docs/design/reference-host.md",
-                "anchor": "The existing Host and Resource Owners acquire actual buffers, files, database"
+                "path": "docs/development.md",
+                "anchor": "For source-free Request preparation, the configured Plan's complete execution"
               },
               {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Selected native Request driver"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Original Request domain construction"
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "if (capacity !== undefined) diagnostic('preparation_capacity_refused', capacity);"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "export async function prepareOrdinarySourceManagedInstallation("
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Selected native Request driver"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Original Request domain construction"
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "function projectCapacityRefusal(moon, result) {"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "state.originals !== originals"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Selected native Request driver"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Original Request domain construction"
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "const capacityRefusals = new WeakMap();"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "child.cleanup = cause?.cleanupHandle;"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Selected native Request driver"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Original Request domain construction"
+                "anchor": "const diagnostic = diagnosticObserver(originals.installation?.authorization?.observe);"
               }
             ],
             "synchronization": [
               {
+                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "anchor": "Promise.resolve().then(() => {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "if (category === 'source_free_capacity_exceeded') {"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "anchor": "// Best-effort diagnostics have no authority over execution. One bounded queue"
+              },
+              {
+                "path": "docs/development.md",
+                "anchor": "uncertain rather than becoming capacity refusals."
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "anchor": "if (closed || active !== undefined && queue.length >= maxQueued) {"
+              },
+              {
+                "path": "docs/development.md",
+                "anchor": "capacity nor authorize a retry. The public submission wire retains its existing"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/development.md",
+                "anchor": "coarse Problem shape; saved older failed Runs keep their original terminal"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/preparation-capacity-refusal.test.mjs",
+                "anchor": "test('only an original typed module capacity refusal becomes an operation refusal'"
+              },
+              {
+                "path": "adapters/host-node/request-preparation-parent.test.mjs",
+                "anchor": "test('normal first Request Plan keeps its original typed row refusal"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "prepareOrdinaryManagedInstallation/publicationRunFor",
+            "prepareOrdinaryManagedInstallation/retainedRunCurrent"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "// An already admitted Run retains this same Host through graceful drain."
+              }
+            ],
+            "inputsOutputs": [
+              {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "if (child.flight !== undefined)"
-              },
+                "anchor": "function retainedRunCurrent(run)"
+              }
+            ],
+            "identity": [
               {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Selected native Request driver"
-              },
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "function retainedRunCurrent(run)"
+              }
+            ],
+            "ownership": [
               {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Original Request domain construction"
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "!liveRuns.has(run)"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "assertRetainedPreparation(host, installation, generation)"
               }
             ],
             "failure": [
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "child.failure = cause;"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Selected native Request driver"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Original Request domain construction"
+                "anchor": "fail('ForeignInstalledSourceProducer');"
               }
             ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "closing = true;"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Selected native Request driver"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Original Request domain construction"
-              }
-            ],
+            "cancellation": {
+              "notApplicable": "Identity validation does not request cancellation or issue a physical stop acknowledgement; existing Run and shutdown owners retain those duties."
+            },
             "resources": [
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "before.size > 1048576n"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Selected native Request driver"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Original Request domain construction"
+                "anchor": "resourceRuntime.assertOrdinaryManagedRunCurrent(run.original, run.producer.receipt);"
               }
             ],
-            "extension": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Selected native Request driver"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Original Request domain construction"
-              }
-            ],
+            "extension": {
+              "notApplicable": "Private fixed Host/manager correspondence only, not a caller-selected authority or new Resource protocol."
+            },
             "verification": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.test.mjs",
-                "anchor": "test('ordinary"
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('graceful drain retains the original Host identity without reopening preparation'"
               },
               {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Selected native Request driver"
-              },
-              {
-                "path": "adapters/host-node/request-content-caller.test.mjs",
-                "anchor": "Request Content manager compiles one original graph"
+                "path": "adapters/host-node/client-publication-capacity.test.mjs",
+                "anchor": "test('normal Local close preserves accepted publication through immediate prewait and sibling paths'"
               }
             ]
           }
         }
       ],
-      "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending."
+      "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
+      "sha256": "0fa1bb536a86af2c8f40eb46beb351ed12685c045fd7f8d43659654156683234"
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",
@@ -115108,7 +116314,7 @@
     },
     {
       "module": "adapters/local-node/request-preparation-adapter.mjs",
-      "sha256": "ef6c46f63a0cda4c660ad8e0c1a0f5367b5831aeacd941ab128656e01b03b866",
+      "sha256": "d4c1f06221d196855216ea5bf55322303e9f07280a5f24fffdc23b169742e7db",
       "exports": [
         "assertRequestPreparationControl",
         "beginRequestInput",
@@ -118775,7 +119981,7 @@
     },
     {
       "module": "adapters/host-node/installed-credential-source-reader.mjs",
-      "sha256": "2ee6349eeab84f91d0d34d24031d6a62e801babd48758632fee7e6b4297e115a",
+      "sha256": "285c2eca6d2008492079b918a7721b2e9d62405f307d5214136fc382c02d38ef",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "C \u2014 existing standard Host Source/Effect service originals",
@@ -118789,6 +119995,13 @@
           "name": "createInstalledCredentialSourceReader",
           "parameters": [
             "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledCredentialSourceReader/createInstalledCredentialSourceReader",
+          "parameters": [
+            "name"
           ],
           "async": false
         },
@@ -118844,77 +120057,10 @@
           "async": true
         },
         {
-          "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:read/init:read/init:read",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:read/init:read/init:read#2",
-          "parameters": [
-            "input"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:read/init:read/init:read#3",
-          "parameters": [
-            "input"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:read/init:read/init:read#4",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:read/init:read/init:read#5",
-          "parameters": [
-            "cause"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:read/init:read/init:read#6",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:requestStop/init:requestStop",
           "parameters": [
             "reason"
           ],
-          "async": false
-        },
-        {
-          "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:requestStop/init:requestStop/failed/failed",
-          "parameters": [
-            "cause"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:requestStop/init:requestStop/init:requestStop",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:requestStop/init:requestStop/init:requestStop#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:requestStop/init:requestStop/init:requestStop#3",
-          "parameters": [
-            "cause"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:requestStop/init:requestStop/settled/settled",
-          "parameters": [],
           "async": false
         },
         {
@@ -119130,7 +120276,8 @@
           "name": "ownMethod",
           "parameters": [
             "value",
-            "name"
+            "name",
+            "optional"
           ],
           "async": false
         },
@@ -119145,7 +120292,6 @@
       "imports": [
         "../host-common/http-exchange.mjs",
         "../host-common/owned-invocation-context.mjs",
-        "../site-node/https-credential-resource.mjs",
         "node:util"
       ],
       "compilerFields": [],
@@ -119153,21 +120299,20 @@
       "contracts": [
         {
           "operations": [
+            "<module>",
             "createInstalledCredentialSourceReader",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/check/check",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/cleanup",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:observe/init:observe",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:read/init:read",
-            "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:read/init:read/init:read",
-            "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:read/init:read/init:read#2",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:requestStop/init:requestStop",
-            "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:requestStop/init:requestStop/init:requestStop",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:retry/init:retry",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/responseCustody/init:retain/init:retain",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/verify/verify",
             "createInstalledCredentialSourceReader/init:retire/init:retire",
-            "fail/fail"
+            "fail/fail",
+            "createInstalledCredentialSourceReader/createInstalledCredentialSourceReader"
           ],
           "exports": [
             "createInstalledCredentialSourceReader",
@@ -119228,7 +120373,7 @@
             "failure": [
               {
                 "path": "adapters/host-node/installed-credential-source-reader.mjs",
-                "anchor": "if (!stopped || readPending || stopPending || pendingCallbacks.size !== 0 || escapedResponseGraph ||"
+                "anchor": "if (!stopped || readPending || pendingCallbacks.size !== 0 || escapedResponseGraph ||"
               },
               {
                 "path": "adapters/host-node/installed-credential-source-reader.test.mjs",
@@ -119238,7 +120383,7 @@
             "cancellation": [
               {
                 "path": "adapters/host-node/installed-credential-source-reader.mjs",
-                "anchor": "if (!stopped || readPending || stopPending || pendingCallbacks.size !== 0 || escapedResponseGraph ||"
+                "anchor": "if (!stopped || readPending || pendingCallbacks.size !== 0 || escapedResponseGraph ||"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -119286,14 +120431,6 @@
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/applySynchronousProjection/applySynchronousProjection",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/callProjection",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/closeTransport",
-            "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:read/init:read/init:read#3",
-            "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:read/init:read/init:read#4",
-            "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:read/init:read/init:read#5",
-            "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:read/init:read/init:read#6",
-            "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:requestStop/init:requestStop/failed/failed",
-            "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:requestStop/init:requestStop/init:requestStop#2",
-            "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:requestStop/init:requestStop/init:requestStop#3",
-            "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:requestStop/init:requestStop/settled/settled",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/preparation/init:retire/init:retire",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/preparation/init:retire/init:retire/init:retire",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence",
@@ -119399,9 +120536,7 @@
           }
         },
         {
-          "operations": [
-            "<module>"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -119457,7 +120592,7 @@
             "failure": [
               {
                 "path": "adapters/host-node/installed-credential-source-reader.mjs",
-                "anchor": "if (!stopped || readPending || stopPending || pendingCallbacks.size !== 0 || escapedResponseGraph ||"
+                "anchor": "if (!stopped || readPending || pendingCallbacks.size !== 0 || escapedResponseGraph ||"
               },
               {
                 "path": "adapters/host-node/installed-credential-source-reader.test.mjs",
@@ -119467,7 +120602,7 @@
             "cancellation": [
               {
                 "path": "adapters/host-node/installed-credential-source-reader.mjs",
-                "anchor": "if (!stopped || readPending || stopPending || pendingCallbacks.size !== 0 || escapedResponseGraph ||"
+                "anchor": "if (!stopped || readPending || pendingCallbacks.size !== 0 || escapedResponseGraph ||"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -120203,7 +121338,7 @@
     },
     {
       "module": "adapters/host-node/installed-host-services.mjs",
-      "sha256": "9297b27b6811b4aa2b0e6b3e03707674afbf1592f757eed0cc6195f537be0c29",
+      "sha256": "86f613556ff3048496fa65b9223ec5fc3bade0906aeb7dd2f2e1e6740da3e60a",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C \u2014 existing standard Host Source/Effect service originals",
@@ -121128,6 +122263,7 @@
       "contracts": [
         {
           "operations": [
+            "<module>",
             "createInstalledHostServices",
             "createInstalledHostServices/current/current",
             "createInstalledHostServices/services/init:createSourceReader/init:createSourceReader",
@@ -121564,9 +122700,7 @@
           }
         },
         {
-          "operations": [
-            "<module>"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -121940,13 +123074,61 @@
     {
       "module": "adapters/host-node/installed-rest-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "80816b9df8462418c1eff31683dc938e8dfba50263471c48092bb15d8889d3b7",
+      "sha256": "c1ce0cb31c0aa7215768a644b989af920b0eedbb86e383486ec51fa8053d7a39",
       "role": "physical-io",
       "owner": "Existing installed Host Source initialization, Credential Site, managed Reader and RowRun Owners; facade retains only its selected original author declaration/service composition.",
       "exports": [
         "createInstalledRestSource"
       ],
       "operations": [
+        {
+          "name": "capturePhysicalTargetConstruction",
+          "parameters": [
+            "sourceInitialization",
+            "moon"
+          ],
+          "async": false
+        },
+        {
+          "name": "capturePhysicalTargetConstruction/capturePhysicalTargetConstruction",
+          "parameters": [
+            "sources",
+            "declared",
+            "physicalTarget"
+          ],
+          "async": false
+        },
+        {
+          "name": "capturePhysicalTargetConstruction/capturePhysicalTargetConstruction/init:capacity/init:capacity",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "capturePhysicalTargetConstruction/capturePhysicalTargetConstruction/init:project/init:project",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "capturePhysicalTargetConstruction/capturePhysicalTargetConstruction/init:project/init:project/init:project",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "capturePhysicalTargetConstruction/capturePhysicalTargetConstruction/init:project/init:project/init:project/init:project",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
+        {
+          "name": "capturePhysicalTargetConstruction/capturePhysicalTargetConstruction/view/view",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
         {
           "name": "cid/cid",
           "parameters": [
@@ -122127,6 +123309,7 @@
       ],
       "imports": [
         "../../packages/sdk/host-port.mjs",
+        "../host-common/runtime-result.mjs",
         "./installed-credential-source-reader.mjs",
         "./installed-host-cleanup.mjs",
         "./installed-host-services.mjs",
@@ -122165,7 +123348,14 @@
             "createInstalledRestSource/load/services/services",
             "createInstalledRestSource/load/targets/targets",
             "createInstalledRestSource/publish",
-            "fail/fail"
+            "fail/fail",
+            "capturePhysicalTargetConstruction",
+            "capturePhysicalTargetConstruction/capturePhysicalTargetConstruction",
+            "capturePhysicalTargetConstruction/capturePhysicalTargetConstruction/init:capacity/init:capacity",
+            "capturePhysicalTargetConstruction/capturePhysicalTargetConstruction/init:project/init:project",
+            "capturePhysicalTargetConstruction/capturePhysicalTargetConstruction/init:project/init:project/init:project",
+            "capturePhysicalTargetConstruction/capturePhysicalTargetConstruction/init:project/init:project/init:project/init:project",
+            "capturePhysicalTargetConstruction/capturePhysicalTargetConstruction/view/view"
           ],
           "exports": [
             "createInstalledRestSource"
@@ -122199,6 +123389,10 @@
               {
                 "path": "adapters/host-node/installed-rest-source.mjs",
                 "anchor": "catalogCid: declared.catalog_cid, originalStringsCid: input.originalStringsCid,"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Standard REST installations hand their complete frozen physical-target DATA"
               }
             ],
             "ownership": [
@@ -122309,6 +123503,14 @@
               {
                 "path": "adapters/host-node/rest-source-initial-material.test.mjs",
                 "anchor": "test('REST authored bounds still refuse above any selected policy before implementation or Site'"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-binding-originals.test.mjs",
+                "anchor": "test('same immutable binding removes generation/hash work without removing Account or Core target observations'"
+              },
+              {
+                "path": "adapters/host-node/rest-source-initial-material.test.mjs",
+                "anchor": "test('standard REST supplies exact immutable target DATA while approval keeps its complete matcher'"
               }
             ]
           }
@@ -124424,6 +125626,319 @@
         }
       ],
       "referenceQualification": "Existing Host responsibility for the frozen capture resource adapter. Source references only; not compiled ABI, physical ACK, normal admission or a new semantic Owner."
+    },
+    {
+      "module": "adapters/host-node/http-request-preparation.mjs",
+      "sha256": "3e4eb3094ebf502781dfbe91f541850e58f174bd6a1eeb32a954f58e6813f62d",
+      "exports": [
+        "installHttpRequestPreparation"
+      ],
+      "operations": [
+        {
+          "name": "installHttpRequestPreparation",
+          "parameters": [
+            "preparation",
+            "registry",
+            "originals"
+          ],
+          "async": false
+        },
+        {
+          "name": "installHttpRequestPreparation/installHttpRequestPreparation",
+          "parameters": [
+            "operation",
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "installHttpRequestPreparation/installHttpRequestPreparation/finish/finish",
+          "parameters": [
+            "terminal"
+          ],
+          "async": false
+        },
+        {
+          "name": "installHttpRequestPreparation/installHttpRequestPreparation/init:beforeReply/init:beforeReply",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installHttpRequestPreparation/installHttpRequestPreparation/init:bindRequest/init:bindRequest",
+          "parameters": [
+            "derived"
+          ],
+          "async": false
+        },
+        {
+          "name": "installHttpRequestPreparation/installHttpRequestPreparation/pending/pending",
+          "parameters": [
+            "resolve"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../../packages/client-wire/index.mjs",
+        "../../packages/sdk/internal/private-source-preparation.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing installed Host Request preparation and HTTP ingress lifecycle",
+      "referenceQualification": "Existing original Request/Host functional responsibilities; component and normal qualification remain separate. No new Resource owner or transport authority.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "installHttpRequestPreparation",
+            "installHttpRequestPreparation/installHttpRequestPreparation",
+            "installHttpRequestPreparation/installHttpRequestPreparation/finish/finish",
+            "installHttpRequestPreparation/installHttpRequestPreparation/init:bindRequest/init:bindRequest",
+            "installHttpRequestPreparation/installHttpRequestPreparation/pending/pending",
+            "installHttpRequestPreparation/installHttpRequestPreparation/init:beforeReply/init:beforeReply"
+          ],
+          "exports": [
+            "installHttpRequestPreparation"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Local and Remote HTTP opening retain the same original Host preparation"
+              },
+              {
+                "path": "adapters/host-node/http-request-preparation.mjs",
+                "anchor": "// Bind an authenticated HTTP input to the installed Host"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/http-request-preparation.mjs",
+                "anchor": "export function installHttpRequestPreparation(preparation, registry, originals)"
+              },
+              {
+                "path": "packages/client-wire/index.mjs",
+                "anchor": "export function prepareClientHostRequest("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "function originalSourceRequest("
+              },
+              {
+                "path": "adapters/host-node/http-request-preparation.mjs",
+                "anchor": "manager.bindSourceRequest(receipt, body, request);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Local and Remote HTTP opening retain the same original Host preparation"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const initialControl = Object.freeze({async close()"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/http-request-preparation.mjs",
+                "anchor": "registry.retainRequest(host, installation, generation, request, pending);"
+              },
+              {
+                "path": "adapters/host-node/http-request-preparation.mjs",
+                "anchor": "manager.assertSourceSnapshotCurrent(receipt);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-http.test.mjs",
+                "anchor": "test('HTTP Request preparation failure cannot dispatch or become a known refusal'"
+              },
+              {
+                "path": "adapters/host-node/http-request-preparation.mjs",
+                "anchor": "if (terminal !== 'failed') throw cause;"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "function observationAttempt("
+              },
+              {
+                "path": "adapters/host-node/client-http.test.mjs",
+                "anchor": "test('cancel and reconcile classify synchronous and asynchronous Host faults'"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "captureSourceSnapshot(receipt, value, snapshot)"
+              },
+              {
+                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "anchor": "export function beginRequestInput("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Local and Remote HTTP opening retain the same original Host preparation"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "return openPreparedInstalledHost(options, 'remote');"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-http.test.mjs",
+                "anchor": "test('HTTP funded snapshot and typed intent retain the same Request and failed cleanup owner'"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.test.mjs",
+                "anchor": "test('Remote constructor failure retains the original cause and retires the same preparation'"
+              },
+              {
+                "path": "adapters/host-node/client-http.test.mjs",
+                "anchor": "test('HTTP publication current refusal keeps its primary and still finishes the original producer'"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/host-node/local-files-native.mjs",
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing installed Local Files and Host native image selection",
+      "exports": [
+        "localProjectFilesystem"
+      ],
+      "operations": [
+        {
+          "name": "localProjectFilesystem",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "localProjectFilesystem"
+          ],
+          "exports": [
+            "localProjectFilesystem"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/local-files-native.mjs",
+                "anchor": "export function localProjectFilesystem()"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "Run reconciliation only observes that execution: it MUST NOT submit or"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/local-files-native.mjs",
+                "anchor": "export function localProjectFilesystem()"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/local-files-native.mjs",
+                "anchor": "process.platform === 'linux' && process.arch === 'x64'"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "return entry.recoveryReady === true && entry.ownership.priorExecutionStopped(receipt);"
+              },
+              {
+                "path": "adapters/store-local/publication-owner-lease.mjs",
+                "anchor": "if (leaseClose?.outcome !== 'closed')"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "transact('physical_start', 'ClientRunPhysicalStartUnknown'"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "if (facts.journal.observeStoppedLocalExecutionOwner(facts.ref, retained) !== true ||"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/publication-owner-lease.mjs",
+                "anchor": "return undefined;"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "if (stored === undefined) return false;"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "facts.journal.markPhysicalClose(facts.ref, committed ? null : 'failed', retained);"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "The Host MUST distinguish confirmed business outcomes, pending cleanup and"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "This observation issues no cancellation or new start permission. Existing Run control still requires its original cancellation decision and confirmed physical stop."
+            },
+            "resources": [
+              {
+                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "anchor": "ownershipLease: record("
+              },
+              {
+                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "anchor": "ownershipLeaseDescriptors: 2"
+              },
+              {
+                "path": "adapters/store-local/publication-owner-lease.mjs",
+                "anchor": "const close = () => {"
+              }
+            ],
+            "extension": {
+              "notApplicable": "Private extensions of the same Store/Host/Journal and compiled Common originals; no public Run identity, new scheduler, arbitrary liveness callback or replacement resource authority."
+            },
+            "verification": [
+              {
+                "path": "adapters/host-node/client-source-operation.test.mjs",
+                "anchor": "test('local execution owner receipt atomically binds the original start"
+              },
+              {
+                "path": "adapters/host-node/client-source-operation.test.mjs",
+                "anchor": "test('local execution owner receipt rejects foreign and external-work originals"
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem-native.test.mjs",
+                "anchor": "test('Store lease locks the exact retained anchor"
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem-native.test.mjs",
+                "anchor": "test('Store lease rejects replacement of its exact opened anchor"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Actual source syntax and owner references only; no runtime/platform or whole-distribution acceptance is inferred.",
+      "sha256": "ad0183807b617627f9942145233dffdcbf4e9ea3c61b721f25d32aef2361acf6"
     }
   ],
   "generated": [],
@@ -124436,10 +125951,10 @@
     "Whole-distribution or installed-cohort completion"
   ],
   "counts": {
-    "modules": 185,
-    "operations": 4776,
-    "exports": 1121,
-    "explicitContractGroups": 495
+    "modules": 188,
+    "operations": 4882,
+    "exports": 1134,
+    "explicitContractGroups": 506
   },
   "scope": "The original supplied modules and explicitly added Project Task/profile installation modules are source/reference facets, not a reassignment of Coordinator/Transfer, process, Connector, Credential, Store or semantic implementation ownership."
 }

@@ -295,7 +295,7 @@ class LocalSubmissionLookupTests(unittest.TestCase):
             self.assertEqual(result, {'kind': 'ready', 'submissionRef': reference,
                 'intentCid': 'sha256:' + 'e' * 64, 'admission': admission})
             self.assertEqual(counters['produce'], 1)
-            self.assertEqual(counters['validate'], 3)
+            self.assertEqual(counters['validate'], 2)
             self.assertFalse(host._projections)
             self.assertFalse(host._append_sources)
             self.assertFalse(any(family in ('program', 'compute', 'publication')
@@ -429,7 +429,7 @@ class LocalSubmissionLookupTests(unittest.TestCase):
             self.assertIs(host._projections[-1], output)
             self.assertFalse(host._run_loans)
             self.assertFalse(host._prepared_inputs)
-            self.assertEqual(counts, {'produce': 1, 'validate': 3})
+            self.assertEqual(counts, {'produce': 1, 'validate': 2})
             self.assertFalse(any(family in ('program', 'compute', 'publication')
                                  for family, _, _ in calls))
             with patch.object(core, 'close_submission_lookup', return_value=False):

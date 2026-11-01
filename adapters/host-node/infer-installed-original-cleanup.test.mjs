@@ -3,23 +3,24 @@
 // Common/compiled Node tests; these fixture sizes are not a numerical profile.
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {openNodeComposedInferProvider} from './infer-operation.mjs';
 import {retainInferOriginalReadInstallation} from './infer-original-installation.mjs';
 const {installNodeInferRun} = await import(process.env.ACTQL_ORIGINAL_CLEANUP_MODULE ??
   './installed-infer-run.mjs');
 
 function fixture({startIssue, stopComplete = true, modelCleanupComplete = true,
   installation = false, readIssue, scopeIssue, waiting=false,
-  authorization='dispatch',cutIssue,afterAuthorize,scopeBindingIssue} = {}) {
+  authorization='dispatch',cutIssue,afterAuthorize,scopeBindingIssue,requestModel=false,serialized=false,prefixWaiting=false,acquired=false,composed=false,preparationBytes=0n,swapFinishedScope=false} = {}) {
   const calls = [], active = {}, read = {}, scope = {}, compiled = {}, consumer = {};
   const preparedProgram = {}, graph = {};
   const runDefinition = {wire: '{"run_id":"original-cleanup"}'};
   const issue = {kind: 'OriginalFixtureBindingRefused'};
   let custody, physicalComplete = false, physicalPending = true, physicalFailure;
   let allowScope = true, stoppedRead = false, settledRead = false;
-  let hostClosing=false,scopeLive=false;
+  let hostClosing=false,scopeLive=requestModel;
   const runtimeView={}, scopeView={};
   let stop = stopComplete, modelCleanup = modelCleanupComplete;
-  let advances=0;
+  let advances=0, prefixReady=false, prefixResume;
   const nextIssue={kind:'NextModelAdvanceFixtureStop'};
   const preparedCallSet={};
   const moon = {
@@ -72,7 +73,9 @@ function fixture({startIssue, stopComplete = true, modelCleanupComplete = true,
       exact(...args);return args[3]===scope&&scopeLive;
     },
     prepareCheckedClientInferNodeReadLayout(...args) {
-      exact(...args); assert.equal(args[3], scope); calls.push('readPrepare');
+      exact(...args); assert.equal(args[3], scope);
+      if(serialized)assert.equal(prefixReady,true,'Read snapshots must follow prefix Ledger mutations');
+      calls.push('readPrepare');
       if (readIssue !== undefined) throw readIssue;
       return read;
     },
@@ -98,7 +101,8 @@ function fixture({startIssue, stopComplete = true, modelCleanupComplete = true,
     finishCheckedClientInferOriginalReadScope(...args) {
       exact(...args); assert.equal(args[3], scope); assert.equal(args[4], true);
       assert.equal(settledRead || installation &&
-        (readIssue !== undefined || scopeBindingIssue !== undefined), true);
+        (readIssue !== undefined || scopeBindingIssue !== undefined ||
+          requestModel && serialized && !requestCarrier.readAttempted), true);
       calls.push('scopeFinish');if(allowScope)scopeLive=false;return allowScope;
     },
   };
@@ -165,6 +169,50 @@ function fixture({startIssue, stopComplete = true, modelCleanupComplete = true,
       response_profile: {}, runtime_artifact_cid: 'runtime', layout_artifact_cid: 'layout',
       program_definition_cid: 'program', parameter_values_cid: 'parameters',
       barrier_cid: 'barrier', prepared_rows: 1n, retained_bytes: 7n, execution_bytes: 5n}}});
+  if (serialized) {
+    selected.serializationGraph = {}; plan.serializationGraph = selected.serializationGraph;
+    control.startCheckedClientGeneratedInferExecution = () => assert.fail('No unowned generated Model execution');
+    control.startCheckedClientOriginalGeneratedInferExecution = () => assertChecked(moon.clientProgramStartOriginalInferExecution());
+  }
+  let sourceLive = composed;
+  const composedStartIssue = new Error('OriginalBeforeComposedDriverEntry');
+  const nativeParent = {}, originalRequest = {}, sourceLedger = {}, source = {}, setup = {}, dag = {}, preparationHolder = {};
+  const acquiredInfer = composed ? {ledger: sourceLedger, managedRun: nativeParent,
+    captured: {capture: {source: () => source, retainTask(actual, index) {
+      assert.strictEqual(actual, dag); assert.equal(index, 0); calls.push('source-borrow');
+    }}}, sourceEvidence: {}, preparedSource: {}} : undefined;
+  if (composed) {
+    selected.occurrence = {};
+    moon.clientProgramAcquisitionCount = () => 1;
+    moon.clientProgramComposedInferLocalProvider = (_occurrence, _open, _issue, _retain, _cleanup, _prefix) => {
+      calls.push('component-construct'); return {};
+    };
+    moon.clientProgramOpenInstalledManagedCaptureHost = (parent, actual, request, sources) => {
+      assert.strictEqual(parent, nativeParent); assert.strictEqual(actual, preparedProgram);
+      assert.strictEqual(request, originalRequest); assert.deepEqual(sources, [source]);
+      calls.push('original-capture-host'); return {$tag: 1, _0: setup};
+    };
+    moon.strategyHostRun = actual => {assert.strictEqual(actual, setup); return dag;};
+    moon.strategyHostStop = actual => {assert.strictEqual(actual, setup); calls.push('dag-stop');};
+    moon.strategyHostCloseOutputs = actual => {assert.strictEqual(actual, setup); calls.push('dag-outputs');};
+    moon.clientProgramPreparationBorrowUsageIsolated = (holder, actualDag) => {
+      assert.strictEqual(holder, preparationHolder); assert.strictEqual(actualDag, dag);
+      calls.push('original-preparation-isolation'); return !sourceLive;
+    };
+    moon.strategyHostUsage = actual => {
+      assert.strictEqual(actual, setup); const usage = Array(13).fill(0n);
+      if (sourceLive) usage[3] = 1n; usage[10] = preparationBytes; return usage;
+    };
+    control.admitComposedInferSources = (_occurrence, captures, evidence) => {
+      assert.deepEqual(captures, [acquiredInfer.captured]);
+      assert.deepEqual(evidence, [acquiredInfer.sourceEvidence]); return {};
+    };
+    control.finishCheckedClientInferOriginalReadScope = (...args) => {
+      exact(...args); assert.strictEqual(args[3], scope); assert.equal(args[4], true);
+      assert.equal(requestCarrier.readAttempted, false); calls.push('scopeFinish');
+      if (sourceLive) return false; scopeLive = false; return true;
+    };
+  }
   let discovered = [];
   const modelController = {discover: () => discovered,
     prime() { assert.fail('fresh original preparation cannot prime restored input'); },
@@ -176,14 +224,47 @@ function fixture({startIssue, stopComplete = true, modelCleanupComplete = true,
       return {observe(){},entry(){},async authorize(){calls.push('authorize');afterAuthorize?.();return {status:authorization};},
         async prepareOriginalResourcesForDispatch(){calls.push('originalCut');if(cutIssue!==undefined)throw cutIssue;}};
     }};
+  const acquiredOriginal = acquired ? {ledger: {}, captured: {}} : undefined;
+  const requestCarrier = {prepared: preparedProgram, control, compiled, runDefinition, graph,
+    originalReadInstallation: selected.originalReadInstallation, scope, scopeFinished: false,
+    read: undefined, readAttempted: false, taken: false,
+    serializationGraph: selected.serializationGraph,
+    contentPreparation: serialized ? {managed: {}} : undefined,
+    budget: {readRetainedBytes: 7n, readExecutionBytes: 5n, modelRetainedBytes: 100n, modelExecutionBytes: 5n}};
+  if (swapFinishedScope) {
+    const finish = control.finishCheckedClientInferOriginalReadScope;
+    control.finishCheckedClientInferOriginalReadScope = (...args) => {
+      const complete = finish(...args);
+      if (complete === true) requestCarrier.scope = {};
+      return complete;
+    };
+  }
+  if (composed) {
+    requestCarrier.managed = {value: nativeParent, request: originalRequest, closed: false};
+    requestCarrier.sourceLedger = sourceLedger;
+    requestCarrier.component = openNodeComposedInferProvider({moon, selected, inputPrefix: {}, deferred: true});
+  }
   const runInfer = installNodeInferRun({moon, core: {publicationControl: control},
-    selections: new Map([[preparedProgram, selected]]), modelController});
-  const input = {preparedProgram, plan, originalPreparation,
+    selections: new Map([[preparedProgram, selected]]), modelController,
+    runContent: !serialized ? undefined : {async generate({retainExecution, acquiredContent}) {
+      assert.equal(acquiredContent, acquiredOriginal);
+      assert.equal(requestCarrier.read, undefined); calls.push('prefix'); let held=true;
+      retainExecution({async cleanup() {held=false;calls.push('prefix-cleanup');return true;},cleanupPending:()=>held});
+      if(prefixWaiting)await new Promise(resolve=>{prefixResume=resolve;});
+      prefixReady=true; return {generation:{},sourceEvidence:[]};
+    }},
+    prepareOriginalModelRun: !requestModel ? undefined : (p, originalPlan, originalSelected) => {
+      assert.equal(p, preparedProgram); assert.equal(originalPlan, plan); assert.equal(originalSelected, selected);
+      return requestCarrier;
+    }});
+  const input = {preparedProgram, plan, originalPreparation, acquiredContent: acquiredOriginal, acquiredInfer,
+    preparationHolder: composed ? preparationHolder : undefined,
     signal: new AbortController().signal,
     retainExecution(value) { assert.equal(custody, undefined); custody = value; },
-    beginPhysicalWork() { if(!waiting)assert.fail('refused execution cannot begin physical work');calls.push('physicalBegin'); }};
+    beginPhysicalWork() { if (composed) {calls.push('physicalBegin'); throw composedStartIssue;} if(!waiting)assert.fail('refused execution cannot begin physical work');calls.push('physicalBegin'); }};
   if (installation) delete input.originalPreparation;
-  return {run: () => runInfer(input), input, issue, nextIssue, calls, originalPreparation, selected, control,
+  return {run: () => runInfer(input), input, issue, nextIssue, calls, originalPreparation, selected, control, requestCarrier, composedStartIssue,
+    releaseOriginalSource() {sourceLive = false; calls.push('source-close');},
     custody: () => custody,
     physical(complete, pending = !complete) { physicalComplete = complete; physicalPending = pending; },
     failPhysical(error) { physicalFailure = error; },
@@ -191,6 +272,7 @@ function fixture({startIssue, stopComplete = true, modelCleanupComplete = true,
     modelStopped(value) { stop = value; },
     modelClean(value) { modelCleanup = value; },
     hostClosing(value){hostClosing=value;},
+    finishPrefix(){assert.equal(typeof prefixResume,'function');prefixResume();},
     existing(value) { discovered = value; }};
 }
 
@@ -534,4 +616,112 @@ test('installed original cleanup fixes the original record across an awaited phy
   assert.equal(await closed, true);
   assert.equal(f.calls.filter(call => call === 'readSettle').length, 1);
   assert.equal(f.calls.filter(call => call === 'scopeFinish').length, 1);
+});
+
+
+test('Request-owned installed Model reuses its adopted Scope and retains original read until physical cleanup', async () => {
+  const f = fixture({installation: true, requestModel: true, modelCleanupComplete: false});
+  await assert.rejects(f.run(), typed(f.issue));
+  assert.equal(f.calls.includes('scopeBegin'), false);
+  assert.equal(f.requestCarrier.read, f.originalPreparation.read);
+  assert.equal(f.requestCarrier.readAttempted, true); assert.equal(f.requestCarrier.taken, true);
+  await assert.rejects(f.custody().close(), {code: 'ClientDispatchCleanupPending'});
+  assert.equal(f.requestCarrier.scopeFinished, false); assert(f.requestCarrier.read);
+  f.modelClean(true); assert.equal(await f.custody().cleanup(), true);
+  assert.equal(f.requestCarrier.read, undefined); assert.equal(f.requestCarrier.scopeFinished, true);
+  assert.equal(f.calls.filter(value => value === 'readPrepare').length, 1);
+  assert.equal(f.calls.filter(value => value === 'scopeFinish').length, 1);
+});
+
+test('Request-owned installed Model keeps failed read or Scope binding on the same carrier without independent admission', async () => {
+  for (const phase of ['readIssue', 'scopeBindingIssue']) {
+    const primary = new Error('original Request ' + phase);
+    const f = fixture({installation: true, requestModel: true, [phase]: primary});
+    await assert.rejects(f.run(), cause => cause === primary);
+    assert.equal(f.calls.includes('scopeBegin'), false); assert.equal(f.requestCarrier.taken, true);
+    assert.equal(f.requestCarrier.read, undefined); assert.equal(f.requestCarrier.scopeFinished, false);
+    f.scopeAllowed(false); assert.equal(await f.custody().cleanup(), false);
+    assert.equal(f.requestCarrier.scopeFinished, false);
+    f.scopeAllowed(true); assert.equal(await f.custody().cleanup(), true);
+    assert.equal(f.requestCarrier.scopeFinished, true); assert.equal(f.calls.includes('unownedStart'), false);
+  }
+});
+
+
+test('Request-owned serialized Model issues read after the same prefix and retains both cleanup duties', async () => {
+  const f = fixture({installation: true, requestModel: true, serialized: true});
+  await assert.rejects(f.run(), typed(f.issue));
+  assert.equal(f.calls.includes('scopeBegin'), false);
+  assert(f.calls.indexOf('prefix') < f.calls.indexOf('readPrepare'));
+  assert.equal(f.requestCarrier.readAttempted, true); assert(f.requestCarrier.read);
+  assert.equal(await f.custody().cleanup(), true);
+  assert(f.calls.indexOf('prefix-cleanup') < f.calls.indexOf('scopeFinish'));
+  assert.equal(f.requestCarrier.scopeFinished, true); assert.equal(f.requestCarrier.read, undefined);
+});
+
+test('Request-owned serialized Model cleanup during prefix await cannot start an unowned or replacement Model', async () => {
+  const f = fixture({installation: true, requestModel: true, serialized: true, prefixWaiting: true});
+  const running = f.run(); assert(f.custody());
+  assert.equal(await f.custody().close(), true); assert.equal(f.requestCarrier.scopeFinished, true);
+  assert.equal(f.requestCarrier.readAttempted, false);
+  f.finishPrefix(); await assert.rejects(running, /InstalledInferOriginalPreparationRetired/);
+  assert.equal(f.calls.includes('scopeBegin'), false); assert.equal(f.calls.includes('readPrepare'), false);
+  assert.equal(f.calls.includes('originalStart'), false); assert.equal(f.calls.includes('unownedStart'), false);
+});
+
+
+test('Request-owned acquired serialized Model forwards same captured Content before original read and separate Scope cleanup', async () => {
+  const f = fixture({installation: true, requestModel: true, serialized: true, acquired: true});
+  await assert.rejects(f.run(), typed(f.issue));
+  assert.equal(f.calls.includes('scopeBegin'), false);
+  assert(f.calls.indexOf('prefix') < f.calls.indexOf('readPrepare'));
+  assert.equal(f.requestCarrier.readAttempted, true);
+  assert.equal(await f.custody().cleanup(), true);
+  assert(f.calls.indexOf('prefix-cleanup') < f.calls.indexOf('scopeFinish'));
+});
+
+
+test('Request-owned plain acquired Model reuses its prepared component and adopted capture Host and waits for original Source before Scope finish', async () => {
+  const f = fixture({installation: true, requestModel: true, composed: true});
+  await assert.rejects(f.run(), error => error === f.composedStartIssue);
+  assert.deepEqual(f.calls.filter(value => value === 'component-construct'), ['component-construct']);
+  assert.equal(f.calls.includes('scopeBegin'), false);
+  assert.equal(f.requestCarrier.taken, true);
+  assert.equal(f.requestCarrier.readAttempted, false);
+  assert(f.calls.indexOf('original-capture-host') < f.calls.indexOf('source-borrow'));
+  assert(f.calls.indexOf('source-borrow') < f.calls.indexOf('physicalBegin'));
+  assert.equal(await f.custody().close(), false);
+  assert.equal(f.requestCarrier.scopeFinished, false);
+  assert.equal(f.custody().cleanupPending(), true);
+  f.releaseOriginalSource();
+  assert.equal(await f.custody().cleanup(), true);
+  assert.equal(f.requestCarrier.scopeFinished, true);
+  assert.equal(f.calls.includes('readPrepare'), false);
+  assert.equal(f.calls.includes('originalStart'), false);
+  assert.equal(f.calls.includes('unownedStart'), false);
+});
+
+
+test('Request-owned plain acquired Model cleanup isolates only its original preparation debit after actual Source and output cleanup', async () => {
+  const f = fixture({installation: true, requestModel: true, composed: true, preparationBytes: 64n});
+  await assert.rejects(f.run(), error => error === f.composedStartIssue);
+  assert.equal(await f.custody().close(), false);
+  assert.equal(f.requestCarrier.scopeFinished, false);
+  f.releaseOriginalSource();
+  assert.equal(await f.custody().cleanup(), true);
+  assert.equal(f.requestCarrier.scopeFinished, true);
+  assert.equal(f.calls.filter(value => value === 'original-preparation-isolation').length, 1);
+  assert(f.calls.indexOf('dag-outputs') < f.calls.indexOf('original-preparation-isolation'));
+  assert.equal(f.custody().cleanupPending(), false);
+});
+
+
+test('Request Model Scope cleanup does not acknowledge a carrier changed by the original finish callback or repeat its consumed finish', async () => {
+  const f = fixture({installation: true, requestModel: true, swapFinishedScope: true});
+  await assert.rejects(f.run(), typed(f.issue));
+  await assert.rejects(f.custody().close(), /InvalidInstalledRequestModelPreparation/);
+  assert.equal(f.requestCarrier.scopeFinished, false);
+  await assert.rejects(f.custody().cleanup(), /InvalidInstalledRequestModelPreparation/);
+  assert.equal(f.calls.filter(value => value === 'scopeFinish').length, 1);
+  assert.equal(f.custody().cleanupPending(), true);
 });

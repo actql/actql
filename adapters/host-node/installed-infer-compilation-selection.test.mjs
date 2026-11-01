@@ -76,3 +76,61 @@ test('Host Model admission forwards the same original Request artifact into its 
   f.run(); assert.equal(f.calls.length, 1);
   assert.equal(f.calls[0].compilationOriginal, artifact);
 });
+
+// Actual physical selection statements, explicit immutable occurrence/runtime
+// ports. No Common ABI, parent funding, provider IO or normal Host is supplied.
+function inputSelectionFixture({acquisitions = 1, managed = true, physical = true, serialized = false} = {}) {
+  const nodes = [];
+  const walk = node => {
+    if (!node || typeof node !== 'object') return;
+    nodes.push(node);
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(walk); else if (value && typeof value === 'object') walk(value);
+    }
+  };
+  walk(tree);
+  const declarations = nodes.filter(node => node.type === 'VariableDeclaration');
+  const segment = declarations.find(node => node.declarations[0]?.id?.name === 'segments' &&
+    source.slice(node.start, node.end).includes('serializationGraph !== undefined'));
+  const suffix = declarations.find(node => node.start > segment.start &&
+    node.declarations[0]?.id?.name === 'computeSuffix');
+  assert(segment); assert(suffix);
+  const deferred = declarations.find(node => node.declarations[0]?.id?.name === 'deferredModelInput');
+  const body = (deferred ? source.slice(deferred.start, deferred.end) : '') +
+    source.slice(segment.start, suffix.end) + ';return {segments, computeSuffix};';
+  const prepared = {}, occurrence = {}, prefix = {}, suffixValue = {}, serializationGraph = serialized ? {} : undefined;
+  const calls = [], error = new Error('OriginalUnbackedInputSegmentConstructor');
+  const moon = {clientProgramAcquisitionCount(p) {assert.equal(p, prepared); return acquisitions;},
+    clientProgramPrepareComposedInferSegments(...args) {
+      assert.equal(args[0], prepared); assert.equal(args[1], occurrence); calls.push('segments');
+      if (acquisitions === 1 && managed && physical && !serialized) throw error;
+      return {prefix, suffix: suffixValue};
+    },
+    clientProgramPrepareComposedInferComputeSuffix(...args) {
+      assert.equal(args[0], prepared); assert.equal(args[1], occurrence); calls.push('Content suffix'); return suffixValue;
+    }};
+  const ports = {preparation: managed ? {} : undefined, physical: physical ? {originalReadInstallation: {}} : {},
+    preparedProgram: prepared, occurrence, serializationGraph, effectGraph: undefined, step: 2,
+    prepareSubmit: {kindOf: () => 'effect_free'}, moon, registry: {}, values: {}, fragment: {}, ordered: {},
+    checked: value => value, runtimeField: (value, index) => index === 1 ? value.suffix : value.prefix,
+    runtimeOptionalField: (value, index) => value === undefined ? undefined : index === 0 ? value.prefix : value.suffix};
+  const select = Function(...Object.keys(ports), body)(...Object.values(ports));
+  return {select, calls, prefix, suffix: suffixValue, error};
+}
+
+test('managed acquired Node Model defers input segments to its same Request module before any standalone constructor', () => {
+  const f = inputSelectionFixture();
+  assert.deepEqual(f.select, {segments: undefined, computeSuffix: undefined});
+  assert.deepEqual(f.calls, []);
+});
+
+test('existing sourcefree legacy and serialized Model segment selection keep their actual original ports', () => {
+  for (const options of [{acquisitions: 0}, {managed: false}, {physical: false}]) {
+    const f = inputSelectionFixture(options);
+    assert.equal(f.select.segments.prefix, f.prefix); assert.equal(f.select.computeSuffix, f.suffix);
+    assert.deepEqual(f.calls, ['segments']);
+  }
+  const content = inputSelectionFixture({serialized: true});
+  assert.equal(content.select.segments, undefined); assert.equal(content.select.computeSuffix, content.suffix);
+  assert.deepEqual(content.calls, ['Content suffix']);
+});

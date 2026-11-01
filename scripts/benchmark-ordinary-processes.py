@@ -28,7 +28,7 @@ EXPECTED = [{'id': 1}]
 SQL = 'SELECT 1 AS id'
 FIXTURE = (SQL + '\n[{"id":1}]\n').encode()
 OPERATIONS = ('first-init', 'cold-existing', 'warm-select', 'warm-result', 'warm-status',
-              'warm-join', 'warm-decimal-sum')
+              'warm-join', 'warm-union', 'warm-decimal-sum', 'warm-parameters', 'warm-unicode')
 SMALL_QUERIES = {
     'warm-join': dict(operation='warm-join',
         text="WITH lhs AS (SELECT 1 AS id), rhs AS (SELECT 1 AS id, 'joined' AS label) "
@@ -39,6 +39,12 @@ SMALL_QUERIES = {
              "UNION ALL SELECT CAST('2.50' AS DECIMAL(8,2)) AS amount "
              "UNION ALL SELECT CAST('0.25' AS DECIMAL(8,2)) AS amount) "
              'SELECT SUM(amount) AS total FROM items', expected=[dict(total='4.00')]),
+    'warm-union': dict(operation='warm-union',
+        text='WITH items AS (SELECT 2 AS id UNION ALL SELECT 1 AS id) '
+             'SELECT id FROM items |> ASSERT UNIQUE BY (id) |> ORDER BY id', expected=[dict(id=1), dict(id=2)]),
+    'warm-parameters': dict(operation='warm-parameters', text='SELECT @id AS id',
+        options=dict(parameters=dict(id=7), parameterDeclarations=dict(id=dict(type='number'))), expected=[dict(id=7)]),
+    'warm-unicode': dict(operation='warm-unicode', text="SELECT 'é😀' AS label", expected=[dict(label='é😀')]),
 }
 
 
@@ -168,7 +174,7 @@ def command(executable, args, cwd, output, name):
     stdout = (output / (name + '.stdout')).read_bytes()
     stderr = (output / (name + '.stderr')).read_bytes()
     assert len(stdout) + len(stderr) <= 4 * 1024 * 1024, 'Bounded command output exceeded'
-    record = dict(pid=process.pid, code=code, wallNs=ended-started,
+    record = dict(pid=process.pid, code=code, wallNs=ended-started, startedNs=started, endedNs=ended,
                 cpuUserUs=round(usage.ru_utime*1e6), cpuSystemUs=round(usage.ru_stime*1e6),
                 cpuScope='waited child and its waited descendants; unrelated/orphan CPU excluded',
                 childReportedMaximumRssBytes=usage.ru_maxrss * (1024 if sys.platform == 'linux' else 1),
@@ -244,17 +250,20 @@ def python_failure(error):
 def python_sample(config):
     """Only public installed SDK methods; private config belongs to this harness."""
     assert Path(sys.prefix).resolve() == Path(config['venv']).resolve(), 'Wrong installed Python interpreter'
+    public_start = time.perf_counter_ns()
     import actql
     assert Path(actql.__file__).resolve().is_relative_to(Path(config['consumer']).resolve())
     client = None
     rows = []
     original = config.get('originalRun')
-    result = dict(pid=os.getpid(), cleanup=dict(closed=False), samples=rows)
+    result = dict(pid=os.getpid(), cleanup=dict(closed=False), samples=rows,
+                  publicTiming=dict(kind='process-result-close', startNs=public_start))
     try:
         client = actql.open(state_dir=Path(config['stateId']))
         if original is None:
             query = client.sql(SQL)
             assert query.all() == EXPECTED
+            result['publicTiming']['observedNs'] = time.perf_counter_ns()
             execution = query.execution
             original = dict(execution.ref)
         else:
@@ -278,7 +287,10 @@ def python_sample(config):
                 if operation == 'warm-select':
                     value = client.sql(SQL).all()
                 elif fixture:
-                    value = client.sql(fixture['text']).all()
+                    options = dict(fixture.get('options', {}))
+                    if 'parameterDeclarations' in options:
+                        options['parameter_declarations'] = options.pop('parameterDeclarations')
+                    value = client.sql(fixture['text'], **options).all()
                 elif operation == 'warm-status':
                     status = execution.status()
                     value = {'status': status.status}
@@ -289,12 +301,18 @@ def python_sample(config):
             except BaseException as error:
                 failure = python_failure(error)
             end = time.perf_counter_ns()
+            if failure is None and 'observedNs' not in result['publicTiming']:
+                result['publicTiming']['observedNs'] = end
             after = resource.getrusage(resource.RUSAGE_SELF)
             row = dict(iteration=iteration, pid=os.getpid(), wallNs=end-start,
                        cpuUserUs=round((after.ru_utime-before.ru_utime)*1e6),
                        cpuSystemUs=round((after.ru_stime-before.ru_stime)*1e6),
                        cpuScope='actual Python SDK process including native threads; other processes excluded',
-                       completed=failure is None, verified=failure is None)
+                       peakRssBytes=after.ru_maxrss * (1024 if sys.platform == 'linux' else 1),
+                       rssScope='actual Python process high-water RSS; not per-operation allocation',
+                       completed=failure is None, verified=failure is None,
+                       publicTiming=dict(kind='public-status' if operation == 'warm-status' else 'public-result',
+                                         startNs=start, observedNs=end, endNs=end))
             if failure:
                 row['error'] = failure
             else:
@@ -307,11 +325,14 @@ def python_sample(config):
         result['failure'] = python_failure(error)
     finally:
         if client:
+            result['publicTiming']['closeStartNs'] = time.perf_counter_ns()
             try:
                 client.close()
                 result['cleanup']['closed'] = True
             except BaseException as error:
                 result['cleanup']['failure'] = python_failure(error)
+            result['publicTiming']['closeEndNs'] = time.perf_counter_ns()
+        result['publicTiming']['endNs'] = time.perf_counter_ns()
         write(Path(config['resultPath']), result)
     return 0 if not result.get('failure') and result['cleanup']['closed'] and all(r['verified'] for r in rows) else 1
 
@@ -553,14 +574,20 @@ def collect_native_operations(args):
             row.update(completed=False,verified=False,error=dict(name=type(error).__name__,message=str(error)))
             raise
         finally:
-            row['wallNs'] = time.perf_counter_ns()-start
+            end = time.perf_counter_ns()
+            row['wallNs'] = end-start
             record = row.get('command')
             if record:
                 row.update(pid=record['pid'],childWallNs=record['wallNs'],cpuUserUs=record['cpuUserUs'],
-                    cpuSystemUs=record['cpuSystemUs'],cpuScope=record['cpuScope'])
+                    cpuSystemUs=record['cpuSystemUs'],cpuScope=record['cpuScope'],
+                    peakRssBytes=record['childReportedMaximumRssBytes'], rssScope=record['memoryScope'])
+                if row.get('verified'):
+                    row['publicTiming'] = dict(kind='cli-result-exit', startNs=start,
+                        exitNs=row['exitObservedNs'], observedNs=end, endNs=end)
 
     def invoke(row, arguments, name):
         record = command(executable,arguments,state,output,name)
+        row['exitObservedNs'] = time.perf_counter_ns()
         row['command'] = record;report['commands'].append(record)
         assert record['code'] == 0, 'Original public command failed; do not retry or resubmit'
         return record
@@ -696,10 +723,15 @@ def collect(args):
                 if observed is not None:
                     observed['wallNs'] = time.perf_counter_ns()-start
                 raise
-            value.update(wallNs=time.perf_counter_ns()-start,
+            end = time.perf_counter_ns()
+            value.update(wallNs=end-start,
                          cpuUserUs=sum(r['cpuUserUs'] for r in value['commands']),
                          cpuSystemUs=sum(r['cpuSystemUs'] for r in value['commands']),
-                         cpuScope='Selected CLI startup through verified output and exit, including waited descendants')
+                         cpuScope='Selected CLI startup through verified output and exit, including waited descendants',
+                         peakRssBytes=max(r['childReportedMaximumRssBytes'] for r in value['commands']),
+                         rssScope='Maximum of actual waited command RSS reports; not sum or acquired allocation',
+                         publicTiming=dict(kind='cli-result-exit', startNs=start,
+                             exitNs=value['commands'][-1]['endedNs'], observedNs=end, endNs=end))
         else:
             venv = Path(args.venv).resolve()
             config = dict(operation=operation, consumer=str(consumer), venv=str(venv), stateId=str(sample_state),
@@ -711,7 +743,8 @@ def collect(args):
             value = json.loads(Path(config['resultPath']).read_text()) if Path(config['resultPath']).exists() else {}
             assert value.get('pid') == record['pid'], 'Actual child PID/receipt missing or different'
             value.update(command=record, wallNs=time.perf_counter_ns()-start,
-                         cpuUserUs=record['cpuUserUs'], cpuSystemUs=record['cpuSystemUs'], cpuScope=record['cpuScope'])
+                         cpuUserUs=record['cpuUserUs'], cpuSystemUs=record['cpuSystemUs'], cpuScope=record['cpuScope'],
+                         peakRssBytes=record['childReportedMaximumRssBytes'], rssScope=record['memoryScope'])
             if record['code'] != 0 or value.get('failure') or not value.get('cleanup', {}).get('closed'):
                 error = ValueError('Public operation or close failed')
                 error.observation = value
@@ -739,7 +772,8 @@ def collect(args):
             else:
                 assert observation['pid'] not in pids, 'Process sample reused a seed/sample PID'
                 pids.add(observation['pid'])
-                row = {**binding, **{k:observation[k] for k in ('pid','wallNs','cpuUserUs','cpuSystemUs','cpuScope')},
+                row = {**binding, **{k:observation[k] for k in ('pid','wallNs','cpuUserUs','cpuSystemUs','cpuScope','peakRssBytes','rssScope')},
+                       **({'publicTiming': observation['publicTiming']} if 'publicTiming' in observation else {}),
                        'iteration':iteration, 'stateId':str(selected), 'completed':True,'verified':True,
                        'actualSha256':digest(wire(expected))}
                 series['samples'].append(row)

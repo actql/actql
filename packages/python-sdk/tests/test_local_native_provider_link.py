@@ -5,12 +5,15 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 import unittest
+import copy
+import os
+from collections import Counter
 from unittest.mock import patch
 
-from actql_sdk._local_distribution import LocalInstallationError
+from actql_sdk._local_distribution import LocalInstallationError, LocalComponentReadCleanupPending
 from actql_sdk._local_engine import (
     _InstalledImageFileInput, _InstalledImageInput, _ORIGINAL_PROVIDER_SYMBOLS,
-    _verify_original_provider_link,
+    _verify_original_provider_link, _verify_loaded_runtime, _InitializationLibraryFiles,
 )
 from actql_sdk._local_native_holding import _NativeHoldingLease
 from actql_sdk._local_image_recipe import _recipe_from_original
@@ -24,6 +27,132 @@ class Library(CDLL):
 
 
 class NativeProviderLinkTests(unittest.TestCase):
+    def test_one_linkage_observation_hashes_each_original_file_once(self):
+        opens, read_bytes, descriptors = Counter(), Counter(), {}
+        physical_open, physical_read = os.open, os.read
+        selected = {str(self.runtime_path), str(self.provider_path)}
+        def opened(path, *args, **options):
+            descriptor = physical_open(path, *args, **options)
+            if str(path) in selected:
+                opens[str(path)] += 1
+                descriptors[descriptor] = str(path)
+            return descriptor
+        def read(descriptor, count):
+            block = physical_read(descriptor, count)
+            if descriptor in descriptors:
+                read_bytes[descriptors[descriptor]] += len(block)
+            return block
+        with patch('actql_sdk._local_distribution.os.open', side_effect=opened), \
+                patch('actql_sdk._local_distribution.os.read', side_effect=read):
+            _verify_original_provider_link(self.image, self.runtime, self.provider)
+        self.assertEqual(opens, {str(self.runtime_path): 1, str(self.provider_path): 1})
+        self.assertEqual(read_bytes, {str(self.runtime_path): len(b'independent runtime library fixture'),
+                                     str(self.provider_path): len(PROVIDER)})
+        self.assertEqual(self.calls, [])
+
+    def test_same_loader_and_holding_link_keep_one_hash_and_close_both_original_fds(self):
+        opened, closed, count = [], [], Counter()
+        real_open, real_close, real_read = os.open, os.close, os.read
+        def acquire(path, *args):
+            descriptor = real_open(path, *args)
+            opened.append(descriptor)
+            return descriptor
+        def read(descriptor, size):
+            block = real_read(descriptor, size)
+            count[descriptor] += len(block)
+            return block
+        def retire(descriptor):
+            closed.append(descriptor)
+            return real_close(descriptor)
+        with patch('actql_sdk._local_distribution.os.open', side_effect=acquire), \
+                patch('actql_sdk._local_distribution.os.read', side_effect=read), \
+                patch('actql_sdk._local_distribution.os.close', side_effect=retire):
+            with _InitializationLibraryFiles(self.recipe, self.runtime_path) as originals:
+                _verify_loaded_runtime(self.image, SimpleNamespace(filename=self.runtime_path, dll=self.runtime),
+                                       _initialization_files=originals)
+                self.holding._verify_library(self.runtime, _installed_image=self.image,
+                                             _initialization_files=originals)
+                self.assertEqual(closed, [])
+                self.assertEqual([os.fstat(fd).st_size for fd in opened],
+                                 [len(b'independent runtime library fixture'), len(PROVIDER)])
+            self.assertEqual(closed, list(reversed(opened)))
+            self.assertEqual([count[fd] for fd in opened],
+                             [len(b'independent runtime library fixture'), len(PROVIDER)])
+        self.assertEqual(self.calls, [])
+        for fd in opened:
+            with self.assertRaises(OSError): os.fstat(fd)
+
+    def test_mutation_or_replacement_during_address_casts_refuses_and_closes_originals(self):
+        from actql_sdk import _local_engine as engine
+        for path in (self.runtime_path, self.provider_path):
+            for replace_file in (False, True):
+                original = path.read_bytes()
+                real_cast = engine.cast
+                called = []
+                def cast_once(*args):
+                    if not called:
+                        called.append(True)
+                        if replace_file:
+                            replacement = path.with_suffix('.new')
+                            replacement.write_bytes(original)
+                            replacement.replace(path)
+                        else:
+                            path.write_bytes(b'x' * len(original))
+                    return real_cast(*args)
+                descriptors = []
+                real_open = os.open
+                def acquire(*args):
+                    fd = real_open(*args); descriptors.append(fd); return fd
+                with self.subTest(path=path, replace_file=replace_file), \
+                        patch('actql_sdk._local_engine.cast', side_effect=cast_once), \
+                        patch('actql_sdk._local_distribution.os.open', side_effect=acquire), \
+                        self.assertRaises(LocalInstallationError):
+                    _verify_original_provider_link(self.image, self.runtime, self.provider)
+                for fd in descriptors:
+                    with self.assertRaises(OSError): os.fstat(fd)
+                path.write_bytes(original)
+        self.assertEqual(self.calls, [])
+
+    def test_copied_foreign_and_retired_initialization_scopes_refuse(self):
+        with _InitializationLibraryFiles(self.recipe, self.runtime_path) as originals:
+            originals.observe(self.recipe, self.runtime_path, provider=True)
+            for scope, recipe, path in ((copy.copy(originals), self.recipe, self.runtime_path),
+                    (originals, replace(self.recipe), self.runtime_path),
+                    (originals, self.recipe, self.runtime_path.with_name('foreign'))):
+                with self.assertRaises(LocalInstallationError):
+                    scope.observe(recipe, path, provider=True)
+        with self.assertRaises(LocalInstallationError):
+            originals.observe(self.recipe, self.runtime_path, provider=True)
+        with self.assertRaises(LocalInstallationError): originals.__enter__()
+
+    def test_linkage_error_and_unconfirmed_file_close_keep_both_causes_and_other_fd_closes(self):
+        opened, closed = [], []
+        real_open, real_close = os.open, os.close
+        cleanup = OSError('original file close unconfirmed')
+        def acquire(*args):
+            fd = real_open(*args); opened.append(fd); return fd
+        def retire(fd):
+            closed.append(fd)
+            if fd == opened[1]: raise cleanup
+            return real_close(fd)
+        self.runtime.actql_native_owned_current = c_void_p()
+        with patch('actql_sdk._local_distribution.os.open', side_effect=acquire), \
+                patch('actql_sdk._local_distribution.os.close', side_effect=retire):
+            with self.assertRaises(LocalComponentReadCleanupPending) as caught:
+                _verify_original_provider_link(self.image, self.runtime, self.provider)
+            pending = caught.exception
+            self.assertIs(pending.cleanup_error, cleanup)
+            self.assertIsInstance(pending.original_error, LocalInstallationError)
+            self.assertEqual(closed, list(reversed(opened)))
+            self.assertEqual(pending.cleanup_descriptor.value, opened[1])
+            with self.assertRaises(RuntimeError): pending.cleanup_descriptor.close()
+            self.assertEqual(closed, list(reversed(opened)))
+            self.assertEqual(os.fstat(opened[1]).st_ino, self.provider_path.stat().st_ino)
+            with self.assertRaises(OSError): os.fstat(opened[0])
+        # This fixture's close explicitly did not execute; preserve production's
+        # uncertain original carrier, and dispose only our known fresh fixture FD.
+        real_close(opened[1])
+
     def setUp(self):
         tmp=TemporaryDirectory();self.addCleanup(tmp.cleanup)
         self.root=Path(tmp.name)/'_wasmtime';self.platform=self.root/'darwin-aarch64'

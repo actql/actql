@@ -20,36 +20,59 @@ async function sample(config) {
   assert(process.send && ['seed', 'cold-existing', 'first-init'].includes(config.operation));
   const cpuStart = process.cpuUsage(), started = process.hrtime.bigint();
   const row = {pid: process.pid, operation: config.operation, stateId: config.stateId,
-    cleanup: {closed: false}, completed: false, verified: false};
+    cleanup: {closed: false}, completed: false, verified: false,
+    stateKind:config.operation==='cold-existing'?'cold-existing-state':config.operation==='seed'?'existing-state-preparation':'cold-new-state',
+    phaseSpans:[],unobservedHostPhases:['initial activation','Request prepare/check/compile/Plan','execution','durable publication'],
+    phaseScope:'Public spans only; activation/preparation remain inside submit, execution/publication inside wait/all-rows, not exclusive internal work'};
+  const begin=name=>{const span={name,clock:'child-monotonic',parent:['product-import','public-open','first-close'].includes(name)?'public-lifecycle':'first-new-query',startNs:Number(process.hrtime.bigint()),endNs:null,completed:false};row.phaseSpans.push(span);return span;};
+  const end=span=>{span.endNs=Number(process.hrtime.bigint());span.completed=true;};
   let client, failure;
   try {
+    const importing=begin('product-import');
     const {open} = await import(pathToFileURL(join(config.consumer, 'node_modules/@actql/node/index.mjs')).href);
-    client = await open({stateDir: config.stateId});
-    const run = config.operation === 'cold-existing' ? await client.attach(config.originalRun)
-      : await client.startSource('SELECT 1 AS id', {format: 'sql', requestId: 'benchmark-original'});
-    if (config.operation === 'cold-existing') assert.deepEqual(run.ref, config.originalRun);
-    else assert.equal((await run.wait()).status, 'succeeded');
-    assert.deepEqual(await run.result('main').all(), expected);
+    end(importing);
+    const opening=begin('public-open');client = await open({stateDir: config.stateId});end(opening);
+    const submitting=begin('new-run-submission');
+    const run = await client.startSource('SELECT 1 AS id', {format:'sql',
+      requestId:config.operation==='seed'?'benchmark-seed':`benchmark-${config.operation}-${config.iteration}`});
+    end(submitting);
     assert(run.ref !== null && typeof run.ref === 'object', 'Public Run reference is required');
-    row.originalRun = run.ref;
+    row.originalRun = run.ref; // Retain the actual new original BEFORE wait.
+    if(config.operation==='cold-existing')assert.notDeepEqual(run.ref,config.originalRun,'Cold-existing must create a NEW Run');
+    const waiting=begin('wait-execution-publication');
+    assert.equal((await run.wait()).status, 'succeeded');end(waiting);
+    const materializing=begin('all-result-rows');
+    assert.deepEqual(await run.result('main').all(), expected);end(materializing);
+    row.firstQueryTiming={clock:'child-monotonic',parent:'public-lifecycle',startNs:submitting.startNs,endNs:materializing.endNs};
+    row.publicTiming = {kind: 'process-result-close', startNs: Number(started),
+      observedNs: Number(process.hrtime.bigint())};
+    // The parent records this notification on its own launch clock. Its IPC
+    // delivery delay is explicit, never subtracted or scaled to child phases.
+    process.send({event:'first-result',pid:process.pid,operation:config.operation,stateId:config.stateId});
     row.actualSha256 = hash(Buffer.from(JSON.stringify(expected)));
   } catch (error) {
     failure = error;
     row.firstFailure = {name: error.name, code: error.code ?? null, message: error.message};
   } finally {
     if (client) {
+      const closing=begin('first-close');
       const closeStart = process.hrtime.bigint();
-      try { await client.close(); row.cleanup.closed = true; }
+      if (row.publicTiming) row.publicTiming.closeStartNs = Number(closeStart);
+      try { await client.close(); row.cleanup.closed = true;end(closing); }
       catch (error) {
         failure ??= error;
         row.cleanup.failure = {name: error.name, code: error.code ?? null, message: error.message};
       }
       row.cleanup.wallNs = Number(process.hrtime.bigint() - closeStart);
+      if (row.publicTiming) row.publicTiming.closeEndNs = Number(process.hrtime.bigint());
     }
     const cpu = process.cpuUsage(), operationCpu = process.cpuUsage(cpuStart);
     row.cpuUserUs = cpu.user; row.cpuSystemUs = cpu.system;
     row.operationCpuUserUs = operationCpu.user; row.operationCpuSystemUs = operationCpu.system;
     row.operationWallNs = Number(process.hrtime.bigint() - started);
+    row.peakRssBytes = process.resourceUsage().maxRSS * 1024;
+    row.rssScope = 'actual child process high-water RSS; not allocation or other-process memory';
+    if (row.publicTiming) row.publicTiming.endNs = Number(started) + row.operationWallNs;
     row.completed = row.verified = !failure && row.cleanup.closed;
     await new Promise((resolve, reject) => process.send(row, error => error ? reject(error) : resolve()));
     process.disconnect();
@@ -58,7 +81,7 @@ async function sample(config) {
 }
 
 async function runChild(config, output, name) {
-  const stdout = [], stderr = [], messages = [];
+  const stdout = [], stderr = [], messages = [], resultNotifications=[];
   let bytes = 0, overflow = false;
   // Do not inherit a profiler, preload or a source/runtime selection override.
   const env = Object.fromEntries(['HOME', 'USER', 'LOGNAME', 'LANG', 'LC_ALL', 'TZ', 'TMPDIR', 'PATH', 'SystemRoot']
@@ -72,7 +95,10 @@ async function runChild(config, output, name) {
     if (bytes <= 256 * 1024) list.push(data); else overflow = true;
   };
   child.stdout.on('data', capture(stdout)); child.stderr.on('data', capture(stderr));
-  child.on('message', value => messages.push(value));
+  child.on('message', value => {
+    if(value?.event==='first-result')resultNotifications.push({value,wallNs:Number(process.hrtime.bigint()-start)});
+    else messages.push(value);
+  });
   const terminal = await new Promise((resolve, reject) => {
     child.once('error', reject); child.once('close', (code, signal) => resolve({code, signal}));
   });
@@ -88,16 +114,23 @@ async function runChild(config, output, name) {
   } catch (error) { if (error.code !== 'ENOENT') throw error; }
   const valid = !overflow && actual?.pid === child.pid && actual?.operation === config.operation &&
     actual?.stateId === config.stateId && integer(actual?.cpuUserUs) && integer(actual?.cpuSystemUs);
-  const verified = valid && stateDirectory?.entryCount > 0 && terminal.code === 0 && terminal.signal === null &&
+  const firstResult=resultNotifications.length===1&&resultNotifications[0].value.pid===child.pid&&
+    resultNotifications[0].value.operation===config.operation&&resultNotifications[0].value.stateId===config.stateId
+    ? resultNotifications[0].wallNs:null;
+  const verified = valid && integer(firstResult) && firstResult<=wallNs && stateDirectory?.entryCount > 0 && terminal.code === 0 && terminal.signal === null &&
     actual.completed === true && actual.verified === true && actual.cleanup?.closed === true &&
     actual.actualSha256 === hash(Buffer.from(JSON.stringify(expected)));
-  const observation = {pid: child.pid, stateId: config.stateId, wallNs, ...terminal, verified,
+  const observation = {pid: child.pid, stateId: config.stateId, wallNs, firstResultNs:firstResult,
+    parentClock:{clock:'parent-elapsed-from-launch',firstResultNs:firstResult,exitNs:wallNs,notificationCount:resultNotifications.length,
+      scope:'Parent launch -> received all-rows notification (includes IPC delivery); parent launch -> natural exit. Neither is a child-clock subtraction.'}, ...terminal, verified,
     completed: verified, overflow, stateDirectory, childObservation: actual,
     cpuUserUs: valid ? actual.cpuUserUs : parentCpu.user,
     cpuSystemUs: valid ? actual.cpuSystemUs : parentCpu.system,
     cpuScope: valid ? 'actual-child-startup-through-close; other processes and post-close reporting/exit excluded'
       : 'collector-process-only; child CPU unavailable',
     childCpuAvailable: valid,
+    ...(actual?.peakRssBytes ? {peakRssBytes: actual.peakRssBytes, rssScope: actual.rssScope} : {}),
+    ...(actual?.publicTiming ? {publicTiming: actual.publicTiming} : {}),
     ...(!verified ? {error: actual?.firstFailure?.message ?? actual?.cleanup?.failure?.message ??
       'Child did not supply a valid verified public completion and awaited close'} : {})};
   await writeFile(join(output, `${name}.json`), JSON.stringify(observation, null, 2) + '\n', {mode: 0o600, flag: 'wx'});
@@ -132,6 +165,7 @@ export async function runNodeProcessBenchmark({manifestPath, consumer, output, c
   const report = {sourceSha: manifest.sourceSha, ...binding, mode, observedEnvironment: environment,
     historyProtocol: protocol, latency: [series], functional: {...binding, rows: []},
     cleanup: {allChildrenExited: false, allOriginalClientsClosed: false}, fullAcceptance: false,
+    phaseQualification:'Public boundary clocks; internal activation/prepare/compile/execution/commit remain unresolved and must not be inferred from enclosing spans',
     qualification: 'Selected process operation only; no OS page-cache eviction or other release gate is inferred.'};
   const save = () => writeFile(join(output, 'measurements.json'), JSON.stringify(report, null, 2) + '\n', {mode: 0o600});
   let originalRun, seed, primary;
@@ -148,7 +182,7 @@ export async function runNodeProcessBenchmark({manifestPath, consumer, output, c
     const count = mode === 'final' ? operationTargets[operation].samples : 3;
     if (!seed || seed.verified) for (let iteration = 0; iteration < count; iteration++) {
       const stateId = operation === 'cold-existing' ? state : join(output, `new-state-${iteration}`);
-      const result = await runChild({operation, consumer, stateId, ...(originalRun ? {originalRun} : {})},
+      const result = await runChild({operation, consumer, stateId, iteration, ...(originalRun ? {originalRun} : {})},
         output, `sample-${iteration}`);
       assert(!pids.has(result.pid), 'A process sample reused another sample/seed PID'); pids.add(result.pid);
       const row = {...identity, iteration, ...result};

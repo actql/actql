@@ -154,9 +154,11 @@ owner in the installed runtime. Local does not load a second Run Host Core
 runtime or recompile the Program to compare CIDs. The separately distributed
 `@actql/run-host-core` keeps its standalone API and private handle custody.
 
-The source-free, single-task Values profile defaults to 100 rows. A Host may
-explicitly select `installation: {valuesMaxRows: 121}` (or `valuesMaxRows` in
-the HTTP Host options), with a positive integer ceiling up to 10000. The
+The source-free Values profile derives its row demand from the checked authored
+input and closed outputs. For a single-task Values Program a Host may explicitly
+select `installation: {valuesMaxRows: 121}` (or `valuesMaxRows` in the HTTP Host
+options), with a positive signed 32-bit integer budget. This representation bound is not
+a workload admission guarantee; there is no separate 10,000-row product cap. The
 already checked Program uses that selected ceiling in compilation,
 compute/import/export capacity and Named Result row-index workspace; cells,
 values, work, wire and the 512 MiB

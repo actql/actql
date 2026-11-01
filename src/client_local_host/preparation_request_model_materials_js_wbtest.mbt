@@ -128,3 +128,75 @@ test "Model binding keeps original Graph and reserves input plus sealed output b
     assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
   }
 }
+
+///|
+test "serialized Model material originals grow on the same Request before Graph and provider readers" {
+  let (parent, input, _) = request_model_input_fixture(with_serialization=true)
+  let holder = borrow_request_model_plan_input(parent, input).unwrap()
+  let capacity = parent.program_capacity.unwrap()
+  let before = @resources.preparation_capacity_working_extents(capacity, input).unwrap()
+  let calls = Ref(0)
+  let observed = Ref(true)
+  prepare_request_model_contract_materials(
+    parent,
+    input,
+    2,
+    index => {
+      observed.val = observed.val &&
+        parent.phase == Selecting &&
+        parent.program_domain_compilation_inputs is None &&
+        parent.program_compilation is None
+      let current = @resources.preparation_capacity_working_extents(
+        capacity, input,
+      ).unwrap()
+      observed.val = observed.val &&
+        current.0 > before.0 &&
+        current.1 > before.1 &&
+        index == calls.val
+      calls.val += 1
+      ["{\"execution\":\"original\"}", "{\"dependency\":\"original\"}"][index]
+    },
+    2,
+  ).unwrap()
+  assert_eq(calls.val, 2)
+  assert_true(observed.val)
+  assert_true(parent.phase == ModelPlanReserved)
+  assert_true(physical_equal(parent.program_capacity.unwrap(), capacity))
+  assert_true(parent.program_domain_compilation_inputs is None)
+  assert_false(@resources.return_preparation_body_borrow(holder).unwrap())
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+test "serialized Model material current refusal precedes original reader and keeps same parent abort" {
+  let armed = Ref(false)
+  let (parent, input, _) = request_model_input_fixture(
+    with_serialization=true,
+    current=() => !armed.val,
+  )
+  let holder = borrow_request_model_plan_input(parent, input).unwrap()
+  let calls = Ref(0)
+  armed.val = true
+  assert_true(
+    prepare_request_model_contract_materials(
+      parent,
+      input,
+      1,
+      _ => {
+        calls.val += 1
+        "{}"
+      },
+      1,
+    )
+    is Err(Preparation(Capacity(_))),
+  )
+  assert_eq(calls.val, 0)
+  assert_true(parent.phase == ProgramBodyFailed)
+  assert_true(parent.program_capacity is Some(_))
+  assert_true(parent.program_compilation is None)
+  armed.val = false
+  assert_false(@resources.return_preparation_body_borrow(holder).unwrap())
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}

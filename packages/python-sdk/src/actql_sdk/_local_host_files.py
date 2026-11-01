@@ -142,8 +142,10 @@ class LocalHostFiles:
                 raise ValueError('Original Local root observation cannot return permission')
             if self._store.observe_generation() != self._generation:
                 raise ValueError('Original Local Host Store generation changed')
-            for value in self._files.values():
-                if self._root.observe_original(value.reader) != value.snapshot:
+            originals = tuple(self._files.values())
+            observed = self._root._observe_originals(tuple(value.reader for value in originals))
+            for value, snapshot in zip(originals, observed, strict=True):
+                if snapshot != value.snapshot:
                     raise ValueError('Original Local Host saved file changed')
 
     def close(self) -> bool:

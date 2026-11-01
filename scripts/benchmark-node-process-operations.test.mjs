@@ -17,22 +17,23 @@ async function fixture(t, {mode = 'diagnostic', operation = 'cold-existing', fai
   // collector PID/state/cleanup behavior, never ordinary product performance.
   const code = Buffer.from(`import assert from 'node:assert/strict';
 import {appendFile,mkdir,readFile,writeFile} from 'node:fs/promises';
+import {createHash} from 'node:crypto';
 export async function open({stateDir}) {
  await mkdir(stateDir,{recursive:true});
  const event=kind=>appendFile(stateDir+'/events',JSON.stringify({kind,pid:process.pid})+'\\n');
  await event('open');
- const ref={namespaceId:'synthetic',authorityScopeCid:'sha256:'+'a'.repeat(64),runDefinitionCid:'sha256:'+'b'.repeat(64)};
+ const ref={namespaceId:'synthetic',authorityScopeCid:'sha256:'+'a'.repeat(64),runDefinitionCid:'sha256:'+createHash('sha256').update(stateDir+process.pid).digest('hex')};
  const run={ref,wait:async()=>({status:'succeeded'}),status:async()=>({status:'succeeded',revision:1}),
   result:()=>({all:async()=>JSON.parse(await readFile(stateDir+'/rows','utf8'))})};
  return {startSource:async(text,options)=>{
   assert.equal(text,'SELECT 1 AS id');assert.equal(options.format,'sql');
-  await event('submit');await writeFile(stateDir+'/rows','[{"id":1}]');return run;},
-  attach:async original=>{
-   await event('attach');assert.deepEqual(original,ref);
-   ${fail === 'unknown' ? "throw new Error('Unknown; no resend');" : ''}
-   ${fail === 'exit' ? 'process.exit(7);' : ''}
-   return run;},
-  sql:text=>({all:async()=>text.includes('JOIN rhs')?[{id:1,label:'joined'}]
+  await event('submit');
+  ${fail === 'unknown' ? "if(options.requestId!=='benchmark-seed')throw new Error('Unknown; no resend');" : ''}
+  ${fail === 'exit' ? "if(options.requestId!=='benchmark-seed')process.exit(7);" : ''}
+  await writeFile(stateDir+'/rows','[{"id":1}]');return run;},
+  attach:async()=>assert.fail('cold-existing must execute a NEW query, never Saved-only'),
+  sql:(text,options)=>({all:async()=>text==='SELECT @id AS id'?(assert.deepEqual(options,{parameters:{id:7},parameterDeclarations:{id:{type:'number'}}}),[{id:7}])
+    :text==="SELECT 'é😀' AS label"?[{label:'é😀'}]:text.includes('JOIN rhs')?[{id:1,label:'joined'}]
     :text.includes('SUM(amount)')?[{total:'4.00'}]
     :text.includes('UNION ALL')?[{id:1},{id:2}]:[{id:1}]}),
   close:async()=>{await event('close');${fail === 'close' ? "throw new Error('cleanup pending');" : ''}}};
@@ -53,7 +54,7 @@ export async function open({stateDir}) {
 }
 const events = async state => (await readFile(join(state, 'events'), 'utf8')).trim().split('\n').map(JSON.parse);
 
-test('cold samples use distinct actual children, same successful saved Run and no new submission', async t => {
+test('cold-existing uses initialized same-candidate state then a distinct NEW Run per actual child', async t => {
   const options = await fixture(t);
   const report = await runNodeProcessBenchmark(options), series = report.latency[0];
   assert.equal(series.samples.length, 3);
@@ -66,9 +67,13 @@ test('cold samples use distinct actual children, same successful saved Run and n
     row.cpuSystemUs >= row.childObservation.operationCpuSystemUs));
   assert(series.samples.every(row => row.cpuScope.includes('startup-through-close')));
   assert(series.samples.every(row => row.wallNs >= row.childObservation.operationWallNs));
+  assert(series.samples.every(row=>row.firstResultNs>0&&row.firstResultNs<=row.wallNs&&row.parentClock.notificationCount===1));
+  assert(series.samples.every(row=>row.childObservation.phaseSpans.map(x=>x.name).join(',')===
+    'product-import,public-open,new-run-submission,wait-execution-publication,all-result-rows,first-close'));
+  assert(series.samples.every(row=>row.childObservation.phaseSpans.every(x=>x.completed&&x.endNs>=x.startNs)));
   const trace = await events(series.samples[0].stateId);
-  assert.equal(trace.filter(row => row.kind === 'submit').length, 1);
-  assert.equal(trace.filter(row => row.kind === 'attach').length, 3);
+  assert.equal(trace.filter(row => row.kind === 'submit').length, 4);
+  assert.equal(trace.filter(row => row.kind === 'attach').length, 0);
   assert.equal(trace.filter(row => row.kind === 'close').length, 4);
   assert.equal(report.cleanup.allChildrenExited, true);
   assert.equal(report.cleanup.allOriginalClientsClosed, true);
@@ -109,8 +114,8 @@ test('Unknown stops after the first actual cold failure and still awaits origina
   assert.match(report.firstFailure.message, /Unknown; no resend/u);
   assert.equal(report.cleanup.allOriginalClientsClosed, true);
   const trace = await events(report.latency[0].samples[0].stateId);
-  assert.equal(trace.filter(row => row.kind === 'submit').length, 1);
-  assert.equal(trace.filter(row => row.kind === 'attach').length, 1);
+  assert.equal(trace.filter(row => row.kind === 'submit').length, 2);
+  assert.equal(trace.filter(row => row.kind === 'attach').length, 0);
   assert.equal(trace.filter(row => row.kind === 'close').length, 2);
 });
 test('a child exit without a receipt stays failed and does not manufacture child CPU or cleanup', async t => {

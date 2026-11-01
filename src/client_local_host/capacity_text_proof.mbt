@@ -89,6 +89,8 @@ fn client_local_scalar_text_inventory(
       guard @lower.sequence_step(original, index) is Some(step) else {
         return None
       }
+      // Count groups only copy checked scalar keys and emit Number counts.
+      // Schemas and typed children remain checked across the complete original sequence.
       let supported = match step {
         @lower.ValuesStep(_) | @lower.AppendStep(_) => true
         @lower.RowStep(kernel) =>
@@ -103,6 +105,7 @@ fn client_local_scalar_text_inventory(
             | @lower.TopK(_, _)
             | @lower.DistinctRows
             | @lower.DedupeRows
+            | @lower.CountGroups(_)
             | @lower.StableSort(_) => true
             // Aggregate private coefficient/workspace limits remain unchanged.
             // Its public rows and every expression still pass the same proof.

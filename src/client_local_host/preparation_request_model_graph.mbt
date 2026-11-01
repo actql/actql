@@ -1,5 +1,5 @@
 ///|
-/// Fund the existing selected Mock Model Graph on its SAME Request before
+/// Fund the selected single Model Graph on its SAME Request before
 /// request/prefix/barrier/suffix/Result construction. Original compiled input
 /// and provider/execution originals remain separate; this grants no Model I/O.
 /// Module/provider/Scope/output/failed-child backing is not inferred from the
@@ -12,6 +12,7 @@ pub fn[I] prepare_request_model_graph(
   contracts : ClientInstalledSequenceContracts,
   manifests~ : @publication_host.ClientCompilationManifests,
   compilation_limits~ : @publication_host.ClientPureCompilationLimits,
+  serialization? : @publication_host.ClientSerializationPlanGraph? = None,
 ) -> Result[
   @publication_host.ClientInferPlanGraph,
   ClientRequestProgramPlanIssue,
@@ -22,24 +23,55 @@ pub fn[I] prepare_request_model_graph(
     owner.compiled_program is Some(prepared) &&
     @publication_host.client_infer_occurrence_matches(occurrence, prepared) &&
     owner.program_capacity is Some(_) &&
-    owner.program_domain_compilation_inputs is None &&
     owner.program_domain_quote is None &&
     owner.program_compilation is None &&
     owner.program_model is None &&
     !owner.program_body_attempted else {
     return Err(Preparation(ForeignOriginal))
   }
-  // Preserve the actual existing Mock entrance's purpose. A serialized or
-  // different provider profile cannot borrow this constructor's backing.
-  if !installed_managed_run_shape_supported(prepared, true) ||
-    !@publication_host.prepared_client_serialization_occurrences(prepared).is_empty() {
-    return Err(Installed(Unsupported))
+  match (serialization, owner.program_domain_compilation_inputs) {
+    (None, None) =>
+      // The same original occurrence selects this construction profile before
+      // its Graph exists. It grants no acquisition, Model read or adoption.
+      if !installed_managed_owner_shape_supported(
+          Pure(prepared),
+          true,
+          model_occurrence=Some(occurrence),
+        ) ||
+        !@publication_host.prepared_client_serialization_occurrences(prepared).is_empty() {
+        return Err(Installed(Unsupported))
+      }
+    (
+      Some(component),
+      Some(
+        RequestSerializationGraph(
+          old_manifests,
+          old_limits,
+          old_contracts,
+          original_component
+        )
+      ),
+    ) => {
+      guard physical_equal(old_manifests, manifests) &&
+        old_limits == compilation_limits &&
+        physical_equal(old_contracts, contracts) &&
+        physical_equal(original_component, component) &&
+        physical_equal(component.owner, prepared) &&
+        component.task ==
+        @publication_host.client_infer_occurrence_coordinates(occurrence).1 &&
+        component.step <
+        @publication_host.client_infer_occurrence_coordinates(occurrence).2 else {
+        return Err(Preparation(ForeignOriginal))
+      }
+    }
+    _ => return Err(Preparation(ForeignOriginal))
   }
   owner.phase = Selecting
   preparation_module_call(
     () => {
       guard @publication_host.prepared_client_infer_graph_measurement_storage(
           occurrence,
+          serialization~,
         )
         is Some(storage) &&
         @execution.preparation_representation_cost(storage)
@@ -61,7 +93,18 @@ pub fn[I] prepare_request_model_graph(
       // envelope already owned by this Request, with the actual call count.
       // These products coexist until issuance, including a refused current.
       // No codec maximum, JS estimate, second policy or new tariff is used.
-      let calls = 2L + (terminal - step).to_int64()
+      let calls = match serialization {
+        None => 2L + (terminal - step).to_int64()
+        Some(component) => {
+          if component.step >= step {
+            return Err(Preparation(Policy))
+          }
+          // One mapping preparation plus each actual Content consumer and
+          // post-Infer Fragment. The component's own lowering is already held
+          // by this SAME Request and is not constructed or priced again.
+          (terminal - component.step).to_int64()
+        }
+      }
       guard @execution.checked_preparation_add_product(
           storage_bytes, variable_data, calls,
         )
@@ -81,6 +124,7 @@ pub fn[I] prepare_request_model_graph(
           100000,
           10000,
           100,
+          serialization~,
         ) {
         Err(issue) => return Err(ModelGraph(issue))
         Ok(value) => value
@@ -115,16 +159,31 @@ pub fn[I] prepare_request_model_graph(
         physical_equal(original, geometry) else {
         return Err(Preparation(ForeignOriginal))
       }
-      let graph = match
-        @publication_host.issue_installed_client_composed_infer_plan_graph(
-          occurrence,
-          execution,
-          @publication_host.prepared_client_values_sequence_limits(prepared),
-          100000,
-          10000,
-          100,
-          construction=Some(original),
-        ) {
+      let issued = match serialization {
+        None =>
+          @publication_host.issue_installed_client_composed_infer_plan_graph(
+            occurrence,
+            execution,
+            @publication_host.prepared_client_values_sequence_limits(prepared),
+            100000,
+            10000,
+            100,
+            construction=Some(original),
+          )
+        Some(component) =>
+          @publication_host.issue_prepared_client_serialized_infer_plan_graph(
+            occurrence,
+            component,
+            execution,
+            @publication_host.prepared_client_values_sequence_limits(prepared),
+            100000,
+            10000,
+            100,
+            include_results=false,
+            construction=Some(original),
+          )
+      }
+      let graph = match issued {
         Err(issue) => return Err(ModelGraph(issue))
         Ok(value) => value
       }

@@ -6,6 +6,9 @@ import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {fileURLToPath} from 'node:url';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
+import {open} from '../../packages/node/index.mjs';
+import {valuesHostPolicyOriginal} from './local-values-capacity.mjs';
+import {openInstalledRemoteHttpHost as openPublicHttpHost} from '../../packages/local-node/http-host.mjs';
 import {connectEmbeddedLocal, openInstalledRemoteHttpHost} from './embedded-local.mjs';
 
 const expected = JSON.parse(await readFile(new URL('./fixtures/read-121.expected.json', import.meta.url), 'utf8'));
@@ -22,14 +25,60 @@ async function invoke(directory, facts, phase) {
   }
 }
 
+test('finite Values policy originals retain represented row budgets without a product ceiling', () => {
+  for (const rows of [10001, 100000, 2147483647]) {
+    const original = valuesHostPolicyOriginal(rows);
+    assert.equal(Object.isFrozen(original), true);
+    assert.equal(JSON.parse(original.wire).max_rows, rows);
+  }
+  for (const rows of [0, -1, 1.5, 2147483648, Infinity]) {
+    assert.throws(() => valuesHostPolicyOriginal(rows), {message: 'InvalidLocalValuesRowLimit'});
+  }
+});
+
 test('invalid explicit row configurations are refused before installing a Host', async () => {
-  for (const valuesMaxRows of [null, 0, -1, 1.5, 10001, NaN, Infinity, '121']) {
+  for (const valuesMaxRows of [null, 0, -1, 1.5, 2147483648, Number.MAX_SAFE_INTEGER, NaN, Infinity, '121']) {
     await assert.rejects(connectEmbeddedLocal({mode: 'local', owner: 'local',
       installation: {valuesMaxRows}}), {message: 'InvalidLocalValuesRowLimit'});
     await assert.rejects(openInstalledRemoteHttpHost({directory: '/unused',
       authenticate: () => 'principal', valuesMaxRows}), {message: 'InvalidLocalValuesRowLimit'});
   }
 });
+
+// This is policy configuration plus a real small Run, not a 100k-row workload.
+for (const valuesMaxRows of [10001, 100000]) {
+  test(`public open accepts explicit ${valuesMaxRows}-row policy through ordinary admission`, async () => {
+    const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-values-policy-',
+      label: 'public Values policy configuration'});
+    let client;
+    try {
+      client = await open({stateDir: scratch.path, installation: {valuesMaxRows}});
+      const run = await client.start({version: 'actql/0.1', id: 'values-policy',
+        stages: [{id: 'main', inputs: {}, steps: [{as: 'input', values: {
+          schema: {id: {type: 'number', nullable: false}}, rows: [{id: 7}],
+        }}], results: {rows: {from: 'input', fields: ['id']}}}],
+        results: {answer: {from: {stage: 'main', result: 'rows'}}}});
+      assert.equal((await run.wait({signal: AbortSignal.timeout(10000)})).status, 'succeeded');
+      assert.deepEqual(await run.result('answer').all(), [{id: 7}]);
+    } finally {
+      await client?.close();
+    }
+    scratch.passed();
+  });
+  test(`HTTP Host accepts explicit ${valuesMaxRows}-row policy at its public installation boundary`, async () => {
+    const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-http-values-policy-',
+      label: 'HTTP Values policy configuration'});
+    let host;
+    try {
+      host = await openPublicHttpHost({directory: scratch.path,
+        authenticate: () => 'principal', valuesMaxRows});
+      assert.equal(typeof host.handler, 'function');
+    } finally {
+      await host?.close();
+    }
+    scratch.passed();
+  });
+}
 
 for (const entrance of ['local', 'https']) {
   test(`${entrance}: installed 121-row Run keeps a 120-row prefix distinct from its original Delivery receipt across process restart`,

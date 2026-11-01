@@ -124,6 +124,7 @@ export function createNodeInProcessClientHost({
   }
   return Object.freeze({async perform(operation, body, signal) {
     try {
+      if (operation === 'lookup-submission') signal?.throwIfAborted();
       // Static preparation probes the same funded-original lookup, even
       // though a plan read has no submission producer or execution grant.
       const tracksSource = bindOwnedRequest !== undefined &&
@@ -196,7 +197,7 @@ export function createNodeInProcessClientHost({
         return handler(own(body, Object.freeze({principalId, connection,
           ...Object.fromEntries(Object.entries(body).filter(([key]) =>
             key !== 'connection')),
-          ...(signal === undefined || ['submit', 'submit-intent', 'submit-named-intent', 'restart-intent'].includes(operation)
+          ...(signal === undefined || ['submit', 'submit-intent', 'submit-named-intent', 'restart-intent', 'lookup-submission'].includes(operation)
             ? {} : {signal}),
           ...(preparedProgram === undefined ? {} : {preparedProgram}),
         })));
@@ -222,7 +223,12 @@ export function createNodeInProcessClientHost({
       }
       if (['submit-intent', 'restart-intent', 'lookup-submission'].includes(operation)) {
         const submitting = operation !== 'lookup-submission';
+        // Lookup control is transport-only, not part of the journal's canonical
+        // request snapshot. Keep its handler alive until settlement; an abort
+        // ends this observation, never the original submitted Run.
+        if (!submitting) signal?.throwIfAborted();
         const answer = await invoke(submitting ? submitIntent : lookupSubmission);
+        if (!submitting) signal?.throwIfAborted();
         const valid = submitting
           ? validSubmissionAttempt(answer, connection, body.submissionRef, body.intentCid, body.attemptRef, body.unresolvedHistory)
           : validSubmissionLookup(answer, connection, body.submissionRef);
