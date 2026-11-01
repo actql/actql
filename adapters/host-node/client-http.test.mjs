@@ -1065,3 +1065,91 @@ test('HTTP read response close releases its original Request when end callback i
       assert.deepEqual(finishes, ['failed']);
     });
   });
+
+// The same whole-handler component, with real ServerResponse callback/close
+// events and explicit delivery/preparation ports; no Result authority is issued.
+async function httpReadEndSettlement(mode) {
+  const createHandler = await httpHandlerWithDeliveryPort();
+  const primary = new Error('OriginalResponseFailure');
+  const late = new Error('LateNativeCallbackFailure');
+  const finishes = [], destroys = [], physicalErrors = [];
+  let originalCallback, nativeCallbacks = 0, responseObject;
+  let ended;
+  const handlerEnded = new Promise(resolve => { ended = resolve; });
+  const handler = createHandler({
+    authenticate: () => 'principal', authorizeConnection: () => true,
+    prepareRequest(_operation, original) {
+      return {body: original, bindRequest() {}, beforeReply() {},
+        finish(terminal) {finishes.push(terminal);}};
+    },
+    resultService: {async deliver(_request, sink) {
+      await sink.write(Buffer.from('{"value":1}\n'));
+      await sink.finish();
+    }},
+  });
+  await withServer((request, response) => {
+    responseObject = response;
+    // Retain the physical error for identity assertions; this fixture owns it.
+    response.on('error', error => { physicalErrors.push(error); });
+    const end = response.end, destroy = response.destroy;
+    response.destroy = function(error) {
+      destroys.push(error);
+      return Reflect.apply(destroy, this, [error]);
+    };
+    response.end = function(...args) {
+      originalCallback = args.at(-1);
+      assert.equal(typeof originalCallback, 'function');
+      if (mode === 'native-ack') {
+        args[args.length - 1] = function(...callbackArgs) {
+          nativeCallbacks++;
+          return Reflect.apply(originalCallback, this, callbackArgs);
+        };
+        return Reflect.apply(end, this, args);
+      }
+      const answer = Reflect.apply(end, this, args.slice(0, -1));
+      if (mode === 'error-first') response.emit('error', primary);
+      return answer;
+    };
+    handler(request, response).then(ended);
+  }, async base => {
+    // Transport failure is not classified as a known refusal or successful
+    // delivery here. The assertions concern the original handler's lifetime.
+    try {
+      const response = await fetch(`${base}/actql/client/0.1/read`, {
+        method: 'POST', headers: {'content-type': 'application/json'},
+        body: JSON.stringify({connection: {mode: 'remote', owner: 'remote',
+          runners: [], consentRefs: []}, ref, resultName: 'answer',
+          format: 'jsonl', attemptId: 'read-end-settlement'}),
+        signal: AbortSignal.timeout(2000),
+      });
+      await response.arrayBuffer();
+    } catch {}
+    await handlerEnded;
+    await new Promise(resolve => setImmediate(resolve));
+    assert.deepEqual(finishes, [mode === 'native-ack' ? 'returned' : 'failed']);
+    assert.equal(nativeCallbacks, mode === 'native-ack' ? 1 : 0);
+    assert.equal(responseObject.listenerCount('close'), 0);
+    assert.equal(responseObject.listenerCount('error'), 1); // Only fixture owner.
+    if (mode === 'error-first') assert.strictEqual(destroys[0], primary);
+    if (mode !== 'native-ack') {
+      const before = [...destroys];
+      // Deliberately late/duplicate callbacks are fault DATA after physical
+      // close and original lifetime settlement, never a synthetic native ACK.
+      originalCallback();
+      originalCallback(late);
+      await new Promise(resolve => setImmediate(resolve));
+      assert.deepEqual(finishes, ['failed']);
+      assert.deepEqual(destroys, before);
+    }
+    return {finishes, physicalErrors};
+  });
+}
+
+test('HTTP read native end callback ACK releases its Request and listeners',
+  {timeout: 10000}, () => httpReadEndSettlement('native-ack'));
+
+test('HTTP read close rejects once and ignores late duplicate end callbacks',
+  {timeout: 10000}, () => httpReadEndSettlement('close-first'));
+
+test('HTTP read response error retains its primary through close and late callbacks',
+  {timeout: 10000}, () => httpReadEndSettlement('error-first'));
