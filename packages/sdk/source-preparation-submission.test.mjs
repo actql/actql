@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {connectInProcess, getSubmissionInput, getSubmissionOutcome} from './index.mjs';
 import {sourcePreparationPort} from './internal/private-source-preparation.mjs';
+import {freezeInput} from './internal/data.mjs';
 import {submissionEpoch, originalSubmission, readySubmissionAttempt} from './submission-fixture.mjs';
 
 // Explicit Source receiver/Host doubles; these tests do not issue operational
@@ -141,6 +142,88 @@ test('one original receipt binds the synchronous frozen snapshot and exact trans
   assert.deepEqual(execution.ref, admission.ref);
   assert.equal(Object.getOwnPropertySymbols(packet).length, 0);
   assert.equal(Object.hasOwn(packet, 'sourceProducer'), false);
+});
+
+test('submission wrapper shares SDK frozen input without a second deep traversal', async t => {
+  const receipt = {}, visits = new Map();
+  const input = Object.freeze({rows: Array.from({length: 1000}, (_, id) =>
+    ({id, values: [null, 'e\u0301', id]}))});
+  const parameters = {options: {labels: ['\r\n', 'é']}};
+  const consentRefs = ['original-consent'];
+  let body, sends = 0;
+  const remember = value => {
+    if (value === null || typeof value !== 'object') return;
+    visits.set(value, 0);
+    for (const key of Object.keys(value)) remember(value[key]);
+  };
+  const receiver = {
+    beforeSourceSnapshot() {return receipt;},
+    assertSourceSnapshotCurrent(original) {assert.strictEqual(original, receipt);},
+    captureSourceSnapshot(original, value, snapshot) {
+      assert.strictEqual(original, receipt);
+      const captured = snapshot(value);
+      remember(captured.input); remember(captured.parameters);
+      return captured;
+    },
+    bindSourceSnapshot(original, value) {assert.strictEqual(original, receipt); body = value;},
+    publishSourceSnapshot() {}, bindSourceRequest() {}, finishSourceProducer() {},
+    intentCid() {return cid('d');},
+  };
+  const client = await connectInProcess({mode: 'local', owner: 'local', consentRefs}, {
+    [sourcePreparationPort]: receiver,
+    async perform(operation, packet) {
+      if (operation === 'connect') return profile;
+      assert.equal(operation, 'submit-intent'); sends++;
+      return readySubmissionAttempt(packet, admission);
+    },
+  });
+  t.after(() => client.close());
+  const values = Object.values;
+  let pending, settled;
+  try {
+    Object.values = value => {
+      if (visits.has(value)) visits.set(value, visits.get(value) + 1);
+      return values(value);
+    };
+    pending = client.start(input, {parameters,
+      submissionRef: originalSubmission('single-body-freeze')});
+    settled = pending.then(value => ({value}), error => ({error}));
+    const publicInput = getSubmissionInput(pending);
+    assert.strictEqual(publicInput.input, body.input);
+    assert.strictEqual(publicInput.parameters, body.parameters);
+    assert.notStrictEqual(publicInput.input, input);
+    assert.equal(Object.isFrozen(publicInput), true);
+    assert.equal(Object.isFrozen(publicInput.lookupContext), true);
+    assert.equal(Object.isFrozen(publicInput.connection), true);
+    assert.equal(Object.isFrozen(publicInput.connection.consentRefs), true);
+    assert.equal(Object.isFrozen(publicInput.connection.runners), true);
+    assert.equal(visits.size, 2005);
+    for (const [value, count] of visits) {
+      assert.equal(Object.isFrozen(value), true);
+      assert.equal(count, 1, 'SDK-owned body descendants must not be recursively frozen twice');
+    }
+    input.rows[0].values[1] = 'caller mutation';
+    parameters.options.labels[0] = 'caller mutation';
+    consentRefs.push('later-consent');
+    assert.equal(publicInput.input.rows[0].values[1], 'e\u0301');
+    assert.equal(publicInput.parameters.options.labels[0], '\r\n');
+    assert.deepEqual(publicInput.connection.consentRefs, ['original-consent']);
+  } finally {Object.values = values;}
+  const result = await settled;
+  assert.equal(result.error, undefined);
+  assert.strictEqual(getSubmissionInput(result.value), getSubmissionInput(pending));
+  assert.equal(sends, 1);
+});
+
+test('external shallow freeze cannot skip deep protection of mutable descendants', () => {
+  const child = {values: [null, {text: 'e\u0301'}]};
+  const external = Object.freeze({child});
+  assert.equal(Object.isFrozen(child), false);
+  assert.strictEqual(freezeInput(external), external);
+  assert.equal(Object.isFrozen(child), true);
+  assert.equal(Object.isFrozen(child.values), true);
+  assert.equal(Object.isFrozen(child.values[1]), true);
+  assert.throws(() => {child.values[1].text = 'changed';}, TypeError);
 });
 
 test('failed producer cleanup retains original Unknown and retries only alias retirement on close', async () => {

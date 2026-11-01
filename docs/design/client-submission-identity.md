@@ -58,6 +58,14 @@ identity must not be presented as a Run-definition CID before a Run exists.
 
 ## Admission and custody
 
+The SDK captures and deeply freezes the original submitted body before
+publishing it. Its public snapshot shares those exact input and parameter
+subtrees in a shallow-frozen wrapper. The connection owner freezes its captured
+wire and scalar arrays; the SDK freezes the new lookup context separately.
+Constructing the wrapper does not traverse the submitted body again. External
+input still takes full capture and deep protection, including mutable children
+of a caller's shallow-frozen object.
+
 The Common input preparation can consume the admitted intent together with its
 same immutable canonical value and bounded decoder view. An already canonical
 input reuses its original parsed source; differently spelled input retains the

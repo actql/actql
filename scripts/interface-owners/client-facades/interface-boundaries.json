@@ -12509,7 +12509,7 @@
     {
       "module": "packages/sdk/internal/submission-observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "df2eb5e63adcbd6ae1da74438123ba2f078786d32652cdafbf192e02c93d3102",
+      "sha256": "a62955507ee19e11cb19613dd910a321df7f5d44aeeaad0b5d2512c9da8a4942",
       "exports": [
         "RequestHeld",
         "createSubmissionOperations",
@@ -13235,6 +13235,10 @@
               {
                 "path": "docs/design/client-submission-identity.md",
                 "anchor": "## Scoped durable request names"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "Its public snapshot shares those exact input and parameter"
               }
             ],
             "synchronization": [
@@ -13331,6 +13335,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "payloads, Result readers/frames, actual native/managed controls, failed"
+              },
+              {
+                "path": "packages/sdk/internal/submission-observation.mjs",
+                "anchor": "// The body is already SDK-deep-frozen."
               }
             ],
             "extension": [
@@ -13383,6 +13391,14 @@
               {
                 "path": "packages/sdk/named-submission.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "packages/sdk/source-preparation-submission.test.mjs",
+                "anchor": "submission wrapper shares SDK frozen input without a second deep traversal"
+              },
+              {
+                "path": "packages/sdk/source-preparation-submission.test.mjs",
+                "anchor": "external shallow freeze cannot skip deep protection of mutable descendants"
               }
             ]
           }
