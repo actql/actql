@@ -153,7 +153,8 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
   const producerForRequest = request => {
     const producer = requestProducers.get(request)?.deref();
     return !closing && !closed && producer !== undefined && producers.has(producer) &&
-      producer.request === request && !producer.finished ? producer : undefined;
+      receipts.get(producer.receipt) === producer && producer.request === request &&
+      !producer.finished ? producer : undefined;
   };
   const current = () => {
     if (closing || closed) fail('SourceManagedPreparationUnavailable');
@@ -528,7 +529,8 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
     bindSourceRequest(receipt, body, request) {
       current(); const producer = producerFor(receipt);
       if (producer.body !== body || producer.request !== undefined || producer.finished ||
-          request === null || typeof request !== 'object' || requestProducers.has(request)) {
+          request === null || (typeof request !== 'object' && typeof request !== 'function') ||
+          requestProducers.has(request)) {
         fail('ForeignInstalledSourceProducer');
       }
       requestProducers.set(request, new WeakRef(producer));
