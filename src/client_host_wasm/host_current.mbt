@@ -85,13 +85,39 @@ fn host_current_observation(
   value : Instance,
   record : StoredHostCurrent,
 ) -> Result[@host.ClientLocalAdoptionCurrentObservation[Ref[Int]], Int] {
+  // These closed physical functions belong to this SAME retained record and
+  // original Instance. No external caller supplies observation reuse ports.
+  let current = () => host_current_physical(value, record)
+  host_current_observe_original(
+    record,
+    () => host_current_checked_operation(value, record),
+    current,
+    cursor => {
+      physical_journal_row(
+        record.physical,
+        current,
+        0,
+        "client_local_adoption",
+        cursor,
+      )
+    },
+  )
+}
+
+///|
+fn host_current_observe_original(
+  record : StoredHostCurrent,
+  checked_operation : () -> Result[Int64, Int],
+  current : () -> Result[Unit, Int],
+  select_row : (String) -> Result[@host.ClientJournalPhysicalRow?, Int],
+) -> Result[@host.ClientLocalAdoptionCurrentObservation[Ref[Int]], Int] {
   guard record.account is Some(account) &&
     record.account_original is Some(original) &&
     record.adoption_original is Some(expected) &&
     record.generation is Some(generation) else {
     return Err(-33)
   }
-  let operation = match host_current_checked_operation(value, record) {
+  let operation = match checked_operation() {
     Ok(value) => value
     Err(code) => return Err(code)
   }
@@ -99,7 +125,7 @@ fn host_current_observation(
     record.original_adoption_row is Some(row) {
     // Common still compares full original row/account/generation and decides
     // each protected operation. Only immutable already-admitted DATA is reused.
-    match host_current_checked_operation(value, record) {
+    match checked_operation() {
       Ok(after) if after == operation =>
         return Ok(
           @host.Observed(record.store, account, original, row, generation),
@@ -111,15 +137,7 @@ fn host_current_observation(
     }
   }
   record.observed_operation = 0L
-  let current = () => host_current_physical(value, record)
-  let row = match
-    physical_journal_row(
-      record.physical,
-      current,
-      0,
-      "client_local_adoption",
-      "",
-    ) {
+  let row = match select_row("") {
     Ok(None) => return Ok(@host.NotAdopted)
     Ok(Some(row)) => row
     Err(code) => return Err(code)
@@ -127,14 +145,7 @@ fn host_current_observation(
   if row.key != "adoption" || row.revision != 0L || row.body != expected {
     return Err(-32)
   }
-  match
-    physical_journal_row(
-      record.physical,
-      current,
-      0,
-      "client_local_adoption",
-      "adoption",
-    ) {
+  match select_row("adoption") {
     Ok(None) => ()
     Ok(Some(_)) => return Err(-32)
     Err(code) => return Err(code)
@@ -143,7 +154,7 @@ fn host_current_observation(
     Err(code) => return Err(code)
     Ok(_) => ()
   }
-  let after = match host_current_checked_operation(value, record) {
+  let after = match checked_operation() {
     Ok(value) => value
     Err(code) => return Err(code)
   }
