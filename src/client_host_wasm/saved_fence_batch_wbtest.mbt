@@ -43,7 +43,7 @@ test "saved fence batch keeps exact original fields and one physical packet" {
 
 ///|
 test "saved fence batch refuses mismatch and original error without scalar fallback" {
-  let fences = saved_fence_batch_fixture()[1:].to_array()
+  let fences = saved_fence_batch_fixture()[1:].to_owned()
   for result in [Ok(Some(false)), Err(-74)] {
     let mut scalar = 0
     let actual = validate_saved_result_fences(
@@ -74,10 +74,13 @@ test "saved fence batch keeps scalar adapter and unbatchable byte semantics" {
     fences,
     (table, key) => {
       scalar += 1
-      match fences.find(item => item.0 == table && item.1 == key) {
-        Some((_, key, revision, body)) => Ok(Some({ key, revision, body, }))
-        None => Ok(None)
+      let mut selected : @host.ClientJournalPhysicalRow? = None
+      for (wanted_table, wanted_key, revision, body) in fences {
+        if wanted_table == table && wanted_key == key {
+          selected = Some({ key, revision, body, })
+        }
       }
+      Ok(selected)
     },
     _ => {
       packets += 1
