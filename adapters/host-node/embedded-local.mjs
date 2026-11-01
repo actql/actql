@@ -6314,7 +6314,10 @@ export async function connectEmbeddedLocal(options, initialEntry) {
           const sameSourceReads = run.mockSourceReads, releaseSourceAliases = run.releaseMockSourceAliases;
           try {checked(Reflect.apply(run.retire,run.runtime,[run.value]));}
           catch (cause) {
-            if (run.runtime.clientProgramInstalledPreparationPayloadSevered(run.value,run.request)!==true) throw cause;
+            const severed = effectRetirement
+              ? moon.clientProgramInstalledPreparationPayloadSevered(effectValue,effectRequest)
+              : run.runtime.clientProgramInstalledPreparationPayloadSevered(run.value,run.request);
+            if (severed!==true) throw cause;
           }
           // Both the original retire and its one existing fallback observation
           // can call current. Neither may replace the same Effect record before
