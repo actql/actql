@@ -1,6 +1,6 @@
 {
   "source": "d5d66cd86ac2e153f31a511e7d37c78e0cc28ae3",
-  "syntaxProjectionSha256": "773d45adcbf7a12f8327d884ddfa6cec9e052cd5fdd4797623e4cc8eaeae1ff2",
+  "syntaxProjectionSha256": "63d97bbfffc2717d804bbd5fe613afa030ea32a9580b156b982ad0eeb1111e23",
   "qualification": "Source-reference coverage only; original Native/FFI/Python executions retain their own source, artifact and target qualifications. No normal funding, VM or installed product admission.",
   "generated": [
     {
@@ -22983,6 +22983,23 @@
         },
         {
           "async": false,
+          "name": "LocalFileRoot/_observe_original_validated",
+          "parameters": [
+            "self",
+            "reader",
+            "stamp"
+          ]
+        },
+        {
+          "async": false,
+          "name": "LocalFileRoot/_observe_originals",
+          "parameters": [
+            "self",
+            "readers"
+          ]
+        },
+        {
+          "async": false,
           "name": "LocalFileRoot/_open",
           "parameters": [
             "self"
@@ -23090,6 +23107,22 @@
           "parameters": [
             "self",
             "reader"
+          ]
+        },
+        {
+          "async": false,
+          "name": "LocalFileRoot/_validate_original_directory",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "LocalFileRoot/_validate_original_member",
+          "parameters": [
+            "self",
+            "reader",
+            "root"
           ]
         },
         {
@@ -23545,7 +23578,7 @@
           ]
         }
       ],
-      "sha256": "51249f1077ee34b5059adb553cdbd94096da48f542de8f3bef3c91969ddfd14e",
+      "sha256": "b4b9acebae3ece3820fd50a5da57efdd04b420b40e6b9f721905a859df3842b5",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -24098,6 +24131,8 @@
             "LocalFileRoot/_name",
             "LocalFileRoot/_nominal_root",
             "LocalFileRoot/_observation_root",
+            "LocalFileRoot/_observe_original_validated",
+            "LocalFileRoot/_observe_originals",
             "LocalFileRoot/_open",
             "LocalFileRoot/_owned",
             "LocalFileRoot/_owned_adoption",
@@ -24110,6 +24145,8 @@
             "LocalFileRoot/_transfer_root",
             "LocalFileRoot/_used_slots",
             "LocalFileRoot/_validate_original",
+            "LocalFileRoot/_validate_original_directory",
+            "LocalFileRoot/_validate_original_member",
             "LocalFileRoot/_validate_reader",
             "LocalFileRoot/_validate_snapshot",
             "LocalFileRoot/advance_adoption",
@@ -24161,6 +24198,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original file observation groups"
               }
             ],
             "inputsOutputs": [
@@ -24175,6 +24216,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original file observation groups"
               }
             ],
             "identity": [
@@ -24193,6 +24238,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original file observation groups"
               }
             ],
             "ownership": [
@@ -24211,6 +24260,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original file observation groups"
               }
             ],
             "synchronization": [
@@ -24225,6 +24278,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original file observation groups"
               }
             ],
             "failure": [
@@ -24243,6 +24300,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original file observation groups"
               }
             ],
             "cancellation": [
@@ -24257,6 +24318,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original file observation groups"
               }
             ],
             "resources": [
@@ -24275,6 +24340,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original file observation groups"
               }
             ],
             "extension": [
@@ -24289,6 +24358,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original file observation groups"
               }
             ],
             "verification": [
@@ -24311,6 +24384,22 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original file observation groups"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_original_files.py",
+                "anchor": "def test_repeated_eof_observation_reuses_only_immutable_snapshot_after_each_physical_check("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_original_files.py",
+                "anchor": "def test_group_directory_change_after_last_member_refuses_and_keeps_original_fds("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_host_files.py",
+                "anchor": "def test_complete_file_group_checks_directory_twice_and_every_original_fd_and_name("
               }
             ]
           }
@@ -27334,11 +27423,12 @@
       "responsibilityFacet": "primary",
       "operations": [
         {
+          "async": false,
           "name": "LocalHostFiles",
-          "parameters": [],
-          "async": false
+          "parameters": []
         },
         {
+          "async": false,
           "name": "LocalHostFiles/__init__",
           "parameters": [
             "self",
@@ -27347,83 +27437,82 @@
             "max_files",
             "max_bytes",
             "observe_roots"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "LocalHostFiles/_nominal",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "LocalHostFiles/_require_original",
           "parameters": [
             "self",
             "value"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "LocalHostFiles/close",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "LocalHostFiles/current",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "LocalHostFiles/original_bytes",
           "parameters": [
             "self",
             "value"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "LocalHostFiles/read_original",
           "parameters": [
             "self",
             "name",
             "max_bytes"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "LocalHostFiles/require_current_originals",
           "parameters": [
             "self",
             "values"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "LocalHostFilesCleanupPending",
-          "parameters": [],
-          "async": false
+          "parameters": []
         },
         {
+          "async": false,
           "name": "LocalHostFilesCleanupPending/__init__",
           "parameters": [
             "self",
             "cleanup_files"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_HostFile",
-          "parameters": [],
-          "async": false
+          "parameters": []
         }
       ],
-      "sha256": "cd40bdee850d160ed73f8f048a2727be39be13cb816b4b8d645e22761b304f2b",
+      "sha256": "83677a55624b4805fe8486f7eb305d4670dfc07aaf3111a757e3eb6eaec6e140",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -27451,6 +27540,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Original adopted/current transaction frames"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original file observation groups"
               }
             ],
             "inputsOutputs": [
@@ -27461,6 +27554,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Original adopted/current transaction frames"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original file observation groups"
               }
             ],
             "identity": [
@@ -27475,6 +27572,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Handles are never serialized Client references"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original file observation groups"
               }
             ],
             "ownership": [
@@ -27489,6 +27590,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Failed stop or cleanup retains the same"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original file observation groups"
               }
             ],
             "synchronization": [
@@ -27499,6 +27604,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_host_files.py",
                 "anchor": "class LocalHostFiles:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original file observation groups"
               }
             ],
             "failure": [
@@ -27513,6 +27622,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Interrupted physical bridge calls"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original file observation groups"
               }
             ],
             "cancellation": [
@@ -27523,6 +27636,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_host_files.py",
                 "anchor": "class LocalHostFiles:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original file observation groups"
               }
             ],
             "resources": [
@@ -27537,6 +27654,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Transfer custody"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original file observation groups"
               }
             ],
             "extension": [
@@ -27547,6 +27668,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_host_files.py",
                 "anchor": "class LocalHostFiles:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original file observation groups"
               }
             ],
             "verification": [
@@ -27561,6 +27686,22 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_host_files.py",
                 "anchor": "class LocalHostFiles:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original file observation groups"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_original_files.py",
+                "anchor": "def test_repeated_eof_observation_reuses_only_immutable_snapshot_after_each_physical_check("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_original_files.py",
+                "anchor": "def test_group_directory_change_after_last_member_refuses_and_keeps_original_fds("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_host_files.py",
+                "anchor": "def test_complete_file_group_checks_directory_twice_and_every_original_fd_and_name("
               }
             ]
           }
@@ -28893,7 +29034,7 @@
           ]
         }
       ],
-      "sha256": "df7fc1f17d156747b85217b870745295de4e17daab42286fe544bd8b6788e629",
+      "sha256": "df3611635d45c5fd9378d75e5848268f3edd3e827329eabb2cf1cc8a8bbde172",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -29061,6 +29202,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## First-adoption bootstrap metadata"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original file observation groups"
               }
             ],
             "inputsOutputs": [
@@ -29071,6 +29216,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## First-adoption bootstrap metadata"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original file observation groups"
               }
             ],
             "identity": [
@@ -29085,6 +29234,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Handles are never serialized Client references"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original file observation groups"
               }
             ],
             "ownership": [
@@ -29099,6 +29252,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Failed stop or cleanup retains the same"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original file observation groups"
               }
             ],
             "synchronization": [
@@ -29109,6 +29266,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_installation.py",
                 "anchor": "class OriginalLocalInstallation:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original file observation groups"
               }
             ],
             "failure": [
@@ -29123,6 +29284,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Interrupted physical bridge calls"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original file observation groups"
               }
             ],
             "cancellation": [
@@ -29133,6 +29298,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_installation.py",
                 "anchor": "class OriginalLocalInstallation:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original file observation groups"
               }
             ],
             "resources": [
@@ -29147,6 +29316,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Transfer custody"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original file observation groups"
               }
             ],
             "extension": [
@@ -29157,6 +29330,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_installation.py",
                 "anchor": "class OriginalLocalInstallation:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original file observation groups"
               }
             ],
             "verification": [
@@ -29175,6 +29352,22 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_installation.py",
                 "anchor": "class OriginalLocalInstallation:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original file observation groups"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_original_files.py",
+                "anchor": "def test_repeated_eof_observation_reuses_only_immutable_snapshot_after_each_physical_check("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_original_files.py",
+                "anchor": "def test_group_directory_change_after_last_member_refuses_and_keeps_original_fds("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_host_files.py",
+                "anchor": "def test_complete_file_group_checks_directory_twice_and_every_original_fd_and_name("
               }
             ]
           }

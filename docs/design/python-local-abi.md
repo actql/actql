@@ -2007,6 +2007,34 @@ inspection returns. A changed file or failed ordinal therefore rolls back the
 whole group. A failed COMMIT still retains the same Unknown attempt and child
 cleanup responsibility. No fact observation is reused by another transaction.
 
+### Original file observation groups
+
+An original saved reader retains the immutable EOF digest/snapshot value it
+already returned. Every later observation still validates its original reader,
+root, descriptor and named file before returning that same DATA. It rechecks
+any expected generation and digest; mutation, replacement, invalid/closing or
+incomplete readers cannot obtain a successful observation from the retained
+value. No file/current permission, successful policy or live FD observation is
+cached. There is one immutable metadata value per bounded original reader,
+aliased by existing Host pins rather than reconstructed for each observation.
+
+Within the existing FileRoot lock, a read-only group observes the directory
+before and after all selected original file members. Each member still checks
+its exact registered reader, FD, named file, device/inode, size, nanosecond
+mtime/ctime, mode, owner and bound on every invocation. The sequence has no
+callback, await, read or write. It is a bounded sequence of physical observations,
+not atomic filesystem state, an authority grant or another cleanup owner.
+Directory/member failure retains the same descriptors for existing cleanup.
+Known copied/foreign/duplicate/closing inputs refuse before physical stat.
+
+Host pins use that existing-root group for their complete original member set.
+Installation root-path checks remain unchanged; only consecutive original
+readers of the same root share the directory checks, preserving their order.
+Store generation, settings/epoch, all mutable current checks and protected
+query/commit boundaries remain independent. File descriptor limits and original
+Host workspace still bound the retained readers and metadata; no replacement
+file, new resource allowance, resend or automatic cleanup retry is introduced.
+
 ### Initialization component observation
 
 The synchronous initializer performs its complete selected runtime/provider
