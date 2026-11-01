@@ -190,6 +190,8 @@ pub fn reference_compatible(ReferenceValue, @value_contract.Contract) -> Bool
 
 pub fn reference_content_metadata(ReferenceValue) -> (String, @canonical_json.CanonicalValue)?
 
+pub fn reference_contract_value_node_bound(@value_contract.Contract) -> Int?
+
 pub fn reference_identity_cid(ReferenceValue) -> String
 
 pub fn reference_same_domain(ReferenceValue, ReferenceValue) -> Bool

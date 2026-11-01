@@ -2637,6 +2637,17 @@ needs no second work allowance. This affects neither Ledger consumption nor
 attempt, transfer or physical-retirement accounting.
 
 
+The original reference admission Owner supplies the successful Resource
+wire-value node bound from the same scalar-field cardinality used by its
+closed-envelope check. The checked node visitor consumes that bound rather
+than treating a Resource as one scalar node or defining another reference
+schema. Its object and eight String fields contribute nine nodes, including
+nullable contracts' larger present case. Content metadata remains open and
+retains the general fallback. This read-only projection sees no value, issuer
+or current callback and supplies no text/depth limit, authority or admission.
+The Plan constructor backs its borrowed getter/result frame before inspection;
+all original reference wire/issuer/current checks still execute at admission.
+
 The existing Decimal admission and wire owners use one value node for a
 successful Decimal, including nullable absence. Its retained Value/Decimal
 record, coefficient and String header fit the unchanged logical value-node

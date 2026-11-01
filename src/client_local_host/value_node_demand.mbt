@@ -10,8 +10,8 @@ fn client_local_value_node_proof_depth() -> Int {
 ///|
 // Input-dependent recursive frames belong to this original Plan constructor,
 // not the fixed VM baseline. Each live contract level retains the borrowed
-// contract/work/shape/field and pending result carriers (at most8 references),
-// three option headers and twelve scalar loop/depth/count/tag slots. Include
+// contract/work/shape/field, pending result and reference-owner getter frames:
+// four option headers, ten references and fourteen scalar/control slots. Include
 // the last depth-refused child, plus the root/schema and text-proof controls.
 fn client_local_value_node_proof_scratch_bytes() -> Int64? {
   let levels = client_local_value_node_proof_depth().to_int64() + 2L
@@ -22,9 +22,9 @@ fn client_local_value_node_proof_scratch_bytes() -> Int64? {
   // Successive original sequences are inspected synchronously, not coheld.
   let slots = client_local_scalar_text_proof_slots().to_int64()
   @execution.preparation_representation_cost({
-    record_headers: 3L * levels + 5L * slots + 6L,
-    reference_slots: 8L * levels + 10L * slots + 12L,
-    scalar_words: 12L * levels + 8L * slots + 16L,
+    record_headers: 4L * levels + 5L * slots + 6L,
+    reference_slots: 10L * levels + 10L * slots + 12L,
+    scalar_words: 14L * levels + 8L * slots + 16L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   })
@@ -60,6 +60,11 @@ fn client_local_json_contract_nodes(
     // node envelope retains the Decimal record/coefficient; decoded input,
     // wire, CAST and aggregate workspace keep their independent old bounds.
     @contract.Decimal(..) => Some(1L)
+    // Opaque Resource values are not scalar JSON nodes. The SAME reference
+    // owner bounds its admitted closed scalar envelope, including the object.
+    // Content remains unbounded; no reference/issuer/current is consulted.
+    @contract.ResourceRef(_) =>
+      @admitted.reference_contract_value_node_bound(contract).map(Int::to_int64)
     @contract.Array(item, max_items~) => {
       guard max_items is Some(count) && count >= 0L else { return None }
       if count == 0L {

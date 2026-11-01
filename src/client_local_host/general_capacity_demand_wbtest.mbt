@@ -620,3 +620,41 @@ test "Decimal node demand preserves original coefficient and input wire backing"
     }
   }
 }
+
+///|
+test "checked ResourceRef node demand follows the original closed scalar envelope" {
+  for nullable in [false, true] {
+    let wire = "{\"type\":\"resource_ref\",\"resource_kind\":\"sheet_range\",\"nullable\":" +
+      nullable.to_string() +
+      "}"
+    let source = @source.parse_json(wire, {
+      max_input_bytes: 1000,
+      max_nodes: 20,
+      max_depth: 4,
+    }).unwrap()
+    let cursor = @decode.admit(source, {
+      max_nodes: 20,
+      max_depth: 4,
+      max_string_bytes: 1000,
+      max_total_string_bytes: 1000,
+    }).unwrap()
+    let original = @contract.read_checked(cursor, {
+      max_nodes: 20,
+      max_depth: 4,
+      max_text_bytes: 1000,
+    }).unwrap()
+    let work = Ref(1)
+    // The admitted Resource envelope is one object with eight scalar fields,
+    // not a scalar cell. No issuer/current callback or reference is created.
+    assert_eq(client_local_json_contract_nodes(original, work, 0), Some(9L))
+    assert_eq(work.val, 0)
+    assert_true(client_local_json_contract_nodes(original, Ref(0), 0) is None)
+    assert_true(client_local_json_contract_nodes(original, Ref(1), -1) is None)
+    let repeated = @contract.array_contract(
+      original,
+      nullable=false,
+      max_items=Some(2L),
+    ).unwrap()
+    assert_eq(client_local_json_contract_nodes(repeated, Ref(2), 1), Some(19L))
+  }
+}
