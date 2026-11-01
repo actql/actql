@@ -2,13 +2,23 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {parse} from 'acorn';
+import {bindInstalledManagedSources} from './installed-managed-source.mjs';
 function get(file,name,context,property=false){const source=readFileSync(new URL(file,import.meta.url),'utf8'),ast=parse(source,{ecmaVersion:'latest',sourceType:'module'});let n;function walk(x){if(!x||typeof x!=='object')return;if(property?x.type==='Property'&&x.key?.name===name:x.type==='FunctionDeclaration'&&x.id?.name===name)n=property?x.value:x;for(const v of Object.values(x)){if(Array.isArray(v))v.forEach(walk);else if(v&&typeof v==='object')walk(v);}}walk(ast);assert(n,name);const code=property?`${n.async?'async ':''}function(${n.params.map(p=>source.slice(p.start,p.end)).join(',')})${source.slice(n.body.start,n.body.end)}`:source.slice(n.start,n.end);return new Function(...Object.keys(context),`return ${code}`)(...Object.values(context));}
 const fail=code=>{throw Object.assign(new Error(code),{code});};
-test('publication phase manager relays the exact original preparation and manager holder without numeric grant',()=>{
- const prepared={},phase={},holder={},seen=[];const state={prepared,phase,holder,adopting:true,context:{runtime:{clientProgramReservePublication(...args){seen.push(args);return 'result';}}}};
- const invoke=get('./ordinary-source-managed.mjs','reservePublication',{runFor:p=>{assert.equal(p,prepared);return {producer:{preparation:state}};},fail,checkedPreparation:(moon,result)=>{assert.equal(result,'result');return 'original-resource';}},true);
- assert.equal(invoke(prepared),'original-resource');assert.deepEqual(seen,[[phase,prepared,holder]]);
+test('publication phase manager relays the actual original Run without caller quote or holder',()=>{
+ const prepared={},phase={},holder={},runOriginal={},seen=[];const state={prepared,phase,holder,adopting:true,context:{runtime:{clientProgramReservePublication(...args){seen.push(args);return 'result';}}}};
+ const invoke=get('./ordinary-source-managed.mjs','reservePublication',{runFor:p=>{assert.equal(p,prepared);return {producer:{preparation:state},value:runOriginal};},fail,checkedPreparation:(moon,result)=>{assert.equal(result,'result');return 'original-resource';}},true);
+ assert.equal(invoke(prepared),'original-resource');assert.deepEqual(seen,[[runOriginal,prepared]]);
  state.holder=undefined;assert.throws(()=>invoke(prepared),{code:'ForeignInstalledSourceProducer'});assert.equal(seen.length,1);
+});
+test('publication invocation selects the same admitted Run for generic and legacy preparation',()=>{
+ const prepared={},runOriginal={},state={prepared,holder:{},adopting:true};
+ const run={producer:{preparation:state},value:runOriginal};
+ const invoke=get('./ordinary-source-managed.mjs','publicationPreparation',{runFor:p=>{assert.equal(p,prepared);return run;},fail},true);
+ assert.equal(invoke(prepared),runOriginal);
+ state.phase={};assert.equal(invoke(prepared),runOriginal);
+ run.value=undefined;assert.throws(()=>invoke(prepared),{code:'NodeManagedRunAdmissionUnavailable'});
+ run.value=runOriginal;state.adopting=false;assert.throws(()=>invoke(prepared),{code:'ForeignInstalledSourceProducer'});
 });
 test('installed publication phase refuses foreign runtime, missing funding and closed originals',()=>{
  const runtime={},prepared={},seen=[];const run={runtime,prepared,preparationFunded:true,manager:{reservePublication:p=>seen.push(p)}};
@@ -46,13 +56,85 @@ test('publication invocation issues and binds through one Core original engine, 
  const issued=invoke(compiled,definition,{dataPolicyCid:'policy'},limits,owner,prepared);
  assert.equal(issued.invocation,invocation);assert.deepEqual(calls,[[owner,prepared,compiledOriginal,definitionOriginal,'policy',11,13,17]]);
  assert.throws(()=>invoke({},definition,{dataPolicyCid:'policy'},limits,owner,prepared),/Foreign Client compiled Run/);
- compiled.kind='tasks';assert.throws(()=>invoke(compiled,definition,{dataPolicyCid:'policy'},limits,owner,prepared),/Invalid original publication invocation profile/);assert.equal(calls.length,1);
+ compiled.kind='infer';assert.throws(()=>invoke(compiled,definition,{dataPolicyCid:'policy'},limits,owner,prepared),/Invalid original publication invocation profile/);assert.equal(calls.length,1);
 });
 
 test('funded Values plan passes its borrowed owner and Prepared to the single invocation issuance call',()=>{
  const source=readFileSync(new URL('./local-values-plan.mjs',import.meta.url),'utf8'),ast=parse(source,{ecmaVersion:'latest',sourceType:'module'});let fn;for(const node of ast.body){if(node.type==='ExportNamedDeclaration'&&node.declaration?.id?.name==='sourceFreeValuesPlan')fn=node.declaration;}assert(fn);
  const calls=[];function walk(n){if(!n||typeof n!=='object')return;if(n.type==='CallExpression'&&n.callee.type==='MemberExpression'&&n.callee.property.name==='issueCheckedClientCompiledInvocation')calls.push(n);for(const x of Object.values(n)){if(Array.isArray(x))x.forEach(walk);else if(x&&typeof x==='object')walk(x);}}walk(fn);assert.equal(calls.length,1);assert.deepEqual(calls[0].arguments.slice(4).map(x=>x.name),['publicationPreparation','preparedProgram']);
  assert.equal(source.includes('bindPreparedPublicationCompiledOriginal'),false);
+});
+
+test('funded source-free Tasks plan forwards its original publication owner and Prepared once',()=>{
+ const prepared={},owner={},compiled={kind:'tasks'},definition={},observation={},invocation={},original={};
+ let issues=0;
+ const acquired={compiled,runDefinition:definition,admission:{},compiledPlan:{identity:'compiled'},
+   preparedEvidence:{wire:'prepared'},authorization:{wire:'authorization'},createdAt:'created'};
+ const control={issueCheckedClientCompiledInvocation(actual,run,policy,limits,publication,body){
+   assert.equal(actual,compiled);assert.equal(run,definition);assert.equal(policy.dataPolicyCid,'policy');
+   assert.equal(publication,owner);assert.equal(body,prepared);assert.equal(issues++,0);
+   return {observation,invocation};}};
+ const invoke=get('./local-values-plan.mjs','sourceFreeTaskPlan',{
+   acquiredTaskRunAdmission:options=>{assert.equal(options.preparedProgram,prepared);return acquired;},
+   policyCid:()=> 'policy',limits:{},
+   localPublicationPlan:input=>{assert.equal(input.invocation,invocation);assert.equal(input.observation,observation);return {};},
+   checkedLocalOutputLimits:()=>({}),valuesAdmissions:new WeakMap(),originalPlans:new WeakMap(),
+   sourceFreePlanOriginal:actual=>{assert.equal(actual,acquired);return original;}});
+ invoke({moon:{clientProgramDefinitionCid:()=> 'program',clientProgramResultCount:()=>1},
+   control,preparedProgram:prepared,publicationPreparation:owner});
+ assert.equal(issues,1);
+});
+
+test('funded source-free Tasks invocation uses the same Core owner without a legacy issuer',()=>{
+ const owner={},prepared={},compiled={kind:'tasks'},compiledOriginal={},definition={},definitionOriginal={},
+   observation={},invocation={},calls=[];
+ const invoke=get('../host-common/runtime-core.mjs','issueCheckedClientCompiledInvocation',{
+   compiledRunTokens:new WeakMap([[compiled,compiledOriginal]]),
+   token:actual=>{assert.equal(actual,definition);return definitionOriginal;},
+   captureContractLimits:x=>x,compiledRunResult:x=>x,inspectEvidence:x=>x,inspect:x=>x,
+   runtimeField:(x,index)=>x[`_${index}`],moon:{
+     clientProgramIssuePublicationInvocation(...args){calls.push(args);return {_0:observation,_1:invocation};},
+     clientProgramIssueCompiledSourceFreeTaskInvocation(){assert.fail('legacy issuer cannot bind the funded owner');}}},true);
+ const issued=invoke(compiled,definition,{dataPolicyCid:'policy'},
+   {maxWireBytes:11,maxNodes:13,maxDepth:17},owner,prepared);
+ assert.equal(issued.invocation,invocation);
+ assert.deepEqual(calls,[[owner,prepared,compiledOriginal,definitionOriginal,'policy',11,13,17]]);
+});
+
+test('funded invocation refuses Source evidence and every non Values Tasks profile before Core',()=>{
+ const owner={},prepared={},compiled={kind:'tasks'},definition={};let calls=0;
+ const invoke=get('../host-common/runtime-core.mjs','issueCheckedClientCompiledInvocation',{
+   compiledRunTokens:new WeakMap([[compiled,{}]]),token:x=>x,captureContractLimits:x=>x,
+   moon:{clientProgramIssuePublicationInvocation(){calls++;assert.fail('invalid profile reached Core');}}},true);
+ for(const kind of ['values','tasks']){
+   compiled.kind=kind;
+   assert.throws(()=>invoke(compiled,definition,{source:{},dataPolicyCid:'policy'},{},owner,prepared),
+     /Invalid original publication invocation profile/);
+ }
+ for(const kind of ['infer','serialization','effects',undefined]){
+   compiled.kind=kind;
+   assert.throws(()=>invoke(compiled,definition,{dataPolicyCid:'policy'},{},owner,prepared),
+     /Invalid original publication invocation profile/);
+ }
+ assert.equal(calls,0);
+ assert.throws(()=>invoke({},definition,{dataPolicyCid:'policy'},{},owner,prepared),
+   /Foreign Client compiled Run/);
+});
+
+test('unfunded source-free Tasks invocation retains its original legacy issuer',()=>{
+ const compiled={kind:'tasks'},compiledOriginal={},definition={},definitionOriginal={},
+   observation={},invocation={},calls=[];
+ const invoke=get('../host-common/runtime-core.mjs','issueCheckedClientCompiledInvocation',{
+   compiledRunTokens:new WeakMap([[compiled,compiledOriginal]]),
+   token:actual=>{assert.equal(actual,definition);return definitionOriginal;},
+   captureContractLimits:x=>x,compiledRunResult:x=>x,inspectEvidence:x=>x,inspect:x=>x,
+   runtimeField:(x,index)=>x[`_${index}`],moon:{
+     clientProgramIssueCompiledSourceFreeTaskInvocation(...args){calls.push(args);return {_0:observation,_1:invocation};},
+     clientProgramIssuePublicationInvocation(){assert.fail('no admitted publication owner was supplied');}}},true);
+ const issued=invoke(compiled,definition,{dataPolicyCid:'policy'},
+   {maxWireBytes:11,maxNodes:13,maxDepth:17});
+ assert.equal(issued.invocation,invocation);
+ assert.deepEqual(calls,[[compiledOriginal,definitionOriginal,'policy',11,13,17]]);
 });
 
 function captureFinisher(context,name='finishProgramCapture') {
@@ -142,4 +224,520 @@ test('Store original commit validation requires selected read owner and ignores 
  const values=Array.from({length:14},()=>({}));for(const i of [2,3,4,5,6,7])values[i]=[{}];const handle={},calls=[],requireCurrent=()=>calls.push('current');
  const invoke=get('../host-common/runtime-core.mjs','effectFreeStoredCommitValid',{checked:x=>x,token:x=>x,capturedComputationPreparations:new WeakMap(),finishStoreValidation:(h,guard)=>{assert.equal(h,handle);assert.equal(guard,requireCurrent);return true;},moon:{clientStoreBeginOriginalCommitValidation:(...args)=>{calls.push(args);return handle;}}},true);
  assert.equal(await invoke(...values,requireCurrent),true);assert.deepEqual(calls,['current',values]);await assert.rejects(invoke(...values,{maxNodes:1}),/Store publication validation owner unavailable/);
+});
+
+
+test('original Source publication consumes retained observation tokens on its same managed Run', () => {
+  const owner = {}, prepared = {}, compiled = {kind: 'tasks'}, original = {}, definition = {},
+    contract = {}, evidence = {}, evidenceOriginal = {}, logicalInput = {}, capture = {},
+    identity = {}, requirement = {}, observation = {}, invocation = {}, calls = [];
+  const captured = {logicalInput, identity, requirement, capture: {source: () => capture}};
+  const invoke = get('../host-common/runtime-core.mjs', 'issueCheckedClientCompiledInvocation', {
+    compiledRunTokens: new WeakMap([[compiled, original]]), token: value => {assert.equal(value, definition); return contract;},
+    evidenceToken: value => {assert.equal(value, evidence); return evidenceOriginal;},
+    captureContractLimits: value => value, compiledRunResult: value => value, checked: value => value,
+    inspectEvidence: value => value, inspect: value => value, runtimeField: (value, index) => value[`_${index}`],
+    moon: {clientProgramInstalledManagedPublicationSourceKind: () => 'query',
+      clientProgramIssueCapturedPublicationInvocation(...args) {calls.push(args); return {_0: observation, _1: invocation};},
+      clientProgramIssueCompiledTaskInvocation() {assert.fail('raw Source issuer bypassed the original Run');}},
+  }, true);
+  const bounds = {maxWireBytes: 11, maxNodes: 13, maxDepth: 17};
+  const issued = invoke(compiled, definition, {dataPolicyCid: 'policy', source: {
+    captured, sourceEvidence: evidence, authorityScopeCid: 'authority', captureStartedAt: 'start', captureCompletedAt: 'end',
+  }}, bounds, owner, prepared);
+  assert.equal(issued.invocation, invocation);
+  assert.deepEqual(calls, [[owner, prepared, original, contract, [capture], [identity], [requirement],
+    [evidenceOriginal], [logicalInput], undefined, 'authority', 'policy', 'start', 'end', 11, 13, 17]]);
+});
+
+
+test('all original Source publication callers retain original evidence without wire admission', () => {
+  for (const kind of ['single', 'multi', 'keyed']) {
+    const owner = {}, prepared = {}, compiled = {}, definition = {}, rightOriginal = {}, right = {}, observations = [];
+    const evidence = [{}, {}];
+    const captures = [0, 1].map(index => ({logicalInput: {}, identity: {}, requirement: {},
+      checkedSource: {}, capture: {source: () => `source-${index}`}}));
+    const issued = [];
+    const control = {
+      checkClientCompiledRunOwner: (run, program) => {assert.equal(run, compiled); assert.equal(program, prepared);},
+      admitRunEvidence: () => assert.fail('live original Source evidence admitted again'),
+      issueCheckedClientCompiledInvocation: (...args) => {issued.push(args); return {observation: observations, invocation: {}};},
+      keyedLookupPublicationEvidence: value => {assert.equal(value, rightOriginal); return {source: right, logicalRelationCid: 'right-logical'};},
+    };
+    const moon = {clientProgramCapturedSourceMatches: () => true, clientProgramCapturedTaskSourceMatches: () => true,
+      clientProgramPublicationDataPolicyCid: () => 'policy', clientProgramDefinitionCid: () => 'program',
+      clientProgramCapturedSourceLogicalCid: identity => `logical-${captures.findIndex(x => x.identity === identity)}`,
+      clientProgramResultCount: () => 1, strategyRunEvidenceJson: () => assert.fail('retained input serialized again')};
+    const name = kind === 'single' ? 'acquiredTaskPublicationPlan' : kind === 'multi'
+      ? 'acquiredMultiTaskPublicationPlan' : 'acquiredKeyedTaskPublicationPlan';
+    const invoke = get('./local-values-plan.mjs', name, {limits: {}, localPublicationPlan: value => value,
+      JSON: {parse: () => assert.fail('retained keyed input parsed again')}});
+    const acquired = {compiled, runDefinition: definition, compiledPlan: {identity: 'plan'}, publicationPreparation: owner};
+    const input = {moon, control, acquired, preparedProgram: prepared, captured: captures[0], sourceEvidence: evidence[0],
+      sources: captures.map((captured, i) => ({captured, sourceEvidence: evidence[i]})),
+      keyedObservation: {observation: rightOriginal}, effectiveDataPolicyCid: 'policy', authorityScopeCid: 'authority',
+      captureStartedAt: 'start', captureCompletedAt: 'end'};
+    const plan = invoke(input);
+    assert.equal(issued.length, 1); assert.equal(issued[0][4], owner); assert.equal(issued[0][5], prepared);
+    assert.deepEqual(plan.sourceEvidence, kind === 'keyed' ? [evidence[0], right]
+      : kind === 'multi' ? evidence : [evidence[0]]);
+    assert.equal(issued[0][2].source.sourceEvidence ?? issued[0][2].source.sources[0].sourceEvidence, evidence[0]);
+    assert.equal(plan.observation, observations);
+  }
+});
+
+test('captured invocation refuses missing owner and copied evidence before portable issuance', () => {
+  const owner = {}, prepared = {}, compiled = {kind: 'tasks'}, source = {}, evidence = {}, calls = [];
+  const context = {compiledRunTokens: new WeakMap([[compiled, {}]]), token: value => value,
+    evidenceToken: value => {if (value !== evidence) throw new TypeError('Foreign Run evidence'); return source;},
+    captureContractLimits: value => value, compiledRunResult: value => value, checked: value => value, inspectEvidence: value => value,
+    inspect: value => value, runtimeField: (value, index) => value[`_${index}`],
+    moon: {clientProgramInstalledManagedPublicationSourceKind: () => 'query',
+      clientProgramIssueCapturedPublicationInvocation(...args) {calls.push(args); return {_0: {}, _1: {}};}}};
+  const invoke = get('../host-common/runtime-core.mjs', 'issueCheckedClientCompiledInvocation', context, true);
+  const captured = {logicalInput: {}, identity: {}, requirement: {}, capture: {source: () => ({})}};
+  const input = {dataPolicyCid: 'policy', source: {sources: [{captured, sourceEvidence: evidence}, {captured, sourceEvidence: {}}]}};
+  assert.throws(() => invoke(compiled, {}, input, {}, undefined, prepared), /Invalid original publication invocation profile/);
+  assert.throws(() => invoke(compiled, {}, input, {}, owner, prepared), /Foreign Run evidence/);
+  assert.equal(calls.length, 0);
+});
+
+
+test('whole Source publication forwards the same native capture and never a Query requirement', () => {
+  const owner = {}, prepared = {}, compiled = {kind: 'tasks'}, compiledOriginal = {}, definition = {},
+    nativeCapture = {}, identity = {}, logical = {}, evidence = {}, evidenceOriginal = {},
+    observation = {}, invocation = {}, calls = [], foreign = new Error('foreign original');
+  let available = true, kind = 'whole-input';
+  const capture = Object.freeze({source() {assert.equal(this, capture); return {};},
+    originalWholeInput() {
+      assert.equal(this, capture);
+      if (!available) throw foreign;
+      return nativeCapture;
+    }});
+  const captured = {capture, identity, logicalInput: logical};
+  Object.defineProperty(captured, 'requirement', {get() {assert.fail('whole Source queried a Query requirement');}});
+  const invoke = get('../host-common/runtime-core.mjs', 'issueCheckedClientCompiledInvocation', {
+    compiledRunTokens: new WeakMap([[compiled, compiledOriginal]]), token: value => {
+      assert.equal(value, definition); return definition;
+    }, evidenceToken: value => {assert.equal(value, evidence); return evidenceOriginal;},
+    captureContractLimits: value => value, compiledRunResult: value => value, checked: value => value,
+    inspectEvidence: value => value, inspect: value => value, runtimeField: (value, index) => value[`_${index}`],
+    moon: {clientProgramInstalledManagedPublicationSourceKind(actual, body) {
+      assert.equal(actual, owner); assert.equal(body, prepared); return kind;
+    }, clientProgramIssueWholeSourcePublicationInvocation(...args) {
+      calls.push(args); return {_0: observation, _1: invocation};
+    }, clientProgramIssueCapturedPublicationInvocation() {assert.fail('whole Source entered Query issuance');}},
+  }, true);
+  const bounds = {maxWireBytes: 11, maxNodes: 13, maxDepth: 17};
+  const source = {captured, sourceEvidence: evidence, authorityScopeCid: 'authority',
+    captureStartedAt: 'start', captureCompletedAt: 'end'};
+  const issue = () => invoke(compiled, definition, {dataPolicyCid: 'policy', source}, bounds, owner, prepared);
+  assert.equal(issue().invocation, invocation);
+  assert.deepEqual(calls, [[owner, prepared, compiledOriginal, definition, nativeCapture, identity,
+    evidenceOriginal, logical, 'authority', 'policy', 'start', 'end', 11, 13, 17]]);
+  available = false;
+  assert.throws(issue, error => error === foreign);
+  available = true;
+  source.captured = {identity, logicalInput: logical, capture: {...capture}};
+  assert.throws(issue, {code: 'ERR_ASSERTION'});
+  source.captured = {identity, logicalInput: logical, capture: {source: capture.source}};
+  assert.throws(issue, /Invalid original whole Source capture/);
+  source.captured = captured;
+  kind = 'unknown';
+  assert.throws(issue, /Invalid original publication invocation profile/);
+  assert.equal(calls.length, 1);
+});
+
+test('live Source dispatch awaits original preparation and transfers the same capture once without wire fallback', async () => {
+  const prepared = {}, preparedSource = {checkedSource: {sourceRef: 'source'}}, sourceAccess = {},
+    original = {}, nominal = {name: 'source_evidence'}, events = [];
+  const take = get('../host-common/runtime-core.mjs', 'takeSourceEvidenceOriginal', {
+    inspectEvidence: value => {assert.equal(value, original); events.push('project'); return nominal;},
+  }, true);
+  let available = false;
+  const capture = Object.freeze({takeSourceEvidenceOriginal() {
+    assert.equal(this, capture); assert.equal(available, true); available = false;
+    events.push('take'); return original;
+  }});
+  const captured = {capture, checkedSource: {sourceDataPolicyCid: 'policy'},
+    async prepareSourceEvidenceOriginal(options) {
+      assert.equal(this, captured);
+      assert.deepEqual(options, {authorityScopeCid: 'authority', effectiveDataPolicyCid: 'policy'});
+      await Promise.resolve(); events.push('prepared'); available = true;
+    }, issueSourceEvidence() {assert.fail('live Source converted to wire');}};
+  const invoke = get('./client-dispatch-owner.mjs', 'acquireSource', {
+    installedSourceFor: () => ({async open(input) {
+      assert.equal(input.preparedProgram, prepared); assert.equal(input.sourceAccess, sourceAccess);
+      events.push('open'); return captured;
+    }}), sourceProfile: {}, now: () => 'time', step: async () => {},
+    acquisitionEndHandoff: () => ({retain() {}, outcome() {assert.fail('no acquisition failure');}}),
+    observation: undefined, registry: {}, values: {}, fragment: {}, ordered: {},
+    retainedRelationOutput: false, authorityScopeCid: 'authority', control: {takeSourceEvidenceOriginal: take},
+  });
+  const entry = {abort: new AbortController()};
+  const result = await invoke(entry, prepared, preparedSource, sourceAccess, {originalEvidence: true});
+  assert.equal(result.sourceEvidence, nominal); assert.equal(result.sourceEvidenceWire, undefined);
+  assert.equal(entry.sourceCapture, captured); assert.equal(available, false);
+  assert.deepEqual(events, ['open', 'prepared', 'take', 'project']);
+  await assert.rejects(invoke(entry, prepared, preparedSource, sourceAccess, {originalEvidence: true}),
+    /ClientSourceCaptureAlreadyRetained/);
+});
+
+test('Source original transfer refuses missing or accessor ports without invoking a wire issuer', async () => {
+  const take = get('../host-common/runtime-core.mjs', 'takeSourceEvidenceOriginal', {
+    inspectEvidence: value => value,
+  }, true);
+  let getters = 0;
+  const accessor = {get takeSourceEvidenceOriginal() {getters++; return () => ({});}};
+  for (const capture of [{}, accessor, Object.create({takeSourceEvidenceOriginal() {assert.fail('inherited port');}})]) {
+    assert.throws(() => take(capture), /InstalledSourceEvidenceUnavailable/);
+  }
+  assert.equal(getters, 0);
+  assert.throws(() => take({takeSourceEvidenceOriginal() {return {name: 'logical_input'};}}),
+    /InvalidInstalledSourceEvidence/);
+});
+
+
+test('Source evidence preparation failure preserves the exact capture cleanup owner and original error', async () => {
+  for (const issue of [new Error('original current failed'), undefined]) {
+    const captured = {checkedSource: {sourceDataPolicyCid: 'policy'},
+      async prepareSourceEvidenceOriginal() {throw issue;},
+      issueSourceEvidence() {assert.fail('failed original selected wire fallback');}};
+    const invoke = get('./client-dispatch-owner.mjs', 'acquireSource', {
+      installedSourceFor: () => ({open: async () => captured}), sourceProfile: {}, now: () => 'time',
+      step: async () => {}, acquisitionEndHandoff: () => ({retain() {}}), observation: undefined,
+      registry: {}, values: {}, fragment: {}, ordered: {}, retainedRelationOutput: false,
+      authorityScopeCid: 'authority', control: {takeSourceEvidenceOriginal() {assert.fail('preparation did not finish');}},
+    });
+    const entry = {abort: new AbortController()};
+    let failed = false;
+    try {await invoke(entry, {}, {checkedSource: {sourceRef: 'source'}}, {}, {originalEvidence: true});}
+    catch (actual) {failed = true; assert.equal(actual, issue);}
+    assert.equal(failed, true); assert.equal(entry.sourceCapture, captured);
+    assert.equal(entry.physicalWorkMayHaveStarted, true);
+  }
+});
+
+
+function originalSourcePreparationCallbacks(entry, readContext, retire, originals) {
+  const callbacks = {explicitStartup: false, assertSourceManagedHostPreparation: value => assert.equal(value, originals),
+    prepareInstalledMockSourcePreparation() {}, readInstalledMockPreparation() {},
+    readInstalledProjectSourcePreparation() {}, originalSourceManagedHostRequest() {},
+    sourceManagedSubmittedIntentCid() {}, readSourceManagedRunRequirements() {},
+    readSourceManagedEffectRunRequirements() {}, readLocalMockModelRunRequirements() {},
+    readLocalContentRunRequirements() {}, readLocalPreparationContext: readContext,
+    retireSourceManagedInitialPreparation: retire,
+    prepareOrdinarySourceManagedInstallation(value, bag, source) {
+      assert.equal(value, originals); assert.equal(source, true); return bag;
+    }, prepareOrdinaryProjectSourceManagedInstallation(value, bag) {
+      assert.equal(value, originals); return bag;
+    }};
+  return get('./node-source-managed-installation.mjs', entry, callbacks)(originals);
+}
+
+test('both actual Source entries open the same Request before snapshot and retain its original retirement', () => {
+  for (const entry of ['prepareSourceManagedInstallation', 'prepareProjectSourceManagedInstallation']) {
+    for (const kind of ['program', 'aql']) {
+      const originals = {}, context = {}, connection = {}, parent = {}, prepared = {}, holder = {}, events = [];
+      const callbacks = originalSourcePreparationCallbacks(entry, value => {
+        assert.equal(value, originals); events.push('context'); return context;
+      }, (value, body) => {assert.equal(value, originals); assert.equal(body, prepared); events.push('retire');}, originals);
+      const receipts = new WeakMap(), producers = new Set();
+      const before = get('./ordinary-source-managed.mjs', 'beforeSourceSnapshot', {
+        current() {}, callbacks, originals, receipts, producers, closed: false, fail,
+        requestPreparationAvailable: value => {assert.equal(value, context); return true;},
+        assertRequestPreparationControl: value => {assert.equal(value, context); events.push('control');},
+        beginRequestInput(state, receipt, actualConnection) {
+          assert.equal(state.context, context); assert.equal(receipts.get(receipt).preparation, state);
+          assert.equal(actualConnection, connection); assert.equal(producers.size, 1);
+          state.parent = parent; events.push('begin'); return true;
+        }, cleanupRequestInput() {assert.fail('successful opening has no early cleanup');},
+      }, true);
+      const receipt = before(kind, kind === 'program' ? {} : 'SELECT @original AS n',
+        {parameters: {original: 9}}, connection);
+      const producer = receipts.get(receipt);
+      assert.equal(producer.preparation?.parent, parent);
+      assert.deepEqual(events, ['context', 'control', 'begin']);
+      producer.preparation.prepared = prepared; producer.preparation.holder = holder;
+      context.runtime = {
+        clientProgramAbortRequestPreparation(value) {assert.equal(value, parent); events.push('abort');},
+        clientProgramPreparationBorrowRetirementStarted(value) {assert.equal(value, holder); return true;},
+        clientProgramPreparationBorrowReturn(value) {assert.equal(value, holder); events.push('return');},
+      };
+      const cleanup = get('../local-node/request-preparation-adapter.mjs', 'cleanupRequestInput', {
+        checked: value => value, invalid() {assert.fail('valid original retirement');},
+      });
+      const finish = get('./ordinary-source-managed.mjs', 'finishSourceProducer', {
+        producerFor: value => {assert.equal(value, receipt); return producer;}, fail, producers,
+        cleanupRequestInput: cleanup, retireInitialPreparation: body => callbacks.retireInitialPreparation(originals, body),
+        releaseFinishedProducer() {},
+      }, true);
+      finish(receipt, 'failed');
+      assert.equal(producer.preparation, undefined); assert.equal(producers.size, 0);
+      assert.deepEqual(events, ['context', 'control', 'begin', 'abort', 'retire', 'return', 'abort']);
+    }
+  }
+});
+
+test('Source context refuses unavailable original capability before producer allocation', () => {
+  for (const entry of ['prepareSourceManagedInstallation', 'prepareProjectSourceManagedInstallation']) {
+    const originals = {}, context = {}, receipts = new WeakMap(), producers = new Set();
+    const callbacks = originalSourcePreparationCallbacks(entry, () => context,
+      () => assert.fail('no prepared input to retire'), originals);
+    const before = get('./ordinary-source-managed.mjs', 'beforeSourceSnapshot', {
+      current() {}, callbacks, originals, receipts, producers, fail,
+      requestPreparationAvailable: value => {assert.equal(value, context); return false;},
+      assertRequestPreparationControl() {assert.fail('no available original');},
+      beginRequestInput() {assert.fail('no allocation after original refusal');},
+    }, true);
+    assert.throws(() => before('aql', 'SELECT 9 AS n', {}, {}),
+      {code: 'NodeLocalPreparationAdmissionUnavailable'});
+    assert.equal(producers.size, 0);
+  }
+});
+
+
+test('Source context original refusal cannot allocate or select an unfunded snapshot', () => {
+  for (const entry of ['prepareSourceManagedInstallation', 'prepareProjectSourceManagedInstallation']) {
+    for (const issue of [new Error('original context current refused'), undefined]) {
+      const originals = {}, receipts = new WeakMap(), producers = new Set();
+      const callbacks = originalSourcePreparationCallbacks(entry, () => {throw issue;},
+        () => assert.fail('no preparation was acquired'), originals);
+      const before = get('./ordinary-source-managed.mjs', 'beforeSourceSnapshot', {
+        current() {}, callbacks, originals, receipts, producers,
+        requestPreparationAvailable() {assert.fail('no returned context');},
+        beginRequestInput() {assert.fail('no allocation after original refusal');},
+      }, true);
+      let failed = false;
+      try {before('program', {}, {}, {});}
+      catch (actual) {failed = true; assert.equal(actual, issue);}
+      assert.equal(failed, true); assert.equal(producers.size, 0);
+    }
+  }
+});
+
+
+test('composed INFER consumes original captured evidence without serializing or readmitting it', async () => {
+  const occurrence = {}, source = {}, logical = {}, evidence = {}, original = {}, failure = new Error('BeforeProviderConstruction');
+  const captured = {capture: {source: () => source}, logicalInput: logical, identity: {}, requirement: {}};
+  let held, calls = 0;
+  const run = get('./installed-composed-infer-run.mjs', 'runInstalledComposedInfers', {
+    runtimeField: (value, index) => value[index], checked: value => value,
+  });
+  await assert.rejects(run({
+    moon: {clientProgramResultCount: () => 0, clientProgramInferPlanBoundary: () => [0],
+      strategyRunEvidenceJson() {assert.fail('live logical input projected back to wire for readmission');},
+      clientProgramAdmitComposedInferSources() {assert.fail('raw wire admission');}},
+    control: {admitComposedInferSources(actual, captures, evidenceValues, authority, start, end) {
+      assert.equal(actual, occurrence); assert.deepEqual(captures, [captured]);
+      assert.deepEqual(evidenceValues, [evidence]); assert.equal(authority, 'authority');
+      assert.equal(start, 'start'); assert.equal(end, 'end'); calls++; throw failure;
+    }}, preparedProgram: original, plan: {runDefinition: {wire: '{"run_id":"fixture"}'}},
+    selected: {components: [{occurrence, graph: {}}]},
+    acquiredInfer: {captured, sourceEvidence: evidence, captureStartedAt: 'start', captureCompletedAt: 'end'},
+    modelController: {discover: () => []}, signal: new AbortController().signal,
+    retainExecution(value) {assert.equal(held, undefined); held = value;}, authorityScopeCid: 'authority',
+  }), actual => actual === failure);
+  assert.equal(calls, 1); assert.equal(typeof held.cleanup, 'function');
+});
+
+
+test('INFER control forwards the same logical and Source evidence tokens without a wire issuer', () => {
+  const prepared = {}, occurrence = {}, source = {}, logical = {}, identity = {}, requirement = {}, evidence = {}, original = {}, calls = [];
+  const captured = {inferStep: 4, capturedSource: source, identity, requirement, logicalInput: logical,
+    capture: {source: () => source}};
+  const context = {checked: value => value,
+    evidenceToken: value => {if (value !== evidence) throw new TypeError('Foreign Run evidence'); return original;},
+    moon: {clientProgramAdmitInferCapturedInput(...args) {calls.push(args); return 'single';},
+      clientProgramAdmitComposedInferSources(...args) {calls.push(args); return 'composed';},
+      strategyRunEvidenceJson() {assert.fail('original logical wire');},
+      strategyRunEvidenceAdmit() {assert.fail('original evidence readmission');}}};
+  const single = get('../host-common/runtime-core.mjs', 'admitInferCapturedInput', context, true);
+  const composed = get('../host-common/runtime-core.mjs', 'admitComposedInferSources', context, true);
+  assert.equal(single(prepared, captured, evidence, 'authority', 'policy', 'start', 'end'), 'single');
+  assert.equal(composed(occurrence, [captured], [evidence], 'authority', 'start', 'end'), 'composed');
+  assert.deepEqual(calls, [[prepared, 4, source, identity, requirement, logical, original, 'authority', 'policy', 'start', 'end'],
+    [occurrence, [source], [identity], [requirement], [logical], [original], 'authority', 'start', 'end', undefined]]);
+  assert.throws(() => single(prepared, captured, {...evidence}, 'authority', 'policy', 'start', 'end'), /Foreign Run evidence/);
+  assert.throws(() => composed(occurrence, [captured], [{...evidence}], 'authority', 'start', 'end'), /Foreign Run evidence/);
+  assert.equal(calls.length, 2);
+});
+
+
+test('saved INFER reacquisition forwards the original captured token without another evidence admission', async () => {
+  const text = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
+  const ast = parse(text, {ecmaVersion: 'latest', sourceType: 'module'}); let selected;
+  function walk(node) {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'Property' && node.key?.name === 'run' &&
+        node.value.params?.[0]?.properties?.some(field => field.key?.name === 'acquireSource')) {
+      assert.equal(selected, undefined); selected = node.value;
+    }
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(walk); else if (value && typeof value === 'object') walk(value);
+    }
+  }
+  walk(ast); assert(selected);
+  const prepared = {}, captured = {checkedSource: {sourceDataPolicyCid: 'policy'}}, evidence = {}, input = {}, plan = {},
+    ref = {}, sourceAccess = {}, preparedSource = {}, signal = {}, retainExecution = () => {}, beginPhysicalWork = () => {};
+  let cancelled = false, reads = 0, admissions = 0, executions = 0;
+  const context = {journal: {lookupRunDefinition: value => {assert.equal(value, ref); return {
+    cancellationRequested: cancelled, observedTerminalOutcome: null, runDefinition: {wire: 'definition'},
+  };}}, accepted: {ref}, moon: {clientProgramAdmitInferCapturedInput() {assert.fail('wire path');}},
+    control: {admitInferCapturedInput(body, acquisition, original, authority, policy, start, end) {
+      assert.equal(body, prepared); assert.equal(acquisition, captured); assert.equal(original, evidence);
+      assert.deepEqual([authority, policy, start, end], ['authority', 'policy', 'start', 'end']); admissions++; return input;
+    }, admitRunEvidence() {assert.fail('original evidence admitted again');}},
+    planFor: () => plan, submission: {preparedProgram: prepared}, requested: {}, acquired: true,
+    checkpoints: undefined, sourceProfile: {sourceAccess}, prepareAcquisition: async (body, access) => {
+      assert.equal(body, prepared); assert.equal(access, sourceAccess); return preparedSource;
+    }, authorityScopeCid: 'authority', store: {}, actual: 'actor',
+    runInfer: async options => {executions++; assert.equal(options.plan, plan); assert.equal(options.replay, true);
+      assert.equal(options.acquiredInfer.input, input); assert.equal(options.acquiredInfer.sourceEvidence, evidence);
+      assert.equal(options.signal, signal); assert.equal(options.retainExecution, retainExecution);
+      assert.equal(options.beginPhysicalWork, beginPhysicalWork);},
+  };
+  const code = `async function(${selected.params.map(param => text.slice(param.start, param.end)).join(',')})${text.slice(selected.body.start, selected.body.end)}`;
+  const run = new Function(...Object.keys(context), `return (${code});`)(...Object.values(context));
+  const ports = {signal, retainExecution, beginPhysicalWork, acquireSource: async options => {
+    reads++; assert.equal(options.preparedProgram, prepared); assert.equal(options.preparedSource, preparedSource);
+    assert.equal(options.sourceAccess, sourceAccess); return {captured, sourceEvidence: evidence,
+      captureStartedAt: 'start', captureCompletedAt: 'end'};
+  }};
+  await run(ports); assert.deepEqual([reads, admissions, executions], [1, 1, 1]);
+  cancelled = true; await run(ports); assert.deepEqual([reads, admissions, executions], [1, 1, 1]);
+});
+
+// Execute the original thin caller bodies with explicit typed-selection and
+// adapter ports. These cases issue no real Core/Account/Run or physical read.
+function sourceRouteBinding(name, context, optional = false) {
+  const text = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
+  const ast = parse(text, {ecmaVersion: 'latest', sourceType: 'module'});
+  let found;
+  function visit(node) {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'VariableDeclarator' && node.id?.name === name) found = node.init;
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit);
+      else if (value && typeof value === 'object') visit(value);
+    }
+  }
+  visit(ast);
+  if (optional && found === undefined) return undefined;
+  assert(found, name);
+  return new Function(...Object.keys(context), `return (${text.slice(found.start, found.end)});`)(...Object.values(context));
+}
+
+function sourceRouteCallerFixture({kind = 'whole-input', queryFailure, wrapAdapter} = {}) {
+  const prepared = {}, requested = {}, sourceSelection = {}, preparedSource = {};
+  const sourceAccess = {}, sourceProfile = {}, reference = 'connector://fixture/rows#original';
+  const events = [], identities = new WeakMap();
+  let identityCalls = 0, queryCalls = 0;
+  const ok = value => ({$tag: 1, _0: value});
+  const checked = result => {
+    if (result?.$tag === 1) return result._0;
+    throw Object.assign(new Error('MoonBitHostFailure', {cause: result?._0}), {code: 'MoonBitHostFailure'});
+  };
+  const originalAdapter = {sourceAccess, managedWholeSourceCapacity() {}, async prepare(facts) {
+    assert.equal(facts.preparedProgram, prepared);
+    assert.equal(facts.requestIdentity, requested);
+    assert.equal(facts.sourceAccess, sourceAccess);
+    assert.deepEqual(facts.occurrence, {stage: 0, input: 0, task: 0});
+    assert.equal(facts.requireImmediateReadAuthorization, true);
+    events.push('same-adapter'); return preparedSource;
+  }};
+  const adapter = wrapAdapter === undefined ? originalAdapter : wrapAdapter(originalAdapter, prepared);
+  const moon = {
+    clientProgramAcquisitionCount(body) {assert.equal(body, prepared); return 1;},
+    clientProgramSelectSingleKeyedAcquisition(body) {assert.equal(body, prepared); return ok(undefined);},
+    clientProgramRequestIdentity(body, authority, id, intent) {
+      assert.equal(body, prepared); assert.equal(authority, 'authority');
+      assert.equal(id, 'original-request'); assert.equal(intent, 'original-input-intent');
+      identityCalls++; return requested;
+    },
+    clientProgramSourceFreeInputIntentCid() {return 'original-input-intent';},
+    clientProgramSelectInstalledSourceInput(body, request, stage, input) {
+      assert.equal(body, prepared); assert.equal(request, requested);
+      assert.deepEqual([stage, input], [0, 0]); events.push('typed-selection'); return ok(sourceSelection);
+    },
+    clientProgramSelectedSourceInputKind(selection) {assert.equal(selection, sourceSelection); return kind;},
+    clientProgramSelectedSourceInputRef(selection) {assert.equal(selection, sourceSelection); return reference;},
+    clientProgramPrepareLocalQueryRequirement() {
+      queryCalls++;
+      return {$tag: 0, _0: queryFailure ?? 'WholeInputIsNotQuery'};
+    },
+    clientProgramComposedInferOccurrences(body) {assert.equal(body, prepared); return ok([]);},
+    clientProgramResultCount(body) {assert.equal(body, prepared); return 1;},
+    clientProgramResultName(body, index) {assert.equal(body, prepared); assert.equal(index, 0); return 'rows';},
+  };
+  const context = {moon, prepareSubmit: {assertOwned(body) {assert.equal(body, prepared);}, kindOf() {return 'effect_free';}},
+    sourceProfile, sourceFreeRequestIdentities: identities, earlyContentPlans: new WeakMap(),
+    inferSelections: new WeakMap(), prepareInferSelection(body, occurrence) {assert.equal(body, prepared); assert.equal(occurrence, undefined);},
+    installedSourceFor(profile, ref) {assert.equal(profile, sourceProfile); assert.equal(ref, reference); return adapter;},
+    installedSourceReadBindings: () => [reference], checked, authorityScopeCid: 'authority',
+    runtimeIsOkRequired: value => value?.$tag === 1, runtimeField: (value, index) => value?.[`_${index}`],
+    runtimeOptionalField: (value, index) => value?.[`_${index}`],
+    runtimeTag: value => value?.$tag,
+    clientOperationError: (code, cause) => Object.assign(new Error(code, {cause}), {code}),
+    diagnostic() {}, registry: 'registry', values: 'values', fragment: 'fragment', ordered: 'ordered',
+    checkpoints: undefined, ExecutionAuthorizationError: class extends Error {},
+  };
+  context.originalSourceFreeRequest = sourceRouteBinding('originalSourceFreeRequest', context, true);
+  const requestOf = sourceRouteBinding('requestOf', context);
+  const prepareAcquisition = sourceRouteBinding('prepareAcquisition', context);
+  return {prepared, requested, preparedSource, events, identities,
+    request: id => requestOf({preparedProgram: prepared, requestId: id ?? 'original-request'}),
+    prepare: () => prepareAcquisition(prepared),
+    counts: () => ({identityCalls, queryCalls})};
+}
+
+test('whole-input Host request and acquisition keep one original identity without a Query substitute', async () => {
+  const f = sourceRouteCallerFixture();
+  const first = f.request();
+  assert.equal(first.requested, f.requested);
+  assert.equal(f.request().requested, f.requested);
+  assert.equal(await f.prepare(), f.preparedSource);
+  assert.deepEqual(f.counts(), {identityCalls: 1, queryCalls: 0});
+  assert.deepEqual(f.events, ['typed-selection', 'typed-selection', 'typed-selection', 'same-adapter']);
+});
+
+test('whole-input caller controls preserve Query refusal and reject a changed request identity', () => {
+  const original = new Error('Original Query refusal');
+  const query = sourceRouteCallerFixture({kind: 'query', queryFailure: original});
+  assert.throws(() => query.request(), error => error.code === 'ClientProgramUnsupported' && error.cause.cause === original);
+  assert.deepEqual(query.counts(), {identityCalls: 1, queryCalls: 1});
+  assert.equal(query.events.includes('same-adapter'), false);
+  const whole = sourceRouteCallerFixture();
+  assert.equal(whole.request().requested, whole.requested);
+  assert.throws(() => whole.request('different-request'), {code: 'ForeignInstalledComputeRun'});
+  assert.deepEqual(whole.counts(), {identityCalls: 1, queryCalls: 0});
+  assert.deepEqual(whole.events, ['typed-selection']);
+});
+
+test('whole-input acquisition uses the actual managed-source wrapper and preserves its current refusal', async () => {
+  for (const retireDuringPrepare of [false, true]) {
+    const parent = {}, refusal = new Error('Original managed Source current refusal');
+    let live = true, entered = 0, currentChecks = 0;
+    const f = sourceRouteCallerFixture({wrapAdapter(adapter, prepared) {
+      const originalPrepare = adapter.prepare;
+      adapter.managedCaptureCapacity = () => assert.fail('No Query-capacity substitute');
+      adapter.ledgerCapacity = () => assert.fail('No Ledger construction');
+      adapter.prepare = async facts => {
+        assert.equal(facts.managedRun, parent); entered++;
+        const result = await Reflect.apply(originalPrepare, adapter, [facts]);
+        if (retireDuringPrepare) live = false;
+        return result;
+      };
+      return bindInstalledManagedSources(adapter, body => {
+        assert.equal(body, prepared); currentChecks++;
+        if (!live) throw refusal;
+        return parent;
+      });
+    }});
+    assert.equal(f.request().requested, f.requested);
+    if (retireDuringPrepare) await assert.rejects(f.prepare(), error => error === refusal);
+    else assert.equal(await f.prepare(), f.preparedSource);
+    assert.equal(entered, 1); assert.equal(currentChecks, 2);
+    assert.deepEqual(f.counts(), {identityCalls: 1, queryCalls: 0});
+  }
 });

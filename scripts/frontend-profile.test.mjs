@@ -316,7 +316,7 @@ test('WITH cutover grammar and current guidance have one producer surface', () =
 });
 
 // The existing test:docs entry executes the exact README and independent preimage fences.
-describe('exact README hero compiler inputs', () => {
+describe('retained churn-risk compiler inputs', () => {
   const read = path => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
   const fixture = JSON.parse(read('scripts/fixtures/readme-hero/compiler-inputs.json'));
   const moon = read('src/query_program/readme_hero_test.mbt');
@@ -324,8 +324,8 @@ describe('exact README hero compiler inputs', () => {
   const without = (value, field) => Object.fromEntries(Object.entries(value).filter(([key]) => key !== field));
   const literals = moon.split('\n').filter(line => /^\s*#\|\{/.test(line)).map(line => JSON.parse(line.split('#|')[1]));
 
-  test('the compiled hero is the exact first README SQL, including its defaults', () => {
-    const authored = read('README.md').split('```sql\n')[1].split('\n```')[0];
+  test('the retained compiler control matches its exact authored SQL, including defaults', () => {
+    const authored = read('scripts/fixtures/readme-hero/churn-risk.sql').trimEnd();
     const body = moon.split('fn readme_hero_text() -> String {')[1].split('\n}\n')[0];
     const compiled = body.split('\n').filter(line => /^\s*#\|/.test(line)).map(line => line.split('#|')[1]).join('\n');
     assert.equal(compiled, authored);
@@ -370,4 +370,79 @@ describe('exact README hero compiler inputs', () => {
       assert.equal(declaration.schema[declaration.primary_key[0]].nullable, false);
     }
   });
+});
+
+describe('current README deal-review compiler inputs', () => {
+  const fixture = json('scripts/fixtures/readme-hero/deal-review-compiler-inputs.json');
+  const moon = read('src/query_program/readme_deal_review_test.mbt').toString('utf8');
+  const identity = value => `sha256:${createHash('sha256').update(canonicalText(value)).digest('hex')}`;
+  const without = (value, field) => Object.fromEntries(Object.entries(value).filter(([key]) => key !== field));
+  const literals = moon.split('\n').filter(line => /^\s*#\|\{/.test(line)).map(line => JSON.parse(line.split('#|')[1]));
+
+  test('current compiler input is the exact first README SQL with an honest uniqueness assertion', () => {
+    const authored = read('README.md').toString('utf8').split('```sql\n')[1].split('\n```')[0];
+    const body = moon.split('fn readme_deal_review_text() -> String {')[1].split('\n}\n')[0];
+    const compiled = body.split('\n').filter(line => /^\s*#\|/.test(line)).map(line => line.split('#|')[1]).join('\n');
+    assert.equal(compiled, authored);
+    assert.equal(fixture.sql, authored);
+    assert.equal(authored.split('|> ASSERT UNIQUE BY (id)').length, 2);
+    assert.ok(authored.indexOf('|> ASSERT UNIQUE BY (id)') < authored.indexOf('|> INFER'));
+  });
+
+  test('current complete ModelTask Mapping and environment preimages remain independently pinned', () => {
+    const environment = fixture.environment;
+    assert.deepEqual(literals[0], environment);
+    verifyIdentity(without(environment, 'evidence_bundle_cid'), fixture.expected_environment_cid);
+    assert.equal(environment.evidence_bundle_cid, fixture.expected_environment_cid);
+    for (const members of [environment.connector_manifest.connectors, environment.connector_catalogs]) {
+      assert.deepEqual(members.map(identity), members.map(identity).toSorted());
+    }
+    for (const catalog of environment.connector_catalogs) verifyIdentity(without(catalog, 'catalog_cid'), catalog.catalog_cid);
+    for (const mapping of environment.mapping_contracts) {
+      verifyIdentity(without(mapping, 'mapping_contract_cid'), mapping.mapping_contract_cid);
+      verifyIdentity(mapping.target_schema, mapping.target_schema_identity);
+      assert.equal(mapping.connector_manifest_cid, identity(environment.connector_manifest.connectors.find(entry => entry.connector === 'salesforce')));
+      assert.equal(mapping.target_schema.fields.StageName.nullable, false);
+    }
+    for (const task of environment.model_task_contracts) {
+      verifyIdentity(without(task, 'contract_cid'), task.contract_cid);
+      verifyIdentity(task.input_contract, task.input_schema_cid);
+      verifyIdentity(task.output_contract, task.output_schema_cid);
+      assert.equal(task.input_contract.fields.notes.type, 'content_ref');
+      assert.equal(task.input_contract.fields.NextStep.nullable, true);
+      assert.equal(task.output_contract.fields.stage.nullable, false);
+    }
+  });
+
+  test('file names never provide a key and duplicate matching files remain an observable ambiguity', () => {
+    assert.deepEqual(literals.slice(1), Object.values(fixture.declarations));
+    assert.deepEqual(fixture.declarations['drive.files'].primary_key, ['id']);
+    assert.deepEqual(fixture.declarations['drive.contents'].primary_key, ['resource', 'version']);
+    assert.deepEqual(fixture.expected_input_fields, ['StageName', 'NextStep', 'notes']);
+    assert.deepEqual(fixture.expected_visible_keep, ['id', 'StageName', 'NextStep', 'notes']);
+    assert.deepEqual(fixture.expected_input_key, ['id']);
+    const opportunities = [{id: 'deal-1', name: 'Renewal'}];
+    const files = [{id: 'file-1', name: 'Renewal'}, {id: 'file-2', name: 'Renewal'}];
+    assert.equal(new Set(files.map(file => file.id)).size, files.length);
+    const joined = opportunities.flatMap(deal => files.filter(file => file.name === deal.name).map(file => ({id: deal.id, file_id: file.id})));
+    assert.equal(joined.length, 2);
+    assert.notEqual(new Set(joined.map(row => row.id)).size, joined.length);
+    for (const declaration of Object.values(fixture.declarations)) assert.equal(Object.hasOwn(declaration, 'rows'), false);
+  });
+});
+
+test('nullable success regression retains complete independent task and environment preimages', () => {
+  const environment = json('scripts/fixtures/infer-success/nullable-success-environment.json');
+  const moon = read('src/query_program/infer_nullable_success_fixture_test.mbt').toString('utf8');
+  const literal = moon.split('\n').find(line => /^\s*#\|\{/.test(line));
+  assert.deepEqual(JSON.parse(literal.split('#|')[1]), environment);
+  const without = (value, field) => Object.fromEntries(Object.entries(value).filter(([key]) => key !== field));
+  verifyIdentity(without(environment, 'evidence_bundle_cid'), environment.evidence_bundle_cid);
+  const task = environment.model_task_contracts[0];
+  verifyIdentity(without(task, 'contract_cid'), task.contract_cid);
+  verifyIdentity(task.input_contract, task.input_schema_cid);
+  verifyIdentity(task.output_contract, task.output_schema_cid);
+  assert.equal(task.output_contract.fields.details.nullable, true);
+  assert.equal(task.output_contract.fields.details.fields.risk.nullable, false);
+  assert.equal(task.output_contract.fields.reason.nullable, true);
 });

@@ -1,6 +1,19 @@
 // Failure settlement for synchronous managed implementations. A returned
 // Promise and a stopped representation reader are different facts: reservation
 // settlement waits for the latter, while close is attempted immediately.
+
+// Private cleanup lists have two positional diagnostic roles: the first
+// refusal and the latest refusal. Throwable identity includes primitives and
+// undefined; equality or a status snapshot is never a retirement witness.
+// This mutates only diagnostics, not the original cleanup/progress owner.
+export function retainFirstAndLatestCleanupError(errors, error, retainedPrefix = 0) {
+  // A caller may already retain a finite initial diagnostic for each original
+  // child. Preserve that prefix; only this owner's subsequent retry tail has
+  // first/latest roles. The prefix is captured once, not recomputed per retry.
+  if (errors.length < retainedPrefix + 2) errors.push(error);
+  else errors[retainedPrefix + 1] = error;
+}
+
 const member = (value, name) => {
   try {
     return value !== null &&
@@ -117,7 +130,7 @@ export function settleFailedManagedOperations(
     closed: typeof member(value, 'close') !== 'function',
   }));
   const cleanupErrors = [];
-  const record = error => { cleanupErrors.push(error); };
+  const record = error => { retainFirstAndLatestCleanupError(cleanupErrors, error); };
   const additionalClosed = () => additional.every(cleanup => cleanup.closed);
   const observeAdditionalClosed = () => {
     if (additionalClosed()) {

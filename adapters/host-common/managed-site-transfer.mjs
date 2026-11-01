@@ -1,3 +1,4 @@
+import {retainFirstAndLatestCleanupError} from './managed-failure.mjs';
 // Coordinator-owned orchestration for explicit in-process Site Transfer. The
 // concrete copier is an adopted representation provider; common completion and
 // physical accounting remain in the existing runtime Core.
@@ -104,6 +105,7 @@ const transferState = ({
     destinationFailure: undefined,
     destinationCleanup: undefined,
     errors: [],
+    errorPrefix: 0,
   };
 };
 
@@ -122,7 +124,7 @@ const observeSourceStop = async (state, retry) => {
   if (retry && pending(state.upstream) &&
       typeof member(state.upstream, 'retry') === 'function') {
     try { await state.upstream.retry(); }
-    catch (error) { state.errors.push(error); }
+    catch (error) { retainFirstAndLatestCleanupError(state.errors, error, state.errorPrefix); }
   }
   if (!pending(state.upstream)) {
     recordTransferFact(
@@ -144,7 +146,7 @@ const reclaimDestination = async (state, retry) => {
     if (retry && pending(state.destinationCleanup) &&
         typeof member(state.destinationCleanup, 'retry') === 'function') {
       try { await state.destinationCleanup.retry(); }
-      catch (error) { state.errors.push(error); }
+      catch (error) { retainFirstAndLatestCleanupError(state.errors, error, state.errorPrefix); }
     }
     if (!pending(state.destinationCleanup)) {
       recordTransferFact(
@@ -165,7 +167,7 @@ const reclaimDestination = async (state, retry) => {
     );
     return true;
   } catch (error) {
-    state.errors.push(error);
+    retainFirstAndLatestCleanupError(state.errors, error, state.errorPrefix);
     state.destinationFailure = error;
     if (member(error, 'cleanupPending') === true &&
         typeof member(member(error, 'cleanupHandle'), 'status') ===
@@ -308,10 +310,11 @@ const driveTransferCleanup = async (
 const transferFailure = async (reason, state) => {
   const failure = ownedTransferFailure(reason);
   state.errors.push(...failure.cleanupErrors);
+  state.errorPrefix = state.errors.length;
   try {
     await driveTransferCleanup(state, {reclaim: false});
   } catch (error) {
-    state.errors.push(error);
+    retainFirstAndLatestCleanupError(state.errors, error, state.errorPrefix);
   }
   const status = () => Object.freeze({
     pending: state.core.transferCleanupAction(state.progress) !==
@@ -334,7 +337,7 @@ const transferFailure = async (reason, state) => {
             reclaim: true,
           });
         } catch (error) {
-          state.errors.push(error);
+          retainFirstAndLatestCleanupError(state.errors, error, state.errorPrefix);
         }
         return refresh();
       },
@@ -685,6 +688,7 @@ export function createManagedSiteTransferCoordinator(
         catch (error) { failures.push(error); }
       }
       if (failures.length) {
+        const initialErrorCount = failures.length;
         const failure = new AggregateError(
           failures, 'ManagedSiteTransferCleanupFailed',
         );
@@ -701,7 +705,9 @@ export function createManagedSiteTransferCoordinator(
               try { await retryEntry(entry); }
               catch (error) { retryFailures.push(error); }
             }
-            failures.push(...retryFailures);
+            for (const error of retryFailures) {
+              retainFirstAndLatestCleanupError(failures, error, initialErrorCount);
+            }
             return status();
           },
         });
@@ -719,6 +725,7 @@ export function createManagedSiteTransferCoordinator(
           catch (error) { failures.push(error); }
         }
         if (failures.length) {
+          const initialErrorCount = failures.length;
           const failure = new AggregateError(
             failures, 'ManagedSiteTransferCleanupFailed',
           );
@@ -732,7 +739,7 @@ export function createManagedSiteTransferCoordinator(
             async retry() {
               for (const entry of [...entries].reverse()) {
                 try { await retryEntry(entry); }
-                catch (error) { failures.push(error); }
+                catch (error) { retainFirstAndLatestCleanupError(failures, error, initialErrorCount); }
               }
               return status();
             },

@@ -43,7 +43,11 @@ import {composeInstalledCheckEnvironment, verifyInstalledConnectorBindings} from
 import {retainInstalledHostInitializationFailure, retainInstalledHostRuntimeFailure}
   from './installed-host-cleanup.mjs';
 import {MAX_INSTALLED_SOURCE_AUTHORITIES} from './installed-source-limits.mjs';
-import {readSourceProfileJson, installedRuntimeBundleCid} from './source-profile-json.mjs';
+import {readSourceProfileJson, installedRuntimeBundleCid, captureConfigurationReaders} from './source-profile-json.mjs';
+import {retainInstalledHostServiceInstallation, installedSourceConfigurationReader,
+  beginInstalledSourceInitialization, finishInstalledSourceInitialization,
+  reserveInstalledSourceEnvironment, reserveInstalledSourceRuntimeIdentity,
+  withInstalledSourceLoading} from './installed-host-services.mjs';
 import {splitSourceAliasProfile} from './source-alias-publication.mjs';
 import {INSTALLED_DUCKDB_SOURCE_VERSION, installDuckDBSourceProfile} from
   './installed-duckdb-source.mjs';
@@ -173,28 +177,29 @@ async function selectInstallation(profile, connectorTable) {
 // physical Source still binds credential grants to the actual Host runtime;
 // it must not add a dummy provider bundle merely to receive that identity.
 // A built-in binding without a Site or supplied runtime needs neither.
-async function providerRuntime(entry, runtimeUrl) {
+async function providerRuntime(entry, runtimeUrl, readRuntimeIdentity = installedRuntimeBundleCid) {
   const bundle = providerBundleUrl(entry);
   if (bundle === undefined) return runtimeUrl === undefined ? {}
-    : {runtimeBundleCid: await installedRuntimeBundleCid(runtimeUrl)};
+    : {runtimeBundleCid: await readRuntimeIdentity(runtimeUrl)};
   return {providerMoon: await import(bundle.href),
-    runtimeBundleCid: await installedRuntimeBundleCid(runtimeUrl)};
+    runtimeBundleCid: await readRuntimeIdentity(runtimeUrl)};
 }
 
 // A connected embedded Host keeps one installed source for its lifetime.
 // Compare its full published generation and Site binding on later connects,
 // without reading a credential value or probing the provider.
-export async function installedSourceIdentity(path, {connectorTable} = {}) {
+export async function installedSourceIdentity(path, {connectorTable, configurationReader} = {}) {
   if (typeof path !== 'string' || !isAbsolute(path)) {
     throw new TypeError('InvalidInstalledSourceProfilePath');
   }
-  const read = readSourceProfileJson;
+  const read = captureConfigurationReaders(configurationReader, undefined,
+    () => {throw new TypeError('InstalledConfigurationReaderUnavailable');}).readJson;
   const profile = await read(path);
   const {providerProfile, queryAliases} = splitSourceAliasProfile(profile);
   // Omission and an explicitly empty alias publication have the same meaning.
   if (queryAliases.length === 0) delete profile.queryAliases;
   const {entry, module} = await selectInstallation(profile, connectorTable);
-  const parts = await module.identityParts(profile, providerProfile, read, entry);
+  const parts = await module.identityParts(profile, providerProfile, read, entry, {configurationReader});
   return sourceIdentityFromParts(parts, queryAliases);
 }
 
@@ -294,11 +299,11 @@ async function duckdbAdapter(profile, moon, {root, principalId}) {
   });
 }
 
-async function readProfile(path) {
+async function readProfile(path, read = readSourceProfileJson) {
   if (typeof path !== 'string' || !isAbsolute(path)) {
     throw new TypeError('InvalidInstalledSourceProfilePath');
   }
-  try { return await readSourceProfileJson(path); }
+  try { return await read(path); }
   catch (cause) {
     const failure = Object.assign(new TypeError('InvalidInstalledSourceProfile',
       {cause}), {code: 'InvalidInstalledSourceProfile'});
@@ -362,9 +367,21 @@ export async function publishInstalledSourceProfile(path, {root, principalId,
 // or an invalid profile is refused before any provider or Site I/O. Only the
 // selected connector's module and provider bundle are loaded.
 export async function loadInstalledSource(path, {root, principalId, moon,
-  runtimeUrl, baseEnvironmentWire, resolveSecret, connectorTable}) {
+  runtimeUrl, baseEnvironmentWire, resolveSecret, connectorTable, installationServices}) {
   if (path === undefined) return undefined;
-  const profile = await readProfile(path);
+  return withInstalledSourceLoading(installationServices, () => loadInstalledSourceMember(path,
+    {root, principalId, moon, runtimeUrl, baseEnvironmentWire, resolveSecret, connectorTable, installationServices}));
+}
+
+async function loadInstalledSourceMember(path, {root, principalId, moon,
+  runtimeUrl, baseEnvironmentWire, resolveSecret, connectorTable, installationServices}) {
+  // The original initial reservation precedes shared profile parsing and
+  // identity metadata reads, not merely the selected provider's load call.
+  const configurationReader = installationServices === undefined ? undefined
+    : installedSourceConfigurationReader(installationServices);
+  const read = captureConfigurationReaders(configurationReader, undefined,
+    () => {throw new TypeError('InstalledConfigurationReaderUnavailable');}).readJson;
+  const profile = await readProfile(path, read);
   const {providerProfile, queryAliases} = splitSourceAliasProfile(profile);
   const {entry, module} = await selectInstallation(profile, connectorTable);
   const checked = module.check(providerProfile);
@@ -374,20 +391,27 @@ export async function loadInstalledSource(path, {root, principalId, moon,
     const identityProfile = {...profile};
     if (queryAliases.length === 0) delete identityProfile.queryAliases;
     publicationRevision = sourceIdentityFromParts(await module.identityParts(
-      identityProfile, providerProfile, readSourceProfileJson, entry), queryAliases);
+      identityProfile, providerProfile, read, entry, {configurationReader}), queryAliases);
   } catch (cause) {
     if (cause?.cleanupHandle !== undefined || cause?.cleanupPending === true) throw cause;
     // Usable positive installation metadata alone cannot prove completeness.
   }
-  const adapter = await module.load(checked, {root, principalId, moon,
-    baseEnvironmentWire, resolveSecret, installation: entry,
-    ...await providerRuntime(entry, runtimeUrl)});
+  const readRuntimeIdentity = installationServices === undefined ? undefined
+    : reserveInstalledSourceRuntimeIdentity(installationServices);
+  const runtime = await providerRuntime(entry, runtimeUrl, readRuntimeIdentity);
+  retainInstalledHostServiceInstallation(installationServices, entry, runtime.runtimeBundleCid);
+  const sourceInitialization = installationServices === undefined ? undefined
+    : beginInstalledSourceInitialization(installationServices, entry, checked.connectorId, baseEnvironmentWire);
+  let adapter;
   try {
+    adapter = await module.load(checked, {root, principalId, moon,
+      baseEnvironmentWire, resolveSecret, installation: entry, installationServices,
+      sourceInitialization, configurationReader, ...runtime});
     verifyInstalledConnectorRegistration(entry, adapter);
     const source = Object.freeze({...adapter, queryAliases});
     if (publicationRevision !== undefined) {
       let current;
-      try { current = await installedSourceIdentity(path, {connectorTable}); }
+      try { current = await installedSourceIdentity(path, {connectorTable, configurationReader}); }
       catch (cause) {
         if (cause?.cleanupHandle !== undefined || cause?.cleanupPending === true) throw cause;
         // Missing metadata leaves the namespace observation unresolved.
@@ -397,11 +421,14 @@ export async function loadInstalledSource(path, {root, principalId, moon,
           revision: publicationRevision, aliases: queryAliases}));
       }
     }
+    finishInstalledSourceInitialization(sourceInitialization, adapter);
     return source;
   } catch (cause) {
     // The caller cannot own an adapter until validation returns it.
-    throw await retainInstalledHostInitializationFailure(cause,
+    const failure = await retainInstalledHostInitializationFailure(cause,
       {sourceProfile: adapter});
+    finishInstalledSourceInitialization(sourceInitialization, adapter, failure, true);
+    throw failure;
   }
 }
 
@@ -509,6 +536,8 @@ export async function loadInstalledSources(paths, options) {
     let environmentWire;
     const bindings = new Map();
     for (const source of sources) {
+      if (options.installationServices !== undefined) reserveInstalledSourceEnvironment(
+        options.installationServices, options.baseEnvironmentWire, environmentWire, source.environmentWire);
       const combined = composeInstalledCheckEnvironment(options.moon,
         options.baseEnvironmentWire, environmentWire, source.environmentWire);
       verifyInstalledConnectorBindings(environmentWire === undefined ? undefined

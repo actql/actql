@@ -86,3 +86,333 @@ test "original lookup rejection projection refuses unrelated causes and a genuin
     )
   }
 }
+
+///|
+#external
+priv type RequestDiagnosticTestLoader
+
+///|
+#module("node:module")
+extern "js" fn request_diagnostic_test_loader(
+  url : String,
+) -> RequestDiagnosticTestLoader = "createRequire"
+
+///|
+extern "js" fn request_diagnostic_test_url() -> String =
+  #|() => import.meta.url
+
+///|
+extern "js" fn request_diagnostic_test_receipt() -> ClientLocalPreparationInputOriginal =
+  #|() => Object.freeze({})
+
+///|
+extern "js" fn request_diagnostic_test_json(
+  document : String,
+) -> NativeJsonValue =
+  #|(document) => JSON.parse(document)
+
+///|
+// Original policy Array ABI, matching the ordinary supplier's existing entry.
+#warnings("-deprecated")
+extern "js" fn request_diagnostic_test_original(
+  loader : RequestDiagnosticTestLoader,
+  receipt : ClientLocalPreparationInputOriginal,
+  quote : Array[Int64],
+) -> @resources.OriginalNodeManagedRunReference =
+  #|(loader,receipt,quote) => loader('../../../../../adapters/host-node/ordinary-node-resource-runtime.cjs').retainOrdinaryManagedRun(receipt,{planningWork:Number(quote[0]),attempts:Number(quote[1]),holdings:Number(quote[2]),transferBytes:quote[3],retainedBytes:quote[4],executionBytes:quote[5]},()=>{},()=>false,'local-preparation')
+
+///|
+fn request_diagnostic_test_parent() -> (
+  @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  ClientLocalPreparationInputOriginal,
+) {
+  let receipt = request_diagnostic_test_receipt()
+  let policy = client_local_resource_policy_original()
+  let original = request_diagnostic_test_original(
+    request_diagnostic_test_loader(request_diagnostic_test_url()),
+    receipt,
+    client_local_preparation_resource_limits(policy),
+  )
+  let initial = client_program_prepare_local_preparation_admission(
+    original, receipt,
+  ).unwrap()
+  let parent = client_program_begin_request_preparation(
+    initial, receipt, policy,
+  ).unwrap()
+  client_program_reserve_request_snapshot(parent, receipt, 10000L, 10000L).unwrap()
+  (parent, receipt)
+}
+
+///|
+fn request_diagnostic_checked_issue_code(
+  result : Result[Unit, @client_local_host.ClientRequestTerminalIssue],
+) -> String? {
+  match result {
+    Err(issue) => client_program_request_preparation_issue_code(Err(issue))
+    Ok(_) => None
+  }
+}
+
+///|
+test "Request failure projection uses the original semantic issue without another check" {
+  let environment = original_lookup_diagnostic_environment(false)
+  let publication = @source_publication.prepare_published_query_environment(
+    environment,
+    "{\"environmentCid\":\"" +
+    @program_check.checking_environment_cid(environment) +
+    "\",\"aliases\":[]}",
+  ).unwrap()
+  let program =
+    #|{"version":"actql/0.1","id":"request-refusal","params":{"n":{"type":"number"}},"stages":[{"id":"s","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":1}]},"as":"v"},{"derive":{"value":"id + $n"},"as":"d"}],"results":{"rows":{"from":"d","fields":["value"]}}}],"results":{"answer":{"from":{"stage":"s","result":"rows"}}}}
+  let missing =
+    #|{"version":"actql/0.1","id":"missing-source","stages":[{"id":"s","inputs":{"remote":{"connector":"missing","resource":"rows","view":"records"}},"steps":[{"from":"remote","take":1,"as":"v"}],"results":{"rows":{"from":"v","fields":["id"]}}}],"results":{"answer":{"from":{"stage":"s","result":"rows"}}}}
+  for
+    (document, parameters, expected) in [
+      ("{}", None, "check_invalid_input"),
+      (program, Some("{\"n\":\"wrong type\"}"), "check_invalid_input"),
+      (program, None, "needs_inputs"),
+      (missing, None, "source_unresolved"),
+    ] {
+    let (parent, receipt) = request_diagnostic_test_parent()
+    let result = client_program_prepare_request_native_computation(
+      parent,
+      receipt,
+      request_diagnostic_test_json(document),
+      request_diagnostic_test_json(parameters.unwrap_or("null")),
+      environment,
+      publication,
+      None,
+    )
+    assert_true(result is Err(_))
+    assert_eq(request_diagnostic_checked_issue_code(result), Some(expected))
+    @client_local_host.abort_request_preparation_after_cleanup(parent).unwrap()
+  }
+}
+
+///|
+test "Request failure projection keeps input admission and nonsemantic uncertainty separate" {
+  let environment = original_lookup_diagnostic_environment(false)
+  let publication = @source_publication.prepare_published_query_environment(
+    environment,
+    "{\"environmentCid\":\"" +
+    @program_check.checking_environment_cid(environment) +
+    "\",\"aliases\":[]}",
+  ).unwrap()
+  let (parent, receipt) = request_diagnostic_test_parent()
+  // Foreign identity and retired same-original calls produce real nominal
+  // errors. No test issuer or widened read-only constructor is introduced.
+  let foreign = client_program_prepare_request_native_computation(
+    parent,
+    request_diagnostic_test_receipt(),
+    request_diagnostic_test_json("{}"),
+    request_diagnostic_test_json("null"),
+    environment,
+    publication,
+    None,
+  )
+  assert_true(foreign is Err(_))
+  assert_eq(request_diagnostic_checked_issue_code(foreign), None)
+  @client_local_host.abort_request_preparation_after_cleanup(parent).unwrap()
+  let retired = client_program_prepare_request_native_computation(
+    parent,
+    receipt,
+    request_diagnostic_test_json("{}"),
+    request_diagnostic_test_json("null"),
+    environment,
+    publication,
+    None,
+  )
+  assert_true(retired is Err(_))
+  assert_eq(request_diagnostic_checked_issue_code(retired), None)
+  assert_eq(
+    client_program_request_preparation_issue_code(Ok("effect_free")),
+    None,
+  )
+}
+
+///|
+test "original compilation sum preserves actual Values Task issuers and foreign owner refusal" {
+  let environment = original_lookup_diagnostic_environment(false)
+  let text =
+    #|{"version":"actql/0.1","id":"original-typed-compilation","stages":[{"id":"s","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":1}]},"as":"v"}],"results":{"rows":{"from":"v","fields":["id"]}}}],"results":{"answer":{"from":{"stage":"s","result":"rows"}}}}
+  let prepare = () => {
+    client_program_preparation_ready(
+      client_program_prepare_effect_free_with_parameters(
+        text,
+        "json",
+        environment,
+        None,
+      ),
+    ).unwrap()
+  }
+  let prepared = prepare()
+  let foreign = prepare()
+  let values = client_program_compile_local_values(prepared).unwrap()
+  let tasks = client_program_compile_local_tasks(prepared).unwrap()
+  let context = "sha256:" + "a".repeat(64)
+  let policy = "sha256:" + "b".repeat(64)
+  let expires = "2030-01-01T00:00:00.000Z"
+  let original_values : @publication_host.ClientRunCompilation = @publication_host.Values(
+    values,
+  )
+  let original_tasks : @publication_host.ClientRunCompilation = @publication_host.Tasks(
+    tasks,
+  )
+  for
+    (original, is_values) in [(original_values, true), (original_tasks, false)] {
+    let result = if is_values {
+      client_program_issue_original_values_compiled_run(
+        prepared, original, context, policy, expires,
+      )
+    } else {
+      client_program_issue_original_task_compiled_run(
+        prepared, original, context, policy, expires,
+      )
+    }
+    assert_true(
+      @publication_host.client_compiled_run_matches(result.unwrap(), prepared),
+    )
+    let foreign_result = if is_values {
+      client_program_issue_original_values_compiled_run(
+        foreign, original, context, policy, expires,
+      )
+    } else {
+      client_program_issue_original_task_compiled_run(
+        foreign, original, context, policy, expires,
+      )
+    }
+    assert_true(foreign_result is Err(ForeignOwner))
+  }
+  assert_true(
+    client_program_issue_original_values_compiled_run(
+      prepared, original_tasks, context, policy, expires,
+    )
+    is Err(ForeignOwner),
+  )
+  assert_true(
+    client_program_issue_original_task_compiled_run(
+      prepared, original_values, context, policy, expires,
+    )
+    is Err(ForeignOwner),
+  )
+}
+
+///|
+test "native Query terminal projects original syntax declaration and missing-input refusals" {
+  let environment = original_lookup_diagnostic_environment(false)
+  let publication = @source_publication.prepare_published_query_environment(
+    environment,
+    "{\"environmentCid\":\"" +
+    @program_check.checking_environment_cid(environment) +
+    "\",\"aliases\":[]}",
+  ).unwrap()
+  for
+    (source, expected) in [
+      ("{\"format\":\"sql\",\"text\":\"SELECT (\"}", "source_invalid_input"),
+      (
+        "{\"format\":\"sql\",\"text\":\"SELECT 1 AS n\",\"parameterDeclarations\":null}",
+        "source_declarations",
+      ),
+      (
+        "{\"format\":\"sql\",\"text\":\"SELECT id FROM missing\"}", "source_unresolved",
+      ),
+      (
+        "{\"format\":\"sql\",\"text\":\"SELECT @n AS n\",\"parameterDeclarations\":{\"n\":{\"type\":\"number\"}}}",
+        "needs_inputs",
+      ),
+    ] {
+    let (parent, receipt) = request_diagnostic_test_parent()
+    let result = client_program_prepare_request_source_computation(
+      parent,
+      receipt,
+      request_diagnostic_test_json(source),
+      request_diagnostic_test_json("null"),
+      environment,
+      publication,
+      None,
+    )
+    assert_true(result is Err(_))
+    assert_eq(request_diagnostic_checked_issue_code(result), Some(expected))
+    @client_local_host.abort_request_preparation_after_cleanup(parent).unwrap()
+  }
+}
+
+///|
+test "native Query terminal keeps foreign and retired originals outside semantic refusal" {
+  let environment = original_lookup_diagnostic_environment(false)
+  let publication = @source_publication.prepare_published_query_environment(
+    environment,
+    "{\"environmentCid\":\"" +
+    @program_check.checking_environment_cid(environment) +
+    "\",\"aliases\":[]}",
+  ).unwrap()
+  let (parent, receipt) = request_diagnostic_test_parent()
+  let source = request_diagnostic_test_json(
+    "{\"format\":\"sql\",\"text\":\"SELECT 1 AS n\"}",
+  )
+  let supplied = request_diagnostic_test_json("null")
+  let foreign = client_program_prepare_request_source_computation(
+    parent,
+    request_diagnostic_test_receipt(),
+    source,
+    supplied,
+    environment,
+    publication,
+    None,
+  )
+  assert_true(foreign is Err(_))
+  assert_eq(request_diagnostic_checked_issue_code(foreign), None)
+  @client_local_host.abort_request_preparation_after_cleanup(parent).unwrap()
+  let retired = client_program_prepare_request_source_computation(
+    parent,
+    receipt,
+    source,
+    supplied,
+    environment,
+    publication,
+    None,
+  )
+  assert_true(retired is Err(_))
+  assert_eq(request_diagnostic_checked_issue_code(retired), None)
+}
+
+///|
+test "native Source document terminal projects original invalid Program instead of unconnected phase" {
+  let environment = original_lookup_diagnostic_environment(false)
+  let publication = @source_publication.prepare_published_query_environment(
+    environment,
+    "{\"environmentCid\":\"" +
+    @program_check.checking_environment_cid(environment) +
+    "\",\"aliases\":[]}",
+  ).unwrap()
+  for format in ["json", "yaml"] {
+    let (parent, receipt) = request_diagnostic_test_parent()
+    let source = request_diagnostic_test_json(
+      "{\"format\":\"" + format + "\",\"text\":\"{}\"}",
+    )
+    let result = client_program_prepare_request_source_computation(
+      parent,
+      receipt,
+      source,
+      request_diagnostic_test_json("null"),
+      environment,
+      publication,
+      None,
+    )
+    assert_true(
+      result
+      is Err(
+        @client_local_host.ClientRequestTerminalIssue::Preparation(
+          ProgramJson(Syntax(_))
+        )
+      ),
+    )
+    assert_eq(
+      request_diagnostic_checked_issue_code(result),
+      Some("check_invalid_input"),
+    )
+    @client_local_host.abort_request_preparation_after_cleanup(parent).unwrap()
+  }
+}

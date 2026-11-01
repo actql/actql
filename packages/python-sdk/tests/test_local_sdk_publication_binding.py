@@ -4,6 +4,7 @@ import unittest
 
 from actql_sdk._local_core import LocalCoreError, _MATERIAL_SIGNATURES
 import test_local_host_current as current_fixture
+from local_abi_declaration_fixture import original_byte_fixture_port
 
 
 WIRE = b'{"kind":"publication","key":"original","revision":"0","body":"e\xcc\x81/~\\r\\n"}'
@@ -41,7 +42,7 @@ class SDKPublicationBindingCustodyTests(unittest.TestCase):
                 return WIRE[args[1]]
             return previous(family, name, *args)
 
-        core._call = call
+        core._call = original_byte_fixture_port(call)
         material = core.reserve_material(7, 9, cleanup=lambda: True)
 
         def inside(action):

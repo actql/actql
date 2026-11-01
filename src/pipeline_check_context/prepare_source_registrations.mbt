@@ -22,51 +22,30 @@ pub fn prepare_source_registrations(
   (@sourceviews.PipelineInputs, @local_inputs.ProgramEnvironmentInputs),
   SourceRegistrationIssue,
 ] {
-  if limits.max_work < 0 ||
-    limits.max_nodes < 0 ||
-    limits.max_text_bytes < 0 ||
-    limits.max_depth < 0 ||
-    max_inputs < 0 ||
-    max_views < 0 ||
-    max_order_keys < 0 {
-    return Err(InvalidLimits)
-  }
-  let inputs = match
-    @source_inputs.collect(source, {
-      max_work: limits.max_work,
-      max_order_keys,
-    }) {
-    Ok(v) => v
-    Err(e) => return Err(Declarations(e))
-  }
-  let resolved = match
-    @sourceviews.resolve(inputs, catalog, {
-      max_work: limits.max_work,
-      max_inputs,
-      max_views,
-    }) {
-    Ok(v) => v
-    Err(e) => return Err(Selection(e))
-  }
-  let views = match
-    @sourceviews.prepare_pipeline_inputs(resolved, limits.max_work) {
-    Ok(v) => v
-    Err(e) => return Err(Registration(e))
-  }
-  // Registration includes the collection/selection prefix. The remaining
-  // allowance bounds Local snapshot preparation under its pass conventions.
-  let locals = match
-    @local_inputs.prepare_environment(
+  let read = match
+    begin_source_registration(
       source,
-      @sourceviews.pipeline_environment(views),
-      {
-        ..limits,
-        max_work: limits.max_work - @sourceviews.pipeline_inputs_work(views),
-      },
-      sourceviews=Some(inputs),
+      catalog,
+      limits,
+      max_inputs~,
+      max_views~,
+      max_order_keys~,
     ) {
-    Ok(v) => v
-    Err(e) => return Err(LocalInputs(e))
+    Err(issue) => return Err(issue)
+    Ok(read) => read
   }
-  Ok((views, locals))
+  while true {
+    match advance_source_registration(read) {
+      RegistrationComplete | RegistrationFailed =>
+        return take_source_registration_result(read).unwrap()
+      RegistrationCollect
+      | RegistrationSelect
+      | RegistrationPipeline
+      | RegistrationLocal => ()
+      RegistrationTransferred | RegistrationRetired =>
+        abort("unexposed original registration read cannot retire externally")
+    }
+  } nobreak {
+    abort("original registration advancement returns at a terminal phase")
+  }
 }

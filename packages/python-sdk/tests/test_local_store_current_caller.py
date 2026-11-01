@@ -9,6 +9,7 @@ from actql_sdk._local_storage import ByteFence, CapacityReservation, StoredBytes
 from actql_sdk._local_store_reconciliation import OriginalStoreReconciliation
 import test_local_host_binding as binding_fixture
 import test_local_reader_facts as file_fixture
+from local_abi_declaration_fixture import original_byte_fixture_port
 
 
 class StoreCurrentCallerTests(unittest.TestCase):
@@ -46,7 +47,11 @@ class StoreCurrentCallerTests(unittest.TestCase):
                 self.assertIs(frame.owner, store)
                 frames.append((name, frame))
                 if family == 'publication_commit_export':
-                    if name == 'reserve': return 200 + args[1]
+                    if name in ('reserve', 'reserve_bounded'):
+                        if name == 'reserve_bounded':
+                            self.assertEqual(len(args), 4)
+                            self.assertIn(args[2], (64, 71))
+                        return 200 + args[1]
                     if name == 'produce_index_key': body = b'd' * 64
                     elif name == 'produce_lookup_reference': body = refs[1 + args[2]]
                     elif name in ('length', 'close'):
@@ -65,7 +70,7 @@ class StoreCurrentCallerTests(unittest.TestCase):
                 if name in ('fill', 'seal'): return 0
                 if name == 'byte': return core._inputs[args[0] - 200].payload[args[1]]
             return before(family, name, *args)
-        core._call = call
+        core._call = original_byte_fixture_port(call)
         transfers = [OriginalObservationTransfer(projection, publisher,
             max_source_bytes=512, max_packet_bytes=512, cleanup=lambda: True,
             stopped=lambda _: True, workspace_cleanup=lambda: True, workspace_stopped=lambda: True)

@@ -8,6 +8,7 @@ pub struct ClientDirectResultRoot {
   node_id : String
   port : String
   row_contract_cid : String
+  priv plan : ClientResultPlanIdentity
 }
 
 ///|
@@ -126,33 +127,6 @@ pub fn issue_prepared_client_direct_task_result_root(
 }
 
 ///|
-// A captured acquisition has no Compute target. Its checked acquisition
-// capture still identifies the exact producer Result port; do not invent a
-// Compute step merely to export that already produced Relation.
-fn client_publication_task_target(
-  value : PreparedClientProgram,
-  task : Int,
-) -> @pipeline.Target? {
-  let graph = value.graph
-  match @strategy.graph_task_target(graph, task) {
-    Some(target) => Some(target)
-    None => {
-      if task != 0 || @strategy.graph_captured_prefix(graph) != 1 {
-        return None
-      }
-      guard @strategy.graph_task_unit_index(graph, task) is Some(stage) else {
-        return None
-      }
-      match prepare_client_query_acquisition(value, stage, 0) {
-        Ok(acquisition) =>
-          Some(@acquisition.query_acquisition_capture(acquisition))
-        Err(_) => None
-      }
-    }
-  }
-}
-
-///|
 fn issue_prepared_client_direct_result_root_for_output(
   value : PreparedClientProgram,
   result : Int,
@@ -169,7 +143,9 @@ fn issue_prepared_client_direct_result_root_for_output(
     return Err(MissingResult)
   }
   let port = @execution.managed_result_occurrence_port(occurrence)
-  guard client_publication_task_target(value, task) is Some(target) &&
+  // Use the exact checked output emitted by the original fragment. Rebuilding
+  // an untimed acquisition can select an earlier capture before its suffix.
+  guard client_task_output_target(graph, task) is Some(target) &&
     @results.port_target(port) == target else {
     return Err(RequiresResultTransformation)
   }
@@ -182,8 +158,7 @@ fn issue_prepared_client_direct_result_root_for_output(
     return Err(RequiresResultTransformation)
   }
   let prepared = @lower.bound_preparation(owner)
-  guard client_task_output_target(graph, task) is Some(output_target) &&
-    @lower.preparation_schema_at(prepared, output_target) is Some(task_schema) else {
+  guard @lower.preparation_schema_at(prepared, target) is Some(task_schema) else {
     return Err(RequiresResultTransformation)
   }
   let names = @results.fields(@results.port_result(port))
@@ -216,43 +191,7 @@ fn issue_prepared_client_direct_result_root_for_output(
   let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
     _ => return Err(Encoding)
   }
-  @encode.begin_object(writer) catch {
-    _ => return Err(Encoding)
-  }
-  @encode.key(writer, "name") catch {
-    _ => return Err(Encoding)
-  }
-  @encode.string_value(writer, result_name) catch {
-    _ => return Err(Encoding)
-  }
-  @encode.key(writer, "ref") catch {
-    _ => return Err(Encoding)
-  }
-  @encode.begin_object(writer) catch {
-    _ => return Err(Encoding)
-  }
-  @encode.key(writer, "node_id") catch {
-    _ => return Err(Encoding)
-  }
-  @encode.string_value(writer, node_id) catch {
-    _ => return Err(Encoding)
-  }
-  @encode.key(writer, "port") catch {
-    _ => return Err(Encoding)
-  }
-  @encode.string_value(writer, output_port) catch {
-    _ => return Err(Encoding)
-  }
-  @encode.end_object(writer) catch {
-    _ => return Err(Encoding)
-  }
-  @encode.key(writer, "role") catch {
-    _ => return Err(Encoding)
-  }
-  @encode.string_value(writer, "requested_result") catch {
-    _ => return Err(Encoding)
-  }
-  @encode.end_object(writer) catch {
+  emit_client_requested_result_root(writer, result_name, node_id, output_port) catch {
     _ => return Err(Encoding)
   }
   let wire = @encode.finish(writer) catch { _ => return Err(Encoding) }
@@ -263,6 +202,7 @@ fn issue_prepared_client_direct_result_root_for_output(
     node_id,
     port: output_port,
     row_contract_cid: client_result_plan_row_contract_cid(plan),
+    plan,
   })
 }
 

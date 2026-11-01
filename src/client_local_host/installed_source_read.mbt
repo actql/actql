@@ -11,6 +11,7 @@ struct ClientInstalledSourceRead {
   mut declaration : @row_source_host.RowDeclaration?
   mut requirement : @planning.QueryRequirement?
   mut acquisition : @row_source_host.RowAcquisition?
+  mut whole_input : ClientInstalledWholeSourceCapacity?
   mut run : @row_source_host.RowRun?
   mut started : Bool
 }
@@ -53,6 +54,7 @@ pub fn begin_installed_source_read(
     declaration: None,
     requirement: None,
     acquisition: None,
+    whole_input: None,
     run: None,
     started: false,
   }
@@ -190,6 +192,15 @@ pub fn attach_installed_source_read_acquisition(
   if value.managed_run is Some((_, occurrence)) &&
     (stage != occurrence || source_index != 0) {
     return Err(ForeignOriginal)
+  }
+  if value.managed_run is Some((run, occurrence)) &&
+    run.captured_preparation is Some(plan) {
+    guard plan.captures.get(occurrence) is Some(original) &&
+      original.acquisition is Some(expected) &&
+      physical_equal(expected, acquisition) &&
+      physical_equal(original.requirement, requirement) else {
+      return Err(ForeignOriginal)
+    }
   }
   let matches = match owner {
     Pure(prepared) =>
@@ -357,6 +368,7 @@ pub fn retire_installed_source_read(
   }
   value.run = None
   value.acquisition = None
+  value.whole_input = None
   value.requirement = None
   value.declaration = None
   value.owner = None

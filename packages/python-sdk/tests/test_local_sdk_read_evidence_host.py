@@ -5,6 +5,7 @@ import unittest
 from unittest.mock import patch
 
 from actql_sdk._local_core import LocalCoreError
+from actql_sdk._local_check import OriginalLocalCheck
 from actql_sdk._local_preparation import LocalPreparation
 from actql_sdk._local_product import InstalledLocalHost
 from actql_sdk._local_run import LocalRunCustody
@@ -46,6 +47,12 @@ class SDKReadEvidenceHostTests(unittest.TestCase):
         host._sdk_deliveries = {}
         host._physical_work, host._response_streams = [], set()
         host._uncertain_ticket = None
+        # Match the original constructor's empty retirement holders. No Check
+        # operation or saved Run is issued by this scalar fixture.
+        host._state_observing = False
+        host._run_state_custody = {}
+        host._saved_result_reads = []
+        host._client_check = OriginalLocalCheck(host)
         return host, run, values
 
     def test_original_holder_is_reused_but_foreign_or_revoked_custody_is_not(self):

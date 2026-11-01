@@ -53,7 +53,7 @@ test('keyed original foreign Ledger refusal precedes RowRun creation', () => {
 });
 
 function rowRunFixture({accounted = false, effectful = false, task = 0,
-  retainedRelationOutput = false, listingReport = false} = {}) {
+  retainedRelationOutput = false, listingReport = false, typedEvidence = false} = {}) {
   const calls = [];
   const failures = new Map();
   const responses = new Map();
@@ -68,6 +68,7 @@ function rowRunFixture({accounted = false, effectful = false, task = 0,
   const checkedSource = token('checked-source');
   const setup = token('host');
   const evidence = token('source-evidence');
+  const originalEvidence = token('original-source-evidence');
   const retainedTask = token('retained-task');
   const ledger = accounted ? token('ledger') : undefined;
   const capacity = {transferBytes: 8192n, executionBytes: 1024n};
@@ -179,6 +180,13 @@ function rowRunFixture({accounted = false, effectful = false, task = 0,
       assert.equal(args.length, 7);
       assert.equal(new Date(args[6]).toISOString(), args[6]);
     });
+  if (typedEvidence) method('clientProgramRowSourceIssueSourceEvidenceOriginal',
+    undefined, ok(originalEvidence), args => {
+      exact(args.slice(0, 6), [acquisition, capture, identity, logicalInput,
+        'authority-scope-cid', 'effective-policy-cid']);
+      assert.equal(args.length, 7);
+      assert.equal(new Date(args[6]).toISOString(), args[6]);
+    });
   method('clientProgramRowSourceRetainCapturedTask', undefined,
     ok(retainedTask), args => {
       assert.equal(args.length, 3);
@@ -191,7 +199,7 @@ function rowRunFixture({accounted = false, effectful = false, task = 0,
       return currentRead();
     }};
   return {run, capture, source, identity, logicalInput, requirement, occurrence,
-    prepared, setup, evidence, retainedTask, calls, names, count, options,
+    prepared, setup, evidence, originalEvidence, retainedTask, calls, names, count, options,
     startName, closeName, matchName, identifyName, logicalName, hostName,
     settled: value => settled(value), attempt, foreignAttempt,
     authorize: read => { currentRead = read; },
@@ -650,4 +658,65 @@ test('cleanup advance refusal retries the original close and preserves its failu
   assert.equal(await state.recovery.cleanup(), true);
   assert.equal(f.count(f.closeName), 3);
   assert.equal(f.count(f.startName), 1);
+});
+
+
+test('original Source evidence is issued once then consumed from the same live capture without wire admission', async () => {
+  const f = rowRunFixture({accounted: true, typedEvidence: true});
+  const owner = f.start();
+  const result = await owner.complete(f.options);
+  const request = {authorityScopeCid: 'authority-scope-cid',
+    effectiveDataPolicyCid: 'effective-policy-cid'};
+  const reads = f.count('currentRead');
+  await result.prepareSourceEvidenceOriginal(request);
+  assert.equal(f.count('currentRead'), reads + 1);
+  assert.equal(f.count('clientProgramRowSourceIssueSourceEvidenceOriginal'), 1);
+  assert.equal(f.count('clientProgramRowSourceIssueSourceEvidence'), 0);
+  assert.throws(() => Reflect.apply(result.capture.takeSourceEvidenceOriginal,
+    {...result.capture}, []), {code: 'ForeignInstalledSourceCapture'});
+  assert.equal(result.capture.takeSourceEvidenceOriginal(), f.originalEvidence);
+  assert.equal(f.count('currentRead'), reads + 1);
+  assert.equal(f.count('clientProgramRowSourceIssueSourceEvidenceOriginal'), 1);
+  assert.throws(() => result.capture.takeSourceEvidenceOriginal(),
+    {code: 'InstalledSourceEvidenceUnavailable'});
+  owner.close();
+});
+
+test('original Source evidence preserves current refusal and cannot issue after close during current await', async () => {
+  for (const closeDuringCurrent of [false, true]) {
+    const f = rowRunFixture({accounted: true, typedEvidence: true});
+    const owner = f.start();
+    const result = await owner.complete(f.options);
+    const denial = new Error('same-original-current-refusal');
+    let release;
+    f.authorize(() => closeDuringCurrent ? new Promise(resolve => {release = resolve;})
+      : Promise.reject(denial));
+    const issuing = result.prepareSourceEvidenceOriginal({authorityScopeCid: 'authority-scope-cid',
+      effectiveDataPolicyCid: 'effective-policy-cid'});
+    if (closeDuringCurrent) {owner.close(); release();}
+    await assert.rejects(issuing, error => closeDuringCurrent
+      ? error.code === 'InstalledSourceClosed' : error === denial);
+    assert.equal(f.count('clientProgramRowSourceIssueSourceEvidenceOriginal'), 0);
+    owner.close();
+  }
+});
+
+test('original Source evidence remains held through pending cleanup and retires only with the original RowRun', async () => {
+  const f = rowRunFixture({accounted: true, typedEvidence: true});
+  const owner = f.start();
+  const result = await owner.complete(f.options);
+  const request = {authorityScopeCid: 'authority-scope-cid',
+    effectiveDataPolicyCid: 'effective-policy-cid'};
+  await result.prepareSourceEvidenceOriginal(request);
+  await assert.rejects(result.prepareSourceEvidenceOriginal(request),
+    {code: 'InstalledSourceEvidencePending'});
+  f.respond('clientProgramRowSourceCaptureCleanup', ok(false));
+  assert.throws(() => owner.close(), {code: 'InstalledSourceCleanupPending'});
+  assert.equal(result.capture.takeSourceEvidenceOriginal(), f.originalEvidence);
+  await result.prepareSourceEvidenceOriginal(request);
+  f.respond('clientProgramRowSourceCaptureCleanup', ok(true));
+  owner.close();
+  assert.throws(() => result.capture.takeSourceEvidenceOriginal(),
+    {code: 'InstalledSourceClosed'});
+  assert.equal(f.count('clientProgramRowSourceIssueSourceEvidence'), 0);
 });

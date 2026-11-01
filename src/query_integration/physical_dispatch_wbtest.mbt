@@ -212,7 +212,12 @@ test "a replaced unstarted strategy invalidates a prepared dispatch without star
   let old = @dbhost.prepare_next_dispatch(host).unwrap().unwrap()
   let ledger = @strategy.captured_dag_ledger(run)
   let reservation = @resources.reserve_attempt(ledger, 0L, 0L, 0L).unwrap()
+  // Reservation alone is not an attempt. Model the completed intervening start
+  // explicitly so the replacement search observes an actual resource change.
+  assert_eq(@resources.ledger_usage(ledger).attempts, 0)
+  @resources.consume_reserved_attempt(ledger, reservation).unwrap()
   @resources.settle_reservation(ledger, reservation).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).attempts, 1)
   @strategy.revise_strategy(
     run,
     search_offers(run, registry, [1, 2, 3], Some(1L)),
@@ -231,4 +236,180 @@ test "a replaced unstarted strategy invalidates a prepared dispatch without star
   assert_eq(@resources.ledger_usage(ledger).attempts, 1)
   @dbhost.stop_strategy_dispatch(host)
   assert_true(@dbhost.take_native_dispatch(replacement) is Err(StaleTask))
+}
+
+///|
+test "dispatch rejects another Run ticket even when checked graph identity is shared" {
+  let duplicate : Ref[@strategy.CapturedDAG?] = Ref(None)
+  let (run, issuer) = captured_graph_fixture(duplicate_capture=Some(duplicate))
+  let other = duplicate.val.unwrap()
+  assert_true(
+    physical_equal(
+      @strategy.captured_dag_graph(run),
+      @strategy.captured_dag_graph(other),
+    ),
+  )
+  assert_false(physical_equal(run, other))
+  let registry = search_registry()
+  for current in [run, other] {
+    @strategy.configure_strategy_search(current, {
+      max_offers: 6,
+      max_strategies: 8,
+      max_work: 1000,
+      max_revisions: 4,
+    }).unwrap()
+    assert_true(
+      @strategy.revise_strategy(
+        current,
+        search_offers(current, registry, [1, 2, 3], Some(20L)),
+        registry,
+        None,
+      )
+      is Ok(Selected(_)),
+    )
+  }
+  let first = @host_driver.open_dispatch_driver(run)
+  let second = @host_driver.open_dispatch_driver(other)
+  let revision = @strategy.captured_dag_strategy(run).unwrap()
+  let other_revision = @strategy.captured_dag_strategy(other).unwrap()
+  let ticket = @host_driver.prepare_dispatch_ticket(first, 1, revision).unwrap()
+  assert_true(
+    @host_driver.prepare_dispatch_ticket(second, 1, revision) is Err(StaleTask),
+  )
+  let other_ticket = @host_driver.prepare_dispatch_ticket(
+    second, 1, other_revision,
+  ).unwrap()
+  assert_true(
+    @host_driver.consume_dispatch_ticket(second, ticket) is Err(StaleTask),
+  )
+  assert_true(@host_driver.dispatch_driver_pending(second))
+  @host_driver.consume_dispatch_ticket(first, ticket).unwrap()
+  assert_true(
+    @host_driver.consume_dispatch_ticket(first, ticket) is Err(StaleTask),
+  )
+  @host_driver.consume_dispatch_ticket(second, other_ticket).unwrap()
+  @strategy.stop_captured_dag(run)
+  @strategy.stop_captured_dag(other)
+  @mock.close_mock_query_issuer(issuer)
+}
+
+///|
+test "standard module prepares before any captured Run and charges static planning once" {
+  let checked = query_checked_program_fixture(dag=true)
+  let graph = @strategy.prepare_checked_dag(
+    checked,
+    physical_graph_owners(checked),
+    4,
+    1000,
+  ).unwrap()
+  let generated = Array::makei(@strategy.graph_task_count(graph) - 1, index => {
+    task_test_generated(@strategy.graph_task_owner(graph, index + 1).unwrap())
+  })
+  let registry = search_registry()
+  let limits = dispatch_test_limits()
+  let work = generated.length() * limits.candidate_work
+  for budget in [work - 1, work] {
+    let ledger = @resources.create_ledger({
+      planning_work: budget,
+      attempts: 10,
+      holdings: 10,
+      transfer_bytes: 300000L,
+      retained_bytes: 32000000L,
+      execution_bytes: 134217728L,
+    }).unwrap()
+    let prepared = @dbhost.prepare_strategy_dispatch(
+      graph,
+      ledger,
+      registry,
+      @connector.capability_registration_at(registry, 0).unwrap(),
+      @connector.capability_registration_at(registry, 1).unwrap(),
+      generated,
+      limits,
+    )
+    if budget == work - 1 {
+      assert_true(prepared is Err(Run(Physical(PlanningLimit))))
+      // Completed earlier compiler work is consumed, never rolled back.
+      assert_eq(
+        @resources.ledger_usage(ledger).planning_work,
+        work - limits.candidate_work,
+      )
+    } else {
+      let original = prepared.unwrap()
+      assert_eq(@resources.ledger_usage(ledger).planning_work, work)
+      for task in 1..<@strategy.graph_task_count(graph) {
+        assert_true(
+          @dbhost.strategy_dispatch_preparation_local_capacity(original, task)
+          is Some(_),
+        )
+      }
+      assert_true(
+        @dbhost.strategy_dispatch_preparation_local_capacity(original, 0)
+        is None,
+      )
+    }
+    let usage = @resources.ledger_usage(ledger)
+    assert_eq(usage.attempts, 0)
+    assert_eq(usage.live_reservations, 0)
+    assert_eq(usage.holdings, 0)
+    assert_eq(usage.transferred_bytes, 0L)
+  }
+  @connector.close_capability_registry(registry)
+}
+
+///|
+test "standard prepared modules bind same graph Ledger and sealed output without a second compile" {
+  let duplicate : Ref[@strategy.CapturedDAG?] = Ref(None)
+  let (run, issuer) = captured_graph_fixture(duplicate_capture=Some(duplicate))
+  let graph = @strategy.captured_dag_graph(run)
+  let ledger = @strategy.captured_dag_ledger(run)
+  let registry = search_registry()
+  let generated = dispatch_test_generated(run)
+  let before = @resources.ledger_usage(ledger)
+  let original = @dbhost.prepare_strategy_dispatch(
+    graph,
+    ledger,
+    registry,
+    @connector.capability_registration_at(registry, 0).unwrap(),
+    @connector.capability_registration_at(registry, 1).unwrap(),
+    generated,
+    dispatch_test_limits(),
+    native_retained_output=Some((100000L, Some(1L))),
+  ).unwrap()
+  let quoted = @resources.ledger_usage(ledger)
+  assert_eq(
+    quoted.planning_work - before.planning_work,
+    generated.length() * dispatch_test_limits().candidate_work,
+  )
+  let capacity = @dbhost.strategy_dispatch_preparation_local_capacity(
+    original, 1,
+  )
+  // The same checked graph on another parent cannot borrow this preparation.
+  let foreign = duplicate.val.unwrap()
+  assert_true(physical_equal(@strategy.captured_dag_graph(foreign), graph))
+  assert_true(
+    @dbhost.bind_strategy_dispatch(foreign, original) is Err(ForeignSelection),
+  )
+  assert_eq(@resources.ledger_usage(ledger), quoted)
+  generated.clear()
+  let host = @dbhost.bind_strategy_dispatch(run, original).unwrap()
+  assert_eq(@resources.ledger_usage(ledger), quoted)
+  assert_eq(
+    @dbhost.strategy_dispatch_preparation_local_capacity(original, 1),
+    capacity,
+  )
+  assert_eq(@dbhost.dispatch_module_keys(host).length(), 2)
+  // The original pre-quote output policy cannot be replaced after binding.
+  assert_true(
+    @dbhost.configure_dispatch_retained_output(host, 1L, Some(0L))
+    is Err(InvalidConfiguration),
+  )
+  assert_eq(@resources.ledger_usage(ledger).attempts, 0)
+  @dbhost.stop_strategy_dispatch(host)
+  @strategy.stop_captured_dag(foreign)
+  for task in 0..<@strategy.graph_task_count(graph) {
+    @strategy.close_captured_task_output(run, task)
+    @strategy.close_captured_task_output(foreign, task)
+  }
+  @mock.close_mock_query_issuer(issuer)
+  @connector.close_capability_registry(registry)
 }

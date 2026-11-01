@@ -40,7 +40,7 @@ fn resident_compute_prepared(
 ) -> @host.PreparedClientProgram {
   let environment = @host.admit_client_check_environment(
     resident_effect_source_environment,
-    "sha256:05ee9059ef5f173069a3f3f1896e16ee62d34d0c842d81e9b0f8421db62e67a8",
+    resident_effect_source_bundle_cid,
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
   ).unwrap()
@@ -88,12 +88,7 @@ fn resident_compute_configuration(
         execution_bytes: 1073741824L,
       },
     },
-    installed_contracts: @local.prepare_installed_sequence_contracts(
-      resident_effect_source_registry,
-      resident_effect_source_values,
-      Some(resident_effect_source_fragment),
-      None,
-    ).unwrap(),
+    installed_contracts: resident_compute_installed_contracts(),
     values_body: resident_effect_source_values,
     dispatch: {
       input_entries: 100,
@@ -578,4 +573,64 @@ fn resident_compute_execute(
       fail("resident consumer failed: " + label)
     }
   }
+}
+
+///|
+// Admit the original declared fixture bytes through the real sealed boundary.
+// No unchecked registry string or fabricated installed capability is accepted.
+fn resident_compute_installed_contracts() -> @local.ClientInstalledSequenceContracts {
+  @local.prepare_installed_sequence_contracts(
+    resident_effect_source_registry,
+    resident_effect_source_values,
+    Some(resident_effect_source_fragment),
+    None,
+  ).unwrap()
+}
+
+///|
+test "resident Compute installed contracts reject malformed original registry" {
+  assert_true(
+    @local.prepare_installed_sequence_contracts(
+      "{}",
+      resident_effect_source_values,
+      Some(resident_effect_source_fragment),
+      None,
+    )
+    is Err(@local.Unsupported),
+  )
+}
+
+///|
+test "resident module preparation refuses missing estimates before Source IO" {
+  guard resident_compute_prerequisites() is Some((library_path, root_path)) else {
+    return
+  }
+  let library = @duckdb.load_library(library_path).unwrap()
+  let name = "module-before-source-" + @env.now().to_string() + ".duckdb"
+  let root = @filesystem.open_root(root_path).unwrap()
+  let configuration = resident_compute_configuration(
+    library,
+    root_path + "/" + name,
+  )
+  let acquisitions = Ref(0)
+  let (issue, cleanup) = @resident.open_resident_source_compute(
+    resident_compute_prepared(),
+    { ..configuration, estimates: [], },
+    name,
+    observe=event => {
+      if event is @resident.AcquisitionEntered {
+        acquisitions.val += 1
+      }
+      true
+    },
+  ).unwrap_err()
+  assert_true(issue is UnsupportedGraph)
+  assert_eq(acquisitions.val, 0)
+  assert_true(
+    @output.retry_native_remote_standard_input_failure_cleanup(cleanup),
+  )
+  assert_true(
+    @output.retry_native_remote_standard_input_failure_cleanup(cleanup),
+  )
+  assert_eq(root.inspect_generation(name).unwrap(), None)
 }

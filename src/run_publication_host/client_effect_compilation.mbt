@@ -377,6 +377,7 @@ fn issue_client_effect_compilation_internal(
       max_wire_bytes,
       max_nodes,
       max_depth,
+      result_plans=task_graph.result_plans,
       effect_plan_cids=plan_cids,
       effect_target_selections=owner.target_selections,
     ) {
@@ -395,6 +396,7 @@ fn issue_client_effect_compilation_internal(
       max_nodes,
       max_depth,
       required_profiles~,
+      result_plans=task_graph.result_plans,
     ) {
     Ok(plan) => plan
     Err(issue) => return Err(Plan(issue))
@@ -766,6 +768,15 @@ pub fn client_effect_compilation_result_names(
   value : ClientEffectCompilation,
 ) -> Array[String] {
   client_task_compilation_result_names(value.compiled)
+}
+
+///|
+/// Read the retained original compilation inventory; do not reconstruct or
+/// compile the Effect Program when projecting a committed Run's availability.
+pub fn client_effect_allowed_run_result_names(
+  value : ClientEffectAllowedRun,
+) -> Array[String] {
+  client_effect_compilation_result_names(value.compilation)
 }
 
 ///|

@@ -36,6 +36,8 @@ pub fn unicode_scalar_count(String) -> Int?
 
 pub fn unicode_upper_mapping(Char) -> String?
 
+pub fn utf8_length_admission_construction_units() -> (Int64, Int64, Int64)
+
 pub fn utf8_length_within(String, Int) -> Int?
 
 // Errors

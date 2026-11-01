@@ -86,6 +86,10 @@ struct Admission {
   mut remaining_text : Int
   mut deepest : Int
   mut largest_string : Int
+  mut fields : Int
+  mut texts : Int
+  mut max_key_utf16 : Int
+  mut total_utf16 : Int64
   mut terminal : Bool
   mut text : @scalar.Utf8Admission?
   mut measured_text : Int?
@@ -122,6 +126,10 @@ pub fn start_admission(
     remaining_text: limits.max_total_string_bytes,
     deepest: 0,
     largest_string: 0,
+    fields: 0,
+    texts: 0,
+    max_key_utf16: 0,
+    total_utf16: 0L,
     terminal: false,
     text: None,
     measured_text: None,
@@ -204,6 +212,8 @@ fn Admission::step(admission : Admission) -> Result[Unit, Issue] {
             match charged {
               Ok(size) => {
                 admission.remaining_text -= size
+                admission.texts += 1
+                admission.total_utf16 += value.length().to_int64()
                 admission.largest_string = Int::max(
                   admission.largest_string,
                   size,
@@ -278,6 +288,12 @@ fn Admission::step(admission : Admission) -> Result[Unit, Issue] {
           match charged {
             Ok(size) => {
               admission.remaining_text -= size
+              admission.fields += 1
+              admission.max_key_utf16 = Int::max(
+                admission.max_key_utf16,
+                field.key.length(),
+              )
+              admission.total_utf16 += field.key.length().to_int64()
               admission.largest_string = Int::max(
                 admission.largest_string,
                 size,
@@ -325,6 +341,12 @@ pub fn advance_admission(
       let cursor : Cursor = {
         tree,
         index: 0,
+        preparation: {
+          fields: admission.fields,
+          texts: admission.texts,
+          max_key_utf16: admission.max_key_utf16,
+          total_utf16: admission.total_utf16,
+        },
         usage: {
           nodes: tree.length(),
           depth: admission.deepest,

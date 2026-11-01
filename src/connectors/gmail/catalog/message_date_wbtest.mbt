@@ -1,4 +1,14 @@
 ///|
+fn gmail_date_test_ok(
+  value : Result[String, GmailHeaderDateIssue],
+) -> String raise {
+  match value {
+    Ok(text) => text
+    Err(_) => fail("Expected an admitted Gmail header date")
+  }
+}
+
+///|
 test "Gmail Date converts original numeric zones without a host date or binary64 clock" {
   for
     (text, utc) in [
@@ -12,25 +22,27 @@ test "Gmail Date converts original numeric zones without a host date or binary64
       ("21 Nov 049 09:55 UT", "1949-11-21T09:55:00.000Z"),
       ("21 Nov 49 09:55 UT", "2049-11-21T09:55:00.000Z"),
     ] {
-    assert_eq(gmail_header_date(text, 1024, 8), Ok(utc))
+    assert_eq(gmail_date_test_ok(gmail_header_date(text, 1024, 8)), utc)
   }
 }
 
 ///|
 test "Gmail Date retains RFC comments and folding while enforcing numeric zone FWS" {
   assert_eq(
-    gmail_header_date(
-      "(outer(inner\\)))Fri,(day)21 Nov\r\n\t1997 09(comment):55:06 \t-0600(end)",
-      1024, 8,
+    gmail_date_test_ok(
+      gmail_header_date(
+        "(outer(inner\\)))Fri,(day)21 Nov\r\n\t1997 09(comment):55:06 \t-0600(end)",
+        1024, 8,
+      ),
     ),
-    Ok("1997-11-21T15:55:06.000Z"),
+    "1997-11-21T15:55:06.000Z",
   )
   for
     text in [
       "21 Nov 1997 09:55(comment)+0000", "21 Nov 1997 09:55+0000", "21 Nov 1997 09:55\n +0000",
       "21 Nov 1997 09:55\r\n+0000", "21 Nov 1997 09:55 +0000(unclosed", "21 Nov 1997 09:55 +0000)unmatched",
     ] {
-    assert_eq(gmail_header_date(text, 1024, 8), Err(Malformed))
+    assert_true(gmail_header_date(text, 1024, 8) is Err(Malformed))
   }
 }
 
@@ -43,28 +55,32 @@ test "Gmail Date distinguishes genuinely malformed fields from valid unrepresent
       "21 Nov 1997 09:60 +0000", "21 Nov 1997 09:55:61 +0000", "21 Nov 1997 09:55:06.5 +0000",
       "21 Nov 1997 09:55 +0060", "21 Nov 1997 09:55 +0000 junk",
     ] {
-    assert_eq(gmail_header_date(text, 1024, 8), Err(Malformed))
+    assert_true(gmail_header_date(text, 1024, 8) is Err(Malformed))
   }
   for
     text in [
       "31 Dec 2016 23:59:60 +0000", "1 Jan 10000 00:00 +0000", "31 Dec 9999 23:59 -0100",
     ] {
-    assert_eq(gmail_header_date(text, 1024, 8), Err(Unsupported))
+    assert_true(gmail_header_date(text, 1024, 8) is Err(Unsupported))
   }
   assert_eq(
-    gmail_header_date("29 Feb 2000 09:55 +0000", 1024, 8),
-    Ok("2000-02-29T09:55:00.000Z"),
+    gmail_date_test_ok(gmail_header_date("29 Feb 2000 09:55 +0000", 1024, 8)),
+    "2000-02-29T09:55:00.000Z",
   )
 }
 
 ///|
 test "Gmail Date work exhaustion never becomes malformed-header fallback" {
   let text = "21 Nov 1997 09:55 +0000"
-  assert_eq(gmail_header_date(text, text.length() - 1, 8), Err(BudgetExceeded))
-  assert_eq(
-    gmail_header_date(text, text.length(), 8),
-    Ok("1997-11-21T09:55:00.000Z"),
+  assert_true(
+    gmail_header_date(text, text.length() - 1, 8) is Err(BudgetExceeded),
   )
-  assert_eq(gmail_header_date("(a(b))" + text, 1024, 1), Err(BudgetExceeded))
-  assert_eq(gmail_header_date("(a)" + text, 1024, 0), Err(BudgetExceeded))
+  assert_eq(
+    gmail_date_test_ok(gmail_header_date(text, text.length(), 8)),
+    "1997-11-21T09:55:00.000Z",
+  )
+  assert_true(
+    gmail_header_date("(a(b))" + text, 1024, 1) is Err(BudgetExceeded),
+  )
+  assert_true(gmail_header_date("(a)" + text, 1024, 0) is Err(BudgetExceeded))
 }

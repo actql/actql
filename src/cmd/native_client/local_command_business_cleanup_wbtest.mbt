@@ -68,12 +68,12 @@ test "Business child cleanup retries the same failed physical entry after origin
     store_root_failure: None,
     store_root_operation: None,
     publication_publisher: None,
-    publication_service: None,
+    _retained_publication_service: None,
     publication_results: None,
     publication_pending: None,
     publication_failure: None,
-    publication_commit_failure: None,
-    publication_cleanup_failure: None,
+    _retained_publication_commit_failure: None,
+    _retained_publication_cleanup_failure: None,
     publication_attempted: false,
     publication_result: None,
     run_receipt_original: None,
@@ -123,3 +123,32 @@ test "Business child cleanup retries the same failed physical entry after origin
   assert_true(backing.current())
   assert_true(backing.close_checked())
 }
+
+///|
+// Trusted installer control record, not a public constructor, Host, domain or
+// capacity grant. The enclosing initial Crypto original retains this descriptor
+// separately until actual Library/context/mapping retirement has acknowledged.
+type InitialCryptoBacking
+
+///|
+extern "C" fn initial_crypto_backing_open(
+  bytes : Int64,
+) -> InitialCryptoBacking = "actql_initial_crypto_backing_open"
+
+///|
+#borrow(original)
+extern "C" fn InitialCryptoBacking::current(
+  original : InitialCryptoBacking,
+) -> Bool = "actql_initial_crypto_backing_current"
+
+///|
+#borrow(original)
+extern "C" fn InitialCryptoBacking::descriptor(
+  original : InitialCryptoBacking,
+) -> Int = "actql_initial_crypto_backing_descriptor"
+
+///|
+#borrow(original)
+extern "C" fn InitialCryptoBacking::close_checked(
+  original : InitialCryptoBacking,
+) -> Bool = "actql_initial_crypto_backing_close"

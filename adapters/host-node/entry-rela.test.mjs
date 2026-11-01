@@ -1,3 +1,4 @@
+import {checked} from '../host-common/runtime-result.mjs';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
@@ -57,8 +58,10 @@ test('RelA-only Node bundle executes a checked Local Program', async () => {
   assert.ok(prepared);
   const values = JSON.stringify(
     JSON.parse(contract).execution_contracts['REL.values']);
+  const installedContracts = checked(moon.clientPrepareInstalledSequenceContracts(
+    registry, values, undefined, undefined));
   const setup = moon.clientProgramOpenSourceFreeLocalHost(
-    prepared, registry, values, 1n, 0n, 0n, 0n);
+    prepared, installedContracts, values, 1n, 0n, 0n, 0n);
   assert.ok(setup);
   const execution = await runCapturedStrategy(setup);
   try {

@@ -1,4 +1,23 @@
 ///|
+/// Canonical finite Number/Boolean rows only. The pinned binary64 formatter
+/// emits at most 25 ASCII bytes (the negative fixed-notation -6 exponent case).
+/// Decimal, strings, references and nested values never enter this proof.
+fn client_local_scalar_wire_bytes(
+  sequences : Array[@execution.GeneratedSequence],
+  max_rows : Int,
+) -> Int? {
+  match client_local_schema_proof_inventory(sequences) {
+    Some(inventory) =>
+      client_local_scalar_wire_byte_bound(
+        inventory.fields,
+        inventory.names,
+        max_rows,
+      )
+    None => None
+  }
+}
+
+///|
 test "capacity plan quote funds metadata and narrows only scalar wire" {
   let assets = @publication_host.client_local_product_assets()
   let environment = @publication_host.admit_client_check_environment(
@@ -49,20 +68,22 @@ test "capacity plan quote funds metadata and narrows only scalar wire" {
       @publication_host.client_standard_program_preparation_limits(),
     ).unwrap()
     let sequences = prepare_client_local_sequences_owned(
-      Pure(prepared),
-      prepare_installed_sequence_contracts(
-        assets.registry,
+        Pure(prepared),
+        prepare_installed_sequence_contracts(
+          assets.registry,
+          assets.values,
+          Some(assets.fragment),
+          assets.ordered,
+        ).unwrap(),
         assets.values,
         Some(assets.fragment),
         assets.ordered,
-      ).unwrap(),
-      assets.values,
-      Some(assets.fragment),
-      assets.ordered,
-    ).unwrap()
+      )
+      .to_option()
+      .unwrap()
     let max_rows = @publication_host.prepared_client_values_max_rows(prepared)
-    let _nodes = client_local_scalar_nodes(sequences, max_rows).unwrap()
-    let (_values, execution, measurement) = client_local_execution_limits(
+    client_local_scalar_nodes(sequences, max_rows).unwrap() |> ignore
+    let (_, execution, measurement) = client_local_execution_limits(
       max_rows~,
       scalar_sequences=Some(sequences),
     )
@@ -143,12 +164,12 @@ test "capacity plan quote funds metadata and narrows only scalar wire" {
     assert_eq(plan.metadata.completion_entries, 100000)
     assert_eq(
       plan.values.max_text_bytes,
-      _client_local_scalar_name_bytes(sequences, plan.execution.rows.max_rows).unwrap(),
+      client_local_scalar_name_bytes(sequences, plan.execution.rows.max_rows).unwrap(),
     )
     assert_eq(plan.measurement.max_bytes, 500000)
     assert_eq(
       plan.imports.wire.max_bytes,
-      _client_local_scalar_wire_bytes(sequences, plan.execution.rows.max_rows).unwrap(),
+      client_local_scalar_wire_bytes(sequences, plan.execution.rows.max_rows).unwrap(),
     )
     assert_eq(plan.metadata.name_bytes, 1000000)
     assert_true(plan.metadata_retained_bytes > 0L)
@@ -235,7 +256,7 @@ test "capacity plan quote funds metadata and narrows only scalar wire" {
         Some(assets.fragment),
         assets.ordered,
         false,
-      )
+      ).to_option()
       is Some(_)
     assert_eq(accepted, retained <= 536870912L)
     println(
@@ -253,7 +274,7 @@ test "scalar wire capacity byte proof bounds empty rows and checked arithmetic" 
   assert_eq(client_local_scalar_wire_byte_bound(1, -1, 1), None)
   assert_eq(client_local_scalar_wire_byte_bound(1, 1, -1), None)
   assert_eq(client_local_scalar_wire_byte_bound(101, 1, 1), Some(2968))
-  assert_eq(_client_local_scalar_wire_bytes([], 100), None)
+  assert_eq(client_local_scalar_wire_bytes([], 100), None)
 }
 
 ///|
@@ -293,17 +314,19 @@ test "capacity plan derives task inventory from charged graph work beyond thirty
       @publication_host.prepared_client_graph(prepared),
     )
     let sequences = prepare_client_local_sequences_owned(
-      Pure(prepared),
-      prepare_installed_sequence_contracts(
-        assets.registry,
+        Pure(prepared),
+        prepare_installed_sequence_contracts(
+          assets.registry,
+          assets.values,
+          Some(assets.fragment),
+          assets.ordered,
+        ).unwrap(),
         assets.values,
         Some(assets.fragment),
         assets.ordered,
-      ).unwrap(),
-      assets.values,
-      Some(assets.fragment),
-      assets.ordered,
-    ).unwrap()
+      )
+      .to_option()
+      .unwrap()
     let inventory = client_local_schema_proof_inventory(
       sequences,
       graph=Some(@publication_host.prepared_client_graph(prepared)),
@@ -362,7 +385,7 @@ test "capacity plan derives task inventory from charged graph work beyond thirty
         Some(assets.fragment),
         assets.ordered,
         false,
-      )
+      ).to_option()
       is Some(_)
     assert_eq(tasks, 4 * terms + 1)
     assert_true(admitted)

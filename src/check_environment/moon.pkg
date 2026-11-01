@@ -1,6 +1,7 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/decode_shape" @shape,
   "actql/actql/vector_checking" @score_checks,
   "actql/actql/capacity_witness" @bound_wire,
   "actql/actql/capacity_host_witness" @bound_host,
@@ -45,3 +46,9 @@ formatter(
     "decision_arithmetic.generated_wbtest.mbt",
   ],
 )
+
+import {
+  "actql/actql/relation_evidence" @evidence,
+  "actql/actql/pipeline_typing" @pipeline,
+  "actql/actql/stage_syntax" @syntax,
+} for "test"

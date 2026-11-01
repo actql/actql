@@ -197,8 +197,28 @@ test "reselection replaces only an unstarted typed preparation without restoring
   ).unwrap()
   let old_ticket = @host_driver.prepare_dispatch_ticket(driver, 1, revision).unwrap()
   let ledger = @strategy.captured_dag_ledger(run)
+  let attempts_before = @resources.ledger_usage(ledger).attempts
+  let unused = @resources.reserve_attempt(ledger, 0L, 0L, 0L).unwrap()
+  @resources.settle_reservation(ledger, unused).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).attempts, attempts_before)
+  // Merely reserving and returning unused capacity is not execution progress.
+  assert_true(
+    @strategy.revise_strategy(
+      run,
+      search_offers(run, registry, [1, 2, 3], Some(20L)),
+      registry,
+      None,
+    )
+    is Err(UnchangedState),
+  )
+  // Account a separate original operation's possible physical use. This does
+  // not start, consume, or restore the typed dispatch ticket being tested.
   let reservation = @resources.reserve_attempt(ledger, 0L, 0L, 0L).unwrap()
+  @resources.consume_reserved_attempt(ledger, reservation).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).attempts, attempts_before + 1)
   @resources.settle_reservation(ledger, reservation).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).attempts, attempts_before + 1)
+  assert_false(@strategy.captured_task_completed(run, 1))
   @strategy.revise_strategy(
     run,
     search_offers(run, registry, [1, 2, 3], Some(20L)),

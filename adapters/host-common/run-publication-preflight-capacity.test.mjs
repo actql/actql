@@ -1,3 +1,5 @@
+import {createHash} from 'node:crypto';
+import {sourceFreeValuesPlan, sourceFreeTaskPlan, sourceFreePlanOriginal} from '../host-node/local-values-plan.mjs';
 import test from 'node:test';import assert from 'node:assert/strict';
 import {prepareCompletedEffectFreeRunPublication} from './run-publication-preflight.mjs';
 import {resultOutputLimitFields} from './result-output-limits.mjs';
@@ -96,3 +98,70 @@ test('array index accessors and inherited/sparse indices fail coded without eval
  const prepared=prepareCompletedEffectFreeRunPublication(options);
  binding.name='mutated';assert.equal(prepared.plan.receiptEvidence.bindings[0].name,'safe');
 });
+
+const cid = digit => `sha256:${digit.repeat(64)}`;
+const hash = body => `sha256:${createHash('sha256').update(JSON.stringify(body)).digest('hex')}`;
+
+// Actual planner and preflight consumers, with explicit opaque control/Store
+// ports. These cases establish their shared data contract, not physical backing.
+for (const kind of ['values', 'tasks']) {
+test(`timed ${kind} publication reaches the existing preflight with original contracts`, () => {
+  const contract = name => Object.freeze({name, identity: hash({name}), wire: JSON.stringify({name})});
+  const prepared = {}, request = {}, time = {}, context = {}, originalPlan = {};
+  const definition = contract('run_definition');
+  const compiled = Object.freeze({kind, admission: {}, compiledPlan: contract('compiled_plan'),
+    preparedEvidence: {wire: 'original-prepared'}, authorization: {wire: 'original-authorization'}});
+  const invocationOriginal = Object.freeze({preparedProgram: prepared, requestIdentity: request,
+    compiled, runDefinition: definition, createdAt: '2026-10-31T00:00:00.000Z',
+    validUntil: '2026-11-01T00:00:00.000Z', queryTimePreparation: time, queryTime: context});
+  let captured = 0, issued = 0, supported = 0;
+  const control = {
+    checkClientCompiledRunOwner(value, owner) {assert.equal(value, compiled); assert.equal(owner, prepared);},
+    checkClientCompiledRunDefinition(value, run) {assert.equal(value, compiled); assert.equal(run, definition);},
+    prepareCheckedClientCompiledRun() {assert.fail('original compilation must not be repeated');},
+    defineCheckedClientCompiledRun() {assert.fail('original Run must not be reissued');},
+    prepareClientQueryTime() {assert.fail('original time must not be sampled again');},
+    issueCheckedClientCompiledInvocation(value, run) {
+      assert.equal(value, compiled); assert.equal(run, definition);
+      return {observation: contract('observation'), invocation: contract('invocation')};
+    },
+    seal: name => contract(name), sealRunEvidence: name => contract(name),
+    compiledRunResultTransformation: () => undefined,
+    captureOriginalClientRunPlan(value, owner, run) {
+      assert.equal(value, compiled); assert.equal(owner, prepared); assert.equal(run, definition);
+      captured++; return originalPlan;
+    },
+    issuePublicationRequest(run) {assert.equal(run, definition); issued++; return contract('request');},
+    issuePublicationAttempt(_request, run) {assert.equal(run, definition); return contract('attempt');},
+    publicationPreflightValid(admission, run) {
+      assert.equal(admission, compiled.admission); assert.equal(run, definition); return true;
+    },
+    resultPublicationContractByteBounds: () => [10, 10, 10, 10],
+  };
+  const publicationOriginal = {};
+  const moon = {
+    clientProgramDefinitionCid: () => cid('b'), clientProgramResultCount: () => 1,
+    clientProgramPreparedLocalPublicationLimits(value, owner) {
+      assert.equal(value, publicationOriginal); assert.equal(owner, prepared);
+      return resultOutputLimitFields.map(() => 1000);
+    },
+  };
+  const plan = (kind === 'values' ? sourceFreeValuesPlan : sourceFreeTaskPlan)({
+    moon, control, preparedProgram: prepared, requestIdentity: request, invocationOriginal,
+    publicationOriginal: {kind: 'preparation', value: publicationOriginal},
+    authorityScopeCid: cid('a'), namespaceId: 'local', storeAuthorityCid: cid('c'),
+    now: () => '2026-10-31T00:00:00.000Z',
+  });
+  assert.equal(sourceFreePlanOriginal(plan), originalPlan);
+  assert.equal(sourceFreePlanOriginal({...plan}), undefined);
+  const preflight = prepareCompletedEffectFreeRunPublication({
+    store: {publicationCapacitySupports() {supported++; return true;}}, control, plan,
+    publicationInventory: {programDefinitionCid: cid('b'),
+      occurrences: [{definitionContract: contract('result-definition')}]},
+  });
+  assert.equal(preflight.plan.runDefinition, definition);
+  assert.equal(preflight.plan.invocation, plan.invocation);
+  assert.equal(preflight.plan.admission, compiled.admission);
+  assert.deepEqual({captured, issued, supported}, {captured: 1, issued: 1, supported: 1});
+});
+}

@@ -210,6 +210,17 @@ fn open_resident_retained_compute_owned(
     Ok(value) => value
     Err(issue) => return reject(Capacity(issue), () => true)
   }
+  let (dispatch_preparation, estimates) = match
+    prepare_resident_compute_dispatch(
+      prepared,
+      @graph.retained_task_projection_graph(projection),
+      configuration,
+      ledger,
+      generated,
+    ) {
+    Ok(value) => value
+    Err(issue) => return reject(issue, () => true)
+  }
   let reservation = match
     @resources.reserve_attempt(
       ledger,
@@ -234,6 +245,7 @@ fn open_resident_retained_compute_owned(
       @planning.query_requirement_program(requirement),
       input_limits,
       current,
+      (ledger, reservation),
     ) {
     Ok(value) => value
     Err(issue) => {
@@ -263,7 +275,8 @@ fn open_resident_retained_compute_owned(
     None,
     ledger,
     holding,
-    generated,
+    dispatch_preparation,
+    estimates,
     close_borrow,
     observe,
     effect_retained=match prepared {

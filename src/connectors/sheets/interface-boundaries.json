@@ -2,7 +2,7 @@
   {
     "module": "adapters/connectors/sheets/host/installed-sheets.mjs",
     "responsibilityFacet": "primary",
-    "sha256": "d57460a169093443c983f4f5a77820629795c89f5f3cb1b98655bf37c88646f4",
+    "sha256": "0e6dc55269d8f8bda82d8c8c5fbcf5f605749e58c48dc043c12f1ad62306fb93",
     "exports": [
       "SHEETS_EFFECT_VERSION",
       "SHEETS_SITE_VERSION",
@@ -28,6 +28,29 @@
         "name": "bindingFacts/bindingFacts",
         "parameters": [
           "site"
+        ],
+        "async": false
+      },
+      {
+        "name": "bindSheetsAppendConstructionProfile",
+        "parameters": [
+          "providerMoon",
+          "columns"
+        ],
+        "async": false
+      },
+      {
+        "name": "bindSheetsAppendConstructionProfile/init:installedStandardCreateConstructionProfile/init:installedStandardCreateConstructionProfile",
+        "parameters": [
+          "inputWireBytes"
+        ],
+        "async": false
+      },
+      {
+        "name": "checkedSourceMethod",
+        "parameters": [
+          "receiver",
+          "name"
         ],
         "async": false
       },
@@ -118,84 +141,40 @@
         "async": true
       },
       {
-        "name": "load/adapter/adapter",
-        "parameters": [
-          "resource",
-          "fields"
-        ],
-        "async": false
-      },
-      {
-        "name": "load/adapter/adapter#2",
-        "parameters": [
-          "kind",
-          "wire"
-        ],
-        "async": false
-      },
-      {
-        "name": "load/adapter/adapter#3",
+        "name": "load/init:body/init:body",
         "parameters": [],
         "async": false
       },
       {
-        "name": "load/adapter/adapter#4",
+        "name": "load/init:project/init:project",
         "parameters": [
-          "options"
+          "accepted",
+          "observation"
         ],
         "async": false
       },
       {
-        "name": "load/init:close/init:close",
-        "parameters": [],
-        "async": false
-      },
-      {
-        "name": "load/init:close/init:close#2",
+        "name": "load/isCurrent/isCurrent",
         "parameters": [],
         "async": false
       },
       {
         "name": "load/load",
-        "parameters": [],
-        "async": false
-      },
-      {
-        "name": "load/load#2",
-        "parameters": [],
-        "async": false
-      },
-      {
-        "name": "load/load#3",
         "parameters": [
-          "request"
-        ],
-        "async": false
-      },
-      {
-        "name": "load/load#4",
-        "parameters": [
-          "member",
+          "resource",
           "value"
         ],
         "async": false
       },
       {
-        "name": "load/load#5",
+        "name": "load/load#2",
         "parameters": [
           "options"
         ],
         "async": false
       },
       {
-        "name": "load/load#6",
-        "parameters": [
-          "options"
-        ],
-        "async": false
-      },
-      {
-        "name": "load/load#7",
+        "name": "load/readers/readers",
         "parameters": [],
         "async": false
       },
@@ -216,12 +195,73 @@
         "async": false
       },
       {
+        "name": "loadManagedSheetsGridSource",
+        "parameters": [
+          "profile",
+          "options",
+          "site",
+          "publication",
+          "prepared"
+        ],
+        "async": true
+      },
+      {
+        "name": "loadManagedSheetsGridSource/adapter/adapter",
+        "parameters": [
+          "kind",
+          "wire"
+        ],
+        "async": false
+      },
+      {
+        "name": "loadManagedSheetsGridSource/adapter/init:physicalTarget/init:physicalTarget",
+        "parameters": [
+          "resource",
+          "fields"
+        ],
+        "async": false
+      },
+      {
+        "name": "loadManagedSheetsGridSource/init:preparePageReader/init:preparePageReader",
+        "parameters": [
+          "resource",
+          "columns",
+          "applySynchronousProjection"
+        ],
+        "async": false
+      },
+      {
+        "name": "loadManagedSheetsGridSource/loadManagedSheetsGridSource",
+        "parameters": [
+          "n"
+        ],
+        "async": false
+      },
+      {
+        "name": "loadManagedSheetsGridSource/services/services",
+        "parameters": [],
+        "async": false
+      },
+      {
+        "name": "loadManagedSheetsGridSource/targetCurrent/targetCurrent",
+        "parameters": [],
+        "async": false
+      },
+      {
         "name": "mappingOf",
         "parameters": [
           "moon",
           "profile",
           "site",
-          "declaration"
+          "declaration",
+          "sourceInitialization"
+        ],
+        "async": false
+      },
+      {
+        "name": "mappingOf/sources/sources",
+        "parameters": [
+          "source"
         ],
         "async": false
       },
@@ -245,34 +285,169 @@
           "profile",
           "site",
           "options",
-          "publication"
+          "publication",
+          "installationServices"
         ],
         "async": true
       },
       {
-        "name": "openSite/opened/opened",
+        "name": "openSite/configuration/configuration",
         "parameters": [],
         "async": true
       },
       {
-        "name": "openSite/opened/opened/opened",
+        "name": "openSite/configuration/configuration/configuration",
         "parameters": [
           "field"
         ],
         "async": false
       },
       {
-        "name": "openSite/opened/opened/opened/opened",
+        "name": "openSite/configuration/configuration/configuration/configuration",
         "parameters": [
           "column"
         ],
         "async": false
       },
       {
-        "name": "openSite/opened/opened#2",
+        "name": "openSite/configuration/configuration#2",
         "parameters": [
           "binding",
           "resource"
+        ],
+        "async": false
+      },
+      {
+        "name": "prepareInitializedSheetsCommandDeclaration",
+        "parameters": [
+          "sourceInitialization",
+          "providerMoon",
+          "profile",
+          "site",
+          "viewsWire",
+          "expectedCatalogCid"
+        ],
+        "async": false
+      },
+      {
+        "name": "prepareInitializedSheetsCommandDeclaration/native/native",
+        "parameters": [
+          "name"
+        ],
+        "async": false
+      },
+      {
+        "name": "prepareInitializedSheetsCommandDeclaration/native/native/native",
+        "parameters": [
+          "args"
+        ],
+        "async": false
+      },
+      {
+        "name": "prepareInitializedSheetsCommandDeclaration/originals/originals",
+        "parameters": [
+          "name"
+        ],
+        "async": false
+      },
+      {
+        "name": "prepareInitializedSheetsCommandDeclaration/projection/init:capacity/init:capacity",
+        "parameters": [
+          "declaredWire"
+        ],
+        "async": false
+      },
+      {
+        "name": "prepareInitializedSheetsCommandDeclaration/projection/init:project/init:project",
+        "parameters": [
+          "declaredWire"
+        ],
+        "async": false
+      },
+      {
+        "name": "prepareInitializedSheetsEffectDriver",
+        "parameters": [
+          "sourceInitialization",
+          "providerMoon",
+          "site",
+          "catalogCid",
+          "bindingCid",
+          "command",
+          "clear",
+          "isCurrent"
+        ],
+        "async": false
+      },
+      {
+        "name": "prepareInitializedSheetsEffectDriver/init:capacity/init:capacity",
+        "parameters": [],
+        "async": false
+      },
+      {
+        "name": "prepareInitializedSheetsEffectDriver/init:project/init:project",
+        "parameters": [],
+        "async": false
+      },
+      {
+        "name": "prepareInitializedSheetsEffectDriver/native/native",
+        "parameters": [
+          "name"
+        ],
+        "async": false
+      },
+      {
+        "name": "prepareInitializedSheetsEffectDriver/native/native/native",
+        "parameters": [
+          "args"
+        ],
+        "async": false
+      },
+      {
+        "name": "prepareInitializedSheetsEffectDriver/originals/originals",
+        "parameters": [
+          "name"
+        ],
+        "async": false
+      },
+      {
+        "name": "prepareInitializedSheetsReadTarget",
+        "parameters": [
+          "sourceInitialization",
+          "providerMoon",
+          "site",
+          "catalogCid",
+          "bindingCid"
+        ],
+        "async": false
+      },
+      {
+        "name": "prepareInitializedSheetsReadTarget/init:capacity/init:capacity",
+        "parameters": [],
+        "async": false
+      },
+      {
+        "name": "prepareInitializedSheetsReadTarget/init:project/init:project",
+        "parameters": [],
+        "async": false
+      },
+      {
+        "name": "prepareInitializedSheetsReadTarget/native/native",
+        "parameters": [
+          "name"
+        ],
+        "async": false
+      },
+      {
+        "name": "prepareInitializedSheetsReadTarget/native/native/native",
+        "parameters": [
+          "args"
+        ],
+        "async": false
+      },
+      {
+        "name": "prepareInitializedSheetsReadTarget/originals/originals",
+        "parameters": [
+          "name"
         ],
         "async": false
       },
@@ -308,7 +483,8 @@
       {
         "name": "readJson",
         "parameters": [
-          "path"
+          "path",
+          "originalRead"
         ],
         "async": true
       },
@@ -317,7 +493,8 @@
         "parameters": [
           "profile",
           "site",
-          "declared"
+          "declared",
+          "originalRead"
         ],
         "async": true
       },
@@ -325,9 +502,22 @@
         "name": "readSite",
         "parameters": [
           "path",
-          "providerMoon"
+          "providerMoon",
+          "configurationReader"
         ],
         "async": true
+      },
+      {
+        "name": "readSite/columns/columns",
+        "parameters": [
+          "column"
+        ],
+        "async": false
+      },
+      {
+        "name": "readSite/readers/readers",
+        "parameters": [],
+        "async": false
       },
       {
         "name": "readSite/readSite",
@@ -343,7 +533,8 @@
           "providerMoon",
           "profile",
           "site",
-          "expectedCatalogCid"
+          "expectedCatalogCid",
+          "sourceInitialization"
         ],
         "async": false
       },
@@ -366,6 +557,31 @@
         "async": false
       },
       {
+        "name": "sheetsGridReaderLimits",
+        "parameters": [
+          "site",
+          "publication",
+          "secretBytes",
+          "rangeCommand"
+        ],
+        "async": false
+      },
+      {
+        "name": "sheetsGridReaderLimits/names/names",
+        "parameters": [
+          "column"
+        ],
+        "async": false
+      },
+      {
+        "name": "sheetsGridReaderLimits/nameUnits/nameUnits",
+        "parameters": [
+          "sum",
+          "name"
+        ],
+        "async": false
+      },
+      {
         "name": "text/text",
         "parameters": [
           "value"
@@ -376,15 +592,20 @@
     "imports": [
       "../../../host-common/runtime-result.mjs",
       "../../../host-node/installed-host-cleanup.mjs",
+      "../../../host-node/installed-host-services.mjs",
       "../../../host-node/installed-row-effect.mjs",
       "../../../host-node/installed-row-source.mjs",
       "../../../host-node/local-account-config.mjs",
+      "../../../host-node/source-profile-json.mjs",
       "../site/sheets-exchange.mjs",
+      "../site/sheets-grid-pages.mjs",
+      "../site/sheets-owned-request.mjs",
       "./sheets-clear-command.mjs",
       "./sheets-range-command.mjs",
       "node:crypto",
       "node:fs/promises",
-      "node:path"
+      "node:path",
+      "node:util"
     ],
     "compilerFields": [],
     "unresolvedSyntax": [],
@@ -416,7 +637,16 @@
           "restore",
           "restore/schema/schema",
           "restore/view/view",
-          "text/text"
+          "text/text",
+          "bindSheetsAppendConstructionProfile",
+          "bindSheetsAppendConstructionProfile/init:installedStandardCreateConstructionProfile/init:installedStandardCreateConstructionProfile",
+          "readSite/columns/columns",
+          "mappingOf/sources/sources",
+          "readSite/readers/readers",
+          "checkedSourceMethod",
+          "sheetsGridReaderLimits",
+          "sheetsGridReaderLimits/names/names",
+          "sheetsGridReaderLimits/nameUnits/nameUnits"
         ],
         "exports": [
           "SHEETS_EFFECT_VERSION",
@@ -545,30 +775,48 @@
       {
         "operations": [
           "load",
-          "load/adapter/adapter",
-          "load/adapter/adapter#2",
-          "load/adapter/adapter#3",
-          "load/adapter/adapter#4",
-          "load/init:close/init:close",
-          "load/init:close/init:close#2",
           "load/load",
           "load/load#2",
-          "load/load#3",
-          "load/load#4",
-          "load/load#5",
-          "load/load#6",
-          "load/load#7",
           "loadInstalledSheetsEffect/loadInstalledSheetsEffect",
           "loadInstalledSheetsSource/loadInstalledSheetsSource",
           "openSite",
-          "openSite/opened/opened",
-          "openSite/opened/opened/opened",
-          "openSite/opened/opened/opened/opened",
-          "openSite/opened/opened#2",
+          "openSite/configuration/configuration",
+          "openSite/configuration/configuration/configuration",
+          "openSite/configuration/configuration/configuration/configuration",
+          "openSite/configuration/configuration#2",
           "publish",
           "publish/init:close/init:close",
           "publishInstalledSheetsEffect/publishInstalledSheetsEffect",
-          "publishInstalledSheetsSource/publishInstalledSheetsSource"
+          "publishInstalledSheetsSource/publishInstalledSheetsSource",
+          "load/init:body/init:body",
+          "load/init:project/init:project",
+          "load/readers/readers",
+          "loadManagedSheetsGridSource",
+          "loadManagedSheetsGridSource/init:preparePageReader/init:preparePageReader",
+          "loadManagedSheetsGridSource/loadManagedSheetsGridSource",
+          "loadManagedSheetsGridSource/services/services",
+          "prepareInitializedSheetsCommandDeclaration",
+          "prepareInitializedSheetsCommandDeclaration/native/native",
+          "prepareInitializedSheetsCommandDeclaration/native/native/native",
+          "prepareInitializedSheetsCommandDeclaration/originals/originals",
+          "prepareInitializedSheetsCommandDeclaration/projection/init:capacity/init:capacity",
+          "prepareInitializedSheetsCommandDeclaration/projection/init:project/init:project",
+          "load/isCurrent/isCurrent",
+          "loadManagedSheetsGridSource/adapter/adapter",
+          "loadManagedSheetsGridSource/adapter/init:physicalTarget/init:physicalTarget",
+          "loadManagedSheetsGridSource/targetCurrent/targetCurrent",
+          "prepareInitializedSheetsEffectDriver",
+          "prepareInitializedSheetsEffectDriver/init:capacity/init:capacity",
+          "prepareInitializedSheetsEffectDriver/init:project/init:project",
+          "prepareInitializedSheetsEffectDriver/native/native",
+          "prepareInitializedSheetsEffectDriver/native/native/native",
+          "prepareInitializedSheetsEffectDriver/originals/originals",
+          "prepareInitializedSheetsReadTarget",
+          "prepareInitializedSheetsReadTarget/init:capacity/init:capacity",
+          "prepareInitializedSheetsReadTarget/init:project/init:project",
+          "prepareInitializedSheetsReadTarget/native/native",
+          "prepareInitializedSheetsReadTarget/native/native/native",
+          "prepareInitializedSheetsReadTarget/originals/originals"
         ],
         "exports": [
           "loadInstalledSheetsEffect",
@@ -687,6 +935,14 @@
             {
               "path": "adapters/connectors/sheets/test/sheets-range-command.test.mjs",
               "anchor": "same bytes under another permission"
+            },
+            {
+              "path": "adapters/host-node/installed-row-write.test.mjs",
+              "anchor": "Effect Site uses the same Host factory and provider binding"
+            },
+            {
+              "path": "adapters/host-node/installed-row-write.test.mjs",
+              "anchor": "test('actual Sheets initial caller keeps original configuration declaration Mapping and Site owner through installation'"
             }
           ]
         }
@@ -696,10 +952,13 @@
   {
     "module": "adapters/connectors/sheets/host/sheets-range-command.mjs",
     "responsibilityFacet": "primary",
-    "sha256": "ca144ab4d0c084c900daca939d62c07f7a0d770f618131126f099fea6577954b",
+    "sha256": "57679e78f74e607a000bbdda4830433d30dcd56efb1f4427c06e5fae3ea8a568",
     "exports": [
       "createSheetsRangeDriver",
       "sheetsRangeCommand",
+      "sheetsRangeConfiguration",
+      "sheetsRangeConfigurationBytes",
+      "sheetsRangeDriverConstruction",
       "sheetsRangeReference",
       "withSheetsRangeCommand"
     ],
@@ -840,6 +1099,63 @@
         "async": false
       },
       {
+        "name": "sheetsRangeConfiguration",
+        "parameters": [
+          "site"
+        ],
+        "async": false
+      },
+      {
+        "name": "sheetsRangeConfigurationBytes",
+        "parameters": [
+          "site"
+        ],
+        "async": false
+      },
+      {
+        "name": "sheetsRangeDriverConstruction",
+        "parameters": [
+          "moon",
+          "binding",
+          "site",
+          "command",
+          "bindingCid",
+          "targetWire",
+          "operation",
+          "profileName"
+        ],
+        "async": false
+      },
+      {
+        "name": "sheetsRangeDriverConstruction/metadataTextUnits/metadataTextUnits",
+        "parameters": [
+          "sum",
+          "value"
+        ],
+        "async": false
+      },
+      {
+        "name": "sheetsRangeDriverConstruction/provider/init:installedStandardCreateConstructionProfile/init:installedStandardCreateConstructionProfile",
+        "parameters": [
+          "inputBytes",
+          "inputNodes",
+          "inputDepth"
+        ],
+        "async": false
+      },
+      {
+        "name": "sheetsRangeDriverConstruction/provider/init:installedStandardDriverCaptureConstructionCapacity/init:installedStandardDriverCaptureConstructionCapacity",
+        "parameters": [
+          "captureBytes",
+          "captureNodes",
+          "captureDepth",
+          "inputBytes",
+          "inputNodes",
+          "inputDepth"
+        ],
+        "async": false
+      },
+      {
         "name": "sheetsRangeReference",
         "parameters": [
           "site",
@@ -870,7 +1186,8 @@
       "../../../../packages/sdk/host-port.mjs",
       "../../../host-node/local-account-config.mjs",
       "../site/sheets-exchange.mjs",
-      "../site/sheets-owned-request.mjs"
+      "../site/sheets-owned-request.mjs",
+      "node:util"
     ],
     "compilerFields": [],
     "unresolvedSyntax": [],
@@ -884,12 +1201,21 @@
           "sheetsRangeCommand",
           "sheetsRangeReference",
           "wire/wire",
-          "withSheetsRangeCommand"
+          "withSheetsRangeCommand",
+          "sheetsRangeConfiguration",
+          "sheetsRangeConfigurationBytes",
+          "sheetsRangeDriverConstruction",
+          "sheetsRangeDriverConstruction/metadataTextUnits/metadataTextUnits",
+          "sheetsRangeDriverConstruction/provider/init:installedStandardCreateConstructionProfile/init:installedStandardCreateConstructionProfile",
+          "sheetsRangeDriverConstruction/provider/init:installedStandardDriverCaptureConstructionCapacity/init:installedStandardDriverCaptureConstructionCapacity"
         ],
         "exports": [
           "sheetsRangeCommand",
           "sheetsRangeReference",
-          "withSheetsRangeCommand"
+          "withSheetsRangeCommand",
+          "sheetsRangeConfiguration",
+          "sheetsRangeConfigurationBytes",
+          "sheetsRangeDriverConstruction"
         ],
         "attributes": {
           "responsibility": [
@@ -1135,7 +1461,7 @@
   {
     "module": "adapters/connectors/sheets/site/sheets-exchange.mjs",
     "responsibilityFacet": "primary",
-    "sha256": "01911f782d45bec31eb7bd7a0d0d58f3ee517a81c1291791c0ff6b4523f25760",
+    "sha256": "002676e5bfd8589762e07fb90000388c3341eb07e6cccff54ba96890215698bf",
     "exports": [
       "SHEETS_APPEND_OPERATION",
       "SHEETS_CLEAR_OPERATION",
@@ -1146,9 +1472,11 @@
       "checkSheetsTarget",
       "prepareSheetsAppend",
       "prepareSheetsClear",
+      "prepareSheetsTargetRequest",
       "prepareSheetsUpdate",
       "projectSheetsAppend",
       "projectSheetsClear",
+      "projectSheetsTarget",
       "projectSheetsUpdate",
       "readSheetsGrid",
       "readSheetsRangeTarget",
@@ -1277,6 +1605,18 @@
         "async": false
       },
       {
+        "name": "projectSheetsTarget",
+        "parameters": [
+          "moon",
+          "spreadsheetId",
+          "columns",
+          "range",
+          "appendSheetId",
+          "response"
+        ],
+        "async": false
+      },
+      {
         "name": "projectSheetsUpdate",
         "parameters": [
           "moon",
@@ -1371,6 +1711,7 @@
       "../../../host-common/effect-preparation-result.mjs",
       "../../../host-common/owned-invocation-context.mjs",
       "./sheets-clear-request.mjs",
+      "./sheets-grid-pages.mjs",
       "./sheets-owned-request.mjs"
     ],
     "compilerFields": [],
@@ -1522,7 +1863,8 @@
           "projectSheetsAppend",
           "projectSheetsUpdate",
           "rangeArgs/rangeArgs",
-          "sheetsUpdateRequestCid"
+          "sheetsUpdateRequestCid",
+          "projectSheetsTarget"
         ],
         "exports": [
           "SHEETS_APPEND_OPERATION",
@@ -1534,7 +1876,9 @@
           "prepareSheetsUpdate",
           "projectSheetsAppend",
           "projectSheetsUpdate",
-          "sheetsUpdateRequestCid"
+          "sheetsUpdateRequestCid",
+          "prepareSheetsTargetRequest",
+          "projectSheetsTarget"
         ],
         "attributes": {
           "responsibility": [
@@ -1633,6 +1977,10 @@
             {
               "path": "adapters/connectors/sheets/test/sheets-range-command.test.mjs",
               "anchor": "same bytes under another permission"
+            },
+            {
+              "path": "adapters/connectors/sheets/test/sheets-grid-pages.actual.test.mjs",
+              "anchor": "test('actual Sheets metadata projection preserves original target refusal separately from transport rejection'"
             }
           ]
         }
@@ -2070,7 +2418,7 @@
   {
     "module": "src/connectors/sheets/catalog/cells.mbt",
     "responsibilityFacet": "primary",
-    "sha256": "ab9ac3ee44543e678f725ac3398ef077d3a6b637053cec52180ea5c843b728a7",
+    "sha256": "de297cd2f7d3679df5f55f5275be9617ce6950641179d9d4c81c93b34d475d24",
     "operations": [
       {
         "name": "admit",
@@ -2079,6 +2427,10 @@
       {
         "name": "append_request",
         "declaration": "append_request ( sheet_id : Int , columns : Array [ Column ] , values : Array [ Json ] , limits : Limits , ) - > Result [ String , Issue ]"
+      },
+      {
+        "name": "append_request_document",
+        "declaration": "append_request_document ( sheet_id : Int , cells : Array [ Json ] ) - > Json"
       },
       {
         "name": "array_default",
@@ -2117,6 +2469,10 @@
         "declaration": "integer_default ( object : @ decode . ObjectView , name : String ) - > Int ?"
       },
       {
+        "name": "literal_cell_document",
+        "declaration": "literal_cell_document ( cell_type : CellType , value : Json ) - > Json ?"
+      },
+      {
         "name": "literal_cells",
         "declaration": "literal_cells ( columns : Array [ Column ] , values : Array [ Json ] , ) - > Result [ Array [ Json ] , Issue ]"
       },
@@ -2133,8 +2489,16 @@
         "declaration": "read_request ( range : GridRange , columns : Array [ Column ] , limits : Limits , ) - > Result [ String , Issue ]"
       },
       {
+        "name": "read_request_document",
+        "declaration": "read_request_document ( range : GridRange ) - > Json"
+      },
+      {
         "name": "update_request",
         "declaration": "update_request ( range : GridRange , columns : Array [ Column ] , rows : Array [ Array [ Json ] ] , limits : Limits , ) - > Result [ String , Issue ]"
+      },
+      {
+        "name": "update_request_document",
+        "declaration": "update_request_document ( range : GridRange , encoded_rows : Array [ Json ] , ) - > Json"
       }
     ],
     "exports": [],
@@ -2160,7 +2524,11 @@
           "page_rows",
           "project_grid",
           "read_request",
-          "update_request"
+          "update_request",
+          "append_request_document",
+          "literal_cell_document",
+          "read_request_document",
+          "update_request_document"
         ],
         "exports": [],
         "attributes": {
@@ -2273,18 +2641,20 @@
   {
     "module": "src/connectors/sheets/catalog/pkg.generated.mbti",
     "responsibilityFacet": "primary",
-    "sha256": "d87289d9cc48df2585e873daa1396d52c877c75f7104cd3056b805bdbf52e9ee",
+    "sha256": "6a13078b5b57102a2da28c82485c0b8fe1f5f8eeae2378c8dd7b343467410394",
     "exports": [
       "pub fn admit_clear_range_binding(String, String, String, String, Limits) -> Result[ClearRangeBinding, RangeFailure]",
       "pub fn admit_clear_range_request(ClearRangeBinding, ClearRangeRequest) -> Result[Unit, RangeFailure]",
       "pub fn admit_range_binding(String, String, String, String, Limits) -> Result[RangeBinding, RangeFailure]",
       "pub fn admit_range_request(RangeBinding, RangeRequest) -> Result[Unit, RangeFailure]",
       "pub fn append_request(Int, Array[Column], Array[Json], Limits) -> Result[String, Issue]",
+      "pub fn append_request_document(Int, Array[Json]) -> Json",
       "pub fn append_request_identity(String, String, String) -> Result[String, RangeFailure]",
       "pub fn check_target(Bytes, String, GridRange, Int, Array[Column], Limits) -> Result[Unit, Issue]",
       "pub fn classify_append(Int, Bytes, String, Limits) -> AppendOutcome",
       "pub fn classify_clear(Int, Bytes, String, GridRange, String, Limits) -> AppendOutcome",
       "pub fn clear_command_json(String, String, String, Limits) -> Result[String, RangeFailure]",
+      "pub fn clear_range_construction_metadata(ClearRangeBinding) -> RangeConstructionMetadata",
       "pub fn clear_range_recovery_entry(ClearRangeBinding, String, Array[ClearRangeRequest]) -> Result[String, RangeFailure]",
       "pub fn clear_range_request_body(ClearRangeBinding, ClearRangeRequest) -> Result[String, RangeFailure]",
       "pub fn clear_range_request_identity(ClearRangeBinding, ClearRangeRequest) -> Result[String, RangeFailure]",
@@ -2292,8 +2662,10 @@
       "pub fn clear_range_request_outcome(ClearRangeBinding, ClearRangeRequest, Int, Bytes) -> Result[AppendOutcome, RangeFailure]",
       "pub fn clear_range_target_matches(ClearRangeBinding, String) -> Bool",
       "pub fn clear_request(GridRange, Array[Column], String, Limits) -> Result[String, Issue]",
+      "pub fn clear_request_document(GridRange, String) -> Json",
       "pub fn clear_request_identity(String, String, String, String) -> Result[String, RangeFailure]",
       "pub fn excluded_blank_rows(Page) -> Int",
+      "pub fn literal_cell_document(CellType, Json) -> Json?",
       "pub fn page_rows(Page) -> Array[Json]",
       "pub fn prepare_clear_range_request(ClearRangeBinding, String, String, String) -> Result[ClearRangeRequest, RangeFailure]",
       "pub fn prepare_range_request(RangeBinding, String, String) -> Result[RangeRequest, RangeFailure]",
@@ -2301,16 +2673,21 @@
       "pub fn project_sheet_tabs(Bytes, String, SheetTabsLimits) -> Result[SheetTabsPage, SheetTabsIssue]",
       "pub fn range_catalog_json(String, String, Limits) -> Result[String, RangeFailure]",
       "pub fn range_command_json(String, String, String, Limits) -> Result[String, RangeFailure]",
+      "pub fn range_construction_metadata(RangeBinding) -> RangeConstructionMetadata",
+      "pub fn range_declaration_construction_bounds(Int, Int, Int) -> RangeDeclarationConstructionBounds?",
       "pub fn range_failure_code(RangeFailure) -> String",
       "pub fn range_failure_refusal(RangeFailure) -> Issue?",
       "pub fn range_recovery_entry(RangeBinding, String) -> Result[String, RangeFailure]",
       "pub fn range_reference(String, String, GridRange, String, String, Limits) -> Result[Json, RangeFailure]",
+      "pub fn range_reference_construction_bounds(Int, Int) -> RangeReferenceConstructionBounds?",
       "pub fn range_request_body(RangeRequest) -> String",
       "pub fn range_request_body_for(RangeBinding, RangeRequest) -> Result[String, RangeFailure]",
       "pub fn range_request_identity(RangeRequest) -> String",
       "pub fn range_request_json(RangeBinding, RangeRequest) -> Result[String, RangeFailure]",
       "pub fn range_target_matches(RangeBinding, String) -> Bool",
+      "pub fn range_write_construction_bounds(RangeConstructionMetadata, Int, Bool) -> RangeWriteConstructionBounds?",
       "pub fn read_request(GridRange, Array[Column], Limits) -> Result[String, Issue]",
+      "pub fn read_request_document(GridRange) -> Json",
       "pub fn recover_clear_range_requests(ClearRangeBinding, String, String, Limits) -> Result[Array[Array[ClearRangeRequest]], RangeFailure]",
       "pub fn recover_range_requests(RangeBinding, String, String, Limits) -> Result[Array[Array[RangeRequest]], RangeFailure]",
       "pub fn sheet_tabs_column_names() -> Array[String]",
@@ -2318,6 +2695,7 @@
       "pub fn sheet_tabs_rows_wire(SheetTabsPage, Array[String], Int, Int, Int) -> Result[String, SheetTabsIssue]",
       "pub fn sheet_tabs_schema_wire(Int, Int, Int) -> Result[String, SheetTabsIssue]",
       "pub fn update_request(GridRange, Array[Column], Array[Array[Json]], Limits) -> Result[String, Issue]",
+      "pub fn update_request_document(GridRange, Array[Json]) -> Json",
       "pub struct ClearRangeBinding {",
       "pub struct ClearRangeRequest {",
       "pub struct Page {",
@@ -2348,6 +2726,10 @@
         "declaration": "pub fn append_request(Int, Array[Column], Array[Json], Limits) -> Result[String, Issue]"
       },
       {
+        "name": "append_request_document",
+        "declaration": "pub fn append_request_document(Int, Array[Json]) -> Json"
+      },
+      {
         "name": "append_request_identity",
         "declaration": "pub fn append_request_identity(String, String, String) -> Result[String, RangeFailure]"
       },
@@ -2366,6 +2748,10 @@
       {
         "name": "clear_command_json",
         "declaration": "pub fn clear_command_json(String, String, String, Limits) -> Result[String, RangeFailure]"
+      },
+      {
+        "name": "clear_range_construction_metadata",
+        "declaration": "pub fn clear_range_construction_metadata(ClearRangeBinding) -> RangeConstructionMetadata"
       },
       {
         "name": "clear_range_recovery_entry",
@@ -2396,12 +2782,20 @@
         "declaration": "pub fn clear_request(GridRange, Array[Column], String, Limits) -> Result[String, Issue]"
       },
       {
+        "name": "clear_request_document",
+        "declaration": "pub fn clear_request_document(GridRange, String) -> Json"
+      },
+      {
         "name": "clear_request_identity",
         "declaration": "pub fn clear_request_identity(String, String, String, String) -> Result[String, RangeFailure]"
       },
       {
         "name": "excluded_blank_rows",
         "declaration": "pub fn excluded_blank_rows(Page) -> Int"
+      },
+      {
+        "name": "literal_cell_document",
+        "declaration": "pub fn literal_cell_document(CellType, Json) -> Json?"
       },
       {
         "name": "page_rows",
@@ -2432,6 +2826,14 @@
         "declaration": "pub fn range_command_json(String, String, String, Limits) -> Result[String, RangeFailure]"
       },
       {
+        "name": "range_construction_metadata",
+        "declaration": "pub fn range_construction_metadata(RangeBinding) -> RangeConstructionMetadata"
+      },
+      {
+        "name": "range_declaration_construction_bounds",
+        "declaration": "pub fn range_declaration_construction_bounds(Int, Int, Int) -> RangeDeclarationConstructionBounds?"
+      },
+      {
         "name": "range_failure_code",
         "declaration": "pub fn range_failure_code(RangeFailure) -> String"
       },
@@ -2446,6 +2848,10 @@
       {
         "name": "range_reference",
         "declaration": "pub fn range_reference(String, String, GridRange, String, String, Limits) -> Result[Json, RangeFailure]"
+      },
+      {
+        "name": "range_reference_construction_bounds",
+        "declaration": "pub fn range_reference_construction_bounds(Int, Int) -> RangeReferenceConstructionBounds?"
       },
       {
         "name": "range_request_body",
@@ -2468,8 +2874,16 @@
         "declaration": "pub fn range_target_matches(RangeBinding, String) -> Bool"
       },
       {
+        "name": "range_write_construction_bounds",
+        "declaration": "pub fn range_write_construction_bounds(RangeConstructionMetadata, Int, Bool) -> RangeWriteConstructionBounds?"
+      },
+      {
         "name": "read_request",
         "declaration": "pub fn read_request(GridRange, Array[Column], Limits) -> Result[String, Issue]"
+      },
+      {
+        "name": "read_request_document",
+        "declaration": "pub fn read_request_document(GridRange) -> Json"
       },
       {
         "name": "recover_clear_range_requests",
@@ -2498,6 +2912,10 @@
       {
         "name": "update_request",
         "declaration": "pub fn update_request(GridRange, Array[Column], Array[Array[Json]], Limits) -> Result[String, Issue]"
+      },
+      {
+        "name": "update_request_document",
+        "declaration": "pub fn update_request_document(GridRange, Array[Json]) -> Json"
       }
     ],
     "package": "connectors/sheets/catalog",
@@ -2522,7 +2940,13 @@
           "range_request_json",
           "range_target_matches",
           "recover_range_requests",
-          "append_request_identity"
+          "append_request_identity",
+          "append_request_document",
+          "literal_cell_document",
+          "range_declaration_construction_bounds",
+          "range_construction_metadata",
+          "range_reference_construction_bounds",
+          "range_write_construction_bounds"
         ],
         "exports": [
           "pub fn admit_range_binding(String, String, String, String, Limits) -> Result[RangeBinding, RangeFailure]",
@@ -2547,7 +2971,17 @@
           "pub struct RangeBinding {",
           "pub struct RangeFailure {",
           "pub struct RangeRequest {",
-          "pub fn append_request_identity(String, String, String) -> Result[String, RangeFailure]"
+          "pub fn append_request_identity(String, String, String) -> Result[String, RangeFailure]",
+          "pub fn append_request_document(Int, Array[Json]) -> Json",
+          "pub fn literal_cell_document(CellType, Json) -> Json?",
+          "pub fn read_request_document(GridRange) -> Json",
+          "pub fn range_declaration_construction_bounds(Int, Int, Int) -> RangeDeclarationConstructionBounds?",
+          "pub fn clear_range_construction_metadata(ClearRangeBinding) -> RangeConstructionMetadata",
+          "pub fn clear_request_document(GridRange, String) -> Json",
+          "pub fn range_construction_metadata(RangeBinding) -> RangeConstructionMetadata",
+          "pub fn range_reference_construction_bounds(Int, Int) -> RangeReferenceConstructionBounds?",
+          "pub fn range_write_construction_bounds(RangeConstructionMetadata, Int, Bool) -> RangeWriteConstructionBounds?",
+          "pub fn update_request_document(GridRange, Array[Json]) -> Json"
         ],
         "attributes": {
           "responsibility": [
@@ -2667,7 +3101,9 @@
           "page_rows",
           "project_grid",
           "read_request",
-          "update_request"
+          "update_request",
+          "read_request_document",
+          "update_request_document"
         ],
         "exports": [
           "pub fn append_request(Int, Array[Column], Array[Json], Limits) -> Result[String, Issue]",
@@ -2800,7 +3236,9 @@
           "clear_request",
           "clear_request_identity",
           "prepare_clear_range_request",
-          "recover_clear_range_requests"
+          "recover_clear_range_requests",
+          "clear_range_construction_metadata",
+          "clear_request_document"
         ],
         "exports": [
           "pub fn admit_clear_range_binding(String, String, String, String, Limits) -> Result[ClearRangeBinding, RangeFailure]",
@@ -2997,31 +3435,51 @@
   {
     "module": "src/connectors/sheets/catalog/range_declaration.mbt",
     "responsibilityFacet": "primary",
-    "sha256": "f836b1706b6216b42124177408490d8d674c052981607ed7bd668c9af8203c21",
+    "sha256": "65b974df4601ed6f08a5714d36b3d346efacb345326ec31711eba61badea30b7",
     "operations": [
       {
         "name": "range_catalog_json",
         "declaration": "range_catalog_json ( declared_wire : String , range_command_wire : String , limits : Limits , ) - > Result [ String , RangeFailure ]"
       },
       {
-        "name": "range_command_json",
-        "declaration": "range_command_json ( connector_id : String , columns_wire : String , range_wire : String , limits : Limits , ) - > Result [ String , RangeFailure ]"
+        "name": "range_command_bundle_document",
+        "declaration": "range_command_bundle_document ( command : Json , input : Json , output : Json , command_id : String , cid : String , body : String , ) - > Json"
       },
       {
-        "name": "range_contract",
-        "declaration": "range_contract ( connector_id : String , kind : String , fields : Json , limits : Limits , ) - > Result [ Json , RangeFailure ]"
+        "name": "range_command_document",
+        "declaration": "range_command_document ( connector_id : String , command_id : String , input : Json , output : Json , input_fields : Json , operation : String , ) - > Json"
+      },
+      {
+        "name": "range_command_json",
+        "declaration": "range_command_json ( connector_id : String , columns_wire : String , range_wire : String , limits : Limits , ) - > Result [ String , RangeFailure ]"
       },
       {
         "name": "range_contract_cid",
         "declaration": "range_contract_cid ( value : Json ) - > String"
       },
       {
+        "name": "range_contract_document",
+        "declaration": "range_contract_document ( id : String , kind : String , fields : Json ) - > Json"
+      },
+      {
         "name": "range_contract_ref",
         "declaration": "range_contract_ref ( value : Json ) - > Json"
       },
       {
+        "name": "range_declaration_names",
+        "declaration": "range_declaration_names ( connector_id : String , clear : Bool , ) - > ( String , String , String , String )"
+      },
+      {
+        "name": "range_input_fields_document",
+        "declaration": "range_input_fields_document ( fields : Map [ String , Json ] , row_count : Int , ) - > Json"
+      },
+      {
         "name": "range_named_contract",
         "declaration": "range_named_contract ( id : String , kind : String , fields : Json , limits : Limits , ) - > Result [ Json , RangeFailure ]"
+      },
+      {
+        "name": "range_output_fields_document",
+        "declaration": "range_output_fields_document ( clear : Bool ) - > Json"
       }
     ],
     "exports": [],
@@ -3034,10 +3492,15 @@
           "<module>",
           "range_catalog_json",
           "range_command_json",
-          "range_contract",
           "range_contract_cid",
           "range_contract_ref",
-          "range_named_contract"
+          "range_named_contract",
+          "range_command_bundle_document",
+          "range_command_document",
+          "range_contract_document",
+          "range_declaration_names",
+          "range_input_fields_document",
+          "range_output_fields_document"
         ],
         "exports": [],
         "attributes": {
@@ -3053,6 +3516,10 @@
             {
               "path": "adapters/connectors/sheets/README.md",
               "anchor": "Clear's input/output roles use operation-qualified"
+            },
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "The existing Sheets range and clear Catalog projection also retains the full"
             }
           ],
           "inputsOutputs": [
@@ -3063,6 +3530,10 @@
             {
               "path": "src/connectors/sheets/catalog/pkg.generated.mbti",
               "anchor": "pub fn"
+            },
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "The existing Sheets range and clear Catalog projection also retains the full"
             }
           ],
           "identity": [
@@ -3073,6 +3544,10 @@
             {
               "path": "adapters/connectors/sheets/README.md",
               "anchor": "Configuration identity"
+            },
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "The existing Sheets range and clear Catalog projection also retains the full"
             }
           ],
           "ownership": [
@@ -3083,6 +3558,10 @@
             {
               "path": "adapters/host-node/installed-row-effect.mjs",
               "anchor": "The identities this factory issues"
+            },
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "The existing Sheets range and clear Catalog projection also retains the full"
             }
           ],
           "synchronization": {
@@ -3113,6 +3592,10 @@
             {
               "path": "adapters/host-node/installed-row-effect.mjs",
               "anchor": "const defaultLimits"
+            },
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "The existing Sheets range and clear Catalog projection also retains the full"
             }
           ],
           "extension": [
@@ -3123,6 +3606,10 @@
             {
               "path": "scripts/check-source-command-addition.mjs",
               "anchor": "third-Compute checker"
+            },
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "The existing Sheets range and clear Catalog projection also retains the full"
             }
           ],
           "verification": [
@@ -3141,6 +3628,10 @@
             {
               "path": "src/connectors/sheets/catalog/command_role_identity_wbtest.mbt",
               "anchor": "Sheets clear and update original roles coexist in the same checked registry"
+            },
+            {
+              "path": "src/connectors/sheets/catalog/command_source_projection_wbtest.mbt",
+              "anchor": "test \"Sheets range Source projection retains the original installed Command body for common Environment construction\""
             }
           ]
         }
@@ -3150,7 +3641,7 @@
   {
     "module": "src/connectors/sheets/catalog/range_identity.mbt",
     "responsibilityFacet": "primary",
-    "sha256": "497e0716039f1cf9132f62fb203b93d39e79d26e85360a88c507364104bdc0d9",
+    "sha256": "a3a8ccca7348a22797bf37e5ed681f9e73277575c5639ad05d188ec81afb6a1e",
     "operations": [
       {
         "name": "append_request_identity",
@@ -3189,6 +3680,10 @@
         "declaration": "range_failure_refusal ( issue : RangeFailure ) - > Issue ?"
       },
       {
+        "name": "range_identity_document",
+        "declaration": "range_identity_document ( range : GridRange ) - > Json"
+      },
+      {
         "name": "range_json_value",
         "declaration": "range_json_value ( range : GridRange ) - > Json"
       },
@@ -3197,8 +3692,16 @@
         "declaration": "range_parse ( wire : String , limits : Limits , code : String , ) - > Result [ Json , RangeFailure ]"
       },
       {
+        "name": "range_provider_identity_document",
+        "declaration": "range_provider_identity_document ( origin : String , spreadsheet_id : String ) - > Json"
+      },
+      {
         "name": "range_reference",
         "declaration": "range_reference ( origin : String , spreadsheet_id : String , range : GridRange , catalog_cid : String , binding_cid : String , limits : Limits , ) - > Result [ Json , RangeFailure ]"
+      },
+      {
+        "name": "range_reference_document",
+        "declaration": "range_reference_document ( provider_cid : String , identity_cid : String , catalog_cid : String , binding_cid : String , ) - > Json"
       },
       {
         "name": "range_request_cid",
@@ -3225,7 +3728,10 @@
           "range_json_value",
           "range_parse",
           "range_reference",
-          "range_request_cid"
+          "range_request_cid",
+          "range_identity_document",
+          "range_provider_identity_document",
+          "range_reference_document"
         ],
         "exports": [],
         "attributes": {
@@ -3338,7 +3844,7 @@
   {
     "module": "src/connectors/sheets/catalog/range_request.mbt",
     "responsibilityFacet": "primary",
-    "sha256": "b75988d0490649f8c87b9f8fe5039385de2e5adda7271ee8bddcba9221d539f1",
+    "sha256": "45e6fc5fc8b02c7ffc7163296c1432d58d2be2e42e1136854a2e1b6125c52b86",
     "operations": [
       {
         "name": "admit_range_binding",
@@ -3359,6 +3865,10 @@
       {
         "name": "range_columns_json",
         "declaration": "range_columns_json ( columns : Array [ Column ] ) - > Json"
+      },
+      {
+        "name": "range_construction_metadata",
+        "declaration": "range_construction_metadata ( binding : RangeBinding , ) - > RangeConstructionMetadata"
       },
       {
         "name": "range_integer",
@@ -3423,7 +3933,8 @@
           "range_request_identity",
           "range_request_json",
           "range_target_matches",
-          "recover_range_requests"
+          "recover_range_requests",
+          "range_construction_metadata"
         ],
         "exports": [],
         "attributes": {
@@ -3696,13 +4207,16 @@
   {
     "module": "src/connectors/sheets/host_node/pkg.generated.mbti",
     "responsibilityFacet": "primary",
-    "sha256": "ce12c5b1689f4671f9cb0bc3d349fb1df3fd04876117a01d37d741acb198cbd6",
+    "sha256": "c03f7437c9c4bdaa77071711888adbfe08a1631ff2c98dee4fef4860355b6531",
     "exports": [
+      "pub fn sheets_append_construction_profile(Int, Int, Int, Int, Int, Int, Int) -> Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?",
       "pub fn sheets_append_outcome_json(Int, Bytes, String, Int, Int, Int, Int) -> String",
       "pub fn sheets_append_request_identity(String, String, String) -> Result[String, @catalog.RangeFailure]",
       "pub fn sheets_append_request_json(String, String, Int, Int, Int, Int, Int) -> String",
       "pub fn sheets_clear_binding(String, String, String, String, Int, Int, Int, Int) -> Result[@catalog.ClearRangeBinding, @catalog.RangeFailure]",
+      "pub fn sheets_clear_capture_construction_profile(@catalog.ClearRangeBinding, Int, Int, Int, Int, Int, Int) -> Array[@execution_relation.ExecutionCapacity]?",
       "pub fn sheets_clear_command_json(String, String, String, Int, Int, Int, Int) -> Result[String, @catalog.RangeFailure]",
+      "pub fn sheets_clear_construction_profile(@catalog.ClearRangeBinding, Int, Int, Int, Int, Int, Int) -> Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?",
       "pub fn sheets_clear_outcome_json(@catalog.ClearRangeBinding, @catalog.ClearRangeRequest, Int, Bytes) -> Result[String, @catalog.RangeFailure]",
       "pub fn sheets_clear_prepare(@catalog.ClearRangeBinding, String, String, String) -> Result[@catalog.ClearRangeRequest, @catalog.RangeFailure]",
       "pub fn sheets_clear_recover(@catalog.ClearRangeBinding, String, String, Int, Int, Int, Int) -> Result[Array[Array[@catalog.ClearRangeRequest]], @catalog.RangeFailure]",
@@ -3712,15 +4226,22 @@
       "pub fn sheets_clear_request_json(@catalog.ClearRangeBinding, @catalog.ClearRangeRequest) -> Result[String, @catalog.RangeFailure]",
       "pub fn sheets_clear_target_matches(@catalog.ClearRangeBinding, String) -> Bool",
       "pub fn sheets_grid_page_json(Bytes, String, String, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> String",
+      "pub fn sheets_grid_read_construction_capacity(Int, Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?",
       "pub fn sheets_grid_request_json(String, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> String",
       "pub fn sheets_project_tabs(Bytes, String, Int, Int, Int, Int, Int, Int) -> Result[@catalog.SheetTabsPage, @catalog.SheetTabsIssue]",
       "pub fn sheets_range_binding(String, String, String, String, Int, Int, Int, Int) -> Result[@catalog.RangeBinding, @catalog.RangeFailure]",
+      "pub fn sheets_range_capture_construction_profile(@catalog.RangeBinding, Int, Int, Int, Int, Int, Int) -> Array[@execution_relation.ExecutionCapacity]?",
       "pub fn sheets_range_catalog_json(String, String, Int, Int, Int, Int) -> Result[String, @catalog.RangeFailure]",
       "pub fn sheets_range_command_json(String, String, String, Int, Int, Int, Int) -> Result[String, @catalog.RangeFailure]",
+      "pub fn sheets_range_construction_profile(@catalog.RangeBinding, Int, Int, Int, Int, Int, Int) -> Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?",
+      "pub fn sheets_range_declaration_construction_capacity(Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?",
       "pub fn sheets_range_failure_json(@catalog.RangeFailure) -> String",
+      "pub fn sheets_range_installation_construction_capacity(Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?",
       "pub fn sheets_range_prepare(@catalog.RangeBinding, String, String) -> Result[@catalog.RangeRequest, @catalog.RangeFailure]",
+      "pub fn sheets_range_read_construction_capacity(Int, Int, Int, Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?",
       "pub fn sheets_range_recover(@catalog.RangeBinding, String, String, Int, Int, Int, Int) -> Result[Array[Array[@catalog.RangeRequest]], @catalog.RangeFailure]",
       "pub fn sheets_range_recovery_entry_json(@catalog.RangeBinding, String) -> Result[String, @catalog.RangeFailure]",
+      "pub fn sheets_range_reference_construction_capacity(Int, Int) -> @execution_relation.ExecutionCapacity?",
       "pub fn sheets_range_reference_json(String, String, Int, Int, Int, Int, Int, String, String, Int, Int, Int, Int) -> Result[String, @catalog.RangeFailure]",
       "pub fn sheets_range_request_body(@catalog.RangeBinding, @catalog.RangeRequest) -> Result[String, @catalog.RangeFailure]",
       "pub fn sheets_range_request_cid(@catalog.RangeBinding, @catalog.RangeRequest) -> Result[String, @catalog.RangeFailure]",
@@ -3734,6 +4255,10 @@
       "pub fn sheets_update_request_json(String, String, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> String"
     ],
     "operations": [
+      {
+        "name": "sheets_append_construction_profile",
+        "declaration": "pub fn sheets_append_construction_profile(Int, Int, Int, Int, Int, Int, Int) -> Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?"
+      },
       {
         "name": "sheets_append_outcome_json",
         "declaration": "pub fn sheets_append_outcome_json(Int, Bytes, String, Int, Int, Int, Int) -> String"
@@ -3751,8 +4276,16 @@
         "declaration": "pub fn sheets_clear_binding(String, String, String, String, Int, Int, Int, Int) -> Result[@catalog.ClearRangeBinding, @catalog.RangeFailure]"
       },
       {
+        "name": "sheets_clear_capture_construction_profile",
+        "declaration": "pub fn sheets_clear_capture_construction_profile(@catalog.ClearRangeBinding, Int, Int, Int, Int, Int, Int) -> Array[@execution_relation.ExecutionCapacity]?"
+      },
+      {
         "name": "sheets_clear_command_json",
         "declaration": "pub fn sheets_clear_command_json(String, String, String, Int, Int, Int, Int) -> Result[String, @catalog.RangeFailure]"
+      },
+      {
+        "name": "sheets_clear_construction_profile",
+        "declaration": "pub fn sheets_clear_construction_profile(@catalog.ClearRangeBinding, Int, Int, Int, Int, Int, Int) -> Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?"
       },
       {
         "name": "sheets_clear_outcome_json",
@@ -3791,6 +4324,10 @@
         "declaration": "pub fn sheets_grid_page_json(Bytes, String, String, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> String"
       },
       {
+        "name": "sheets_grid_read_construction_capacity",
+        "declaration": "pub fn sheets_grid_read_construction_capacity(Int, Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?"
+      },
+      {
         "name": "sheets_grid_request_json",
         "declaration": "pub fn sheets_grid_request_json(String, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> String"
       },
@@ -3803,6 +4340,10 @@
         "declaration": "pub fn sheets_range_binding(String, String, String, String, Int, Int, Int, Int) -> Result[@catalog.RangeBinding, @catalog.RangeFailure]"
       },
       {
+        "name": "sheets_range_capture_construction_profile",
+        "declaration": "pub fn sheets_range_capture_construction_profile(@catalog.RangeBinding, Int, Int, Int, Int, Int, Int) -> Array[@execution_relation.ExecutionCapacity]?"
+      },
+      {
         "name": "sheets_range_catalog_json",
         "declaration": "pub fn sheets_range_catalog_json(String, String, Int, Int, Int, Int) -> Result[String, @catalog.RangeFailure]"
       },
@@ -3811,12 +4352,28 @@
         "declaration": "pub fn sheets_range_command_json(String, String, String, Int, Int, Int, Int) -> Result[String, @catalog.RangeFailure]"
       },
       {
+        "name": "sheets_range_construction_profile",
+        "declaration": "pub fn sheets_range_construction_profile(@catalog.RangeBinding, Int, Int, Int, Int, Int, Int) -> Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?"
+      },
+      {
+        "name": "sheets_range_declaration_construction_capacity",
+        "declaration": "pub fn sheets_range_declaration_construction_capacity(Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?"
+      },
+      {
         "name": "sheets_range_failure_json",
         "declaration": "pub fn sheets_range_failure_json(@catalog.RangeFailure) -> String"
       },
       {
+        "name": "sheets_range_installation_construction_capacity",
+        "declaration": "pub fn sheets_range_installation_construction_capacity(Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?"
+      },
+      {
         "name": "sheets_range_prepare",
         "declaration": "pub fn sheets_range_prepare(@catalog.RangeBinding, String, String) -> Result[@catalog.RangeRequest, @catalog.RangeFailure]"
+      },
+      {
+        "name": "sheets_range_read_construction_capacity",
+        "declaration": "pub fn sheets_range_read_construction_capacity(Int, Int, Int, Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?"
       },
       {
         "name": "sheets_range_recover",
@@ -3825,6 +4382,10 @@
       {
         "name": "sheets_range_recovery_entry_json",
         "declaration": "pub fn sheets_range_recovery_entry_json(@catalog.RangeBinding, String) -> Result[String, @catalog.RangeFailure]"
+      },
+      {
+        "name": "sheets_range_reference_construction_capacity",
+        "declaration": "pub fn sheets_range_reference_construction_capacity(Int, Int) -> @execution_relation.ExecutionCapacity?"
       },
       {
         "name": "sheets_range_reference_json",
@@ -3890,7 +4451,14 @@
           "sheets_range_request_cid",
           "sheets_range_request_json",
           "sheets_range_target_matches",
-          "sheets_append_request_identity"
+          "sheets_append_request_identity",
+          "sheets_append_construction_profile",
+          "sheets_range_declaration_construction_capacity",
+          "sheets_range_capture_construction_profile",
+          "sheets_range_construction_profile",
+          "sheets_range_installation_construction_capacity",
+          "sheets_range_read_construction_capacity",
+          "sheets_range_reference_construction_capacity"
         ],
         "exports": [
           "pub fn sheets_range_binding(String, String, String, String, Int, Int, Int, Int) -> Result[@catalog.RangeBinding, @catalog.RangeFailure]",
@@ -3905,7 +4473,17 @@
           "pub fn sheets_range_request_cid(@catalog.RangeBinding, @catalog.RangeRequest) -> Result[String, @catalog.RangeFailure]",
           "pub fn sheets_range_request_json(@catalog.RangeBinding, @catalog.RangeRequest) -> Result[String, @catalog.RangeFailure]",
           "pub fn sheets_range_target_matches(@catalog.RangeBinding, String) -> Bool",
-          "pub fn sheets_append_request_identity(String, String, String) -> Result[String, @catalog.RangeFailure]"
+          "pub fn sheets_append_request_identity(String, String, String) -> Result[String, @catalog.RangeFailure]",
+          "pub fn sheets_append_construction_profile(Int, Int, Int, Int, Int, Int, Int) -> Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?",
+          "pub fn sheets_grid_read_construction_capacity(Int, Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?",
+          "pub fn sheets_range_declaration_construction_capacity(Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?",
+          "pub fn sheets_clear_capture_construction_profile(@catalog.ClearRangeBinding, Int, Int, Int, Int, Int, Int) -> Array[@execution_relation.ExecutionCapacity]?",
+          "pub fn sheets_clear_construction_profile(@catalog.ClearRangeBinding, Int, Int, Int, Int, Int, Int) -> Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?",
+          "pub fn sheets_range_capture_construction_profile(@catalog.RangeBinding, Int, Int, Int, Int, Int, Int) -> Array[@execution_relation.ExecutionCapacity]?",
+          "pub fn sheets_range_construction_profile(@catalog.RangeBinding, Int, Int, Int, Int, Int, Int) -> Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?",
+          "pub fn sheets_range_installation_construction_capacity(Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?",
+          "pub fn sheets_range_read_construction_capacity(Int, Int, Int, Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?",
+          "pub fn sheets_range_reference_construction_capacity(Int, Int) -> @execution_relation.ExecutionCapacity?"
         ],
         "attributes": {
           "responsibility": [
@@ -4023,7 +4601,8 @@
           "sheets_grid_page_json",
           "sheets_grid_request_json",
           "sheets_target_json",
-          "sheets_update_request_json"
+          "sheets_update_request_json",
+          "sheets_grid_read_construction_capacity"
         ],
         "exports": [
           "pub fn sheets_append_outcome_json(Int, Bytes, String, Int, Int, Int, Int) -> String",
@@ -4153,7 +4732,9 @@
           "sheets_clear_request_body",
           "sheets_clear_request_cid",
           "sheets_clear_request_json",
-          "sheets_clear_target_matches"
+          "sheets_clear_target_matches",
+          "sheets_clear_capture_construction_profile",
+          "sheets_clear_construction_profile"
         ],
         "exports": [
           "pub fn sheets_clear_binding(String, String, String, String, Int, Int, Int, Int) -> Result[@catalog.ClearRangeBinding, @catalog.RangeFailure]",
@@ -4530,7 +5111,7 @@
   },
   {
     "module": "adapters/connectors/sheets/host/sheets-clear-command.mjs",
-    "sha256": "26cad997d31b29add8ae1f4b027c080e590fc156a8e9b226e3e6f732a83611a0",
+    "sha256": "c8585e9239e7fa797062be9c46525b15b7c19dd2b191f65919a6ca38fc32b4b9",
     "exports": [
       "createSheetsClearDriver",
       "sheetsClearCommand"
@@ -4692,6 +5273,7 @@
       "../site/sheets-clear-request.mjs",
       "../site/sheets-exchange.mjs",
       "../site/sheets-owned-request.mjs",
+      "./sheets-range-command.mjs",
       "node:crypto"
     ],
     "compilerFields": [],
@@ -5063,7 +5645,7 @@
   },
   {
     "module": "src/connectors/sheets/catalog/clear_declaration.mbt",
-    "sha256": "7b51c075c3feb52d026d892614eee72044d10c34283fb3603f2d257e170d1286",
+    "sha256": "bc21be7755daa43828945bd5b81785489e7faa2115824cb5fd7cbe3ff03b4f7f",
     "exports": [],
     "operations": [
       {
@@ -5187,7 +5769,7 @@
   },
   {
     "module": "src/connectors/sheets/catalog/clear_request.mbt",
-    "sha256": "c4acf61cb7d69498532a7f70dce4931499b9109461607c928ce2444647034844",
+    "sha256": "a82a2a770ebec1299046011201dbf397be24691119071d7a5eb0216ae3f45c10",
     "exports": [],
     "operations": [
       {
@@ -5197,6 +5779,10 @@
       {
         "name": "admit_clear_range_request",
         "declaration": "admit_clear_range_request ( binding : ClearRangeBinding , request : ClearRangeRequest , ) - > Result [ Unit , RangeFailure ]"
+      },
+      {
+        "name": "clear_range_construction_metadata",
+        "declaration": "clear_range_construction_metadata ( binding : ClearRangeBinding , ) - > RangeConstructionMetadata"
       },
       {
         "name": "clear_range_recovery_entry",
@@ -5253,7 +5839,8 @@
           "clear_range_target_matches",
           "clear_recovery_value",
           "prepare_clear_range_request",
-          "recover_clear_range_requests"
+          "recover_clear_range_requests",
+          "clear_range_construction_metadata"
         ],
         "exports": [],
         "attributes": {
@@ -5353,7 +5940,7 @@
   },
   {
     "module": "src/connectors/sheets/catalog/clear.mbt",
-    "sha256": "4c2d87cbc7955dad57ce5ed36b23e35cf94d7a08d60829e24443b4238556ad0c",
+    "sha256": "01692a46dee453d00ccebc892af306e927b927e2f5418c7771fd98742ee1df92",
     "exports": [],
     "operations": [
       {
@@ -5373,6 +5960,10 @@
         "declaration": "clear_request ( range : GridRange , columns : Array [ Column ] , marker : String , limits : Limits , ) - > Result [ String , Issue ]"
       },
       {
+        "name": "clear_request_document",
+        "declaration": "clear_request_document ( range : GridRange , marker_value : String ) - > Json"
+      },
+      {
         "name": "clear_request_identity",
         "declaration": "clear_request_identity ( origin : String , path : String , body : String , target : String , ) - > Result [ String , RangeFailure ]"
       }
@@ -5389,7 +5980,8 @@
           "classify_clear",
           "clear_marker_value",
           "clear_request",
-          "clear_request_identity"
+          "clear_request_identity",
+          "clear_request_document"
         ],
         "exports": [],
         "attributes": {
@@ -5650,11 +6242,13 @@
   },
   {
     "module": "adapters/connectors/sheets/site/sheets-grid-pages.mjs",
-    "sha256": "8326e071f7ab6bc482c2cc51243daa8a3bcb83d434c0018fc46e4229c7abbbec",
+    "sha256": "116fa746a73414f7ffe1eb409c189f347a341f9722d5618dbeac61ce3c2e86e0",
     "exports": [
       "SHEETS_GRID_PAGES_OPERATION",
       "SheetsGridPagesFailure",
-      "prepareSheetsGridPages"
+      "prepareSheetsGridPages",
+      "prepareSheetsRangeTargetPages",
+      "prepareSheetsTargetRequest"
     ],
     "operations": [
       {
@@ -5702,13 +6296,6 @@
         "name": "prepareSheetsGridPages/codecLimits/codecLimits",
         "parameters": [
           "bytes"
-        ],
-        "async": false
-      },
-      {
-        "name": "prepareSheetsGridPages/coordinates/coordinates",
-        "parameters": [
-          "name"
         ],
         "async": false
       },
@@ -5763,23 +6350,97 @@
         "async": false
       },
       {
-        "name": "prepareSheetsGridPages/prepareSheetsGridPages#2",
+        "name": "prepareSheetsPageConfiguration",
+        "parameters": [
+          "spreadsheetId",
+          "columns",
+          "range",
+          "limits"
+        ],
+        "async": false
+      },
+      {
+        "name": "prepareSheetsPageConfiguration/prepareSheetsPageConfiguration",
         "parameters": [
           "name"
         ],
         "async": false
       },
       {
-        "name": "prepareSheetsGridPages/prepareSheetsGridPages#3",
+        "name": "prepareSheetsPageConfiguration/prepareSheetsPageConfiguration#2",
         "parameters": [
           "name"
         ],
         "async": false
       },
       {
-        "name": "prepareSheetsGridPages/schema/schema",
+        "name": "prepareSheetsPageConfiguration/prepareSheetsPageConfiguration#3",
+        "parameters": [
+          "name"
+        ],
+        "async": false
+      },
+      {
+        "name": "prepareSheetsPageConfiguration/schema/schema",
         "parameters": [
           "column"
+        ],
+        "async": false
+      },
+      {
+        "name": "prepareSheetsRangeTargetPages",
+        "parameters": [
+          "moon",
+          "spreadsheetId",
+          "columns",
+          "range",
+          "names",
+          "limits",
+          "target",
+          "applySynchronousProjection"
+        ],
+        "async": false
+      },
+      {
+        "name": "prepareSheetsRangeTargetPages/frame/frame",
+        "parameters": [
+          "value"
+        ],
+        "async": false
+      },
+      {
+        "name": "prepareSheetsRangeTargetPages/init:decodePage/init:decodePage",
+        "parameters": [
+          "response",
+          "value"
+        ],
+        "async": false
+      },
+      {
+        "name": "prepareSheetsRangeTargetPages/init:fetchPage/init:fetchPage",
+        "parameters": [
+          "value"
+        ],
+        "async": false
+      },
+      {
+        "name": "prepareSheetsRangeTargetPages/init:onError/init:onError",
+        "parameters": [
+          "cause"
+        ],
+        "async": false
+      },
+      {
+        "name": "prepareSheetsRangeTargetPages/prepareSheetsRangeTargetPages",
+        "parameters": [
+          "name"
+        ],
+        "async": false
+      },
+      {
+        "name": "prepareSheetsTargetRequest",
+        "parameters": [
+          "spreadsheetId"
         ],
         "async": false
       },
@@ -5807,7 +6468,6 @@
           "prepareSheetsGridPages/codec/codec",
           "prepareSheetsGridPages/codec/codec/codec",
           "prepareSheetsGridPages/codecLimits/codecLimits",
-          "prepareSheetsGridPages/coordinates/coordinates",
           "prepareSheetsGridPages/declared/declared",
           "prepareSheetsGridPages/decoded/decoded",
           "prepareSheetsGridPages/frame/frame",
@@ -5815,15 +6475,26 @@
           "prepareSheetsGridPages/init:fetchPage/init:fetchPage",
           "prepareSheetsGridPages/init:onError/init:onError",
           "prepareSheetsGridPages/prepareSheetsGridPages",
-          "prepareSheetsGridPages/prepareSheetsGridPages#2",
-          "prepareSheetsGridPages/prepareSheetsGridPages#3",
-          "prepareSheetsGridPages/schema/schema",
-          "SheetsGridPagesFailure/constructor:constructor/constructor:constructor"
+          "SheetsGridPagesFailure/constructor:constructor/constructor:constructor",
+          "prepareSheetsPageConfiguration",
+          "prepareSheetsPageConfiguration/prepareSheetsPageConfiguration",
+          "prepareSheetsPageConfiguration/prepareSheetsPageConfiguration#2",
+          "prepareSheetsPageConfiguration/prepareSheetsPageConfiguration#3",
+          "prepareSheetsPageConfiguration/schema/schema",
+          "prepareSheetsRangeTargetPages",
+          "prepareSheetsRangeTargetPages/frame/frame",
+          "prepareSheetsRangeTargetPages/init:decodePage/init:decodePage",
+          "prepareSheetsRangeTargetPages/init:fetchPage/init:fetchPage",
+          "prepareSheetsRangeTargetPages/init:onError/init:onError",
+          "prepareSheetsRangeTargetPages/prepareSheetsRangeTargetPages",
+          "prepareSheetsTargetRequest"
         ],
         "exports": [
           "SHEETS_GRID_PAGES_OPERATION",
           "SheetsGridPagesFailure",
-          "prepareSheetsGridPages"
+          "prepareSheetsGridPages",
+          "prepareSheetsRangeTargetPages",
+          "prepareSheetsTargetRequest"
         ],
         "attributes": {
           "responsibility": [
@@ -6306,6 +6977,572 @@
             {
               "path": "adapters/connectors/sheets/test/sheets-tabs-pages.actual.test.mjs",
               "anchor": "actual Sheets tabs ABI and callbacks retain all typed columns tab identity exact title and nongrid null counts"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "module": "src/connectors/sheets/host_node/append_construction.mbt",
+    "responsibilityFacet": "primary",
+    "sha256": "c495af04b8406d6ef13b542a4ac84a7a0044c45c4296574680d99c51d816629f",
+    "operations": [
+      {
+        "name": "sheets_append_construction_profile",
+        "declaration": "sheets_append_construction_profile ( schema_bytes : Int , columns : Int , input_wire_bytes : Int , request_bytes : Int , response_bytes : Int , nodes : Int , depth : Int , ) - > Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ?"
+      },
+      {
+        "name": "sheets_collection_units",
+        "declaration": "sheets_collection_units ( original : @ shape . CollectionConstructionExtent , ) - > @ execution . PreparationRepresentationUnits"
+      },
+      {
+        "name": "sheets_column_construction",
+        "declaration": "sheets_column_construction ( schema_bytes : Int , columns : Int , depth : Int , ) - > @ execution . PreparationRepresentationUnits ?"
+      },
+      {
+        "name": "sheets_constructor_capacity",
+        "declaration": "sheets_constructor_capacity ( parts : Array [ @ execution . PreparationRepresentationUnits ] , ) - > @ execution . ExecutionCapacity ?"
+      },
+      {
+        "name": "sheets_decoded_construction",
+        "declaration": "sheets_decoded_construction ( bytes : Int , nodes : Int , depth : Int , ) - > @ execution . PreparationRepresentationUnits ?"
+      },
+      {
+        "name": "sheets_grid_read_construction_capacity",
+        "declaration": "sheets_grid_read_construction_capacity ( schema_bytes : Int , columns : Int , sheet_id : Int , start_row : Int , end_row : Int , start_column : Int , end_column : Int , ) - > @ execution . ExecutionCapacity ?"
+      },
+      {
+        "name": "sheets_range_declaration_construction_capacity",
+        "declaration": "sheets_range_declaration_construction_capacity ( schema_bytes : Int , columns : Int , range_bytes : Int , connector_bytes : Int , declared_bytes : Int , ) - > @ execution . ExecutionCapacity ?"
+      },
+      {
+        "name": "sheets_range_read_construction_capacity",
+        "declaration": "sheets_range_read_construction_capacity ( schema_bytes : Int , columns : Int , sheet_id : Int , start_row : Int , end_row : Int , start_column : Int , end_column : Int , nodes : Int , depth : Int , ) - > @ execution . ExecutionCapacity ?"
+      },
+      {
+        "name": "sheets_range_reference_construction_capacity",
+        "declaration": "sheets_range_reference_construction_capacity ( origin_bytes : Int , spreadsheet_bytes : Int , ) - > @ execution . ExecutionCapacity ?"
+      },
+      {
+        "name": "sheets_target_projection_construction",
+        "declaration": "sheets_target_projection_construction ( nodes : Int , depth : Int , ) - > @ execution . PreparationRepresentationUnits ?"
+      },
+      {
+        "name": "sheets_writer_units",
+        "declaration": "sheets_writer_units ( bytes : Int , nodes : Int , depth : Int , ) - > @ execution . PreparationRepresentationUnits ?"
+      }
+    ],
+    "exports": [],
+    "package": "connectors/sheets/host_node",
+    "role": "connector-semantics",
+    "owner": "Sheets original append constructor geometry",
+    "contracts": [
+      {
+        "operations": [
+          "<module>",
+          "sheets_append_construction_profile",
+          "sheets_collection_units",
+          "sheets_column_construction",
+          "sheets_constructor_capacity",
+          "sheets_decoded_construction",
+          "sheets_target_projection_construction",
+          "sheets_writer_units"
+        ],
+        "exports": [],
+        "attributes": {
+          "responsibility": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "The Sheets append constructor uses the same closed literal document/cell"
+            }
+          ],
+          "inputsOutputs": [
+            {
+              "path": "src/connectors/sheets/host_node/append_construction.mbt",
+              "anchor": "pub fn sheets_append_construction_profile("
+            }
+          ],
+          "identity": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "The Sheets append constructor uses the same closed literal document/cell"
+            }
+          ],
+          "ownership": [
+            {
+              "path": "src/connectors/sheets/host_node/append_construction.mbt",
+              "anchor": "generic normalizing-input addition is deliberately NOT composed again."
+            }
+          ],
+          "synchronization": {
+            "notApplicable": "Synchronous immutable constructor DATA; no callbacks, scheduler, current observation or I/O."
+          },
+          "failure": [
+            {
+              "path": "src/connectors/sheets/host_node/append_construction.mbt",
+              "anchor": "A body exceeding the later HTTP quota is still funded."
+            }
+          ],
+          "cancellation": {
+            "notApplicable": "Quantity DATA grants no cancellation, cleanup or physical acknowledgement."
+          },
+          "resources": [
+            {
+              "path": "src/connectors/sheets/host_node/append_construction.mbt",
+              "anchor": "Outgoing validation instead consumes the SAME closed literal forest:"
+            }
+          ],
+          "extension": [
+            {
+              "path": "adapters/connectors/sheets/host/installed-sheets.mjs",
+              "anchor": "function bindSheetsAppendConstructionProfile("
+            }
+          ],
+          "verification": [
+            {
+              "path": "src/connectors/sheets/host_node/bridge_wbtest.mbt",
+              "anchor": "test \"Sheets original native profile composes through the actual standard Host constructor owner\""
+            }
+          ]
+        }
+      },
+      {
+        "operations": [
+          "sheets_grid_read_construction_capacity"
+        ],
+        "exports": [],
+        "attributes": {
+          "responsibility": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Managed Sheets grid Source uses the common standard page Reader"
+            }
+          ],
+          "inputsOutputs": [
+            {
+              "path": "src/connectors/sheets/host_node/append_construction.mbt",
+              "anchor": "pub fn sheets_grid_read_construction_capacity("
+            }
+          ],
+          "identity": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Managed Sheets grid Source uses the common standard page Reader"
+            }
+          ],
+          "ownership": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Managed Sheets grid Source uses the common standard page Reader"
+            }
+          ],
+          "synchronization": {
+            "notApplicable": "Synchronous immutable quantities; no callback, scheduler transition, permission or current observation."
+          },
+          "failure": [
+            {
+              "path": "src/client_local_host/installed_source_reader_capacity.mbt",
+              "anchor": "guard request is Some(request)"
+            }
+          ],
+          "cancellation": {
+            "notApplicable": "Quantity composition issues no cancellation, retirement or physical acknowledgement."
+          },
+          "resources": [
+            {
+              "path": "src/client_local_host/installed_source_reader_capacity.mbt",
+              "anchor": "@execution.add_execution_capacity(reader, request)"
+            }
+          ],
+          "extension": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Managed Sheets grid Source uses the common standard page Reader"
+            }
+          ],
+          "verification": [
+            {
+              "path": "src/connectors/sheets/host_node/source_read_construction_wbtest.mbt",
+              "anchor": "test \"Sheets standard Source request constructor composes through same Core reader without an HTTP grant\""
+            }
+          ]
+        }
+      },
+      {
+        "operations": [
+          "sheets_range_read_construction_capacity",
+          "sheets_range_reference_construction_capacity"
+        ],
+        "exports": [],
+        "attributes": {
+          "responsibility": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Initialized range and clear run their existing declaration projection inside"
+            }
+          ],
+          "inputsOutputs": [
+            {
+              "path": "src/connectors/sheets/host_node/append_construction.mbt",
+              "anchor": "pub fn sheets_range_declaration_construction_capacity("
+            }
+          ],
+          "identity": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Initialized range and clear run their existing declaration projection inside"
+            }
+          ],
+          "ownership": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Initialized range and clear run their existing declaration projection inside"
+            }
+          ],
+          "synchronization": {
+            "notApplicable": "Pure shared quantity composition, no callbacks or current observation; the same Source reserves before Native work."
+          },
+          "failure": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Initialized range and clear run their existing declaration projection inside"
+            }
+          ],
+          "cancellation": {
+            "notApplicable": "This quote/bridge issues no cleanup, cancellation or physical acknowledgement."
+          },
+          "resources": [
+            {
+              "path": "src/client_local_host/installed_source_material.mbt",
+              "anchor": "pub fn compose_installed_source_construction_capacity("
+            },
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Initialized range and clear run their existing declaration projection inside"
+            }
+          ],
+          "extension": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Initialized range and clear run their existing declaration projection inside"
+            }
+          ],
+          "verification": [
+            {
+              "path": "src/client_local_host/installed_source_provider_capacity_wbtest.mbt",
+              "anchor": "test \"same Source native constructor quantities remain retained through original material retirement\""
+            },
+            {
+              "path": "src/connectors/sheets/host_node/declaration_construction_wbtest.mbt",
+              "anchor": "test \"range and clear native constructor quote composes onto original Source without issuing a declaration\""
+            }
+          ]
+        }
+      },
+      {
+        "operations": [
+          "sheets_range_declaration_construction_capacity"
+        ],
+        "exports": [],
+        "attributes": {
+          "responsibility": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Initialized range and clear run their existing declaration projection inside"
+            }
+          ],
+          "inputsOutputs": [
+            {
+              "path": "src/connectors/sheets/host_node/append_construction.mbt",
+              "anchor": "pub fn sheets_range_declaration_construction_capacity("
+            }
+          ],
+          "identity": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Initialized range and clear run their existing declaration projection inside"
+            }
+          ],
+          "ownership": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Initialized range and clear run their existing declaration projection inside"
+            }
+          ],
+          "synchronization": {
+            "notApplicable": "Pure shared quantity composition, no callbacks or current observation; the same Source reserves before Native work."
+          },
+          "failure": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Initialized range and clear run their existing declaration projection inside"
+            }
+          ],
+          "cancellation": {
+            "notApplicable": "This quote/bridge issues no cleanup, cancellation or physical acknowledgement."
+          },
+          "resources": [
+            {
+              "path": "src/client_local_host/installed_source_material.mbt",
+              "anchor": "pub fn compose_installed_source_construction_capacity("
+            },
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Initialized range and clear run their existing declaration projection inside"
+            }
+          ],
+          "extension": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Initialized range and clear run their existing declaration projection inside"
+            }
+          ],
+          "verification": [
+            {
+              "path": "src/client_local_host/installed_source_provider_capacity_wbtest.mbt",
+              "anchor": "test \"same Source native constructor quantities remain retained through original material retirement\""
+            },
+            {
+              "path": "src/connectors/sheets/host_node/declaration_construction_wbtest.mbt",
+              "anchor": "test \"range and clear native constructor quote composes onto original Source without issuing a declaration\""
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "module": "src/connectors/sheets/catalog/declaration_construction.mbt",
+    "responsibilityFacet": "primary",
+    "sha256": "8e833ae84e2d650805884f2f29a934f38329c544cd4223331075a31d47e8fd19",
+    "operations": [
+      {
+        "name": "range_declaration_construction_bounds",
+        "declaration": "range_declaration_construction_bounds ( schema_bytes : Int , columns : Int , connector_bytes : Int , ) - > RangeDeclarationConstructionBounds ?"
+      },
+      {
+        "name": "range_declaration_template",
+        "declaration": "range_declaration_template ( clear : Bool , one_field : Bool ) - > Json"
+      },
+      {
+        "name": "range_reference_construction_bounds",
+        "declaration": "range_reference_construction_bounds ( origin_bytes : Int , spreadsheet_bytes : Int , ) - > RangeReferenceConstructionBounds ?"
+      },
+      {
+        "name": "range_template_depth",
+        "declaration": "range_template_depth ( value : Json ) - > Int"
+      },
+      {
+        "name": "range_template_nodes",
+        "declaration": "range_template_nodes ( value : Json ) - > Int"
+      },
+      {
+        "name": "range_write_construction_bounds",
+        "declaration": "range_write_construction_bounds ( metadata : RangeConstructionMetadata , input_bytes : Int , clear : Bool , ) - > RangeWriteConstructionBounds ?"
+      }
+    ],
+    "exports": [],
+    "package": "connectors/sheets/catalog",
+    "role": "connector-semantics",
+    "owner": "Sheets original Command constructor geometry",
+    "contracts": [
+      {
+        "operations": [
+          "<module>",
+          "range_declaration_construction_bounds",
+          "range_declaration_template",
+          "range_template_depth",
+          "range_template_nodes",
+          "range_reference_construction_bounds",
+          "range_write_construction_bounds"
+        ],
+        "exports": [],
+        "attributes": {
+          "responsibility": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Initialized range and clear run their existing declaration projection inside"
+            }
+          ],
+          "inputsOutputs": [
+            {
+              "path": "src/connectors/sheets/catalog/declaration_construction.mbt",
+              "anchor": "pub fn range_declaration_construction_bounds("
+            }
+          ],
+          "identity": [
+            {
+              "path": "src/connectors/sheets/catalog/range_declaration.mbt",
+              "anchor": "fn range_command_document("
+            }
+          ],
+          "ownership": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Initialized range and clear run their existing declaration projection inside"
+            }
+          ],
+          "synchronization": {
+            "notApplicable": "Pure fixed template geometry; no I/O, callbacks, Run/Account/current or implicit admission."
+          },
+          "failure": [
+            {
+              "path": "src/connectors/sheets/catalog/declaration_construction.mbt",
+              "anchor": "if schema_bytes < 1 || columns < 1 || columns > 64 || connector_bytes < 1 {"
+            }
+          ],
+          "cancellation": {
+            "notApplicable": "Quantity DATA issues no cancellation, stop, release or physical acknowledgement."
+          },
+          "resources": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Initialized range and clear run their existing declaration projection inside"
+            },
+            {
+              "path": "src/connectors/sheets/host_node/append_construction.mbt",
+              "anchor": "pub fn sheets_range_declaration_construction_capacity("
+            }
+          ],
+          "extension": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Initialized range and clear run their existing declaration projection inside"
+            }
+          ],
+          "verification": [
+            {
+              "path": "src/connectors/sheets/catalog/declaration_construction_wbtest.mbt",
+              "anchor": "test \"same range and clear builders bound original variable names and complete exported wire\""
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "module": "src/connectors/sheets/host_node/range_construction.mbt",
+    "responsibilityFacet": "primary",
+    "sha256": "0c417f0b84e00e145f5dbbfeb8fae1ab313fd120985d67718742de0f40b587af",
+    "operations": [
+      {
+        "name": "sheets_clear_capture_construction_profile",
+        "declaration": "sheets_clear_capture_construction_profile ( binding : @ catalog . ClearRangeBinding , capture_bytes : Int , capture_nodes : Int , capture_depth : Int , input_bytes : Int , input_nodes : Int , input_depth : Int , ) - > Array [ @ execution . ExecutionCapacity ] ?"
+      },
+      {
+        "name": "sheets_clear_construction_profile",
+        "declaration": "sheets_clear_construction_profile ( binding : @ catalog . ClearRangeBinding , input_bytes : Int , input_nodes : Int , input_depth : Int , response_bytes : Int , response_nodes : Int , response_depth : Int , ) - > Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ?"
+      },
+      {
+        "name": "sheets_range_capture_construction_profile",
+        "declaration": "sheets_range_capture_construction_profile ( binding : @ catalog . RangeBinding , capture_bytes : Int , capture_nodes : Int , capture_depth : Int , input_bytes : Int , input_nodes : Int , input_depth : Int , ) - > Array [ @ execution . ExecutionCapacity ] ?"
+      },
+      {
+        "name": "sheets_range_capture_profile",
+        "declaration": "sheets_range_capture_profile ( metadata : @ catalog . RangeConstructionMetadata , capture_bytes : Int , capture_nodes : Int , capture_depth : Int , input_bytes : Int , input_nodes : Int , input_depth : Int , clear : Bool , ) - > Array [ @ execution . ExecutionCapacity ] ?"
+      },
+      {
+        "name": "sheets_range_construction_profile",
+        "declaration": "sheets_range_construction_profile ( binding : @ catalog . RangeBinding , input_bytes : Int , input_nodes : Int , input_depth : Int , response_bytes : Int , response_nodes : Int , response_depth : Int , ) - > Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ?"
+      },
+      {
+        "name": "sheets_range_installation_construction_capacity",
+        "declaration": "sheets_range_installation_construction_capacity ( configuration_bytes : Int , columns : Int , origin_bytes : Int , spreadsheet_bytes : Int , ) - > @ execution . ExecutionCapacity ?"
+      },
+      {
+        "name": "sheets_range_json_inventory",
+        "declaration": "sheets_range_json_inventory ( bytes : Int , nodes : Int , ) - > @ execution . PreparationRepresentationUnits ?"
+      },
+      {
+        "name": "sheets_range_request_capacity",
+        "declaration": "sheets_range_request_capacity ( metadata : @ catalog . RangeConstructionMetadata , input_bytes : Int , input_nodes : Int , input_depth : Int , clear : Bool , ) - > @ execution . ExecutionCapacity ?"
+      },
+      {
+        "name": "sheets_range_response_capacity",
+        "declaration": "sheets_range_response_capacity ( bytes : Int , nodes : Int , depth : Int , ) - > @ execution . ExecutionCapacity ?"
+      }
+    ],
+    "exports": [],
+    "package": "connectors/sheets/host_node",
+    "role": "connector-semantics",
+    "owner": "Sheets original range and clear driver constructor profiles",
+    "contracts": [
+      {
+        "operations": [
+          "<module>",
+          "sheets_clear_capture_construction_profile",
+          "sheets_clear_construction_profile",
+          "sheets_range_capture_construction_profile",
+          "sheets_range_capture_profile",
+          "sheets_range_construction_profile",
+          "sheets_range_installation_construction_capacity",
+          "sheets_range_json_inventory",
+          "sheets_range_request_capacity",
+          "sheets_range_response_capacity"
+        ],
+        "exports": [],
+        "attributes": {
+          "responsibility": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Initialized range and clear also construct their original retained binding"
+            }
+          ],
+          "inputsOutputs": [
+            {
+              "path": "src/connectors/sheets/host_node/range_construction.mbt",
+              "anchor": "pub fn sheets_range_construction_profile("
+            }
+          ],
+          "identity": [
+            {
+              "path": "src/connectors/sheets/catalog/range_request.mbt",
+              "anchor": "pub fn range_construction_metadata("
+            },
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Initialized range and clear also construct their original retained binding"
+            }
+          ],
+          "ownership": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Initialized range and clear also construct their original retained binding"
+            }
+          ],
+          "synchronization": {
+            "notApplicable": "Synchronous typed constructor geometry over the SAME immutable binding; no callbacks, I/O or current observation."
+          },
+          "failure": [
+            {
+              "path": "src/connectors/sheets/host_node/range_construction.mbt",
+              "anchor": "if input_bytes < 1"
+            }
+          ],
+          "cancellation": {
+            "notApplicable": "Quantity DATA issues no cancellation, release, retry, stop or physical acknowledgement."
+          },
+          "resources": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Initialized range and clear also construct their original retained binding"
+            },
+            {
+              "path": "src/client_local_host/installed_standard_create_recipe.mbt",
+              "anchor": "pub fn installed_standard_driver_recipe_capacities("
+            }
+          ],
+          "extension": [
+            {
+              "path": "adapters/connectors/sheets/host/installed-sheets.mjs",
+              "anchor": "function prepareInitializedSheetsEffectDriver("
+            }
+          ],
+          "verification": [
+            {
+              "path": "src/connectors/sheets/host_node/declaration_construction_wbtest.mbt",
+              "anchor": "test \"range and clear driver profiles retain original binding constructor and independent capture peaks\""
             }
           ]
         }

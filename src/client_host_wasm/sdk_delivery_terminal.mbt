@@ -59,7 +59,6 @@ fn sdk_terminal_observe(
 ///|
 /// Observe actual same-Store terminal evidence only. This call does not write,
 /// retry, read payload, issue a candidate or change original Run state.
-#export_name("actql_publication_commit_export_observe_sdk_terminal")
 pub fn observe_publication_sdk_terminal(
   nonce : Int64,
   first_handle : Int,
@@ -95,7 +94,6 @@ pub fn observe_publication_sdk_terminal(
 /// Propose the original three terminal CAS rows before physical COMMIT. Cached
 /// revalidation after those writes observes full evidence inside that actual
 /// transaction; it remains precommit validation, never a durable ACK.
-#export_name("actql_publication_commit_export_produce_sdk_terminal_storage")
 pub fn produce_publication_sdk_terminal_storage(
   nonce : Int64,
   handle : Int,

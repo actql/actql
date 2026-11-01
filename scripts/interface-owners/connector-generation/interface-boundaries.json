@@ -5,7 +5,7 @@
     {
       "module": "adapters/connectors-builtin/installations.generated.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "7f32aacb911dbc94930b1b4ee333dd4c8a4a97e6a1d5131d7794da3c3c793452",
+      "sha256": "afee1f467cd26838b95d5c7eea6ef6972934a8d5575820f1afaf422410171486",
       "exports": [
         "installedConnectors"
       ],
@@ -369,7 +369,7 @@
               },
               {
                 "path": "adapters/connectors-builtin/installations.generated.mjs",
-                "anchor": "path: \"adapters/connectors/slack/host/message-source-reader.mjs\""
+                "anchor": "path: \"adapters/connectors/slack/site/slack-source-read.mjs\""
               }
             ],
             "identity": [
@@ -461,11 +461,11 @@
               },
               {
                 "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
-                "anchor": "function originalReaderFactory("
+                "anchor": "providerReader=services('createSourceReader'"
               },
               {
                 "path": "docs/design/notion-user-reader.md",
-                "anchor": "The wrapper retains original options, capacity/preparer receiver, child,"
+                "anchor": "Failed construction retains the same created reader and Site through"
               },
               {
                 "path": "docs/design/slack-user-pages.md",
@@ -506,16 +506,16 @@
                 "anchor": "close() { closed = true; adapter.close(); }"
               },
               {
-                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
-                "anchor": "const original=await options.authorizationFor(0);"
+                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "anchor": "const initialAuthorization = await Reflect.apply(authorizationFor, selected, [0]);"
               },
               {
-                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
-                "anchor": "current:async operation=>"
+                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "anchor": "const verify = async () => {"
               },
               {
-                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
-                "anchor": "lastResult=await child.read();"
+                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "anchor": "else if (standard) result = await readStandard(initialAuthorization, acquisition.credential);"
               },
               {
                 "path": "docs/design/slack-user-pages.md",
@@ -557,11 +557,11 @@
               },
               {
                 "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
-                "anchor": "fail('NotionReaderCapacityUnavailable')"
+                "anchor": "fail('NotionSourceInitializationUnavailable')"
               },
               {
-                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
-                "anchor": "originalFailure=cause;throw cause;"
+                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "anchor": "phase = 'failed'; primary = cause;"
               },
               {
                 "path": "adapters/connectors/notion/test/installed-notion-source.test.mjs",
@@ -602,12 +602,12 @@
                 "anchor": "False means closing, not physical cleanup ACK"
               },
               {
-                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "path": "adapters/host-node/installed-credential-source-reader.mjs",
                 "anchor": "signal.throwIfAborted();"
               },
               {
-                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
-                "anchor": "stop.abort(reason);child?.requestStop(reason);closeTransport();"
+                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "anchor": "stopped = true; stop.abort(reason);"
               },
               {
                 "path": "docs/design/slack-user-pages.md",
@@ -657,11 +657,11 @@
               },
               {
                 "path": "docs/design/notion-user-reader.md",
-                "anchor": "Neither public configuration numbers nor page/transfer ceilings issue"
+                "anchor": "page limits are bounded DATA, not a capacity grant or a new Resource owner."
               },
               {
                 "path": "docs/design/notion-user-reader.md",
-                "anchor": "Those overlap the complete user reader inventory above and the original RowRun"
+                "anchor": "Host response/callback/error inventories. Shared objects and cloned arrays still"
               },
               {
                 "path": "docs/design/slack-user-pages.md",
@@ -703,15 +703,15 @@
               },
               {
                 "path": "docs/design/notion-user-reader.md",
-                "anchor": "There is no ordinary `readPages` fallback, second parser,"
+                "anchor": "Missing original initialization or services refuses without a legacy fallback."
               },
               {
                 "path": "docs/design/notion-user-reader.md",
                 "anchor": "This factory does not narrow the full public Notion target to users."
               },
               {
-                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
-                "anchor": "cleanupConfirmed:false"
+                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "anchor": "cleanupConfirmed:retired"
               },
               {
                 "path": "docs/design/slack-user-pages.md",
@@ -737,7 +737,7 @@
               },
               {
                 "path": "adapters/connectors/notion/test/installed-notion-source.test.mjs",
-                "anchor": "installed Notion actual SQL and AQL retain original multi-page users and the same pending capture"
+                "anchor": "installed Notion actual SQL and AQL retain original multi-page users and close the same Host reader"
               },
               {
                 "path": "adapters/connectors/notion/test/installed-notion-source.test.mjs",

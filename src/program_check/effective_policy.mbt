@@ -145,11 +145,34 @@ pub fn emit_effective_policy(
   value : EffectivePolicy,
   writer : @encode.Writer,
 ) -> Unit raise @encode.EncodeFailure {
+  emit_effective_policy_parts(
+    value.classification,
+    value.unknown_provenance,
+    value.sources.length(),
+    index => value.sources[index],
+    value.responses.length(),
+    index => value.responses[index],
+    writer,
+  )
+}
+
+///|
+// The original emission and its pre-construction geometry share the same
+// spelling/order. Count-only callers issue no policy, identity or provenance.
+fn emit_effective_policy_parts(
+  classification : @environment.DataClassification,
+  unknown : Bool,
+  sources : Int,
+  source_at : (Int) -> String,
+  responses : Int,
+  response_at : (Int) -> String,
+  writer : @encode.Writer,
+) -> Unit raise @encode.EncodeFailure {
   @encode.begin_object(writer)
   @encode.key(writer, "classification")
   @encode.string_value(
     writer,
-    match value.classification {
+    match classification {
       Public => "public"
       Internal => "internal"
       Confidential => "confidential"
@@ -159,18 +182,18 @@ pub fn emit_effective_policy(
   )
   @encode.key(writer, "source_data_policy_cids")
   @encode.begin_array(writer)
-  for cid in value.sources {
-    @encode.string_value(writer, cid)
+  for index in 0..<sources {
+    @encode.string_value(writer, source_at(index))
   }
   @encode.end_array(writer)
   @encode.key(writer, "source_response_policy_cids")
   @encode.begin_array(writer)
-  for cid in value.responses {
-    @encode.string_value(writer, cid)
+  for index in 0..<responses {
+    @encode.string_value(writer, response_at(index))
   }
   @encode.end_array(writer)
   @encode.key(writer, "unknown_provenance")
-  @encode.bool_value(writer, value.unknown_provenance)
+  @encode.bool_value(writer, unknown)
   @encode.key(writer, "version")
   @encode.string_value(writer, "actql-effective-data-policy/0.1")
   @encode.end_object(writer)

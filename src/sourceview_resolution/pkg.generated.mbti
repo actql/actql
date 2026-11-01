@@ -6,6 +6,7 @@ import {
   "actql/actql/capacity_program_step",
   "actql/actql/check_environment",
   "actql/actql/decode_core",
+  "actql/actql/decode_shape",
   "actql/actql/encode_core",
   "actql/actql/parameter_binding",
   "actql/actql/pipeline_typing",
@@ -79,6 +80,8 @@ pub fn derive_query_acquisition(PipelineRequests, Int, Int) -> Result[QueryAcqui
 pub fn derive_query_acquisition_shape(PipelineRequests, Int, Int) -> Result[QueryAcquisition, QueryAcquisitionIssue]
 
 pub fn derive_query_acquisition_with_query_time(PipelineRequests, Int, Int, @run_publication.QueryEvaluationTime) -> Result[QueryAcquisition, QueryAcquisitionIssue]
+
+pub fn derive_source_acquisition(PipelineRequests, Int, Int) -> Result[SourceAcquisition, SourceAcquisitionIssue]
 
 pub fn direct_request_bindings(ParameterizedRequest, Int, Int) -> Result[RequestBindings, RequestBindingsIssue]
 
@@ -192,6 +195,12 @@ pub fn mode_source(DirectMode) -> @decode_core.Cursor
 
 pub fn mode_work(DirectMode) -> Int
 
+pub fn observe_prepare_pipeline_inputs(Resolved, Int) -> (Result[PipelineInputs, PipelineIssue], Int)
+
+pub fn observe_resolution_construction_geometry(@sourceview_input.Inputs, @check_environment.SourceRequestContracts, Limits) -> ResolutionConstructionGeometry
+
+pub fn observe_resolve(@sourceview_input.Inputs, @check_environment.SourceRequestContracts, Limits) -> (Result[Resolved, Issue], Int)
+
 pub fn parameterized_keyed_request(ParameterizedKeyedRequest) -> KeyedRequest
 
 pub fn parameterized_keyed_request_field_at(ParameterizedKeyedRequest, Int) -> ParameterizedRequestField?
@@ -231,6 +240,14 @@ pub fn pipeline_input_count(PipelineInputs, Int) -> Int?
 pub fn pipeline_input_source(PipelineInputs, Int, Int) -> ResolvedInput?
 
 pub fn pipeline_inputs_work(PipelineInputs) -> Int
+
+pub fn pipeline_preparation_construction(Resolved, Int) -> PipelinePreparationConstruction?
+
+pub fn pipeline_preparation_observation_control_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn pipeline_preparation_quotation_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn pipeline_preparation_work_bound(Resolved, Int) -> Int
 
 pub fn pipeline_request_at(PipelineRequests, Int) -> AcquisitionRequest?
 
@@ -328,11 +345,27 @@ pub fn request_parameter_work(RequestParameters) -> Int
 
 pub fn request_usage(DirectRequest) -> (Int, Int, Int, Int)
 
+pub fn resolution_construction_geometry_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn resolution_construction_inspection_bound(@sourceview_input.Inputs, Limits) -> Int64
+
+pub fn resolution_construction_inspection_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn resolution_construction_inventory(ResolutionConstructionGeometry, Limits) -> ResolutionConstructionInventory?
+
+pub fn resolution_construction_quotation_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn resolution_observation_control_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn resolution_work_bound(@sourceview_input.Inputs, Int) -> Int
+
 pub fn resolve(@sourceview_input.Inputs, @check_environment.SourceRequestContracts, Limits) -> Result[Resolved, Issue]
 
 pub fn select_direct_mode(ResolvedInput, Int) -> Result[DirectMode, ModeIssue]
 
 pub fn select_keyed_mode(ResolvedInput, Int) -> Result[KeyedMode, ModeIssue]
+
+pub fn select_source_acquisition_route(PipelineRequests, Int, Int) -> Result[SourceAcquisitionRoute, SourceAcquisitionRouteIssue]
 
 pub fn selected_cid(ResolvedInput) -> String
 
@@ -345,6 +378,22 @@ pub fn selected_reference_at(ResolvedInput, Int) -> @check_environment.CatalogRe
 pub fn selected_reference_count(ResolvedInput) -> Int
 
 pub fn selection(ResolvedInput) -> Selection
+
+pub fn source_acquisition_input(SourceAcquisition) -> @pipeline_typing.Target
+
+pub fn source_acquisition_mode(SourceAcquisition) -> DirectMode
+
+pub fn source_acquisition_owner(SourceAcquisition) -> PipelineRequests
+
+pub fn source_acquisition_pipeline(SourceAcquisition) -> @pipeline_typing.CheckedPipeline
+
+pub fn source_acquisition_request(SourceAcquisition) -> ParameterizedRequest
+
+pub fn source_acquisition_route(SourceAcquisition, Int) -> Result[SourceAcquisitionRoute, QueryAcquisitionIssue]
+
+pub fn source_acquisition_source_index(SourceAcquisition) -> Int
+
+pub fn source_acquisition_work(SourceAcquisition) -> Int
 
 pub fn start_keyed_row_request(ParameterizedKeyedRequest, Array[@value_admission.Value], RequestLimits) -> Result[KeyedRowRequestCursor, KeyedRowRequestIssue]
 
@@ -568,6 +617,11 @@ pub(all) enum PipelineIssue {
   ForeignInput(String)
 } derive(Eq, @debug.Debug)
 
+pub(all) struct PipelinePreparationConstruction {
+  returned : @decode_shape.CollectionConstructionExtent
+  temporary : @decode_shape.CollectionConstructionExtent
+} derive(Eq, @debug.Debug)
+
 type PipelineRequests
 
 type PipelineUses
@@ -670,6 +724,30 @@ pub(all) enum RequestWireIssue {
   Encoding(@encode_core.EncodeFailure)
 } derive(@debug.Debug)
 
+pub(all) struct ResolutionConstructionGeometry {
+  inputs : Int
+  views : Int
+  inherited_work : Int
+  candidate_inputs : Int
+  candidate_views : Int
+  max_view_fields : Int
+  max_declaration_fields : Int
+  identity_utf16 : Int64
+  max_identity_utf16 : Int
+  max_connector_utf16 : Int
+  max_view_utf16 : Int
+  reference_utf16 : Int64
+  max_reference_utf16 : Int
+  inspection_work : Int64
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ResolutionConstructionInventory {
+  returned : @decode_shape.CollectionConstructionExtent
+  temporary : @decode_shape.CollectionConstructionExtent
+  returned_utf16_units : Int64
+  temporary_utf16_units : Int64
+} derive(Eq, @debug.Debug)
+
 type Resolved
 
 type ResolvedInput
@@ -678,6 +756,26 @@ pub(all) enum Selection {
   Explicit
   SoleView
 } derive(Eq, @debug.Debug)
+
+type SourceAcquisition
+
+pub(all) enum SourceAcquisitionIssue {
+  InvalidLimits
+  WorkLimit
+  UnsupportedMode
+  UnboundRequest
+  MissingInput
+} derive(Eq, @debug.Debug)
+
+pub(all) enum SourceAcquisitionRoute {
+  QueryRoute(QueryAcquisition)
+  WholeInputRoute(SourceAcquisition)
+}
+
+pub(all) enum SourceAcquisitionRouteIssue {
+  QueryShape(QueryAcquisitionIssue)
+  SourceInput(SourceAcquisitionIssue)
+}
 
 pub(all) enum SourceUse {
   StepInput(Int, @pipeline_typing.InputRole)

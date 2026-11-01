@@ -12,12 +12,30 @@ struct ClientModelReadOrigin {
 }
 
 ///|
-// Issued before any child resources: this is the original Run/Host binding,
-// not a retrospective assignment of a used Ledger to a supplied Run CID.
+// The census is issued before any child resources. Its one original Run/Host
+// binding may follow preparation; it never reconstructs a used Ledger census.
 struct ClientModelReadScope {
   origin : ClientModelReadOrigin
   ledger : @resources.Ledger
   identity : @resources.OriginalLedgerIdentity
+}
+
+///|
+// This Owner's two actual records above. All eight fields borrow originals;
+// CID getters return retained strings and create no copied UTF16 backing.
+let client_model_read_scope_construction_units : @execution.PreparationRepresentationUnits = {
+  record_headers: 2L,
+  reference_slots: 8L,
+  scalar_words: 0L,
+  owned_utf16_units: 0L,
+  owned_wire_bytes: 0L,
+}
+
+///|
+/// Immutable construction DATA, not a byte allowance or Scope/permission.
+/// The original caller must fund this and its census growth before binding.
+pub fn client_model_read_scope_construction_inventory() -> @execution.PreparationRepresentationUnits {
+  client_model_read_scope_construction_units
 }
 
 ///|
@@ -55,6 +73,36 @@ pub fn begin_client_model_read_scope(
     check_client_compiled_run_definition(compiled, definition) is Err(_) {
     return Err(ForeignRun)
   }
+  let identity = match
+    @resources.begin_original_ledger_inventory(
+      ledger, bootstrap, max_reservations, max_holdings, max_delegations,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Resource(issue))
+  }
+  bind_client_model_read_scope(compiled, definition, plan, ledger, identity)
+}
+
+///|
+// The initial preparation owner has already registered every original child
+// on this identity. Bind the actual compiled Model once, without dropping
+// preparation history or demanding a second pristine Ledger. Equal bounds,
+// a foreign Ledger/Run or a second scope cannot replace this association.
+pub fn bind_client_model_read_scope(
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : ClientInferPlanGraph,
+  ledger : @resources.Ledger,
+  identity : @resources.OriginalLedgerIdentity,
+) -> Result[ClientModelReadScope, ClientModelReadPreparationIssue] {
+  if !client_compiled_run_has_infer(compiled, plan) ||
+    check_client_compiled_run_definition(compiled, definition) is Err(_) {
+    return Err(ForeignRun)
+  }
+  match @resources.claim_original_ledger_run_binding(identity, ledger) {
+    Err(issue) => return Err(Resource(issue))
+    Ok(_) => ()
+  }
   let origin : ClientModelReadOrigin = {
     compiled,
     definition_cid: @publication.publication_contract_identity(definition),
@@ -65,13 +113,6 @@ pub fn begin_client_model_read_scope(
     execution_context_cid: @publication.run_publication_execution_context(
       compiled.admission,
     ),
-  }
-  let identity = match
-    @resources.begin_original_ledger_inventory(
-      ledger, bootstrap, max_reservations, max_holdings, max_delegations,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(Resource(issue))
   }
   Ok({ origin, ledger, identity, })
 }
@@ -159,6 +200,21 @@ pub fn client_model_read_scope_live(
 ) -> Bool {
   client_model_origin_matches(scope.origin, compiled, definition, plan) &&
   @resources.original_ledger_inventory_live(scope.identity)
+}
+
+///|
+/// Same original preparation census only. This pure identity projection is
+/// used before the existing Run adoption; a live Scope on a foreign Ledger
+/// cannot replace it even when its compiled Run and Plan are the same.
+/// It performs no current callback, admission, descriptor issue or Model send.
+pub fn client_model_read_scope_original_inventory(
+  scope : ClientModelReadScope,
+  ledger : @resources.Ledger,
+  identity : @resources.OriginalLedgerIdentity,
+) -> Bool {
+  physical_equal(scope.ledger, ledger) &&
+  physical_equal(scope.identity, identity) &&
+  @resources.original_ledger_inventory_live(identity)
 }
 
 ///|

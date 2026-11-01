@@ -93,7 +93,7 @@ fn check_read_mode_body(
   let acquisition = @decode.open_object(c).unwrap()
   let default_cursor = @decode.required(acquisition, "default_mode").unwrap()
   let default_kind = mode_kind(@decode.text(default_cursor).unwrap())
-  let list = @decode.required(acquisition, "modes").unwrap()
+  let list = @decode.required(acquisition, source_modes_list_key).unwrap()
   let count = @decode.array_length(list).unwrap()
   let modes = []
   let seen : Map[String, Bool] = Map([])
@@ -139,7 +139,28 @@ pub fn check_source_read_modes(
   if max_work < 0 {
     return Err({ kind: InvalidLimits, source: None, })
   }
-  let budget = { remaining: max_work, }
+  read_source_modes(shapes, max_work, { remaining: max_work, })
+}
+
+///|
+pub fn observe_source_read_modes(
+  shapes : SourceViewShapes,
+  max_work : Int,
+) -> (Result[SourceReadModes, SourceReadModeIssue], Int) {
+  if max_work < 0 {
+    return (Err({ kind: InvalidLimits, source: None, }), 0)
+  }
+  let budget = ReadModeBudget::{ remaining: max_work, }
+  let result = read_source_modes(shapes, max_work, budget)
+  (result, max_work - budget.remaining)
+}
+
+///|
+fn read_source_modes(
+  shapes : SourceViewShapes,
+  max_work : Int,
+  budget : ReadModeBudget,
+) -> Result[SourceReadModes, SourceReadModeIssue] {
   let views = []
   let by_view : Map[Int, SourceViewModes] = Map([])
   try {
@@ -148,7 +169,7 @@ pub fn check_source_read_modes(
       mode_charge(budget, @decode.object_length(root).unwrap() + 1, root)
       let obj = @decode.open_object(root).unwrap()
       let (modes, default_mode) = check_read_mode_body(
-        @decode.required(obj, "acquisition").unwrap(),
+        @decode.required(obj, source_modes_acquisition_key).unwrap(),
         budget,
       )
       let view = { item, modes, default_mode, }

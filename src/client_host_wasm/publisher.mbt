@@ -5,7 +5,12 @@ fn physical_publisher_current(ticket : Int) -> Int = "actql_host" "publisher_cur
 fn physical_publisher_begin(ticket : Int, length : Int) -> Int = "actql_host" "publisher_begin"
 
 ///|
-fn physical_publisher_byte(ticket : Int, index : Int, byte : Int) -> Int = "actql_host" "publisher_byte"
+fn physical_publisher_copy(
+  ticket : Int,
+  index : Int,
+  offset : Int,
+  length : Int,
+) -> Int = "actql_host" "publisher_copy"
 
 ///|
 fn physical_publisher_finish(ticket : Int) -> Int = "actql_host" "publisher_finish"
@@ -95,12 +100,20 @@ fn publisher_authorize(
     child.unknown = true
     return false
   }
-  for index in 0..<bytes.length() {
-    if physical_publisher_byte(child.physical, index, bytes[index].to_int()) !=
-      0 {
+  let mut index = 0
+  while index < bytes.length() {
+    let length = (bytes.length() - index).min(16384)
+    if physical_publisher_copy(
+        child.physical,
+        index,
+        journal_bytes_offset(bytes) + index,
+        length,
+      ) !=
+      length {
       child.unknown = true
       return false
     }
+    index += length
   }
   let code = physical_publisher_finish(child.physical)
   if code != 0 && code != -1 {
@@ -110,7 +123,6 @@ fn publisher_authorize(
 }
 
 ///|
-#export_name("actql_publisher_reserve")
 pub fn reserve_publisher(
   nonce : Int64,
   parent : Int,
@@ -169,7 +181,6 @@ pub fn reserve_publisher(
 }
 
 ///|
-#export_name("actql_publisher_install")
 pub fn install_publisher(
   nonce : Int64,
   handle : Int,
@@ -243,7 +254,6 @@ pub fn install_publisher(
 ///|
 /// Authorization only. Even return_committed permission is not a durable
 /// Store acknowledgement, public Run admission, or execution/retry permission.
-#export_name("actql_publisher_authorize")
 pub fn authorize_publisher(
   nonce : Int64,
   handle : Int,
@@ -314,7 +324,6 @@ pub fn authorize_publisher(
 }
 
 ///|
-#export_name("actql_publisher_close")
 pub fn close_publisher(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.publishers.get(handle) is Some(child) else {

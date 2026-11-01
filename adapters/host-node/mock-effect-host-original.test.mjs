@@ -4,8 +4,8 @@ import test from 'node:test';
 import {parse} from 'acorn';
 
 // Execute the actual private Host functions with explicit Common/Journal and
-// physical-owner ports. This covers original binding/order, not a generated
-// current Common, ordinary SDK/Host or file UPDATE acceptance.
+// shared-Plan and physical-owner ports. This covers original binding/order,
+// not generated Common, normal funding, ordinary SDK/Host or file UPDATE acceptance.
 const source = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
 const tree = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
 const host = tree.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'openInstalledHost');
@@ -19,10 +19,10 @@ function visit(node) {
   }
 }
 visit(host.body);
-const selectedNames = ['assertMockEffectRunOriginal', 'retainMockEffectRunOriginal'];
+const selectedNames = ['assertMockEffectRunOriginal', 'retainMockEffectRunOriginal', 'selectedInstalledEffect'];
 const functions = statements.filter(node => node.type === 'FunctionDeclaration' &&
   selectedNames.includes(node.id.name)).map(node => source.slice(node.start, node.end)).join('\n');
-assert.equal(statements.filter(node => node.type === 'FunctionDeclaration' && selectedNames.includes(node.id.name)).length, 2);
+assert.equal(statements.filter(node => node.type === 'FunctionDeclaration' && selectedNames.includes(node.id.name)).length, 3);
 const variable = name => {
   const matches = statements.filter(node => node.type === 'VariableDeclarator' && node.id.name === name);
   assert.equal(matches.length, 1, name);
@@ -30,14 +30,17 @@ const variable = name => {
 };
 const resources = variable('mockEffectResources');
 const effectRun = variable('effectRun').init.alternate.arguments[0];
-const preparationNode = effectRun.properties.find(node => node.key.name === 'prepareDefinition').value.alternate;
+const preparationNode = effectRun.properties.find(node => node.key.name === 'prepareDefinition').value;
+assert.equal(preparationNode.type, 'ArrowFunctionExpression');
 
-function fixture() {
+function fixture({composed = false} = {}) {
   const calls = [], prepared = {}, compilation = {}, allowed = {}, definition = {};
   const identity = {request: 'original'}, compiled = {}, runDefinition = {identity: 'actual-run'};
-  const facts = {prepared, compilation, allowed, definition, identity, modelCompiled: compiled, runDefinition};
-  const mockEffectRuns = new Map(), mockEffectOriginals = new WeakMap(), earlyMockEffectPlans = new WeakMap();
-  const inferSelections = new WeakMap();
+  const updateTargetSelections = Object.freeze([]);
+  const facts = {prepared, compilation, allowed, definition, identity,
+    modelCompiled: compiled, runDefinition, updateTargetSelections};
+  const mockEffectRuns = new Map(), mockEffectOriginals = new WeakMap(), effectSelections = new WeakMap();
+  const registry = {}, values = {}, fragment = {}, ordered = {};
   let current = true, ownedRecovery = true, physicalFailure, savedAuthorization = 'saved-authorization';
   const reissuedAllowed = {}, reissuedDefinition = {};
   const refusal = new Error('OriginalHostNotCurrent');
@@ -65,6 +68,28 @@ function fixture() {
   }, clientProgramAllowedEffectRunAuthorization(value) {
     assert(value === allowed || value === reissuedAllowed); return 'saved-authorization';
   }, strategyRunEvidenceJson(value) {return value;}};
+  const selected = Object.freeze({assertPrepared({moon: actualMoon, prepared: p, compilation: c}) {
+    assert.strictEqual(this, selected); assert.strictEqual(actualMoon, moon);
+    assert.strictEqual(p, prepared); assert.strictEqual(c, compilation); calls.push('selected-prepared');
+  }});
+  const installedEffect = composed ? Object.freeze({effects: Object.freeze([])}) : selected;
+  const descriptors = Object.freeze([]);
+  const updateTargetOriginals = Object.freeze({selectionsOf(p) {
+    assert.strictEqual(p, prepared); return updateTargetSelections;
+  }});
+  let descriptorReads = 0, selections = 0, observedPlan, planFailure;
+  const installedRowEffectDescriptors = (core, p, c) => {
+    assert.strictEqual(core, moon); assert.strictEqual(p, prepared); assert.strictEqual(c, compilation);
+    descriptorReads++; return descriptors;
+  };
+  const installedEffectFor = (catalogue, actualDescriptors) => {
+    assert.strictEqual(catalogue, installedEffect); assert.strictEqual(actualDescriptors, descriptors);
+    selections++; return selected;
+  };
+  const validateInstalledUpdateOwnerSelections = (actual, owners, p) => {
+    assert.strictEqual(actual, selected); assert.strictEqual(owners, updateTargetSelections);
+    assert.strictEqual(p, prepared);
+  };
   const journal = {lookupOwnedDefinition(key, core, control) {
     assert.strictEqual(core, moon); assert.equal(key.requestId, identity.request);
     calls.push('saved-journal'); return ownedRecovery ? {runDefinition} : undefined;
@@ -77,38 +102,48 @@ function fixture() {
   }};
   const control = {}, preparation = {assertResultPublicationCurrent: currentHost,
     admitEffectResultPublicationRun(p) {assert.strictEqual(p, prepared); calls.push('result-purpose');},
-    modelPublicationCapacity() {return {};}};
-  const sourceProfile = {
-    prepareManagedEffectRun(p, r) {
-      assert.strictEqual(p, prepared); assert.strictEqual(r, identity); calls.push('source-scope');
-    },
-    prepareManagedEffectMockModelRun(p, r, c, plan, selection, capacity, originalCompilation) {
-      assert.strictEqual(p, prepared); assert.strictEqual(r, identity); assert.strictEqual(c, control);
-      assert.strictEqual(plan.compiled, compiled); assert.strictEqual(plan.runDefinition, runDefinition);
-      assert.strictEqual(originalCompilation, compilation); assert.equal(typeof capacity, 'function');
-      calls.push('mock-scope');
-    },
-  };
+    prepareManagedEffectPlanRun(core, actualFacts, selection, inputs) {
+      assert.strictEqual(this, preparation); assert.strictEqual(core, moon);
+      assert.strictEqual(actualFacts, facts); assert.strictEqual(selection, selected);
+      assert.strictEqual(actualFacts.identity, identity);
+      assert.strictEqual(actualFacts.modelCompiled, compiled);
+      assert.strictEqual(actualFacts.runDefinition, runDefinition);
+      assert.deepEqual(Object.keys(inputs).sort(), ['fragment', 'ordered', 'registry', 'sourceProfile', 'values']);
+      for (const [name, original] of Object.entries({registry, values, fragment, ordered, sourceProfile})) {
+        assert.strictEqual(inputs[name], original);
+      }
+      observedPlan = {facts: actualFacts, selection, inputs}; calls.push('shared-plan');
+      if (planFailure !== undefined) throw planFailure;
+    }};
+  const sourceProfile = Object.freeze(Object.defineProperties({}, Object.fromEntries(
+    ['prepareManagedEffectRun', 'prepareManagedEffectMockModelRun'].map(name => [name,
+      {get() {assert.fail(`Retired Source constructor read: ${name}`);}}]))));
   api = new Function('assertProjectRuntime', 'preparation', 'clientOperationError', 'mockEffectOriginals',
     'mockEffectRuns', 'mockEffectObservationMethods', 'mockEffectObservation', 'moon', 'checked',
-    'journal', 'namespaceId', 'authorityScopeCid', 'control', 'sourceProfile', 'inferSelections', 'earlyMockEffectPlans',
+    'journal', 'namespaceId', 'authorityScopeCid', 'control', 'sourceProfile',
+    'registry', 'values', 'fragment', 'ordered', 'installedEffect', 'effectSelections', 'updateTargetOriginals',
+    'installedEffectFor', 'installedRowEffectDescriptors', 'validateInstalledUpdateOwnerSelections',
     functions + '\nconst mockEffectResources=' + source.slice(resources.init.start, resources.init.end) +
     ';const prepareDefinition=' + source.slice(preparationNode.start, preparationNode.end) +
     ';return {mockEffectResources, retainMockEffectRunOriginal, prepareDefinition};')(
       currentHost, preparation, clientOperationError, mockEffectOriginals, mockEffectRuns,
       mockEffectObservationMethods, mockEffectObservation, moon,
       value => {if (value.$tag !== 1) throw value._0; return value._0;},
-      journal, 'namespace', 'authority', control, sourceProfile, inferSelections, earlyMockEffectPlans);
-  return {...api, calls, facts, originalFacts: facts, actualLimits, inferSelections, earlyMockEffectPlans,
+      journal, 'namespace', 'authority', control, sourceProfile,
+      registry, values, fragment, ordered, installedEffect, effectSelections, updateTargetOriginals,
+      installedEffectFor, installedRowEffectDescriptors, validateInstalledUpdateOwnerSelections);
+  return {...api, calls, facts, originalFacts: facts, actualLimits,
+    plan: () => observedPlan, selected, descriptorReads: () => descriptorReads, selections: () => selections,
+    failPlan(value) {planFailure = value;},
     refusal, revoke() {current = false;}, failPhysical(value) {physicalFailure = value;},
     denyRecovery() {ownedRecovery = false;},
     changeSavedAuthorization() {savedAuthorization = 'different-authorization';},
     readmittedFacts: {...facts, allowed: reissuedAllowed, definition: reissuedDefinition}};
 }
 
-test('winning Effect definition prepares the same Source Scope before actual file-owner binding', () => {
+test('winning Effect definition prepares the shared original Plan before file-owner binding', () => {
   const f = fixture(); f.prepareDefinition(f.facts);
-  assert.deepEqual(f.calls, ['result-purpose', 'source-scope', 'typed-run', 'physical-original']);
+  assert.deepEqual(f.calls, ['result-purpose', 'selected-prepared', 'shared-plan', 'typed-run', 'physical-original']);
   const original = f.mockEffectResources.bindRunOriginal(f.facts);
   assert.strictEqual(f.mockEffectResources.limits(original), f.actualLimits);
   assert.throws(() => f.mockEffectResources.bindRunOriginal({...f.facts, compilation: {}}),
@@ -116,16 +151,28 @@ test('winning Effect definition prepares the same Source Scope before actual fil
   assert.throws(() => f.mockEffectResources.assertCurrent({...original}), {code: 'ForeignInstalledMockEffectRun'});
 });
 
-test('winning Mock Effect definition retains its original compiled Run and Scope before file binding', () => {
-  const f = fixture(); f.inferSelections.set(f.facts.prepared, {localMock: true});
+test('winning composed Effect definition forwards original selection and model facts to the shared Plan', () => {
+  const f = fixture({composed: true});
   f.prepareDefinition(f.facts);
-  assert.deepEqual(f.calls, ['result-purpose', 'mock-scope', 'typed-run', 'physical-original']);
-  const plan = f.earlyMockEffectPlans.get(f.facts.prepared);
-  assert.strictEqual(plan.compiled, f.facts.modelCompiled);
-  assert.strictEqual(plan.runDefinition, f.facts.runDefinition);
+  assert.deepEqual(f.calls, ['result-purpose', 'selected-prepared', 'selected-prepared',
+    'shared-plan', 'typed-run', 'physical-original']);
+  const plan = f.plan();
+  assert.strictEqual(plan.selection, f.selected);
+  assert.strictEqual(plan.facts.modelCompiled, f.facts.modelCompiled);
+  assert.strictEqual(plan.facts.runDefinition, f.facts.runDefinition);
+  assert.equal(f.descriptorReads(), 1); assert.equal(f.selections(), 1);
 });
 
-test('file resource binding survives Source phase retirement but still observes original Host currentness', () => {
+test('shared Effect Plan refusal cannot reach physical binding or a retired Source Root', () => {
+  const f = fixture(), refusal = new Error('OriginalPlanRefused');
+  f.failPlan(refusal);
+  assert.throws(() => f.prepareDefinition(f.facts), cause => cause === refusal);
+  assert.deepEqual(f.calls, ['result-purpose', 'selected-prepared', 'shared-plan']);
+  assert.throws(() => f.mockEffectResources.bindRunOriginal(f.facts),
+    {code: 'ForeignInstalledMockEffectRun'});
+});
+
+test('file resource binding observes original Host currentness after shared Plan preparation', () => {
   const f = fixture(); f.prepareDefinition(f.facts);
   const original = f.mockEffectResources.bindRunOriginal(f.facts);
   // No Source/Model check is used as a physical FileTarget supplier or ACK.
@@ -160,7 +207,7 @@ test('same winning Journal readmission retains the existing physical Run origina
   assert.equal(f.calls.filter(call => call === 'same-journal').length, 1);
   assert.equal(f.calls.filter(call => call === 'typed-run').length, 2);
   assert.equal(f.calls.filter(call => call === 'physical-original').length, 1);
-  assert.equal(f.calls.filter(call => call === 'source-scope').length, 1);
+  assert.equal(f.calls.filter(call => call === 'shared-plan').length, 1);
 });
 
 test('readmission refuses missing Journal and changed authorization without replacing original', () => {

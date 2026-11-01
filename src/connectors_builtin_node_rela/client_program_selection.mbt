@@ -17,6 +17,11 @@ fn installed_client_family_providers(
 }
 
 ///|
+fn installed_client_family_provider_count() -> Int {
+  0
+}
+
+///|
 fn selected_client_sga_providers(
   _generated : Array[@execution.GeneratedSequence],
   _execution : @execution.SequenceExecutionLimits,

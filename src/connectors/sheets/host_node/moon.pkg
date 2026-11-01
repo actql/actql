@@ -5,7 +5,16 @@ pkgtype(kind: "foreign_library")
 import {
   "actql/actql/connectors/sheets/catalog",
   "actql/actql/source_value" @source,
+  "actql/actql/decode_shape" @shape,
+  "actql/actql/execution_relation" @execution,
+  "actql/actql/encode_core" @encode,
+  "actql/actql/canonical_value" @canonical,
   "actql/actql/decode_core" @decode,
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/json",
 }
+
+import {
+  "actql/actql/client_local_host" @client_host,
+  "actql/actql/physical_resources" @resources,
+} for "wbtest"

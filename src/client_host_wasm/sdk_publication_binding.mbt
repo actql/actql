@@ -21,6 +21,40 @@ fn sdk_publication_binding_issue(
 }
 
 ///|
+/// Readmit the genuine saved original under the existing trusted current port.
+/// Saved text alone cannot replace Store adoption or publication permission.
+fn sdk_saved_publication_binding(
+  value : Instance,
+  run : Int,
+  plan : @local_run.LocalRunPlan,
+  snapshot : @host.ClientSavedSubmissionSnapshot,
+  row : @host.ClientJournalPhysicalRow,
+  submitted : @host.ClientJournalPhysicalRow,
+) -> Result[@local_run.LocalRunPublicationBindingPlan[Ref[Int], Int], Int] {
+  guard value.runs.get(run) is Some(record) &&
+    value.run_configurations.get(record.configuration) is Some(configuration) &&
+    configuration.sdk is Some(sdk) &&
+    configuration.host_current is Some(current_handle) &&
+    value.host_currents.get(current_handle) is Some(current) &&
+    current.material is Some(adopted) &&
+    current.generation is Some((device, inode)) else {
+    return Err(-2)
+  }
+  @local_run.prepare_local_saved_run_publication_binding(
+    plan,
+    snapshot,
+    adopted,
+    current.store,
+    configuration.run_namespace,
+    sdk.store_authority_cid,
+    device,
+    inode,
+    row,
+    submitted,
+  ).map_err(sdk_publication_binding_issue)
+}
+
+///|
 fn sdk_publication_material_wire(
   value : Instance,
   material : StoredMaterial,
@@ -35,29 +69,41 @@ fn sdk_publication_material_wire(
     current.generation is Some((device, inode)) else {
     return Err(-2)
   }
-  let (row, submitted, rows, preparation, rows_material) = match
+  let (row, submitted, rows, rows_material) = match
     sdk_saved_original_rows(value, material.run, plan) {
     Ok(value) => value
     Err(code) => return Err(code)
   }
   // These facts come from the trusted same-Store current port and saved
   // configuration, never a new SDK policy/scope/permission parameter.
-  let candidate = match
-    @local_run.prepare_local_run_publication_binding(
-      plan,
-      rows,
-      preparation,
-      adopted,
-      current.store,
-      configuration.run_namespace,
-      sdk.store_authority_cid,
-      device,
-      inode,
-      row,
-      submitted,
-    ) {
+  let candidate = match rows {
+    Submitted(rows, preparation) =>
+      @local_run.prepare_local_run_publication_binding(
+        plan,
+        rows,
+        preparation,
+        adopted,
+        current.store,
+        configuration.run_namespace,
+        sdk.store_authority_cid,
+        device,
+        inode,
+        row,
+        submitted,
+      ).map_err(sdk_publication_binding_issue)
+    Saved(snapshot) =>
+      sdk_saved_publication_binding(
+        value,
+        material.run,
+        plan,
+        snapshot,
+        row,
+        submitted,
+      )
+  }
+  let candidate = match candidate {
     Ok(value) => value
-    Err(issue) => return Err(sdk_publication_binding_issue(issue))
+    Err(code) => return Err(code)
   }
   let (kind, key, revision, body, held) = match candidate {
     Retained(original) =>
@@ -106,7 +152,6 @@ fn sdk_publication_material_wire(
 ///|
 /// Reobserve original saved rows in the actual Host transaction. Candidate
 /// validation cannot complete a write or authorize dispatch by itself.
-#export_name("actql_material_validate_sdk_publication")
 pub fn validate_sdk_publication_material(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     !value.closing &&
@@ -118,7 +163,7 @@ pub fn validate_sdk_publication_material(nonce : Int64, handle : Int) -> Int {
     value.runs.get(material.run) is Some({ outcome: Some(Ok(plan)), .. }) else {
     return -2
   }
-  let (row, submitted, _, _, rows_material) = match
+  let (row, submitted, _, rows_material) = match
     sdk_saved_original_rows(value, material.run, plan) {
     Ok(value) => value
     Err(code) => return code
@@ -149,7 +194,6 @@ pub fn validate_sdk_publication_material(nonce : Int64, handle : Int) -> Int {
 ///|
 /// Adopt only an actual same-Store successor through the Common Owner. A
 /// saved candidate, physical response or generation alone is insufficient.
-#export_name("actql_material_confirm_sdk_publication")
 pub fn confirm_sdk_publication_material(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     !value.closing &&
@@ -165,7 +209,7 @@ pub fn confirm_sdk_publication_material(nonce : Int64, handle : Int) -> Int {
     return validate_sdk_publication_material(nonce, handle)
   }
   guard held.step is Some(step) else { return -2 }
-  let (row, submitted, _, _, rows_material) = match
+  let (row, submitted, _, rows_material) = match
     sdk_saved_original_rows(value, material.run, plan) {
     Ok(value) => value
     Err(code) => return code

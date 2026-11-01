@@ -12,6 +12,16 @@ pub fn configure_source_free_local_compute_on_ledger(
   if !source_free_profile(plan.prepared) {
     return Err(UnsupportedCapability)
   }
+  guard @local.prepare_source_free_local_requirements(
+      plan.prepared,
+      installed_contracts,
+      values_body,
+      fragment_body,
+      ordered_body,
+    )
+    is Some(original) else {
+    return Err(Configuration)
+  }
   guard @local.open_source_free_local_retained_host_on_ledger(
       plan.prepared,
       ledger,
@@ -19,13 +29,14 @@ pub fn configure_source_free_local_compute_on_ledger(
       values_body,
       fragment_body,
       ordered_body,
+      requirements=Some(original),
     )
     is Some(setup) else {
     return Err(Configuration)
   }
   let run = @driver.dispatch_driver_run(@builtin.configured_host_driver(setup))
   @strategy.require_captured_task_activation(run)
-  Ok({ plan, setup, })
+  Ok({ plan, setup, publication: SourceFree(original), })
 }
 
 ///|

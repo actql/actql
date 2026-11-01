@@ -1501,3 +1501,15 @@ CI runs only synthetic regression fixtures, not a scan of CI worktrees:
 ```sh
 node --test scripts/worktree-inventory.test.mjs
 ```
+
+### Native holder Review installation availability
+
+The current holder has no production issuer for the mapped Review preparation
+profile. Account/current checks do not supply that funding or create a Review
+installation. The holder preserves the ordered root-selection and currentness
+checks, then refuses installation without opening Catalog resources. The former
+unreachable installation/publication branch is not a supported alternative.
+
+Existing restored Review cleanup and resume remain owned by their original
+runtime objects. Lower-level mapped Read/FD acquisition and cleanup tests remain
+component ownership evidence; they do not establish a production Review issuer.

@@ -1,6 +1,8 @@
 ///|
-/// Constructor facts for canonical_json::from_source on already canonical ASCII
-/// keys. Source AST/text/UTF8 wire and parser owners are separate dependencies.
+/// Constructor facts for canonical_json::from_source with data_keys=true.
+/// ScalarText keys are retained unchanged, including Unicode; this path does
+/// not normalize identifier names. Source AST/text/UTF8 wire and parser owners
+/// are separate dependencies. Bounds are construction DATA, not tree admission.
 /// This is a representation projection, never a permit to admit another tree.
 priv struct CompilationCanonicalShape {
   nodes : Int
@@ -13,8 +15,8 @@ priv struct CompilationCanonicalShape {
 
 ///|
 priv struct CompilationCanonicalLayout {
-  tree : PreparationRepresentationUnits
-  temporary : PreparationRepresentationUnits
+  tree : @execution.PreparationRepresentationUnits
+  temporary : @execution.PreparationRepresentationUnits
 }
 
 ///|
@@ -41,7 +43,7 @@ fn compilation_canonical_layout(
   // per container, and one (key,value) tuple per field. Array::map creates
   // owned output; 8C+2edges also covers its occupied/spare backing. Canonical
   // strings borrow the source text here; they are not cloned per occurrence.
-  let tree : PreparationRepresentationUnits = {
+  let tree : @execution.PreparationRepresentationUnits = {
     record_headers: n + 3L * c + k,
     reference_slots: n + 10L * c + 2L * edges + 2L * k,
     scalar_words: n + 2L * c,
@@ -56,7 +58,7 @@ fn compilation_canonical_layout(
   let live_o = Int64::min(o, s.depth.to_int64() + 1L)
   let live_k = Int64::min(k, live_o * s.largest_object.to_int64())
   // Old/new buckets retain inline None tags as well as reference slots.
-  let maps : PreparationRepresentationUnits = {
+  let maps : @execution.PreparationRepresentationUnits = {
     record_headers: 3L * live_o + 4L * live_k,
     reference_slots: 18L * live_o + 14L * live_k,
     scalar_words: 21L * live_o + 14L * live_k,
@@ -67,7 +69,7 @@ fn compilation_canonical_layout(
   // InputBudget; active recursive from_source_visit frames (4refs2words);
   // one map closure per active container (<=6refs2words), output old backing
   // per container (conservative even when Array::map allocates exact length).
-  let admission : PreparationRepresentationUnits = {
+  let admission : @execution.PreparationRepresentationUnits = {
     record_headers: 1L + 2L * d + c,
     reference_slots: 10L * d + 8L * c + 2L * edges,
     scalar_words: 3L + 4L * d,
@@ -79,8 +81,9 @@ fn compilation_canonical_layout(
     is Some(sort) else {
     return None
   }
-  guard closed_values_sum_layouts([maps, admission, sort]) is Some(temporary) &&
-    preparation_representation_cost(tree) is Some(_) else {
+  guard @execution.compose_preparation_representation([maps, admission, sort])
+    is Some(temporary) &&
+    @execution.preparation_representation_cost(tree) is Some(_) else {
     return None
   }
   Some({ tree, temporary, })

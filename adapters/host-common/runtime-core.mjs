@@ -1,4 +1,4 @@
-import {runtimeField, runtimeIsError, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';
+import {runtimeField, runtimeOptionalField, runtimeIsError, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';
 import {checked} from './runtime-result.mjs';
 import {createLocalSigningMetadata} from './local-signing-metadata.mjs';
 import {createInstallationPreparationMetadata} from './installation-preparation-metadata.mjs';
@@ -272,6 +272,8 @@ function siteControl(moon) {
     settleTransferDestination: moon.strategySiteSettleTransferDestination,
     retainTransferHolding: moon.strategySiteRetainTransferHolding,
     retainHolding: moon.strategySiteRetainHolding,
+    prepareHoldingRestoration: moon.strategySitePrepareHoldingRestoration,
+    acquireRestoredHolding: moon.strategySiteAcquireRestoredHolding,
     releaseHolding: moon.strategySiteReleaseHolding,
     retainCleanup: moon.strategySiteRetainCleanup,
     releaseCleanup: moon.strategySiteReleaseCleanup,
@@ -1005,6 +1007,19 @@ function remoteSiteControl(moon) {
     runtimeAdmission: moon.strategyRemoteRuntimeAdmission,
     runtimeStartable: moon.strategyRemoteRuntimeStartable,
     createRuntimeCustody: moon.strategyRemoteRuntimeCustodyCreate,
+    restoreFailedPartialRuntimeCustody(record, expectedRevision, sourceRequestCid,
+      sourceWire, materialGeneration, sourceMeasurementCid, measurement,
+      sourceOwner, sourceGeneration, processRequestCid, processMaterialGeneration,
+      processOwner, processGeneration) {
+      return checked(moon.strategyRemoteRuntimeRestoreFailedPartialCustody(record,
+        expectedRevision, sourceRequestCid, sourceWire, materialGeneration,
+        sourceMeasurementCid, measurement, sourceOwner, sourceGeneration,
+        processRequestCid, processMaterialGeneration, processOwner, processGeneration));
+    },
+    restoreCompletedCleanupRuntimeCustody(record, evidence, subject, measurement) {
+      return checked(moon.strategyRemoteRuntimeRestoreCompletedCleanupCustody(
+        record, evidence, subject, measurement));
+    },
     runtimeCustodyAcquireOperation:
       moon.strategyRemoteRuntimeCustodyAcquireOperation,
     runtimeCustodySettleOperation:
@@ -1923,7 +1938,7 @@ function publicationControl(moon) {
     }
     return value;
   };
-  const prepareSerializationGraph = (checkedProgram, options, intermediate) => {
+  const prepareSerializationGraph = (checkedProgram, options, intermediate, request) => {
     const original = options?.resultDataPolicy;
     if (original?.kind !== 'data_policy' || typeof original.cid !== 'string' ||
         typeof original.wire !== 'string' ||
@@ -1932,10 +1947,19 @@ function publicationControl(moon) {
           options[key] <= 2147483647)) {
       throw new TypeError('Invalid Content compilation options');
     }
-    const issue = intermediate ? moon.clientProgramSerializationPlanComponent
-      : moon.clientProgramSerializationPlanGraph;
-    const graph = compiledRunResult(issue(checkedProgram, options.task, options.step,
-      original.cid, original.wire, options.maxRows, options.maxBytes), 'RunHostContentPlanRejected');
+    let graph;
+    if (request === undefined) {
+      const issue = intermediate ? moon.clientProgramSerializationPlanComponent
+        : moon.clientProgramSerializationPlanGraph;
+      graph = compiledRunResult(issue(checkedProgram, options.task, options.step,
+        original.cid, original.wire, options.maxRows, options.maxBytes), 'RunHostContentPlanRejected');
+    } else {
+      const issue = moon.clientProgramPrepareRequestSerializationGraph;
+      if (typeof issue !== 'function') throw new TypeError('Request Content Graph constructor unavailable');
+      graph = compiledRunResult(Reflect.apply(issue, moon, [request.parent, request.input,
+        options.task, options.step, original.cid, original.wire, options.maxRows,
+        options.maxBytes, !intermediate, request.contracts]), 'RunHostContentPlanRejected');
+    }
     const selected = Object.freeze({task: options.task, step: options.step,
       wire: moon.clientProgramSerializationPlanGraphWire(graph)});
     serializationPlanTokens.set(selected, graph);
@@ -1951,15 +1975,24 @@ function publicationControl(moon) {
         'Client Content capture unavailable');
     });
   };
-  const prepareAcquiredSerializationGraph = (checkedProgram, options, intermediate) => {
+  const prepareAcquiredSerializationGraph = (checkedProgram, options, intermediate, request) => {
     if (!['task', 'step', 'maxRows', 'maxBytes'].every(key =>
       Number.isInteger(options?.[key]) && options[key] >= 0 && options[key] <= 2147483647)) {
       throw new TypeError('Invalid acquired Content compilation options');
     }
-    const issue = intermediate ? moon.clientProgramAcquiredSerializationPlanComponent
-      : moon.clientProgramAcquiredSerializationPlanGraph;
-    const graph = compiledRunResult(issue(checkedProgram, options.task, options.step,
-      options.maxRows, options.maxBytes), 'RunHostContentPlanRejected');
+    let graph;
+    if (request === undefined) {
+      const issue = intermediate ? moon.clientProgramAcquiredSerializationPlanComponent
+        : moon.clientProgramAcquiredSerializationPlanGraph;
+      graph = compiledRunResult(issue(checkedProgram, options.task, options.step,
+        options.maxRows, options.maxBytes), 'RunHostContentPlanRejected');
+    } else {
+      const issue = moon.clientProgramPrepareRequestAcquiredSerializationGraph;
+      if (typeof issue !== 'function') throw new TypeError('Request acquired Content Graph constructor unavailable');
+      graph = compiledRunResult(Reflect.apply(issue, moon, [request.parent, request.input,
+        options.task, options.step, options.maxRows, options.maxBytes,
+        !intermediate, request.contracts]), 'RunHostContentPlanRejected');
+    }
     const selected = Object.freeze({task: options.task, step: options.step,
       wire: moon.clientProgramSerializationPlanGraphWire(graph)});
     serializationPlanTokens.set(selected, graph);
@@ -2389,6 +2422,9 @@ function publicationControl(moon) {
     prepareCheckedClientSerializationComponent(checkedProgram, options) {
       return prepareSerializationGraph(checkedProgram, options, true);
     },
+    prepareCheckedClientRequestSerializationGraph(parent, input, contracts, checkedProgram, options, intermediate) {
+      return prepareSerializationGraph(checkedProgram, options, intermediate, {parent, input, contracts});
+    },
     prepareCheckedClientSerializedInferGraph(occurrence, selected, execution) {
       const graph = serializationPlanTokens.get(selected);
       if (graph === undefined) throw new TypeError('Foreign Content compilation graph');
@@ -2472,6 +2508,9 @@ function publicationControl(moon) {
     },
     prepareCheckedClientAcquiredSerializationComponent(checkedProgram, options) {
       return prepareAcquiredSerializationGraph(checkedProgram, options, true);
+    },
+    prepareCheckedClientRequestAcquiredSerializationGraph(parent, input, contracts, checkedProgram, options, intermediate) {
+      return prepareAcquiredSerializationGraph(checkedProgram, options, intermediate, {parent, input, contracts});
     },
     readCurrentClientRunView(runDefinition, prepared, authorization, ref, state, snapshotCid, limits) {
       if (typeof moon.clientProgramCurrentRunView !== 'function') {
@@ -2689,7 +2728,7 @@ function publicationControl(moon) {
       if (original === undefined) throw new TypeError('Foreign Client original Infer preparation');
       return Object.freeze({graph: runtimeField(original, 0), execution: runtimeField(original, 1)});
     },
-    prepareCheckedClientCompiledRun(checkedProgram, kind, policy, inferGraph, valuesCompilation) {
+    prepareCheckedClientCompiledRun(checkedProgram, kind, policy, inferGraph, compilationOriginal) {
       if (!['values', 'tasks', 'infer', 'serialization'].includes(kind)) {
         throw new TypeError('Invalid Client compilation profile');
       }
@@ -2698,15 +2737,14 @@ function publicationControl(moon) {
           ? 'Content compilation requires its checked graph'
           : 'Infer compilation requires its checked graph');
       }
-      if (valuesCompilation !== undefined && kind !== 'values') {
-        throw new TypeError('Values compilation supplied to another profile');
-      }
       const serializationGraph = kind === 'serialization'
         ? serializationPlanTokens.get(inferGraph) : undefined;
       if (kind === 'serialization' && serializationGraph === undefined) {
         throw new TypeError('Foreign Content compilation graph');
       }
-      const compilation = valuesCompilation !== undefined ? valuesCompilation : compiledRunResult(kind === 'values'
+      // The existing typed issuer below binds this artifact to the SAME
+      // checked Program. A refused original never falls back to compilation.
+      const compilation = compilationOriginal !== undefined ? compilationOriginal : compiledRunResult(kind === 'values'
         ? moon.clientProgramCompileLocalValues(checkedProgram)
         : kind === 'serialization'
           ? moon.clientProgramCompileLocalSerialization(checkedProgram, serializationGraph)
@@ -2717,13 +2755,33 @@ function publicationControl(moon) {
           : moon.clientProgramCompileLocalTasks(checkedProgram),
       kind === 'values' ? 'RunHostCompilationRejected'
         : 'RunHostTaskCompilationRejected');
-      let value = compiledRunResult(kind === 'values'
-        ? moon.clientProgramIssueValuesCompiledRun(checkedProgram,
-          compilation, policy.executionContextCid, policy.hostPolicyCid,
-          policy.expiresAt)
-        : moon.clientProgramIssueTaskCompiledRun(checkedProgram,
-          compilation, policy.executionContextCid, policy.hostPolicyCid,
-          policy.expiresAt), 'RunHostAdmissionRejected');
+      // Pure staged originals use the existing Values/Tasks sum. The Request
+      // Model compiler instead returns the original raw TaskCompilation;
+      // its existing typed issuer validates that original and owner directly.
+      // Unmigrated explicit compilation keeps its separate raw artifact entry.
+      let value = compiledRunResult(compilationOriginal !== undefined
+        ? kind === 'values'
+          ? moon.clientProgramIssueOriginalValuesCompiledRun(checkedProgram,
+            compilation, policy.executionContextCid, policy.hostPolicyCid,
+            policy.expiresAt)
+          : kind === 'infer' || kind === 'serialization'
+            ? moon.clientProgramIssueTaskCompiledRun(checkedProgram,
+              compilation, policy.executionContextCid, policy.hostPolicyCid,
+              policy.expiresAt)
+          : moon.clientProgramIssueOriginalTaskCompiledRun(checkedProgram,
+            compilation, policy.executionContextCid, policy.hostPolicyCid,
+            policy.expiresAt)
+        : kind === 'values'
+          ? moon.clientProgramIssueValuesCompiledRun(checkedProgram,
+            compilation, policy.executionContextCid, policy.hostPolicyCid,
+            policy.expiresAt)
+          : moon.clientProgramIssueTaskCompiledRun(checkedProgram,
+            compilation, policy.executionContextCid, policy.hostPolicyCid,
+            policy.expiresAt), 'RunHostAdmissionRejected');
+      if (kind === 'serialization' && compilationOriginal !== undefined &&
+          moon.clientProgramCompiledRunSerializationGraph(value) !== serializationGraph) {
+        throw new TypeError('Foreign Content compilation graph');
+      }
       if (kind === 'infer') {
         const original = policy.resultDataPolicy;
         if (original?.kind !== 'data_policy' || typeof original.cid !== 'string' ||
@@ -3094,6 +3152,28 @@ function publicationControl(moon) {
       }
       return checked(moon.clientProgramBindQueryTime(original, prepared, value, token(definition), request));
     },
+    clientQueryTimeInvocationOriginal(original, prepared) {
+      const project = moon.clientProgramQueryTimeInvocationOriginal;
+      if (typeof project !== 'function') throw new TypeError('Client query-time original unavailable');
+      // Opaque Option from the matching Core; never synthesize a JS tuple.
+      return Reflect.apply(project, moon, [original, prepared]);
+    },
+    checkedClientManagedQueryInvocationOriginal(run, prepared, original) {
+      const project = moon.clientProgramInstalledManagedRunInvocationOriginal;
+      if (typeof project !== 'function') throw new TypeError('Client query-time original unavailable');
+      const retained = Reflect.apply(project, moon, [run, prepared]);
+      const compiled = compiledRunTokens.get(original.compiled);
+      if (compiled === undefined || original.preparedProgram !== prepared ||
+          runtimeOptionalField(retained, 0) !== original.queryTimePreparation ||
+          runtimeOptionalField(retained, 1) !== original.requestIdentity ||
+          runtimeOptionalField(retained, 2) !== compiled ||
+          runtimeOptionalField(retained, 3) !== token(original.runDefinition) ||
+          moon.clientProgramQueryTimeContext(original.queryTimePreparation) !== original.queryTime) {
+        throw new TypeError('Foreign Client original query-time invocation');
+      }
+      control.checkClientCompiledRunOwner(original.compiled, prepared);
+      return original;
+    },
     restoreClientQueryTime(prepared, compiled, definition, request) {
       const value = compiledRunTokens.get(compiled);
       if (value === undefined || typeof moon.clientProgramRestoreQueryTimePreparation !== 'function') {
@@ -3127,71 +3207,93 @@ function publicationControl(moon) {
         throw new TypeError('Foreign Client compiled Run');
       }
       limits = captureContractLimits(limits, 'Client Run Invocation');
-      if (publicationPreparation !== undefined && (compiled.kind !== 'values' || source !== undefined)) {
+      if (source !== undefined) {
+        const sources = source.sources ?? [{captured: source.captured, sourceEvidence: source.sourceEvidence}];
+        if (publicationPreparation === undefined || preparedProgram === undefined || compiled.kind !== 'tasks' ||
+            !Array.isArray(sources) || sources.length < 1 || sources.length > 2 ||
+            sources.some(({captured}) => captured?.capture === undefined || captured?.identity === undefined ||
+              captured?.logicalInput === undefined)) {
+          throw new TypeError('Invalid original publication invocation profile');
+        }
+        // The adopted original Plan selects the semantic input boundary.
+        // A missing/copy/foreign capture cannot fall back to a Query ABI.
+        const kind = checked(moon.clientProgramInstalledManagedPublicationSourceKind(
+          publicationPreparation, preparedProgram));
+        if (kind === 'whole-input') {
+          if (sources.length !== 1 || source.keyedObservation !== undefined) {
+            throw new TypeError('Invalid original publication invocation profile');
+          }
+          const {captured, sourceEvidence} = sources[0], capture = captured.capture;
+          const original = Object.getOwnPropertyDescriptor(capture, 'originalWholeInput');
+          if (original === undefined || !Object.hasOwn(original, 'value') || typeof original.value !== 'function') {
+            throw new TypeError('Invalid original whole Source capture');
+          }
+          const issued = compiledRunResult(moon.clientProgramIssueWholeSourcePublicationInvocation(
+            publicationPreparation, preparedProgram, value, token(definition),
+            Reflect.apply(original.value, capture, []), captured.identity,
+            evidenceToken(sourceEvidence), captured.logicalInput,
+            source.authorityScopeCid, dataPolicyCid, source.captureStartedAt, source.captureCompletedAt,
+            limits.maxWireBytes, limits.maxNodes, limits.maxDepth), 'RunHostTaskInvocationRejected');
+          return Object.freeze({observation: inspectEvidence(runtimeField(issued, 0)),
+            invocation: inspect(runtimeField(issued, 1), limits), owner: runtimeField(issued, 1)});
+        }
+        if (kind !== 'query' || sources.some(({captured}) => captured.requirement === undefined)) {
+          throw new TypeError('Invalid original publication invocation profile');
+        }
+        const issued = compiledRunResult(moon.clientProgramIssueCapturedPublicationInvocation(
+          publicationPreparation, preparedProgram, value, token(definition),
+          sources.map(({captured}) => captured.capture.source()), sources.map(({captured}) => captured.identity),
+          sources.map(({captured}) => captured.requirement), sources.map(({sourceEvidence}) => evidenceToken(sourceEvidence)),
+          sources.map(({captured}) => captured.logicalInput), source.keyedObservation,
+          source.authorityScopeCid, dataPolicyCid, source.captureStartedAt, source.captureCompletedAt,
+          limits.maxWireBytes, limits.maxNodes, limits.maxDepth), 'RunHostTaskInvocationRejected');
+        return Object.freeze({observation: inspectEvidence(runtimeField(issued, 0)),
+          invocation: inspect(runtimeField(issued, 1), limits), owner: runtimeField(issued, 1)});
+      }
+      if (publicationPreparation !== undefined && compiled.kind !== 'values' && compiled.kind !== 'tasks') {
         throw new TypeError('Invalid original publication invocation profile');
       }
       const issued = compiledRunResult(publicationPreparation !== undefined
         ? moon.clientProgramIssuePublicationInvocation(publicationPreparation,
           preparedProgram, value, token(definition), dataPolicyCid,
           limits.maxWireBytes, limits.maxNodes, limits.maxDepth)
-        : source === undefined
-        ? (compiled.kind !== 'values'
+        : (compiled.kind !== 'values'
           ? moon.clientProgramIssueCompiledSourceFreeTaskInvocation(value,
             token(definition), dataPolicyCid,
             limits.maxWireBytes, limits.maxNodes, limits.maxDepth)
           : moon.clientProgramIssueCompiledValuesInvocation(value,
             token(definition), dataPolicyCid,
             limits.maxWireBytes, limits.maxNodes, limits.maxDepth))
-        : moon.clientProgramIssueCompiledTaskInvocation(value,
-          token(definition), source.sourceEvidenceWire,
-          source.inputLogicalWire, source.sourceRef, source.sourceContractCid,
-          source.authorityScopeCid, dataPolicyCid,
-          source.captureStartedAt, source.captureCompletedAt,
-          limits.maxWireBytes, limits.maxNodes, limits.maxDepth),
-      source === undefined ? 'RunHostInvocationRejected'
-        : 'RunHostTaskInvocationRejected');
+      , 'RunHostInvocationRejected');
       return Object.freeze({observation: inspectEvidence(runtimeField(issued, 0)),
         invocation: inspect(runtimeField(issued, 1), limits), owner: runtimeField(issued, 1)});
     },
-    issueCheckedClientCompiledMultiInvocation(compiled, definition,
-      {sources, authorityScopeCid, dataPolicyCid, captureStartedAt, captureCompletedAt}, limits) {
-      const value = compiledRunTokens.get(compiled);
-      if (value === undefined || compiled.kind !== 'tasks' ||
-          !Array.isArray(sources) || sources.length !== 2) {
-        throw new TypeError('Foreign Client compiled multi-source Run');
-      }
-      limits = captureContractLimits(limits, 'Client Run Invocation');
-      const issued = compiledRunResult(moon.clientProgramIssueCompiledMultiTaskInvocation(
-        value, token(definition), sources.map(source => source.captured.capture.source()),
-        sources.map(source => source.captured.identity),
-        sources.map(source => source.captured.requirement),
-        sources.map(source => source.sourceEvidenceWire),
-        sources.map(source => source.inputLogicalWire),
-        authorityScopeCid, dataPolicyCid, captureStartedAt, captureCompletedAt,
-        limits.maxWireBytes, limits.maxNodes, limits.maxDepth), 'RunHostTaskInvocationRejected');
-      return Object.freeze({observation: inspectEvidence(runtimeField(issued, 0)),
-        invocation: inspect(runtimeField(issued, 1), limits), owner: runtimeField(issued, 1)});
+    admitInferCapturedInput(prepared, captured, sourceEvidence, authorityScopeCid,
+      dataPolicyCid, startedAt, completedAt) {
+      return checked(moon.clientProgramAdmitInferCapturedInput(prepared,
+        captured.inferStep, captured.capturedSource, captured.identity, captured.requirement,
+        captured.logicalInput, evidenceToken(sourceEvidence), authorityScopeCid,
+        dataPolicyCid, startedAt, completedAt));
     },
-    issueCheckedClientCompiledKeyedInvocation(compiled, definition,
-      {captured, sourceEvidenceWire, inputLogicalWire, keyedObservation,
-        authorityScopeCid, dataPolicyCid, captureStartedAt, captureCompletedAt}, limits) {
-      const value = compiledRunTokens.get(compiled);
-      if (value === undefined || compiled.kind !== 'tasks' ||
-          captured?.capture === undefined || captured?.identity === undefined ||
-          captured?.requirement === undefined || keyedObservation === undefined) {
-        throw new TypeError('Foreign Client compiled keyed-source Run');
-      }
-      limits = captureContractLimits(limits, 'Client Run Invocation');
-      // The portable issuer verifies original capture/compilation ownership,
-      // whole-Source coverage and live keyed custody. Wire evidence alone is
-      // not enough to manufacture a completed keyed acquisition.
-      const issued = compiledRunResult(moon.clientProgramIssueCompiledKeyedTaskInvocation(
-        value, token(definition), captured.capture.source(), captured.identity,
-        captured.requirement, sourceEvidenceWire, inputLogicalWire, keyedObservation,
-        authorityScopeCid, dataPolicyCid, captureStartedAt, captureCompletedAt,
-        limits.maxWireBytes, limits.maxNodes, limits.maxDepth), 'RunHostTaskInvocationRejected');
-      return Object.freeze({observation: inspectEvidence(runtimeField(issued, 0)),
-        invocation: inspect(runtimeField(issued, 1), limits), owner: runtimeField(issued, 1)});
+    admitComposedInferSources(occurrence, captures, sourceEvidence, authorityScopeCid,
+      startedAt, completedAt, keyed) {
+      return checked(moon.clientProgramAdmitComposedInferSources(occurrence,
+        captures.map(value => value.capture.source()), captures.map(value => value.identity),
+        captures.map(value => value.requirement), captures.map(value => value.logicalInput),
+        sourceEvidence.map(evidenceToken), authorityScopeCid, startedAt, completedAt, keyed));
+    },
+    takeSourceEvidenceOriginal(capture) {
+      const take = Object.getOwnPropertyDescriptor(capture ?? {}, 'takeSourceEvidenceOriginal')?.value;
+      if (typeof take !== 'function') throw new TypeError('InstalledSourceEvidenceUnavailable');
+      const evidence = inspectEvidence(Reflect.apply(take, capture, []));
+      if (evidence.name !== 'source_evidence') throw new TypeError('InvalidInstalledSourceEvidence');
+      return evidence;
+    },
+    keyedLookupPublicationEvidence(original) {
+      const value = moon.clientProgramKeyedLookupObservationOriginals(original);
+      if (value === undefined) throw new TypeError('Foreign keyed lookup observation');
+      return Object.freeze({source: inspectEvidence(runtimeField(value, 1)),
+        logicalRelationCid: runtimeField(value, 2)});
     },
     // Reuse the compiled owner retained at Run admission. The physical
     // adapter supplies its opaque execution and bounded verification owner;
@@ -3314,6 +3416,72 @@ function publicationControl(moon) {
         preparedCallSet, admitted, beginEntry));
       return admitted;
     },
+    prepareCheckedClientRequestSerializationCompilation(parent, input, graph, contracts) {
+      const original = serializationPlanTokens.get(graph);
+      if (original === undefined) throw new TypeError('Foreign Content compilation graph');
+      const compile = moon.clientProgramPrepareRequestSerializationCompilation;
+      if (typeof compile !== 'function') throw new TypeError('Request Content compiler unavailable');
+      // The actual typed constructor checks this SAME parent/input, checked
+      // graph and contracts. No graph token or rebuilt compilation escapes.
+      return compiledRunResult(Reflect.apply(compile, moon, [parent, input, original, contracts]),
+        'RunHostTaskCompilationRejected');
+    },
+    prepareCheckedClientRequestKeyedSerializationCompilation(parent, input, selected, graph) {
+      const original = serializationPlanTokens.get(graph);
+      if (original === undefined) throw new TypeError('Foreign Content compilation graph');
+      const compile = moon.clientProgramPrepareRequestKeyedSerializationCompilation;
+      if (typeof compile !== 'function') throw new TypeError('Request keyed Content compiler unavailable');
+      return compiledRunResult(Reflect.apply(compile, moon, [parent, input, selected, original]),
+        'RunHostTaskCompilationRejected');
+    },
+    prepareCheckedClientRequestSerializationPlan(parent, input, request, compiled, definition,
+      limits, workspace) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'serialization') {
+        throw new TypeError('Foreign Client compiled Content preparation');
+      }
+      const prepare = moon.clientProgramPrepareRequestSerializationPlan;
+      if (typeof prepare !== 'function') throw new TypeError('Request Content Plan unavailable');
+      return checked(Reflect.apply(prepare, moon, [parent, input, request, value, token(definition),
+        limits.maxRows, limits.maxWork, limits.maxEntries, limits.maxValueBytes,
+        limits.maxValueNodes, limits.maxValueDepth, limits.maxFrames, workspace]));
+    },
+    prepareCheckedClientEffectModelDemand(prepared, compiled, compilation, definition, occurrence, graph) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      // The nominal JS holder is not the native compiled Run. Unwrap only
+      // its existing private association; Core binds the complete original
+      // Effect/compilation/definition/occurrence tuple without another issuer.
+      return checked(moon.clientProgramInstalledEffectModelDemandPrepare(
+        prepared, value, compilation, token(definition), occurrence, graph));
+    },
+    prepareCheckedClientMockModelSourceFreePlan(original, request, compiled, definition,
+      occurrence, graph, selected) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      const prepare = moon.clientProgramInstalledMockModelSourceFreePlanPrepare;
+      if (typeof prepare !== 'function') throw new TypeError('Installed Model Plan unavailable');
+      // These are the original module, selected Limits and Run tokens. The
+      // existing typed constructor checks their complete tuple; this binding
+      // issues no Scope/Run and does not select bounds or compile again.
+      return checked(Reflect.apply(prepare, moon, [original, request, value,
+        token(definition), occurrence, graph, selected]));
+    },
+    bindCheckedClientMockModelCapturePlan(original, compiled, definition,
+      occurrence, graph, selected) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      const bind = moon.clientProgramInstalledMockModelCapturePlanBind;
+      if (typeof bind !== 'function') throw new TypeError('Installed Model Plan unavailable');
+      return checked(Reflect.apply(bind, moon, [original, value, token(definition),
+        occurrence, graph, selected]));
+    },
     checkedClientMockModelRunRequirements(prepared, compiled, definition, occurrence, graph,
       declarations, query, evidence, transport, scratch, registry, values, fragment, ordered) {
       const value = compiledRunTokens.get(compiled);
@@ -3331,27 +3499,6 @@ function publicationControl(moon) {
       }
       return checked(moon.clientProgramInstalledMockModelManagedRunBegin(admission,
         prepared, request, value, token(definition), graph,
-        budget.bootstrapRetainedBytes, budget.bootstrapExecutionBytes,
-        budget.maxReservations, budget.maxHoldings, budget.maxDelegations));
-    },
-    checkedClientEffectMockModelRunRequirements(prepared, compiled, compilation, definition, occurrence, graph,
-      declarations, query, evidence, transport, scratch, registry, values, fragment, ordered) {
-      const value = compiledRunTokens.get(compiled);
-      if (value === undefined || compiled.kind !== 'infer') {
-        throw new TypeError('Foreign Client compiled Effect Infer preparation');
-      }
-      return checked(moon.clientProgramInstalledEffectMockModelManagedRunRequirements(
-        prepared, value, compilation, token(definition), occurrence, graph, declarations,
-        query, evidence, transport, scratch, registry, values, fragment, ordered));
-    },
-    beginCheckedClientEffectMockModelManagedRun(admission, prepared, request, compiled, compilation,
-      definition, graph, budget) {
-      const value = compiledRunTokens.get(compiled);
-      if (value === undefined || compiled.kind !== 'infer') {
-        throw new TypeError('Foreign Client compiled Effect Infer preparation');
-      }
-      return checked(moon.clientProgramInstalledEffectMockModelManagedRunBegin(admission,
-        prepared, request, value, compilation, token(definition), graph,
         budget.bootstrapRetainedBytes, budget.bootstrapExecutionBytes,
         budget.maxReservations, budget.maxHoldings, budget.maxDelegations));
     },
@@ -3978,6 +4125,16 @@ function publicationControl(moon) {
       return checked(moon.strategyCapturedEffectSourceMatchesPreview(ownedPreview,
         memberIndex, token(invocation), effectSourceToken(source),
         localEffectSourceToken(localEvidence), storeAuthorityCid,
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+    },
+    reserveEffectCaptureRecovery(parent, input, request, runDefinition, encryptedBytes, limits) {
+      issuanceLimits(limits, 'Effect capture recovery');
+      if (!Number.isSafeInteger(encryptedBytes) || encryptedBytes < 0 || encryptedBytes > 2147483647 ||
+          typeof moon.clientProgramReserveRequestEffectCaptureRecovery !== 'function') {
+        throw new TypeError('Invalid Effect capture recovery Resource');
+      }
+      return checked(moon.clientProgramReserveRequestEffectCaptureRecovery(
+        parent, input, request, token(runDefinition), encryptedBytes,
         limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
     },
     admitCapturedEffectSourceFromCapture(preview, memberIndex, invocation,
@@ -6402,6 +6559,66 @@ export function contentGenerationControl(moon, publications) {
         throw new TypeError('Content capacity overflow');
       }
       return Object.freeze({retainedBytes, executionBytes});
+    },
+    prepareRequestPrefix(parent, input, request, compiled, definition, limits, workspace) {
+      if (workspace !== undefined && !workspaces.has(workspace)) {
+        throw new TypeError('Foreign Content workspace capacity');
+      }
+      return publications.prepareCheckedClientRequestSerializationPlan(parent, input, request, compiled,
+        definition, limits, workspace === undefined ? undefined : workspaces.get(workspace));
+    },
+    prepareRequestKeyedPlan(parent, input, request, keyed, directDeclaration, contentDeclaration,
+      maxBytes, maxWork, queryContract, evidenceContract, transfers, executions, contracts, task, step,
+      limits, workspace) {
+      const prepare = moon.clientProgramPrepareRequestKeyedContentPlan;
+      if (typeof prepare !== 'function') throw new TypeError('Request keyed Content constructor unavailable');
+      if (!quantity(maxBytes) || !quantity(maxWork, 1) ||
+          !quantity(limits?.maxRows) || !quantity(limits?.maxWork, 1) ||
+          !quantity(limits?.maxEntries, 1) || !quantity(limits?.maxValueBytes) ||
+          !quantity(limits?.maxValueNodes, 1) || !quantity(limits?.maxValueDepth) ||
+          !quantity(limits?.maxFrames, 1)) throw new TypeError('Invalid Content prefix limits');
+      if (workspace !== undefined && !workspaces.has(workspace)) {
+        throw new TypeError('Foreign Content workspace capacity');
+      }
+      return checked(Reflect.apply(prepare, moon, [parent, input, request, keyed,
+        directDeclaration, contentDeclaration, maxBytes, maxBytes, maxWork,
+        queryContract, evidenceContract, transfers, executions, maxBytes, maxWork,
+        contracts, task, step, limits.maxRows, limits.maxWork, limits.maxEntries,
+        limits.maxValueBytes, limits.maxValueNodes, limits.maxValueDepth, limits.maxFrames,
+        workspace === undefined ? undefined : workspaces.get(workspace)]));
+    },
+    requestPrefixCapacity(selected) {
+      const value = moon.clientProgramPreparedInstalledSerializationPrefixRequirements(selected);
+      if (!Array.isArray(value) || value.length !== 6 ||
+          value.some(n => typeof n !== 'bigint' || n < 0n || n > 9223372036854775807n) ||
+          value[0] !== 0n || value[1] !== 1n || value[2] !== 0n || value[3] !== 0n) {
+        throw new TypeError('Invalid Content prefix requirements');
+      }
+      return Object.freeze({retainedBytes: value[4], executionBytes: value[5]});
+    },
+    startRequestPrefix(run, program, selected) {
+      const prefix = checked(moon.clientProgramInstalledManagedSerializationPrefixStart(run, program, selected));
+      prefixes.add(prefix); return prefix;
+    },
+    cleanupRequestPrefix(run, selected) {
+      return checked(moon.clientProgramInstalledManagedSerializationPrefixCleanup(run, selected));
+    },
+    requestKeyedPrefixCapacity(selected) {
+      const value = checked(moon.clientProgramPreparedInstalledKeyedPrefixRequirements(selected));
+      if (!Array.isArray(value) || value.length !== 6 ||
+          value.some(n => typeof n !== 'bigint' || n < 0n || n > 9223372036854775807n) ||
+          value[0] !== 0n || value[1] !== 1n || value[2] !== 0n || value[3] !== 0n) {
+        throw new TypeError('Invalid keyed Content prefix requirements');
+      }
+      return Object.freeze({retainedBytes: value[4], executionBytes: value[5]});
+    },
+    startRequestKeyedPrefix(run, program, selected, source, lookup) {
+      const prefix = checked(moon.clientProgramInstalledManagedKeyedSerializationPrefixStart(
+        run, program, selected, source, lookup));
+      prefixes.add(prefix); return prefix;
+    },
+    cleanupRequestKeyedPrefix(run, selected) {
+      return checked(moon.clientProgramInstalledManagedKeyedSerializationPrefixCleanup(run, selected));
     },
     prefix(program, task, step, bodies, limits, ledger, workspace, source, keyed) {
       // Revalidate through the same provider before reserve/start. Capacity

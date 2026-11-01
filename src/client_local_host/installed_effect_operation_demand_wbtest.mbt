@@ -91,6 +91,9 @@ fn effect_operation_plan_fixture(
   request : @publication_host.ClientRequestIdentity,
   contracts : ClientInstalledSequenceContracts,
   query_time? : @publication_host.ClientQueryTimePreparation? = None,
+  provider_factory? : (@execution.ExecutionCapacity) -> Array[
+    @local.ManagedProvider,
+  ] = _ => [],
 ) -> ClientInstalledEffectManagedPlan {
   let metadata = prepare_installed_effect_operation_extent(
     "operation",
@@ -131,7 +134,102 @@ fn effect_operation_plan_fixture(
     None,
     [demand],
     query_time~,
+    provider_factory~,
   ).unwrap()
+}
+
+///|
+fn effect_operation_plan_with_control_fixture(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  contracts : ClientInstalledSequenceContracts,
+  original : ClientInstalledEffectManagedPlan,
+  controls_per_row : @execution.ExecutionCapacity,
+) -> Result[ClientInstalledEffectManagedPlan, ClientInstalledManagedRunIssue] {
+  let before = original.operations[0]
+  let demand = prepare_installed_effect_operation_demand_with_controls(
+    prepared,
+    0,
+    "save",
+    before.member_extents,
+    before.row_extents,
+    controls_per_row,
+  ).unwrap()
+  prepare_installed_effect_managed_plan(
+    prepared,
+    request,
+    [],
+    "",
+    "",
+    [],
+    [],
+    contracts,
+    source_query_original_values,
+    Some(source_query_original_fragment),
+    None,
+    [demand],
+    provider_factory=_ => [],
+  )
+}
+
+///|
+test "original implementation control material shares the checked row inventory without a new occurrence" {
+  let (prepared, request, contracts) = effect_operation_plan_inputs()
+  let baseline = effect_operation_plan_fixture(prepared, request, contracts)
+  let controls = @execution.execution_capacity(7L, 11L).unwrap()
+  let selected = effect_operation_plan_with_control_fixture(
+    prepared, request, contracts, baseline, controls,
+  ).unwrap()
+  assert_eq(selected.rows, baseline.rows)
+  assert_true(selected.rows > 0)
+  assert_eq(selected.held_children, baseline.held_children)
+  assert_eq(selected.limits.attempts, baseline.limits.attempts)
+  assert_eq(selected.limits.transfer_bytes, baseline.limits.transfer_bytes)
+  let rows = selected.rows.to_int64()
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(
+      selected.operation_control_capacity,
+    ) -
+    @execution.execution_capacity_retained_bytes(
+      baseline.operation_control_capacity,
+    ),
+    rows * 7L,
+  )
+  assert_eq(
+    @execution.execution_capacity_execution_bytes(
+      selected.operation_control_capacity,
+    ) -
+    @execution.execution_capacity_execution_bytes(
+      baseline.operation_control_capacity,
+    ),
+    rows * 11L,
+  )
+  // The typed Some carrier is separate storage; the original implementation
+  // capacity itself stays borrowed, not serialized or copied into a new Root.
+  let carrier = @execution.preparation_representation_cost({
+    record_headers: 1L,
+    reference_slots: 1L,
+    scalar_words: 1L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }).unwrap()
+  assert_eq(
+    selected.limits.retained_bytes - baseline.limits.retained_bytes,
+    rows * 7L + carrier,
+  )
+  assert_eq(
+    selected.limits.execution_bytes - baseline.limits.execution_bytes,
+    rows * 11L + carrier,
+  )
+  let huge = @execution.execution_capacity(
+    9223372036854775807L, 9223372036854775807L,
+  ).unwrap()
+  assert_true(
+    effect_operation_plan_with_control_fixture(
+      prepared, request, contracts, baseline, huge,
+    )
+    is Err(Unsupported),
+  )
 }
 
 ///|
@@ -139,6 +237,8 @@ fn effect_operation_plan_fixture(
 // generation supplies only fixture inputs; no Source/physical observation is
 // generated, and expected identities/rows are not taken from execution output.
 fn effect_operation_source_plan_fixture(
+  bounded_output? : Bool = false,
+  second_result? : Bool = false,
   provider? : @execution.ExecutionCapacity? = None,
   query_time_for? : ((
     @publication_host.PreparedClientEffectComputation,
@@ -191,7 +291,7 @@ fn effect_operation_source_plan_fixture(
     capabilities,
   )
   guard base["connector_manifest"] is Object(manifest) &&
-    manifest["connectors"] is Array(_connectors) else {
+    manifest["connectors"] is Array(_) else {
     fail("fixture connector manifest")
   }
   manifest["connectors"] = effect_plan_fixture_members(manifest["connectors"], [
@@ -227,6 +327,22 @@ fn effect_operation_source_plan_fixture(
   } else {
     document
   }
+  let document = if bounded_output {
+    document.replace(
+      old="{\"filter\":\"id > 2\",\"as\":\"selected\"}",
+      new="{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"id\":4}]},\"as\":\"one\"},{\"from\":\"one\",\"cross_join\":{\"with\":\"input\",\"max_output_rows\":1,\"select\":{\"id\":\"left.id\"}},\"as\":\"selected\"}",
+    )
+  } else {
+    document
+  }
+  let document = if second_result {
+    document.replace(
+      old="\"as\":\"selected\"}],\"results\":{\"rows\":{\"from\":\"selected\",\"fields\":[\"id\"]}},\"effects\":{\"save\":{\"update\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"from\":{\"result\":\"rows\"},\"id\":\"id\",\"set\":{\"Name\":{\"field\":\"id\"}}}}}",
+      new="\"as\":\"selected\"},{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"id\":3},{\"id\":5},{\"id\":7}]},\"as\":\"three\"}],\"results\":{\"rows\":{\"from\":\"selected\",\"fields\":[\"id\"]},\"other\":{\"from\":\"three\",\"fields\":[\"id\"]}},\"effects\":{\"save\":{\"update\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"from\":{\"result\":\"rows\"},\"id\":\"id\",\"set\":{\"Name\":{\"field\":\"id\"}}}},\"save_other\":{\"update\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"from\":{\"result\":\"other\"},\"id\":\"id\",\"set\":{\"Name\":{\"field\":\"id\"}}}}}",
+    )
+  } else {
+    document
+  }
   let prepared = match
     @publication_host.prepare_client_effect_computation(
       document,
@@ -243,8 +359,7 @@ fn effect_operation_source_plan_fixture(
         "fixture Source Effect Computation: " +
         effect_plan_fixture_failure(cause),
       )
-    Err(Candidate(@checked.Headers(_issue))) =>
-      fail("fixture Source Effect Headers")
+    Err(Candidate(@checked.Headers(_))) => fail("fixture Source Effect Headers")
     Err(Candidate(_)) => fail("fixture Source Effect Candidate")
     Err(Mapping(_)) => fail("fixture Source Effect Mapping")
     Err(Static(_)) => fail("fixture Source Effect Static")
@@ -281,6 +396,20 @@ fn effect_operation_source_plan_fixture(
     [extent],
     [extent],
   ).unwrap()
+  let demands = if second_result {
+    [
+      demand,
+      prepare_installed_effect_operation_demand(
+        prepared,
+        1,
+        "save_other",
+        [extent],
+        [extent],
+      ).unwrap(),
+    ]
+  } else {
+    [demand]
+  }
   prepare_installed_effect_managed_plan(
     prepared,
     request,
@@ -293,9 +422,10 @@ fn effect_operation_source_plan_fixture(
     source_query_original_values,
     Some(source_query_original_fragment),
     None,
-    [demand],
+    demands,
     query_time=query_time_for.map(make => make(prepared, request)),
     source_providers=provider.map(value => [value]),
+    provider_factory=_ => [],
   ).unwrap()
 }
 
@@ -475,6 +605,7 @@ test "Effect plan snapshots selected arrays and never treats returned quote DATA
     Some(source_query_original_fragment),
     None,
     demands,
+    provider_factory=_ => [],
   ).unwrap()
   demands.clear()
   let quote = prepared_installed_effect_managed_requirements(plan)
@@ -530,6 +661,7 @@ test "Effect operation demand preserves exact checked member and request binding
       Some(source_query_original_fragment),
       None,
       [foreign],
+      provider_factory=_ => [],
     )
     is Err(ForeignOriginal),
   )
@@ -584,11 +716,17 @@ test "Effect demand refuses invalid and overflowing extents without raising a bo
       Some(source_query_original_fragment),
       None,
       [demand],
+      provider_factory=_ => [],
     )
     is Err(Unsupported),
   )
   assert_eq(
-    installed_effect_add_extent(9223372036854775807L, 1L, 0L),
+    @execution.execution_capacity_inventory_add(
+      9223372036854775807L,
+      QuotedBytes,
+      0L,
+      1,
+    ),
     Some(9223372036854775807L),
   )
 }
@@ -766,6 +904,7 @@ test "operation demand follows checked zero or three rows and both ordered Effec
       Some(source_query_original_fragment),
       None,
       [first, second],
+      provider_factory=_ => [],
     ).unwrap()
     assert_eq(plan.rows, count)
     assert_eq(
@@ -794,6 +933,7 @@ test "operation demand follows checked zero or three rows and both ordered Effec
         Some(source_query_original_fragment),
         None,
         [second, first],
+        provider_factory=_ => [],
       )
       is Err(ForeignOriginal),
     )
@@ -801,27 +941,381 @@ test "operation demand follows checked zero or three rows and both ordered Effec
 }
 
 ///|
+test "actual retained module provider envelopes determine the same checked task quote" {
+  let (prepared, request, contracts) = effect_operation_plan_inputs()
+  let small = @execution.execution_capacity(37L, 53L).unwrap()
+  let large = @execution.execution_capacity(137L, 253L).unwrap()
+  let make : (@execution.ExecutionCapacity) -> Array[@local.ManagedProvider] = capacity => {
+    [
+      @local.managed_provider(_ => true, _ => Some(capacity), (_, _, _, _, _) => {
+        Err(@connector.ComputeUnsupported)
+      }),
+    ]
+  }
+  let first = effect_operation_plan_fixture(prepared, request, contracts, provider_factory=_ => {
+    make(small)
+  })
+  let second = effect_operation_plan_fixture(prepared, request, contracts, provider_factory=_ => {
+    make(large)
+  })
+  let tasks = first.compute_sequences.length().to_int64()
+  assert_true(tasks > 0L)
+  assert_eq(
+    second._observed_compute_limits.retained_bytes -
+    first._observed_compute_limits.retained_bytes,
+    100L * tasks,
+  )
+  // RetainedAlongsideExecution includes this task's retained backing too.
+  assert_eq(
+    second._observed_compute_limits.execution_bytes -
+    first._observed_compute_limits.execution_bytes,
+    300L * tasks,
+  )
+}
+
+///|
+// Actual Effect inventory multiplicity is Int. Full Int64 count products keep
+// their independent accepted boundary cases in capacity_arithmetic.
 test "Effect extent preserves zero-byte domains and shares exact positive composition" {
   let maximum = 9223372036854775807L
-  assert_eq(installed_effect_add_extent(maximum, maximum, 0L), Some(maximum))
-  assert_eq(installed_effect_add_extent(0L, maximum, 0L), Some(0L))
-  assert_true(installed_effect_add_extent(-1L, 0L, 0L) is None)
-  assert_true(installed_effect_add_extent(0L, -1L, 0L) is None)
-  assert_true(installed_effect_add_extent(0L, 0L, -1L) is None)
+  let maximum_copies = 2147483647
+  assert_eq(
+    @execution.execution_capacity_inventory_add(
+      maximum,
+      QuotedBytes,
+      0L,
+      maximum_copies,
+    ),
+    Some(maximum),
+  )
+  assert_eq(
+    @execution.execution_capacity_inventory_add(
+      0L,
+      QuotedBytes,
+      0L,
+      maximum_copies,
+    ),
+    Some(0L),
+  )
+  assert_true(
+    @execution.execution_capacity_inventory_add(-1L, QuotedBytes, 0L, 0) is None,
+  )
+  assert_true(
+    @execution.execution_capacity_inventory_add(0L, QuotedBytes, -1L, 0) is None,
+  )
+  assert_true(
+    @execution.execution_capacity_inventory_add(0L, QuotedBytes, 0L, -1) is None,
+  )
   for coefficient in [1L, 2L, 8L, 256L, maximum] {
     for total in [0L, 1L, maximum - 1L, maximum] {
-      let count = (maximum - total) / coefficient
+      let boundary = (maximum - total) / coefficient
+      let count = Int64::min(boundary, maximum_copies.to_int64()).to_int()
       assert_eq(
-        installed_effect_add_extent(total, count, coefficient),
-        Some(total + count * coefficient),
+        @execution.execution_capacity_inventory_add(
+          total,
+          QuotedBytes,
+          coefficient,
+          count,
+        ),
+        Some(total + count.to_int64() * coefficient),
       )
-      if count < maximum {
+      if boundary < maximum_copies.to_int64() {
         assert_true(
-          installed_effect_add_extent(total, count + 1L, coefficient) is None,
+          @execution.execution_capacity_inventory_add(
+            total,
+            QuotedBytes,
+            coefficient,
+            count + 1,
+          )
+          is None,
         )
       }
     }
   }
-  assert_true(installed_effect_add_extent(-1L, 0L, 1L) is None)
-  assert_true(installed_effect_add_extent(0L, -1L, 1L) is None)
+}
+
+///|
+test "Effect Compute keeps the same checked four-row leaf demand before operation backing" {
+  let environment = @publication_host.admit_client_check_environment(
+    source_query_original_environment,
+    "sha256:05ee9059ef5f173069a3f3f1896e16ee62d34d0c842d81e9b0f8421db62e67a8",
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+  ).unwrap()
+  let contracts = prepare_installed_sequence_contracts(
+    source_query_original_registry,
+    source_query_original_values,
+    Some(source_query_original_fragment),
+    None,
+  ).unwrap()
+  for nested in [false, true] {
+    let (label_schema, label) = if nested {
+      (
+        "{\"type\":\"array\",\"items\":{\"type\":\"string\",\"nullable\":false},\"nullable\":false}",
+        "[\" é \u{1F600}\"]",
+      )
+    } else {
+      ("{\"type\":\"string\",\"nullable\":false}", "\" é \u{1F600}\"")
+    }
+    let document = "{\"version\":\"actql/0.1\",\"id\":\"effect-leaf-demand\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false},\"label\":" +
+      label_schema +
+      ",\"flag\":{\"type\":\"boolean\",\"nullable\":false}},\"rows\":[{\"id\":1,\"label\":" +
+      label +
+      ",\"flag\":true},{\"id\":2,\"label\":" +
+      label +
+      ",\"flag\":false},{\"id\":3,\"label\":" +
+      label +
+      ",\"flag\":true},{\"id\":4,\"label\":" +
+      label +
+      ",\"flag\":false}]},\"as\":\"seed\"}],\"results\":{\"rows\":{\"from\":\"seed\",\"fields\":[\"id\",\"label\",\"flag\"]}},\"effects\":{\"save\":{\"update\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"from\":{\"result\":\"rows\"},\"id\":\"id\",\"set\":{\"Name\":{\"field\":\"id\"}}}}}}],\"results\":{\"rows\":{\"from\":{\"stage\":\"main\",\"result\":\"rows\"}}}}"
+    let prepared = @publication_host.prepare_client_effect_computation(
+      document,
+      Json,
+      environment,
+      None,
+      [],
+      @publication_host.client_standard_effect_computation_limits(),
+    ).unwrap()
+    let request = @publication_host.prepare_client_effect_request_identity(
+      prepared,
+      "sha256:" + "a".repeat(64),
+      "effect-leaf-demand",
+      "sha256:" + "b".repeat(64),
+    ).unwrap()
+    let plan = effect_operation_plan_fixture(prepared, request, contracts)
+    assert_eq(plan.rows, 4)
+    assert_eq(plan.capacity_plan.imports.wire.max_columns, 3)
+    assert_eq(plan.capacity_plan.exports.wire.max_columns, 3)
+    assert_true(
+      physical_equal(plan.capacity_plan, plan.configuration.capacity_plan),
+    )
+    assert_true(
+      physical_equal(
+        plan.source_free.unwrap().capacity_plan,
+        plan.capacity_plan,
+      ),
+    )
+    if nested {
+      // An Array cell has no leaf proof. It must keep the existing general
+      // value envelope, rather than inheriting the neighbouring Text case.
+      assert_true(plan.capacity_plan.value_node_demand is None)
+    } else {
+      guard plan.capacity_plan.value_node_demand is Some(demand) else {
+        fail(
+          "checked Text/Number/Bool cells must retain their original leaf demand",
+        )
+      }
+      assert_eq(demand.rows, 4)
+      assert_eq(demand.original.fields, 3)
+      assert_true(demand.nodes < 100)
+      assert_true(
+        plan.limits.execution_bytes < client_local_execution_byte_ceiling(),
+      )
+      assert_true(
+        plan.limits.retained_bytes < client_local_retained_byte_ceiling(),
+      )
+      // SAME fixture extents: one 100/200 member and four copies of two
+      // 300/500 sends plus one 50/70 constructor. No attempt/body is erased.
+      assert_eq(
+        plan.limits.attempts - plan._observed_compute_limits.attempts,
+        9,
+      )
+      assert_eq(
+        plan.limits.transfer_bytes -
+        plan._observed_compute_limits.transfer_bytes,
+        121L,
+      )
+      assert_true(
+        plan.limits.retained_bytes >=
+        plan._observed_compute_limits.retained_bytes + 2700L,
+      )
+      assert_true(
+        plan.limits.execution_bytes >=
+        plan._observed_compute_limits.execution_bytes + 4480L,
+      )
+    }
+  }
+}
+
+///|
+test "standard capture extent refuses overflow and row-slot reuse without changing static extents" {
+  let (prepared, _, _) = effect_operation_plan_inputs()
+  let capacity = @execution.execution_capacity(
+    9223372036854775807L, 9223372036854775807L,
+  ).unwrap()
+  let template = prepare_installed_effect_capture_extent(
+    "capture",
+    @execution.execution_capacity(0L, 0L).unwrap(),
+    capacity,
+  ).unwrap()
+  assert_true(resolve_installed_effect_capture_extent(template, 2) is None)
+  assert_true(resolve_installed_effect_capture_extent(template, -1) is None)
+  assert_true(
+    prepare_installed_effect_operation_demand(prepared, 0, "save", [], [
+      template,
+    ])
+    is Err(Unsupported),
+  )
+  let static_extent = prepare_installed_effect_operation_extent(
+    "capture", capacity, 0L, false,
+  ).unwrap()
+  assert_true(
+    physical_equal(
+      resolve_installed_effect_capture_extent(static_extent, 3).unwrap(),
+      static_extent,
+    ),
+  )
+  assert_true(
+    prepare_installed_effect_capture_extent("", capacity, capacity)
+    is Err(Unsupported),
+  )
+  // The original structural-work guard applies before any template scan.
+  let work = @publication_host.client_standard_program_preparation_limits().max_graph_work
+  assert_true(
+    prepare_installed_effect_operation_demand(
+      prepared,
+      0,
+      "save",
+      [],
+      Array::make(work + 1, static_extent),
+    )
+    is Err(Unsupported),
+  )
+}
+
+///|
+test "Source Effect operations use their SAME checked Result bound after unknown input" {
+  let plan = effect_operation_source_plan_fixture(bounded_output=true)
+  assert_eq(plan.rows, 1)
+  // Two distinct original occurrences: one member and one row. The source
+  // still has its independent original acquisition/Compute allowance.
+  assert_eq(plan.held_children, 2)
+  assert_eq(plan.limits.attempts - plan._observed_compute_limits.attempts, 2)
+  assert_eq(
+    plan.limits.transfer_bytes - plan._observed_compute_limits.transfer_bytes,
+    14L,
+  )
+  assert_true(plan.capacity_plan.demand_inventory.unwrap().closed_rows is None)
+}
+
+///|
+test "Effect Result bounds preserve unknown inputs instead of assuming the observed rows" {
+  let plan = effect_operation_source_plan_fixture()
+  assert_eq(
+    plan.rows,
+    @publication_host.client_standard_values_sequence_limits().max_rows,
+  )
+  assert_eq(plan.held_children, 1 + plan.rows)
+}
+
+///|
+test "Effect Result bounds keep multiple original member occurrences and endpoint widths" {
+  let plan = effect_operation_source_plan_fixture(
+    bounded_output=true,
+    second_result=true,
+  )
+  assert_eq(plan.rows, 3)
+  assert_eq(plan.held_children, 8)
+  assert_eq(plan.limits.attempts - plan._observed_compute_limits.attempts, 8)
+  assert_eq(
+    plan.limits.transfer_bytes - plan._observed_compute_limits.transfer_bytes,
+    56L,
+  )
+}
+
+///|
+test "Effect Result bound inventory refuses foreign graph and spends the existing proof work" {
+  let plan = effect_operation_source_plan_fixture(bounded_output=true)
+  let graph = installed_managed_owner_graph(Effect(plan.prepared))
+  let effect = @publication_host.prepared_client_effect_computation_graph(
+    plan.prepared,
+  )
+  let proof = client_local_schema_proof_inventory(
+    plan.sequences,
+    graph=Some(graph),
+    scalar_only=false,
+    effect_sources=Some(effect),
+  ).unwrap()
+  assert_eq(proof.closed_rows, Some(1))
+  assert_eq(proof._observed_owner_count, 2)
+  assert_true(
+    client_local_schema_proof_inventory(
+      plan.sequences,
+      max_work=1,
+      graph=Some(graph),
+      scalar_only=false,
+      effect_sources=Some(effect),
+    )
+    is None,
+  )
+  let foreign = effect_operation_source_plan_fixture(bounded_output=true)
+  assert_true(
+    client_local_schema_proof_inventory(
+      plan.sequences,
+      graph=Some(graph),
+      scalar_only=false,
+      effect_sources=Some(
+        @publication_host.prepared_client_effect_computation_graph(
+          foreign.prepared,
+        ),
+      ),
+    )
+    is None,
+  )
+}
+
+///|
+test "preserving Effect request construction does not charge the distinct normalizing decoder" {
+  let empty = @execution.execution_capacity(0L, 0L).unwrap()
+  let request = installed_json_effect_request_construction_capacity(
+    empty, 100000, 10000, 16,
+  ).unwrap()
+  let normalized = installed_json_effect_response_construction_capacity(
+    empty, 100000, 10000, 16,
+  ).unwrap()
+  // Original request String/Bytes add real backing, but do not introduce
+  // the other decoder's NFC constructor. The native provider remains separate.
+  assert_true(
+    @execution.execution_capacity_retained_bytes(request) <
+    @execution.execution_capacity_retained_bytes(normalized),
+  )
+  assert_true(
+    @execution.execution_capacity_execution_bytes(request) <
+    @execution.execution_capacity_execution_bytes(normalized),
+  )
+  assert_eq(@execution.execution_capacity_retained_bytes(empty), 0L)
+  assert_true(
+    installed_json_effect_request_construction_capacity(empty, 0, 10000, 16)
+    is None,
+  )
+}
+
+///|
+test "preserving Effect request keeps the exact original native capacity and invalid-limit refusal" {
+  let empty = @execution.execution_capacity(0L, 0L).unwrap()
+  let native = @execution.execution_capacity(3L, 5L).unwrap()
+  let base = installed_json_effect_request_construction_capacity(
+    empty, 256, 16, 4,
+  ).unwrap()
+  let composed = installed_json_effect_request_construction_capacity(
+    native, 256, 16, 4,
+  ).unwrap()
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(composed),
+    @execution.execution_capacity_retained_bytes(base) + 3L,
+  )
+  assert_eq(
+    @execution.execution_capacity_execution_bytes(composed),
+    @execution.execution_capacity_execution_bytes(base) + 5L,
+  )
+  assert_eq(@execution.execution_capacity_retained_bytes(native), 3L)
+  assert_eq(@execution.execution_capacity_execution_bytes(native), 5L)
+  for (bytes, nodes, depth) in [(0, 16, 4), (256, 0, 4), (256, 16, 0)] {
+    assert_true(
+      installed_json_effect_request_construction_capacity(
+        native, bytes, nodes, depth,
+      )
+      is None,
+    )
+  }
 }

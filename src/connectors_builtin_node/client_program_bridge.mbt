@@ -288,6 +288,7 @@ pub fn client_program_preparation_issue_code(
             match owner {
               Syntax(_) => "program_syntax"
               EffectNotSupported(_) => "effect_not_supported"
+              ValuesProfileUnsupported => "values_profile_unsupported"
               NeedsInputs(_) => "needs_inputs"
               Check(diagnostic) =>
                 if @program_check.diagnostic_cause(diagnostic)
@@ -318,6 +319,65 @@ pub fn client_program_preparation_issue_code(
         },
       )
   }
+}
+
+///|
+/// Project the original Request terminal through the SAME existing semantic
+/// issue projection. No document, getter, checker or compiler is entered here.
+/// None deliberately preserves foreign/current/resource/Host uncertainty; it
+/// is not evidence that an input was invalid or that a Run was not accepted.
+#export_name("clientProgramRequestPreparationIssueCode")
+pub fn client_program_request_preparation_issue_code(
+  result : Result[String, @client_local_host.ClientRequestTerminalIssue],
+) -> String? {
+  let issue : ClientProgramBridgeIssue = match result {
+    Err(QuerySyntax(Frontend(issue)))
+    | Err(QueryLowering(Publication(Frontend(issue))))
+    | Err(Publication(Frontend(issue))) =>
+      return Some(client_source_preparation_issue_code(Frontend(issue)))
+    Err(QueryLowering(Publication(Publication(Declarations))))
+    | Err(Publication(Publication(Declarations))) =>
+      return Some(client_source_preparation_issue_code(Declarations))
+    Err(CheckOutcome(Rejected(diagnostic))) => Preparation(Check(diagnostic))
+    Err(CheckOutcome(NeedsInputs(_))) => return Some("needs_inputs")
+    Err(Preparation(ProgramCheck(Compilation(Syntax(issue)))))
+    | Err(Preparation(ProgramCheck(EffectCompilation(Syntax(issue)))))
+    | Err(Preparation(ProgramJson(Syntax(issue))))
+    | Err(Preparation(ProgramJson(Source(Syntax(issue))))) =>
+      Preparation(Check(@program_check.program_input_diagnostic(issue)))
+    Err(Preparation(ProgramCheck(Compilation(issue)))) => Preparation(issue)
+    Err(Preparation(ProgramCheck(EffectCompilation(issue)))) =>
+      return client_program_effect_preparation_issue_code(
+        EffectRejected(Preparation(issue)),
+      )
+    Err(Preparation(ProgramCheck(Check(issue))))
+    | Err(Preparation(ProgramCheck(Catalog(Check(issue)))))
+    | Err(
+      Preparation(
+        ProgramCheck(SourceRegistration(RegistrationConstruction(issue)))
+      )
+    ) =>
+      Preparation(Check(@program_check.construction_failure_diagnostic(issue)))
+    Err(Preparation(ProgramCheck(TopologyEntry(issue))))
+    | Err(Preparation(ProgramCheck(SourceRegistration(ContextInput(issue))))) =>
+      Preparation(Check(@program_check.source_context_diagnostic(issue)))
+    Err(Preparation(Parameters(InvalidFormat))) => InvalidFormat
+    Err(Preparation(Parameters(SuppliedSyntax(issue)))) => SuppliedSyntax(issue)
+    Err(Preparation(Parameters(SuppliedAdmission(issue)))) =>
+      SuppliedAdmission(issue)
+    Err(Preparation(ParameterDeclarations(issue))) =>
+      Preparation(
+        Check(
+          @program_check.source_declarations_diagnostic(
+            @stage_parameters.Declarations(issue),
+          ),
+        ),
+      )
+    Err(Preparation(ParameterSource(issue))) =>
+      Preparation(Check(@program_check.source_declarations_diagnostic(issue)))
+    _ => return None
+  }
+  client_program_preparation_issue_code(Rejected(issue))
 }
 
 ///|
@@ -713,6 +773,75 @@ pub fn client_program_issue_task_compiled_run(
   @publication_host.issue_client_task_compiled_run(
     prepared, compilation, execution_context_cid, host_policy_cid, expires_at,
   )
+}
+
+///|
+/// Borrow from the actual same-owner Run/Plan, never a ClosedValues phase.
+#export_name("clientProgramInstalledManagedRunCompilationOriginal")
+pub fn client_program_installed_managed_run_compilation_original(
+  run : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+) -> @publication_host.ClientRunCompilation? {
+  @client_local_host.installed_managed_run_compilation_original(run, prepared)
+}
+
+///|
+#export_name("clientProgramInstalledManagedRunInvocationOriginal")
+pub fn client_program_installed_managed_run_invocation_original(
+  run : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+) -> (
+  @publication_host.ClientQueryTimePreparation,
+  @publication_host.ClientRequestIdentity,
+  @publication_host.ClientCompiledRun,
+  @publication.PublicationContract,
+)? {
+  @client_local_host.installed_managed_run_invocation_original(run, prepared)
+}
+
+///|
+/// The existing closed compilation sum preserves its actual Values type.
+/// A foreign owner or wrong variant refuses in the original issuer; there is
+/// no recompile, identity cast or admission from an equal serialized body.
+#export_name("clientProgramIssueOriginalValuesCompiledRun")
+pub fn client_program_issue_original_values_compiled_run(
+  prepared : @publication_host.PreparedClientProgram,
+  original : @publication_host.ClientRunCompilation,
+  execution_context_cid : String,
+  host_policy_cid : String,
+  expires_at : String,
+) -> Result[
+  @publication_host.ClientCompiledRun,
+  @publication_host.ClientCompiledRunIssue,
+] {
+  match original {
+    Values(compilation) =>
+      @publication_host.issue_client_values_compiled_run(
+        prepared, compilation, execution_context_cid, host_policy_cid, expires_at,
+      )
+    _ => Err(ForeignOwner)
+  }
+}
+
+///|
+#export_name("clientProgramIssueOriginalTaskCompiledRun")
+pub fn client_program_issue_original_task_compiled_run(
+  prepared : @publication_host.PreparedClientProgram,
+  original : @publication_host.ClientRunCompilation,
+  execution_context_cid : String,
+  host_policy_cid : String,
+  expires_at : String,
+) -> Result[
+  @publication_host.ClientCompiledRun,
+  @publication_host.ClientCompiledRunIssue,
+] {
+  match original {
+    Tasks(compilation) =>
+      @publication_host.issue_client_task_compiled_run(
+        prepared, compilation, execution_context_cid, host_policy_cid, expires_at,
+      )
+    _ => Err(ForeignOwner)
+  }
 }
 
 ///|
@@ -1583,6 +1712,7 @@ pub fn client_program_compile_local_values(
   @publication_host.ClientValuesCompilation,
   ClientProgramValuesCompilationBridgeIssue,
 ] {
+  let limits = @publication_host.client_standard_pure_compilation_limits()
   let manifests = match client_generated_compilation_manifests() {
     Ok(manifests) => manifests
     Err(issue) => return Err(Manifests(issue))
@@ -1592,11 +1722,11 @@ pub fn client_program_compile_local_values(
       prepared,
       manifests,
       @publication_host.prepared_client_values_sequence_limits(prepared),
-      1000,
-      10000,
-      1000000,
-      100000,
-      100,
+      limits.max_facts,
+      limits.max_witnesses,
+      limits.max_wire_bytes,
+      limits.max_nodes,
+      limits.max_depth,
     ) {
     Ok(compiled) => Ok(compiled)
     Err(issue) => Err(Compilation(issue))
@@ -1655,6 +1785,7 @@ pub fn client_program_compile_local_tasks(
   @publication_host.ClientTaskCompilation,
   ClientProgramTaskCompilationBridgeIssue,
 ] {
+  let limits = @publication_host.client_standard_pure_compilation_limits()
   let manifests = match client_generated_compilation_manifests() {
     Ok(manifests) => manifests
     Err(issue) => return Err(Manifests(issue))
@@ -1663,11 +1794,11 @@ pub fn client_program_compile_local_tasks(
     prepared,
     manifests,
     @publication_host.prepared_client_values_sequence_limits(prepared),
-    1000,
-    10000,
-    1000000,
-    100000,
-    100,
+    limits.max_facts,
+    limits.max_witnesses,
+    limits.max_wire_bytes,
+    limits.max_nodes,
+    limits.max_depth,
   ).map_err(issue => Compilation(issue))
 }
 
@@ -7881,6 +8012,22 @@ pub fn client_program_query_time_context(
 }
 
 ///|
+/// Borrow the first bound invocation before module construction. Forward this
+/// opaque original Option unchanged; it neither issues nor binds another Run.
+#export_name("clientProgramQueryTimeInvocationOriginal")
+pub fn client_program_query_time_invocation_original(
+  preparation : @publication_host.ClientQueryTimePreparation,
+  owner : @publication_host.PreparedClientProgram,
+) -> (
+  @publication_host.ClientQueryTimePreparation,
+  @publication_host.ClientRequestIdentity,
+  @publication_host.ClientCompiledRun,
+  @publication.PublicationContract,
+)? {
+  @publication_host.client_query_time_preparation_invocation(preparation, owner)
+}
+
+///|
 #export_name("clientProgramBindQueryTime")
 pub fn client_program_bind_query_time(
   preparation : @publication_host.ClientQueryTimePreparation,
@@ -8616,6 +8763,57 @@ pub fn client_program_row_source_prepare_acquisition(
 }
 
 ///|
+/// The installing Source retains this same admitted protocol original on its
+/// existing initialization material; no wire/cid or grant is returned here.
+#export_name("clientProgramRowSourceAdmitAcquisitionContracts")
+pub fn client_program_row_source_admit_acquisition_contracts(
+  query_contract : String,
+  evidence_contract : String,
+) -> Result[
+  @planning.QueryEvidenceContracts,
+  @client_row_source_host.RowHostIssue,
+] {
+  @client_row_source_host.admit_row_acquisition_contracts(
+    query_contract, evidence_contract,
+  )
+}
+
+///|
+#export_name("clientProgramRowSourceAcquisitionContractsConstructionCapacity")
+pub fn client_program_row_source_acquisition_contracts_construction_capacity(
+  query_units : Int,
+  evidence_units : Int,
+) -> @execution.ExecutionCapacity? {
+  @client_row_source_host.row_acquisition_contracts_construction_capacity(
+    query_units, evidence_units,
+  )
+}
+
+///|
+#export_name("clientProgramRowSourcePrepareAcquisitionWithContracts")
+pub fn client_program_row_source_prepare_acquisition_with_contracts(
+  declaration : @client_row_source_host.RowDeclaration,
+  requirement : @planning.QueryRequirement,
+  contracts : @planning.QueryEvidenceContracts,
+  listing_policy : @capacity_policy.Policy?,
+) -> Result[
+  @client_row_source_host.RowAcquisition,
+  @client_row_source_host.RowHostIssue,
+] {
+  let preparation = match
+    @client_row_source_host.prepare_row_source(requirement, declaration) {
+    Ok(value) => value
+    Err(issue) => return Err(@client_row_source_host.Source(issue))
+  }
+  @client_row_source_host.prepare_declared_row_acquisition_with_contracts(
+    preparation,
+    declaration.connector_registration,
+    contracts,
+    listing_policy~,
+  )
+}
+
+///|
 #export_name("clientProgramRowSourceColumns")
 pub fn client_program_row_source_columns(
   acquisition : @client_row_source_host.RowAcquisition,
@@ -8864,6 +9062,23 @@ pub fn client_program_row_source_capture_source(
   capture : @client_row_source_host.RowSourceCapture,
 ) -> Result[@query.CapturedInputSource, @query.CapturedSourceIssue] {
   @client_row_source_host.row_capture_source(capture)
+}
+
+///|
+#export_name("clientProgramRowSourceIssueSourceEvidenceOriginal")
+pub fn client_program_row_source_issue_source_evidence_original(
+  acquisition : @client_row_source_host.RowAcquisition,
+  capture : @client_row_source_host.RowSourceCapture,
+  identity : @query.CapturedSourceRelationIdentity,
+  logical_input : @publication.RunEvidenceValue,
+  authority_scope_cid : String,
+  effective_data_policy_cid : String,
+  observed_at : String,
+) -> Result[@publication.RunEvidenceValue, @client_row_source_host.RowHostIssue] {
+  @client_row_source_host.issue_row_source_evidence(
+    acquisition, capture, identity, logical_input, authority_scope_cid, effective_data_policy_cid,
+    observed_at,
+  )
 }
 
 ///|

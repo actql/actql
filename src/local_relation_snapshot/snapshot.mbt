@@ -1,4 +1,7 @@
 ///|
+let snapshot_reference_field : String = "source_ref"
+
+///|
 pub(all) struct Limits {
   max_bytes : Int
   max_nodes : Int
@@ -141,36 +144,15 @@ pub fn read(
   if !valid_cid(expected_cid) || "sha256:" + @sha.hex(bytes) != expected_cid {
     return Err(IdentityMismatch)
   }
-  let node = match
-    @source.parse_json_bytes(bytes, {
-      max_input_bytes: limits.max_bytes,
-      max_nodes: limits.max_nodes,
-      max_depth: limits.max_depth,
-    }) {
-    Ok(v) => v
-    Err(e) =>
-      return Err(
-        match e.issue {
-          InputLimit | NodeLimit | DepthLimit => BudgetExceeded
-          _ => InvalidSnapshot
-        },
-      )
-  }
-  let cursor = match
-    @decode.admit(node, {
-      max_nodes: limits.max_nodes,
-      max_depth: limits.max_depth,
-      max_string_bytes: limits.max_bytes,
-      max_total_string_bytes: limits.max_bytes,
-    }) {
-    Ok(v) => v
-    Err(_) => return Err(BudgetExceeded)
+  let cursor = match admit_snapshot_body_owned(bytes, limits) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
   try {
     let object = match
       @decode.closed_object(cursor, [
-        "version", "source_ref", "output_carrier", "schema", "input_cid", "completeness",
-        "integration_binding_cid", "score_contracts", "column_presence",
+        "version", snapshot_reference_field, "output_carrier", "schema", "input_cid",
+        "completeness", "integration_binding_cid", "score_contracts", "column_presence",
       ]) {
       Ok(v) => v
       Err(_) => raise Stop(InvalidSnapshot)
@@ -180,7 +162,10 @@ pub fn read(
       raise Stop(InvalidSnapshot)
     }
     let reference = match
-      @reference.read(string(object, "source_ref"), max_bytes=limits.max_bytes) {
+      @reference.read(
+        string(object, snapshot_reference_field),
+        max_bytes=limits.max_bytes,
+      ) {
       Ok(v) => v
       Err(_) => raise Stop(InvalidSnapshot)
     }
@@ -303,6 +288,42 @@ pub fn read(
     Stop(e) => Err(e)
     _ => Err(BudgetExceeded)
   }
+}
+
+///|
+// The editable parser tree does not escape this scope. Only the original
+// immutable index and its borrowed String/Span bodies reach typed admission.
+// Limits, byte preflight, key normalization and typed error mapping are exact.
+fn admit_snapshot_body_owned(
+  bytes : Bytes,
+  limits : Limits,
+) -> Result[@decode.Cursor, Issue] {
+  let node = match
+    @source.parse_json_bytes(bytes, {
+      max_input_bytes: limits.max_bytes,
+      max_nodes: limits.max_nodes,
+      max_depth: limits.max_depth,
+    }) {
+    Ok(v) => v
+    Err(e) =>
+      return Err(
+        match e.issue {
+          InputLimit | NodeLimit | DepthLimit => BudgetExceeded
+          _ => InvalidSnapshot
+        },
+      )
+  }
+  let cursor = match
+    @decode.admit(node, {
+      max_nodes: limits.max_nodes,
+      max_depth: limits.max_depth,
+      max_string_bytes: limits.max_bytes,
+      max_total_string_bytes: limits.max_bytes,
+    }) {
+    Ok(v) => v
+    Err(_) => return Err(BudgetExceeded)
+  }
+  Ok(cursor)
 }
 
 ///|

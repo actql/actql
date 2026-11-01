@@ -1,3 +1,4 @@
+import {retainFirstAndLatestCleanupError} from './managed-failure.mjs';
 // Physical adapter for one MoonBit-owned canonical CompletedOutput export.
 // It streams batches directly to an installed durable Store. Logical Result
 // identity, Artifact admission, publication commit, and retention remain
@@ -50,6 +51,7 @@ function validIdentity(value) {
 }
 
 function payloadFailure(reason, cleanupErrors, cleanupOwners, control) {
+  const initialErrorCount = cleanupErrors.length;
   // The caller's throwable can be a primitive or an immutable Error. Keep all
   // cleanup metadata on an envelope owned by this adapter.
   const failure = new DurableResultPayloadError(
@@ -94,7 +96,7 @@ function payloadFailure(reason, cleanupErrors, cleanupOwners, control) {
           if (action === 'retry') {
             retryAttempted = true;
             try { await cleanupOwners[currentOwner].retry(); }
-            catch (error) { cleanupErrors.push(error); }
+            catch (error) { retainFirstAndLatestCleanupError(cleanupErrors, error, initialErrorCount); }
             continue;
           }
           if (action === 'advance') {

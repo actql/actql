@@ -18,8 +18,9 @@ priv struct LocalCommandBusinessPreparation {
   intent : @run_host.ClientSubmittedIntent
   preparation : @local_host.NativeClientSubmittedPreparation
   prepared : @run_host.PreparedClientProgram
-  requirements : @local_values.ClientLocalSourceFreeRequirements
+  requirements : @local_values.ClientLocalRequirements
   installed_contracts : @local_values.ClientInstalledSequenceContracts
+  submission : LocalRunSubmission?
 }
 
 ///|
@@ -32,6 +33,7 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
   input_root : String,
   operation : String,
   child : @argparse.Matches,
+  original_input? : (LocalRunSubmission, @run_host.ClientSubmittedIntent)? = None,
 ) -> LocalCommandBusinessPreparation raise ClientStop {
   native_timing_begin(30)
   defer native_timing_end(30)
@@ -52,10 +54,21 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
   if operation != "aql" && operation != "sql" && operation != "start" {
     stop("LocalBusinessProgramUnavailable")
   }
-  // Saved references use their saved originals. They must not prepare the
-  // current file or re-resolve an installation under this fresh-only route.
+  // The explicit path supplies its already read original reference and input
+  // snapshot. Admitted Runs are observed before reaching this constructor;
+  // a still-preparing intent supplies its original input to first completion.
   if optional(child, "submission-ref-file") is Some(_) ||
     optional(child, "operation-attempt-id") is Some(_) {
+    guard original_input is Some((submission, _)) &&
+      !submission.fresh &&
+      optional(child, "operation-attempt-id") == Some(submission.attempt) &&
+      local_submission_nonce_matches(
+        submission.reference,
+        optional(child, "request-id"),
+      ) else {
+      stop("LocalBusinessOriginalReferenceRequired")
+    }
+  } else if original_input is Some(_) {
     stop("LocalBusinessOriginalReferenceRequired")
   }
   let configuration_name = configuration.configuration_name
@@ -87,12 +100,16 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
       "runtime.json",
     ),
   )
-  let intent = @run_host.prepare_client_submitted_intent(
-    local_intent_wire(input_root, operation, child),
-    65536,
-    8192,
-    64,
-  ).unwrap_or_else(() => stop("LocalSubmittedInputNotAdmitted"))
+  let intent = match original_input {
+    Some((_, intent)) => intent
+    None =>
+      @run_host.prepare_client_submitted_intent(
+        local_intent_wire(input_root, operation, child),
+        65536,
+        8192,
+        64,
+      ).unwrap_or_else(() => stop("LocalSubmittedInputNotAdmitted"))
+  }
   let preparation = local_prepare_submitted_run_program(intent, environment)
   guard @local_host.native_client_submitted_preparation(preparation)
     is Computation(prepared) else {
@@ -146,6 +163,7 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
     prepared,
     requirements,
     installed_contracts: runtime.installed_contracts,
+    submission: original_input.map(value => value.0),
   }
   if !selection.current(host, settings, environment) {
     stop("LocalSubmissionAuthorizationDenied")

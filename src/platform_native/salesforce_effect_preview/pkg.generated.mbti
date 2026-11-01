@@ -8,7 +8,7 @@ import {
   "actql/actql/effect_application",
   "actql/actql/execution_authorization",
   "actql/actql/execution_relation",
-  "actql/actql/physical_strategy",
+  "actql/actql/physical_strategy_host",
   "actql/actql/platform_native/bounded_files",
   "actql/actql/platform_native/credential_resource",
   "actql/actql/platform_native/http_client",
@@ -29,13 +29,15 @@ pub fn admit_native_effect_resolution(@signature.Library, @checkpoint_runtime.Se
 
 pub fn authenticate_native_effect_reviewer(NativeEffectReviewerInstallation, NativeEffectReviewerSelection, String, @checkpoint_runtime.WireLimits) -> Result[@checkpoint_runtime.HostAuthentication, NativeResidentEffectResolutionIssue]
 
+pub fn authenticate_native_effect_wrapper_reviewer(NativeEffectReviewerInstallation, NativeEffectReviewerSelection, String, String, @checkpoint_runtime.WireLimits) -> Result[@checkpoint_runtime.HostAuthentication, NativeResidentEffectResolutionIssue]
+
 pub fn install_native_effect_host_account(NativeEffectHostAccountFile?, read_ceiling? : Int, diagnostic_ceiling? : Int?, require_current_read_context? : Bool, on_read_failure? : ((@bounded_files.NativeBoundedTextFailure) -> Unit)?, read_scope_current? : (() -> Bool)?) -> Result[NativeEffectHostAccountInstallation?, NativeEffectHostAccountInstallationIssue]
 
 pub fn observe_and_retain_native_salesforce_named_catalog(@credential_resource.NativeCredentialResourceService, @remote_credential.RemoteCredentialGrant, String, @credential_resource.NativeCredentialScope, @catalog.CatalogObservationBinding, String, String, String, @catalog.DescribeLimits, Int, @publication_store.Store, @signature.Library, Bytes, () -> Bool) -> Result[(@publication_store.EffectCatalogCustody, @publication_store.NativeEffectCatalogResponse), NativeSalesforceCatalogCustodyFailure]
 
 pub fn observe_native_local_salesforce_effect_target(@credential_resource.NativeCredentialResourceService, @remote_credential.LocalPreparationCredentialGrant, String, @remote_credential.LocalPreparationCredentialScope, String, @catalog.LocalTargetReadRequest, @catalog.CatalogObservation, @catalog.TargetObservationLimits, () -> Bool) -> Result[NativeLocalSalesforceTargetObservation, NativeSalesforcePreviewIssue]
 
-pub fn observe_native_resident_effect_targets(@remote_resident_host.ResidentSourceCompute, @run_publication_host.ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, Int, String, Int, @catalog.ExecutionMapping, @catalog.WriteProjection, @catalog.CatalogObservation, String, @run_publication_host.PublicationOutputExportLimits, @catalog.WriteBodyLimits, @catalog.WriteRequestLimits, @catalog.TargetObservationLimits, Int, Int, Int, Int, (Int, @catalog.SingleWriteRequest) -> Result[NativeSalesforceTargetAccess, NativeSalesforcePreviewIssue]) -> Result[Array[(@catalog.SingleWriteRequest, String, @catalog.TargetObservation, @catalog.TargetPreviewRow)], NativeResidentEffectTargetIssue]
+pub fn observe_native_resident_effect_targets(@remote_resident_host.ResidentSourceCompute, @run_publication_host.ClientEffectRunMaterials, @physical_strategy_host.CapturedEffectInputs, Int, String, Int, @catalog.ExecutionMapping, @catalog.WriteProjection, @catalog.CatalogObservation, String, @run_publication_host.PublicationOutputExportLimits, @catalog.WriteBodyLimits, @catalog.WriteRequestLimits, @catalog.TargetObservationLimits, Int, Int, Int, Int, (Int, @catalog.SingleWriteRequest) -> Result[NativeSalesforceTargetAccess, NativeSalesforcePreviewIssue]) -> Result[Array[(@catalog.SingleWriteRequest, String, @catalog.TargetObservation, @catalog.TargetPreviewRow)], NativeResidentEffectTargetIssue]
 
 pub fn observe_native_salesforce_effect_target(@credential_resource.NativeCredentialResourceService, @remote_credential.RemoteCredentialGrant, String, @credential_resource.NativeCredentialScope, String, @catalog.SingleWriteRequest, @catalog.CatalogObservation, @catalog.TargetObservationLimits) -> Result[(String, @catalog.TargetObservation, @catalog.TargetPreviewRow), NativeSalesforcePreviewIssue]
 
@@ -43,11 +45,11 @@ pub fn observe_native_salesforce_named_catalog(@credential_resource.NativeCreden
 
 pub fn prepare_native_resident_create_review_mapping(@run_publication_host.PreparedClientEffectComputation, Int, String, @catalog.CatalogObservation, @catalog.CatalogObservationBinding, String, String, @catalog.DeclarationLimits, Int, Int) -> Result[(@catalog.ExecutionMapping, @catalog.WriteProjection), NativeResidentEffectCatalogPolicyIssue]
 
-pub fn prepare_native_resident_effect_created_targets(@remote_resident_host.ResidentSourceCompute, @run_publication_host.ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, Int, String, Int, @catalog.ExecutionMapping, @catalog.WriteProjection, String, @run_publication_host.PublicationOutputExportLimits, @catalog.WriteBodyLimits, @catalog.WriteRequestLimits, Int, Int, Int, Int, Int) -> Result[NativeResidentEffectCreatedTargets, NativeResidentEffectTargetIssue]
+pub fn prepare_native_resident_effect_created_targets(@remote_resident_host.ResidentSourceCompute, @run_publication_host.ClientEffectRunMaterials, @physical_strategy_host.CapturedEffectInputs, Int, String, Int, @catalog.ExecutionMapping, @catalog.WriteProjection, String, @run_publication_host.PublicationOutputExportLimits, @catalog.WriteBodyLimits, @catalog.WriteRequestLimits, Int, Int, Int, Int, Int) -> Result[NativeResidentEffectCreatedTargets, NativeResidentEffectTargetIssue]
 
-pub fn prepare_native_resident_effect_preview(@remote_resident_host.ResidentSourceCompute, @run_publication_host.ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, @run_publication_host.ClientRequestIdentity, Int, String, Int, @run_publication_host.ClientEffectLocalResultArtifact, @run_publication.PublicationContract, @run_publication.PublicationContract, String, String, @catalog.ExecutionMapping, String, @catalog.CatalogObservation, Array[(@catalog.SingleWriteRequest, String, @catalog.TargetObservation, @catalog.TargetPreviewRow)], @run_publication_host.ClientCapturedEffectPreviewLimits, @run_publication_host.PublicationOutputExportLimits, NativeEffectDispatchKeyLimits, created_targets? : NativeResidentEffectCreatedTargets?) -> Result[NativeResidentEffectPreview, NativeResidentEffectPreviewIssue]
+pub fn prepare_native_resident_effect_preview(@remote_resident_host.ResidentSourceCompute, @run_publication_host.ClientEffectRunMaterials, @physical_strategy_host.CapturedEffectInputs, @run_publication_host.ClientRequestIdentity, Int, String, Int, @run_publication_host.ClientEffectLocalResultArtifact, @run_publication.PublicationContract, @run_publication.PublicationContract, String, String, @catalog.ExecutionMapping, String, @catalog.CatalogObservation, Array[(@catalog.SingleWriteRequest, String, @catalog.TargetObservation, @catalog.TargetPreviewRow)], @run_publication_host.ClientCapturedEffectPreviewLimits, @run_publication_host.PublicationOutputExportLimits, NativeEffectDispatchKeyLimits, created_targets? : NativeResidentEffectCreatedTargets?) -> Result[NativeResidentEffectPreview, NativeResidentEffectPreviewIssue]
 
-pub fn prepare_native_resident_effect_review(@remote_resident_host.ResidentRetainedConsumer, @remote_journal.Journal, @run_publication_host.ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, @remote_resident_host.ResidentEffectProducerCapture, @run_publication_host.ClientEffectLocalResultArtifact, @run_publication_host.ClientEffectImportedEvidence, Int, @remote_resident_host.ResidentEffectResultCapture, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, NativeResidentEffectReviewPolicy) -> Result[NativeResidentEffectReview, NativeResidentEffectReviewIssue]
+pub fn prepare_native_resident_effect_review(@remote_resident_host.ResidentRetainedConsumer, @remote_journal.Journal, @run_publication_host.ClientEffectRunMaterials, @physical_strategy_host.CapturedEffectInputs, @remote_resident_host.ResidentEffectProducerCapture, @run_publication_host.ClientEffectLocalResultArtifact, @run_publication_host.ClientEffectImportedEvidence, Int, @remote_resident_host.ResidentEffectResultCapture, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, NativeResidentEffectReviewPolicy) -> Result[NativeResidentEffectReview, NativeResidentEffectReviewIssue]
 
 pub fn prepare_native_resident_effect_review_from_catalog_custody(@remote_resident_host.ResidentRetainedConsumer, @remote_journal.Journal, @remote_resident_host.ResidentEffectReviewInputContext, @publication_store.EffectCatalogCustody, @catalog.CatalogObservationBinding, String, String, @catalog.DeclarationLimits, NativeResidentEffectReviewConfiguration, () -> Bool) -> Result[NativeResidentEffectReview, NativeResidentEffectReviewPreparationFailure]
 
@@ -61,7 +63,7 @@ pub fn retry_native_salesforce_catalog_custody(@publication_store.EffectCatalogC
 
 pub fn upload_native_resident_original_review_projection(@remote_resident_host.ResidentEffectReviewInputContext, @remote_journal.Journal, @publication_store.Store, String, @signature.Library, Bytes, @checkpoint_runtime.WireLimits, @http_client.Client, String, String, () -> Bool) -> Result[Unit, NativeResidentEffectReviewUploadIssue]
 
-pub fn visit_native_effect_target_requests(@remote_resident_host.ResidentSourceCompute, @run_publication_host.ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, Int, String, Int, @catalog.ExecutionMapping, @catalog.WriteProjection, String, @run_publication_host.PublicationOutputExportLimits, @catalog.WriteBodyLimits, @catalog.WriteRequestLimits, Int, Int, Int, Int, () -> Bool, (Int, @catalog.SingleWriteRequest) -> Result[Unit, NativeResidentEffectTargetIssue]) -> Result[Int, NativeResidentEffectTargetIssue]
+pub fn visit_native_effect_target_requests(@remote_resident_host.ResidentSourceCompute, @run_publication_host.ClientEffectRunMaterials, @physical_strategy_host.CapturedEffectInputs, Int, String, Int, @catalog.ExecutionMapping, @catalog.WriteProjection, String, @run_publication_host.PublicationOutputExportLimits, @catalog.WriteBodyLimits, @catalog.WriteRequestLimits, Int, Int, Int, Int, () -> Bool, (Int, @catalog.SingleWriteRequest) -> Result[Unit, NativeResidentEffectTargetIssue]) -> Result[Int, NativeResidentEffectTargetIssue]
 
 // Errors
 
@@ -271,8 +273,8 @@ pub(all) struct NativeResidentEffectPreview {
   wire : String
   authoring : @run_publication.RunEvidenceValue
   source : @run_publication.PublicationContract
-  preview : @physical_strategy.CapturedEffectPreviewInputs
-  proof : @physical_strategy.CapturedEffectPlanProof?
+  preview : @physical_strategy_host.CapturedEffectPreviewInputs
+  proof : @physical_strategy_host.CapturedEffectPlanProof?
   identity : @run_publication_host.ClientEffectLocalIdentity
   keys : Array[@effect_application.EffectDispatchKey]
   capability : @catalog.WriteCapabilityEvidence

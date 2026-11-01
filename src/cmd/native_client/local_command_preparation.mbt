@@ -26,7 +26,6 @@ priv enum LocalCommandPreparationIssue {
   CommandInvalidProfile
   CommandNativeStorage(LocalCommandNativeStorageIssue)
   CommandUnavailable
-  CommandBacking(Int)
   CommandHost(@initial_bootstrap.NativeBootstrapIssue)
   CommandDomain(@initial_bootstrap.NativeBackedExecutionIssue)
   CommandRead(@initial_arena.InstalledArenaOriginalReadIssue)
@@ -79,13 +78,15 @@ priv struct LocalCommandPreparationOriginal {
   mut read_inventory_recorded : Bool
   mut business_inventory_recorded : Bool
   mut run_observation : LocalCommandRunObservationOriginal?
+  cancellation_recovery : Ref[String?]
   mut host : @initial_arena.InstalledArenaHost?
   mut backing_scope : @initial_arena.InstalledArenaBackingBorrow?
   mut backing_entered : Bool
   mut read_domain : @initial_arena.InstalledArenaDomain?
   mut sqlite_domain : @initial_arena.InstalledArenaDomain?
   mut read : @initial_arena.InstalledArenaOriginalRead?
-  mut consumer : @initial_arena.InstalledArenaOriginalReadConsumer?
+  // Retain the original joined Read consumer until its existing cleanup ACK.
+  mut _retained_consumer : @initial_arena.InstalledArenaOriginalReadConsumer?
   mut sqlite : @initial_arena.InstalledArenaSqliteLibrary?
   mut pair : @initial_arena.InstalledArenaLocalHostResources?
   mut runtime : @local_host.NativeLocalPackagedRuntime?
@@ -187,6 +188,7 @@ fn prepare_local_command_preparation_original(
     read_inventory_recorded: false,
     business_inventory_recorded: false,
     run_observation: None,
+    cancellation_recovery: Ref(None),
     business: business.map(candidate => {
       profile: candidate,
       selected_profile: None,
@@ -203,12 +205,12 @@ fn prepare_local_command_preparation_original(
       store_root_failure: None,
       store_root_operation: None,
       publication_publisher: None,
-      publication_service: None,
+      _retained_publication_service: None,
       publication_results: None,
       publication_pending: None,
       publication_failure: None,
-      publication_commit_failure: None,
-      publication_cleanup_failure: None,
+      _retained_publication_commit_failure: None,
+      _retained_publication_cleanup_failure: None,
       publication_attempted: false,
       publication_result: None,
       run_receipt_original: None,
@@ -228,7 +230,7 @@ fn prepare_local_command_preparation_original(
     read_domain: None,
     sqlite_domain: None,
     read: None,
-    consumer: None,
+    _retained_consumer: None,
     sqlite: None,
     pair: None,
     runtime: None,
@@ -529,7 +531,7 @@ fn LocalCommandPreparationOriginal::acquire_runtime(
       )
       .map_err(issue => CommandPair(issue)),
     )
-    self.consumer = Some(consumer)
+    self._retained_consumer = Some(consumer)
     // This fixed registration belongs to the selected outer control lifetime,
     // before any entry of the one consuming phase. It is not another Read quote.
     self.component = Some(
@@ -950,7 +952,7 @@ fn LocalCommandPreparationOriginal::close_checked(
           .map_err(issue => CommandPair(issue)),
         )
         self.pair = None
-        self.consumer = None
+        self._retained_consumer = None
         self.read = None
         self.sqlite = None
       } else {
@@ -1293,7 +1295,10 @@ fn LocalCommandPreparationOriginal::prepare_adopted_journal(
       let crypto = command_preparation_value(self.library(true))
       let material = command_preparation_value(
         session
-        .create_initial_signing_material(crypto)
+        .create_initial_signing_material(
+          crypto,
+          host_signing_subject=options.initial_host_signing,
+        )
         .map_err(original => CommandAdoption(original.issue())),
       )
       command_preparation_value(

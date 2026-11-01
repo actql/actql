@@ -35,9 +35,20 @@ export function captureSourcePreparation(port) {
   const publicationField = descriptor(receiver, 'publishSourceSnapshot');
   const publication = publicationField !== undefined && hasOwn(publicationField, 'value') &&
     typeof publicationField.value === 'function' ? publicationField.value : undefined;
+  const captureField = descriptor(receiver, 'captureSourceSnapshot');
+  if (captureField !== undefined && (!hasOwn(captureField, 'value') ||
+      typeof captureField.value !== 'function')) throw unavailable();
+  const capture = captureField?.value;
   const queryField = descriptor(receiver, 'beforeSourceQuery');
   const beforeQuery = queryField !== undefined && hasOwn(queryField, 'value') &&
     typeof queryField.value === 'function' ? queryField.value : undefined;
+  // This optional same-receipt fence belongs to the selected Source owner.
+  // Legacy receivers keep their original snapshot/bind path. A present port
+  // must be own DATA; an accessor or async result cannot admit a later phase.
+  const snapshotCurrentField = descriptor(receiver, 'assertSourceSnapshotCurrent');
+  if (snapshotCurrentField !== undefined && (!hasOwn(snapshotCurrentField, 'value') ||
+      typeof snapshotCurrentField.value !== 'function')) throw unavailable();
+  const snapshotCurrent = snapshotCurrentField?.value;
   // Result support is separately selected by this same installation. Its
   // absence cannot break connect or Source submission, but cannot fund a read.
   const resultField = descriptor(receiver, 'beforeResultRead');
@@ -55,9 +66,9 @@ export function captureSourcePreparation(port) {
     }
   };
   return Object.freeze({
-    beforeSourceQuery(format, text, parameters, options) {
+    beforeSourceQuery(format, text, parameters, options, originalConnection) {
       if (beforeQuery === undefined) throw unavailable();
-      const receipt = apply(beforeQuery, receiver, [format, text, parameters, options]);
+      const receipt = apply(beforeQuery, receiver, [format, text, parameters, options, originalConnection]);
       if (receipt instanceof originalPromise) {
         apply(promiseThen, receipt, [undefined, () => {}]);
         throw unavailable();
@@ -80,6 +91,23 @@ export function captureSourcePreparation(port) {
         throw unavailable();
       }
       return receipt;
+    },
+    assertSourceSnapshotCurrent(receipt) {
+      if (snapshotCurrent === undefined) return;
+      const value = apply(snapshotCurrent, receiver, [receipt]);
+      if (value !== undefined) {
+        if (value instanceof originalPromise) apply(promiseThen, value, [undefined, () => {}]);
+        throw unavailable();
+      }
+    },
+    captureSourceSnapshot(receipt, value, snapshot) {
+      if (capture === undefined) return snapshot(value);
+      const result = apply(capture, receiver, [receipt, value, snapshot]);
+      if (result instanceof originalPromise) {
+        apply(promiseThen, result, [undefined, () => {}]);
+        throw unavailable();
+      }
+      return result;
     },
     bindSourceSnapshot(receipt, originalFrozenBody) {
       return apply(snapshot, receiver, [receipt, originalFrozenBody]);

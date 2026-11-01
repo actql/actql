@@ -19,6 +19,7 @@ fn journal_encoding_original() -> ClientRunJournalEncoding {
     publication_binding: None,
     publication_policy_originals: None,
     effect_material_originals: None,
+    task_materials_cid: None,
     checkpoint: None,
   }
 }

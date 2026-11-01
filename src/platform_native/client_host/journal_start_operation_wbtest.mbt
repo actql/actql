@@ -3,7 +3,7 @@
 // scope, business capacity or authority is supplied by this diagnostic.
 fn journal_start_operation_fixture(
   name : String,
-) -> (@sqlite.Database, NativeClientRunJournal, @host.ClientRequestIdentity) raise {
+) -> (@sqlite.Database, NativeClientRunJournal, @host.ClientRequestIdentity) {
   let database = epoch_test_database(name)
   initialize_native_client_run_journal(database).unwrap()
   let journal = open_native_client_run_journal(database, 8).unwrap()

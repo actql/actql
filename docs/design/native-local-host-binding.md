@@ -489,6 +489,226 @@ paired Checkpoint, current Client/Reviewer/key gates, exact purpose/earlier boun
 and material custody through actual physical signature and final acknowledgement.
 No public default-signer or Node physical supplier follows from this storage port.
 
+### Original private-file signing
+
+The existing Signature Library may retain one physical attempt over the same
+private-file projection, expected public key and immutable preimage. Preparation
+reads no private material and grants no Credential use. The Host must confirm
+the exact original use and recheck its subject, key and authority before calling
+the spent-once physical operation. HTTP permissions and grant metadata cannot
+select this signing boundary.
+
+The physical operation opens only the existing projection below its original
+Root, retaining even a rejected partial descriptor until its own close. It
+keeps that projection Owner's existing 8192-byte ceiling, reads at most the
+original bounded PEM plus one overflow byte, and checks
+the same descriptor/named generation before and after signing, and compares the
+decoded actual public key before entering Ed25519 signing. Private bytes remain
+in native scratch and are cleared before retirement; no private PEM getter is
+introduced. The same Library's original scoped allocator/component lifetime is
+retained. Legacy raw-Library diagnostics establish none of that installed
+funding or authorization.
+
+An attempt is spent before its first fallible physical/current check. Foreign
+process/thread use cannot spend or retire that original. A completed signature
+can be copied as immutable DATA only after the key descriptor close is
+acknowledged; copying it creates no new signature or use. The Host's current
+return gate, durable outcome and Resolution/attestation admission remain
+independent. A failed post-signature generation check does not prove that no
+signature occurred.
+
+The original attempt remains a Library child until explicit cleanup. Pending
+descriptor closure retains the same receiver and primary result, blocks its
+signature export and Library ACK, and never retries the consumed close. A
+finalizer cannot turn that pending duty into a returned acknowledgement. This
+physical child supplies no default Reviewer, Host attestation authority,
+approval application or resume permit.
+
+The Credential journal records terminal signing metadata only for its exact
+already-claimed original use, in the Host's active, unfenced transaction. It
+readmits the complete original claim/use and finite history before and after
+the insert. A copied use, absent claim, changed body, conflicting terminal
+outcome or lost transaction is not repaired. Repeating the same terminal tag
+is only an idempotent metadata observation; Unknown and Failed cannot become
+Succeeded. This write neither allocates another ordinal nor samples a clock.
+The Host must retain its authenticated signature original in that same
+transaction and confirm the real commit before returning success. Metadata
+readback after a lost commit return is not a signature, new signing attempt,
+current permission, Resolution or physical cleanup acknowledgement.
+
+The original initial Reviewer proof connection retains one such signing child
+in the same adopted Host before any later current callback. Its immutable
+subject view is issued by the actual paired capture Owner; the final lifetime
+fence invokes no callback and cannot keep a retired reservation alive. Original
+process/thread ownership is observed without callbacks before the Host spends
+its local phase; foreign use cannot consume the original caller's phase. This
+observation is not key/current authority, a new use or a cleanup acknowledgement.
+Complete proof/current callbacks surround the Journal phases. Inside an already-owned
+transaction, the closed Host predicate rereads the original Client RunRead,
+independent Reviewer resolve/key/configuration and same complete Checkpoint
+snapshot instead of recursively entering another Journal transaction. Approved
+proof preparation retains the existing cancellation refusal; the original
+Rejected decision is not changed into approval or automatically refused solely
+because cancellation was requested.
+
+Only a confirmed original grant/use transaction can select the physical signer.
+An uncertain claim commit cannot sign. A historical use never selects another
+signature, even when its output was lost. A successful original signature and
+the terminal metadata are retained in one later Journal transaction, using the
+existing epoch-authenticated record envelope bound to the exact operation,
+grant/use, public-key identity and proof preimage. Missing or changed signature
+custody cannot be repaired from a Succeeded tag. The same transaction retains
+the complete Resolution emitted by the existing Checkpoint codec, authenticating
+its exact byte digest in that small signature record. The wire, signature packet
+and original grant spend the same existing 64 KiB per-Run grant bucket; no new
+capacity or physical holding is issued. Missing, changed or orphan wire rows
+refuse. Legacy signature-only records remain metadata and cannot be backfilled.
+The current original Reviewer binding can restore only that complete retained
+candidate, rechecking its original Credential expiry/revocation, actual paired
+subject and physical Reviewer signature. It neither chooses a new decision time
+nor constructs an unsigned body or signs again. A returned candidate is
+surrounded by actual current checks; it
+still has no Host attestation, Resolution admission or continuation permission.
+The retained physical child closes before Host database/Root cleanup. Failure
+keeps that same receiver, and no new initial key or configured-signer fallback
+is selected.
+Losing the managed signing receiver permits only best-effort physical cleanup.
+Its finalizer does not decrement the Library's pending-signature count: a
+retained parent cannot infer an explicit child acknowledgement from GC. Only
+successful explicit close acknowledges that child; an uncertain descriptor
+close remains unconfirmed and is not retried by finalization.
+
+Fresh explicit default initialization creates two distinct original RFC8410
+files in the same exclusive Store initialization: the existing Reviewer key
+and `local-host-attestation-key.pem`. Each exclusive Writer is acquired before
+key generation and retired through its original failure carrier. The one-time
+initialization phase is spent before either generation; a second-file failure
+does not expose adopted paired material or permit generation replay. Both
+public keys, file projections, purposes and the same initial policy/issuer are
+epoch-authenticated in the bounded original Host control record. The existing
+2048-byte payload and 8192-byte control bounds are unchanged.
+
+The independent Host original reader restores only that exact authenticated
+generation. Raw and legacy Reviewer-only controls remain readable as their
+original metadata but cannot obtain a missing Host key, even when a PEM exists
+at the expected path. Changed/missing files, a foreign initial intent, equal
+public keys or file identities, and changed purpose refuse. Public-key/policy
+projection supplies no actor or Account decision, use claim, attestation or
+approval. Operational Host signing still requires its independent current
+purpose authority, exact admitted preimage, durable use and actual key operation.
+
+After the original claim commits, actual signing and signature disclosure also
+recheck that same durable use against the existing trusted-clock lower bound,
+absolute expiry and live revocation row in an active original Journal
+transaction. The revocation read follows the Host's current/key/row callbacks
+and clock observation; the final original-subject lifetime fence invokes no
+callback. Returning a stored signature uses the same gate, including after the
+last full current callback. Neither a Succeeded history tag nor the earlier
+claim renews eligibility. The original first-issue sample, grant expiry and use
+ordinal remain unchanged. Only the existing clock lower bound can advance;
+failure rolls it back with the caller's transaction. Metadata-only history
+reads remain read-only and can still describe an expired or revoked use.
+
+The Local operational Resolution-admission assembly obtains its Host
+verification authority from the same Host's authenticated configured
+HostAttestation key original. It checks the original EffectSet role, current
+role-specific Account and selected configuration, HMAC installation record and
+physical key generation. The existing physical public-key decoder compares
+raw bytes with the independently registered Reviewer key; different PEM text
+or key labels cannot make one key serve both roles. The generic Native
+verification interface for independently supplied installed public authorities
+is unchanged. This Local connection supplies no signature, signing use or new
+authority registration. Operational attestation signing and the paired caller
+must still be connected before exposing Local approval application.
+
+Local Reviewer authentication also retains the actual signed Resolution wire
+and its original decoder limits. At wrapper admission, the existing Native
+framing reader extracts the embedded Resolution, compares its complete
+canonical wire with that retained original, and reuses the same physical
+Reviewer verifier and current registration ports. The proof signature and
+Resolution self identity cannot be changed merely because their unsigned
+proof preimage is equal. The original canonical encoder owns key ordering;
+this connection adds no schema, identity domain or semantic parser. Both held
+wires and overlapping bounded decoder/encoding workspace remain part of the
+caller's actual resource supply. Wrapper framing/proof authentication alone
+does not establish Host attestation, common approval evidence, commit or resume.
+
+### Initial Host attestation operation
+
+The initial Host key has a distinct same-Host Account view. Trusted installation
+assembly explicitly selects its principal, connection and resource, and the
+actual Account must allow that exact tuple's `sign` operation before and after
+original key/configuration checks. Client RunRead and Reviewer Resolve remain
+separate duties; neither supplies Host Sign. An absent installation tuple does
+not discover a default actor or resource. The original initial control, paired
+Reviewer key, physical Host key generation and selected Host file remain bound
+to the same adopted Host.
+
+Core exposes the complete immutable unsigned verified-wrapper wire from its
+already admitted Resolution. The Host admits the exact authenticated Reviewer
+candidate and evidence at one trusted first `verified_at`, then commits that
+complete wire together with the finite original Host-purpose grant. Its small
+HMAC issue metadata binds the selected Sign resource and first issue sample;
+the existing 2048-byte issue packet bound is unchanged. The complete wrapper
+occupies a distinct immutable preparation row in the existing signing-candidate
+namespace and is counted in the same 64 KiB per-Run grant bucket. Inventory
+requires every such row and rejects orphan, missing or changed rows.
+
+Only after that preparation transaction returns does the same Host prepare its
+physical signing child. A separate confirmed transaction claims the fixed
+original use. Reopening reads the first sample and full wrapper before selecting another
+issue instant, re-admits through Core at that same instant and compares complete
+wire/preimage/key/request/subject correspondence. It never repairs absent use
+or preparation rows, renews expiry, changes the attempt or selects another key.
+Reviewer-only Credential storage entries stay Reviewer-only; distinct initial
+Host entries enforce the Host purpose with the same finite claim, history,
+clock, revocation and outcome checks.
+
+Actual Host signing consumes that original key and exact attestation preimage.
+The complete signed wrapper, authenticated signature packet and Succeeded
+outcome commit atomically. Claimed, Unknown or failed history cannot sign again;
+Succeeded alone supplies neither signature bytes nor permission to return them.
+Current Client/Reviewer/Host Sign, exact row/key/paired-subject checks and the
+live original use surround signing and disclosure. The retained child must
+explicitly close before Host database/Root closure; partial cleanup remains on
+that same receiver.
+
+The resulting original wrapper reaches the existing Native embedded-Reviewer
+and independent Host-signature verifiers, then the original Resolution owner.
+It samples the actual current commit time after verification, so historical
+`verified_at` cannot extend an open Checkpoint deadline. Resolution admission
+is separate from a resume claim, Effect execution, provider outcome and their
+cleanup responsibilities.
+
+### Installed initial Host signing subject
+
+An explicit Native operator configuration may select
+`native.local.initial_host_signing` with exactly `principal`, `connection` and
+`resource`. Each is a nonempty, NUL-free string of at most 256 code units. The
+CLI forwards this DATA only to its explicitly selected fresh signing
+initialization. Ordinary adoption and cold reopen never update that choice.
+Selecting these names does not add an Account entry or grant Sign.
+
+The same exclusive initialization captures this subject with the first intent,
+issuer, policy and independent Host public-key identity. Its authenticated
+packet occupies a closed alternative in the existing initialization control
+row. The existing 2048-byte payload and 8192-byte control bounds remain; no
+additional selected file, key, permission issuer or physical Owner is created.
+Reviewer key/payload semantics and their original wire remain unchanged.
+
+The installed signing-account reader restores only that stored subject, then
+uses the existing current Account Sign and physical/key/configuration gates.
+A changed stored subject cannot be replaced by actor arguments supplied later.
+Legacy/raw or paired-key controls without subject metadata remain readable but
+cannot discover or backfill an installed Host signing account. The prior
+explicit trusted-assembly API remains distinct; it supplies no fallback for the
+installed reader. Initializers cannot regenerate keys or select another subject
+for an existing or partial Store.
+
+The original approval scope, Reviewer authentication, Checkpoint and actual
+Resolution/Effect application remain independent. This installation connection
+does not make a Checkpoint selector or a saved reference an approval source.
+
 ### Initial signing payload DATA
 
 The original initial-signing installation payload has a typed DATA codec in
@@ -2221,6 +2441,66 @@ pre-main constructor witness. Compatibility and integrity checks apply to the
 actual executable/component interfaces, not to an invented platform history.
 
 ### Static command preparation facilities
+
+Explicit `new-submission` selects the same original command preparation before
+physical acquisition. It restores the original Product and adopted Journal;
+it does not select initial signing, regenerate keys, prepare a Program or acquire
+a business execution domain. Its dispatch runs under the same captured Read and
+issues through the existing epoch Owner with actual current Account authority.
+The returned reference is correlation DATA, not Run admission or execution supply.
+Durable clock uncertainty and fencing remain distinct failures. A failed issuance
+cannot retry, fall through to compatibility Library loading or replace the
+original cleanup custody. Current scope and Account are checked before disclosure
+after the durable issuance boundary.
+
+Explicit `lookup-submission` and `lookup-request` use that same selected
+command Read and adopted Journal, without preparing a Program or acquiring a
+business Run. Reference-file input retains its bounded original Reader. The
+request-ID selector checks its independent current RunRead requirement and
+retains the exact admitted Submission record through response projection;
+it does not discard that record and repeat the clock, row selection or full
+admission. Submit authority remains independently required for the existing
+Submission reply. A retained admission joins only its original Journal Run and
+definition, never current Program files. Missing history remains unresolved,
+not nonacceptance proof or permission to submit again. Original Read, current,
+transaction uncertainty and cleanup failures cannot select a compatibility
+Library or another original.
+
+An explicit original-reference `run` reads its signed Submission and invocation
+attempt once under that same Read before business construction. An already
+admitted Run selects its saved original state; it does not prepare or compile
+the current Program again. A still-preparing intent retains its exact admitted
+input for the existing first-completion transaction. New input must match that
+retained input. Unresolved history grants neither nonacceptance proof nor a new
+identity; the existing Submission/Run admission and physical-start CAS remain
+the only route to work. A fresh explicit input carries the same reference,
+intent and checked preparation through its original Request and Plan binding.
+
+`cancel` and `lookup-cancellation` authenticate the original signed Submission,
+retained Run and complete supplied Run reference under independent current
+Cancel authority. Cancellation uses the existing Journal operation and actual
+Store publication observer. Its immutable operation record and original witness
+share the original transaction; a recorded request is not a physical stop ACK.
+The Store's Read/SQLite routing and all partial receivers stay with the existing
+command until their own cleanup outside the borrowed Read callback. Before the
+transaction, only the bounded public cancellation-reference DATA is copied to
+the existing initial-control context after suspending that same Read. A failed
+return or later cleanup therefore retains its original recovery correlation.
+Lost COMMIT, changed current authority and failed cleanup never issue another
+reference, request, attempt or automatic cancellation.
+
+Retained-Run output selects the existing Saved Result policy and original
+Store/read routing, without constructing a new computation. Receipt-only export
+requires independent current RunRead, not a Result delivery grant. Its original
+Read and Journal authenticate the retained Submission/Run/Manifest and compare
+the Run's installed physical Store binding before loading the exact committed
+receipt. The publication Owner checks the same immutable reference laws used by
+fresh computation validation. This metadata observation neither revalidates a
+new execution nor manufactures a Publisher, receipt, Run or successful outcome.
+The original export path excludes state and managed storage both before writing
+and at the final current boundary. Existing child-first command retirement drops
+the retained observation before closing its same Store. Fresh publication keeps
+its original Publisher observation and unchanged independent RunRead checks.
 
 The trusted selected installer fixes a command-preparation candidate after the
 pinned original parser succeeds and before its first physical acquisition. The

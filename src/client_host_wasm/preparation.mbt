@@ -14,6 +14,7 @@ priv struct StoredPreparation {
   slot : @buffers.BufferSlot
   environment : Int
   kind : Int
+  mut restoration : Int?
   mut submitted : @preparation.LocalSubmittedPreparation?
   mut started : Bool
   mut outcome : Result[
@@ -64,7 +65,6 @@ fn input_cursor(
 ///|
 /// Private, trusted Host configuration; not caller-provided Check evidence.
 /// The environment Owner validates the original canonical wire and its CID.
-#export_name("actql_program_install_environment")
 pub fn install_environment(nonce : Int64, input : Int) -> Int {
   guard selected(nonce) is Some(value) else { return -1 }
   guard value.copies.get(input) is Some((slot, physical)) else { return -2 }
@@ -112,7 +112,6 @@ pub fn install_environment(nonce : Int64, input : Int) -> Int {
 /// Trusted installed environment and publication share one pre-reserved input.
 /// The common publication interpreter binds aliases to admitted Catalog facts;
 /// no caller-defined file, schema or Source read permission is accepted here.
-#export_name("actql_program_install_source_environment")
 pub fn install_source_environment(nonce : Int64, input : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.copies.get(input) is Some((slot, physical)) else {
@@ -186,7 +185,6 @@ fn environment_body_cid(body : String) -> String {
 /// Reserve original input custody before invoking the Checker. The caller
 /// receives this handle even if a later Wasm invocation traps or is cancelled.
 /// No physical reader or semantic preparation starts during reservation.
-#export_name("actql_program_reserve_preparation")
 pub fn reserve_preparation(
   nonce : Int64,
   environment : Int,
@@ -217,6 +215,7 @@ pub fn reserve_preparation(
     slot,
     environment,
     kind,
+    restoration: None,
     submitted: None,
     started: false,
     outcome: None,
@@ -229,12 +228,14 @@ pub fn reserve_preparation(
 /// kind=1 is structured JSON; kind=2 is original AQL carried as a JSON string.
 /// kind=3 keeps the original SDK submitted-intent envelope and bindings.
 /// Readiness is not Run admission. A completed call is not silently repeated.
-#export_name("actql_program_prepare")
 pub fn prepare_program(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) else { return -1 }
   guard value.preparations.get(handle) is Some(record) &&
     value.environments.get(record.environment) is Some(configuration) else {
     return -2
+  }
+  if record.restoration is Some(_) {
+    return -3
   }
   if record.outcome is Some(_) {
     return 0
@@ -300,7 +301,74 @@ pub fn prepare_program(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_program_prepared_results")
+/// Bind the existing input loan to the same original codec input. The supplied
+/// environment and intent must match the saved originals; this entry never
+/// calls the ordinary query lowerer or Checker, even after interruption.
+pub fn bind_restored_preparation(
+  nonce : Int64,
+  handle : Int,
+  restoration_handle : Int,
+) -> Int {
+  guard selected(nonce) is Some(value) &&
+    value.preparations.get(handle) is Some(record) &&
+    record.kind == 3 &&
+    value.environments.get(record.environment) is Some(environment) &&
+    value.restorations.get(restoration_handle) is Some(restoration) &&
+    restoration.saved_original is Some(original) else {
+    return -2
+  }
+  match sdk_restoration_snapshot(value, restoration) {
+    Ok(_) => ()
+    Err(code) => return code
+  }
+  if record.restoration is Some(previous) && previous != restoration_handle {
+    return -3
+  }
+  if record.outcome is Some(_) {
+    return if record.restoration == Some(restoration_handle) { 0 } else { -3 }
+  }
+  if record.started {
+    return -23
+  }
+  record.restoration = Some(restoration_handle)
+  record.started = true
+  let retained = @host.client_saved_task_materials_input(original)
+  if environment.wire !=
+    @host.client_task_run_materials_retained_environment(retained) ||
+    @checked.checking_environment_cid(environment.environment) !=
+    @host.prepared_client_check_environment_cid(
+      @host.client_task_run_materials_retained_program(retained),
+    ) {
+    return -35
+  }
+  guard @buffers.buffer_wire(value.pool, record.slot) is Some(bytes) else {
+    return -5
+  }
+  let wire = @utf8.decode(bytes) catch { _ => return -12 }
+  let intent = match
+    @host.prepare_client_submitted_intent(wire, 65536, 8192, 64) {
+    Ok(value) => value
+    Err(_) => return -31
+  }
+  if @host.client_submitted_intent_wire(intent) !=
+    @host.client_submitted_intent_wire(
+      @host.client_saved_task_materials_intent(original),
+    ) {
+    return -45
+  }
+  record.outcome = Some(
+    match @preparation.restore_local_submitted_input(original) {
+      Ok(submitted) => {
+        record.submitted = Some(submitted)
+        Ok(@preparation.local_submitted_preparation_input(submitted))
+      }
+      Err(issue) => Err(issue)
+    },
+  )
+  0
+}
+
+///|
 pub fn prepared_results(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) else { return -1 }
   guard value.preparations.get(handle) is Some(record) else { return -2 }
@@ -315,7 +383,6 @@ pub fn prepared_results(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_program_prepared_tasks")
 pub fn prepared_tasks(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) else { return -1 }
   guard value.preparations.get(handle) is Some(record) else { return -2 }
@@ -332,7 +399,6 @@ pub fn prepared_tasks(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_program_close_preparation")
 pub fn close_preparation(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) else { return -1 }
   guard value.preparations.get(handle) is Some(record) else { return -2 }
@@ -347,7 +413,6 @@ pub fn close_preparation(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_program_close_environment")
 pub fn close_environment(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) else { return -1 }
   guard value.environments.get(handle) is Some(record) else { return -2 }

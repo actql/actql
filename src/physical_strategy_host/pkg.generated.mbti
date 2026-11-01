@@ -1,0 +1,1451 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/physical_strategy_host"
+
+import {
+  "actql/actql/bounded_execution",
+  "actql/actql/canonical_json",
+  "actql/actql/check_environment",
+  "actql/actql/connector_sdk",
+  "actql/actql/effect_application",
+  "actql/actql/effect_program_binding",
+  "actql/actql/encode_core",
+  "actql/actql/execution_authorization",
+  "actql/actql/execution_query",
+  "actql/actql/execution_relation",
+  "actql/actql/logical_request_scope",
+  "actql/actql/lowering_relation",
+  "actql/actql/managed_carrier_runtime",
+  "actql/actql/numeric_reduction",
+  "actql/actql/physical_cost",
+  "actql/actql/physical_resources",
+  "actql/actql/physical_strategy",
+  "actql/actql/pipeline_typing",
+  "actql/actql/program_check",
+  "actql/actql/run_publication",
+  "actql/actql/sourceview_resolution",
+  "actql/actql/stage_results",
+  "actql/actql/value_admission",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn abort_captured_managed_transfer(CapturedDAG, ManagedTransfer, Bool) -> Result[Unit, @physical_resources.LedgerIssue]
+
+pub fn abort_resident_transfer(CapturedDAG, ResidentTransfer) -> Result[Unit, RunIssue]
+
+pub fn admit_operational_estimate_sidecar_json(String, PolicyRequest, PolicyCandidateSet, String, String, Int64) -> Result[OperationalEstimateSidecar, SearchIssue]
+
+pub fn admit_placement_policy_response_json(String, PolicyRequest, String) -> Result[PolicyResponse, SearchIssue]
+
+pub fn advance_captured_effect_command_key_validation(CapturedEffectCommandKeyValidation, Int) -> Result[@bounded_execution.Observation[Int, @execution_relation.CompletedResultKeyIssue], CapturedEffectCommandKeyIssue]
+
+pub fn advance_task_numeric_reduction(CapturedDAG, TaskNumericExecution) -> Result[@numeric_reduction.Outcome?, @numeric_reduction.ReductionIssue]?
+
+pub fn authorize_captured_task_activation(CapturedDAG, Int, TaskActivationGrant) -> Result[Unit, RunIssue]
+
+pub fn begin_captured_managed_transfer(CapturedDAG, Int, Int64, Int64, Int64) -> Result[ManagedTransfer, RunIssue]
+
+pub fn begin_host_cleanup_progress() -> HostCleanupProgress
+
+pub fn begin_host_task_success_progress(Bool, Bool) -> HostTaskSuccessProgress
+
+pub fn begin_managed_failure_progress(Bool, Bool, Bool) -> ManagedFailureProgress
+
+pub fn begin_managed_transfer_progress(ManagedTransfer) -> ManagedTransferProgress
+
+pub fn begin_resident_environment(CapturedDAG, Int, Int64) -> Result[ResidentEnvironment, RunIssue]
+
+pub fn begin_resident_transfer(CapturedDAG, ResidentTable, Int64, Int64) -> Result[ResidentTransfer, RunIssue]
+
+pub fn begin_task_execution_use(CapturedDAG, TaskExecution) -> Result[Unit, @physical_resources.LedgerIssue]
+
+pub fn bind_captured_effect_command_key_workspace(CapturedEffectCommandKeyValidation, @physical_resources.SharedBorrow) -> Bool
+
+pub fn bind_captured_effect_command_target(CapturedEffectInputs, Int, @check_environment.StoreCommandBinding, @value_admission.CheckedValue, Int) -> Result[CapturedEffectCommandTarget, CapturedEffectProposalIssue]
+
+pub fn[T] bind_captured_effect_local_result_managed_export(CapturedEffectInputs, Int, @execution_relation.ManagedCompletedOutput[T], @execution_relation.ManagedPublicationBridge[T], @execution_relation.CompletedResultRelationExportPreparation) -> Result[CapturedEffectLocalResultExport, CapturedEffectLocalResultExportIssue]
+
+pub fn bind_captured_effect_preview_inputs(CapturedEffectRunDAG, CapturedEffectInputs, @effect_program_binding.EffectProgramRunPreview, Int) -> Result[CapturedEffectPreviewInputs, RunIssue]
+
+pub fn bind_checked_effect_run_dag(@physical_strategy.CheckedEffectComputationDAG, @effect_program_binding.EffectProgramRunCandidate) -> Result[@physical_strategy.CheckedEffectRunDAG, RunIssue]
+
+pub fn bind_operational_profile_template(String, PolicyRequest) -> Result[String, SearchIssue]
+
+pub fn borrow_captured_any_result_output(CapturedDAG, Int, @execution_relation.ManagedResultOccurrence, Int) -> Result[CapturedAnyResultBorrow, RunIssue]
+
+pub fn borrow_captured_carrier_result_output(CapturedDAG, Int, @execution_relation.ManagedResultOccurrence, @execution_relation.CarrierManagedCompletedOutput, Int) -> Result[CapturedResidentResultBorrow, RunIssue]
+
+pub fn borrow_captured_effect_input_workspace(CapturedEffectInputs, @physical_resources.SharedCapacity, @physical_resources.SharedAllocation) -> Result[@physical_resources.SharedBorrow, @physical_resources.LedgerIssue]
+
+pub fn[T] borrow_captured_managed_result_output(CapturedDAG, Int, @execution_relation.ManagedResultOccurrence, @execution_relation.ManagedCompletedOutput[T], Int) -> Result[CapturedResidentResultBorrow, RunIssue]
+
+pub fn borrow_captured_result_completion(CapturedDAG, Int, @execution_relation.ManagedResultOccurrence, Int) -> Result[CapturedResultBorrow, RunIssue]
+
+pub fn borrow_captured_result_output(CapturedDAG, Int, @execution_relation.ManagedResultOccurrence, Int) -> Result[CapturedResultBorrow, RunIssue]
+
+pub fn borrow_captured_table_input_output(CapturedDAG, Int, @execution_relation.ManagedTableInputOccurrence, Int) -> Result[CapturedTableInputBorrow, RunIssue]
+
+pub fn borrow_resident_table(CapturedDAG, ResidentTable, Int, Int, Int, (ResidentTable, @execution_relation.ProducerRead) -> Result[Unit, RunIssue], input_index? : Int) -> Result[ResidentRead, RunIssue]
+
+pub fn cancel_captured_effect_plan_verifier(CapturedEffectPlanVerifier) -> Unit
+
+pub fn cancel_captured_effect_proposal_plan(CapturedEffectProposalPlan) -> Unit
+
+pub fn cancel_resident_inputs(ResidentInputs) -> Result[Unit, @physical_resources.LedgerIssue]
+
+pub fn cancel_resident_table_preparation(CapturedDAG, ResidentTable) -> Result[Unit, @physical_resources.LedgerIssue]
+
+pub fn capture_effect_result_import(CapturedEffectInputs, Int, Int, Int) -> Result[CapturedEffectResultImport, RunIssue]
+
+pub fn captured_any_result_borrow_available(CapturedAnyResultBorrow) -> Bool
+
+pub fn captured_any_result_borrow_cell_output(CapturedAnyResultBorrow) -> @execution_relation.CompletedOutput?
+
+pub fn captured_any_result_borrow_matches_carrier(CapturedAnyResultBorrow, @execution_relation.CarrierManagedCompletedOutput) -> Bool
+
+pub fn[T] captured_any_result_borrow_matches_managed(CapturedAnyResultBorrow, @execution_relation.ManagedCompletedOutput[T]) -> Bool
+
+pub fn captured_any_result_borrow_matches_run(CapturedAnyResultBorrow, CapturedDAG) -> Bool
+
+pub fn captured_any_result_borrow_occurrence(CapturedAnyResultBorrow) -> @execution_relation.ManagedResultOccurrence
+
+pub fn captured_any_result_borrows_share_view(CapturedAnyResultBorrow, CapturedAnyResultBorrow) -> Bool
+
+pub fn captured_any_result_output_set_borrow_at(CapturedAnyResultOutputSet, Int) -> CapturedAnyResultBorrow?
+
+pub fn captured_carrier_managed_task_input(CapturedDAG, Int, @execution_relation.CarrierManagedCompletedOutput, @managed_carrier_runtime.ProducerReadReference, input_index? : Int) -> Result[@execution_relation.CarrierManagedProducerRead, RunIssue]
+
+pub fn captured_carrier_managed_task_output_matches(CapturedDAG, Int, @pipeline_typing.Target, @execution_relation.CarrierManagedCompletedOutput) -> Bool
+
+pub fn captured_compute_first_task(CapturedDAG) -> Int
+
+pub fn captured_dag_failure(CapturedDAG) -> (Int, RunIssue)?
+
+pub fn captured_dag_generation(CapturedDAG) -> Int
+
+pub fn captured_dag_graph(CapturedDAG) -> @physical_strategy.CheckedDAG
+
+pub fn captured_dag_ledger(CapturedDAG) -> @physical_resources.Ledger
+
+pub fn captured_dag_strategy(CapturedDAG) -> StrategyRevision?
+
+pub fn captured_effect_checked_proposal_row_available(CapturedEffectCheckedProposalRow) -> Bool
+
+pub fn captured_effect_checked_proposal_row_field_at(CapturedEffectCheckedProposalRow, Int) -> (String, @value_admission.CheckedValue)?
+
+pub fn captured_effect_checked_proposal_row_field_count(CapturedEffectCheckedProposalRow) -> Int?
+
+pub fn captured_effect_checked_proposal_row_selector(CapturedEffectCheckedProposalRow) -> @value_admission.CheckedValue?
+
+pub fn captured_effect_command_key_validation_matches(CapturedEffectCommandKeyValidation, CapturedEffectInputs, Int, @stage_results.EffectCommandInputBinding) -> Bool
+
+pub fn captured_effect_command_requires_input_key(CapturedEffectInputs, Int, Int) -> Result[Bool, CapturedEffectCommandKeyIssue]
+
+pub fn captured_effect_input_at(CapturedEffectInputs, Int) -> CapturedEffectInput?
+
+pub fn captured_effect_input_borrow(CapturedEffectInput) -> CapturedAnyResultBorrow
+
+pub fn captured_effect_input_matches_carrier(CapturedEffectInput, @execution_relation.CarrierManagedCompletedOutput) -> Bool
+
+pub fn[T] captured_effect_input_matches_managed(CapturedEffectInput, @execution_relation.ManagedCompletedOutput[T]) -> Bool
+
+pub fn captured_effect_input_member_index(CapturedEffectInput) -> Int
+
+pub fn captured_effect_input_occurrence(CapturedEffectInput) -> @execution_relation.ManagedResultOccurrence
+
+pub fn captured_effect_input_output(CapturedEffectInput) -> @execution_relation.CompletedOutput?
+
+pub fn captured_effect_input_retained(CapturedEffectInputs, Int, CapturedEffectInput) -> Bool
+
+pub fn captured_effect_input_stage(CapturedEffectInput) -> Int
+
+pub fn captured_effect_input_task(CapturedEffectInput) -> Int
+
+pub fn captured_effect_inputs_count(CapturedEffectInputs) -> Int
+
+pub fn captured_effect_inputs_match_computation(CapturedEffectInputs, @physical_strategy.CheckedEffectComputationDAG) -> Bool
+
+pub fn captured_effect_inputs_match_run(CapturedEffectInputs, CapturedEffectRunDAG) -> Bool
+
+pub fn captured_effect_inputs_run_definition_cid(CapturedEffectInputs) -> String?
+
+pub fn captured_effect_inputs_share_view(CapturedEffectInputs, Int, Int) -> Bool
+
+pub fn captured_effect_inputs_shared_capacity_current(CapturedEffectInputs, @physical_resources.SharedCapacity) -> Bool
+
+pub fn captured_effect_local_result_at(CapturedEffectInputs, Int) -> CapturedEffectLocalResult?
+
+pub fn captured_effect_local_result_borrow(CapturedEffectLocalResult) -> CapturedAnyResultBorrow
+
+pub fn captured_effect_local_result_count(CapturedEffectInputs) -> Int
+
+pub fn captured_effect_local_result_export_matches_receipt(CapturedEffectInputs, CapturedEffectLocalResultExport, @execution_relation.CompletedRelationExportReceipt) -> Bool
+
+pub fn captured_effect_local_result_export_preparation(CapturedEffectLocalResultExport) -> @execution_relation.CompletedResultRelationExportPreparation
+
+pub fn captured_effect_local_result_export_result(CapturedEffectLocalResultExport) -> CapturedEffectLocalResult
+
+pub fn captured_effect_local_result_export_retained(CapturedEffectInputs, CapturedEffectLocalResultExport) -> Bool
+
+pub fn captured_effect_local_result_matches_member(CapturedEffectInputs, Int, Int) -> Bool
+
+pub fn captured_effect_local_result_matches_source(CapturedEffectInputs, CapturedEffectLocalResult, @execution_query.CapturedSourceRelationIdentity) -> Bool
+
+pub fn captured_effect_local_result_original_row_available(CapturedEffectInputs, CapturedEffectLocalResultExport, @execution_relation.CompletedOutputExportOriginalRow) -> Bool
+
+pub fn captured_effect_local_result_stage(CapturedEffectLocalResult) -> Int
+
+pub fn captured_effect_local_result_task(CapturedEffectLocalResult) -> Int
+
+pub fn captured_effect_local_unit_inputs_match_computation(CapturedEffectLocalUnitInputs, @physical_strategy.CheckedEffectComputationDAG) -> Bool
+
+pub fn captured_effect_local_unit_inputs_match_run(CapturedEffectLocalUnitInputs, CapturedEffectRunDAG) -> Bool
+
+pub fn captured_effect_local_unit_inputs_run_definition_cid(CapturedEffectLocalUnitInputs) -> String?
+
+pub fn captured_effect_local_unit_result_at(CapturedEffectLocalUnitInputs, Int) -> CapturedEffectLocalResult?
+
+pub fn captured_effect_local_unit_result_count(CapturedEffectLocalUnitInputs) -> Int
+
+pub fn captured_effect_local_unit_result_export_matches_receipt(CapturedEffectLocalUnitInputs, CapturedEffectLocalResultExport, @execution_relation.CompletedRelationExportReceipt) -> Bool
+
+pub fn captured_effect_local_unit_result_matches_source(CapturedEffectLocalUnitInputs, CapturedEffectLocalResult, @execution_query.CapturedSourceRelationIdentity) -> Bool
+
+pub fn captured_effect_plan_proof_matches(CapturedEffectPlanProof, CapturedEffectPreviewInputs, Int) -> Bool
+
+pub fn captured_effect_preview_input_at(CapturedEffectPreviewInputs, Int) -> CapturedEffectInput?
+
+pub fn captured_effect_preview_inputs_available(CapturedEffectPreviewInputs) -> Bool
+
+pub fn captured_effect_preview_inputs_retained(CapturedEffectPreviewInputs) -> Bool
+
+pub fn captured_effect_preview_ledger_identity(CapturedEffectPreviewInputs) -> @run_publication.EffectPreviewIdentity
+
+pub fn captured_effect_preview_member_count(CapturedEffectPreviewInputs) -> Int?
+
+pub fn captured_effect_preview_owner(CapturedEffectPreviewInputs) -> @effect_program_binding.EffectProgramRunPreview
+
+pub fn captured_effect_preview_plan_terminal(CapturedEffectPreviewInputs, Int, Int, Int) -> Result[@stage_results.EffectPlanTerminal?, CapturedEffectPlanIssue]
+
+pub fn captured_effect_preview_subject_cid(CapturedEffectPreviewInputs) -> String?
+
+pub fn captured_effect_preview_table_input_at(CapturedEffectPreviewInputs, Int) -> CapturedEffectTableInput?
+
+pub fn captured_effect_published_store_binding(CapturedEffectInputs, Int, Int) -> Result[@check_environment.StoreCommandBinding?, CapturedEffectProposalIssue]
+
+pub fn captured_effect_result_import_consumer(CapturedEffectResultImport) -> Int
+
+pub fn captured_effect_result_import_interface(CapturedEffectResultImport) -> @program_check.BuiltResultInterface
+
+pub fn captured_effect_result_import_matches(CapturedEffectResultImport, CapturedEffectInputs, Int, CapturedEffectLocalResult) -> Bool
+
+pub fn captured_effect_result_import_producer(CapturedEffectResultImport) -> CapturedEffectLocalResult
+
+pub fn captured_effect_run_dag(CapturedEffectRunDAG) -> CapturedDAG
+
+pub fn captured_effect_run_matches_checked(CapturedEffectRunDAG, @physical_strategy.CheckedEffectRunDAG) -> Bool
+
+pub fn captured_effect_run_owner(CapturedEffectRunDAG) -> @effect_program_binding.EffectProgramRunCandidate
+
+pub fn captured_effect_run_source_at(CapturedEffectRunDAG, Int) -> @physical_strategy.CheckedEffectSourcePort?
+
+pub fn captured_effect_run_source_count(CapturedEffectRunDAG) -> Int
+
+pub fn captured_effect_table_input_at(CapturedEffectInputs, Int) -> CapturedEffectTableInput?
+
+pub fn captured_effect_table_input_borrow(CapturedEffectTableInput) -> CapturedTableInputBorrow
+
+pub fn captured_effect_table_input_member(CapturedEffectTableInput) -> Int
+
+pub fn captured_effect_table_input_name(CapturedEffectTableInput) -> String
+
+pub fn captured_effect_table_input_occurrence(CapturedEffectTableInput) -> @execution_relation.ManagedTableInputOccurrence
+
+pub fn captured_effect_table_input_stage(CapturedEffectTableInput) -> Int
+
+pub fn captured_effect_table_input_task(CapturedEffectTableInput) -> Int
+
+pub fn captured_execution_root_statistics(CapturedDAG) -> CapturedExecutionRootStatistics?
+
+pub fn[T] captured_managed_task_input(CapturedDAG, Int, @execution_relation.ManagedCompletedOutput[T], Int, Int, input_index? : Int) -> Result[@execution_relation.ManagedProducerRead[T], RunIssue]
+
+pub fn[T] captured_managed_task_output_matches(CapturedDAG, Int, @pipeline_typing.Target, @execution_relation.ManagedCompletedOutput[T]) -> Bool
+
+pub fn captured_managed_transfer_pending(ManagedTransfer) -> Bool
+
+pub fn captured_managed_transfer_receipt_attempt(ManagedTransferReceipt) -> Int
+
+pub fn captured_managed_transfer_receipt_available(ManagedTransferReceipt) -> Bool
+
+pub fn captured_managed_transfer_receipt_bytes(ManagedTransferReceipt) -> (Int64, Int64)
+
+pub fn captured_managed_transfer_receipt_matches(ManagedTransferReceipt, ManagedTransfer, Int, Int64, Int64) -> Bool
+
+pub fn captured_managed_transfer_receipt_source(ManagedTransferReceipt) -> Int
+
+pub fn captured_next_managed_input_count(CapturedDAG) -> Int?
+
+pub fn captured_next_managed_obligations(CapturedDAG, Int) -> Result[@execution_relation.ManagedObligations, @execution_relation.ManagedObligationIssue]
+
+pub fn captured_next_managed_operation_input(CapturedDAG, Int) -> (Int, Int)?
+
+pub fn captured_next_managed_producer(CapturedDAG) -> Int?
+
+pub fn captured_next_managed_producers(CapturedDAG) -> Array[Int]
+
+pub fn captured_output_pin_materialized(CapturedOutputPin) -> @execution_relation.CompletedOutput
+
+pub fn captured_releasable_managed_producers(CapturedDAG) -> Array[Int]
+
+pub fn captured_resident_output_available(CapturedDAG, TaskExecution) -> Bool
+
+pub fn captured_resident_result_borrow_available(CapturedResidentResultBorrow) -> Bool
+
+pub fn captured_resident_result_borrow_matches_carrier(CapturedResidentResultBorrow, @execution_relation.CarrierManagedCompletedOutput) -> Bool
+
+pub fn[T] captured_resident_result_borrow_matches_managed(CapturedResidentResultBorrow, @execution_relation.ManagedCompletedOutput[T]) -> Bool
+
+pub fn captured_resident_result_borrow_occurrence(CapturedResidentResultBorrow) -> @execution_relation.ManagedResultOccurrence
+
+pub fn captured_result_borrow_available(CapturedResultBorrow) -> Bool
+
+pub fn captured_result_borrow_matches_run(CapturedResultBorrow, CapturedDAG) -> Bool
+
+pub fn captured_result_borrow_occurrence(CapturedResultBorrow) -> @execution_relation.ManagedResultOccurrence
+
+pub fn captured_result_borrow_output(CapturedResultBorrow) -> @execution_relation.CompletedOutput
+
+pub fn captured_result_output_set_borrow_at(CapturedResultOutputSet, Int) -> CapturedResultBorrow?
+
+pub fn captured_result_output_set_pin_at(CapturedResultOutputSet, Int) -> CapturedOutputPin?
+
+pub fn captured_root_statistics(CapturedDAG) -> @execution_query.CapturedSourceStatistics?
+
+pub fn captured_supplied_task_input(CapturedDAG, Int, input_index? : Int) -> Result[@execution_relation.SuppliedRelationRead, RunIssue]
+
+pub fn captured_table_input_borrow_available(CapturedTableInputBorrow) -> Bool
+
+pub fn captured_table_input_borrow_cell_output(CapturedTableInputBorrow) -> @execution_relation.CompletedOutput?
+
+pub fn[T] captured_table_input_borrow_matches_managed(CapturedTableInputBorrow, @execution_relation.ManagedCompletedOutput[T]) -> Bool
+
+pub fn captured_table_input_borrow_occurrence(CapturedTableInputBorrow) -> @execution_relation.ManagedTableInputOccurrence
+
+pub fn captured_table_input_borrows_share_view(CapturedTableInputBorrow, CapturedTableInputBorrow) -> Bool
+
+pub fn captured_table_input_output_set_borrow_at(CapturedTableInputOutputSet, Int) -> CapturedTableInputBorrow?
+
+pub fn captured_task_activation_granted(CapturedDAG, Int) -> Bool
+
+pub fn captured_task_activation_required(CapturedDAG) -> Bool
+
+pub fn captured_task_aggregate_output_at(CapturedDAG, Int, Int) -> @connector_sdk.AggregateOutputCeiling?
+
+pub fn captured_task_aggregate_output_count(CapturedDAG, Int) -> Int?
+
+pub fn captured_task_aggregate_output_limit(CapturedDAG, Int, Int, String, @connector_sdk.AggregateOutputUnit) -> Int64?
+
+pub fn captured_task_analytic_envelope_at(CapturedDAG, Int, Int) -> @connector_sdk.AnalyticEnvelope?
+
+pub fn captured_task_analytic_envelope_count(CapturedDAG, Int) -> Int?
+
+pub fn captured_task_asof_search_at(CapturedDAG, Int, Int) -> (Int, Int64)?
+
+pub fn captured_task_asof_search_count(CapturedDAG, Int) -> Int?
+
+pub fn captured_task_completed(CapturedDAG, Int) -> Bool
+
+pub fn captured_task_input(CapturedDAG, Int, Int, Int, input_index? : Int) -> Result[@execution_relation.ProducerRead, RunIssue]
+
+pub fn captured_task_interval_search_at(CapturedDAG, Int, Int) -> (Int, Int64)?
+
+pub fn captured_task_interval_search_count(CapturedDAG, Int) -> Int?
+
+pub fn captured_task_join_output_at(CapturedDAG, Int, Int) -> (Int, Int64)?
+
+pub fn captured_task_join_output_count(CapturedDAG, Int) -> Int?
+
+pub fn captured_task_join_output_limit(CapturedDAG, Int, Int) -> Int64?
+
+pub fn captured_task_output(CapturedDAG, Int, @pipeline_typing.Target) -> @execution_relation.CompletedOutput?
+
+pub fn captured_task_retirement_pending(CapturedDAG) -> Bool
+
+pub fn captured_task_source_matches(CapturedDAG, Int, @execution_query.CapturedInputSource) -> Bool
+
+pub fn captured_task_target(CapturedDAG, Int) -> @pipeline_typing.Target?
+
+pub fn charge_captured_managed_transfer(CapturedDAG, ManagedTransfer, Int64) -> Result[Unit, @physical_resources.LedgerIssue]
+
+pub fn charge_resident_transfer(CapturedDAG, ResidentTransfer, Int64) -> Result[Unit, @physical_resources.LedgerIssue]
+
+pub fn charge_task_execution_transfer(CapturedDAG, TaskExecution, Int64) -> Result[Unit, @physical_resources.LedgerIssue]
+
+pub fn check_captured_effect_apply_preflight(CapturedEffectPreviewInputs, Array[CapturedEffectPlanProof], Array[String], Array[String], Array[String], Array[String], Array[@effect_application.EffectTargetVersionObservation], Array[@effect_application.EffectApplyCapabilityObservation], @effect_application.EffectRiskAcceptanceBody?, Bool, String, String, String, String, String, String, String, String, @logical_request_scope.LogicalRequestScope, Array[Array[@effect_application.EffectDispatchKey]], Int, Int, Int, Int) -> Result[Unit, CapturedEffectApplyPreflightIssue]
+
+pub fn check_captured_effect_plan_proofs(CapturedEffectPreviewInputs, Array[CapturedEffectPlanProof], Int, Int) -> Result[Unit, CapturedEffectPlanInventoryIssue]
+
+pub fn check_captured_effect_plan_row(CapturedEffectPlanVerifier, @canonical_json.CanonicalValue, Int, Int, Int, Int, Int, Int) -> Result[Unit, CapturedEffectPlanVerifyIssue]
+
+pub fn check_captured_effect_preview_apply_keys(CapturedEffectPreviewInputs, @logical_request_scope.LogicalRequestScope, Array[Array[@effect_application.EffectDispatchKey]], Int, Int) -> Result[Unit, CapturedEffectApplyKeyIssue]
+
+pub fn check_captured_effect_preview_capabilities(CapturedEffectPreviewInputs, Array[@effect_application.EffectApplyCapabilityObservation], Int, Int) -> Result[Unit, CapturedEffectCapabilityIssue]
+
+pub fn check_captured_effect_preview_current_bindings(CapturedEffectPreviewInputs, Array[String], Array[String], Array[String], Array[String], Int, Int) -> Result[Unit, CapturedEffectCurrentBindingIssue]
+
+pub fn check_captured_effect_preview_target_guards(CapturedEffectPreviewInputs, Array[@effect_application.EffectTargetVersionObservation], Int, Int) -> Result[Unit, CapturedEffectGuardIssue]
+
+pub fn check_captured_effect_risk_acceptance_body(CapturedEffectPreviewInputs, @effect_application.EffectRiskAcceptanceBody, String, String, String, String, String, String, String, String, Bool) -> Result[Unit, CapturedEffectRiskIssue]
+
+pub fn check_effect_preview_apply_keys(@run_publication.EffectPreviewIdentity, @logical_request_scope.LogicalRequestScope, Array[Array[@effect_application.EffectDispatchKey]], Int, Int) -> Result[Unit, CapturedEffectApplyKeyIssue]
+
+pub fn check_effect_preview_apply_semantics(@run_publication.EffectPreviewIdentity, Array[String], Array[String], Array[String], Array[String], Array[@effect_application.EffectTargetVersionObservation], Array[@effect_application.EffectApplyCapabilityObservation], @effect_application.EffectRiskAcceptanceBody?, Bool, String, String, String, String, String, String, String, String, @logical_request_scope.LogicalRequestScope, Array[Array[@effect_application.EffectDispatchKey]], Int, Int, Int, Int, recovery_guards? : @effect_application.RecoveredEffectTargetGuards) -> Result[Unit, CapturedEffectApplyPreflightIssue]
+
+pub fn check_effect_preview_current_bindings(@run_publication.EffectPreviewIdentity, Array[String], Array[String], Array[String], Array[String], Int, Int) -> Result[Unit, CapturedEffectCurrentBindingIssue]
+
+pub fn checked_effect_computation_graph(@physical_strategy.CheckedEffectComputationDAG) -> @physical_strategy.CheckedDAG
+
+pub fn checked_effect_computation_owner(@physical_strategy.CheckedEffectComputationDAG) -> @program_check.EffectProgramStaticCandidate
+
+pub fn checked_effect_preview_source_indexes(@physical_strategy.CheckedEffectRunDAG, @effect_program_binding.EffectProgramRunPreview, Int) -> Result[Array[Int?], RunIssue]
+
+pub fn checked_effect_run_graph(@physical_strategy.CheckedEffectRunDAG) -> @physical_strategy.CheckedDAG
+
+pub fn checked_effect_run_owner(@physical_strategy.CheckedEffectRunDAG) -> @effect_program_binding.EffectProgramRunCandidate
+
+pub fn checked_effect_run_source_at(@physical_strategy.CheckedEffectRunDAG, Int) -> @physical_strategy.CheckedEffectSourcePort?
+
+pub fn checked_effect_run_source_count(@physical_strategy.CheckedEffectRunDAG) -> Int
+
+pub fn checked_effect_source_at(@physical_strategy.CheckedEffectComputationDAG, Int) -> @physical_strategy.CheckedEffectSourcePort?
+
+pub fn checked_effect_source_count(@physical_strategy.CheckedEffectComputationDAG) -> Int
+
+pub fn checked_effect_source_member(@physical_strategy.CheckedEffectSourcePort) -> Int
+
+pub fn checked_effect_source_occurrence(@physical_strategy.CheckedEffectSourcePort) -> @execution_relation.ManagedResultOccurrence
+
+pub fn checked_effect_source_stage(@physical_strategy.CheckedEffectSourcePort) -> Int
+
+pub fn checked_effect_source_task(@physical_strategy.CheckedEffectSourcePort) -> Int
+
+pub fn checked_effect_table_input_at(@physical_strategy.CheckedEffectComputationDAG, Int) -> @physical_strategy.CheckedEffectTableInputPort?
+
+pub fn checked_effect_table_input_member(@physical_strategy.CheckedEffectTableInputPort) -> Int
+
+pub fn checked_effect_table_input_stage(@physical_strategy.CheckedEffectTableInputPort) -> Int
+
+pub fn checked_effect_table_input_task(@physical_strategy.CheckedEffectTableInputPort) -> Int
+
+pub fn checked_task_identity(@physical_strategy.CheckedTaskReference) -> @physical_strategy.CheckedTaskIdentity
+
+pub fn checked_task_output_matches(@physical_strategy.CheckedTaskReference, @execution_relation.CompletedOutput) -> Bool
+
+pub fn cleanup_captured_effect_command_key_validation(CapturedEffectCommandKeyValidation) -> Result[Bool, CapturedEffectCommandKeyIssue]
+
+pub fn close_captured_effect_source_port(CapturedEffectInputs, Int) -> Bool
+
+pub fn close_captured_task_output(CapturedDAG, Int) -> Unit
+
+pub fn close_resident_environment(CapturedDAG, ResidentEnvironment) -> Result[Unit, @physical_resources.LedgerIssue]
+
+pub fn close_task_execution(CapturedDAG, TaskExecution) -> Unit
+
+pub fn close_task_numeric_reduction(CapturedDAG, TaskNumericExecution) -> Bool
+
+pub fn commit_strategy_choice(StrategyChoiceSet, Int?) -> Result[StrategyDecision, SearchIssue]
+
+pub fn commit_strategy_policy_decision(StrategyChoiceSet, PolicyRequest, PolicyResponse, Int64) -> Result[StrategyDecision, SearchIssue]
+
+pub fn complete_captured_managed_transfer(CapturedDAG, ManagedTransfer, Int64) -> Result[ManagedTransferReceipt, RunIssue]
+
+pub fn complete_carrier_managed_task_execution(CapturedDAG, TaskExecution, @execution_relation.CarrierManagedCompletedOutput, allocation? : TaskRetainedAllocation, managed_inputs? : Array[@execution_relation.CarrierManagedProducerRead]) -> Result[Unit, RunIssue]
+
+pub fn complete_carrier_managed_task_execution_with_inputs(CapturedDAG, TaskExecution, @execution_relation.CarrierManagedCompletedOutput, allocation? : TaskRetainedAllocation, managed_inputs? : Array[@execution_relation.ManagedInputBinding]) -> Result[Unit, RunIssue]
+
+pub fn complete_deferred_materializing_task_execution(CapturedDAG, TaskExecution, () -> Result[@execution_relation.CompletedOutput, RunIssue]) -> Result[Unit, RunIssue]
+
+pub fn[T] complete_managed_task_execution(CapturedDAG, TaskExecution, @execution_relation.ManagedCompletedOutput[T], allocation? : TaskRetainedAllocation, managed_inputs? : Array[@execution_relation.ManagedProducerRead[T]]) -> Result[Unit, RunIssue]
+
+pub fn[T] complete_managed_task_execution_with_inputs(CapturedDAG, TaskExecution, @execution_relation.ManagedCompletedOutput[T], allocation? : TaskRetainedAllocation, managed_inputs? : Array[@execution_relation.ManagedInputBinding]) -> Result[Unit, RunIssue]
+
+pub fn complete_materializing_task_execution(CapturedDAG, TaskExecution, @execution_relation.CompletedOutput) -> Result[Unit, RunIssue]
+
+pub fn complete_resident_transfer(CapturedDAG, ResidentTransfer) -> Result[Unit, RunIssue]
+
+pub fn configure_captured_managed_identity_policy(CapturedDAG, Bool, Bool, Bool, Bool) -> Bool
+
+pub fn configure_strategy_search(CapturedDAG, SearchLimits) -> Result[Unit, SearchIssue]
+
+pub fn confirm_captured_resident_output(CapturedDAG, TaskExecution) -> Result[Unit, RunIssue]
+
+pub fn confirm_resident_environment(CapturedDAG, ResidentEnvironment, Int64) -> Result[Unit, RunIssue]
+
+pub fn confirm_resident_table(CapturedDAG, ResidentTable) -> Result[Unit, RunIssue]
+
+pub fn control_edge_consumer(@physical_strategy.ControlEdge) -> Int
+
+pub fn control_edge_predecessor(@physical_strategy.ControlEdge) -> Int
+
+pub fn data_edge_consumer(@physical_strategy.DataEdge) -> Int
+
+pub fn data_edge_input(@physical_strategy.DataEdge) -> Int
+
+pub fn data_edge_operation_input(@physical_strategy.DataEdge) -> (Int, Int)?
+
+pub fn data_edge_producer(@physical_strategy.DataEdge) -> Int
+
+pub fn data_edge_target(@physical_strategy.DataEdge) -> @pipeline_typing.Target
+
+pub fn execute_captured_synchronous_task(CapturedDAG, Int, @connector_sdk.SynchronousCompute) -> Result[Unit, RunIssue]
+
+pub fn execute_task_numeric_reduction_for_slot(CapturedDAG, TaskExecution, Int, String, Int, Array[Double], Int, Int) -> Result[@numeric_reduction.Outcome, @numeric_reduction.ReductionIssue]?
+
+pub fn expand_internal_carrier_tasks(@physical_strategy.CheckedDAG, Int, Int) -> Result[@physical_strategy.CheckedDAG, @physical_strategy.GraphIssue]
+
+pub fn explain_captured_strategy(CapturedDAG, Int, Int, excluded? : Array[(Int, String, String)]) -> Result[String, @encode_core.EncodeFailure]
+
+pub fn fail_task_execution(CapturedDAG, TaskExecution, RunIssue) -> Bool
+
+pub fn finish_captured_effect_plan_verifier(CapturedEffectPlanVerifier) -> Result[CapturedEffectPlanProof, CapturedEffectPlanVerifyIssue]
+
+pub fn finish_captured_effect_proposal_plan(CapturedEffectProposalPlan, Int) -> Result[Unit, CapturedEffectProposalIssue]
+
+pub fn graph_captured_prefix(@physical_strategy.CheckedDAG) -> Int
+
+pub fn graph_control_at(@physical_strategy.CheckedDAG, Int) -> @physical_strategy.ControlEdge?
+
+pub fn graph_control_count(@physical_strategy.CheckedDAG) -> Int
+
+pub fn graph_data_at(@physical_strategy.CheckedDAG, Int) -> @physical_strategy.DataEdge?
+
+pub fn graph_data_count(@physical_strategy.CheckedDAG) -> Int
+
+pub fn graph_ordered_inputs_complete(@physical_strategy.CheckedDAG) -> Bool
+
+pub fn graph_program(@physical_strategy.CheckedDAG) -> @program_check.CheckedProgram
+
+pub fn graph_program_definition_cid(@physical_strategy.CheckedDAG) -> String
+
+pub fn graph_program_has_effects(@physical_strategy.CheckedDAG) -> Bool
+
+pub fn graph_requires_acquisition_result_publication(@physical_strategy.CheckedDAG) -> Bool
+
+pub fn graph_result_count(@physical_strategy.CheckedDAG) -> Int
+
+pub fn graph_result_name(@physical_strategy.CheckedDAG, Int) -> String?
+
+pub fn graph_result_occurrence(@physical_strategy.CheckedDAG, Int) -> @execution_relation.ManagedResultOccurrence?
+
+pub fn graph_result_task(@physical_strategy.CheckedDAG, Int) -> Int?
+
+pub fn graph_source_free_inputs_complete(@physical_strategy.CheckedDAG) -> Bool
+
+pub fn graph_stage_operation_task(@physical_strategy.CheckedDAG, Int, Int) -> Int?
+
+pub fn graph_stage_target_task(@physical_strategy.CheckedDAG, Int, @pipeline_typing.Target) -> Int?
+
+pub fn graph_task_count(@physical_strategy.CheckedDAG) -> Int
+
+pub fn graph_task_input_count(@physical_strategy.CheckedDAG, Int) -> Int?
+
+pub fn graph_task_numeric_observation_at(@physical_strategy.CheckedDAG, Int, Int) -> @physical_strategy.TaskNumericObservation?
+
+pub fn graph_task_numeric_observation_count(@physical_strategy.CheckedDAG, Int) -> Int?
+
+pub fn graph_task_operation_at(@physical_strategy.CheckedDAG, Int, Int) -> @physical_strategy.TaskOperationRequirement?
+
+pub fn graph_task_operation_count(@physical_strategy.CheckedDAG, Int) -> Int?
+
+pub fn graph_task_original_index(@physical_strategy.CheckedDAG, Int) -> Int?
+
+pub fn graph_task_owner(@physical_strategy.CheckedDAG, Int) -> @lowering_relation.BoundPrepared?
+
+pub fn graph_task_prefix_end(@physical_strategy.CheckedDAG, Int) -> Int?
+
+pub fn graph_task_selected_step(@physical_strategy.CheckedDAG, Int) -> Int?
+
+pub fn graph_task_target(@physical_strategy.CheckedDAG, Int) -> @pipeline_typing.Target?
+
+pub fn graph_task_unit_index(@physical_strategy.CheckedDAG, Int) -> Int?
+
+pub fn host_cleanup_pending(Bool, Bool, Bool) -> Bool
+
+pub fn host_cleanup_runtime_action_code(HostCleanupRuntimeAction) -> Int
+
+pub fn host_task_run_outcome_code(HostTaskRunOutcome) -> Int
+
+pub fn host_task_success_action_code(HostTaskSuccessAction) -> Int
+
+pub fn host_task_success_site_operation_settled(HostTaskSuccessProgress) -> Bool
+
+pub fn managed_failure_runtime_action_code(ManagedFailureRuntimeAction) -> Int
+
+pub fn managed_transfer_destination_admitted(ManagedTransferDestinationFacts, Int64, Int64) -> Bool
+
+pub fn managed_transfer_runtime_action_code(ManagedTransferRuntimeAction) -> Int
+
+pub fn next_captured_task(CapturedDAG) -> Int?
+
+pub fn next_dependency_ready_task(@physical_strategy.CheckedDAG, (Int) -> Bool, first_task? : Int) -> Int?
+
+pub fn open_captured_dag(@physical_strategy.CheckedDAG, @execution_query.CapturedInputSource, @physical_resources.Ledger, supplied? : Array[@execution_relation.CapturedRows], supplied_reads? : Array[(Int, Int, @execution_relation.SuppliedRelationRead)]) -> Result[CapturedDAG, RunIssue]
+
+pub fn open_captured_effect_run_dag(@physical_strategy.CheckedEffectRunDAG, @execution_query.CapturedInputSource, @physical_resources.Ledger, supplied? : Array[@execution_relation.CapturedRows]) -> Result[CapturedEffectRunDAG, RunIssue]
+
+pub fn open_multi_captured_dag(@physical_strategy.CheckedDAG, Array[(Int, @execution_query.CapturedInputSource)], @physical_resources.Ledger, supplied? : Array[@execution_relation.CapturedRows]) -> Result[CapturedDAG, RunIssue]
+
+pub fn open_multi_captured_effect_run_dag(@physical_strategy.CheckedEffectRunDAG, Array[(Int, @execution_query.CapturedInputSource)], @physical_resources.Ledger, supplied? : Array[@execution_relation.CapturedRows]) -> Result[CapturedEffectRunDAG, RunIssue]
+
+pub fn open_retained_effect_task_dag(@physical_strategy.CheckedEffectRunDAG, @physical_strategy.RetainedTaskProjection, @execution_relation.CompletedOutput, @physical_resources.Ledger, canonical_wire_bytes~ : Int) -> Result[CapturedEffectRunDAG, RunIssue]
+
+pub fn open_retained_task_dag(@physical_strategy.RetainedTaskProjection, @execution_relation.CompletedOutput, @physical_resources.Ledger, canonical_wire_bytes~ : Int) -> Result[CapturedDAG, RunIssue]
+
+pub fn open_source_free_dag(@physical_strategy.CheckedDAG, @physical_resources.Ledger) -> Result[CapturedDAG, RunIssue]
+
+pub fn open_source_free_effect_run_dag(@physical_strategy.CheckedEffectRunDAG, @physical_resources.Ledger) -> Result[CapturedEffectRunDAG, RunIssue]
+
+pub fn open_source_input_dag(@physical_strategy.CheckedDAG, @execution_query.CapturedInputSource, @physical_resources.Ledger) -> Result[CapturedDAG, RunIssue]
+
+pub fn operational_candidate_positions(PolicyCandidateSet) -> Result[Array[Int], SearchIssue]
+
+pub fn operational_candidate_trajectory(PolicyCandidateSet, Int) -> Result[OperationalAssignmentTrajectory, SearchIssue]
+
+pub fn operational_estimate_conditions_json(OperationalEstimateConditions) -> Result[String, SearchIssue]
+
+pub fn operational_profile_template_header(String) -> Result[OperationalProfileTemplateHeader, SearchIssue]
+
+pub fn operational_residual_position(PolicyCandidateSet, OperationalAssignmentTrajectory, Int) -> Result[Int?, SearchIssue]
+
+pub fn pin_captured_any_result_output_set(CapturedDAG, Array[(Int, @execution_relation.ManagedResultOccurrence)], Int) -> Result[CapturedAnyResultOutputSet, RunIssue]
+
+pub fn pin_captured_effect_acquired_unit_results(CapturedEffectRunDAG, Int, Int, max_dependency_work? : Int, max_dependency_depth? : Int) -> Result[CapturedEffectLocalUnitInputs, RunIssue]
+
+pub fn pin_captured_effect_source(CapturedEffectRunDAG, Int, Int) -> Result[CapturedEffectInput, RunIssue]
+
+pub fn pin_captured_effect_sources(CapturedEffectRunDAG, Int, max_dependency_work? : Int, max_dependency_depth? : Int) -> Result[CapturedEffectInputs, RunIssue]
+
+pub fn pin_captured_result_output(CapturedDAG, Int, @execution_relation.ManagedResultOccurrence, Int) -> Result[CapturedOutputPin, RunIssue]
+
+pub fn pin_captured_result_output_set(CapturedDAG, Array[(Int, @execution_relation.ManagedResultOccurrence)], Int) -> Result[CapturedResultOutputSet, RunIssue]
+
+pub fn pin_captured_table_input_output_set(CapturedDAG, Array[(Int, @execution_relation.ManagedTableInputOccurrence)], Int) -> Result[CapturedTableInputOutputSet, RunIssue]
+
+pub fn pin_captured_task_output(CapturedDAG, Int, @pipeline_typing.Target, Int) -> Result[CapturedOutputPin, RunIssue]
+
+pub fn placement_policy_request_json(PolicyRequest) -> Result[String, SearchIssue]
+
+pub fn placement_policy_response_json(PolicyResponse) -> Result[String, SearchIssue]
+
+pub fn prepare_bounded_strategy_choices(CapturedDAG, Array[TaskOffer], @connector_sdk.CapabilityRegistry) -> Result[StrategyChoiceSet, SearchIssue]
+
+pub fn[T] prepare_captured_cleanup(CapturedDAG, TaskExecution, (Array[ResidentTable]) -> Result[T, RunIssue]) -> Result[T, RunIssue]
+
+pub fn prepare_captured_effect_plan_verifier(CapturedEffectPreviewInputs, Int, Int, Int, published_target? : CapturedEffectCommandTarget?, input_key? : CapturedEffectCommandKeyValidation?) -> Result[CapturedEffectPlanVerifier, CapturedEffectPlanVerifyIssue]
+
+pub fn prepare_captured_effect_proposal_plan(CapturedEffectInputs, Int, Int, Int, published_target? : CapturedEffectCommandTarget?, input_key? : CapturedEffectCommandKeyValidation?) -> Result[CapturedEffectProposalPlan, CapturedEffectProposalIssue]
+
+pub fn prepare_checked_dag(@program_check.CheckedProgram, Array[@lowering_relation.BoundPrepared], Int, Int, source_free_root? : Bool, captured_prefix? : Int) -> Result[@physical_strategy.CheckedDAG, @physical_strategy.GraphIssue]
+
+pub fn prepare_checked_effect_computation_dag(@program_check.EffectProgramStaticCandidate, Array[@lowering_relation.BoundPrepared], Int, Int, source_free_root? : Bool, captured_prefix? : Int) -> Result[@physical_strategy.CheckedEffectComputationDAG, @physical_strategy.GraphIssue]
+
+pub fn prepare_checked_task_reference(@physical_strategy.CheckedDAG, Int, Int, Int) -> Result[@physical_strategy.CheckedTaskReference, @physical_strategy.CheckedTaskReferenceIssue]
+
+pub fn prepare_host_cleanup_progress_step(HostCleanupProgress, Bool, Bool, Bool, Bool) -> HostCleanupRuntimeAction
+
+pub fn prepare_host_cleanup_step(Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> HostCleanupRuntimeAction
+
+pub fn prepare_host_task_run_outcome(Bool, Bool) -> HostTaskRunOutcome
+
+pub fn prepare_host_task_success_progress_step(HostTaskSuccessProgress) -> HostTaskSuccessAction
+
+pub fn prepare_host_task_success_step(Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> HostTaskSuccessAction
+
+pub fn prepare_managed_failure_progress_step(ManagedFailureProgress) -> ManagedFailureRuntimeAction
+
+pub fn prepare_managed_failure_step(Bool, Bool, Bool, Bool, Bool, Bool) -> ManagedFailureRuntimeAction
+
+pub fn prepare_managed_transfer_cleanup_step(ManagedTransferProgress) -> Result[ManagedTransferRuntimeAction, RunIssue]
+
+pub fn prepare_managed_transfer_commit_step(ManagedTransferProgress) -> Result[ManagedTransferRuntimeAction, RunIssue]
+
+pub fn[T, P] prepare_resident_execution(CapturedDAG, Int, @connector_sdk.FixedComputeChoice, @connector_sdk.PreparedCompute[P], ResidentInputs, Int64, Int64, (Int) -> Result[T, RunIssue], (T, @execution_relation.CompletedOutput) -> Result[@execution_relation.ProducerStorage, RunIssue], independent_retention? : Int64) -> Result[ResidentExecution, RunIssue]
+
+pub fn prepare_resident_inputs(CapturedDAG, ResidentEnvironment, Int, Array[ResidentTable], @connector_sdk.FixedComputeCandidate, Int, Int, Int, (Int, ResidentTable, @execution_relation.ProducerRead, Int) -> Result[Int, RunIssue]) -> Result[ResidentInputs, RunIssue]
+
+pub fn prepare_resident_profile(CapturedDAG, @connector_sdk.ResourceBinding, Int64, SharedWorkEstimate, SharedWorkEstimate, Array[ResidentImportEstimate]) -> Result[ResidentProfile, SearchIssue]
+
+pub fn prepare_resident_storage(CapturedDAG, ResidentEnvironment, Int, Int64, Int, Int, (@execution_relation.ProducerStorage, Int) -> Result[@execution_relation.ProducerStorage, RunIssue]) -> Result[ResidentTable, RunIssue]
+
+pub fn prepare_retained_effect_task_projection(@physical_strategy.CheckedEffectRunDAG) -> Result[@physical_strategy.RetainedTaskProjection, RunIssue]
+
+pub fn prepare_retained_task_projection(@physical_strategy.CheckedDAG, Int) -> Result[@physical_strategy.RetainedTaskProjection, RunIssue]
+
+pub fn prepare_shared_work(CapturedDAG, Int, Array[@physical_cost.SerialEstimateLine], Int) -> Result[SharedWorkEstimate, SearchIssue]
+
+pub fn prepare_source_input_dag(@physical_strategy.CheckedDAG, @sourceview_resolution.SourceAcquisition) -> Result[@physical_strategy.CheckedDAG, @physical_strategy.GraphIssue]
+
+pub fn prepare_strategy_choices(CapturedDAG, Array[TaskOffer], @connector_sdk.CapabilityRegistry, Array[Int]?) -> Result[StrategyChoiceSet, SearchIssue]
+
+pub fn prepare_strategy_policy_request(StrategyChoiceSet, String, String, String, Int64, Int64) -> Result[PolicyRequest, SearchIssue]
+
+pub fn prepare_task_offer(CapturedDAG, Int, @connector_sdk.CapabilityRegistration, Int, Array[@physical_cost.SerialEstimateLine], PhysicalEnvelope, Int) -> Result[TaskOffer, SearchIssue]
+
+pub fn project_captured_effect_checked_proposal_row(CapturedEffectProposalPlan, CapturedEffectLocalResultExport, @execution_relation.CompletedOutputExportOriginalRow, Int, Int, @value_admission.Limits) -> Result[CapturedEffectCheckedProposalRow, CapturedEffectCheckedProposalIssue]
+
+pub fn project_captured_effect_proposal_row(CapturedEffectProposalPlan, @canonical_json.CanonicalValue, Int, Int, Int, Int, Int, Int) -> Result[(String, String), CapturedEffectProposalIssue]
+
+pub fn rank_operational_candidates(PolicyCandidateSet, OperationalEstimateSidecar, Int, String, Int64, quantity? : String) -> Result[EmpiricalRanking, SearchIssue]
+
+pub fn record_host_cleanup_closes_awaited(HostCleanupProgress) -> Bool
+
+pub fn record_host_cleanup_retry(HostCleanupProgress) -> Bool
+
+pub fn record_host_task_common_completion(HostTaskSuccessProgress, Bool) -> Bool
+
+pub fn record_host_task_managed_binding(HostTaskSuccessProgress, Bool) -> Bool
+
+pub fn record_host_task_output_retained(HostTaskSuccessProgress) -> Bool
+
+pub fn record_host_task_site_completion(HostTaskSuccessProgress, Bool) -> Bool
+
+pub fn record_host_task_site_operation_settled(HostTaskSuccessProgress) -> Bool
+
+pub fn record_managed_failure_additional_closed(ManagedFailureProgress) -> Bool
+
+pub fn record_managed_failure_cleanup_refreshed(ManagedFailureProgress) -> Bool
+
+pub fn record_managed_failure_cleanup_stopped(ManagedFailureProgress) -> Bool
+
+pub fn record_managed_failure_execution_settled(ManagedFailureProgress) -> Bool
+
+pub fn record_managed_failure_operations_close_attempted(ManagedFailureProgress) -> Bool
+
+pub fn record_managed_failure_operations_closed(ManagedFailureProgress) -> Bool
+
+pub fn record_managed_transfer_destination_admission(ManagedTransferProgress, ManagedTransferDestinationFacts, Int64, Int64) -> Bool
+
+pub fn record_managed_transfer_destination_cleanup_release(ManagedTransferProgress) -> Bool
+
+pub fn record_managed_transfer_destination_created(ManagedTransferProgress) -> Bool
+
+pub fn record_managed_transfer_destination_holding(ManagedTransferProgress) -> Bool
+
+pub fn record_managed_transfer_destination_reclaimed(ManagedTransferProgress) -> Bool
+
+pub fn record_managed_transfer_destination_site_settlement(ManagedTransferProgress) -> Bool
+
+pub fn record_managed_transfer_site_holding_release(ManagedTransferProgress) -> Bool
+
+pub fn record_managed_transfer_source_site_settlement(ManagedTransferProgress) -> Bool
+
+pub fn record_managed_transfer_source_stop(ManagedTransferProgress) -> Bool
+
+pub fn refresh_captured_retention(CapturedDAG) -> Unit
+
+pub fn refresh_task_execution_cleanup(CapturedDAG, TaskExecution) -> Result[Bool, @physical_resources.LedgerIssue]
+
+pub fn release_captured_any_result_borrow(CapturedAnyResultBorrow) -> Bool
+
+pub fn release_captured_any_result_output_set(CapturedAnyResultOutputSet) -> Bool
+
+pub fn release_captured_effect_input(CapturedEffectInput) -> Bool
+
+pub fn release_captured_effect_inputs(CapturedEffectInputs) -> Bool
+
+pub fn release_captured_effect_local_unit_inputs(CapturedEffectLocalUnitInputs) -> Bool
+
+pub fn release_captured_effect_preview_inputs(CapturedEffectPreviewInputs) -> Bool
+
+pub fn release_captured_managed_transfer(CapturedDAG, ManagedTransferReceipt) -> Result[Bool, @physical_resources.LedgerIssue]
+
+pub fn release_captured_output_pin(CapturedOutputPin) -> Bool
+
+pub fn release_captured_resident_result_borrow(CapturedResidentResultBorrow) -> Bool
+
+pub fn release_captured_result_borrow(CapturedResultBorrow) -> Bool
+
+pub fn release_captured_result_output_set(CapturedResultOutputSet) -> Bool
+
+pub fn release_captured_table_input_borrow(CapturedTableInputBorrow) -> Bool
+
+pub fn release_captured_table_input_output_set(CapturedTableInputOutputSet) -> Bool
+
+pub fn release_resident_table(CapturedDAG, ResidentTable) -> Result[Unit, @physical_resources.LedgerIssue]
+
+pub fn release_task_execution_allocation(TaskRetainedAllocation) -> Result[Bool, @physical_resources.LedgerIssue]
+
+pub fn require_captured_task_activation(CapturedDAG) -> Unit
+
+pub fn resident_environment_available(CapturedDAG, ResidentEnvironment) -> Bool
+
+pub fn resident_environment_resource_binding(ResidentEnvironment) -> @connector_sdk.ResourceBinding?
+
+pub fn resident_input_content_available(CapturedDAG, ResidentInputs, Int, @execution_relation.ProducerRead) -> Bool
+
+pub fn resident_profile_import(ResidentProfile, Int) -> ResidentImportEstimate?
+
+pub fn resident_profile_matches(CapturedDAG, ResidentProfile) -> Bool
+
+pub fn resident_profile_registration(ResidentProfile) -> @connector_sdk.CapabilityRegistration
+
+pub fn resident_profile_resource_binding(ResidentProfile) -> @connector_sdk.ResourceBinding
+
+pub fn resident_read_matches(CapturedDAG, ResidentRead, @execution_relation.ProducerRead) -> Bool
+
+pub fn resident_table_at(CapturedDAG, ResidentEnvironment, Int) -> ResidentTable?
+
+pub fn resident_table_environment(ResidentTable) -> ResidentEnvironment
+
+pub fn resident_table_producer(ResidentTable) -> Int
+
+pub fn resident_table_storage(ResidentTable) -> @execution_relation.ProducerStorage
+
+pub fn resident_task_offer(CapturedDAG, TaskOffer, ResidentProfile, Int64) -> Result[TaskOffer, SearchIssue]
+
+pub fn retain_captured_effect_command_key_validation(CapturedEffectCommandKeyValidation) -> Result[Unit, CapturedEffectCommandKeyIssue]
+
+pub fn retain_captured_task_allocation(CapturedDAG, Int, @physical_resources.Holding, release_confirmed? : () -> Bool) -> Result[Unit, @physical_resources.LedgerIssue]
+
+pub fn retain_task_execution_allocation(CapturedDAG, TaskExecution, Int64) -> Result[TaskRetainedAllocation, @physical_resources.LedgerIssue]
+
+pub fn retained_task_projection_consumer(@physical_strategy.RetainedTaskProjection) -> Int
+
+pub fn retained_task_projection_matches_output(@physical_strategy.RetainedTaskProjection, @execution_relation.CompletedOutput) -> Bool
+
+pub fn retained_task_projection_producer(@physical_strategy.RetainedTaskProjection) -> Int
+
+pub fn retained_task_projection_reference(@physical_strategy.RetainedTaskProjection, Int, Int) -> Result[@physical_strategy.CheckedTaskReference, @physical_strategy.CheckedTaskReferenceIssue]
+
+pub fn retained_task_projection_target(@physical_strategy.RetainedTaskProjection) -> @pipeline_typing.Target
+
+pub fn retire_captured_effect_checked_proposal_row(CapturedEffectCheckedProposalRow) -> Unit
+
+pub fn retire_resident_table(CapturedDAG, ResidentTable) -> Result[Unit, @physical_resources.LedgerIssue]
+
+pub fn return_resident_read(ResidentRead) -> Result[Unit, @physical_resources.LedgerIssue]
+
+pub fn revise_strategy(CapturedDAG, Array[TaskOffer], @connector_sdk.CapabilityRegistry, Array[Int]?) -> Result[StrategyDecision, SearchIssue]
+
+pub fn seal_task_numeric_reduction_slot(CapturedDAG, TaskExecution, Int, String, Int) -> Bool
+
+pub fn seal_task_numeric_reductions(CapturedDAG, TaskExecution) -> Bool
+
+pub fn select_captured_managed_registration(CapturedDAG, Int, @connector_sdk.CapabilityRegistration) -> Result[Unit, RunIssue]
+
+pub fn settle_captured_managed_transfer(CapturedDAG, ManagedTransfer, Bool) -> Result[Unit, @physical_resources.LedgerIssue]
+
+pub fn settle_resident_environment(CapturedDAG, ResidentEnvironment) -> Result[Unit, @physical_resources.LedgerIssue]
+
+pub fn settle_resident_transfer(CapturedDAG, ResidentTransfer, Bool) -> Result[Unit, @physical_resources.LedgerIssue]
+
+pub fn settle_task_execution(CapturedDAG, TaskExecution, Bool) -> Result[Unit, @physical_resources.LedgerIssue]
+
+pub fn shared_work_duration(SharedWorkEstimate) -> @physical_cost.DurationEstimate
+
+pub fn source_input_dag_matches_read(CapturedDAG, @execution_relation.SuppliedRelationRead) -> Bool
+
+pub fn start_captured_any_result_borrow_export(CapturedAnyResultBorrow, @execution_relation.CompletedResultViewLimits, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int, converted_output? : @execution_relation.CompletedOutput) -> Result[@execution_relation.CompletedResultRelationExportPreparation, @execution_relation.CompletedExportIssue]
+
+pub fn start_captured_effect_command_key_validation(@bounded_execution.Control, CapturedEffectInputs, Int, Int, CapturedEffectLocalResultExport, Int, Int, Int, Int) -> Result[CapturedEffectCommandKeyValidation, CapturedEffectCommandKeyIssue]
+
+pub fn start_captured_effect_input_export(CapturedEffectInput, @execution_relation.CompletedResultViewLimits, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int) -> Result[@execution_relation.CompletedResultRelationExportPreparation, @execution_relation.CompletedExportIssue]
+
+pub fn start_captured_effect_local_result_export(CapturedEffectInputs, Int, @execution_relation.CompletedResultViewLimits, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int, converted_output? : @execution_relation.CompletedOutput) -> Result[CapturedEffectLocalResultExport, CapturedEffectLocalResultExportIssue]
+
+pub fn start_captured_effect_local_unit_result_export(CapturedEffectLocalUnitInputs, Int, @execution_relation.CompletedResultViewLimits, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int) -> Result[CapturedEffectLocalResultExport, CapturedEffectLocalResultExportIssue]
+
+pub fn[I, T] start_captured_managed_execution(CapturedDAG, Int, @connector_sdk.PreparedManagedExecution[I, T, RunIssue]) -> Result[(T, TaskExecution), RunIssue]
+
+pub fn[T] start_captured_materializing_execution(CapturedDAG, Int, @connector_sdk.PreparedExecution[T, RunIssue], resident? : ResidentExecution) -> Result[(T, TaskExecution), RunIssue]
+
+pub fn start_captured_result_borrow_export(CapturedResultBorrow, @execution_relation.CompletedResultViewLimits, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int) -> Result[@execution_relation.CompletedResultRelationExportPreparation, @execution_relation.CompletedExportIssue]
+
+pub fn start_captured_table_input_borrow_export(CapturedTableInputBorrow, @execution_relation.CompletedResultViewLimits, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int) -> Result[@execution_relation.CompletedTableInputRelationExportPreparation, @execution_relation.CompletedExportIssue]
+
+pub fn start_task_numeric_reduction_for_slot(CapturedDAG, TaskExecution, Int, String, Int, Array[Double], Int, Int) -> Result[TaskNumericExecution, @numeric_reduction.ReductionIssue]?
+
+pub fn step_captured_effect_command_key_validation(CapturedEffectCommandKeyValidation, Int) -> Result[(Bool, Int), CapturedEffectCommandKeyIssue]
+
+pub fn stop_captured_dag(CapturedDAG) -> Unit
+
+pub fn strategy_assessment(StrategyRevision) -> StrategyAssessment
+
+pub fn strategy_choice_assessment(StrategyChoiceSet, Int) -> StrategyAssessment?
+
+pub fn strategy_choice_count(StrategyChoiceSet) -> Int
+
+pub fn strategy_choice_registration(StrategyChoiceSet, Int, Int) -> @connector_sdk.CapabilityRegistration?
+
+pub fn strategy_generation(StrategyRevision) -> Int
+
+pub fn strategy_history_at(CapturedDAG, Int) -> StrategyRevision?
+
+pub fn strategy_history_count(CapturedDAG) -> Int
+
+pub fn strategy_offline_policy_position(StrategyChoiceSet) -> Result[Int?, SearchIssue]
+
+pub fn strategy_policy_candidates(StrategyChoiceSet) -> PolicyCandidateSet?
+
+pub fn strategy_registration(StrategyRevision, Int) -> @connector_sdk.CapabilityRegistration?
+
+pub fn strategy_report_at(CapturedDAG, Int) -> StrategyAssessment?
+
+pub fn strategy_report_count(CapturedDAG) -> Int
+
+pub fn strategy_resident_profile(StrategyRevision, Int) -> ResidentProfile?
+
+pub fn strategy_revision_number(StrategyRevision) -> Int
+
+pub fn strategy_search_diagnostics(StrategyChoiceSet) -> StrategySearchDiagnostics
+
+pub fn strategy_selection_source(StrategyRevision) -> StrategySelectionSource
+
+pub fn strategy_task_envelope(CapturedDAG, Int) -> PhysicalEnvelope?
+
+pub fn strategy_usage_before(StrategyRevision) -> @physical_resources.LedgerUsage
+
+pub fn task_activation_authorized(@execution_authorization.RuntimeAction) -> TaskActivationGrant?
+
+pub fn task_activation_covered() -> TaskActivationGrant
+
+pub fn task_activation_grant_basis(TaskActivationGrant) -> @execution_authorization.DispatchBasis?
+
+pub fn task_execution_allocation_available(TaskRetainedAllocation) -> Bool
+
+pub fn task_execution_managed_attempt(CapturedDAG, TaskExecution) -> @execution_relation.ManagedExecutionAttempt?
+
+pub fn task_execution_numeric_capture_count(CapturedDAG, TaskExecution) -> Int?
+
+pub fn task_execution_numeric_capture_work(CapturedDAG, TaskExecution, Int) -> Int?
+
+pub fn task_execution_numeric_reduction_count(CapturedDAG, TaskExecution) -> Int?
+
+pub fn task_execution_numeric_reduction_member_cid(CapturedDAG, TaskExecution, Int) -> String?
+
+pub fn task_execution_numeric_reduction_slot_cid(CapturedDAG, TaskExecution, Int) -> String?
+
+pub fn task_execution_registration_key(CapturedDAG, TaskExecution) -> String?
+
+pub fn task_numeric_observation_family(@physical_strategy.TaskNumericObservation) -> @physical_strategy.NumericObservationFamily
+
+pub fn task_numeric_observation_name(@physical_strategy.TaskNumericObservation) -> String
+
+pub fn task_numeric_observation_operation(@physical_strategy.TaskNumericObservation) -> @numeric_reduction.Operation
+
+pub fn task_numeric_observation_profile(@physical_strategy.TaskNumericObservation) -> @numeric_reduction.Profile
+
+pub fn task_numeric_observation_same_owner(@physical_strategy.TaskNumericObservation, @physical_strategy.TaskNumericObservation) -> Bool
+
+pub fn task_numeric_observation_slot_cid(@physical_strategy.TaskNumericObservation) -> String
+
+pub fn task_numeric_observation_step(@physical_strategy.TaskNumericObservation) -> Int
+
+pub fn task_offer_matches(CapturedDAG, Int, @connector_sdk.CapabilityRegistration, TaskOffer) -> Bool
+
+pub fn validate_strategy_policy_request(StrategyChoiceSet, PolicyRequest, Int64) -> Result[Unit, SearchIssue]
+
+// Errors
+
+// Types and methods
+type CapturedAnyResultBorrow
+
+type CapturedAnyResultOutputSet
+
+type CapturedDAG
+
+pub(all) enum CapturedEffectApplyKeyIssue {
+  InvalidLimits
+  CapacityExceeded
+  NotReady
+  Keys(@effect_application.EffectPreviewApplyIdentityIssue)
+} derive(@debug.Debug)
+
+pub(all) enum CapturedEffectApplyPreflightIssue {
+  Plan(CapturedEffectPlanInventoryIssue)
+  Binding(CapturedEffectCurrentBindingIssue)
+  Guard(CapturedEffectGuardIssue)
+  Capability(CapturedEffectCapabilityIssue)
+  Risk(CapturedEffectRiskIssue)
+  Keys(CapturedEffectApplyKeyIssue)
+  Footprint(@effect_application.EffectFootprintIssue)
+} derive(@debug.Debug)
+
+pub(all) enum CapturedEffectCapabilityIssue {
+  NotReady
+  Current(@effect_application.EffectApplyCapabilityIssue)
+} derive(@debug.Debug)
+
+pub(all) enum CapturedEffectCheckedProposalIssue {
+  NotReady
+  ForeignExport
+  RowOrder
+  ProjectionUnavailable
+  ConversionUnavailable
+  OriginalRow(@execution_relation.CompletedExportOriginalRowIssue)
+  Projection(@stage_results.EffectPlanCheckedRowIssue)
+} derive(@debug.Debug)
+
+type CapturedEffectCheckedProposalRow
+
+pub(all) enum CapturedEffectCommandKeyIssue {
+  ForeignOrigin
+  MissingKey
+  Plan(@stage_results.EffectPlanBindingIssue)
+  Validation(@execution_relation.CompletedResultKeyIssue)
+  Control(@bounded_execution.Issue)
+  Stopped(@bounded_execution.StopReason)
+}
+
+type CapturedEffectCommandKeyValidation
+
+pub struct CapturedEffectCommandTarget {
+  inputs : CapturedEffectInputs
+  member_index : Int
+  target : @stage_results.EffectPublishedStoreTarget
+}
+
+pub(all) enum CapturedEffectCurrentBindingIssue {
+  InvalidLimits
+  CapacityExceeded
+  NotReady
+  InventoryMismatch
+  ForeignSource(Int)
+  ForeignContract(Int)
+  ForeignCapability(Int)
+  ForeignAuthority(Int)
+} derive(@debug.Debug)
+
+pub(all) enum CapturedEffectGuardIssue {
+  InvalidLimits
+  NotReady
+  Current(@effect_application.EffectPreviewTargetGuardIssue)
+} derive(@debug.Debug)
+
+type CapturedEffectInput
+
+type CapturedEffectInputs
+
+type CapturedEffectLocalResult
+
+type CapturedEffectLocalResultExport
+
+pub(all) enum CapturedEffectLocalResultExportIssue {
+  MissingResult
+  ForeignOutput
+  Export(@execution_relation.CompletedExportIssue)
+}
+
+type CapturedEffectLocalUnitInputs
+
+pub(all) enum CapturedEffectPlanInventoryIssue {
+  InvalidLimits
+  CapacityExceeded
+  ForeignProof(Int)
+  DuplicateProof(Int)
+  MissingProof(Int)
+} derive(@debug.Debug)
+
+pub(all) enum CapturedEffectPlanIssue {
+  InvalidMember
+  NotReady
+  ForeignBinding
+  Plan(@stage_results.EffectPlanBindingIssue)
+} derive(@debug.Debug)
+
+type CapturedEffectPlanProof
+
+type CapturedEffectPlanVerifier
+
+pub(all) enum CapturedEffectPlanVerifyIssue {
+  InvalidMember
+  MissingPlan
+  NotReady
+  PreviewMismatch
+  SelectorEncoding
+  Plan(CapturedEffectPlanIssue)
+  Row(@stage_results.EffectPlanRowIssue)
+  Changes(@stage_results.EffectPlanChangeIssue)
+  Command(@stage_results.EffectCommandRowIssue)
+}
+
+type CapturedEffectPreviewInputs
+
+pub(all) enum CapturedEffectProposalIssue {
+  InvalidMember
+  NotReady
+  ForeignBinding
+  MissingPlan
+  RowOrder
+  RowCountMismatch
+  Plan(@stage_results.EffectPlanBindingIssue)
+  Row(@stage_results.EffectPlanRowIssue)
+  Changes(@stage_results.EffectPlanChangeIssue)
+  Create(@stage_results.EffectCreateRowIssue)
+  Command(@stage_results.EffectCommandRowIssue)
+  SelectorEncoding
+} derive(@debug.Debug)
+
+type CapturedEffectProposalPlan
+
+type CapturedEffectResultImport
+
+pub(all) enum CapturedEffectRiskIssue {
+  NotReady
+  Risk(@effect_application.EffectRiskAcceptanceIssue)
+} derive(@debug.Debug)
+
+type CapturedEffectRunDAG
+
+type CapturedEffectTableInput
+
+pub struct CapturedExecutionRootStatistics {
+  rows : Int
+  canonical_wire_bytes : Int
+}
+
+type CapturedOutputPin
+
+type CapturedResidentResultBorrow
+
+type CapturedResultBorrow
+
+type CapturedResultOutputSet
+
+type CapturedTableInputBorrow
+
+type CapturedTableInputOutputSet
+
+pub(all) struct EmpiricalRanking {
+  request : PolicyRequest
+  profile_revision : String
+  policy_revision : String
+  task : Int
+  positions : Array[Int]
+  selected_position : Int?
+  reason : String
+} derive(Eq, @debug.Debug)
+
+type HostCleanupProgress
+
+pub(all) enum HostCleanupRuntimeAction {
+  HostCleanupRetryKnown
+  HostCleanupAwaitCloses
+  HostCleanupPending
+  HostCleanupFailed
+  HostCleanupFinished
+} derive(Eq, @debug.Debug)
+
+pub(all) enum HostTaskRunOutcome {
+  HostTasksCompleted
+  HostTasksFailed
+  HostTaskRunInvalid
+} derive(Eq, @debug.Debug)
+
+pub(all) enum HostTaskSuccessAction {
+  HostTaskCheckSiteCompletion
+  HostTaskRejectSiteCompletion
+  HostTaskCheckCommonCompletion
+  HostTaskRejectCommonCompletion
+  HostTaskRetainConnectorOutput
+  HostTaskRetainCoreOutput
+  HostTaskSettleSiteOperation
+  HostTaskValidateManagedBinding
+  HostTaskRejectManagedBinding
+  HostTaskSuccessFinished
+  HostTaskSuccessInvalid
+} derive(Eq, @debug.Debug)
+
+type HostTaskSuccessProgress
+
+type ManagedFailureProgress
+
+pub(all) enum ManagedFailureRuntimeAction {
+  FailureCloseAdditional
+  FailureCloseOperations
+  FailureAwaitStop
+  FailureSettleOperations
+  FailureRefreshCleanup
+  FailureFinished
+} derive(Eq, @debug.Debug)
+
+type ManagedTransfer
+
+pub(all) struct ManagedTransferDestinationFacts {
+  distinct_material : Bool
+  distinct_generation : Bool
+  rows : Int
+  batches : Int
+  max_batch_rows : Int
+  max_batch_bytes : Int
+  transferred_bytes : Int64
+  retained_bytes : Int64
+}
+
+type ManagedTransferProgress
+
+type ManagedTransferReceipt
+
+pub(all) enum ManagedTransferRuntimeAction {
+  TransferAwaitSourceStop
+  TransferMarkCleanupPending
+  TransferSettleSourceSite
+  TransferSettleRun
+  TransferRetainDestinationSite
+  TransferSettleDestinationSite
+  TransferReleaseDestinationCleanup
+  TransferCompleteRun
+  TransferReclaimDestination
+  TransferAbortRun
+  TransferReleaseRun
+  TransferReleaseSiteHolding
+  TransferFinished
+} derive(Eq, @debug.Debug)
+
+pub struct OperationalAssignmentTrajectory {
+  tasks : Array[OperationalRealization?]
+}
+
+pub(all) struct OperationalEstimateConditions {
+  host : String
+  realization : String
+  capture_mode : String
+  runtime_revision : String
+  binary_digest : String
+  input_digest : String
+  program_digest : String
+  input_rows : Int
+  schema_layout : String
+  limits_digest : String
+  instrumentation_revision : String
+  measurement_scope_revision : String
+  environment_digest : String
+  control_digest : String
+  concurrency : Int
+  process_state : String
+  os_cache : String
+  authorized_scope : String
+} derive(Eq, @debug.Debug)
+
+pub(all) struct OperationalEstimateSidecar {
+  request : PolicyRequest
+  conditions : OperationalEstimateConditions
+  profile_revision : String
+  oldest_ms : Int64
+  newest_ms : Int64
+  max_age_ms : Int64
+  capture_ms : Double?
+  references : Array[OperationalTimeReference]
+} derive(Eq, @debug.Debug)
+
+pub(all) struct OperationalProfileTemplateHeader {
+  profile_revision : String
+  candidate_snapshot_cid : String
+  conditions : OperationalEstimateConditions
+  oldest_ms : Int64
+  newest_ms : Int64
+  max_age_ms : Int64
+} derive(Eq, @debug.Debug)
+
+type OperationalRealization derive(Eq)
+
+pub(all) struct OperationalTimeReference {
+  position : Int
+  task : Int
+  quantity : String
+  median_ms : Double?
+  minimum_ms : Double?
+  maximum_ms : Double?
+  sample_count : Int
+  unknown_reason : String?
+} derive(Eq, @debug.Debug)
+
+pub(all) struct PhysicalEnvelope {
+  transfer_bytes : Int64
+  retained_bytes : Int64
+  execution_bytes : Int64
+} derive(Eq, @debug.Debug)
+
+pub(all) struct PolicyCandidateSet {
+  cid : String
+  canonical_json : String
+} derive(Eq, @debug.Debug)
+
+pub(all) struct PolicyDecisionRef {
+  policy_id : String
+  revision : String
+  request_id : String
+  explanation : String
+} derive(Eq, @debug.Debug)
+
+pub(all) struct PolicyRequest {
+  version : String
+  request_id : String
+  run_identity : String
+  authority : String
+  candidate_set_cid : String
+  generation : Int
+  revision : Int
+  deadline_ms : Int64
+} derive(Eq, @debug.Debug)
+
+pub(all) struct PolicyResponse {
+  request : PolicyRequest
+  position : Int
+  policy_id : String
+  policy_revision : String
+  explanation : String
+} derive(Eq, @debug.Debug)
+
+type ResidentEnvironment
+
+type ResidentExecution
+
+pub(all) struct ResidentImportEstimate {
+  work : SharedWorkEstimate
+  transfer_bytes : Int64
+  scratch_bytes : Int64
+  table_bytes : Int64
+}
+
+type ResidentInputs
+
+type ResidentProfile
+
+type ResidentRead
+
+type ResidentTable
+
+type ResidentTransfer
+
+pub(all) enum RunIssue {
+  UnsupportedGraph
+  ForeignCapture
+  NotReady
+  Stopped
+  ForeignCandidate
+  PreviewWorkLimit
+  MissingOutput
+  Capture(@execution_query.CapturedSourceIssue)
+  Binding(@execution_relation.ProducerBindingIssue)
+  Read(@execution_relation.ProducerReadIssue)
+  Compute(@connector_sdk.FixedComputeIssue)
+  Implementation(Error)
+  Physical(@physical_resources.LedgerIssue)
+  ActivationNotAuthorized
+}
+
+pub(all) enum SearchIssue {
+  InvalidLimits
+  AlreadyConfigured
+  NotConfigured
+  UnchangedState
+  Busy
+  Stopped
+  RevisionLimit
+  OfferLimit
+  StrategyLimit
+  MissingTask(Int)
+  ForeignOffer(Int)
+  CapabilityUnavailable(Int)
+  InvalidCapacity
+  InvalidPreference
+  StaleChoice
+  Overflow
+  Cost(@physical_cost.CostIssue)
+  Ledger(@physical_resources.LedgerIssue)
+}
+
+pub(all) struct SearchLimits {
+  max_offers : Int
+  max_strategies : Int
+  max_work : Int
+  max_revisions : Int
+}
+
+type SharedWorkEstimate
+
+pub struct StrategyAssessment {
+  position : Int
+  duration : @physical_cost.DurationEstimate
+  rejection : @physical_resources.LedgerIssue?
+  transfer_bytes : Int64
+  retained_bytes : Int64
+  execution_bytes : Int64
+}
+
+type StrategyChoiceSet
+
+pub enum StrategyDecision {
+  Selected(StrategyRevision)
+  Deferred
+  NoFeasible
+}
+
+type StrategyRevision
+
+pub(all) struct StrategySearchDiagnostics {
+  complete : Bool
+  evaluated_assignments : Int
+  generated_prefixes : Int
+  peak_frontier_states : Int
+  peak_index_cells : Int
+}
+
+pub(all) enum StrategySelectionSource {
+  OfflineLatency
+  BoundedLatency
+  HostProposal
+  ExternalPolicy(PolicyDecisionRef)
+} derive(Eq, @debug.Debug)
+
+type TaskActivationGrant
+
+type TaskExecution
+
+type TaskNumericExecution
+
+type TaskOffer
+
+type TaskRetainedAllocation
+
+// Type aliases
+pub using @physical_strategy {type CheckedDAG}
+
+pub using @physical_strategy {type CheckedEffectComputationDAG}
+
+pub using @physical_strategy {type CheckedEffectRunDAG}
+
+pub using @physical_strategy {type CheckedEffectRunIssue}
+
+pub using @physical_strategy {type CheckedEffectSourcePort}
+
+pub using @physical_strategy {type CheckedEffectTableInputPort}
+
+pub using @physical_strategy {type CheckedResultOccurrence}
+
+pub using @physical_strategy {type CheckedTaskIdentity}
+
+pub using @physical_strategy {type CheckedTaskInputIdentity}
+
+pub using @physical_strategy {type CheckedTaskReference}
+
+pub using @physical_strategy {type CheckedTaskReferenceIssue}
+
+pub using @physical_strategy {type ControlEdge}
+
+pub using @physical_strategy {type DataEdge}
+
+pub using @physical_strategy {type GraphIssue}
+
+pub using @physical_strategy {type LocalInputSlot}
+
+pub using @physical_strategy {type NumericObservationFamily}
+
+pub using @physical_strategy {type RetainedTaskProjection}
+
+pub using @physical_strategy {type TaskNumericObservation}
+
+pub using @physical_strategy {type TaskOperationRequirement}
+
+// Traits

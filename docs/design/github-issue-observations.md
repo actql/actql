@@ -94,3 +94,42 @@ aliases overlap until their original owners retire them. The existing resource
 supplier must cover that full lifetime independently of parser or request bounds.
 The saved Relation schema changes its Catalog identity; an old publication is
 not silently admitted under the new schema or reissued as a live observation.
+
+## Comment request construction
+
+The existing comment constructor bounds the subject in UTF-16 units and the
+body in Unicode scalar characters. Its native JSON request String and the
+separate JSON String export coexist. Escaping a control character can therefore
+require six units in the inner request and seven in the outer export before
+the Host applies the HTTP request-byte limit. That later refusal cannot fund
+these earlier allocations or reduce the constructor's original input domain.
+
+The native constructor inventory retains both builders, their transient String
+values, the fixed JSON object/iterator controls and their Array/Map backing.
+Original subject/body text and the fixed documents remain borrowed. The common
+representation policy prices these units; the provider adds no byte tariff or
+capacity grant. Subject checks have a separate constructor inventory.
+
+Fixed controls use the existing common constructor envelope per actual
+stringify call over the whole co-held closed document forest. The two calls
+remain two occurrences for each row; their controls are not moved into a
+single Host fee. Only the original String bounds and literal geometry belong
+to this provider. It does not duplicate builtin iterator/closure/header prices.
+
+The Host must reserve the original Plan's composed extent before calling the
+constructor. It separately accounts for quotation controls, decoded input,
+JavaScript mapping/parsing/hash and saved request bodies, credentials, HTTP
+request/response storage, returned provider observations and failed-child
+overlap. Returning constructor DATA or a request String does not retire those
+owners, consume a physical attempt, authorize a write or acknowledge cleanup.
+
+The standard comment subject check declares its fixed HTTP request to the same
+Host as the write. Its provider hooks only construct the original subject body
+and interpret the already-accounted status, body and declared headers. The
+transport's original `accepted` value is forwarded as DATA, including false;
+it is never synthesized from a successful await or HTTP status. Repository and
+Issue correspondence, documented semantic refusals, rate-limit uncertainty and
+unclassified failures keep their existing provider meanings. The direct Site
+helper composes these same pure hooks for its existing callers; the standard
+installed path does not retain a second Provider-owned HTTP callback. Neither
+projection nor a returned subject retires the physical read or its failed child.

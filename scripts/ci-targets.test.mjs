@@ -34,7 +34,7 @@ test('normal lint executes behavioral operation performance assessment tests', (
   assert.ok(jobs.host.steps.some(row => row.run === 'npm run check:checkpoint-runtime'));
   const observed = jobs.host.steps.find(row =>
     row.name === 'Test operation authorization and unchanged Run observations');
-  assert.equal(observed.run, 'node --test adapters/host-node/authorization-account-current.test.mjs adapters/host-node/local-account-current.test.mjs adapters/host-node/client-run-state-revision.test.mjs adapters/host-node/client-run-observation-reuse.test.mjs adapters/host-common/run-state-clock-order.test.mjs adapters/host-node/client-run-stop-observation.test.mjs adapters/host-node/embedded-managed-compute-projection.test.mjs adapters/host-node/embedded-managed-compute-lifecycle.test.mjs adapters/host-node/installed-managed-source.test.mjs adapters/host-node/embedded-source-environment-scope.test.mjs adapters/host-node/client-original-submitted-intent.test.mjs adapters/host-common/observation.test.mjs adapters/host-node/in-process-result-observation.test.mjs');
+  assert.equal(observed.run, 'node --test adapters/host-node/authorization-account-current.test.mjs adapters/host-node/local-account-current.test.mjs adapters/host-node/client-run-state-revision.test.mjs adapters/host-node/client-run-observation-reuse.test.mjs adapters/host-common/run-state-clock-order.test.mjs adapters/host-node/client-run-stop-observation.test.mjs adapters/host-node/embedded-managed-compute-projection.test.mjs adapters/host-node/mock-effect-host-original.test.mjs adapters/host-node/embedded-managed-compute-lifecycle.test.mjs adapters/host-node/installed-managed-source.test.mjs adapters/host-node/embedded-source-environment-scope.test.mjs adapters/host-node/client-original-submitted-intent.test.mjs adapters/host-common/observation.test.mjs adapters/host-node/in-process-result-observation.test.mjs');
   assert.ok(jobs.host.steps.indexOf(observed) > jobs.host.steps.findIndex(row =>
     row.run === 'npm run check:retained-boundary'));
 });
@@ -881,5 +881,22 @@ test('automatic main integration remains full even with valid narrow cumulative 
     assert.deepEqual(selected.targets, all); assert.equal(selected.macos, true);
     const lines = verifyGate(plan(selected), results(selected), {...context, event: 'push'});
     assert(!lines.some(line => line.startsWith('NOT APPLICABLE core')));
+  }
+});
+
+test('normal distribution keeps original Request resource and cleanup regressions selected once', () => {
+  const command = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
+    .scripts['check:distribution-client'];
+  const selected = command.split(/\s+/u);
+  for (const file of [
+  "adapters/host-node/content-pre-record-retirement.test.mjs",
+  "adapters/host-node/effect-capture-connection.test.mjs",
+  "adapters/host-node/effect-capture-resources.test.mjs",
+  "adapters/host-node/request-content-graph-resources.test.mjs",
+  "adapters/host-node/request-keyed-prefix-execution.test.mjs",
+  "adapters/host-node/request-model-material-resources.test.mjs",
+  "adapters/store-local/private-evidence-consumer-lifetime.test.mjs"
+]) {
+    assert.equal(selected.filter(value => value === file).length, 1, file);
   }
 });

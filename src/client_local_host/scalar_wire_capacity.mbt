@@ -1,23 +1,4 @@
 ///|
-/// Canonical finite Number/Boolean rows only. The pinned binary64 formatter
-/// emits at most 25 ASCII bytes (the negative fixed-notation -6 exponent case).
-/// Decimal, strings, references and nested values never enter this proof.
-fn _client_local_scalar_wire_bytes(
-  sequences : Array[@execution.GeneratedSequence],
-  max_rows : Int,
-) -> Int? {
-  match client_local_schema_proof_inventory(sequences) {
-    Some(inventory) =>
-      client_local_scalar_wire_byte_bound(
-        inventory.fields,
-        inventory.names,
-        max_rows,
-      )
-    None => None
-  }
-}
-
-///|
 fn client_local_scalar_wire_byte_bound(
   fields : Int,
   names : Int,
@@ -29,12 +10,36 @@ fn client_local_scalar_wire_byte_bound(
     rows < 0 {
     return None
   }
-  // Two outer-array bytes plus the 28-byte logical Relation wrapper. Per row:
-  // braces/separator 3; each key quote/colon/comma 4 plus Number 25; escaped
-  // field names expand by at most six per original UTF-8 byte.
-  let row_bytes = 3L + 6L * names.to_int64() + 29L * fields.to_int64()
-  if rows > 0 && row_bytes > (2147483647L - 30L) / rows.to_int64() {
+  client_local_json_leaf_wire_byte_bound(
+    fields,
+    rows,
+    rows.to_int64() * names.to_int64(),
+  )
+}
+
+///|
+// One wire formula for flat JSON leaves. The original value budget includes
+// both field-name and Text payload bytes. Numeric-only schemas supply their
+// exact name-byte envelope above; no Text policy or capacity is changed.
+fn client_local_json_leaf_wire_byte_bound(
+  fields : Int,
+  rows : Int,
+  total_text_bytes : Int64,
+) -> Int? {
+  if fields < 0 ||
+    fields > client_local_schema_proof_work() ||
+    rows < 0 ||
+    total_text_bytes < 0L ||
+    total_text_bytes > (2147483647L - 30L) / 6L {
     return None
   }
-  Some((30L + rows.to_int64() * row_bytes).to_int())
+  // Two array bytes plus the 28-byte Relation wrapper. Per row: braces and
+  // separator3; per leaf: key quotes/colon/comma4 and at most Number25 syntax.
+  // Text quotes also fit that syntax envelope; UTF-8 content escapes at most6.
+  let text = 6L * total_text_bytes
+  let row_bytes = 3L + 29L * fields.to_int64()
+  if rows > 0 && row_bytes > (2147483647L - 30L - text) / rows.to_int64() {
+    return None
+  }
+  Some((30L + text + rows.to_int64() * row_bytes).to_int())
 }

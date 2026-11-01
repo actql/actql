@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {checkedPreparation,cleanupClosedValuesInput} from './closed-values-preparation-adapter.mjs';
+import {checkedPreparation,cleanupRequestInput} from '../local-node/request-preparation-adapter.mjs';
 
 test('preparation capacity refusal preserves exact original Common facts as immutable data',()=>{
  const issue=Object.freeze({}), calls=[];
@@ -26,23 +26,23 @@ test('malformed diagnostic data never becomes a resource refusal or numeric auth
 
 
 test('prepared initial cleanup requires its fixed retirement callback and preserves retry ownership',()=>{
- const prepared={},holder={},phase={};let returns=0,aborts=0,cuts=0;
+ const prepared={},holder={},parent={};let returns=0,aborts=0,cuts=0;
  const runtime={
-  clientProgramAbortClosedValuesPreparationAfterCleanup(original){assert.equal(original,phase);aborts++;return {$tag:1,_0:undefined};},
-  clientProgramClosedValuesInitialRetirementStarted(original,token){assert.equal(original,phase);assert.equal(token,holder);return true;},
+  clientProgramAbortRequestPreparation(original){assert.equal(original,parent);aborts++;return {$tag:1,_0:undefined};},
+  clientProgramPreparationBorrowRetirementStarted(token){assert.equal(token,holder);return true;},
   clientProgramPreparationBorrowReturn(token){assert.equal(token,holder);returns++;return {$tag:1,_0:false};},
  };
- const state={prepared,holder,phase,context:{runtime}};
- assert.throws(()=>cleanupClosedValuesInput(state),{code:'NodeLocalPreparationAdmissionUnavailable'});
- assert.equal(returns,0);assert.equal(state.prepared,prepared);assert.equal(state.holder,holder);assert.equal(state.phase,phase);
- cleanupClosedValuesInput(state,original=>{assert.equal(original,prepared);assert.equal(state.holder,holder);cuts++;});
+ const state={prepared,holder,parent,context:{runtime}};
+ assert.throws(()=>cleanupRequestInput(state),{code:'NodeLocalPreparationAdmissionUnavailable'});
+ assert.equal(returns,0);assert.equal(state.prepared,prepared);assert.equal(state.holder,holder);assert.equal(state.parent,parent);
+ cleanupRequestInput(state,original=>{assert.equal(original,prepared);assert.equal(state.holder,holder);cuts++;});
  assert.equal(cuts,1);assert.equal(returns,1);assert.equal(aborts,3);
- assert.equal(state.prepared,undefined);assert.equal(state.holder,undefined);assert.equal(state.phase,undefined);
- cleanupClosedValuesInput(state);assert.equal(returns,1);
+ assert.equal(state.prepared,undefined);assert.equal(state.holder,undefined);assert.equal(state.parent,undefined);
+ cleanupRequestInput(state);assert.equal(returns,1);
 });
 
 test('pre-body initial cleanup needs no registry callback or fabricated Prepared',()=>{
- const phase={};let aborts=0;
- const state={phase,context:{runtime:{clientProgramAbortClosedValuesPreparationAfterCleanup(original){assert.equal(original,phase);aborts++;return {$tag:1,_0:undefined};}}}};
- cleanupClosedValuesInput(state);assert.equal(aborts,1);assert.equal(state.phase,undefined);
+ const parent={};let aborts=0;
+ const state={parent,context:{runtime:{clientProgramAbortRequestPreparation(original){assert.equal(original,parent);aborts++;return {$tag:1,_0:undefined};}}}};
+ cleanupRequestInput(state);assert.equal(aborts,1);assert.equal(state.parent,undefined);
 });

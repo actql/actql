@@ -134,6 +134,7 @@ fn run_relation_family_chain(cancel_after? : Int? = None) -> Unit raise {
   ).unwrap()
   let provider = @local_connector.local_module_managed_provider(
     implementation,
+    0,
     generated[0],
   ).unwrap()
   let active = @local_connector.start_managed_provider_with_inputs_and_execution(

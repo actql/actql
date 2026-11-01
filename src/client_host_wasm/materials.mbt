@@ -20,12 +20,12 @@ priv struct StoredSubmittedMaterial {
   borrow : Result[@buffers.BufferBorrow, @buffers.BufferIssue]
   mut rows : @local_run.LocalSubmittedRunRows?
   mut sdk_wire : String?
+  mut task_materials : @local_run.LocalRunTaskMaterialsOriginal?
 }
 
 ///|
 /// Reserve the complete wire allowance before encoding. The original Run
 /// remains live until this output retires, including an interrupted export.
-#export_name("actql_material_reserve")
 pub fn reserve_material(
   nonce : Int64,
   run : Int,
@@ -96,7 +96,6 @@ fn reserve_material_record(
 ///|
 /// Original row candidates only. Authentication and complete journal custody
 /// must still be observed in the same physical admission transaction.
-#export_name("actql_material_reserve_submitted_rows")
 pub fn reserve_submitted_rows_material(
   nonce : Int64,
   run : Int,
@@ -128,6 +127,7 @@ pub fn reserve_submitted_rows_material(
     borrow,
     rows: None,
     sdk_wire: None,
+    task_materials: None,
   })
   handle
 }
@@ -177,6 +177,31 @@ fn submitted_rows_material_wire(
     guard value.runs[material.run].finite_policy is Some(finite) else {
       return Err(-32)
     }
+    guard value.environments.get(preparation.environment) is Some(environment) else {
+      return Err(-2)
+    }
+    let bindings = match
+      @preparation.local_submitted_preparation_parameters_wire(original) {
+      Ok(value) => value
+      Err(_) => return Err(-31)
+    }
+    let task_materials = match submission.task_materials {
+      Some(original) => original
+      None =>
+        match
+          @local_run.capture_local_run_task_materials_original(
+            plan,
+            environment.environment,
+            environment.wire,
+            bindings,
+          ) {
+          Ok(original) => {
+            submission.task_materials = Some(original)
+            original
+          }
+          Err(_) => return Err(-34)
+        }
+    }
     @local_run.prepare_local_sdk_submitted_run_rows(
       plan,
       original,
@@ -188,6 +213,7 @@ fn submitted_rows_material_wire(
       current.context_cid,
       now,
       finite,
+      task_materials=Some(task_materials),
     )
   } else {
     @local_run.prepare_local_submitted_run_rows(
@@ -212,6 +238,11 @@ fn submitted_rows_material_wire(
     Ok(value) => value
     Err(_) => return Err(-31)
   }
+  let task_materials = match
+    @local_run.local_submitted_run_task_materials(rows, plan, original) {
+    Ok(value) => value
+    Err(_) => return Err(-31)
+  }
   let issued = if current.sdk is Some(_) {
     guard value.runs[material.run].finite_policy is Some(packet) &&
       value.runs[material.run].sdk_submission is Some(held) &&
@@ -227,7 +258,7 @@ fn submitted_rows_material_wire(
       return Err(-35)
     }
     let candidate = match
-      sdk_run_append_candidate(value, current, plan, packet) {
+      sdk_run_append_candidate(value, current, plan, packet, task_materials) {
       Ok(value) => value
       Err(code) => return Err(code)
     }
@@ -246,7 +277,9 @@ fn submitted_rows_material_wire(
     submission.rows = Some(rows)
   }
   try {
-    let writer = @encode.writer(1048576, 10, 1)
+    // At most three original chunks add one array and three closed objects.
+    // The existing complete transport byte allowance remains unchanged.
+    let writer = @encode.writer(1048576, 24, 3)
     @encode.begin_object(writer)
     for
       (key, text) in [
@@ -265,6 +298,22 @@ fn submitted_rows_material_wire(
       @encode.key(writer, "issued_body")
       @encode.string_value(writer, @utf8.decode(count))
     }
+    if task_materials is Some(original) {
+      @encode.key(writer, "task_materials")
+      @encode.begin_array(writer)
+      for
+        (key, body) in @local_run.local_run_task_materials_original_chunks(
+          original,
+        ) {
+        @encode.begin_object(writer)
+        @encode.key(writer, "key")
+        @encode.string_value(writer, key)
+        @encode.key(writer, "body")
+        @encode.string_value(writer, body)
+        @encode.end_object(writer)
+      }
+      @encode.end_array(writer)
+    }
     @encode.end_object(writer)
     Ok(@encode.finish(writer))
   } catch {
@@ -275,7 +324,6 @@ fn submitted_rows_material_wire(
 ///|
 /// Re-observe in the original write transaction, never accept a cached candidate
 /// from a previous snapshot/current generation. This performs no write or ACK.
-#export_name("actql_material_validate_submitted_rows")
 pub fn validate_submitted_rows_material(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.materials.get(handle) is Some(material) &&
@@ -304,7 +352,6 @@ pub fn validate_submitted_rows_material(nonce : Int64, handle : Int) -> Int {
 ///|
 /// Project existing Owner records. Encoding is not admission, durable storage,
 /// physical start or permission to retry. An interrupted handle is not reused.
-#export_name("actql_material_produce")
 pub fn produce_material(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.materials.get(handle) is Some(material) &&
@@ -417,7 +464,6 @@ pub fn produce_material(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_material_length")
 pub fn material_length(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.materials.get(handle) is Some(material) else {
@@ -448,7 +494,6 @@ pub fn material_length(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_material_close")
 pub fn close_material(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.materials.get(handle) is Some(material) else {
@@ -499,7 +544,6 @@ pub fn close_material(nonce : Int64, handle : Int) -> Int {
 ///|
 /// Retire only the consumed transport through the same Buffer Owner. Original
 /// rows/step proof, Run/input borrow and child custody survive until full close.
-#export_name("actql_material_retire_output")
 pub fn retire_material_output(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.materials.get(handle) is Some(material) &&

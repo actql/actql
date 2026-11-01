@@ -1,0 +1,186 @@
+///|
+// One retained ordinary lowerer call on the same Request. This is DATA, not a
+// second preparation owner, permission or mutable installation cache.
+priv struct ClientRequestQueryLowering {
+  publication : @source_publication.PreparedPublishedQueryEnvironment
+  environment : @checked.CheckEnvironment
+  declarations : String?
+  public_primary : Bool
+  quote : (Int64, Int64)
+  mut output : (
+    @frontend.Lowered,
+    @checked.PreparedSourceCatalog,
+    @frontend.DiagnosticSource,
+  )?
+}
+
+///|
+pub suberror ClientRequestQueryLoweringIssue {
+  Request(ClientRequestPreparationIssue)
+  Publication(@source_publication.PreparedPublicationIssue)
+  Overflow
+}
+
+///|
+// Query text/declarations and retained Catalog sizes bound the generated
+// syntax, expanded fields, maps and canonical output overlap. The Catalog is
+// borrowed; its original usage is DATA, not a repeated admission or charge
+// for its historical work. One shared coarse tariff replaces a helper census.
+fn request_query_lowering_data_bytes(
+  query : ClientRequestQuerySyntax,
+  declarations : String?,
+  catalog : @checked.PreparedSourceCatalog,
+) -> Int64? {
+  let usage = @checked.source_catalog_usage(catalog)
+  let units = query.document.length().to_int64() +
+    (match declarations {
+      Some(value) => value.length().to_int64()
+      None => 0L
+    }) +
+    usage.bytes.to_int64() +
+    usage.nodes.to_int64() +
+    1L
+  request_snapshot_data_bytes(units, units)
+}
+
+///|
+/// The same already parsed Query enters the existing published lowerer once.
+/// A failed capacity grow retains the original immutable tuple and quote;
+/// it cannot trigger a second parse, Catalog read or completed lowerer call.
+/// Existing lowerer budgets retain their bounds. Syntax work observations do
+/// not become a complete meter of this later semantic/construction phase.
+pub fn[I] lower_request_published_query(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  publication : @source_publication.PreparedPublishedQueryEnvironment,
+  environment : @checked.CheckEnvironment,
+  declarations : String?,
+  public_primary? : Bool = false,
+) -> Result[
+  (
+    @frontend.Lowered,
+    @checked.PreparedSourceCatalog,
+    @frontend.DiagnosticSource,
+  ),
+  ClientRequestQueryLoweringIssue,
+] {
+  guard owner.input is Some(original) && physical_equal(original, input) else {
+    return Err(Request(ForeignOriginal))
+  }
+  guard (owner.phase == QuerySyntaxParsed || owner.phase == QueryLoweringQuoted) &&
+    owner.query_syntax is Some(query) &&
+    query.query is Some(parsed) else {
+    return Err(Request(WrongPhase))
+  }
+  if owner.native_parameters_ready && declarations is Some(_) {
+    return Err(Request(ForeignOriginal))
+  }
+  if owner.phase == QuerySyntaxParsed {
+    let catalog = match
+      @source_publication.prepared_published_query_catalog(
+        publication, environment,
+      ) {
+      Err(issue) => return Err(Publication(issue))
+      Ok(value) => value
+    }
+    guard request_query_lowering_data_bytes(query, declarations, catalog)
+      is Some(bytes) else {
+      return Err(Overflow)
+    }
+    let (r, e) = match
+      @resources.preparation_capacity_working_extents(owner.capacity, input) {
+      Err(issue) => return Err(Request(Capacity(issue)))
+      Ok(value) => value
+    }
+    guard @execution.checked_preparation_add_product(r, bytes, 1L) is Some(r) &&
+      @execution.checked_preparation_add_product(e, bytes, 1L) is Some(e) else {
+      return Err(Overflow)
+    }
+    query.lowering = Some({
+      publication,
+      environment,
+      declarations,
+      public_primary,
+      quote: (r, e),
+      output: None,
+    })
+    owner.phase = QueryLoweringQuoted
+  }
+  guard query.lowering is Some(selected) &&
+    physical_equal(selected.publication, publication) &&
+    physical_equal(selected.environment, environment) &&
+    selected.declarations == declarations &&
+    selected.public_primary == public_primary else {
+    return Err(Request(ForeignOriginal))
+  }
+  owner.phase = Selecting
+  match
+    @resources.reserve_working_preparation_phase(
+      owner.capacity,
+      input,
+      selected.quote.0,
+      selected.quote.1,
+    ) {
+    Err(issue) => {
+      owner.phase = QueryLoweringQuoted
+      return Err(Request(Capacity(issue)))
+    }
+    Ok(_) => ()
+  }
+  let outcome = if owner.native_parameters_ready {
+    @source_publication.lower_prepared_query_with_declarations(
+      selected.publication,
+      selected.environment,
+      parsed,
+      owner.native_query_declarations.map(pair => pair.1),
+      public_primary=selected.public_primary,
+    )
+  } else {
+    @source_publication.lower_prepared_published_parsed_query(
+      selected.publication,
+      selected.environment,
+      parsed,
+      selected.declarations,
+      public_primary=selected.public_primary,
+    )
+  }
+  owner.phase = QueryLoweringFailed
+  match outcome {
+    Err(issue) => Err(Publication(issue))
+    Ok(output) => {
+      guard output.0.program is Some(program) else {
+        return Err(Request(WrongPhase))
+      }
+      selected.output = Some(output)
+      owner.held_program = Some(program)
+      owner.phase = QueryLowered
+      Ok(output)
+    }
+  }
+}
+
+///|
+/// Completed original DATA only. This performs no Catalog admission, lowerer,
+/// encoding or external current callback and grants no execution permission.
+pub fn[I] prepared_request_query_lowering(
+  owner : ClientRequestPreparation[I],
+  input : I,
+) -> Result[
+  (
+    @frontend.Lowered,
+    @checked.PreparedSourceCatalog,
+    @frontend.DiagnosticSource,
+  ),
+  ClientRequestQueryLoweringIssue,
+] {
+  guard owner.input is Some(original) && physical_equal(original, input) else {
+    return Err(Request(ForeignOriginal))
+  }
+  guard owner.phase != Selecting &&
+    owner.query_syntax is Some(query) &&
+    query.lowering is Some(selected) &&
+    selected.output is Some(output) else {
+    return Err(Request(WrongPhase))
+  }
+  Ok(output)
+}

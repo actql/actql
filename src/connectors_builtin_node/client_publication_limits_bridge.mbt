@@ -1,21 +1,4 @@
 ///|
-/// Read-only projection of the existing checked Local publication policy.
-/// The prepared owner is nominal; this does not issue execution authority.
-#export_name("clientProgramLocalPublicationLimits")
-pub fn client_program_local_publication_limits(
-  prepared : @publication_host.PreparedClientProgram,
-  max_payload_bytes : Int,
-) -> Array[Int] {
-  guard @client_local_host.client_node_values_publication_limits(
-      prepared, max_payload_bytes,
-    )
-    is Some(limits) else {
-    return []
-  }
-  client_publication_limit_values(limits)
-}
-
-///|
 // Inverse of the existing 22-field Result output ABI.
 fn client_publication_limit_values(
   limits : @publication_host.PublicationOutputExportLimits,

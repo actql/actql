@@ -5515,7 +5515,7 @@
     {
       "module": "packages/client-wire/index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "ca6a63c248ce750826c006f6243ab88b9fb56e80abd4521388e44281b3fda949",
+      "sha256": "2ed82e6cef8bd7a889ff30d8de8b26417590ff7a8a5516bf07793edd46062ef3",
       "exports": [
         "*:./interactive-control.generated.js",
         "checkOutcomeProtocol",
@@ -5717,7 +5717,8 @@
         {
           "name": "snapshotClientRequest/snapshotClientRequest",
           "parameters": [
-            "value"
+            "value",
+            "observe"
           ],
           "async": false
         },
@@ -5725,14 +5726,15 @@
           "name": "snapshotRequest",
           "parameters": [
             "value",
-            "numberError"
+            "numberError",
+            "observe"
           ],
           "async": false
         },
         {
-          "name": "snapshotRequest/snapshotRequest",
+          "name": "snapshotRequest/document/document",
           "parameters": [
-            "_key",
+            "key",
             "item"
           ],
           "async": false
@@ -7729,7 +7731,7 @@
         {
           "operations": [
             "snapshotRequest",
-            "snapshotRequest/snapshotRequest"
+            "snapshotRequest/document/document"
           ],
           "exports": [],
           "attributes": {
@@ -8904,7 +8906,7 @@
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "max_bytes > 2147483519"
+                "anchor": "fn valid_client_submitted_intent_limits("
               }
             ],
             "extension": [
@@ -10013,8 +10015,8 @@
           "operations": [
             "validResourcePeek",
             "validResourcePeek/validResourcePeek",
-            "validResourcePeek/validResourcePeek/validResourcePeek",
-            "validResourcePeek/validResourcePeek#2"
+            "validResourcePeek/validResourcePeek#2",
+            "validResourcePeek/validResourcePeek/validResourcePeek"
           ],
           "exports": [
             "validResourcePeek"

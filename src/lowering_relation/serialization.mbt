@@ -218,5 +218,6 @@ pub fn prepare_serialization_sort_kernel(
     input_id: node.inputs[0],
     checked,
     body: StableSort(Some(strategy)),
+    ordered_reference_material: None,
   })
 }

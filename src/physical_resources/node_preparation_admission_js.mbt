@@ -26,3 +26,22 @@ pub fn[I] prepare_node_local_preparation_admission(
     })
   })
 }
+
+///|
+fn[I] prepare_node_preparation_original(
+  child : ImportedChildLedger,
+  input : I,
+  abort_unpublished : () -> Result[Unit, ImportedChildLedgerIssue],
+) -> NodePreparationAdmission[I] {
+  {
+    admission: Some(
+      prepare_node_managed_run_original(
+        child,
+        input,
+        abort_unpublished,
+        purpose=LocalPreparation,
+      ),
+    ),
+    transitioning: false,
+  }
+}

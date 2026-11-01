@@ -3,6 +3,7 @@
 /// Host transports only registration-bound work; it never unwraps Local state.
 struct LocalDispatchModule {
   run : @strategy.CapturedDAG
+  mut preparation : LocalDispatchPreparation
   registration : @connector.CapabilityRegistration
   implementation : @local.LocalComputeModule
   channel : @host.DispatchChannel[LocalDispatchPlan]
@@ -92,70 +93,24 @@ pub fn prepare_local_dispatch_module(
   managed_capacity? : @connector.FixedComputeCapacity,
   managed_providers? : Array[@local.ManagedProvider] = [],
 ) -> Result[LocalDispatchModule, LocalDispatchIssue] {
-  let run = @host.dispatch_driver_run(driver)
-  let graph = @strategy.captured_dag_graph(run)
-  let first = @strategy.captured_compute_first_task(run)
-  if sequences.length() != @strategy.graph_task_count(graph) - first {
-    return Err(Configuration(ForeignPreparation))
-  }
-  let physical_sequences = []
-  for index, sequence in sequences {
-    if !(@strategy.graph_task_owner(graph, index + first) is Some(owner) &&
-      physical_equal(owner, @execution.generated_sequence_owner(sequence))) {
-      return Err(Configuration(ForeignPreparation))
-    }
-    let physical = match
-      @strategy.graph_task_selected_step(graph, index + first) {
-      Some(step) =>
-        match @execution.select_generated_sequence_step(sequence, step) {
-          Some(value) => value
-          None => return Err(Configuration(ForeignPreparation))
-        }
-      None =>
-        match @strategy.graph_task_prefix_end(graph, index + first) {
-          Some(last) =>
-            match @execution.select_generated_sequence_prefix(sequence, last) {
-              Some(value) => value
-              None => return Err(Configuration(ForeignPreparation))
-            }
-          None => sequence
-        }
-    }
-    physical_sequences.push(physical)
-  }
-  let implementation = match
-    @local.prepare_local_compute_module(
+  let original = match
+    prepare_local_dispatch_plan(
+      @strategy.captured_dag_graph(@host.dispatch_driver_run(driver)),
       registry,
       registration,
-      physical_sequences,
+      sequences,
       execution,
       measurement,
       max_work,
-      physical_sequences.length(),
       managed_capacity?,
       managed_providers~,
     ) {
     Ok(value) => value
-    Err(issue) => return Err(Configuration(issue))
+    Err(issue) => return Err(issue)
   }
-  let carrier_paths = local_dispatch_carrier_path_table(run, implementation)
-  let channel = match
-    @host.open_dispatch_channel(driver, registry, registration) {
-    Ok(value) => value
-    Err(issue) => return Err(Dispatch(issue))
-  }
-  Ok({
-    run,
-    registration,
-    implementation,
-    channel,
-    carrier_paths,
-    estimate_configuration: None,
-    import_policy: None,
-    import_metadata: None,
-    output_policy: None,
-    policy_sealed: false,
-  })
+  // First-time configuration may still install its policies before any quote
+  // escapes. Both paths retain the same selected module, not another calculator.
+  bind_local_dispatch_original(driver, original, false)
 }
 
 ///|
@@ -186,67 +141,23 @@ pub fn estimate_local_dispatch_offer(
   if !local_dispatch_offer_supported(installed, task) {
     return Err(Configuration(ComputeUnsupported))
   }
-  guard @local.local_module_capacity(
-      installed.implementation,
-      local_task_slot(installed, task),
-    )
+  if installed.import_policy is Some(_) &&
+    @strategy.graph_data_count(installed.preparation.graph) > max_work {
+    return Err(Configuration(InvalidLimits))
+  }
+  guard local_dispatch_preparation_task_capacity(installed.preparation, task)
     is Some(capacity) else {
     return Err(Configuration(InvalidLimits))
   }
-  let mut transfer = 0L
-  let metadata_bytes = installed.import_metadata
-    .map(value => value.retained_bytes)
-    .unwrap_or(0L)
-  guard local_retained_with_metadata(capacity.retained_bytes, metadata_bytes)
-    is Some(funded_retained) else {
-    return Err(Configuration(InvalidLimits))
-  }
-  let mut retained = funded_retained
   let offers = lines.copy()
   let mut slots = local_dispatch_work_slots()
-  if installed.import_policy is Some((limits, milliseconds)) {
-    guard @local.local_import_retention_capacity(limits) is Some(per_input) else {
-      return Err(Configuration(InvalidLimits))
-    }
-    let graph = @strategy.captured_dag_graph(installed.run)
-    let edges = @strategy.graph_data_count(graph)
-    if edges > max_work {
-      return Err(Configuration(InvalidLimits))
-    }
-    for edge in 0..<edges {
-      if @strategy.graph_data_at(graph, edge).unwrap().consumer == task {
-        if per_input > 9223372036854775807L - retained ||
-          limits.wire.max_bytes.to_int64() > 9223372036854775807L - transfer {
-          return Err(Configuration(InvalidLimits))
-        }
-        transfer += limits.wire.max_bytes.to_int64()
-        retained += per_input
-      }
-    }
+  if installed.import_policy is Some((_, milliseconds)) {
     offers.push({ work_slots: [slots], milliseconds, })
     slots += 1
   }
-  if installed.output_policy is Some((limits, milliseconds)) {
-    guard @local.local_export_retention_capacity(limits) is Some(extra) &&
-      extra <= 9223372036854775807L - retained else {
-      return Err(Configuration(InvalidLimits))
-    }
-    retained += extra
+  if installed.output_policy is Some((_, milliseconds)) {
     offers.push({ work_slots: [slots], milliseconds, })
     slots += 1
-  }
-  let execution = if installed.import_policy is Some(_) ||
-    installed.output_policy is Some(_) {
-    if retained > 9223372036854775807L - capacity.execution_bytes {
-      return Err(Configuration(InvalidLimits))
-    }
-    // Managed import may keep the admitted input representation and the
-    // independent output allocation live together until completion commits.
-    // Advertise that peak before selection; execution must never discover a
-    // larger requirement than the selected envelope.
-    capacity.execution_bytes + retained
-  } else {
-    capacity.execution_bytes
   }
   @strategy.prepare_task_offer(
     installed.run,
@@ -254,11 +165,7 @@ pub fn estimate_local_dispatch_offer(
     installed.registration,
     slots,
     offers,
-    {
-      transfer_bytes: transfer,
-      retained_bytes: retained,
-      execution_bytes: execution,
-    },
+    capacity,
     max_work,
   )
   .map(offer => {

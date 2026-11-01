@@ -154,10 +154,64 @@ pub fn admit_range_binding(
 }
 
 ///|
+/// Immutable constructor metadata from this SAME admitted binding. These are
+/// representation inputs, not a new target admission or physical authority.
+pub(all) struct RangeConstructionMetadata {
+  columns : Int
+  rows : Int
+  name_units : Int64
+  schema_bytes : Int64
+  origin_units : Int
+  spreadsheet_units : Int
+  target_units : Int
+  range : GridRange
+  limits : Limits
+}
+
+///|
+pub fn range_construction_metadata(
+  binding : RangeBinding,
+) -> RangeConstructionMetadata {
+  let mut name_units = 0L
+  for column in binding.columns {
+    name_units += column.name.length().to_int64()
+  }
+  {
+    columns: binding.columns.length(),
+    rows: binding.range.end_row - binding.range.start_row,
+    name_units,
+    // The actual Column document owns the fixed spelling. Boolean is the
+    // longest existing type label; a quoted name needs <=6 units per UTF16.
+    schema_bytes: 2L +
+    binding.columns.length().to_int64() *
+    (
+      range_columns_json([{ name: "", cell_type: Boolean, nullable: false, }])
+      .stringify()
+      .length()
+      .to_int64() +
+      1L
+    ) +
+    6L * name_units,
+    origin_units: binding.origin.length(),
+    spreadsheet_units: binding.spreadsheet_id.length(),
+    target_units: binding.target_wire.length(),
+    range: binding.range,
+    limits: binding.limits,
+  }
+}
+
+///|
 pub fn range_target_matches(
   binding : RangeBinding,
   target_wire : String,
 ) -> Bool {
+  // The original binding admitted and canonicalized this immutable DATA.
+  // Exact spelling reuses that completed fact; changed/noncanonical inputs
+  // retain their full old admission path. Permission/current and original
+  // request ownership are separate boundaries and are not reused here.
+  if target_wire == binding.target_wire {
+    return true
+  }
   guard range_parse(
       target_wire,
       binding.limits,

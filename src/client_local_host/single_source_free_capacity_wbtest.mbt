@@ -20,7 +20,7 @@ fn single_source_free_capacity_prepared(
 }
 
 ///|
-test "single source-free quote retains the existing admission ceiling without opening a Run" {
+test "source-free original retains the existing admission ceiling without opening a Run" {
   let prepared = single_source_free_capacity_prepared()
   let assets = @publication_host.client_local_product_assets()
   let asset_contracts = prepare_installed_sequence_contracts(
@@ -29,13 +29,14 @@ test "single source-free quote retains the existing admission ceiling without op
     Some(assets.fragment),
     assets.ordered,
   ).unwrap()
-  let limits = single_source_free_local_ledger_limits(
+  let original = prepare_source_free_local_requirements(
     prepared,
     asset_contracts,
     assets.values,
     Some(assets.fragment),
     assets.ordered,
   ).unwrap()
+  let limits = original.maximum_limits()
   assert_eq(limits.attempts, 1)
   assert_eq(limits.holdings, 1)
   assert_eq(limits.transfer_bytes, 1000000L)
@@ -45,7 +46,7 @@ test "single source-free quote retains the existing admission ceiling without op
 }
 
 ///|
-test "single source-free quote refuses Source acquisition and foreign registry before supply" {
+test "source-free original refuses Source acquisition and foreign registry before supply" {
   let assets = @publication_host.client_local_product_assets()
   let asset_contracts = prepare_installed_sequence_contracts(
     assets.registry,
@@ -54,7 +55,7 @@ test "single source-free quote refuses Source acquisition and foreign registry b
     assets.ordered,
   ).unwrap()
   assert_true(
-    single_source_free_local_ledger_limits(
+    prepare_source_free_local_requirements(
       single_source_free_capacity_prepared(
         document=source_query_original_document,
       ),
@@ -77,7 +78,7 @@ test "single source-free quote refuses Source acquisition and foreign registry b
 }
 
 ///|
-test "the original public UNION graph is outside the single-task quote before any physical supply" {
+test "the original public UNION retains one multi-task requirements owner before physical supply" {
   let assets = @publication_host.client_local_product_assets()
   let asset_contracts = prepare_installed_sequence_contracts(
     assets.registry,
@@ -126,14 +127,13 @@ test "the original public UNION graph is outside the single-task quote before an
     assets.ordered,
   ).unwrap()
   assert_eq(sequences.length(), 8)
-  assert_true(
-    single_source_free_local_ledger_limits(
-      prepared,
-      asset_contracts,
-      assets.values,
-      Some(assets.fragment),
-      assets.ordered,
-    )
-    is None,
-  )
+  let original = prepare_source_free_local_requirements(
+    prepared,
+    asset_contracts,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+  assert_eq(original.maximum_limits().attempts, 8)
+  assert_true(original.simultaneous_limits() is Some(_))
 }

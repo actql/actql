@@ -174,6 +174,24 @@ class DiagnosticTests(unittest.TestCase):
         self.assertNotIn('do-not-print', str(advice))
 
 
+    def test_variant_only_presentation_does_not_require_a_default(self):
+        advice = explain_check_reason({'code': 'binding_json_invalid', 'facts': {
+            'document': 'parameters', 'issue': 'invalid_unicode', 'secret': 'do-not-print'}})
+        self.assertEqual(advice['kind'], 'known')
+        self.assertEqual(advice['summary'], 'The binding JSON contains invalid Unicode text.')
+        self.assertNotIn('do-not-print', str(advice))
+        with self.assertRaises(TypeError):
+            advice['kind'] = 'completed'
+
+    def test_unmatched_variant_without_default_is_only_unknown_advice(self):
+        advice = explain_check_reason({'code': 'binding_json_invalid', 'facts': {
+            'document': 'foreign', 'issue': 'private-do-not-print'}})
+        self.assertEqual(advice, {'kind': 'unknown',
+            'summary': 'No supported explanation is available for this reason.'})
+        self.assertNotIn('private-do-not-print', str(advice))
+        self.assertIsNone(get_check_input(advice, 'parameters'))
+
+
 class AsyncBoundaryTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self.requests = []

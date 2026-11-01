@@ -654,15 +654,22 @@ export function issueUnpublishedRunStateWire(prepared: PreparedProgram,
     executionUnknown?: boolean}>): string;
 /** Project an unpublished candidate for a committed Run with current availability.
  * The Host completes its state observation through the same original Run row. */
-export function issueSucceededRunStateWire(prepared: PreparedProgram,
-  compilation: ValuesCompilation | TaskCompilation, admission: RunAdmission,
-  definition: RunDefinition, observedAt: string,
-  observations: readonly Readonly<{name: string;
+type RunResultStateObservation = Readonly<{name: string;
     state: 'available' | 'unavailable' | 'unknown';
     reason: 'confirmed_present' | 'retention_expired' | 'deleted' |
       'policy_unavailable' | 'integrity_failed' | 'not_published' |
       'store_query_failed' | 'clock_uncertain' | 'verification_pending';
-    observedAt: string}>[]): string;
+    observedAt: string}>;
+export function issueSucceededRunStateWire(prepared: PreparedProgram,
+  compilation: ValuesCompilation | TaskCompilation, admission: RunAdmission,
+  definition: RunDefinition, observedAt: string,
+  observations: readonly RunResultStateObservation[]): string;
+/** Requires the same admitted successful Effect outcome and checked publication
+ * inputs. The Host still supplies the actual committed index/current observations. */
+export function issueSucceededRunStateWire(prepared: PreparedEffectProgram,
+  compilation: EffectCompilation, admission: AllowedEffectRun,
+  definition: RunDefinition, observedAt: string,
+  observations: readonly RunResultStateObservation[], finalReceipt: PublicationContract): string;
 /** Admission of the current clock against the pinned Result retention. */
 export function resultReadAvailability(manifest: PublicationContract,
   resultName: string, retention: PublicationContract,
@@ -1076,6 +1083,29 @@ export function issueEffectfulFinalRunReceipt(runDefinition: PublicationContract
   computationReceipt: PublicationContract, capturedRun: PublicationContract,
   preview: EffectPreviewIdentity, setReceiptWire: string,
   memberReceiptWires: readonly string[], limits: PublicationLimits): PublicationContract;
+/** Admit complete original chain/Result/Set evidence once. Retains immutable
+ * outcome facts on the returned original Receipt, not current authority or ACK. */
+export function admitEffectfulFinalRunEvidence(
+  evidence: Omit<EffectfulPublicationCommitEvidence,'durableBindings'>,
+  limits: PublicationLimits): PublicationContract;
+/** Pure admitted outcome observation; no raw receipt re-admission or IO. */
+export function effectfulFinalRunOutcome(finalReceipt: PublicationContract): Readonly<{
+  status: 'succeeded' | 'needs_reconciliation' | 'failed'; allUnattempted: boolean}>;
+/** Same admitted Unknown partition and original manifest; no raw re-admission,
+ * current permission, resubmission or physical acknowledgement. */
+export function effectfulFinalRunReconciliationState(finalReceipt: PublicationContract,
+  updatedAt: string, limits: PublicationLimits): string;
+/** Same admitted known-failed partition, original Run and manifest. No raw
+ * re-admission, current grant, publication, resend or cleanup acknowledgement. */
+export function effectfulFinalRunFailedState(finalReceipt: PublicationContract,
+  updatedAt: string, limits: PublicationLimits): string;
+/** Validate saved originals against actual independently observed output facts,
+ * preserving the original derivation/ordering/scope/issuer contracts. */
+export function admitOriginalResultOccurrenceEvidence(definition: PublicationContract,
+  artifact: PublicationContract, derivation: PublicationContract,
+  ordering: PublicationContract, retention: PublicationContract,
+  facts: Readonly<{logicalValueCid: string; resultSchemaCid: string;
+    effectiveDataPolicyCid: string}>): ResultOccurrenceEvidence;
 export interface EffectfulPublicationCommitEvidence {
   readonly runDefinition: PublicationContract;
   readonly invocation: PublicationContract;

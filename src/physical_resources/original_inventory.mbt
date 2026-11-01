@@ -2,15 +2,39 @@
 // Finite private custody on the existing Ledger, not another registry owner.
 // The bootstrap pays for all backing/control/snapshots for the original Run.
 // Bounds alone do not establish those byte coefficients or public adoption.
+priv enum OriginalInventoryBinding {
+  StandaloneUnbound
+  StandaloneBound
+  PreparationUnbound
+  PreparationBound
+  PreparationFinishing
+  PreparationQuiescent
+  PreparationSettling
+  // The same binding word records non-preparation token provenance. Closing
+  // such a token cannot make a first-prefix prerequisite pristine again.
+  PreparationUnboundSpent
+  PreparationBoundSpent
+} derive(Eq)
+
+///|
 priv struct LedgerOriginalInventory {
   identity : OriginalLedgerIdentity
   bootstrap : CapacityReservation
-  max_reservations : Int
-  max_holdings : Int
-  max_delegations : Int
+  mut max_reservations : Int
+  mut max_holdings : Int
+  mut max_delegations : Int
   reservations : OriginalTokenSlots[Reservation]
   holdings : OriginalTokenSlots[Holding]
   delegations : OriginalTokenSlots[ExecutionDelegation]
+  // Counts only SAME original live holdings, never consumed work/attempts.
+  mut holding_counts : Map[Int, Int]
+  // One checked Run binding may be installed after preparation, before reads.
+  // The same scalar also selects existing bootstrap settlement custody. A
+  // preparation census never becomes an independent owner of its reservation.
+  mut binding : OriginalInventoryBinding
+  // Absolute first business-attempt serial at the original preparation/Run
+  // binding. This is an offset, never a reset or a second usage snapshot.
+  mut preparation_attempt_base : Int
   mut descriptor_issued : Bool
   mut read_claimed : Bool
   mut closing : Bool
@@ -37,8 +61,38 @@ pub fn begin_original_ledger_inventory(
   max_holdings : Int,
   max_delegations : Int,
 ) -> Result[OriginalLedgerIdentity, OriginalReadIssue] {
+  begin_original_ledger_inventory_owned(
+    ledger,
+    bootstrap,
+    max_reservations,
+    max_holdings,
+    max_delegations,
+    StandaloneUnbound,
+  )
+}
+
+///|
+fn begin_original_ledger_inventory_owned(
+  ledger : Ledger,
+  bootstrap : CapacityReservation,
+  max_reservations : Int,
+  max_holdings : Int,
+  max_delegations : Int,
+  binding : OriginalInventoryBinding,
+) -> Result[OriginalLedgerIdentity, OriginalReadIssue] {
+  // Empty preparation owns retained controls, not Model working memory.
+  // The later original binding/descriptor/read predicates still require the
+  // separately funded positive execution extent; E0 cannot issue a Scope.
+  let bootstrap_ready = if binding == PreparationUnbound {
+    physical_equal(ledger, bootstrap.reservation.owner) &&
+    bootstrap.reservation.open &&
+    bootstrap.reservation.retention > 0L &&
+    bootstrap.reservation.execution >= 0L
+  } else {
+    original_read_bootstrap_available(ledger, bootstrap)
+  }
   if ledger.original_inventory is Some(_) ||
-    !original_read_bootstrap_available(ledger, bootstrap) ||
+    !bootstrap_ready ||
     bootstrap.reservation.serial != -1 ||
     ledger.next_capacity_serial != Some(-2) {
     return Err(InvalidBootstrap)
@@ -62,9 +116,18 @@ pub fn begin_original_ledger_inventory(
     max_reservations,
     max_holdings,
     max_delegations,
-    reservations: original_token_slots(),
-    holdings: original_token_slots(),
-    delegations: original_token_slots(),
+    reservations: original_token_slots(
+      capacity=if binding == PreparationUnbound { max_reservations } else { 0 },
+    ),
+    holdings: original_token_slots(
+      capacity=if binding == PreparationUnbound { max_holdings } else { 0 },
+    ),
+    delegations: original_token_slots(
+      capacity=if binding == PreparationUnbound { max_delegations } else { 0 },
+    ),
+    holding_counts: Map([]),
+    binding,
+    preparation_attempt_base: -1,
     descriptor_issued: false,
     read_claimed: false,
     closing: false,
@@ -147,6 +210,38 @@ pub fn original_ledger_inventory_available(
 }
 
 ///|
+// Bind the original checked Run to a census installed before preparation.
+// Existing child identities and consumed work remain recorded. This claims
+// only the existing binding slot; it does not issue a descriptor or Model
+// permission, rebuild a census, or create another resource owner. The initial
+// bootstrap must fund this scalar word before the census is constructed.
+pub fn claim_original_ledger_run_binding(
+  identity : OriginalLedgerIdentity,
+  ledger : Ledger,
+) -> Result[Unit, OriginalReadIssue] {
+  if !physical_equal(identity.ledger, ledger) {
+    return Err(ForeignOrigin)
+  }
+  guard original_ledger_inventory_available(identity) &&
+    ledger.original_inventory is Some(value) else {
+    return Err(InvalidBootstrap)
+  }
+  if value.descriptor_issued || value.read_claimed {
+    return Err(SpentClaim)
+  }
+  value.binding = match value.binding {
+    StandaloneUnbound => StandaloneBound
+    PreparationUnbound => {
+      value.preparation_attempt_base = ledger.next_attempt_serial.unwrap_or(-1)
+      PreparationBound
+    }
+    PreparationUnboundSpent => PreparationBoundSpent
+    _ => return Err(SpentClaim)
+  }
+  Ok(())
+}
+
+///|
 // Read-only lifetime of the same original census/bootstrap. A parked Run may
 // retain its existing borrow while allocation and mutation remain fenced.
 // This neither unparks resources nor admits a read, Model start or send.
@@ -161,9 +256,10 @@ pub fn original_ledger_inventory_live(
 }
 
 ///|
-// Core-only prerequisite for the checked source-free prefix constructor.
-// Unlike the ordinary lifetime getter, this rejects descriptor/read issuance
-// and every spent child identity, including a zero-byte or settled attempt.
+// Core-only prerequisite for the checked prefix constructor. A preparation
+// keeps its original input IO/work history; the same binding word excludes
+// every non-preparation child or work after binding. Standalone inventories
+// retain their original pristine-history law, including zero-byte children.
 // It neither lends a Ledger to JS nor grants Model send/restore authority.
 pub fn original_ledger_prefix_available(
   identity : OriginalLedgerIdentity,
@@ -171,6 +267,13 @@ pub fn original_ledger_prefix_available(
   guard original_ledger_inventory_available(identity) &&
     identity.ledger.original_inventory is Some(value) else {
     return false
+  }
+  if original_inventory_preparation_owned(value) {
+    // Only actual preparation-input attempts were exempted at issuance,
+    // before the original Run binding. Nothing here rebases consumed counters.
+    return value.binding == PreparationBound &&
+      original_prefix_attempt_count_is(value, 0) &&
+      original_preparation_input_closed(value)
   }
   !value.descriptor_issued &&
   !value.read_claimed &&
@@ -245,16 +348,28 @@ fn check_original_delegation_slot(ledger : Ledger) -> Result[Unit, LedgerIssue] 
 }
 
 ///|
-fn record_original_reservation(ledger : Ledger, value : Reservation) -> Unit {
+fn record_original_reservation(
+  ledger : Ledger,
+  value : Reservation,
+  preparation_input? : Bool = false,
+) -> Unit {
   if ledger.original_inventory is Some(inventory) {
-    inventory.reservations.push(value)
+    if !preparation_input || !original_inventory_preparation_unbound(inventory) {
+      record_original_non_preparation_token(inventory)
+    }
+    inventory.reservations.push(value, value.serial)
   }
 }
 
 ///|
 fn record_original_holding(ledger : Ledger, value : Holding) -> Unit {
   if ledger.original_inventory is Some(inventory) {
-    inventory.holdings.push(value)
+    record_original_non_preparation_token(inventory)
+    inventory.holdings.push(value, value.serial)
+    inventory.holding_counts[value.reservation_serial] = inventory.holding_counts
+      .get(value.reservation_serial)
+      .unwrap_or(0) +
+      1
   }
 }
 
@@ -264,7 +379,8 @@ fn record_original_delegation(
   value : ExecutionDelegation,
 ) -> Unit {
   if ledger.original_inventory is Some(inventory) {
-    inventory.delegations.push(value)
+    record_original_non_preparation_token(inventory)
+    inventory.delegations.push(value, value.reservation.serial)
   }
 }
 
@@ -273,35 +389,32 @@ fn retire_original_reservation(ledger : Ledger, value : Reservation) -> Unit {
   if ledger.original_inventory is Some(inventory) {
     // A retained output still requires the original closed reservation binding.
     // This is live custody, unlike an expired identity retained only as history.
-    if inventory.holdings.any(holding => {
-        holding.live && holding.reservation_serial == value.serial
-      }) {
+    if inventory.holding_counts.get(value.serial).unwrap_or(0) != 0 {
       return
     }
-    for index in 0..<inventory.reservations.length() {
-      if physical_equal(inventory.reservations[index], value) {
-        inventory.reservations.remove(index) |> ignore
-        break
-      }
-    }
+    inventory.reservations.remove_original(value.serial, value) |> ignore
   }
 }
 
 ///|
 fn retire_original_holding(ledger : Ledger, value : Holding) -> Unit {
   if ledger.original_inventory is Some(inventory) {
-    for index in 0..<inventory.holdings.length() {
-      if physical_equal(inventory.holdings[index], value) {
-        inventory.holdings.remove(index) |> ignore
-        break
-      }
+    if !inventory.holdings.remove_original(value.serial, value) {
+      return
     }
-    for index in 0..<inventory.reservations.length() {
-      let reservation = inventory.reservations[index]
-      if reservation.serial == value.reservation_serial && !reservation.open {
-        retire_original_reservation(ledger, reservation)
-        break
-      }
+    let remaining = inventory.holding_counts
+      .get(value.reservation_serial)
+      .unwrap_or(0) -
+      1
+    if remaining > 0 {
+      inventory.holding_counts[value.reservation_serial] = remaining
+      return
+    }
+    inventory.holding_counts.remove(value.reservation_serial)
+    if inventory.reservations.by_serial(value.reservation_serial)
+      is Some(reservation) &&
+      !reservation.open {
+      retire_original_reservation(ledger, reservation)
     }
   }
 }
@@ -312,12 +425,8 @@ fn retire_original_delegation(
   value : ExecutionDelegation,
 ) -> Unit {
   if ledger.original_inventory is Some(inventory) {
-    for index in 0..<inventory.delegations.length() {
-      if physical_equal(inventory.delegations[index], value) {
-        inventory.delegations.remove(index) |> ignore
-        break
-      }
-    }
+    inventory.delegations.remove_original(value.reservation.serial, value)
+    |> ignore
   }
 }
 
@@ -375,6 +484,27 @@ pub fn finish_original_ledger_inventory(
     value.delegations.any(token => token.reservation.open) {
     return Ok(false)
   }
+  // Scope cleanup acknowledges its own children, not preparation borrowers.
+  // Keep the same allocation fence/census and debit until that original
+  // preparation owner retires. No new current boundary or settlement occurs.
+  if original_inventory_preparation_owned(value) {
+    match value.binding {
+      PreparationQuiescent => return Ok(true)
+      PreparationFinishing | PreparationSettling => return Ok(false)
+      _ => ()
+    }
+    let previous = value.binding
+    value.binding = PreparationFinishing
+    match reservation_check(ledger, value.bootstrap.reservation) {
+      Err(issue) => {
+        value.binding = previous
+        return Err(Resource(issue))
+      }
+      Ok(_) => ()
+    }
+    value.binding = PreparationQuiescent
+    return Ok(true)
+  }
   match reservation_check(ledger, value.bootstrap.reservation) {
     Err(issue) => return Err(Resource(issue))
     Ok(_) => ()
@@ -385,6 +515,8 @@ pub fn finish_original_ledger_inventory(
   value.holdings.shrink_to_fit()
   value.delegations.clear()
   value.delegations.shrink_to_fit()
+  value.holding_counts.clear()
+  value.holding_counts = Map([])
   ledger.original_inventory = None
   settle_capacity(ledger, value.bootstrap)
   .map(_ => true)

@@ -3,7 +3,9 @@ package "actql/actql/value_admission"
 
 import {
   "actql/actql/canonical_json",
+  "actql/actql/canonical_value",
   "actql/actql/decode_core",
+  "actql/actql/decode_shape",
   "actql/actql/encode_core",
   "actql/actql/source_span",
   "actql/actql/source_value",
@@ -118,6 +120,8 @@ pub fn complete_equality_pending_frames(CompleteEquality) -> Int
 
 pub fn complete_order_key(CheckedValue, Limits) -> Result[String, CompleteOrderIssue]
 
+pub fn contract_value_body_construction_inventory(@value_contract.Contract, @decode_core.SubtreeConstructionGeometry) -> ParameterValueBodyConstructionInventory?
+
 pub fn decimal_from_coefficient(String, Int, Int) -> Value?
 
 pub fn[T] element_at(FrozenArray[T], Int) -> T?
@@ -157,6 +161,12 @@ pub fn null_value() -> Value
 pub fn number_value(Double) -> Value?
 
 pub fn object_value(Array[(String, Value)]) -> Value?
+
+pub fn parameter_syntax_value_body_construction_inventory(@value_contract.ParameterSyntax, @decode_core.SubtreeConstructionGeometry) -> ParameterValueBodyConstructionInventory?
+
+pub fn parameter_syntax_value_phase_construction_inventory(@value_contract.ParameterSyntax, @decode_core.SubtreeConstructionGeometry, Int64, Int) -> ParameterValuePhaseConstructionInventory?
+
+pub fn parameter_value_body_construction_inventory(@value_contract.ParameterType, @decode_core.SubtreeConstructionGeometry) -> ParameterValueBodyConstructionInventory?
 
 pub fn prepare_array_value(Int) -> ArrayBuilder?
 
@@ -363,6 +373,25 @@ pub(all) struct Limits {
 } derive(Eq, @debug.Debug)
 
 type ObjectBuilder
+
+pub(all) struct ParameterValueBodyConstructionInventory {
+  values : @decode_shape.CollectionConstructionInventory
+  traversal : @decode_shape.CollectionConstructionInventory
+  value_extent : @decode_shape.CollectionConstructionExtent
+  traversal_extent : @decode_shape.CollectionConstructionExtent
+  decimal_scratch : @decode_shape.CollectionConstructionExtent
+  owned_value_utf16_units : Int64
+  owned_decimal_scratch_utf16_units : Int64
+  key_normalization : @canonical_value.NormalizationConstructionExtent?
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ParameterValuePhaseConstructionInventory {
+  returned : @decode_shape.CollectionConstructionExtent
+  temporary : @decode_shape.CollectionConstructionExtent
+  normalization : @canonical_value.NormalizationConstructionExtent?
+  returned_utf16_units : Int64
+  temporary_utf16_units : Int64
+} derive(Eq, @debug.Debug)
 
 type RecheckCursor
 

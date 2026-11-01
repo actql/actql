@@ -473,3 +473,40 @@ test('current GCS receiver admits its exact Command while the frozen predecessor
   await admitted.effects[0].close();
   assert.deepEqual(admitted.calls, ['close:owner-0']);
 });
+
+test('actual Salesforce loader projection retains the original registered Plan port without provider work', async t => {
+  const f=await fixture(t),source=await readFile(new URL('../connectors/salesforce/host/installed-salesforce-effect.mjs',import.meta.url),'utf8');
+  const fn=parse(source,{ecmaVersion:'latest',sourceType:'module'}).body.find(node=>
+    node.type==='FunctionDeclaration'&&node.id.name==='installedSalesforceEffect');
+  assert(fn);
+  const statement=fn.body.body.find(node=>node.type==='ReturnStatement');assert(statement);
+  const project=Function('rowEffect','installed','site','connectorId','accountConfiguration',
+    'installedSalesforceSiteBinding','targetReadInventory','retainInstalledRowEffectAdapter',source.slice(statement.start,statement.end));
+  const original=f.effects[0],selected=f.descriptors[0],site={context:{},connectorRegistration:'owner-0',
+    connectorRevision:'owner-0/0.1',connection:'owner-0',close(){assert.fail('No provider closure in projection');}};
+  const installed={environment:{wire:original.environmentWire},generationCid:cid('d'),mappings:[{
+    write:{resource:'records',kind:'create'},body:JSON.stringify({target_ref:selected.target}),
+    mappingRef:selected.mappingRef,mappingCid:selected.mappingCid}]};
+  const projection=project(original,installed,site,'owner-0','original-account',()=>({bindingCid:cid('1')}),
+    ()=>assert.fail('No target read in projection'),retainInstalledRowEffectAdapter);
+  assert.equal(projection.prepareManagedPlan,original.prepareManagedPlan);
+  composeInstalledRowEffectOwners([projection,f.effects[1]],f.descriptors,'{}')
+    .assertPrepared({moon:f.moon,compilation:program});
+  assert.deepEqual(f.calls,[]);
+});
+
+test('actual Salesforce installation second projection preserves the same registered managed Plan function', async t => {
+  const f=await fixture(t),source=await readFile(new URL('../connectors/salesforce/host/installed-salesforce-effect-installation.mjs',import.meta.url),'utf8');
+  const fn=parse(source,{ecmaVersion:'latest',sourceType:'module'}).body.map(node=>node.declaration??node)
+    .find(node=>node.type==='FunctionDeclaration'&&node.id.name==='loadInstalledSalesforceEffectInstallation');
+  assert(fn);
+  const original=f.effects[0],checked={},providerMoon={},options={runtimeBundleCid:cid('a')};let factoryCalls=0;
+  const load=Function('loadInstalledSalesforceEffect','retainInstalledRowEffectAdapter',`return (${source.slice(fn.start,fn.end)});`)(
+    async(profile,input)=>{assert.equal(profile,checked);assert.equal(input.salesforceMoon,providerMoon);
+      assert.equal(input.runtimeBundleCid,options.runtimeBundleCid);factoryCalls++;return original;},retainInstalledRowEffectAdapter);
+  const selected=await load(checked,{providerMoon,...options});
+  assert.equal(factoryCalls,1);assert.equal(selected.prepareManagedPlan,original.prepareManagedPlan);
+  composeInstalledRowEffectOwners([selected,f.effects[1]],f.descriptors,'{}')
+    .assertPrepared({moon:f.moon,compilation:program});
+  assert.deepEqual(f.calls,[]);
+});

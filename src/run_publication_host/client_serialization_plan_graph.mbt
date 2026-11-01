@@ -13,6 +13,43 @@ pub struct ClientSerializationPlanGraph {
   policy : @publication.CapturedEffectDependencyBody
   max_rows : Int
   max_bytes : Int
+  // Keep the issuer's immutable component parts for the same Request compiler.
+  // They are not reconstructed from saved wire or a copied Graph holder.
+  priv original_graph : ClientTaskPlanGraph
+  priv graph_nodes : Array[@canonical.CanonicalValue]
+  priv graph_edges : Array[@canonical.CanonicalValue]
+  priv graph_roots : Array[@canonical.CanonicalValue]
+  priv graph_wire_bytes : Int
+  priv graph_wire_nodes : Int
+  priv graph_wire_depth : Int
+}
+
+///|
+// The same immutable original read used by the Model component. This is DATA
+// for compiler construction, not current authority or physical backing. The
+// constructor caller retains the complete component before using these parts.
+fn client_serialization_graph_original_parts(
+  value : ClientSerializationPlanGraph,
+  owner : PreparedClientProgram,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> (
+  Array[@canonical.CanonicalValue],
+  Array[@canonical.CanonicalValue],
+  Array[@canonical.CanonicalValue],
+)? {
+  if !physical_equal(value.owner, owner) ||
+    !physical_equal(value.graph, value.original_graph) ||
+    max_wire_bytes <= 0 ||
+    max_nodes <= 0 ||
+    max_depth <= 0 ||
+    value.graph_wire_bytes > max_wire_bytes ||
+    value.graph_wire_nodes > max_nodes ||
+    value.graph_wire_depth > max_depth {
+    return None
+  }
+  Some((value.graph_nodes, value.graph_edges, value.graph_roots))
 }
 
 ///|
@@ -559,43 +596,17 @@ fn issue_client_serialization_plan_graph_with_policy(
   let policy_cid = @publication.captured_effect_dependency_body_cid(policy)
   try {
     let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth)
-    @encode.begin_object(writer)
-    @encode.key(writer, "barrier_id")
-    @encode.string_value(writer, barrier_id)
-    @encode.key(writer, "effective_output_data_policy_cid")
-    @encode.string_value(writer, policy_cid)
-    @encode.key(writer, "input_data_policy_cids")
-    @encode.begin_array(writer)
-    @encode.string_value(writer, policy_cid)
-    @encode.end_array(writer)
-    @encode.key(writer, "input_ref")
-    @encode.string_value(writer, "input_0")
-    @encode.key(writer, "output_ref")
-    @encode.string_value(writer, output_port)
-    @encode.key(writer, "serialization")
-    @encode.begin_object(writer)
-    @encode.key(writer, "bounds")
-    @encode.begin_object(writer)
-    @encode.key(writer, "max_bytes")
-    @encode.number_value(writer, bytes.to_double())
-    @encode.key(writer, "max_rows")
-    @encode.number_value(writer, rows.to_double())
-    @encode.end_object(writer)
-    @publication.emit_content_serialization_options(
-      @pipeline.serialization_profile(@lower.serialization_checked(barrier)),
+    emit_client_serialization_barrier_body(
       writer,
+      barrier,
+      barrier_id,
+      output_port,
+      policy_cid,
+      rows,
+      bytes,
+      None,
+      (cid : String, out) => @encode.string_value(out, cid),
     )
-    @encode.key(writer, "preserve_order")
-    @encode.bool_value(writer, true)
-    @encode.end_object(writer)
-    @encode.key(writer, "serialization_contract_cid")
-    @encode.string_value(
-      writer,
-      @environment.compiler_content_serialization_contract_cid(),
-    )
-    @encode.key(writer, "version")
-    @encode.string_value(writer, "actql-content-barrier/0.1")
-    @encode.end_object(writer)
     guard parse_plan_identity_value(
         @encode.finish(writer),
         max_wire_bytes,
@@ -613,37 +624,16 @@ fn issue_client_serialization_plan_graph_with_policy(
       return Err(Encoding)
     }
     let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth)
-    @encode.begin_object(writer)
-    @encode.key(writer, "barrier")
-    @canonical.emit_value(body, writer)
-    @encode.key(writer, "barrier_contract_cid")
-    @encode.string_value(
+    emit_client_serialization_node_body(
       writer,
-      @environment.compiler_content_barrier_contract_cid(),
+      body,
+      @canonical.emit_value,
+      barrier_id,
+      output_port,
+      input_contract_cid,
+      output_contract_cid,
+      (cid, out) => @encode.string_value(out, cid),
     )
-    @encode.key(writer, "input_contracts")
-    @encode.begin_object(writer)
-    @encode.key(writer, "input_0")
-    @encode.string_value(writer, input_contract_cid)
-    @encode.end_object(writer)
-    @encode.key(writer, "input_refs")
-    @encode.begin_array(writer)
-    @encode.string_value(writer, "input_0")
-    @encode.end_array(writer)
-    @encode.key(writer, "kind")
-    @encode.string_value(writer, "content_barrier")
-    @encode.key(writer, "node_id")
-    @encode.string_value(writer, barrier_id)
-    @encode.key(writer, "output_contracts")
-    @encode.begin_object(writer)
-    @encode.key(writer, output_port)
-    @encode.string_value(writer, output_contract_cid)
-    @encode.end_object(writer)
-    @encode.key(writer, "output_ref")
-    @encode.string_value(writer, output_port)
-    @encode.key(writer, "profile_id")
-    @encode.string_value(writer, "actql-content/0.1")
-    @encode.end_object(writer)
     let wire = @encode.finish(writer)
     guard parse_plan_identity_value(wire, max_wire_bytes, max_nodes, max_depth)
       is Some(content_node) else {
@@ -690,6 +680,7 @@ fn issue_client_serialization_plan_graph_with_policy(
     nodes.push(content_node)
     let roots : Array[@canonical.CanonicalValue] = []
     let transformations : Array[ClientResultTransformation] = []
+    let result_plans : Array[ClientResultPlanIdentity] = []
     for
       result in 0..<(if include_results {
         @strategy.graph_result_count(owner.graph)
@@ -722,16 +713,26 @@ fn issue_client_serialization_plan_graph_with_policy(
         transformations.push(selection)
       }
       roots.push(parts.root)
+      result_plans.push(parts.plan)
     }
     let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth)
     @encode.begin_object(writer)
     @encode.key(writer, "data_edges")
-    client_plan_emit_array(writer, edges)
+    client_plan_emit_array(writer, edges, @canonical.emit_value)
     @encode.key(writer, "nodes")
-    client_plan_emit_array(writer, nodes)
+    client_plan_emit_array(writer, nodes, @canonical.emit_value)
     @encode.key(writer, "root_refs")
-    client_plan_emit_array(writer, roots)
+    client_plan_emit_array(writer, roots, @canonical.emit_value)
     @encode.end_object(writer)
+    let (wire, graph_wire_bytes, graph_wire_nodes, graph_wire_depth) = @encode.finish_text_usage(
+      writer,
+    )
+    let original_graph : ClientTaskPlanGraph = {
+      wire,
+      transformations,
+      result_plans,
+      standard_progress_keys: None,
+    }
     Ok({
       owner,
       task,
@@ -739,16 +740,120 @@ fn issue_client_serialization_plan_graph_with_policy(
       barrier,
       input: input.unwrap_or(output),
       output,
-      graph: {
-        wire: @encode.finish(writer),
-        transformations,
-        standard_progress_keys: None,
-      },
+      graph: original_graph,
       policy,
       max_rows: rows,
       max_bytes: bytes,
+      original_graph,
+      graph_nodes: nodes,
+      graph_edges: edges,
+      graph_roots: roots,
+      graph_wire_bytes,
+      graph_wire_nodes,
+      graph_wire_depth,
     })
   } catch {
     _ => Err(Encoding)
   }
+}
+
+///|
+// Shared original Content emitters. Measurement substitutes only future CID
+// encoded extents; real issuers retain all original policy/hash/port checks.
+fn[C] emit_client_serialization_barrier_body(
+  writer : @encode.Writer,
+  barrier : @lower.PreparedSerialization,
+  barrier_id : String,
+  output_port : String,
+  policy_cid : C,
+  rows : Int,
+  bytes : Int,
+  cid : C?,
+  emit_cid : (C, @encode.Writer) -> Unit raise @encode.EncodeFailure,
+) -> Unit raise @encode.EncodeFailure {
+  @encode.begin_object(writer)
+  if cid is Some(cid) {
+    @encode.key(writer, "barrier_cid")
+    emit_cid(cid, writer)
+  }
+  @encode.key(writer, "barrier_id")
+  @encode.string_value(writer, barrier_id)
+  @encode.key(writer, "effective_output_data_policy_cid")
+  emit_cid(policy_cid, writer)
+  @encode.key(writer, "input_data_policy_cids")
+  @encode.begin_array(writer)
+  emit_cid(policy_cid, writer)
+  @encode.end_array(writer)
+  @encode.key(writer, "input_ref")
+  @encode.string_value(writer, "input_0")
+  @encode.key(writer, "output_ref")
+  @encode.string_value(writer, output_port)
+  @encode.key(writer, "serialization")
+  @encode.begin_object(writer)
+  @encode.key(writer, "bounds")
+  @encode.begin_object(writer)
+  @encode.key(writer, "max_bytes")
+  @encode.number_value(writer, bytes.to_double())
+  @encode.key(writer, "max_rows")
+  @encode.number_value(writer, rows.to_double())
+  @encode.end_object(writer)
+  @publication.emit_content_serialization_options(
+    @pipeline.serialization_profile(@lower.serialization_checked(barrier)),
+    writer,
+  )
+  @encode.key(writer, "preserve_order")
+  @encode.bool_value(writer, true)
+  @encode.end_object(writer)
+  @encode.key(writer, "serialization_contract_cid")
+  @encode.string_value(
+    writer,
+    @environment.compiler_content_serialization_contract_cid(),
+  )
+  @encode.key(writer, "version")
+  @encode.string_value(writer, "actql-content-barrier/0.1")
+  @encode.end_object(writer)
+}
+
+///|
+fn[B, C] emit_client_serialization_node_body(
+  writer : @encode.Writer,
+  body : B,
+  emit_body : (B, @encode.Writer) -> Unit raise @encode.EncodeFailure,
+  barrier_id : String,
+  output_port : String,
+  input_contract_cid : C,
+  output_contract_cid : C,
+  emit_cid : (C, @encode.Writer) -> Unit raise @encode.EncodeFailure,
+) -> Unit raise @encode.EncodeFailure {
+  @encode.begin_object(writer)
+  @encode.key(writer, "barrier")
+  emit_body(body, writer)
+  @encode.key(writer, "barrier_contract_cid")
+  @encode.string_value(
+    writer,
+    @environment.compiler_content_barrier_contract_cid(),
+  )
+  @encode.key(writer, "input_contracts")
+  @encode.begin_object(writer)
+  @encode.key(writer, "input_0")
+  emit_cid(input_contract_cid, writer)
+  @encode.end_object(writer)
+  @encode.key(writer, "input_refs")
+  @encode.begin_array(writer)
+  @encode.string_value(writer, "input_0")
+  @encode.end_array(writer)
+  @encode.key(writer, "kind")
+  @encode.string_value(writer, "content_barrier")
+  @encode.key(writer, "node_id")
+  @encode.string_value(writer, barrier_id)
+  @encode.key(writer, "output_contracts")
+  @encode.begin_object(writer)
+  @encode.key(writer, output_port)
+  emit_cid(output_contract_cid, writer)
+  @encode.end_object(writer)
+  @encode.key(writer, "output_ref")
+  @encode.string_value(writer, output_port)
+  @encode.key(writer, "profile_id")
+  @encode.string_value(writer, "actql-content/0.1")
+  @encode.end_object(writer)
 }

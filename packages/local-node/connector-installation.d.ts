@@ -257,7 +257,7 @@ export interface InstalledRowProviderReader {
   observe(): Readonly<{cleanupConfirmed: boolean}>;
 }
 /** The installed Host owns preparation and execution through this object. */
-export interface InstalledRowSource {
+export interface InstalledRowSource extends InstallationCloseOwner {
   readonly realizationKey: 'row-source-acquired';
   readonly supportsRetainedRelationOutput: true;
   readonly connectorRegistration: string;
@@ -265,7 +265,6 @@ export interface InstalledRowSource {
   readonly environmentWire: string;
   readonly connectorBindings: readonly InstalledConnectorBinding[];
   admitsSource(sourceRef: string): boolean;
-  close(): void;
 }
 export declare function createInstalledRowSource(options: Readonly<{
   moon: ConnectorRuntimeOwner;
@@ -468,7 +467,7 @@ export interface RowEffectLimits {
   readonly body: RowEffectLimits['key'];
 }
 /** The Host retains the returned preparation, ledger and recovery owner. */
-export interface InstalledRowEffect {
+export interface InstalledRowEffect extends InstallationCloseOwner {
   readonly environmentWire: string;
   readonly connectorBindings: readonly InstalledConnectorBinding[];
   readonly connectorRegistration: string;
@@ -476,7 +475,6 @@ export interface InstalledRowEffect {
   readonly connection: string;
   readonly mappings: readonly Readonly<{
     resource: string; target: string; mappingRef: string; mappingCid: string}>[];
-  close(): void;
 }
 export declare function createInstalledRowEffect<Request extends object,
   Current = unknown, Kind extends RowEffectKind = RowEffectValueKind>(options: Readonly<{
@@ -529,3 +527,50 @@ export declare function retainInstalledHostInitializationFailure(cause: unknown,
     sourceProfile?: InstallationCloseOwner;
     installedEffect?: InstallationCloseOwner;
   }>): Promise<InstallationFailure>;
+
+/** Build-generated DATA from one author definition. Common admits the typed
+ * fields; this interface does not issue a declaration or resource authority. */
+export interface RestSourceInstallationDefinition {
+  readonly authoredViewsWire: string;
+  readonly registration: string;
+  readonly revision: string;
+  readonly profileVersion: string;
+  readonly origin: string;
+  readonly auth: Readonly<{kind: 'bearer'}>;
+  readonly sources: readonly Readonly<{
+    resource: string;
+    resource_kind: string;
+    fields: readonly ConnectorJsonObject[];
+    read: Readonly<{method: 'GET'; path: string}>;
+    pagination: Readonly<{kind: 'none'; items: readonly string[]}> |
+      Readonly<{kind: 'cursor'; items: readonly string[]; next: readonly string[]; parameter: string}>;
+    limits: Readonly<{maxPageRows: number; maxPageBytes: number; maxPages: number;
+      maxRows: number; maxNodes: number; maxDepth: number; maxCursorBytes: number}>;
+  }>[];
+}
+export interface RestSourceProfile {
+  readonly version: string;
+  readonly connectorId: string;
+  readonly siteProfilePath: string;
+  readonly accountConfigurationWire: string;
+}
+export interface RestSourcePageData {
+  readonly rowsWire: string;
+  readonly rowCount: number;
+  readonly nextCursor?: string;
+}
+/** Pure synchronous provider DATA adaptation, never a reader or an issuer. */
+export type RestSourceTransform = (page: Readonly<RestSourcePageData>,
+  context: Readonly<{resource: string; columns: readonly string[]}>) =>
+  Readonly<{rowsWire: string; nextCursor?: string}>;
+/** The installed Host supplies its original initialization and services to
+ * load/publication. Connector authors supply only definition and transform. */
+export declare function createInstalledRestSource(definition: RestSourceInstallationDefinition,
+  options?: Readonly<{decodePage?: RestSourceTransform}>): Readonly<{
+    checkProfile(profile: unknown): Readonly<RestSourceProfile>;
+    identityParts(profile: object, providerProfile: RestSourceProfile,
+      readJson?: (path: string) => Promise<unknown>, installation?: object,
+      context?: object): Promise<readonly unknown[]>;
+    publish(profile: RestSourceProfile, options: object): Promise<object>;
+    load(profile: RestSourceProfile, options: object): Promise<InstalledRowSource>;
+  }>;

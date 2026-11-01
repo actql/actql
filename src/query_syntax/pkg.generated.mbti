@@ -62,6 +62,8 @@ pub fn join_part_at(Query, Int) -> JoinPart?
 
 pub fn join_part_count(Query) -> Int
 
+pub fn observe_selected_query_script(String, QueryLimits, Bool, source_path? : String) -> (Result[QueryScript?, Diagnostic], Int64, Bool)
+
 pub fn operation_at(Query, Int) -> QueryOperation?
 
 pub fn operation_count(Query) -> Int

@@ -81,7 +81,10 @@ fn observe_submission_lookup(
   let inspect_run = row => {
     submission_run_inspection_with_identity(row, identity)
   }
-  if record.kind == 5 || record.kind == 6 {
+  if record.kind == 5 ||
+    record.kind == 6 ||
+    record.kind == 7 ||
+    record.kind == 8 {
     guard @decode.closed_object(
         cursor,
         if record.kind == 6 {
@@ -91,17 +94,17 @@ fn observe_submission_lookup(
         },
       )
       is Ok(object) &&
-      required_text(object, "namespaceId") is Some(namespace) &&
+      required_text(object, "namespaceId") is Some(run_namespace) &&
       required_text(object, "authorityScopeCid") is Some(scope) &&
       required_text(object, "runDefinitionCid") is Some(definition) else {
       return Err(-31)
     }
-    if namespace != configuration.run_namespace ||
+    if run_namespace != configuration.run_namespace ||
       scope != configuration.authority_scope_cid {
       return Err(-32)
     }
     let observed = submission_run_reference_snapshot(
-      namespace,
+      run_namespace,
       scope,
       definition,
       original,
@@ -306,6 +309,42 @@ fn submission_lookup_wire(
 }
 
 ///|
+/// Private bounded transport from the same admitted saved snapshot. These
+/// original input/admission bytes are neither a prepared Program nor a grant.
+fn saved_sdk_original_descriptor_wire(
+  snapshot : @host.ClientSavedSubmissionSnapshot?,
+) -> Result[Bytes, Int] {
+  guard snapshot is Some(snapshot) else { return Err(-42) }
+  let admission = match @host.client_saved_submission_admission_wire(snapshot) {
+    Ok(value) => value
+    Err(_) => return Err(-35)
+  }
+  let submitted = @host.client_saved_submission_record(snapshot)
+  try {
+    let writer = @encode.writer(1048576, 8, 1)
+    @encode.begin_object(writer)
+    @encode.key(writer, "intent")
+    @encode.string_value(
+      writer,
+      @host.client_submitted_intent_wire(submitted.intent),
+    )
+    @encode.key(writer, "admission")
+    @encode.string_value(writer, admission)
+    // Routing DATA only. A positive observation cannot replace the complete
+    // original material/Run/current binding performed by restore_sdk_material.
+    @encode.key(writer, "materials_available")
+    @encode.bool_value(
+      writer,
+      @host.client_saved_submission_task_materials_original(snapshot) is Some(_),
+    )
+    @encode.end_object(writer)
+    Ok(@utf8.encode(@encode.finish(writer)))
+  } catch {
+    _ => Err(-34)
+  }
+}
+
+///|
 fn produce_submission_lookup(
   value : Instance,
   record : StoredSubmissionProjection,
@@ -313,6 +352,9 @@ fn produce_submission_lookup(
 ) -> Int {
   if record.output_closed {
     return -5
+  }
+  if (record.kind == 7 || record.kind == 8) && configuration.sdk is None {
+    return -32
   }
   match submission_lookup_current(value, record, configuration) {
     Ok(_) => ()
@@ -342,13 +384,25 @@ fn produce_submission_lookup(
     Ok(value) => value
     Err(code) => return code
   }
-  let wire = match submission_lookup_wire(snapshot) {
+  let projected = if record.kind == 7 {
+    saved_sdk_run_state_wire(snapshot)
+  } else if record.kind == 8 {
+    saved_sdk_original_descriptor_wire(snapshot)
+  } else {
+    submission_lookup_wire(snapshot)
+  }
+  let wire = match projected {
     Ok(value) => value
     Err(code) => return code
   }
   match submission_lookup_current(value, record, configuration) {
     Ok(_) => ()
     Err(code) => return code
+  }
+  if record.kind == 7 || record.kind == 8 {
+    // Retain the actual admitted rows before transferring their saved facts.
+    // Later validation must reobserve this exact original, not an equal reply.
+    record.saved_snapshot = snapshot
   }
   let result = status(
     @buffers.supply_buffer_output(value.pool, record.slot, wire),
@@ -367,7 +421,7 @@ fn validate_submission_lookup(
 ) -> Int {
   guard selected(nonce) is Some(value) &&
     value.submissions.get(handle) is Some(record) &&
-    (record.kind == 4 || record.kind == 5 || record.kind == 6) &&
+    (record.kind >= 4 && record.kind <= 8) &&
     record.produced &&
     !record.output_closed &&
     value.run_configurations.get(record.configuration) is Some(configuration) &&
@@ -380,11 +434,27 @@ fn validate_submission_lookup(
       Err(code) => code
     }
   }
-  let snapshot = match observe_submission_lookup(value, record, configuration) {
+  if (record.kind == 7 || record.kind == 8) && record.saved_snapshot is None {
+    return -42
+  }
+  let snapshot = match
+    observe_submission_lookup(
+      value,
+      record,
+      configuration,
+      original=record.saved_snapshot,
+    ) {
     Ok(value) => value
     Err(code) => return code
   }
-  let wire = match submission_lookup_wire(snapshot) {
+  let projected = if record.kind == 7 {
+    saved_sdk_run_state_wire(snapshot)
+  } else if record.kind == 8 {
+    saved_sdk_original_descriptor_wire(snapshot)
+  } else {
+    submission_lookup_wire(snapshot)
+  }
+  let wire = match projected {
     Ok(value) => value
     Err(code) => return code
   }

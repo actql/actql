@@ -9,6 +9,7 @@ from unittest.mock import patch
 from actql_sdk._local_core import LocalCoreError
 from actql_sdk._local_storage import LocalStorageCommitUnknown, LocalStorageError
 import test_local_product_payload_intent as intent_fixture
+from local_abi_declaration_fixture import original_byte_fixture_port
 
 
 RESERVED = b'{"original":"Core Reserved e\xcc\x81/~","null":null}'
@@ -69,7 +70,7 @@ class ProductPayloadCapacityTests(unittest.TestCase):
                 _, ticket, _ = children.pop(args[0])
                 return core._cleanup(ticket)
             return 0
-        core._call = call
+        core._call = original_byte_fixture_port(call)
         return host, core, held, calls, faults
 
     def row(self, host, held):

@@ -7,6 +7,7 @@ struct PreparedKernel {
   input_id : String
   checked : @relation.CheckedOperation
   body : KernelBody
+  mut ordered_reference_material : OrderedReferenceMaterial?
 }
 
 ///|
@@ -1094,7 +1095,14 @@ fn prepare_kernel_measured(
   }
   Ok(
     (
-      { owner, step_index, input_id: node.inputs[0], checked, body, },
+      {
+        owner,
+        step_index,
+        input_id: node.inputs[0],
+        checked,
+        body,
+        ordered_reference_material: None,
+      },
       remaining,
       max_name_bytes - names_remaining,
       binding_count,

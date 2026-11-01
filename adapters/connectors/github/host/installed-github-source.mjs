@@ -20,7 +20,7 @@ import {dirname, isAbsolute} from 'node:path';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {retainInstalledHostInitializationFailure} from
   '../../../host-node/installed-host-cleanup.mjs';
-import {readSourceProfileJson} from '../../../host-node/source-profile-json.mjs';
+import {readSourceProfileJson, captureConfigurationReaders} from '../../../host-node/source-profile-json.mjs';
 import {canonicalJson, contentCid} from
   '../../../host-node/local-account-config.mjs';
 import {createInstalledRowSource, installRowSourceAuthorization,
@@ -76,17 +76,19 @@ export function checkInstalledGitHubSourceProfile(profile) {
   return Object.freeze({...profile});
 }
 
-async function readJson(path, code) {
+async function readJson(path, code, read = readSourceProfileJson) {
   try {
-    return await readSourceProfileJson(path, {maxBytes: 1024 * 1024});
+    return await read(path, {maxBytes: 1024 * 1024});
   } catch (cause) {
     if (cause?.code === code) throw cause;
     fail(code, cause);
   }
 }
 
-async function readSite(path) {
-  const site = await readJson(path, 'InvalidInstalledGitHubSite');
+async function readSite(path, configurationReader) {
+  const readers = captureConfigurationReaders(configurationReader, undefined,
+    () => fail('InstalledGitHubConfigurationReaderUnavailable'));
+  const site = await readJson(path, 'InvalidInstalledGitHubSite', readers.readJson);
   const {version, caPath, ...rest} = site ?? {};
   let origin;
   try { origin = new URL(rest.apiOrigin); } catch { origin = undefined; }
@@ -100,8 +102,12 @@ async function readSite(path) {
   }
   // The owner/repo of access; the path builder refuses anything else.
   githubIssueListPath(rest.owner, rest.repo);
+  if (caPath !== undefined && configurationReader !== undefined && readers.readOriginalBytes === undefined) {
+    fail('InstalledGitHubConfigurationReaderUnavailable');
+  }
   return Object.freeze({...site,
-    ca: caPath === undefined ? undefined : await readFile(caPath)});
+    ca: caPath === undefined ? undefined : await (configurationReader === undefined
+      ? readFile(caPath) : readers.readOriginalBytes(caPath))});
 }
 
 // The token is read from the environment variable the Site profile names;
@@ -127,10 +133,10 @@ export async function installedGitHubSourceIdentityParts(profile,
 
 // The published repository binding of a checked profile, without provider
 // I/O. A publication for another connector or another owner/repo is refused.
-export async function readGitHubPublication(checkedProfile, site) {
+export async function readGitHubPublication(checkedProfile, site, read = readSourceProfileJson) {
   let publication;
   try {
-    publication = await readSourceProfileJson(checkedProfile.publicationPath,
+    publication = await read(checkedProfile.publicationPath,
       {maxBytes: 1024 * 1024});
   } catch (cause) {
     fail('GitHubPublicationMissing', cause);
@@ -151,8 +157,14 @@ export async function readGitHubPublication(checkedProfile, site) {
 export {readSite as readGitHubSite, openSite as openGitHubSite,
   restore as restoreGitHubDeclaration};
 
-async function restore(moon, connectorId, expectedCatalogCid) {
-  const views = await readFile(viewsUrl, 'utf8');
+async function restore(moon, connectorId, expectedCatalogCid, sourceInitialization,
+  readOriginalText = path => readFile(path, 'utf8')) {
+  const constructor = sourceInitialization === undefined ? undefined
+    : Object.getOwnPropertyDescriptor(sourceInitialization, 'prepareDeclaration');
+  if (sourceInitialization !== undefined && (!constructor || !Object.hasOwn(constructor, 'value') ||
+      typeof constructor.value !== 'function')) fail('InstalledGitHubInitializationUnavailable');
+  const views = await readOriginalText(viewsUrl);
+  if (constructor !== undefined) return Reflect.apply(constructor.value, sourceInitialization, [views, expectedCatalogCid]);
   const declaration = checked(moon.clientProgramRowSourceRestoreRelationDeclaration(
     connectorId, registration, revision, views, expectedCatalogCid));
   const declared = JSON.parse(
@@ -162,18 +174,13 @@ async function restore(moon, connectorId, expectedCatalogCid) {
 }
 
 async function openSite(checkedProfile, site, {root, principalId, moon,
-  runtimeBundleCid, resolveSecret, publication, installation}) {
+  runtimeBundleCid, resolveSecret, publication, installation, sourceInitialization}, installationServices) {
   // The authorization tuple names the access target (API host and
   // owner/repo); the stable repository id is pinned by the physical binding
   // an approval covers and by the installation identity.
   const connection = `github:${new URL(site.apiOrigin).host}/${site.owner}/${site.repo}`;
-  const authorization = await installRowSourceAuthorization({
-    accountConfiguration: checkedProfile.accountConfigurationWire,
-    principalId, root, connectorRegistration: registration});
-  const credentialSite = await openRowSourceCredentialSite({
-    profile: {...site, resourceOrigin: site.apiOrigin}, principalId,
-    authorization, connection, connectorRegistration: registration,
-    connectorRevision: revision, runtimeBundleCid, commonMoon: moon,
+  const configuration = {
+    profile: Object.freeze({...site, resourceOrigin: site.apiOrigin}),
     resolveSecret: resolveSecret ?? environmentSecret(site.tokenEnvironment),
     ca: site.ca, responseHeaders: installation?.responseHeaders ?? [],
     admitsApprovalTarget: (binding, resource) => publication !== undefined &&
@@ -183,7 +190,25 @@ async function openSite(checkedProfile, site, {root, principalId, moon,
       binding.repository_node_id === publication.repository.node_id &&
       binding.owner === site.owner && binding.repo === site.repo &&
       binding.catalog_cid === publication.catalogCid &&
-      binding.resource === resource && Array.isArray(binding.fields)});
+      binding.resource === resource && Array.isArray(binding.fields)};
+  if (installationServices !== undefined) {
+    const open = Object.getOwnPropertyDescriptor(installationServices, 'openRowSite');
+    if (!open || !Object.hasOwn(open, 'value') || typeof open.value !== 'function') {
+      fail('InvalidInstalledEffectSiteServices');
+    }
+    const opened = await Reflect.apply(open.value, installationServices, [{
+      installation, accountConfiguration: checkedProfile.accountConfigurationWire,
+      ...(sourceInitialization === undefined ? {} : {sourceInitialization}),
+      connection, ...configuration}]);
+    return {...opened, connection};
+  }
+  const authorization = await installRowSourceAuthorization({
+    accountConfiguration: checkedProfile.accountConfigurationWire,
+    principalId, root, connectorRegistration: registration});
+  const credentialSite = await openRowSourceCredentialSite({
+    ...configuration, principalId, authorization, connection,
+    connectorRegistration: registration, connectorRevision: revision,
+    runtimeBundleCid, commonMoon: moon});
   return {authorization, site: credentialSite, connection};
 }
 

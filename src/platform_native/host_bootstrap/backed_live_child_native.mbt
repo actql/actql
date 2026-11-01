@@ -1,4 +1,11 @@
 ///|
+priv enum NativeBackedLiveChildPurpose {
+  Worker
+  Read
+  Initialization
+} derive(Eq)
+
+///|
 /// Same parent domain and Common live access. R is an original installed
 /// physical slot, not a wire pointer or a caller-supplied description. The
 /// physical issuer binds its actual channel/VM/FD/domain before admission.
@@ -7,6 +14,7 @@ struct NativeBackedLiveChild[T, C, R] {
   owner : NativeHostBootstrap[T]
   domain : NativeBackedExecutionDomain[T, C]
   child : C
+  purpose : NativeBackedLiveChildPurpose
   mut runtime : R?
   mut access : @resources.BackedExecutionLiveAccess[
     NativeHostBootstrap[T],
@@ -19,6 +27,8 @@ struct NativeBackedLiveChild[T, C, R] {
     R,
   ]?
   mut retired : Bool
+  // Private initialization controls belong to this same physical owner.
+  mut initialization : NativeBackedInitialization[T, C, R]?
 }
 
 ///|
@@ -52,7 +62,13 @@ pub fn[T, C, R] NativeHostBootstrap::prepare_backed_live_child(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  self.issue_backed_live_child_from_read(original, domain, child, runtime)
+  self.issue_backed_live_child_from_read(
+    original,
+    domain,
+    child,
+    runtime,
+    Worker,
+  )
 }
 
 ///|
@@ -73,7 +89,34 @@ pub fn[T, C, R] NativeHostBootstrap::prepare_backed_read_live_child(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  self.issue_backed_live_child_from_read(original, domain, child, runtime)
+  self.issue_backed_live_child_from_read(original, domain, child, runtime, Read)
+}
+
+///|
+/// Distinct initialization selection before any frame is issued or started.
+/// Reuse the SAME physical allocator context, not an existing Read admission,
+/// its small census or a worker's already selected imported child.
+pub fn[T, C, I] NativeHostBootstrap::prepare_backed_initialization_live_child(
+  self : NativeHostBootstrap[T],
+  original : T,
+  domain : NativeBackedExecutionDomain[T, C],
+  child : C,
+  input : I,
+) -> Result[
+  NativeBackedLiveChildAcquisition[T, C, I],
+  NativeBackedExecutionIssue,
+] {
+  match self.require_backed_read_context_current(original, domain, child) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  self.issue_backed_live_child_from_read(
+    original,
+    domain,
+    child,
+    input,
+    Initialization,
+  )
 }
 
 ///|
@@ -83,6 +126,7 @@ fn[T, C, R] NativeHostBootstrap::issue_backed_live_child_from_read(
   domain : NativeBackedExecutionDomain[T, C],
   child : C,
   runtime : R,
+  purpose : NativeBackedLiveChildPurpose,
 ) -> Result[
   NativeBackedLiveChildAcquisition[T, C, R],
   NativeBackedExecutionIssue,
@@ -100,10 +144,12 @@ fn[T, C, R] NativeHostBootstrap::issue_backed_live_child_from_read(
     owner: self,
     domain,
     child,
+    purpose,
     runtime: Some(runtime),
     access: None,
     projection: None,
     retired: false,
+    initialization: None,
   }
   record.original = Some(record)
   let loan = domain.view.loan
@@ -137,6 +183,9 @@ pub fn[T, C, R] NativeHostBootstrap::prepare_backed_original_read_ledger(
     Err(issue) => return Err(Domain(issue))
     Ok(_) => ()
   }
+  if record.purpose != Read {
+    return Err(Domain(Bootstrap(ForeignOriginal)))
+  }
   match
     self.require_backed_read_context_current(
       original,
@@ -155,6 +204,44 @@ pub fn[T, C, R] NativeHostBootstrap::prepare_backed_original_read_ledger(
 }
 
 ///|
+/// The same input-bound preparation view goes to the portable Host body. The
+/// Native issuer retains its original frame for physical cleanup before this
+/// fallible body is started; no callback, scalar budget or Ledger is accepted.
+pub fn[T, C, I] NativeHostBootstrap::prepare_backed_original_initialization_admission(
+  self : NativeHostBootstrap[T],
+  original : T,
+  record : NativeBackedLiveChild[T, C, I],
+  input : I,
+) -> Result[
+  @resources.BackedInitializationAdmission[I],
+  NativeBackedOriginalReadIssue,
+] {
+  match self.original_live_child(original, record, input) {
+    Err(issue) => return Err(Domain(issue))
+    Ok(_) => ()
+  }
+  if record.purpose != Initialization {
+    return Err(Domain(Bootstrap(ForeignOriginal)))
+  }
+  match
+    self.require_backed_read_context_current(
+      original,
+      record.domain,
+      record.child,
+    ) {
+    Err(issue) => return Err(Domain(issue))
+    Ok(_) => ()
+  }
+  guard record.projection is Some(projection) else {
+    return Err(Domain(Bootstrap(Unavailable)))
+  }
+  @resources.prepare_backed_initialization_admission(projection, input).map_err(issue => {
+      Child(issue)
+    },
+  )
+}
+
+///|
 // Same private physical Owner's pre-bootstrap resource projection. It supplies
 // no VM/launch admission or fixed VM/Host capacities. The channel retains the
 // returned frame before any reply/current postcheck can leave Native custody.
@@ -167,6 +254,9 @@ fn[T, C, R] NativeHostBootstrap::prepare_backed_original_live_ledger(
   match self.original_live_child(original, record, runtime) {
     Err(issue) => return Err(Domain(issue))
     Ok(_) => ()
+  }
+  if record.purpose != Worker {
+    return Err(Domain(Bootstrap(ForeignOriginal)))
   }
   match self.require_domain_current(original, record.domain, record.child) {
     Err(issue) => return Err(Domain(issue))
@@ -350,6 +440,14 @@ pub fn[T, C, R] NativeHostBootstrap::retire_backed_live_child_after_owner_ack(
   match self.original_live_child(original, record, runtime) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
+  }
+  if record.initialization is Some(initialization) &&
+    (
+      !initialization.physical_retired ||
+      !initialization.inventory_finished ||
+      (initialization.started && !initialization.reported)
+    ) {
+    return Err(Bootstrap(ReadersPending))
   }
   if record.access is Some(access) {
     match

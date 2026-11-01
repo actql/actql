@@ -1,4 +1,16 @@
 ///|
+/// Scalar cells still charge original UTF-8 field names per row occurrence.
+fn client_local_scalar_name_bytes(
+  sequences : Array[@execution.GeneratedSequence],
+  max_rows : Int,
+) -> Int? {
+  match client_local_schema_proof_inventory(sequences) {
+    Some(inventory) => client_local_inventory_names(inventory, max_rows)
+    None => None
+  }
+}
+
+///|
 test "text-free capacity proof checks every typed child and original step" {
   let assets = @publication_host.client_local_product_assets()
   let environment = @publication_host.admit_client_check_environment(
@@ -54,17 +66,19 @@ test "text-free capacity proof checks every typed child and original step" {
       @publication_host.client_standard_program_preparation_limits(),
     ).unwrap()
     let sequences = prepare_client_local_sequences_owned(
-      Pure(prepared),
-      prepare_installed_sequence_contracts(
-        assets.registry,
+        Pure(prepared),
+        prepare_installed_sequence_contracts(
+          assets.registry,
+          assets.values,
+          Some(assets.fragment),
+          assets.ordered,
+        ).unwrap(),
         assets.values,
         Some(assets.fragment),
         assets.ordered,
-      ).unwrap(),
-      assets.values,
-      Some(assets.fragment),
-      assets.ordered,
-    ).unwrap()
+      )
+      .to_option()
+      .unwrap()
     assert_eq(client_local_text_free_scalar_sequences(sequences), expected)
     let rows = @publication_host.prepared_client_values_max_rows(prepared)
     let plan = client_local_capacity_plan(
@@ -76,7 +90,7 @@ test "text-free capacity proof checks every typed child and original step" {
     if expected {
       assert_eq(
         plan.execution.rows.output_values.max_text_bytes,
-        _client_local_scalar_name_bytes(sequences, plan.execution.rows.max_rows).unwrap(),
+        client_local_scalar_name_bytes(sequences, plan.execution.rows.max_rows).unwrap(),
       )
     } else {
       assert_eq(plan.execution.rows.output_values.max_text_bytes, 500000)
@@ -113,17 +127,19 @@ test "capacity plan funds checked leaf nodes separately from text and Result met
     @publication_host.client_standard_program_preparation_limits(),
   ).unwrap()
   let sequences = prepare_client_local_sequences_owned(
-    Pure(prepared),
-    prepare_installed_sequence_contracts(
-      assets.registry,
+      Pure(prepared),
+      prepare_installed_sequence_contracts(
+        assets.registry,
+        assets.values,
+        Some(assets.fragment),
+        assets.ordered,
+      ).unwrap(),
       assets.values,
       Some(assets.fragment),
       assets.ordered,
-    ).unwrap(),
-    assets.values,
-    Some(assets.fragment),
-    assets.ordered,
-  ).unwrap()
+    )
+    .to_option()
+    .unwrap()
   let rows = @publication_host.prepared_client_values_max_rows(prepared)
   let plan = client_local_capacity_plan(
     sequences,
@@ -154,4 +170,12 @@ test "capacity plan funds checked leaf nodes separately from text and Result met
     )
     is None,
   )
+}
+
+///|
+fn client_local_inventory_names(
+  inventory : ClientLocalSchemaProofInventory,
+  max_rows : Int,
+) -> Int? {
+  client_local_scalar_product(inventory.max_name_width, max_rows, 0)
 }

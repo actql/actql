@@ -41,13 +41,14 @@ test "the original eight-task public UNION quotes every original input and execu
   let graph = @publication_host.prepared_client_graph(prepared)
   assert_eq(@strategy.graph_task_count(graph), 8)
   assert_eq(@strategy.graph_result_task(graph, 0), Some(7))
-  let limits = source_free_local_ledger_limits(
+  let original = prepare_source_free_local_requirements(
     prepared,
     asset_contracts,
     assets.values,
     Some(assets.fragment),
     assets.ordered,
   ).unwrap()
+  let limits = original.maximum_limits()
   assert_eq(limits.attempts, 8)
   assert_eq(limits.holdings, 8)
   assert_true(limits.retained_bytes <= 536870912L)
@@ -60,6 +61,7 @@ test "the original eight-task public UNION quotes every original input and execu
     assets.values,
     Some(assets.fragment),
     assets.ordered,
+    requirements=Some(original),
   ).unwrap()
   let execution = match
     execute_source_free_local_tasks_guarded(setup, 64, 100000, () => true) {
@@ -144,13 +146,14 @@ test "source-free multi-task current refusal cannot execute or replace the origi
     Some(assets.fragment),
     assets.ordered,
   ).unwrap()
-  let limits = source_free_local_ledger_limits(
+  let original = prepare_source_free_local_requirements(
     prepared,
     asset_contracts,
     assets.values,
     Some(assets.fragment),
     assets.ordered,
   ).unwrap()
+  let limits = original.maximum_limits()
   let ledger = @resources.create_ledger(limits).unwrap()
   let setup = open_source_free_local_retained_host_on_ledger(
     prepared,
@@ -159,6 +162,7 @@ test "source-free multi-task current refusal cannot execute or replace the origi
     assets.values,
     Some(assets.fragment),
     assets.ordered,
+    requirements=Some(original),
   ).unwrap()
   guard execute_source_free_local_tasks_guarded(setup, 64, 100000, () => false)
     is Err(failure) else {
@@ -179,13 +183,14 @@ test "source-free multi-task current loss after the first completed task retains
     Some(assets.fragment),
     assets.ordered,
   ).unwrap()
-  let limits = source_free_local_ledger_limits(
+  let original = prepare_source_free_local_requirements(
     prepared,
     asset_contracts,
     assets.values,
     Some(assets.fragment),
     assets.ordered,
   ).unwrap()
+  let limits = original.maximum_limits()
   let ledger = @resources.create_ledger(limits).unwrap()
   let setup = open_source_free_local_retained_host_on_ledger(
     prepared,
@@ -194,6 +199,7 @@ test "source-free multi-task current loss after the first completed task retains
     assets.values,
     Some(assets.fragment),
     assets.ordered,
+    requirements=Some(original),
   ).unwrap()
   let run = @host_driver.dispatch_driver_run(
     @builtin.configured_host_driver(setup),
@@ -234,13 +240,14 @@ fn source_free_tasks_boundary_counts(
     Some(assets.fragment),
     assets.ordered,
   ).unwrap()
-  let limits = source_free_local_ledger_limits(
+  let original = prepare_source_free_local_requirements(
     prepared,
     asset_contracts,
     assets.values,
     Some(assets.fragment),
     assets.ordered,
   ).unwrap()
+  let limits = original.maximum_limits()
   let ledger = @resources.create_ledger(limits).unwrap()
   let setup = open_source_free_local_retained_host_on_ledger(
     prepared,
@@ -249,6 +256,7 @@ fn source_free_tasks_boundary_counts(
     assets.values,
     Some(assets.fragment),
     assets.ordered,
+    requirements=Some(original),
   ).unwrap()
   let boundaries = Ref(0)
   let polls = Ref(0)
@@ -305,13 +313,14 @@ test "a retired source-free lifetime refuses before dispatch despite unchanged a
     Some(assets.fragment),
     assets.ordered,
   ).unwrap()
-  let limits = source_free_local_ledger_limits(
+  let original = prepare_source_free_local_requirements(
     prepared,
     asset_contracts,
     assets.values,
     Some(assets.fragment),
     assets.ordered,
   ).unwrap()
+  let limits = original.maximum_limits()
   let ledger = @resources.create_ledger(limits).unwrap()
   let setup = open_source_free_local_retained_host_on_ledger(
     prepared,
@@ -320,6 +329,7 @@ test "a retired source-free lifetime refuses before dispatch despite unchanged a
     assets.values,
     Some(assets.fragment),
     assets.ordered,
+    requirements=Some(original),
   ).unwrap()
   guard execute_source_free_local_tasks_guarded(
       setup,

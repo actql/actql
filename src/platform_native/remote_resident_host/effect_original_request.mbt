@@ -111,9 +111,15 @@ fn retained_effect_consumer_materials(
     Ok(value) => value
     Err(issue) => return Err(EffectMaterials(Request(issue)))
   }
-  let target = match read(body) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
+  // The same complete wire already passed admission in this operation. Keep
+  // its original checked owner; differing material still needs full admission.
+  let target = if body == original_wire {
+    original
+  } else {
+    match read(body) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
   }
   let selected = match
     @host.client_effect_run_materials_request_for_dispatch(target, consumer) {

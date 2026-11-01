@@ -86,17 +86,66 @@ test "CLI refuses unselected null or duplicate Reviewer field before original fi
 }
 
 ///|
-test "CLI Reviewer binding compiles original caller roles and opaque custody scope without CID substitution" {
-  let caller : (
-    @local_host.NativeLocalHostConnection,
-    LocalHostSettings,
-    @local_crypto.Library,
-    @local_host.NativeClientSubmissionReference,
-    @run_host.ClientRequestIdentity,
-    @source_owner.ResidentOriginalEffectApprovalScope,
-  ) -> Result[
-    @local_host.NativeLocalEffectReviewerBinding,
-    @local_host.NativeLocalEffectReviewerBindingIssue,
-  ] = local_bind_effect_reviewer
+test "Native Host Reviewer binding retains the opaque original custody scope" {
+  let caller = fn(
+    host : @local_host.NativeLocalHostConnection,
+    crypto : @local_crypto.Library,
+    principal : String,
+    connection : String,
+    reference : @local_host.NativeClientSubmissionReference,
+    request : @run_host.ClientRequestIdentity,
+    scope : @source_owner.ResidentOriginalEffectApprovalScope,
+    now : () -> Double,
+  ) {
+    host.bind_effect_reviewer(
+      crypto, principal, connection, reference, request, scope, now,
+    )
+  }
   caller |> ignore
+}
+
+///|
+test "CLI initial Host signing selection is explicit DATA without changing Client or Reviewer roles" {
+  let before = local_host_settings(local_reviewer_cli_configuration)
+  assert_eq(before.initial_host_signing, None)
+  let wire = local_reviewer_cli_configuration.replace_all(
+    old="\"installation_files\":",
+    new="\"initial_host_signing\":{\"principal\":\"host-machine\",\"connection\":\"host-cli\",\"resource\":\"key/initial-host-attestation\"},\"installation_files\":",
+  )
+  let selected = local_host_settings(wire)
+  assert_eq(
+    selected.initial_host_signing,
+    Some(("host-machine", "host-cli", "key/initial-host-attestation")),
+  )
+  assert_eq(selected.principal, before.principal)
+  assert_eq(selected.connection, before.connection)
+  assert_eq(selected.reviewer_file, None)
+  assert_eq(selected.installation_files, before.installation_files)
+}
+
+///|
+test "CLI initial Host signing selection refuses null incomplete unknown and unbounded actors" {
+  for
+    selected in [
+      "null",
+      "{}",
+      "{\"principal\":\"p\",\"connection\":\"c\"}",
+      "{\"principal\":\"p\",\"connection\":\"c\",\"resource\":\"r\",\"extra\":\"x\"}",
+      "{\"principal\":\"" +
+      "p".repeat(257) +
+      "\",\"connection\":\"c\",\"resource\":\"r\"}",
+    ] {
+    let wire = local_reviewer_cli_configuration.replace_all(
+      old="\"installation_files\":",
+      new="\"initial_host_signing\":" + selected + ",\"installation_files\":",
+    )
+    assert_true(
+      try {
+        local_host_settings(wire) |> ignore
+        false
+      } catch {
+        ClientStop(_) => true
+      },
+    )
+  }
 }

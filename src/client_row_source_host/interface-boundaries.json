@@ -174,7 +174,7 @@
     {
       "module": "src/client_row_source_host/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "4cc6fa8e985e5ce0541a2b8ac8018a76e26568f27ef604375811d17f51be17ad",
+      "sha256": "55eb1fc267dd720f49eb477651ff2d8b20e2e77ba1b48aadcab2cd3e2f46f9e7",
       "role": "common-semantics",
       "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
       "exports": [
@@ -185,6 +185,8 @@
         "pub fn accept_keyed_row_page(RowSourceRead, Bytes) -> Result[Int, RowSourceIssue]",
         "pub fn accept_row_run_page(RowRun, Bytes) -> Result[Int, RowHostIssue]",
         "pub fn accept_row_run_values(RowRun, Array[String], Array[Array[@value_admission.CheckedValue]]) -> Result[Int, RowHostIssue]",
+        "pub fn admit_mock_churn_risk_target_document(RowDeclaration, RowDeclaration, Bytes, RowPageLimits, Int) -> Result[MockTargetDocument, RowSourceIssue]",
+        "pub fn admit_row_acquisition_contracts(String, String) -> Result[@query_planning.QueryEvidenceContracts, RowHostIssue]",
         "pub fn advance_keyed_row_page(RowSourceRead, Int) -> Result[RowKeyedPagePoll, RowSourceIssue]",
         "pub fn advance_row_capture(RowRun, Int) -> Result[(Bool, Int64), RowHostIssue]",
         "pub fn advance_row_capture_cleanup(RowRun, Int) -> Result[Bool, RowHostIssue]",
@@ -202,11 +204,15 @@
         "pub fn begin_row_run_listing_request(RowRun, String?, Int64) -> Result[Unit, RowHostIssue]",
         "pub fn begin_row_run_with_page_limits(RowRun, RowPageLimits, Int, reference_issuer? : @value_admission.ReferenceIssuer?) -> Result[Unit, RowHostIssue]",
         "pub fn bind_row_run_response_borrow_cleanup(RowRunResponseBorrow, () -> Bool) -> Result[Unit, RowHostIssue]",
+        "pub fn borrow_row_input_run_responses(RowRun, RowInputAcquisition) -> Result[RowRunResponseBorrow, RowHostIssue]",
         "pub fn borrow_row_run_responses(RowRun, RowAcquisition) -> Result[RowRunResponseBorrow, RowHostIssue]",
         "pub fn cancel_keyed_row_read(RowSourceRead) -> Bool",
         "pub fn capture_row_run(RowRun) -> Result[RowSourceCapture, RowHostIssue]",
         "pub fn charge_row_run_page(RowRun, Bytes) -> Result[RowPageCharge, RowHostIssue]",
         "pub fn check_row_acquisition_original(RowAcquisition, RowDeclaration, @query_planning.QueryRequirement) -> Result[Unit, RowHostIssue]",
+        "pub fn check_row_input_acquisition_original(RowInputAcquisition, RowDeclaration, @sourceview_resolution.SourceAcquisition) -> Result[Unit, RowHostIssue]",
+        "pub fn check_row_input_capture_run(RowSourceCapture, RowRun) -> Result[Unit, RowHostIssue]",
+        "pub fn check_row_input_compute_binding(RowSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Result[Unit, RowHostIssue]",
         "pub fn check_row_run_response_borrow_current(RowRunResponseBorrow) -> Result[Unit, RowHostIssue]",
         "pub fn cleanup_row_capture(RowRun) -> Result[Bool, RowHostIssue]",
         "pub fn close_accounted_row_run(RowRun) -> Result[Unit, RowHostIssue]",
@@ -220,6 +226,7 @@
         "pub fn finish_row_run(RowRun) -> Result[Unit, RowHostIssue]",
         "pub fn generate_relation_row_declaration(String, String, String, Array[RowRelationViewSpec], RowDeclarationLimits, classifications? : Array[@check_environment.DataClassification]?) -> Result[RowDeclaration, RowHostIssue]",
         "pub fn generate_row_declaration(String, String, String, Array[RowViewSpec], RowDeclarationLimits) -> Result[RowDeclaration, RowDeclarationIssue]",
+        "pub fn issue_row_input_source_evidence(RowInputAcquisition, RowSourceCapture, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, String, String, String) -> Result[@run_publication.RunEvidenceValue, RowHostIssue]",
         "pub fn issue_row_listing_source_evidence(RowAcquisition, RowSourceCapture, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, String, String, String) -> Result[@run_publication.RunEvidenceValue, RowHostIssue]",
         "pub fn issue_row_source_evidence(RowAcquisition, RowSourceCapture, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, String, String, String) -> Result[@run_publication.RunEvidenceValue, RowHostIssue]",
         "pub fn keyed_row_acquisition_target(RowKeyedAcquisition) -> Result[(String, Array[String]), RowHostIssue]",
@@ -235,28 +242,36 @@
         "pub fn mock_churn_risk_query_alias_count(MockChurnRiskCatalogue) -> Int",
         "pub fn mock_churn_risk_source_at(MockChurnRiskCatalogue, Int) -> (String, RowDeclaration)?",
         "pub fn mock_churn_risk_source_count(MockChurnRiskCatalogue) -> Int",
+        "pub fn mock_churn_risk_target_before(MockTargetRow) -> String?",
+        "pub fn mock_churn_risk_target_version(MockTargetRow) -> String?",
         "pub fn mock_churn_risk_update_alias_at(MockChurnRiskCatalogue, Int) -> (String, RowDeclaration)?",
         "pub fn mock_churn_risk_update_alias_count(MockChurnRiskCatalogue) -> Int",
+        "pub fn observe_mock_churn_risk_target(MockTargetDocument, RowDeclaration, String) -> Result[MockTargetRow, RowSourceIssue]",
         "pub fn prepare_churn_risk_mock_update_mapping(RowDeclaration, RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]",
         "pub fn prepare_declared_row_acquisition(RowSourcePreparation, String, String, String, listing_policy? : @capacity_policy.Policy?) -> Result[RowAcquisition, RowHostIssue]",
+        "pub fn prepare_declared_row_acquisition_with_contracts(RowSourcePreparation, String, @query_planning.QueryEvidenceContracts, listing_policy? : @capacity_policy.Policy?) -> Result[RowAcquisition, RowHostIssue]",
         "pub fn prepare_declared_row_source(@query_planning.QueryRequirement, String, RowDeclaredView) -> Result[RowSourcePreparation, RowSourceIssue]",
         "pub fn prepare_keyed_row_acquisition(@lowering_relation.BoundPrepared, @sourceview_resolution.KeyedSourceFacts, @sourceview_resolution.KeyedRowRequest, RowDeclaration, RowKeyedLimits, input_available? : (() -> Bool)?) -> Result[RowKeyedAcquisition, RowHostIssue]",
         "pub fn prepare_keyed_row_capacity(@lowering_relation.BoundPrepared, @sourceview_resolution.KeyedSourceFacts, RowDeclaration, RowKeyedLimits) -> Result[RowKeyedCapacity, RowHostIssue]",
         "pub fn prepare_mock_churn_risk_catalogue(RowDeclarationLimits) -> Result[MockChurnRiskCatalogue, RowHostIssue]",
+        "pub fn prepare_mock_churn_risk_target_update(MockTargetDocument, MockTargetRow, String, String, Int) -> Result[Bytes, RowSourceIssue]",
         "pub fn prepare_relation_row_write_mapping(RowDeclaration, String, String, RowRelationWriteSpec, Array[RowMappingSource], RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]",
         "pub fn prepare_row_acquisition(RowDeclaration, @query_planning.QueryRequirement, String, String, listing_policy? : @capacity_policy.Policy?) -> Result[RowAcquisition, RowHostIssue]",
         "pub fn prepare_row_delete_mapping(RowDeclaration, String, String, String, String, RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]",
+        "pub fn prepare_row_input_acquisition(@sourceview_resolution.SourceAcquisition, @pipeline_check_context.ProgramSourceIdentity, @lowering_relation.PreparedSequence, @execution_relation.RegisteredRelationContracts, RowDeclaration, RowInputLimits) -> Result[RowInputAcquisition, RowHostIssue]",
         "pub fn prepare_row_mapping(RowDeclaration, String, String, Array[RowMappingSource]) -> Result[RowMapping, RowMappingIssue]",
         "pub fn prepare_row_source(@query_planning.QueryRequirement, RowDeclaration) -> Result[RowSourcePreparation, RowSourceIssue]",
         "pub fn project_row_declaration(String, String, String, String, String, Array[String], Array[RowDeclaredView], Array[String], String, String) -> Result[RowDeclaration, RowDeclarationIssue]",
+        "pub fn project_row_source_json_page(Bytes, Array[String], Bool, Array[String], Int, Int, Int, Int, Int) -> Result[RowSourceJsonPage, RowSourceJsonPageIssue]",
         "pub fn restore_relation_row_declaration(String, String, String, String, String?) -> Result[RowDeclaration, RowHostIssue]",
         "pub fn restore_row_declaration(String, String, String, String, String?) -> Result[RowDeclaration, RowHostIssue]",
         "pub fn restore_row_original_read(@query_planning.QueryRequirement, String, String, Array[String], () -> Bool, reference_issuer? : @value_admission.ReferenceIssuer) -> Result[RowRestoredOriginalInput, RowOriginalCaptureIssue]",
         "pub fn restored_row_original_read(RowRestoredOriginalInput) -> @execution_relation.SuppliedRelationRead?",
         "pub fn retain_keyed_row_run(RowRun) -> Result[RowKeyedSourceCapture, RowHostIssue]",
-        "pub fn retain_row_capture_task(RowSourceCapture, @physical_strategy.CapturedDAG, Int) -> Result[Unit, RowHostIssue]",
+        "pub fn retain_row_capture_task(RowSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Result[Unit, RowHostIssue]",
         "pub fn row_acquisition_column_contract(RowAcquisition, Int) -> @value_contract.Contract?",
         "pub fn row_acquisition_columns(RowAcquisition) -> Array[String]",
+        "pub fn row_acquisition_contracts_construction_capacity(Int, Int) -> @execution_relation.ExecutionCapacity?",
         "pub fn row_acquisition_execution_capacity(RowAcquisition) -> Int64",
         "pub fn row_acquisition_is_listing(RowAcquisition) -> Bool",
         "pub fn row_acquisition_listing_report_bounds(RowAcquisition) -> Result[(Int64, Int64), RowSourceIssue]",
@@ -270,6 +285,13 @@
         "pub fn row_declaration_catalog_cid(RowDeclaration) -> String",
         "pub fn row_declaration_evidence_members(RowDeclaration) -> (Array[String], Array[String]) raise @encode_core.EncodeFailure",
         "pub fn row_declaration_view(RowDeclaration, String) -> RowDeclaredView?",
+        "pub fn row_input_acquisition_capacity(RowInputAcquisition, @execution_relation.ExecutionCapacity?) -> @execution_relation.ExecutionCapacity?",
+        "pub fn row_input_acquisition_columns(RowInputAcquisition) -> Array[String]",
+        "pub fn row_input_acquisition_facts(RowInputAcquisition) -> @query_planning.QuerySourceEvidenceFacts",
+        "pub fn row_input_acquisition_matches_source(RowInputAcquisition, @sourceview_resolution.SourceAcquisition) -> Bool",
+        "pub fn row_input_acquisition_max_rows(RowInputAcquisition) -> Int",
+        "pub fn row_input_acquisition_request_wire(RowInputAcquisition) -> Result[String, RowHostIssue]",
+        "pub fn row_input_acquisition_target(RowInputAcquisition) -> (String, Array[String])",
         "pub fn row_mapping_target_fields(RowMapping, RowDeclarationLimits) -> Result[Array[String], RowMappingIssue]",
         "pub fn row_observation_cid(RowObservation) -> String",
         "pub fn row_original_capture_export_facts(RowOriginalCaptureExport) -> (String, String, Array[String])",
@@ -277,16 +299,24 @@
         "pub fn row_run_attempt(RowRun) -> RowAttempt",
         "pub fn row_run_listing_complete(RowRun) -> Bool",
         "pub fn row_source_columns(RowSourcePreparation) -> Array[String]",
+        "pub fn row_source_json_page_has_next_cursor(RowSourceJsonPage) -> Bool",
+        "pub fn row_source_json_page_next_cursor(RowSourceJsonPage) -> Result[String, RowSourceJsonPageIssue]",
+        "pub fn row_source_json_page_row_count(RowSourceJsonPage) -> Int",
+        "pub fn row_source_json_page_rows_wire(RowSourceJsonPage) -> String",
         "pub fn row_source_requirement(RowSourcePreparation) -> @query_planning.QueryRequirement",
         "pub fn row_source_target(RowDeclaration, @query_planning.QueryRequirement) -> Result[(String, Array[String]), RowHostIssue]",
         "pub fn start_accounted_keyed_row_acquisition(RowKeyedAcquisition, String, (RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64, (RowAttempt) -> Bool) -> Result[RowRun, RowHostIssue]",
         "pub fn start_accounted_listing_row_acquisition(RowAcquisition, @execution_relation.ExecutionCapacity?, String, (RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64) -> Result[RowRun, RowHostIssue]",
         "pub fn start_accounted_provider_row_acquisition(RowAcquisition, @execution_relation.ExecutionCapacity?, String, (RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64) -> Result[RowRun, RowHostIssue]",
         "pub fn start_accounted_row_acquisition(RowAcquisition, String, (RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64) -> Result[RowRun, RowHostIssue]",
+        "pub fn start_accounted_row_input_acquisition(RowInputAcquisition, @execution_relation.ExecutionCapacity?, String, (RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64) -> Result[RowRun, RowHostIssue]",
         "pub fn start_keyed_row_acquisition(RowKeyedAcquisition, String, (RowAttempt) -> Bool) -> Result[RowRun, RowHostIssue]",
         "pub fn start_original_accounted_keyed_row_acquisition(RowKeyedAcquisition, String, (RowAttempt) -> Bool, @physical_resources.Ledger, @physical_resources.OriginalLedgerIdentity, @physical_resources.Reservation, Int, Int64, Int64, (RowAttempt) -> Bool, prefix? : @physical_resources.Reservation?) -> Result[RowRun, RowHostIssue]",
         "pub fn start_row_acquisition(RowAcquisition, String, (RowAttempt) -> Bool) -> Result[RowRun, RowHostIssue]",
+        "pub fn start_row_input_acquisition(RowInputAcquisition, String, (RowAttempt) -> Bool) -> Result[RowRun, RowHostIssue]",
         "pub struct MockChurnRiskCatalogue {",
+        "pub struct MockTargetDocument {",
+        "pub struct MockTargetRow {",
         "pub struct RowDeclaration {",
         "pub struct RowDeclaredView {",
         "pub enum RowKeyedPagePoll {",
@@ -322,6 +352,14 @@
         {
           "name": "accept_row_run_values",
           "declaration": "pub fn accept_row_run_values(RowRun, Array[String], Array[Array[@value_admission.CheckedValue]]) -> Result[Int, RowHostIssue]"
+        },
+        {
+          "name": "admit_mock_churn_risk_target_document",
+          "declaration": "pub fn admit_mock_churn_risk_target_document(RowDeclaration, RowDeclaration, Bytes, RowPageLimits, Int) -> Result[MockTargetDocument, RowSourceIssue]"
+        },
+        {
+          "name": "admit_row_acquisition_contracts",
+          "declaration": "pub fn admit_row_acquisition_contracts(String, String) -> Result[@query_planning.QueryEvidenceContracts, RowHostIssue]"
         },
         {
           "name": "advance_keyed_row_page",
@@ -392,6 +430,10 @@
           "declaration": "pub fn bind_row_run_response_borrow_cleanup(RowRunResponseBorrow, () -> Bool) -> Result[Unit, RowHostIssue]"
         },
         {
+          "name": "borrow_row_input_run_responses",
+          "declaration": "pub fn borrow_row_input_run_responses(RowRun, RowInputAcquisition) -> Result[RowRunResponseBorrow, RowHostIssue]"
+        },
+        {
           "name": "borrow_row_run_responses",
           "declaration": "pub fn borrow_row_run_responses(RowRun, RowAcquisition) -> Result[RowRunResponseBorrow, RowHostIssue]"
         },
@@ -410,6 +452,18 @@
         {
           "name": "check_row_acquisition_original",
           "declaration": "pub fn check_row_acquisition_original(RowAcquisition, RowDeclaration, @query_planning.QueryRequirement) -> Result[Unit, RowHostIssue]"
+        },
+        {
+          "name": "check_row_input_acquisition_original",
+          "declaration": "pub fn check_row_input_acquisition_original(RowInputAcquisition, RowDeclaration, @sourceview_resolution.SourceAcquisition) -> Result[Unit, RowHostIssue]"
+        },
+        {
+          "name": "check_row_input_capture_run",
+          "declaration": "pub fn check_row_input_capture_run(RowSourceCapture, RowRun) -> Result[Unit, RowHostIssue]"
+        },
+        {
+          "name": "check_row_input_compute_binding",
+          "declaration": "pub fn check_row_input_compute_binding(RowSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Result[Unit, RowHostIssue]"
         },
         {
           "name": "check_row_run_response_borrow_current",
@@ -462,6 +516,10 @@
         {
           "name": "generate_row_declaration",
           "declaration": "pub fn generate_row_declaration(String, String, String, Array[RowViewSpec], RowDeclarationLimits) -> Result[RowDeclaration, RowDeclarationIssue]"
+        },
+        {
+          "name": "issue_row_input_source_evidence",
+          "declaration": "pub fn issue_row_input_source_evidence(RowInputAcquisition, RowSourceCapture, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, String, String, String) -> Result[@run_publication.RunEvidenceValue, RowHostIssue]"
         },
         {
           "name": "issue_row_listing_source_evidence",
@@ -524,6 +582,14 @@
           "declaration": "pub fn mock_churn_risk_source_count(MockChurnRiskCatalogue) -> Int"
         },
         {
+          "name": "mock_churn_risk_target_before",
+          "declaration": "pub fn mock_churn_risk_target_before(MockTargetRow) -> String?"
+        },
+        {
+          "name": "mock_churn_risk_target_version",
+          "declaration": "pub fn mock_churn_risk_target_version(MockTargetRow) -> String?"
+        },
+        {
           "name": "mock_churn_risk_update_alias_at",
           "declaration": "pub fn mock_churn_risk_update_alias_at(MockChurnRiskCatalogue, Int) -> (String, RowDeclaration)?"
         },
@@ -532,12 +598,20 @@
           "declaration": "pub fn mock_churn_risk_update_alias_count(MockChurnRiskCatalogue) -> Int"
         },
         {
+          "name": "observe_mock_churn_risk_target",
+          "declaration": "pub fn observe_mock_churn_risk_target(MockTargetDocument, RowDeclaration, String) -> Result[MockTargetRow, RowSourceIssue]"
+        },
+        {
           "name": "prepare_churn_risk_mock_update_mapping",
           "declaration": "pub fn prepare_churn_risk_mock_update_mapping(RowDeclaration, RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]"
         },
         {
           "name": "prepare_declared_row_acquisition",
           "declaration": "pub fn prepare_declared_row_acquisition(RowSourcePreparation, String, String, String, listing_policy? : @capacity_policy.Policy?) -> Result[RowAcquisition, RowHostIssue]"
+        },
+        {
+          "name": "prepare_declared_row_acquisition_with_contracts",
+          "declaration": "pub fn prepare_declared_row_acquisition_with_contracts(RowSourcePreparation, String, @query_planning.QueryEvidenceContracts, listing_policy? : @capacity_policy.Policy?) -> Result[RowAcquisition, RowHostIssue]"
         },
         {
           "name": "prepare_declared_row_source",
@@ -556,6 +630,10 @@
           "declaration": "pub fn prepare_mock_churn_risk_catalogue(RowDeclarationLimits) -> Result[MockChurnRiskCatalogue, RowHostIssue]"
         },
         {
+          "name": "prepare_mock_churn_risk_target_update",
+          "declaration": "pub fn prepare_mock_churn_risk_target_update(MockTargetDocument, MockTargetRow, String, String, Int) -> Result[Bytes, RowSourceIssue]"
+        },
+        {
           "name": "prepare_relation_row_write_mapping",
           "declaration": "pub fn prepare_relation_row_write_mapping(RowDeclaration, String, String, RowRelationWriteSpec, Array[RowMappingSource], RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]"
         },
@@ -568,6 +646,10 @@
           "declaration": "pub fn prepare_row_delete_mapping(RowDeclaration, String, String, String, String, RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]"
         },
         {
+          "name": "prepare_row_input_acquisition",
+          "declaration": "pub fn prepare_row_input_acquisition(@sourceview_resolution.SourceAcquisition, @pipeline_check_context.ProgramSourceIdentity, @lowering_relation.PreparedSequence, @execution_relation.RegisteredRelationContracts, RowDeclaration, RowInputLimits) -> Result[RowInputAcquisition, RowHostIssue]"
+        },
+        {
           "name": "prepare_row_mapping",
           "declaration": "pub fn prepare_row_mapping(RowDeclaration, String, String, Array[RowMappingSource]) -> Result[RowMapping, RowMappingIssue]"
         },
@@ -578,6 +660,10 @@
         {
           "name": "project_row_declaration",
           "declaration": "pub fn project_row_declaration(String, String, String, String, String, Array[String], Array[RowDeclaredView], Array[String], String, String) -> Result[RowDeclaration, RowDeclarationIssue]"
+        },
+        {
+          "name": "project_row_source_json_page",
+          "declaration": "pub fn project_row_source_json_page(Bytes, Array[String], Bool, Array[String], Int, Int, Int, Int, Int) -> Result[RowSourceJsonPage, RowSourceJsonPageIssue]"
         },
         {
           "name": "restore_relation_row_declaration",
@@ -601,7 +687,7 @@
         },
         {
           "name": "retain_row_capture_task",
-          "declaration": "pub fn retain_row_capture_task(RowSourceCapture, @physical_strategy.CapturedDAG, Int) -> Result[Unit, RowHostIssue]"
+          "declaration": "pub fn retain_row_capture_task(RowSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Result[Unit, RowHostIssue]"
         },
         {
           "name": "row_acquisition_column_contract",
@@ -610,6 +696,10 @@
         {
           "name": "row_acquisition_columns",
           "declaration": "pub fn row_acquisition_columns(RowAcquisition) -> Array[String]"
+        },
+        {
+          "name": "row_acquisition_contracts_construction_capacity",
+          "declaration": "pub fn row_acquisition_contracts_construction_capacity(Int, Int) -> @execution_relation.ExecutionCapacity?"
         },
         {
           "name": "row_acquisition_execution_capacity",
@@ -664,6 +754,34 @@
           "declaration": "pub fn row_declaration_view(RowDeclaration, String) -> RowDeclaredView?"
         },
         {
+          "name": "row_input_acquisition_capacity",
+          "declaration": "pub fn row_input_acquisition_capacity(RowInputAcquisition, @execution_relation.ExecutionCapacity?) -> @execution_relation.ExecutionCapacity?"
+        },
+        {
+          "name": "row_input_acquisition_columns",
+          "declaration": "pub fn row_input_acquisition_columns(RowInputAcquisition) -> Array[String]"
+        },
+        {
+          "name": "row_input_acquisition_facts",
+          "declaration": "pub fn row_input_acquisition_facts(RowInputAcquisition) -> @query_planning.QuerySourceEvidenceFacts"
+        },
+        {
+          "name": "row_input_acquisition_matches_source",
+          "declaration": "pub fn row_input_acquisition_matches_source(RowInputAcquisition, @sourceview_resolution.SourceAcquisition) -> Bool"
+        },
+        {
+          "name": "row_input_acquisition_max_rows",
+          "declaration": "pub fn row_input_acquisition_max_rows(RowInputAcquisition) -> Int"
+        },
+        {
+          "name": "row_input_acquisition_request_wire",
+          "declaration": "pub fn row_input_acquisition_request_wire(RowInputAcquisition) -> Result[String, RowHostIssue]"
+        },
+        {
+          "name": "row_input_acquisition_target",
+          "declaration": "pub fn row_input_acquisition_target(RowInputAcquisition) -> (String, Array[String])"
+        },
+        {
           "name": "row_mapping_target_fields",
           "declaration": "pub fn row_mapping_target_fields(RowMapping, RowDeclarationLimits) -> Result[Array[String], RowMappingIssue]"
         },
@@ -692,6 +810,22 @@
           "declaration": "pub fn row_source_columns(RowSourcePreparation) -> Array[String]"
         },
         {
+          "name": "row_source_json_page_has_next_cursor",
+          "declaration": "pub fn row_source_json_page_has_next_cursor(RowSourceJsonPage) -> Bool"
+        },
+        {
+          "name": "row_source_json_page_next_cursor",
+          "declaration": "pub fn row_source_json_page_next_cursor(RowSourceJsonPage) -> Result[String, RowSourceJsonPageIssue]"
+        },
+        {
+          "name": "row_source_json_page_row_count",
+          "declaration": "pub fn row_source_json_page_row_count(RowSourceJsonPage) -> Int"
+        },
+        {
+          "name": "row_source_json_page_rows_wire",
+          "declaration": "pub fn row_source_json_page_rows_wire(RowSourceJsonPage) -> String"
+        },
+        {
           "name": "row_source_requirement",
           "declaration": "pub fn row_source_requirement(RowSourcePreparation) -> @query_planning.QueryRequirement"
         },
@@ -716,6 +850,10 @@
           "declaration": "pub fn start_accounted_row_acquisition(RowAcquisition, String, (RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64) -> Result[RowRun, RowHostIssue]"
         },
         {
+          "name": "start_accounted_row_input_acquisition",
+          "declaration": "pub fn start_accounted_row_input_acquisition(RowInputAcquisition, @execution_relation.ExecutionCapacity?, String, (RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64) -> Result[RowRun, RowHostIssue]"
+        },
+        {
           "name": "start_keyed_row_acquisition",
           "declaration": "pub fn start_keyed_row_acquisition(RowKeyedAcquisition, String, (RowAttempt) -> Bool) -> Result[RowRun, RowHostIssue]"
         },
@@ -726,11 +864,16 @@
         {
           "name": "start_row_acquisition",
           "declaration": "pub fn start_row_acquisition(RowAcquisition, String, (RowAttempt) -> Bool) -> Result[RowRun, RowHostIssue]"
+        },
+        {
+          "name": "start_row_input_acquisition",
+          "declaration": "pub fn start_row_input_acquisition(RowInputAcquisition, String, (RowAttempt) -> Bool) -> Result[RowRun, RowHostIssue]"
         }
       ],
       "contracts": [
         {
           "operations": [
+            "<module>",
             "abort_row_run",
             "accept_charged_row_run_page",
             "accept_charged_row_run_values",
@@ -826,7 +969,8 @@
             "start_row_acquisition",
             "row_acquisition_provider_capacity",
             "start_accounted_provider_row_acquisition",
-            "prepare_row_delete_mapping"
+            "prepare_row_delete_mapping",
+            "row_acquisition_contracts_construction_capacity"
           ],
           "exports": [
             "pub fn abort_row_run(RowRun) -> Unit",
@@ -894,7 +1038,6 @@
             "pub fn restore_row_original_read(@query_planning.QueryRequirement, String, String, Array[String], () -> Bool, reference_issuer? : @value_admission.ReferenceIssuer) -> Result[RowRestoredOriginalInput, RowOriginalCaptureIssue]",
             "pub fn restored_row_original_read(RowRestoredOriginalInput) -> @execution_relation.SuppliedRelationRead?",
             "pub fn retain_keyed_row_run(RowRun) -> Result[RowKeyedSourceCapture, RowHostIssue]",
-            "pub fn retain_row_capture_task(RowSourceCapture, @physical_strategy.CapturedDAG, Int) -> Result[Unit, RowHostIssue]",
             "pub fn row_acquisition_column_contract(RowAcquisition, Int) -> @value_contract.Contract?",
             "pub fn row_acquisition_columns(RowAcquisition) -> Array[String]",
             "pub fn row_acquisition_execution_capacity(RowAcquisition) -> Int64",
@@ -930,7 +1073,9 @@
             "pub enum RowKeyedPagePoll {",
             "pub enum RowListingPagePoll {",
             "pub struct RowMapping {",
-            "pub struct RowRunResponseBorrow {"
+            "pub struct RowRunResponseBorrow {",
+            "pub fn retain_row_capture_task(RowSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Result[Unit, RowHostIssue]",
+            "pub fn row_acquisition_contracts_construction_capacity(Int, Int) -> @execution_relation.ExecutionCapacity?"
           ],
           "attributes": {
             "responsibility": [
@@ -1285,11 +1430,23 @@
         {
           "operations": [
             "accept_charged_mock_churn_risk_document",
-            "prepare_churn_risk_mock_update_mapping"
+            "prepare_churn_risk_mock_update_mapping",
+            "admit_mock_churn_risk_target_document",
+            "mock_churn_risk_target_before",
+            "mock_churn_risk_target_version",
+            "observe_mock_churn_risk_target",
+            "prepare_mock_churn_risk_target_update"
           ],
           "exports": [
             "pub fn accept_charged_mock_churn_risk_document(RowRun, RowPageCharge, RowAcquisition, RowDeclaration, RowDeclaration, Bytes, Int) -> Result[Int, RowHostIssue]",
-            "pub fn prepare_churn_risk_mock_update_mapping(RowDeclaration, RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]"
+            "pub fn prepare_churn_risk_mock_update_mapping(RowDeclaration, RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]",
+            "pub fn admit_mock_churn_risk_target_document(RowDeclaration, RowDeclaration, Bytes, RowPageLimits, Int) -> Result[MockTargetDocument, RowSourceIssue]",
+            "pub fn mock_churn_risk_target_before(MockTargetRow) -> String?",
+            "pub fn mock_churn_risk_target_version(MockTargetRow) -> String?",
+            "pub fn observe_mock_churn_risk_target(MockTargetDocument, RowDeclaration, String) -> Result[MockTargetRow, RowSourceIssue]",
+            "pub fn prepare_mock_churn_risk_target_update(MockTargetDocument, MockTargetRow, String, String, Int) -> Result[Bytes, RowSourceIssue]",
+            "pub struct MockTargetDocument {",
+            "pub struct MockTargetRow {"
           ],
           "attributes": {
             "responsibility": [
@@ -1304,6 +1461,10 @@
               {
                 "path": "src/client_row_source_host/mock_churn_risk_records_wbtest.mbt",
                 "anchor": "test \"mock physical source exact integer spans reach the original typed input without Number conversion\""
+              },
+              {
+                "path": "src/client_row_source_host/mock_churn_risk_target.mbt",
+                "anchor": "/// Bounded, owned DATA from the actual Mock file. It supplies no read/write"
               }
             ],
             "inputsOutputs": [
@@ -1318,6 +1479,10 @@
               {
                 "path": "src/client_row_source_host/mock_churn_risk_records_wbtest.mbt",
                 "anchor": "test \"mock physical source exact integer spans reach the original typed input without Number conversion\""
+              },
+              {
+                "path": "src/client_row_source_host/mock_churn_risk_target.mbt",
+                "anchor": "pub fn admit_mock_churn_risk_target_document("
               }
             ],
             "identity": [
@@ -1332,6 +1497,10 @@
               {
                 "path": "src/client_row_source_host/mock_churn_risk_records_wbtest.mbt",
                 "anchor": "test \"mock physical source exact integer spans reach the original typed input without Number conversion\""
+              },
+              {
+                "path": "src/client_row_source_host/mock_churn_risk_target.mbt",
+                "anchor": "fn mock_target_row_original(row : MockTargetRow) -> Bool {"
               }
             ],
             "ownership": [
@@ -1346,6 +1515,10 @@
               {
                 "path": "src/client_row_source_host/mock_churn_risk_records_wbtest.mbt",
                 "anchor": "test \"mock physical source exact integer spans reach the original typed input without Number conversion\""
+              },
+              {
+                "path": "src/client_row_source_host/mock_churn_risk_target.mbt",
+                "anchor": "/// bytes rather than retaining a mutable caller view across later awaits."
               }
             ],
             "synchronization": [
@@ -1402,6 +1575,10 @@
               {
                 "path": "src/client_row_source_host/mock_churn_risk_records_wbtest.mbt",
                 "anchor": "test \"mock physical source exact integer spans reach the original typed input without Number conversion\""
+              },
+              {
+                "path": "src/client_row_source_host/mock_churn_risk_target.mbt",
+                "anchor": "bytes.length() > max_work"
               }
             ],
             "extension": [
@@ -1430,6 +1607,14 @@
               {
                 "path": "src/client_row_source_host/mock_churn_risk_records_wbtest.mbt",
                 "anchor": "test \"mock physical source exact integer spans reach the original typed input without Number conversion\""
+              },
+              {
+                "path": "src/client_row_source_host/mock_churn_risk_target_wbtest.mbt",
+                "anchor": "test \"Mock target owns original bytes and rejects copied row or foreign document correspondence\""
+              },
+              {
+                "path": "src/client_row_source_host/mock_churn_risk_target_wbtest.mbt",
+                "anchor": "test \"Mock target refuses malformed whole documents and non-Mapping updates before output\""
               }
             ]
           }
@@ -1728,6 +1913,1282 @@
               {
                 "path": "adapters/host-node/mock-churn-risk-charged-receiver.actual.test.mjs",
                 "anchor": "test('same original RowRun enforces the selected small node ceiling before capture'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "admit_row_acquisition_contracts"
+          ],
+          "exports": [
+            "pub fn admit_row_acquisition_contracts(String, String) -> Result[@query_planning.QueryEvidenceContracts, RowHostIssue]"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "The existing RowRun has a complete-input alternative"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "same acquisition, request wire and provider"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "exact supplied-read"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "same original Request supplies the Run ledger"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Current callbacks may reenter close"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "validation failure or cancellation retains them"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Retirement invalidates new reads"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "existing capacity functions and units"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "native file listings require their different Resource"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "focused Core and explicit-port Node cases"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "borrow_row_input_run_responses"
+          ],
+          "exports": [
+            "pub fn borrow_row_input_run_responses(RowRun, RowInputAcquisition) -> Result[RowRunResponseBorrow, RowHostIssue]"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "The existing RowRun has a complete-input alternative"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "same acquisition, request wire and provider"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "exact supplied-read"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "same original Request supplies the Run ledger"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Current callbacks may reenter close"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "validation failure or cancellation retains them"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Retirement invalidates new reads"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "existing capacity functions and units"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "native file listings require their different Resource"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "focused Core and explicit-port Node cases"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "check_row_input_acquisition_original"
+          ],
+          "exports": [
+            "pub fn check_row_input_acquisition_original(RowInputAcquisition, RowDeclaration, @sourceview_resolution.SourceAcquisition) -> Result[Unit, RowHostIssue]"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "The existing RowRun has a complete-input alternative"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "same acquisition, request wire and provider"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "exact supplied-read"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "same original Request supplies the Run ledger"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Current callbacks may reenter close"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "validation failure or cancellation retains them"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Retirement invalidates new reads"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "existing capacity functions and units"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "native file listings require their different Resource"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "focused Core and explicit-port Node cases"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "check_row_input_capture_run"
+          ],
+          "exports": [
+            "pub fn check_row_input_capture_run(RowSourceCapture, RowRun) -> Result[Unit, RowHostIssue]"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Whole-input publication binds the same adopted Run"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "typed Source evidence and the same native capture"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "exact Run association"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "same retained inventory and admitted row bound"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "before issuance and again before retaining the completed invocation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "one-shot invocation slot remains consumed on semantic failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "original provider/RowRun retirement confirms and the body borrow is returned"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "before capacity construction, so Result-publication reservation reuses that"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "the Query issuer keeps its original QueryRequirement array"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/installed_whole_source_publication_js_wbtest.mbt",
+                "anchor": "whole input publication binds the same RowRun originals and one adopted invocation"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "whole Source publication forwards the same native capture and never a Query requirement"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "check_row_input_compute_binding"
+          ],
+          "exports": [
+            "pub fn check_row_input_compute_binding(RowSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Result[Unit, RowHostIssue]"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "The existing RowRun has a complete-input alternative"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "same acquisition, request wire and provider"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "exact supplied-read"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "same original Request supplies the Run ledger"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Current callbacks may reenter close"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "validation failure or cancellation retains them"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Retirement invalidates new reads"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "existing capacity functions and units"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "native file listings require their different Resource"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "focused Core and explicit-port Node cases"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "issue_row_input_source_evidence"
+          ],
+          "exports": [
+            "pub fn issue_row_input_source_evidence(RowInputAcquisition, RowSourceCapture, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, String, String, String) -> Result[@run_publication.RunEvidenceValue, RowHostIssue]"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "The existing RowRun has a complete-input alternative"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "same acquisition, request wire and provider"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "exact supplied-read"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "same original Request supplies the Run ledger"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Current callbacks may reenter close"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "validation failure or cancellation retains them"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Retirement invalidates new reads"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "existing capacity functions and units"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "native file listings require their different Resource"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "focused Core and explicit-port Node cases"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "prepare_declared_row_acquisition_with_contracts"
+          ],
+          "exports": [
+            "pub fn prepare_declared_row_acquisition_with_contracts(RowSourcePreparation, String, @query_planning.QueryEvidenceContracts, listing_policy? : @capacity_policy.Policy?) -> Result[RowAcquisition, RowHostIssue]"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "The existing RowRun has a complete-input alternative"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "same acquisition, request wire and provider"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "exact supplied-read"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "same original Request supplies the Run ledger"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Current callbacks may reenter close"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "validation failure or cancellation retains them"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Retirement invalidates new reads"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "existing capacity functions and units"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "native file listings require their different Resource"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "focused Core and explicit-port Node cases"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "prepare_row_input_acquisition"
+          ],
+          "exports": [
+            "pub fn prepare_row_input_acquisition(@sourceview_resolution.SourceAcquisition, @pipeline_check_context.ProgramSourceIdentity, @lowering_relation.PreparedSequence, @execution_relation.RegisteredRelationContracts, RowDeclaration, RowInputLimits) -> Result[RowInputAcquisition, RowHostIssue]"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "The existing RowRun has a complete-input alternative"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "same acquisition, request wire and provider"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "exact supplied-read"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "same original Request supplies the Run ledger"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Current callbacks may reenter close"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "validation failure or cancellation retains them"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Retirement invalidates new reads"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "existing capacity functions and units"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "native file listings require their different Resource"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "focused Core and explicit-port Node cases"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "row_input_acquisition_capacity"
+          ],
+          "exports": [
+            "pub fn row_input_acquisition_capacity(RowInputAcquisition, @execution_relation.ExecutionCapacity?) -> @execution_relation.ExecutionCapacity?"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "The existing RowRun has a complete-input alternative"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "same acquisition, request wire and provider"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "exact supplied-read"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "same original Request supplies the Run ledger"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Current callbacks may reenter close"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "validation failure or cancellation retains them"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Retirement invalidates new reads"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "existing capacity functions and units"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "native file listings require their different Resource"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "focused Core and explicit-port Node cases"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "row_input_acquisition_columns"
+          ],
+          "exports": [
+            "pub fn row_input_acquisition_columns(RowInputAcquisition) -> Array[String]"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "The existing RowRun has a complete-input alternative"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "same acquisition, request wire and provider"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "exact supplied-read"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "same original Request supplies the Run ledger"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Current callbacks may reenter close"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "validation failure or cancellation retains them"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Retirement invalidates new reads"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "existing capacity functions and units"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "native file listings require their different Resource"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "focused Core and explicit-port Node cases"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "row_input_acquisition_facts"
+          ],
+          "exports": [
+            "pub fn row_input_acquisition_facts(RowInputAcquisition) -> @query_planning.QuerySourceEvidenceFacts"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "The existing RowRun has a complete-input alternative"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "same acquisition, request wire and provider"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "exact supplied-read"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "same original Request supplies the Run ledger"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Current callbacks may reenter close"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "validation failure or cancellation retains them"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Retirement invalidates new reads"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "existing capacity functions and units"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "native file listings require their different Resource"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "focused Core and explicit-port Node cases"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "row_input_acquisition_matches_source"
+          ],
+          "exports": [
+            "pub fn row_input_acquisition_matches_source(RowInputAcquisition, @sourceview_resolution.SourceAcquisition) -> Bool"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "The existing RowRun has a complete-input alternative"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "same acquisition, request wire and provider"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "exact supplied-read"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "same original Request supplies the Run ledger"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Current callbacks may reenter close"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "validation failure or cancellation retains them"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Retirement invalidates new reads"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "existing capacity functions and units"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "native file listings require their different Resource"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "focused Core and explicit-port Node cases"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "row_input_acquisition_max_rows"
+          ],
+          "exports": [
+            "pub fn row_input_acquisition_max_rows(RowInputAcquisition) -> Int"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "The existing RowRun has a complete-input alternative"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "same acquisition, request wire and provider"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "exact supplied-read"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "same original Request supplies the Run ledger"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Current callbacks may reenter close"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "validation failure or cancellation retains them"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Retirement invalidates new reads"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "existing capacity functions and units"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "native file listings require their different Resource"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "focused Core and explicit-port Node cases"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "row_input_acquisition_request_wire"
+          ],
+          "exports": [
+            "pub fn row_input_acquisition_request_wire(RowInputAcquisition) -> Result[String, RowHostIssue]"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "The existing RowRun has a complete-input alternative"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "same acquisition, request wire and provider"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "exact supplied-read"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "same original Request supplies the Run ledger"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Current callbacks may reenter close"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "validation failure or cancellation retains them"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Retirement invalidates new reads"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "existing capacity functions and units"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "native file listings require their different Resource"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "focused Core and explicit-port Node cases"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "row_input_acquisition_target"
+          ],
+          "exports": [
+            "pub fn row_input_acquisition_target(RowInputAcquisition) -> (String, Array[String])"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "The existing RowRun has a complete-input alternative"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "same acquisition, request wire and provider"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "exact supplied-read"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "same original Request supplies the Run ledger"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Current callbacks may reenter close"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "validation failure or cancellation retains them"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Retirement invalidates new reads"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "existing capacity functions and units"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "native file listings require their different Resource"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "focused Core and explicit-port Node cases"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "start_accounted_row_input_acquisition"
+          ],
+          "exports": [
+            "pub fn start_accounted_row_input_acquisition(RowInputAcquisition, @execution_relation.ExecutionCapacity?, String, (RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64) -> Result[RowRun, RowHostIssue]"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "The existing RowRun has a complete-input alternative"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "same acquisition, request wire and provider"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "exact supplied-read"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "same original Request supplies the Run ledger"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Current callbacks may reenter close"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "validation failure or cancellation retains them"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Retirement invalidates new reads"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "existing capacity functions and units"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "native file listings require their different Resource"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "focused Core and explicit-port Node cases"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "start_row_input_acquisition"
+          ],
+          "exports": [
+            "pub fn start_row_input_acquisition(RowInputAcquisition, String, (RowAttempt) -> Bool) -> Result[RowRun, RowHostIssue]"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "The existing RowRun has a complete-input alternative"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "same acquisition, request wire and provider"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "exact supplied-read"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "same original Request supplies the Run ledger"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Current callbacks may reenter close"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "validation failure or cancellation retains them"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Retirement invalidates new reads"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "existing capacity functions and units"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "native file listings require their different Resource"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "focused Core and explicit-port Node cases"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "project_row_source_json_page",
+            "row_source_json_page_has_next_cursor",
+            "row_source_json_page_next_cursor",
+            "row_source_json_page_row_count",
+            "row_source_json_page_rows_wire"
+          ],
+          "exports": [
+            "pub fn project_row_source_json_page(Bytes, Array[String], Bool, Array[String], Int, Int, Int, Int, Int) -> Result[RowSourceJsonPage, RowSourceJsonPageIssue]",
+            "pub fn row_source_json_page_has_next_cursor(RowSourceJsonPage) -> Bool",
+            "pub fn row_source_json_page_next_cursor(RowSourceJsonPage) -> Result[String, RowSourceJsonPageIssue]",
+            "pub fn row_source_json_page_row_count(RowSourceJsonPage) -> Int",
+            "pub fn row_source_json_page_rows_wire(RowSourceJsonPage) -> String"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              },
+              {
+                "path": "src/client_row_source_host/json_page_projection_wbtest.mbt",
+                "anchor": "original JSON page array enters existing full row admission without dropping fields or rounding"
               }
             ]
           }
@@ -2183,17 +3644,9 @@
     },
     {
       "module": "src/client_row_source_host/delete_mapping.mbt",
-      "sha256": "323375efb55045382332456fa9842e29b975905314ae2a2c54a25c65846da7cd",
+      "sha256": "1077ba3f85e5b1ec7e485313d5531743caba742561b5a35375e65492fdbbd4bc",
       "exports": [],
       "operations": [
-        {
-          "name": "delete_mapping_original_identity",
-          "declaration": "delete_mapping_original_identity ( original : Json , identity_field : String , expected : String , limits : RowDeclarationLimits , ) - > Bool"
-        },
-        {
-          "name": "delete_mapping_read_original",
-          "declaration": "delete_mapping_read_original ( wire : String , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ( Json , @ decode . Cursor , Int , Int ) , RowMappingIssue ]"
-        },
         {
           "name": "prepare_row_delete_mapping",
           "declaration": "prepare_row_delete_mapping ( declaration : RowDeclaration , resource : String , primary_identity : String , permission : String , approval : String , limits : RowDeclarationLimits , ) - > Result [ RowMapping , RowMappingIssue ]"
@@ -2207,8 +3660,6 @@
         {
           "operations": [
             "<module>",
-            "delete_mapping_original_identity",
-            "delete_mapping_read_original",
             "prepare_row_delete_mapping"
           ],
           "exports": [],
@@ -2858,6 +4309,99 @@
               {
                 "path": "src/check_environment/source_view_shape_wbtest.mbt",
                 "anchor": "test \"Resource identity subtree uses the same generated SourceView rule and work budget\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_row_source_host/acquisition_contract_construction.mbt",
+      "sha256": "59a73db6fc52ef25f5d93d7b9da41baeeb8569fa0b26b075efa14774e1c1214f",
+      "operations": [
+        {
+          "name": "row_acquisition_contracts_construction_capacity",
+          "declaration": "row_acquisition_contracts_construction_capacity ( query_units : Int , evidence_units : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "row_contract_collection_units",
+          "declaration": "row_contract_collection_units ( value : @ shape . CollectionConstructionExtent , text : Int64 , ) - > @ execution . PreparationRepresentationUnits"
+        },
+        {
+          "name": "row_contract_raw_json_shape",
+          "declaration": "row_contract_raw_json_shape ( nodes : Int64 , ) - > @ shape . CollectionConstructionExtent ?"
+        }
+      ],
+      "exports": [],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Original row Source protocol admission constructor",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "row_acquisition_contracts_construction_capacity",
+            "row_contract_collection_units",
+            "row_contract_raw_json_shape"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The installing Source also reads its protocol assets through that same"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/acquisition_contract_construction.mbt",
+                "anchor": "pub fn row_acquisition_contracts_construction_capacity("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/host.mbt",
+                "anchor": "pub fn admit_row_acquisition_contracts("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The installing Source also reads its protocol assets through that same"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Pure original parser/canonical/hash constructor geometry; no callback, I/O, current observation, admission or cleanup."
+            },
+            "failure": [
+              {
+                "path": "src/client_row_source_host/acquisition_contract_construction.mbt",
+                "anchor": "if query_units < 0 || evidence_units < 0 {"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Logical quantity DATA cannot acknowledge cleanup, cancellation, retry or physical stop."
+            },
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The installing Source also reads its protocol assets through that same"
+              },
+              {
+                "path": "src/client_row_source_host/acquisition_contract_construction.mbt",
+                "anchor": "@encode.hash_writer_construction_inventory("
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "export function prepareInstalledSourceAcquisitionContracts("
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/acquisition_contract_construction_wbtest.mbt",
+                "anchor": "test \"Source protocol constructor replaces the measured escaped-node duplication without changing the original quota\""
               }
             ]
           }

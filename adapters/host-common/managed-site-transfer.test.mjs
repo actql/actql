@@ -3,8 +3,6 @@ import assert from 'node:assert/strict';
 import {mkdtemp, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {accountEntry, fixtureAuthorization, sqliteDeferral} from
-  '../host-node/authorization-fixture.mjs';
 import {
   beginExecutionSiteTeardown,
   createInProcessExecutionSite,
@@ -22,6 +20,14 @@ import {createManagedMemoryTransferProvider, managedMemoryTransferContract} from
   '../store-local/managed-memory-transfer.mjs';
 import {registerManagedMemoryInput} from
   '../store-local/managed-memory-representations.mjs';
+
+// Only the selected authorization cases need this fixture's release builder.
+// Pure cleanup cases must not import it and start an unrelated Common build.
+let accountEntry, fixtureAuthorization, sqliteDeferral;
+async function loadAuthorizationFixture() {
+  ({accountEntry, fixtureAuthorization, sqliteDeferral} = await import(
+    '../host-node/authorization-fixture.mjs'));
+}
 
 const estimate = Object.freeze({
   transferBytes: 4096n,
@@ -833,6 +839,55 @@ test('one-sided destination cleanup retries without retaining the source Site', 
   assert.equal(events.filter(([name]) => name === 'release').length, 1);
 });
 
+for (const release of ['close', 'releaseSource']) {
+  test(`Transfer ${release} keeps initial diagnostics and a bounded retry tail until its original destination stops`, async () => {
+    const input = {}, logical = {}, sourceMaterial = {}, destinationMaterial = {};
+    const original = Object.freeze(Object.assign(new Error('original destination close failure'), {
+      cleanupPending: true,
+      cleanupHandle: Object.freeze({
+        status: () => Object.freeze({pending}),
+        async retry() {
+          retries++;
+          if (!allow) throw new Error('original pending destination retry ' + retries);
+          pending = false;
+          return this.status();
+        },
+      }),
+    }));
+    let pending = true, allow = false, retries = 0, closes = 0;
+    const provider = Object.freeze({estimate: () => estimate, async copy({authorize, charge}) {
+      assert.equal(authorize(input), true); charge(3n);
+      return Object.freeze({material: destinationMaterial, generation: {}, rows: 1, batches: 1,
+        maxBatchRows: 1, maxBatchBytes: 64, bytes: 3n, retainedBytes: 8n,
+        status: () => Object.freeze({released: !pending}),
+        async close() {closes++; throw original;}});
+    }});
+    const context = setup(provider), {candidate, occurrence} = candidateFor(context, sourceMaterial, logical);
+    const events = [], coordinator = createManagedSiteTransferCoordinator({}, coreFor(input, logical, events), context.installation);
+    await coordinator.resolve(candidate, [input]);
+    let failure;
+    try {await (release === 'close' ? coordinator.close() : coordinator.releaseSource(occurrence));}
+    catch (error) {failure = error;}
+    assert(failure);
+    const initial = failure.cleanupHandle.status();
+    assert.deepEqual(initial.errors, [original]);
+    for (let index = 0; index < 4; index++) {
+      const status = await failure.cleanupHandle.retry();
+      assert.equal(status.pending, true); assert.equal(pending, true);
+      assert.deepEqual(status.errors, index === 0 ? [original, original] : [original, original, original]);
+      assert.deepEqual(initial.errors, [original]);
+      assert.equal(closes, 1);
+      assert.equal(executionSiteStatus(context.destinationSite).teardownComplete, false);
+      assert.equal(events.filter(([name]) => name === 'release').length, 0);
+    }
+    allow = true;
+    assert.equal((await failure.cleanupHandle.retry()).pending, false);
+    assert.equal(closes, 1); assert.equal(retries, 5);
+    assert.equal(events.filter(([name]) => name === 'release').length, 1);
+    assert.equal(beginExecutionSiteTeardown(context.destinationSite).teardownComplete, true);
+  });
+}
+
 test('destination cleanup without an explicit recovery handle is never retried', async () => {
   const input = {}, logicalMaterial = {}, sourceMaterial = {};
   let closes = 0;
@@ -925,6 +980,7 @@ const transferEntries = outcome => [accountEntry('recipient', outcome, {
 
 test('transfer to a protected recipient needs a dispatch decision first',
   async () => {
+    await loadAuthorizationFixture();
     let hostCalls = 0;
     const counting = decide => view => { hostCalls++; return decide(view); };
     const permit = view => ({decision: 'permit', subject: view.subject,
@@ -980,6 +1036,7 @@ test('transfer to a protected recipient needs a dispatch decision first',
 
 test('a deferred transfer decision persists its Checkpoint and copies nothing',
   async t => {
+    await loadAuthorizationFixture();
     const root = await mkdtemp(join(tmpdir(), 'actql-transfer-deferral-'));
     t.after(() => rm(root, {recursive: true, force: true}));
     const deferral = await sqliteDeferral(root);
@@ -1009,6 +1066,7 @@ test('a deferred transfer decision persists its Checkpoint and copies nothing',
   });
 
 test('in-process transfer between unprotected Sites is covered', async () => {
+  await loadAuthorizationFixture();
   let hostCalls = 0;
   // An account with no matching entry: any evaluation would deny.
   const gate = await fixtureAuthorization([], {

@@ -1114,8 +1114,9 @@ signed integer. Check these bounds before integer conversion, including the
 exclusive upper endpoint. Operand order MUST NOT affect this rule. Membership
 uses the original typed item domain, including each immediate list occurrence;
 an untyped empty list does not supply a domain. Conflicting typed peers remain
-incompatible, and existing literal-NULL refusal, null-safe comparison and
-nullable-value behavior remain unchanged.
+incompatible. Immediate literal NULL follows the independently typed peer
+context rules below; unresolved literal-NULL operands still require context.
+Null-safe comparison and nullable-value behavior remain unchanged.
 
 <!-- requirement-block: signed64-values.comparison-literal-normalization signed64-values.comparison-literal-no-raw-reinterpretation signed64-values.comparison-literal-no-nonliteral-conversion -->
 Comparison context MUST preserve the original Number literal body and its

@@ -35,6 +35,202 @@ pub(all) enum EffectfulPublicationCommitIssue {
 } derive(Debug)
 
 ///|
+/// Retained facts from the existing complete admission. This is immutable
+/// publication DATA, not current apply authority, Store commit or physical ACK.
+/// Arrays are snapshotted once; later publication checks borrow these originals
+/// instead of admitting the computation and member receipt wires again.
+pub struct EffectfulFinalRunEvidence {
+  priv run_definition : PublicationContract
+  priv invocation : PublicationContract
+  priv definitions : Array[PublicationContract]
+  priv artifacts : Array[PublicationContract]
+  priv _observed_derivations : Array[PublicationContract]
+  priv orderings : Array[PublicationContract]
+  priv retentions : Array[PublicationContract]
+  priv manifest : PublicationContract
+  priv declared_results : Array[String]
+  priv captured_run : PublicationContract
+  priv final_receipt : PublicationContract
+  priv outcomes : EffectSetApplyReceiptEvidence
+}
+
+///|
+pub fn admit_retained_effectful_final_run_evidence(
+  run_definition : PublicationContract,
+  invocation : PublicationContract,
+  definitions : Array[PublicationContract],
+  artifacts : Array[PublicationContract],
+  derivations : Array[PublicationContract],
+  orderings : Array[PublicationContract],
+  retentions : Array[PublicationContract],
+  manifest : PublicationContract,
+  computation_receipt : PublicationContract,
+  captured_run : PublicationContract,
+  preview : EffectPreviewIdentity,
+  set_receipt_wire : String,
+  member_receipt_wires : Array[String],
+  final_receipt_wire : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[EffectfulFinalRunEvidence, EffectfulPublicationCommitIssue] {
+  let definitions = definitions.copy()
+  let artifacts = artifacts.copy()
+  let derivations = derivations.copy()
+  let orderings = orderings.copy()
+  let retentions = retentions.copy()
+  match
+    validate_result_evidence_set(
+      definitions, artifacts, derivations, orderings, retentions,
+    ) {
+    Err(issue) => return Err(ResultEvidence(issue))
+    Ok(_) => ()
+  }
+  let (final_receipt, outcomes) = match
+    admit_effectful_final_run_evidence_with_outcomes(
+      run_definition, invocation, definitions, artifacts, manifest, computation_receipt,
+      captured_run, preview, set_receipt_wire, member_receipt_wires, final_receipt_wire,
+      max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Err(issue) => return Err(FinalChain(issue))
+    Ok(value) => value
+  }
+  let declared_results = match manifest_result_names(manifest) {
+    Err(_) =>
+      return Err(
+        FinalChain(Computation(EvidenceInventoryMismatch("manifest results"))),
+      )
+    Ok(value) => value
+  }
+  Ok({
+    run_definition,
+    invocation,
+    definitions,
+    artifacts,
+    _observed_derivations: derivations,
+    orderings,
+    retentions,
+    manifest,
+    declared_results,
+    captured_run,
+    final_receipt,
+    outcomes,
+  })
+}
+
+///|
+pub fn effectful_final_run_evidence_receipt(
+  value : EffectfulFinalRunEvidence,
+) -> PublicationContract {
+  value.final_receipt
+}
+
+///|
+pub fn effectful_final_run_evidence_outcomes(
+  value : EffectfulFinalRunEvidence,
+) -> EffectSetApplyReceiptEvidence {
+  value.outcomes
+}
+
+///|
+/// Same immutable Run definition, independently of the caller's current
+/// original admission/compilation binding or durable Store observation.
+pub fn effectful_final_run_evidence_matches_definition(
+  value : EffectfulFinalRunEvidence,
+  definition : PublicationContract,
+) -> Bool {
+  definition.name == "run_definition" &&
+  definition.identity == value.run_definition.identity
+}
+
+///|
+/// The same original manifest supplies declared Results, while the retained
+/// complete Set supplies exactly the actual unknown Effect partition.
+pub fn effectful_final_run_evidence_reconciliation_state(
+  value : EffectfulFinalRunEvidence,
+  updated_at : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, RunStateIssue] {
+  let run_id = match run_definition_run_id(value.run_definition) {
+    Err(_) => return Err(InvalidRunId)
+    Ok(value) => value
+  }
+  issue_admitted_effect_reconciliation_run_state_wire(
+    value.outcomes,
+    run_id,
+    updated_at,
+    value.declared_results,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
+/// Preserve the original Run and declared Results of this same complete
+/// admitted final chain. Failure cannot publish Results or acknowledge stop.
+pub fn effectful_final_run_evidence_failed_state(
+  value : EffectfulFinalRunEvidence,
+  updated_at : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, RunStateIssue] {
+  let run_id = match run_definition_run_id(value.run_definition) {
+    Err(_) => return Err(InvalidRunId)
+    Ok(value) => value
+  }
+  issue_admitted_effect_failed_run_state_wire(
+    value.outcomes,
+    run_id,
+    updated_at,
+    value.declared_results,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
+/// Only new physical publication facts are checked here. Successful validation
+/// neither commits the index nor changes the retained Effect outcome.
+pub fn validate_retained_effectful_publication_commit(
+  value : EffectfulFinalRunEvidence,
+  bindings : Array[PublicationContract],
+  request : PublicationContract,
+  attempt : PublicationContract,
+  index_entry : PublicationContract,
+) -> Result[Unit, EffectfulPublicationCommitIssue] {
+  match
+    validate_durable_result_bindings(
+      value.run_definition,
+      value.invocation,
+      value.definitions,
+      value.artifacts,
+      value.orderings,
+      value.retentions,
+      bindings,
+      index_entry,
+    ) {
+    Err(issue) => return Err(DurableBinding(issue))
+    Ok(_) => ()
+  }
+  validate_publication_commit_references(
+    value.run_definition,
+    value.invocation,
+    value.definitions,
+    value.manifest,
+    value.final_receipt,
+    value.captured_run,
+    request,
+    attempt,
+    index_entry,
+  ).map_err(issue => Index(issue))
+}
+
+///|
 /// Validate the Effectful root chain and its exact publication index. Product
 /// commit paths must use the complete Result-evidence variant below.
 pub fn validate_effectful_publication_commit(

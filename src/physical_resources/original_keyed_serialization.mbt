@@ -18,7 +18,7 @@ pub fn original_keyed_serialization_preparation_available(
     inventory.holdings.length() == children + 2 &&
     inventory.delegations.is_empty() &&
     ledger.next_capacity_serial == Some(-2) &&
-    ledger.next_attempt_serial == Some(children + 3) &&
+    original_prefix_attempt_count_is(inventory, children + 3) &&
     !inventory.reservations[0].open &&
     inventory.holdings[0].reservation_serial == inventory.reservations[0].serial &&
     physical_equal(inventory.reservations[1], prefix) &&

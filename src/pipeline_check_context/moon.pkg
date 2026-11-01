@@ -9,6 +9,8 @@ import {
 } for "wbtest"
 
 import {
+  "actql/actql/decode_shape" @shape,
+  "actql/actql/capacity_arithmetic" @counts,
   "actql/actql/capacity_sequence_limit" @sequence_limits,
   "actql/actql/graph_typing" @graph,
   "actql/actql/temporal_window" @window,

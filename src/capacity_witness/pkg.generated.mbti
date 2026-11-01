@@ -5,6 +5,7 @@ import {
   "actql/actql/capacity_derivation",
   "actql/actql/capacity_law",
   "actql/actql/capacity_policy",
+  "actql/actql/decode_shape",
   "actql/actql/encode_core",
   "moonbitlang/core/debug",
 }
@@ -53,6 +54,8 @@ pub fn derivation(WireWitness) -> Derivation
 pub fn emit(WireWitness, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn emit_limit(LimitClaim, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
+pub fn empty_mixed_program_construction_inventory() -> @decode_shape.CollectionConstructionInventory
 
 pub fn extend_program_claims(ProgramClaims, Array[ProgramProofClaim], ClosureLimits) -> Result[ProgramClaims, ProgramExtensionIssue]
 

@@ -28,6 +28,10 @@ class ObjectWriterOwner {
     this.custody = undefined;
     this.busy = Promise.resolve();
     this.ready = this.start();
+    // A payload read can yield before append/seal/cancel observes startup.
+    // Observe rejection immediately, retaining the original failed Promise
+    // for those operations rather than replacing it with a successful one.
+    this.ready.catch(() => {});
   }
 
   async start() {

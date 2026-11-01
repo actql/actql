@@ -49,6 +49,7 @@ fn sdk_run_append_candidate(
   configuration : StoredRunConfiguration,
   plan : @local_run.LocalRunPlan,
   original : @host.ClientLocalRunPolicyOriginal,
+  task_materials : @local_run.LocalRunTaskMaterialsOriginal?,
 ) -> Result[@host.ClientRunJournalAppend, Int] {
   let scan = (table, key) => {
     sdk_run_journal_port(value, configuration, 0, table, key)
@@ -80,6 +81,12 @@ fn sdk_run_append_candidate(
       -31,
       local_policy_original=Some(original),
       run_observation_originals=Some(observation),
+      task_materials_cid=task_materials.map(
+        @local_run.local_run_task_materials_original_cid,
+      ),
+      publication_policy_originals=task_materials.map(
+        @local_run.local_run_task_materials_original_policy,
+      ),
     ) {
     Ok(Append(candidate)) => Ok(candidate)
     // A saved Run cannot be backfilled into a preparing Submission or replaced
@@ -116,7 +123,6 @@ fn sdk_selected_original(
 ///|
 /// The actual same-Store selection and current Owner supply every original.
 /// No SDK profile/body/CID parameter can stand in for these observations.
-#export_name("actql_run_install_sdk_configuration")
 pub fn install_sdk_run_configuration(
   nonce : Int64,
   current_handle : Int,
@@ -219,7 +225,6 @@ pub fn install_sdk_run_configuration(
 ///|
 /// Lookup is mandatory before finite issuance. Saved-ready observations return
 /// code 2 without issuing a Policy or another Run; restore uses its own Owner.
-#export_name("actql_run_prepare_sdk")
 pub fn prepare_sdk_run(nonce : Int64, handle : Int, submission : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.runs.get(handle) is Some(record) &&

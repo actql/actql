@@ -24,6 +24,8 @@ import {
 // Values
 pub fn acquire_prepared_infer_rows(PreparedInferRows) -> InferRowsUse?
 
+pub fn add_execution_capacity(ExecutionCapacity, ExecutionCapacity) -> ExecutionCapacity?
+
 pub fn admit_fragment_contract(RegisteredRelationContracts, @canonical_json.CanonicalValue, RegistryLimits) -> Result[FragmentContract, FragmentContractIssue]
 
 pub fn admit_managed_execution_profile(@canonical_json.CanonicalValue, RegistryLimits) -> Result[ManagedExecutionProfile, ManagedProfileIssue]
@@ -232,6 +234,8 @@ pub fn bind_completed_output_export(CompletedOutputExportReceipt, RetainedOutput
 
 pub fn bind_completed_relation_export(CompletedRelationExportReceipt, RetainedOutputMaterial) -> Result[CompletedOutput, CompletedExportIssue]
 
+pub fn bind_completed_source_input_operation(@lowering_relation.BoundPrepared, Int, Int, CompletedOutput, SuppliedRelationRead) -> Result[BoundProducerInput, ProducerBindingIssue]
+
 pub fn bind_generated_numeric_execution(GeneratedSequence, NumericAggregateExecution) -> GeneratedSequence
 
 pub fn bind_generated_sequence_query_time(GeneratedSequence, @run_publication.QueryEvaluationTime, Int, Int) -> Result[GeneratedSequence, SequenceRunIssue]
@@ -356,6 +360,8 @@ pub fn capture(@value_admission.Value) -> Value
 
 pub fn capture_input(@lowering_relation.BoundPrepared, Int, Array[@decode_core.Cursor], max_rows~ : Int, ValueLimits) -> Result[CapturedRows, CaptureIssue]
 
+pub fn capture_supplied_source_input(RegisteredRelationContracts, @lowering_relation.PreparedSequence, SuppliedRelationRead, Int, Int) -> Result[CompletedOutput, TrustedOutputIssue]
+
 pub fn capture_values(@lowering_relation.BoundPrepared, Int, max_rows~ : Int, ValueLimits) -> Result[CapturedRows, CaptureIssue]
 
 pub fn captured_cell(CapturedRows, Int, Int) -> @value_admission.Value?
@@ -409,6 +415,8 @@ pub fn carrier_managed_producer_read_matches_reference(CarrierManagedProducerRea
 pub fn carrier_managed_producer_read_same(CarrierManagedProducerRead, CarrierManagedProducerRead) -> Bool
 
 pub fn charge_admitted_input_external_work(AdmittedInput, Int) -> Bool
+
+pub fn checked_preparation_add_product(Int64, Int64, Int64) -> Int64?
 
 pub fn cleanup_admitted_input_row(AdmittedOutputRowCursor) -> Bool
 
@@ -558,6 +566,8 @@ pub fn completed_relation_export_schema_identity(CompletedRelationExportReceipt)
 
 pub fn completed_relation_export_snapshot(CompletedOutputExport, CompletedRelationExportReceipt, Int, Int, Int) -> Result[(String, Array[String]), CompletedExportIssue]
 
+pub fn completed_relation_export_snapshot_extent(CompletedOutputExport, CompletedRelationExportReceipt) -> Result[(Int, Int, Int, Int), CompletedExportIssue]
+
 pub fn completed_relation_identity_scan_work(CompletedRelationIdentityScan) -> Int64
 
 pub fn completed_result_export_preparation_matches_original_row(CompletedResultRelationExportPreparation, CompletedOutputExportOriginalRow) -> Bool
@@ -572,6 +582,8 @@ pub fn completed_result_key_validation_matches(CompletedResultKeyValidation, Com
 
 pub fn completed_row_count(CompletedOutput) -> Int
 
+pub fn completed_source_input_matches_read(CompletedOutput, SuppliedRelationRead) -> Bool
+
 pub fn completed_table_input_export_preparation_matches_owner(CompletedTableInputRelationExportPreparation, ManagedTableInputOccurrence, CompletedOutput) -> Bool
 
 pub fn completed_table_input_export_preparation_matches_receipt(CompletedTableInputRelationExportPreparation, CompletedRelationExportReceipt) -> Bool
@@ -585,6 +597,8 @@ pub fn completion_preparation_selected_step(CompletionPreparation) -> Int?
 pub fn completion_preparation_sequence(CompletionPreparation) -> @lowering_relation.PreparedSequence
 
 pub fn completion_preparation_terminal_step(CompletionPreparation) -> Int
+
+pub fn compose_preparation_representation(Array[PreparationRepresentationUnits]) -> PreparationRepresentationUnits?
 
 pub fn constrain_generated_aggregate_output(GeneratedSequence, Int, String, AggregateOutputUnit, Int64) -> Result[GeneratedSequence, SequenceRunIssue]
 
@@ -649,6 +663,12 @@ pub fn execute_selected_relation_step(GeneratedSequence, ProducerRead, SequenceE
 pub fn execution_capacity(Int64, Int64) -> ExecutionCapacity?
 
 pub fn execution_capacity_execution_bytes(ExecutionCapacity) -> Int64
+
+pub fn execution_capacity_inventory(Array[ExecutionCapacityItem], Array[ExecutionCapacityItem], ExecutionCapacityOverlap) -> ExecutionCapacity?
+
+pub fn execution_capacity_inventory_add(Int64, ExecutionCapacityUnit, Int64, Int) -> Int64?
+
+pub fn execution_capacity_inventory_bytes(Array[ExecutionCapacityItem]) -> Int64?
 
 pub fn execution_capacity_node_bytes() -> Int64
 
@@ -990,6 +1010,8 @@ pub fn[T] managed_view_selection_measurements(ManagedViewPlan[T], Array[Int], In
 
 pub fn[T] managed_view_selection_row(ManagedViewSelection[T], Int) -> Int?
 
+pub fn measure_relation_schema_identity(@relation_schema.Schema, RelationSchemaIdentityLimits) -> Result[(Int, Int, Int), RelationSchemaIdentityIssue]
+
 pub fn nest_attached_bytes_output_unit() -> AggregateOutputUnit
 
 pub fn nest_grouped_bytes_output_unit() -> AggregateOutputUnit
@@ -1032,6 +1054,10 @@ pub fn pivot_execution_supported_with_numeric(@lowering_relation.PreparedPivot) 
 
 pub fn predicate_expression_remaining(PredicateExpressionExecution) -> Int
 
+pub fn preparation_execution_capacity(PreparationExecutionInventory) -> ExecutionCapacity?
+
+pub fn preparation_representation_cost(PreparationRepresentationUnits) -> Int64?
+
 pub fn prepare_admitted_input(@lowering_relation.BoundPrepared, Int, Int, ValueLimits) -> Result[AdmittedInput, CaptureIssue]
 
 pub fn prepare_admitted_output(@lowering_relation.BoundPrepared, @pipeline_typing.Target, Int, ValueLimits) -> Result[AdmittedOutput, CaptureIssue]
@@ -1059,6 +1085,8 @@ pub fn prepare_completed_output_import(CompletedOutput, Int, ValueLimits, RowWir
 pub fn prepare_completed_relation_export(CompletedOutput, Int, ValueLimits, RowWireLimits, RowWireLimits, RelationSchemaIdentityLimits, Int) -> Result[CompletedOutputExport, CompletedExportIssue]
 
 pub fn prepare_completed_result_relation_export(CompletedOutput, ManagedResultOccurrence, CompletedResultViewLimits, Int, ValueLimits, RowWireLimits, RowWireLimits, RelationSchemaIdentityLimits, Int) -> Result[CompletedOutputExport, CompletedExportIssue]
+
+pub fn prepare_completed_source_input_relation_export(CompletedOutput, SuppliedRelationRead, Int, ValueLimits, RowWireLimits, RowWireLimits, RelationSchemaIdentityLimits, Int) -> Result[CompletedOutputExport, CompletedExportIssue]
 
 pub fn prepare_completion(RegisteredRelationContracts, @lowering_relation.PreparedSequence, Array[String], Int, Int) -> Result[CompletionPreparation, SequenceRunIssue]
 
@@ -1271,6 +1299,8 @@ pub fn[T] retain_admitted_output_stream(AdmittedOutputStreamReceipt, T, () -> Bo
 pub fn retain_completed_segment_input(CompletedOutput, ProducerRead) -> CompletedOutput?
 
 pub fn retain_completion_evidence(CompletedOutput, Int, Int) -> Result[RetainedCompletionEvidence, RetainedCompletionEvidenceIssue]
+
+pub fn retain_generated_sequence_refinement(GeneratedSequence, GeneratedSequence) -> GeneratedSequence?
 
 pub fn[P, T] retain_managed_output(ManagedOutputRetentionPort[P, T], P) -> Result[ManagedRetainedOutput[T], ManagedOutputRetentionIssue]
 
@@ -1988,6 +2018,25 @@ pub struct ExecutionCapacity {
   execution_bytes : Int64
 }
 
+pub(all) struct ExecutionCapacityItem {
+  unit : ExecutionCapacityUnit
+  count : Int64
+  copies : Int
+}
+
+pub(all) enum ExecutionCapacityOverlap {
+  SeparateDimensions
+  RetainedAlongsideExecution
+}
+
+pub(all) enum ExecutionCapacityUnit {
+  ValueNodeSlots
+  CursorRootSlots
+  DecodedTextBytes
+  CanonicalWireBytes
+  QuotedBytes
+}
+
 type ExpressionExecution
 
 pub(all) enum ExpressionExecutionPoll {
@@ -2499,6 +2548,23 @@ pub(all) enum PredicateExpressionPoll {
   PredicateExpressionContinue
   PredicateExpressionComplete(Bool)
 }
+
+pub(all) struct PreparationExecutionInventory {
+  retained : PreparationRepresentationUnits
+  workspace : PreparationRepresentationUnits
+  retained_nodes : Int64
+  workspace_nodes : Int64
+  retained_bytes : Int64
+  workspace_bytes : Int64
+}
+
+pub(all) struct PreparationRepresentationUnits {
+  record_headers : Int64
+  reference_slots : Int64
+  scalar_words : Int64
+  owned_utf16_units : Int64
+  owned_wire_bytes : Int64
+} derive(Eq)
 
 type PreparedInferRows
 

@@ -22,6 +22,7 @@ test "ordinary values document prepares one named Effect-free result" {
     max_stages: 2,
   }
   let limits : ClientProgramPreparationLimits = {
+    values_max_rows: None,
     checking: {
       input,
       compilation: {

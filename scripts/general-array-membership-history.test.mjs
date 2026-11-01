@@ -36,7 +36,16 @@ test('general ARRAY membership changes grammar identity without changing schemas
   assert.match(history.expression_text_grammar, /membership_rhs[^;]+\| parameter ;/u);
   assert.equal(expression.grammar_sha256, digest(grammar));
   assert.notEqual(expression.grammar_sha256, previous.expression_contract.grammar_sha256);
-  assert.deepEqual({...expression, grammar_sha256: previous.expression_contract.grammar_sha256}, previous.expression_contract);
+  // The signed64 predecessor retains the exact adopted general-array successor.
+  // Later scalar and text/time changes are not part of this grammar transition.
+  const successor = read('portability/corpus/historical/pre-signed64-stage-identities.json');
+  assert.equal(successor.expression_contract_cid,
+    'sha256:e7645d18471d4436b7542302adce28303a8a634ce29e9f5fd849f5cee8d1159e');
+  assert.equal(cid(successor.expression_contract), successor.expression_contract_cid);
+  assert.equal(successor.expression_contract.grammar_sha256,
+    '3138560ad7c029b23bee2d7446f1ee8155520ead50281aae1493f0219db7bc5c');
+  assert.deepEqual({...successor.expression_contract,
+    grammar_sha256: previous.expression_contract.grammar_sha256}, previous.expression_contract);
   assert.notEqual(cid(expression), cid(previous.expression_contract));
   assert.equal(read('spec/manifests/actql-grammar-0.1.json').expression_contract_cid, cid(expression));
 });

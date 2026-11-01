@@ -1,6 +1,12 @@
+import {ledgerUsageFieldsFor} from '../../../host-node/fixtures/ledger-usage.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {readFile} from 'node:fs/promises';
+import {join} from 'node:path';
+import {createPublicKey} from 'node:crypto';
+import {openSqliteCredentialJournal} from '../../../site-node/sqlite-credential-journal.mjs';
 import {installedSlackMessagesFixture as fixture} from './installed-slack-messages.fixture.mjs';
+import {assertRetiredSlackCapture} from './installed-slack.fixture.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
 
 test('installed Slack messages uses original messages Account decisions and one charged RowRun for channels history and replies',async t=>{
@@ -23,9 +29,9 @@ test('installed Slack messages uses original messages Account decisions and one 
     assert.equal(new URL(f.state.requests[1].path,f.scope.resourceOrigin).searchParams.get('types'),
       'public_channel,private_channel,mpim,im');
     assert.equal(f.state.resolutions,8);
-    const held=f.common.clientProgramMultiCapturedLedgerUsage(p.ledger);
-    await assert.rejects(async()=>opened.close(),{code:'MoonBitHostFailure'});
-    assert.deepEqual(f.common.clientProgramMultiCapturedLedgerUsage(p.ledger),held);
+    await opened.close();
+    assert.deepEqual(ledgerUsageFieldsFor(f.common.clientProgramMultiCapturedLedgerUsage(p.ledger),
+      ['reservedTransferBytes','heldBytes','reservedRetentionBytes','reservedExecutionBytes']),[0n,0n,0n,0n]);
   }
 });
 
@@ -41,21 +47,21 @@ test('installed Slack channels Account permission cannot substitute for messages
 test('installed Slack broad messages realization refuses invalid excluded rows rather than hiding them behind a residual filter',async t=>{
   const f=await fixture(t);f.state.replies.C1[1].text=[];
   const source=await f.load(),p=await f.prepare(source,{selection:'id',predicate:"channel = 'not-selected'"});
-  let recovery;
-  await assert.rejects(source.openCapture(p),error=>{recovery=error.recovery;return recovery!==undefined;});
-  await f.retain(recovery,p.ledger);
+  let original;
+  await assert.rejects(source.openCapture(p),error=>{original=error;return error.code==='MoonBitHostFailure';});
+  await f.retain(original,p.ledger);
   assert.equal(f.state.requests.length,5);
-  assert.equal(recovery.cleanupPending(),true);
+  await assertRetiredSlackCapture(f,p,original);
   assert.equal(new URL(f.state.requests[3].path,f.scope.resourceOrigin).searchParams.has('oldest'),false);
   assert.equal(new URL(f.state.requests[3].path,f.scope.resourceOrigin).searchParams.has('latest'),false);
 });
 
 test('installed Slack messages preserves the original finite exchange ceiling without completing a partial channel prefix',async t=>{
   const f=await fixture(t);f.profile.limits={...f.profile.limits,maxPages:7};
-  const source=await f.load(),p=await f.prepare(source,{selection:'id'});let recovery;
-  await assert.rejects(source.openCapture(p),error=>{recovery=error.recovery;return recovery!==undefined;});
-  await f.retain(recovery,p.ledger);
-  assert.equal(f.state.requests.length,7);assert.equal(recovery.cleanupPending(),true);
+  const source=await f.load(),p=await f.prepare(source,{selection:'id'});let original;
+  await assert.rejects(source.openCapture(p),error=>{original=error;return error.code==='InstalledSlackMessagesRequestLimit';});
+  await f.retain(original,p.ledger);
+  assert.equal(f.state.requests.length,7);await assertRetiredSlackCapture(f,p,original);
 });
 
 test('installed Slack messages lost original reply keeps recovery and never resends the exchange',async t=>{
@@ -64,11 +70,20 @@ test('installed Slack messages lost original reply keeps recovery and never rese
     if(request.url.startsWith('/api/conversations.replies?')){request.socket.destroy();return;}
     await before(request,response);
   };
-  const source=await f.load(),p=await f.prepare(source,{selection:'id'});let recovery;
-  await assert.rejects(source.openCapture(p),error=>{recovery=error.recovery;return recovery!==undefined;});
-  await f.retain(recovery,p.ledger);
-  assert.equal(f.state.requests.length,5);assert.equal(recovery.cleanupPending(),true);
-  await assert.rejects(source.openCapture(p));assert.equal(f.state.requests.length,5);
+  const source=await f.load(),p=await f.prepare(source,{selection:'id'});let original;
+  await assert.rejects(source.openCapture(p),error=>{original=error;return error.code==='ECONNRESET';});
+  await f.retain(original,p.ledger);
+  assert.equal(f.state.requests.length,5);await assertRetiredSlackCapture(f,p,original);
+  // openCapture constructs a new RowRun/nonce, not a cleanup retry of this
+  // failed reader. Retry only this original Source owner's retirement instead.
+  await source.close();await source.close();assert.equal(f.state.requests.length,5);
+  const publicKey=createPublicKey(await readFile(join(f.root,'credential-authority.pub')));
+  const journal=openSqliteCredentialJournal(f.site.journalRoot,{credentialAuthorities:new Map([
+    [f.site.credentialAuthorityId,new Map([[f.site.credentialKeyId,publicKey]])]])});
+  try{
+    assert.deepEqual(journal.recover().map(use=>use.outcome).sort(),
+      ['succeeded','succeeded','succeeded','succeeded','unknown']);
+  }finally{journal.close();}
 });
 
 test('installed Slack messages stop after the last response cannot publish a partial original prefix',async t=>{
@@ -77,10 +92,10 @@ test('installed Slack messages stop after the last response cannot publish a par
     const url=new URL(request.url,f.scope.resourceOrigin);
     if(url.pathname==='/api/conversations.replies'&&url.searchParams.get('channel')==='D1')stop.abort(new Error('OriginalMessagesStop'));
   };
-  const source=await f.load(),p=await f.prepare(source,{selection:'id'});let recovery;
-  await assert.rejects(source.openCapture({...p,signal:stop.signal}),error=>{recovery=error.recovery;return recovery!==undefined;});
-  await f.retain(recovery,p.ledger);
-  assert.equal(f.state.requests.length,8);assert.equal(recovery.cleanupPending(),true);
+  const source=await f.load(),p=await f.prepare(source,{selection:'id'});let original;
+  await assert.rejects(source.openCapture({...p,signal:stop.signal}),error=>{original=error;return error.code==='ABORT_ERR';});
+  await f.retain(original,p.ledger);
+  assert.equal(f.state.requests.length,8);await assertRetiredSlackCapture(f,p,original);
 });
 
 test('installed Slack messages empty original conversation extent captures no synthetic message',async t=>{

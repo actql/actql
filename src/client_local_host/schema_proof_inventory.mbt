@@ -1,6 +1,8 @@
 ///|
 /// One work-bounded inventory per original prepared owner. Shared task views
 /// reuse checked schema facts, never storage: repeated ports remain counted.
+// `_observed_*` fields retain exact bound observations for white-box tests;
+// production consumes the admitted totals, not these diagnostic projections.
 priv struct ClientLocalSchemaProofInventory {
   original_count : Int
   _observed_owner_count : Int
@@ -11,6 +13,9 @@ priv struct ClientLocalSchemaProofInventory {
   names : Int
   ports : Int
   bindings : Int
+  // Complete-node bound by default. The explicit original Effect-source
+  // mode selects member Result endpoints ONLY for operation multiplicity;
+  // that scoped value must not replace Compute/input demand.
   closed_rows : Int?
 }
 
@@ -41,6 +46,7 @@ fn client_local_schema_proof_inventory(
   scalar_only? : Bool = true,
   leaf_only? : Bool = false,
   workspace? : ClientLocalSchemaProofWorkspace? = None,
+  effect_sources? : @strategy.CheckedEffectComputationDAG? = None,
 ) -> ClientLocalSchemaProofInventory? {
   if sequences.is_empty() || max_work < 1 || sequences.length() > max_work {
     return None
@@ -57,6 +63,17 @@ fn client_local_schema_proof_inventory(
     }
     None => if graph_offset != 0 { return None }
   }
+  if effect_sources is Some(effect) &&
+    (
+      graph_offset != 0 ||
+      !(graph is Some(original) &&
+      physical_equal(
+        original,
+        @strategy.checked_effect_computation_graph(effect),
+      ))
+    ) {
+    return None
+  }
   let mut remaining = max_work
   let seen : Array[@lower.BoundPrepared] = []
   let mut nodes = 1L
@@ -66,6 +83,7 @@ fn client_local_schema_proof_inventory(
   let mut ports = 0
   let mut bindings = 0
   let mut closed_rows : Int? = Some(0)
+  let mut selected_sources = 0
   for index, sequence in sequences {
     if remaining < 1 {
       return None
@@ -100,7 +118,7 @@ fn client_local_schema_proof_inventory(
     let inputs = @lower.preparation_input_count(prepared)
     let rows : Array[Int?] = []
     let mut row_bounds = 0
-    if inputs != 0 {
+    if inputs != 0 && effect_sources is None {
       closed_rows = None
     }
     ports = Int::max(ports, inputs)
@@ -163,7 +181,7 @@ fn client_local_schema_proof_inventory(
       let bound = if known {
         @lower.node_row_count_bound(node, input_rows)
       } else {
-        None
+        @lower.node_input_independent_row_count_bound(node)
       }
       rows.push(bound)
       if bound is Some(_) {
@@ -173,9 +191,11 @@ fn client_local_schema_proof_inventory(
         actual.rows = Int::max(actual.rows, rows.length())
         actual.row_bounds = Int::max(actual.row_bounds, row_bounds)
       }
-      closed_rows = match (closed_rows, bound) {
-        (Some(previous), Some(count)) => Some(Int::max(previous, count))
-        _ => None
+      if effect_sources is None {
+        closed_rows = match (closed_rows, bound) {
+          (Some(previous), Some(count)) => Some(Int::max(previous, count))
+          _ => None
+        }
       }
       let width = @schema.field_count(schema)
       if remaining < 1 || width > remaining - 1 {
@@ -225,6 +245,42 @@ fn client_local_schema_proof_inventory(
     }
     nodes = Int64::max(nodes, Int64::max(input_nodes, output_nodes))
     names_total = Int64::max(names_total, Int64::max(input_names, output_names))
+    if effect_sources is Some(effect) && graph is Some(original) {
+      // This SAME owner was traversed once above. Resolve only the original
+      // checked member Result endpoints, without another lowering/schema walk.
+      // Different members still contribute their occurrences to the Plan fold.
+      for index in 0..<@strategy.checked_effect_source_count(effect) {
+        if remaining < 1 {
+          return None
+        }
+        remaining -= 1
+        match @strategy.checked_effect_source_at(effect, index) {
+          None => closed_rows = None
+          Some(source) => {
+            let task = @strategy.checked_effect_source_task(source)
+            guard @strategy.graph_task_owner(original, task) is Some(expected) else {
+              return None
+            }
+            if physical_equal(owner, expected) {
+              selected_sources += 1
+              let bound = match @strategy.graph_task_target(original, task) {
+                Some(@pipeline.Step(step)) =>
+                  rows.get(step).bind(value => value)
+                _ => None
+              }
+              closed_rows = match (closed_rows, bound) {
+                (Some(previous), Some(count)) => Some(Int::max(previous, count))
+                _ => None
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  if effect_sources is Some(effect) &&
+    selected_sources != @strategy.checked_effect_source_count(effect) {
+    closed_rows = None
   }
   Some({
     original_count: sequences.length(),
@@ -246,12 +302,4 @@ fn client_local_inventory_nodes(
   max_rows : Int,
 ) -> Int? {
   client_local_scalar_product(inventory.max_node_width, max_rows, 3)
-}
-
-///|
-fn client_local_inventory_names(
-  inventory : ClientLocalSchemaProofInventory,
-  max_rows : Int,
-) -> Int? {
-  client_local_scalar_product(inventory.max_name_width, max_rows, 0)
 }

@@ -1,11 +1,48 @@
 // Select the bounded checked acquisitions from an inert installation inventory.
 // This owns no provider work, authorization or continuation identity.
 import {checked} from '../host-common/runtime-result.mjs';
+import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {installedSourceFor} from './installed-source.mjs';
 import {prepareOriginalSourceQuery} from './original-query-preparation.mjs';
 
+// Select original installation inputs from the checked Requests before the
+// Plan constructs requirements/acquisitions. Repeated occurrences retain
+// separate slots even when they borrow the same immutable Source.
+export function selectAcquiredEffectPlanInputs({moon, preparedEffect, requestIdentity,
+  sourceProfile, queryContract, evidenceContract}) {
+  const count = moon.clientProgramEffectAcquisitionCount(preparedEffect);
+  if (![0, 1, 2].includes(count)) throw new TypeError('UnsupportedEffectSourceCount');
+  if (count === 0) return undefined;
+  const select = moon.clientProgramSelectInstalledEffectSourceInput;
+  if (typeof select !== 'function') throw new TypeError('InstalledEffectPlanRuntimeUnavailable');
+  const declarations = [], providers = [], transferBytes = [], executionBytes = [];
+  for (let task = 0; task < count; task++) {
+    const selected = checked(Reflect.apply(select, moon, [preparedEffect, requestIdentity, task, 0]));
+    if (moon.clientProgramSelectedSourceInputKind(selected) !== 'query') {
+      throw new TypeError('UnsupportedEffectSourceRealization');
+    }
+    const adapter = installedSourceFor(sourceProfile, moon.clientProgramSelectedSourceInputRef(selected));
+    const prepare = Object.getOwnPropertyDescriptor(adapter, 'managedEffectPlanSelection')?.value;
+    if (typeof prepare !== 'function') throw new TypeError('InstalledEffectPlanInputsUnavailable');
+    const original = Reflect.apply(prepare, adapter, []);
+    if (original?.declaration === undefined || typeof original.transferBytes !== 'bigint' ||
+        typeof original.executionBytes !== 'bigint' || original.transferBytes < 0n || original.executionBytes < 0n) {
+      throw new TypeError('InstalledSourceCapacityUnavailable');
+    }
+    declarations.push(original.declaration); providers.push(original.provider);
+    transferBytes.push(original.transferBytes); executionBytes.push(original.executionBytes);
+  }
+  if (providers.some(value => value === undefined) && providers.some(value => value !== undefined)) {
+    throw new TypeError('InstalledSourceCapacityUnavailable');
+  }
+  return Object.freeze({declarations: Object.freeze(declarations),
+    ...(providers[0] === undefined ? {} : {providers: Object.freeze(providers)}),
+    queryContract, evidenceContract, transferBytes: Object.freeze(transferBytes),
+    executionBytes: Object.freeze(executionBytes)});
+}
+
 export function selectAcquiredEffectSources({moon, preparedEffect, sourceProfile,
-  registry, values, fragment, ordered, queryTimePreparation, requestIdentity}) {
+  registry, values, fragment, ordered, queryTimePreparation, requestIdentity, managedPlan}) {
   const count = moon.clientProgramEffectAcquisitionCount(preparedEffect);
   if (![0, 1, 2].includes(count)) {
     throw new TypeError('UnsupportedEffectSourceCount');
@@ -13,13 +50,27 @@ export function selectAcquiredEffectSources({moon, preparedEffect, sourceProfile
   const selected = [];
   const owners = new Set();
   for (let task = 0; task < count; task++) {
-    const requirement = queryTimePreparation === undefined
+    let sourceRef;
+    if (managedPlan === undefined && requestIdentity !== undefined) {
+      // Preadmission reads the original checked Requests. The Plan, not this
+      // installation selection, later prepares the Query requirement once.
+      const selection = checked(moon.clientProgramSelectInstalledEffectSourceInput(
+        preparedEffect, requestIdentity, task, 0));
+      if (moon.clientProgramSelectedSourceInputKind(selection) !== 'query') {
+        throw new TypeError('UnsupportedEffectSourceRealization');
+      }
+      sourceRef = moon.clientProgramSelectedSourceInputRef(selection);
+    } else {
+      const requirement = managedPlan !== undefined
+      ? runtimeField(checked(moon.clientProgramInstalledEffectManagedPlanSource(managedPlan, task)), 1)
+      : queryTimePreparation === undefined
       ? checked(moon.clientProgramEffectPrepareLocalQueryRequirement(
         preparedEffect, task, 0, registry, values, fragment, ordered))
       : prepareOriginalSourceQuery({moon, preparedEffect, stage: task, input: 0,
         registry, values, fragment, ordered, queryTimePreparation, requestIdentity}).requirement;
-    const adapter = installedSourceFor(sourceProfile,
-      moon.clientProgramQueryRequirementSourceRef(requirement));
+      sourceRef = moon.clientProgramQueryRequirementSourceRef(requirement);
+    }
+    const adapter = installedSourceFor(sourceProfile, sourceRef);
     if (typeof adapter.prepare !== 'function' || typeof adapter.open !== 'function') {
       throw new TypeError('InvalidAcquiredEffectComputationPort');
     }

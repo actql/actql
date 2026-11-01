@@ -216,7 +216,9 @@ export function createSubmissionOperations(selected, confirmed, transport, execu
         // the same producer aliases, never snapshots, sends or issues again.
         const retry = () => sourcePreparation.finishSourceProducer(producer.receipt, terminal);
         lifecycle.readerCleanups.add(retry);
-        if (primary !== undefined) return primary;
+        // A thrown undefined is still the original failed operation. Keep its
+        // presence separate from a successful result with no primary error.
+        if (terminal === 'failed') return primary;
         const error = new ClientError('ClientCleanupPending', {cause, cleanupPending: true});
         Object.defineProperty(error, 'execution', {value: originalResult});
         retainQueryResult(originalResult, error);
@@ -248,20 +250,49 @@ export function createSubmissionOperations(selected, confirmed, transport, execu
     return pending;
   };
   const submitIntent = (kind, input, options, sourceProducer, requestName) => {
-    let body;
+    let body, captured, original;
+    // Trusted Source failures retain their exact original carrier, outside
+    // the catch which classifies ordinary native serialization failures.
+    if (sourceProducer !== undefined) sourcePreparation.assertSourceSnapshotCurrent(sourceProducer.receipt);
     try {
       const stopBefore = options.stopBefore;
       const readOnly = options.readOnly;
       if (stopBefore !== undefined && stopBefore !== 'commit') fail('InvalidClientPayload');
       if (Object.hasOwn(options, 'readOnly') && readOnly !== true) fail('InvalidClientPayload');
-      body = freezeInput(snapshotClientRequest({submissionRef: options.submissionRef,
+      original = {submissionRef: options.submissionRef,
         attemptRef: {operation: 'submit', attemptId: options.attemptId ?? crypto.randomUUID()},
         ...(requestName === undefined ? {} : {requestName}),
         kind, input, parameters: options.parameters ?? null,
         ...(stopBefore === undefined ? {} : {stopBefore}),
         ...(readOnly === undefined ? {} : {readOnly}),
-        ...(options.unresolvedHistory === undefined ? {} : {unresolvedHistory: options.unresolvedHistory})}));
+        ...(options.unresolvedHistory === undefined ? {} : {unresolvedHistory: options.unresolvedHistory})};
     } catch {fail('InvalidClientPayload');}
+    let snapshotCalled = false, originalSnapshot;
+    const captureSnapshot = (value, observe) => {
+      if (snapshotCalled || value !== original) fail('InvalidHostSourceSnapshot');
+      snapshotCalled = true;
+      let resourceFailed = false, resourceCause;
+      try {
+        originalSnapshot = snapshotClientRequest(value, observe === undefined ? undefined : (...args) => {
+          try {observe(...args);}
+          catch (cause) {resourceFailed = true; resourceCause = cause; throw cause;}
+        });
+        return originalSnapshot;
+      } catch (cause) {
+        // Only the actual original observer supplies a resource failure.
+        // Native getters/toJSON/number errors keep the existing local refusal.
+        if (resourceFailed && Object.is(cause, resourceCause)) throw cause;
+        fail('InvalidClientPayload');
+      }
+    };
+    captured = sourceProducer === undefined ? captureSnapshot(original)
+      : sourcePreparation.captureSourceSnapshot(sourceProducer.receipt, original, captureSnapshot);
+    if (!snapshotCalled || captured !== originalSnapshot) fail('InvalidHostSourceSnapshot');
+    // Native getters/toJSON/coercion may retire the original installation or
+    // producer while the one snapshot is built. Stop before freeze arrays or
+    // publication; do not bind an unfrozen body to bypass the original check.
+    if (sourceProducer !== undefined) sourcePreparation.assertSourceSnapshotCurrent(sourceProducer.receipt);
+    try {body = freezeInput(captured);} catch {fail('InvalidClientPayload');}
     if (sourceProducer !== undefined) {
       sourcePreparation.bindSourceSnapshot(sourceProducer.receipt, body);
       sourceProducer.body = body;
@@ -404,7 +435,7 @@ export function createSubmissionOperations(selected, confirmed, transport, execu
   const captureQueryAdmission = sourcePreparation === undefined ? undefined
     : (format, text, parameters, options, capture) => withSourceProducer('aql', text, options,
       producer => capture((originalText, sourceOptions) => submitSource(originalText, sourceOptions, producer)),
-      () => sourcePreparation.beforeSourceQuery(format, text, parameters, options));
+      () => sourcePreparation.beforeSourceQuery(format, text, parameters, options, selected.wire));
   const retainQueryResult = (execution, result) => {
     const input = submissionInputs.get(execution);
     if (input && result !== undefined) submissionInputs.set(result, input);

@@ -5,6 +5,7 @@ import {
   "actql/actql/capacity_derivation",
   "actql/actql/capacity_policy",
   "actql/actql/capacity_witness",
+  "actql/actql/decode_shape",
   "actql/actql/encode_core",
   "moonbitlang/core/debug",
 }
@@ -23,6 +24,8 @@ pub fn cid(Witness) -> String
 pub fn create(@capacity_policy.Ceiling, Limits) -> Result[Witness, Issue]
 
 pub fn emit(Witness, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
+pub fn empty_host_sources_construction_inventory() -> @decode_shape.CollectionConstructionInventory
 
 pub fn extend_program_resolved_limits(HostSources, Array[ResolvedLimitRequest], @capacity_witness.Enforcement, ResolvedLimitLimits) -> Result[ResolvedLimitExtension, ResolvedLimitIssue]
 

@@ -39,6 +39,23 @@ an already retained capture or refusing that admission is not another start.
 Diagnostic delivery never supplies read authority, permission or a physical
 cleanup acknowledgement.
 
+The installed Gmail labels entrance selects its reader through the same
+original Source initialization and Host services as the standard JSON page
+readers. Its existing profile grammar remains unchanged. One complete response
+supplies both the total-response and single-page bounds; its admitted value
+text bounds include the declared id String. The positive unused cursor field
+does not imply pagination or allocate a cursor. These rejection bounds select
+an implementation recipe, while the checked original Request still funds the
+actual reader before construction. They are not a caller-supplied capacity.
+Both the shared page reader and explicit physical label reader use one request
+builder and Catalog projection, preserving exact mailbox percent encoding,
+all declared cells and the complete-response refusal. The label installation
+has no second transport/cleanup factory; Source retirement observes the same
+managed reader and binding. Durable Credential-use Unknown remains independent
+of physical transport retirement. Nested Gmail thread and Slack sequences
+require their own complete constructor/output/failed-child recipe; a label or
+ordinary JSON page quote cannot substitute for those retained sequences.
+
 The [OSS authorization behavior draft](oss-host-authorization.md) details Local
 configuration, immediate/deferred adapters, CLI resolution and crash recovery.
 Its pending product choices are not changes to current defaults.
@@ -914,6 +931,15 @@ Changing original connection bytes changes installation reuse identity; equal
 Source labels cannot replace the retained declaration. Explicit Mock setup is
 separate and never follows merely from installing a normal Local Source.
 
+A Local Source feeding an Effect consumes the same adopted Effect Run,
+Prepared, Request and read selected by the shared Source owner. The Local
+record retains child provenance, not another Run admission. The shared typed
+selection and the Host's original child consumer check that handoff; Local
+does not repeat the Core current callback between them. The original
+post-acquisition and post-await current fences remain. A consumed occurrence
+is refused before another getter can return its existing read, so a failed
+second preparation cannot retire the first read or its pending native child.
+
 The selected ordinary Local factory supplies the existing finite
 `lookup_execution` policy from those same installed Local limits before
 admitting the Host Environment. The retained Project Source preparation must
@@ -1529,3 +1555,720 @@ the consumer's supplied error factory.
 This helper performs no I/O, permission, charge, outcome classification or
 cleanup. Selecting the callback supplies no capacity or retirement ACK, and
 joining an invalid return does not settle its owner's physical duties.
+
+## Installed Effect operation definition DATA
+
+The existing `createInstalledRowEffect` constructor can retain an optional
+`managedPlanDefinition` from the same installed provider. For the current Mock
+UPDATE and Local files COMMAND profiles, this is a frozen own-DATA object with
+exactly `kind`, `memberOperations` and `rowOperations`. Both arrays and their
+`{role, operation}` entries are frozen. Mock declares the ordered target-read
+and write roles; Local COMMAND declares only its write role. The constructor
+retains the original descriptor and rejects proxies, accessors, iterators,
+mutable objects and incompatible role order before its first I/O await.
+Omission preserves the existing constructor contract for other profiles.
+
+These names select declared operation roles, not a physical-call census,
+capacity, a grant or an admitted plan. The existing Mapping, Command, driver,
+Site, collection issuer and Source preparations remain their same originals.
+A cached before/version observation can be reused only under its existing
+exact-description/current rules; the descriptor never authorizes a new read,
+replaces the captured observation or supplies evidence of a physical stop.
+
+The standard service owns `prepareManagedPlan`, full retained capture and
+material inventory, framework phase occurrences, initial admission, the same
+Run parent and later current/cleanup boundaries. It must bind this DATA to the
+actual checked member and installation before selecting its typed extents.
+Missing complete supply is not an empty inventory or permission to use a
+Compute-only quote. Preserving previously supported Model and Content callers
+requires their original scopes and providers in the same admitted plan.
+
+
+## Installed JSON Source service originals
+
+The standard installed Host retains one service association between each
+original connector installation and its selected runtime. Before opening a
+Site, the Source loader supplies that same service object and installation to
+the connector. Codec policy DATA and the typed reader representation describe
+rejection and construction bounds; they do not admit a Run, authorize a read,
+or fund other connector-specific constructor graphs.
+
+The common Credential reader borrows the original Site's bound credential,
+transport, read authorization and current check. Each exact received response
+enters the reader's custody before accounting or projection. A pending read,
+response alias, provider child or credential binding prevents retirement. A
+later cleanup attempt calls only the same captured reader retry method; it
+cannot replace a physical close acknowledgement or issue another request.
+
+The generic Row Source exposes its capture representation through the existing
+original acquisition and typed provider-capacity association. Managed Run
+binding preserves that selection. A planned provider read starts through the
+same original Source read and parent Ledger, while Credential authorization
+remains independently required. Copied installation DATA, changed runtime
+identity, changed policy selection and stale current checks cannot substitute
+for any of these originals.
+
+
+The installed Row Effect retains its implementation's original typed operation
+recipe before Request completion/adoption. An optional internal
+`requestConstruction.operationIndex` selects one declared per-row occurrence;
+it neither derives a slot from a row number nor provides a complete recipe by
+itself. The enclosing checked preparation and request must be the same originals
+as the selected managed Run. Its native occurrence reservation precedes the
+provider constructor, and the existing capture retains the same request child
+before awaiting preparation. Constructor-only bounds do not fund metadata,
+transport, response, recovery or failed physical children.
+
+Request construction returning does not retire its output. The same capture
+keeps the debit while its apply route, refresh, dispatch or original request
+aliases can still use it. Original cleanup first closes that route to new work,
+waits for active calls to finish, and severs its captured request/current arrays;
+only then can the existing child settle its body reservation. Its spent
+occurrence/control inventory remains on the original Run until that Run retires.
+A forbidden asynchronous constructor remains joined through settlement before
+refusal and cleanup; neither Promise settlement nor a numeric quote is a
+physical cleanup acknowledgement.
+
+The same implementation recipe can select bounded `credentialOperations` by
+the fixed phases `capture-check`, `apply-check`, `resume-check`, `write-check`
+and `write`.
+Each selects its own declared row operation index; the constructor and other
+phases cannot share that index, even when their operation names match. These
+descriptors retain original typed extents and rejection bounds, not capacity
+or permission inferred from names. Missing complete phase supply refuses.
+
+After adopting the original Request parent, the Host reserves the Plan's
+operation-control inventory on that same Ledger before returning the parent
+to its variable child consumer. A getter does not start this reservation. A
+physical child then reserves its selected occurrence before credential binding,
+and the existing capture retains it before preparation. The original Site
+issuer receives its unchanged authorization; an invocation's separate `useId`
+does not create another grant. CREATE checks, refreshed checks and the claimed
+write remain independently authorized operations. The durable dispatch claim
+still precedes the write child, and raw response custody precedes projection.
+
+An installed Effect selects the existing Core credential implementation bounds
+once on its original initial-material constructor before opening its Site.
+The shared Site preserves that immutable selection and refuses caller-supplied
+replacement amounts or reentrant selection. It does not borrow a Source reader
+or treat its codec bounds as a Run allowance. Each later binding, secret and
+failed child still requires its selected operation backing on the same adopted
+Plan; consumed grant/binding attempts retain their existing retirement rules.
+
+Transport accounting observes exact outbound body bytes and every consumed
+binary response chunk before copying or protocol refusal. A response body
+bound and its one-byte refusal window describe a funded read extent, not an
+observed transfer. A failed debit, pending socket/binding close or live request
+alias prevents settlement. A provider's omitted await cannot detach its
+original physical call from the child. Saved recovery needs its actual original
+parent and child retainer; a saved recipe or CID cannot select fresh backing or
+silently restore the legacy physical route.
+
+A standard capture extent may retain a fixed prefix beside material for each
+checked input row. The original Effect Plan resolves those quantities from the
+same completed Compute inventory before returning its selected operation
+extents. Resolution preserves one member child, no physical attempt and no
+transfer; it does not multiply occurrence count or traverse schemas again.
+Row-operation slots cannot carry this member template. Fixed extents retain
+their original meaning and identity. Zero input rows still need real fixed
+constructor backing; overflow or zero backing never supplies a constructor.
+The same resolved extent is quoted, borrowed and retired by the original Run.
+
+A managed capture selects its fixed `captureConstruction` member occurrence
+before Source export can append proposal rows, expand JSON or derive canonical
+CREATE identities. The original Plan reserves that body and the existing
+capture retainer holds its same per-member proposal vector. A missing selected
+extent refuses before export; no empty capacity or per-row constructor token
+substitutes for this enclosing prefix. Native member and row occurrences have
+separate coordinates, even when they share an immutable extent or index.
+The row limit still bounds exported proposals; member/control children do not
+consume row slots. Early failure retains every already-created sibling and
+keeps the original input pin until child retirement, including failure before
+a Source set exists. Current/capture/route aliases must retire before the same
+capacity reservation settles. The installation's full selected extent must
+still cover this prefix, its failed construction and simultaneous outputs;
+reserving an unqualified numeric bound supplies none of those facts.
+
+The installed native CREATE implementation owns its fixed HTTP/JSON limits.
+The Host snapshots that original method and receiver once; it has no parallel
+numeric default table. These are codec/transport rejection bounds, never Run
+allowances or permission. Native constructor profiles retain original
+`ExecutionCapacity` values beside existing `ParseLimits` for optional byte-JSON
+input and the returned JSON String. JavaScript forwards the opaque
+Option/Array/tuples unchanged to the typed Core adapter. The Core adds the
+existing indexed input constructor and literal Host output constructor, without
+parsing a Program, granting capacity or reconstructing an ABI tuple.
+
+Those constructor quantities remain separate from original request/response
+storage, headers, credentials, failed children and saved-output overlap. A
+complete selected physical recipe must fund all of them on the same Plan
+before allocation. A nonempty constructor quantity alone never enables an
+ordinary physical call or upgrades a provider response into an applied Effect.
+
+The Credential receiver and the Effect response constructor share the original
+Node process's HTTP header limit; the physical request explicitly selects that
+same value. Initial headers and trailers have separate parser counters and can
+coexist with the body. Their raw and normalized forms, duplicate-value join
+prefixes and selected header views therefore compose with the body buffer
+inventory through the existing representation fold. A body-only extent fails
+the same pre-borrow check. This response quantity does not include the separate
+request, secret, provider projection or saved/failed holdings and does not
+change the existing header or transfer policy.
+
+The standard CREATE declaration can express a read check as fixed `http`
+method/path/headers/bounds plus synchronous `body` and Unit `project`
+callbacks. These callbacks receive original provider request/response DATA
+only; the common adapter owns the scoped HTTP invocation. The legacy
+`check.request` callback remains a separate consuming form and cannot be mixed
+with that declaration. An invalid async projection remains joined through
+settlement, with its original rejection preserved, before the same child can
+finish. A body or projection supplies no grant, current decision or ACK.
+
+For an existing metadata GET, `body` may return `undefined` to preserve the
+original request without an entity body. An empty String is a different HTTP
+shape and is not substituted. POST still requires its declared String body;
+invalid asynchronous results remain joined and refused. The existing HTTP
+method owner continues to determine the supported method set.
+
+Sheets append uses that declaration for its original spreadsheet/grid metadata
+check. The fixed request description and pure target projection are shared with
+publication's existing physical check, so the Plan can retain the actual HTTP
+bounds without hiding I/O inside a provider callback. Native codec construction,
+Host parsing, physical response and failed-child holdings still need their
+separate same-parent backing before invocation.
+
+An optional fixed `check.beforeSend` additionally requires a distinct
+`write-check` occurrence. The constructor captures the original check method
+and receiver and refuses missing/incompatible recipe supply. Inside the same
+durable dispatch, the Host obtains a fresh acquisition decision and its own
+original read grant, awaits that retained read child, then selects the separate
+write child. The commit decision never authorizes the read. A rejected read
+leaves the original claim in place without a mutation response or settlement;
+it cannot authorize resend or manufacture a terminal failure. Kintone supplies
+only the exact original App request and complete Form correspondence, keeping
+its native request/Mapping distinct from permission and physical custody.
+
+The captured CREATE frame retains the original bounded Common `changesWire`
+beside its mapped value and canonical occurrence. The existing Core CREATE
+inventory consumes that same wire, rather than re-encoding a decoded JavaScript
+Number. A pure standard mapper may consume this `proposalWire` DATA; other
+request callback contexts keep their absent form. Shared read body/projection
+callbacks receive the same independently retained mapped value, never another
+read grant or an input inferred from the physical request body.
+
+An installed standard implementation can supply its original native constructor
+profile to the existing Host recipe composition. The Host combines that opaque
+profile with the selected HTTP declaration, actual Credential codec and secret
+policy, and original Ledger constructor bounds. None of these immutable DATA
+projections issues a grant, samples grant time or substitutes a transfer/disk
+quota for constructor backing. Capture, request construction, physical reads,
+physical write and pre-body controls retain distinct original lifetimes. A
+secret-size check after resolution does not fund the resolver's earlier or
+failed construction; that producer must already have its own actual backing.
+
+Managed Sheets initialization captures the original configuration methods
+before its first awaited read. Its CA remains the exact original byte object
+from the initializer's observed-FD reader, without text conversion or a secret
+byte ceiling. The same context prepares the authored declaration and Mappings;
+the returned Environment and complete immutable Mapping array pass unchanged
+through the original Site service into the common Effect constructor. Missing
+initialized readers or constructors refuse rather than select raw-file,
+standalone declaration or another Environment preparation. Physical publication
+and unfinished reader/constructor migrations keep their separate obligations. The registered
+Sheets loaders require that original initializer, configuration reader and Site
+service. They have no unmanaged readPages, standalone Environment or copied
+Site-close fallback. The separate operator publication entry retains its own
+existing authorization and cleanup contract; it is not another registered
+runtime loading route.
+
+The Sheets append constructor uses the same closed literal document/cell
+builders as its actual mapper. Its immutable schema and the original Host input
+bound select native parser/index, scalar arrays, supplied-width closed-object
+maps, literal forest, both String builders and pre-refusal UTF8 buffers. The
+outgoing validator consumes that exact constructed forest; its geometry is not
+an arbitrary input-node ceiling. Supplied invalid row width is bounded by the
+original input's wire syntax, never by the allowed column count. Sheets uses
+preserving byte parsing, so its native quantities own that input directly and
+do not add the generic normalizing decoder again. An absent metadata GET body
+has no native output; typed None does not create an empty JSON document. Each
+present output still adds the original Host literal-JSON constructor. These
+quantities do not by themselves prove installation prelude, complete concurrent
+request/response/failed-child backing, ordinary execution or physical release.
+
+Managed Sheets grid Source uses the common standard page Reader for its single
+bounded POST. Before opening the Site, its native request constructor quantity
+is composed once with the original JSON reader quantity; the same opaque
+capacity and immutable request-byte bound reach the original Reader factory.
+An operation name or an HTTP body limit alone is not that constructor quantity.
+Replacing the selected constructor refuses without repeating the quote. The
+native quantity shares the actual grid request document builder and owns its
+schema decoding, request forest, writers and UTF8 buffers. The existing reader
+owns response parsing, projection and row work, so they are not counted again
+as another request parser. The grid retains no paging cursor or row-identity
+strings; those unused representation dimensions do not constrain cell values.
+The grid response selects the preserving Reader quote because its actual
+native parser and indexed admission retain exact keys without NFC. The generic
+normalizing Reader quote is unchanged. Literal parser construction already
+contains its key-map growth peak; the preserving quote replaces only that
+component using the same KeyAdmission constructor inventory. Parser frames and
+decoder ObjectNext frames retain at most min(nodes, depth) live map owners and
+at most nodes entries, including a pending key before refusal. Their depth
+checks precede map creation. Completed Source objects retain fields, not those
+maps; parsing and indexed admission are sequential, so one such peak covers
+both. Source/indexed trees, text, decoder controls, ancestry, buffers and
+failed-input backing remain composed independently. This changes neither
+implementation bounds nor the admitted Ledger policy and supplies no cleanup
+or physical-GC acknowledgement. Indexed object and array populations are
+mutually exclusive per Source node: their sum is bounded by the original node
+limit. The existing structural inventory is affine in those populations. The
+preserving quote therefore uses the componentwise maximum of its all-object
+and all-array endpoints for indexed storage and decoder controls/ancestry,
+rather than summing two impossible full populations. Text, parser/key-map
+peaks and retained inputs remain separate original families. No provider
+reservation is settled early; original pending cleanup and the later Compute
+reservation keep their existing lifetimes.
+The preserving implementation selection is
+immutable; missing native support or switching the selected parser recipe
+refuses rather than falling back to the generic quote.
+All declared cells remain admitted before requested-column projection. Site
+authorization, acquisition admission, before-send current checks, response
+charging and failed-child retirement remain with their original owners.
+
+The existing Sheets range and clear Catalog projection also retains the full
+canonical Command body beside that same Catalog. The shared row Environment
+constructor consumes those original bodies together with their referenced
+contracts; the installer does not append them later by rehashing a second
+Environment. Range and clear keep distinct original contracts and requests.
+This projection does not issue a ResourceRef, permission, approval, claim or
+physical cleanup acknowledgement.
+
+Initialized range and clear run their existing declaration projection inside
+the original Source constructor. The initial parent backs the Source-only base
+before its Common restore; the selected native quantity is retained before the
+same Command/Catalog builders run. Their fixed document shapes are shared with
+the quantity's template geometry, including exact role names and unchanged
+identity domains. Original schema/connector text supplies only variable extent,
+never a second semantic declaration or caller-chosen allowance. Native parse,
+index, canonical-identity workspace, escaped outputs and Host output parsing
+remain backed together with prior Source material and failed prefixes. The
+shared quantity fold retains each selected native quantity through the same
+Source lifetime. Before the closed synchronous Command projection it selects
+the full original peak. Only after its canonical wires and plain frozen
+outputs have returned, validated and been retained does the same Source
+replace that entry with its original retained-output quantity. The final
+outer declaration and definition forests, final wire and captured schema/range
+text remain charged using the existing Host units. Native parser, NFC and
+writer locals do not escape this closed call. Failed, invalid asynchronous or
+unproven construction keeps the full original peak. This selection issues no
+Resource, current observation, physical-GC acknowledgement or work refund.
+The next constructor still crosses the original current/reservation boundary;
+only its existing after-unwind reconciliation may reduce the live reservation.
+
+The completed original Command array, full declared Catalog and one Environment
+stay associated with that context. The installer forwards them unchanged to
+the same Site service and Effect owner. Default empty Mappings are merely the
+absent family; copied/nonempty Mappings or copied Commands cannot join another
+context. A failed native reservation never enters the provider projection or
+reissues its original declaration. Reentry and a second construction refuse;
+an invalid native Promise remains held until its actual computation settles,
+without turning its later result into an admitted construction. Original Site
+close, physical stop, Request admission and managed driver Plan construction
+remain distinct obligations.
+
+The native Command quote passes original decoded input lengths to the
+normalizer's scratch inventory. Its separately retained NFC outputs use the
+same canonical owner's output bound once; expanded output is not normalized
+again as a new input. The closed canonical emission calls are synchronous and
+do not expose or nest their Writer/cursor. Their completed Catalog, contract,
+Command and declaration Strings remain co-held, while the active writer
+workspace is counted once beside all retained output families. This is a
+logical live-representation bound, not a GC observation or physical ACK. The
+Source keeps the returned Command outputs until its own retirement. Other
+native construction families keep their existing conservative peak lifetime.
+
+Initialized range and clear also construct their original retained binding
+inside that SAME Source initializer, before the Effect adapter is created.
+The initializer reserves the provider's configuration/reference/binding peak
+before the projection callback and retains it through Source retirement,
+including failed construction. Fixed callback/control frames use the existing
+trusted Host baseline; variable configuration/schema/target representations
+are composed explicitly. Provider methods and their original namespace
+receiver are captured before reserve/current can reenter. The Effect adapter
+retains the original Site rather than a copied close facade; reference
+currentness comes from that Site's original current method.
+
+A completed installation retains its immutable Environment on the SAME
+initial Source material while its original Source is held. A paired Command
+Effect can retain that exact Environment only with the same original
+installation entry, connector/base input and complete final declaration wire.
+A matching CID or copied holder is insufficient. Successful initialization,
+original Source presence and logical close remain distinct facts; a failed or
+closed Source cannot supply this handoff. The same before-use current fence
+still runs without an extra Environment workspace, and reentrant loss refuses
+rather than reconstructing after selection. Each native declaration and its
+completed output quantities remain independently retained. Only the repeated
+Environment assembly is omitted, with no new permission, physical ACK or work
+refund. Uncompleted native quantities retain their original full peak.
+
+Identical complete Source and Effect Environment wires are admitted once by
+the same composer; distinct complete inputs retain their separate admission,
+policy and selector checks. The constructor reservation uses the SAME fixed
+role-input selection. It does not treat a CID match or another repeated
+occurrence as identical construction. Independent connector/Site bindings are
+still checked separately, and the Host's base policy is never replaced by a
+publication. This reuses immutable DATA, not Account, read or write authority.
+
+The installing Source also reads its protocol assets through that same
+original file reader, reserving before the actual FD read and before text
+decoding. Its existing native protocol owner quotes the stdlib Json parser,
+canonical values/keys, refusal frames and hashing writer before admission.
+This uses the original per-body canonical UTF16/node/depth limits and the
+separate cumulative canonical UTF8/node writer limits. It does not interpret
+escaped byte counts as additional generic value trees or add those trees
+again after the native peak. The full native constructor peak remains held
+on the original Source through retirement, including reservation/admission
+failure. The immutable admitted protocol holder is retained before subsequent
+current/reconcile callbacks. No second parser, protocol meaning, quota,
+Resource owner, permission or physical acknowledgement is introduced.
+
+Range/clear request payload and target serialization use the existing
+preserving canonical codec; their framed request identity hashes the original
+UTF8 parts. They do not invoke configuration NFC normalization. The native
+request quantity therefore keeps its parser/index, Json/canonical forests,
+writer, byte preimages and Host output backing without adding a normalization
+constructor that this path never calls. Binding and recovery configuration
+identity retain their distinct normalization obligations. This changes no
+payload spelling, request identity, refusal guard or installed resource ceiling.
+
+The shared Effect request constructor uses the existing preserving byte-JSON
+parser/index inventory, matching data-key Preview admission and the Native
+payload codecs. It does not add the distinct normalizing reader's NFC work.
+Input String/Bytes, indexed nodes, native provider quantities, failed prefixes
+and their original output lifetimes remain co-held. Response decoding keeps
+its own declared recipe; no response, grant, transport or recovery allowance
+is removed by selecting the request's actual decoder.
+
+Captured Effect operation multiplicity selects the SAME checked member Result
+endpoints inside the existing work-bounded schema walk. It does not replace
+Source/Compute input demand with an output count or re-lower another Program.
+An original literal cross-join output guard can bound successful Result rows
+even when an upstream Source cardinality is unknown; it neither truncates a
+failed join nor proves its input demand. Missing/parameter/unknown facts keep
+the original executor fallback. Multiple members remain separate occurrences,
+even when they share the same immutable extent or Result owner. The existing
+Request reserves the extra fixed endpoint-selection scratch before calling the
+Plan constructor, and the Plan uses that same constructor quantity. General
+Compute inventories retain their original complete-node scope.
+
+The actual range/clear driver supplies its same immutable Command definition,
+constructor descriptor and original native binding profile to the existing
+standard Effect Plan composer. It does not supply an independently handwritten
+operation table or a second recipe calculator. The existing checked proposal
+input bounds apply to per-row request construction; the complete Preview
+bounds independently apply to capture/recovery. Native profiles return opaque
+typed quantities and parse limits directly through the bridge. The shared Core
+fold adds the original fixed and per-row capture peaks once, alongside its
+existing request/response/credential/HTTP/control quantities. Request building,
+response decoding, saved recovery and failed prefixes remain distinct live
+representations. These quotes admit no Run, permission, physical attempt,
+release, retry or cleanup acknowledgement, and do not change implementation
+limits or original request/marker/identity domains.
+
+An original range/clear request retains its native binding and immutable
+projected target. Subsequent CID, recheck and send boundaries use the existing
+private original-request association and native binding admission, with current
+installation checks kept separately. They do not reparse the same admitted
+target before every CID access. A new selector still passes the original native
+request constructor's target check. Foreign/copied failure paths retain the
+existing target-first diagnostic and cannot acquire original provenance by
+passing that diagnostic check. New-selector refusal still precedes value
+encoding and clear-marker generation. Within the original private binding,
+exact canonical text reuses its admitted immutable DATA; different spellings
+retain the previous complete parse/canonical comparison, including accepted
+noncanonical equivalents. This does not retain current permission or a physical
+read decision.
+
+A range/clear Source uses the same managed Reader for both grid rows and its
+single metadata-verified range reference. Metadata GET construction is shared
+with the existing Effect metadata check; callback return is not response charge
+or physical completion. The original metadata codec sees every declared column
+before that same original reference is emitted. The initialized normal entrance
+has no parallel `readPages` transport factory.
+
+The reference itself has the installation's lifetime, beyond any individual
+Run's Reader. Its original native constructor therefore runs only after the
+same Source initializer reserves its separate full peak. The exact returned
+reference, declaration, Command and Environment stay retained there, including
+failed and invalid asynchronous construction. Per-Run reader construction uses
+the maximum of its mutually exclusive grid and metadata callback quantities;
+it does not combine two simultaneous full native parses. Source/index, received
+response, projected output and failed-child overlap remain in the same common
+preserving Reader recipe. Native optional quantities pass unchanged through
+the Host; typed Core consumes their Options before composing allowances.
+
+The exact installed Source adapter is returned, not a copied close facade.
+Reference currentness uses the original Site's captured synchronous method and
+receiver, so requested close denies later reference use while physical cleanup
+continues under the existing owners. Source initialization completion still
+requires the same retained adapter; no reference or close callback supplies a
+new admission, permission or cleanup acknowledgement.
+
+A synchronous request constructor returning a native Promise is invalid, but
+its original task stays in the same capture child until settlement. Observation
+uses the captured native Promise method before any replaceable public `then`.
+If even native observation fails, the unjoined original remains pending in
+that child. A foreign thenable cannot supply a retirement acknowledgement by
+calling a supplied callback. The same rule applies to invalid asynchronous
+current fences and binding-close observations; neither an observation error
+nor Promise fulfillment implies a physical close acknowledgement.
+
+Capture failure cleanup has one original child inventory. Its input-pin
+callback runs after that inventory has retired, without recursively draining
+the same children and Source payloads again. Direct successful-route disposal
+still drains them before releasing pins. The retained wrappers' retirement is
+monotonic, so a cleanup cursor can advance past their actual retired prefix;
+pending or newly appended children still block parent release. Each synchronous
+cleanup status projects one observation per owner. A retry's external callbacks
+are followed by a new observation, rather than reusing a previous current state.
+Each existing child, input and payload wrapper sets its synchronous opening
+latch before invoking an original release callback. Reentry during the interval
+before the returned Promise is assigned observes pending cleanup and cannot
+invoke that callback again. Later calls share the retained flight; a rejected
+or false release retains the same original callback/receiver for its real retry.
+
+The Kintone standard CREATE declaration supplies only its fixed endpoint,
+native proposal/body admission, Form request/correspondence and native response
+classification. It selects the original Mapping resource and captures original
+runtime methods with their namespace receiver. Input String units and UTF8 bytes
+are checked before encoding into Bytes. No mapped-JS-row JSON encoder is used:
+the existing native parser admits exactly the complete `state:present`/`value`
+envelope under the same Form and Mapping, with independent input/output bounds.
+Its selected one-record body is not a restriction on the Program's row count.
+The shared owner retains exact request DATA/CID and its whole saved envelope.
+Cold native correspondence consumes that saved proposal wire and complete
+physical body through the comparison serializer, without fresh prepare, a new
+tag/CID or another provider read. Native protocol success remains DATA; the
+original Preview/claim/current/permission and settlement duties remain outside.
+This declaration creates no Account, Site, operation reservation or cleanup
+owner and cannot stand in for full constructor/Host/secret/failed-child overlap
+or the actual initializer and cold parent.
+
+Saved Kintone CREATE restoration re-admits the complete checked value rows
+under the same original Mapping/Form and compares the saved physical body
+through the original serializer's bounded comparison sink. Only complete byte
+correspondence can retain that immutable saved String in the private native
+request. It neither emits a replacement physical document nor issues a new
+tag, CID, permission or dispatch. The same native serializer serves fresh
+emission and saved comparison; a text-equivalent alternate JSON spelling
+refuses. Generic encoded-document ownership is unchanged. The caller must
+still authenticate its saved description, original row/key/occurrence, selected
+Form/Mapping, current scope and exact provider CID. This DATA restoration does
+not construct a cold parent, reacquire backing, renew a lifetime or authorize a
+send. Parser/cell construction, comparison controls and retained saved inputs
+need the caller's complete overlap quotation before normal restoration.
+
+Native Kintone CREATE constructor inventories retain the original Mapping and
+Form as borrows. Mapped value construction, complete current Form projection
+and acknowledgement/outcome construction are separate components. Each
+composes the existing collection, decoder, SHA and writer owners' logical
+representation units with the existing execution-capacity arithmetic. Bounds
+and returned capacity remain DATA until the same Request Plan reserves them;
+there is no connector-specific byte tariff or additional admission.
+
+Form correspondence compares every immutable original field path in place.
+It keeps App/revision, complete field count, exact paths, options, calculation
+and lookup facts; it makes no detached original or observed path catalogue.
+Projection still bounds the whole observed response, including nested metadata
+which a CREATE Mapping may later refuse. Response acknowledgement inventory
+bounds unknown-field refusal by the possible supplied object width, never by
+the two permitted `ids` and `revisions` keys. Wide digit strings keep their
+original spelling and request correlation. Missing/foreign originals, invalid
+bounds, batch substitution and arithmetic overflow refuse without a fallback.
+
+These synchronous metadata constructors perform no I/O, clock read, read/write
+authorization, cancellation acknowledgement or outcome settlement. Received
+Bytes stay with the physical child; the shared response decoder accounts its
+own parser/index/key-normalization buffers without encoding another input
+String or Bytes. Full Host request/response/secret/failed-child controls, saved
+custody and simultaneous lifetimes remain required additional components.
+Native constructor tests with an explicit initial carrier demonstrate only
+their stated same-parent reservation and original projection boundaries, not
+complete ordinary installation backing or physical provider acceptance.
+
+## Original Source and Model inputs of an installed Effect Plan
+
+The installed Effect Plan selects each Source from the checked Request
+inventory, in occurrence order. Its immutable selection supplies the original
+declaration, reader capacity and transport bounds. The Plan constructs and
+retains the actual requirement and acquisition once. Execution borrows those
+originals; installation order and a second Query preparation cannot replace
+them. A base row reader keeps its original acquisition capture, while a
+provider reader additionally retains the same installed provider capacity.
+
+The Compute portion retains typed schema demand for both Pure and Effect
+purposes. The same original graph and generated sequences determine column
+widths and closed row bounds; an Effect purpose does not discard those facts
+and substitute the whole general value envelope. Number/Bool and JSON-leaf
+proofs remain distinct. Nested or unproved fields keep the existing general
+limits, including their independent text and wire checks.
+
+A source-free Effect operation Plan uses the completed Compute Plan's retained
+schema inventory for its row multiplicity. It does not traverse those same
+schemas again. A captured Source prefix remains outside the Compute tail's
+graph offset, so its full original inventory is still required. Operation
+attempts, transfer, simultaneous bodies and pending cleanup are added to that
+same Plan; smaller proved Compute demand does not refund or omit them.
+
+The Model component in the Plan configuration is the same native provider
+used by execution. The existing component may retain its original occurrence
+before Source acquisition and bind its physical context once after capture.
+Opening before that binding, rebinding after an attempt, or creating a late
+replacement provider is unavailable. The original compiled JS holder is
+unwrapped only through its existing private control association; its public
+fields are not a native compiled Run.
+
+The Request retains the original Model Scope before adoption. The component
+borrows its read when Local supplies the actual inputs. Read retirement and
+Scope retirement remain separate from transport completion and from each
+other. A physical Mock document child closes separately from the Core row
+capture, while correspondence between the charged original documents remains
+checked across Source occurrences. Failed cleanup keeps the same original
+child and cannot reissue the read or refund consumed work.
+
+These identity and lifetime connections do not establish constructor funding.
+The installing Request must fund all simultaneous construction, component,
+read, output and failed-child backing before allocation, and retain it until
+the corresponding original aliases and physical duties have retired.
+
+## Model demand on the original installed Effect Plan
+
+The Node bridge obtains Model/read/bootstrap bounds through the same checked
+compiled Run, definition, Infer occurrence and graph. Its Model demand retains
+those originals in the existing Core Plan. JavaScript supplies no Model Ledger
+vector and cannot convert an ordinary admission into the local Mock purpose.
+The selected component handles enter the Plan's provider factory alongside the
+unchanged canonical family constructors; later execution must use those same
+handles rather than append a replacement after quoting.
+
+The Host retains the same SDK Request, selected Plan and Model demand before
+constructing its Scope on the original Request parent. The immutable Plan
+projection must match that exact demand. The existing outer Run record retains
+the returned Scope before Request completion or adoption can fail; there is no
+second Node admission, replacement Root or additional cleanup owner. The
+manager captures both Model methods with the original runtime receiver before
+construction. Non-Model Requests retain their existing completion path.
+
+The existing complete dispatch or initialization retirement observation reaches
+the same Scope's finish port before the preparation-owned Run can retire.
+Live reads, a pending finish, or changed originals refuse that transition; a
+terminal outcome or settled Promise supplies no physical-cleanup acknowledgement.
+After that witness, Host retirement cuts its raw Scope, compiled definition,
+graph, selected demand and Plan aliases before returning the original typed
+input borrower. Failed adoption retains that Scope in the same outer record;
+its original producer/input cleanup, rather than a nonexistent adopted manager
+Run, retires the initial parent.
+
+The normal implementation still has to select its actual original Model graph,
+component providers and complete initial constructor/read overlap. Neither this
+caller nor the Model Plan's numeric requirements select or fund those inputs.
+A missing original selection continues to refuse before execution.
+
+## Capturing the installed Source service
+
+Installation-metadata issuer intake captures the supplied Source configuration
+reader and its original receiver before the first metadata await. The same
+`readText` receives the exact declared issuer-key byte bound; it preserves the
+original file owner and pending cleanup carrier. A supplied malformed reader
+refuses before metadata work, rather than selecting a separate file read.
+Issuer-type validation, original current checks and custody construction remain
+inside that same failed-initialization handoff. If they fail after key intake,
+the metadata view retires only after the original failed child has acknowledged
+cleanup; pending view retirement retains its same retry holder.
+
+Connector loaders capture their four original standard Source methods once,
+before the first metadata await. The common snapshot retains each own DATA
+function and its original receiver; replacement methods, inherited methods,
+accessors and proxies cannot change that selection. Its invoker is bounded to
+those same four methods and adds no service call, admission or cleanup owner.
+
+The connector supplies its existing synchronous unavailable error factory or
+throw callback. Returned values and Promises, original throws and rejected
+cleanup carriers pass through unchanged. The connector still selects its own
+explicit legacy entrance when the service is omitted, and keeps its own profile
+grammar, limit conversion and error boundaries. The shared snapshot never
+chooses a fallback, a numeric policy or physical authority.
+
+
+## Original ModuleBody preparation mode
+
+The installed Host retains its normalized Boolean output mode in the same
+immutable preparation context as the original runtime and publication
+environment. The funded caller passes that exact mode to the distinct
+ModuleBody constructor together with its existing phase and sequence-contract
+admission. Completion remains a separate call after the constructor returns.
+Neither an older Body export nor a missing mode supplies a fallback.
+
+A selected funded context is checked before the Source owner allocates a
+producer receipt. A missing capability or throwing context lookup cannot
+consume producer slots or select raw snapshot preparation. A staged adapter
+which cannot construct the selected input retires its actual preparation and
+reports unavailability; this does not define a new language restriction or
+qualify the remaining frontend construction paths. Original cleanup failures
+remain attached to the same producer until their actual retirement.
+
+The installed Request facade preserves the same Source-first manager selected
+for the SDK lineage through submitted-intent lookup, funded preparation and
+the typed preparation borrow. Each operation checks that original manager
+under its own installation purpose and forwards the same original Request.
+A selected Source's currentness or preparation refusal cannot switch to a
+Compute manager. Compute-only and unselected installations keep their existing
+selection behavior; this correspondence creates no parent, allowance or read
+authority.
+
+## Kintone proposal constructor quantities
+
+The native Kintone proposal constructor quote includes the complete outer
+Common change envelope in addition to the existing mapped CREATE value and
+request constructors. The closed-object key-check inventory uses the supplied
+node bound, not the two allowed field names, so an unknown or duplicate key
+cannot make its failed prefix disappear from the quotation. The two original
+cursor lookups, state check and one-record carrier stay explicit.
+
+The same quote co-counts fresh text emission and cold comparison controls.
+Cold restoration borrows the saved body, checks its UTF8 bound at both existing
+entries, and uses the original comparison sink and complete serializer. It
+does not emit a replacement request, issue a tag or renew a lifetime. The
+saved String itself remains with the caller's separately backed material.
+
+These are native constructor quantities only. Input parser/index/String/Bytes,
+the enclosing capture prefix, Host request and response storage, credentials,
+failed children and all retained overlap must be composed and admitted on the
+same actual parent before construction. Quote construction also needs its
+original backing. A nonempty quantity does not select a Plan, provide a grant,
+acknowledge cleanup or enable an ordinary execution path.
+
+## Effect response buffer backing
+
+The observed binary HTTPS receiver retains its copied chunk prefix beside the
+concatenated body at successful end. A body bound B permits at most B nonempty
+one-byte chunk copies; the original current read is bounded by B+1, including
+the byte which causes refusal. Its constructor inventory co-counts those three
+byte families, the chunk Buffer headers and the shared Array growth inventory.
+It holds that whole envelope through original output retirement rather than
+inferring early release from a response Promise or copied body.
+
+Before borrowing or binding a physical occurrence, the shared Effect child
+checks the capacity of that same original selected extent against this buffer
+inventory. A declared attempt or sufficient transfer amount cannot replace
+retained/execution backing. Missing native support or an insufficient extent
+refuses before binding, grant consumption or a physical call. This check
+creates no new reservation: the existing original Plan and parent own the
+later borrow and its retirement.
+
+The buffer inventory is one necessary component, not the complete physical
+operation. Native quotation, the request, receiver/control frames, headers,
+secret/current/Journal material, provider parsing and saved response envelopes
+need their own backing and retained overlap before normal execution. Node's
+stream, Buffer-pool, TLS and runtime implementation storage is not measured by
+these logical quantities. No receiver check supplies authority or a cleanup
+acknowledgement, and no old compiled runtime gains the new native predicates.

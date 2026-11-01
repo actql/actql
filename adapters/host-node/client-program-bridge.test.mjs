@@ -586,7 +586,7 @@ test('checked acquired source and downstream task emit their input ports',
         const storeAuthorityCid = cid('7');
         const plan = acquiredTaskPublicationPlan({moon, control,
           acquired: admitted, preparedProgram: prepared, captured: opened,
-          sourceEvidenceWire, authorityScopeCid,
+          sourceEvidence: control.admitRunEvidence('source_evidence', sourceEvidenceWire, publicationLimits), authorityScopeCid,
           effectiveDataPolicyCid: dataPolicyCid,
           captureStartedAt: '2026-09-26T00:00:00.000Z',
           captureCompletedAt: '2026-09-26T00:00:01.000Z',
@@ -601,7 +601,7 @@ test('checked acquired source and downstream task emit their input ports',
             JSON.stringify(changed), publicationLimits).wire;
           assert.throws(() => acquiredTaskPublicationPlan({moon,
             control, acquired: admitted, preparedProgram: prepared,
-            captured: opened, sourceEvidenceWire: wire,
+            captured: opened, sourceEvidence: control.admitRunEvidence('source_evidence', wire, publicationLimits),
             authorityScopeCid, effectiveDataPolicyCid: dataPolicyCid,
             captureStartedAt: '2026-09-26T00:00:00.000Z',
             captureCompletedAt: '2026-09-26T00:00:01.000Z',
@@ -1958,13 +1958,15 @@ test('checked source-free Program executes through the standard Local Host',
     ]);
     const values = JSON.stringify(
       JSON.parse(contract).execution_contracts['REL.values']);
+    const installedContracts = checked(moon.clientPrepareInstalledSequenceContracts(
+      registry, values, undefined, undefined));
+    assert.throws(() => checked(moon.clientPrepareInstalledSequenceContracts(
+      registry.replace('"REL.values"', '"REL.changed"'), values, undefined, undefined)),
+    {code: 'MoonBitHostFailure'});
     assert.equal(moon.clientProgramOpenSourceFreeLocalHost(
-      prepared, registry.replace('"REL.values"', '"REL.changed"'),
-      values, 1n, 0n, 0n, 0n), undefined);
-    assert.equal(moon.clientProgramOpenSourceFreeLocalHost(
-      prepared, registry, values, -1n, 0n, 0n, 0n), undefined);
+      prepared, installedContracts, values, -1n, 0n, 0n, 0n), undefined);
     const setup = moon.clientProgramOpenSourceFreeLocalHost(
-      prepared, registry, values, 1n, 0n, 0n, 0n);
+      prepared, installedContracts, values, 1n, 0n, 0n, 0n);
     assert.ok(setup);
     const execution = await runCapturedStrategy(setup);
     try {
@@ -2111,6 +2113,8 @@ test('public Values submit computes and reads its real Local Result',
     ]);
     const values = JSON.stringify(
       JSON.parse(contract).execution_contracts['REL.values']);
+    const installedContracts = checked(moon.clientPrepareInstalledSequenceContracts(
+      registry, values, undefined, undefined));
     const control = runtimeCore(moon).publicationControl;
     let plan;
     await mkdir(scratch, {recursive: true});
@@ -2179,7 +2183,7 @@ test('public Values submit computes and reads its real Local Result',
         assert.deepEqual(start.ref, accepted.ref);
         if (start.kind === 'reserved') {
           const setup = moon.clientProgramOpenSourceFreeLocalHost(
-            preparedProgram, registry, values, 1n, 0n, 0n, 0n);
+            preparedProgram, installedContracts, values, 1n, 0n, 0n, 0n);
           assert.ok(setup);
           computes++;
           published = await runPublishedCapturedStrategy(setup,

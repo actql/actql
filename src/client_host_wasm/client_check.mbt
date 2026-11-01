@@ -15,7 +15,6 @@ priv struct StoredClientCheck {
 ///|
 /// kind=0 exposes only public checking selections to the trusted Host's keyed
 /// context encoder. kind=1 reports an exact captured request through Common.
-#export_name("actql_check_reserve")
 pub fn reserve_client_check(
   nonce : Int64,
   environment : Int,
@@ -177,7 +176,6 @@ fn client_check_report(
 }
 
 ///|
-#export_name("actql_check_current")
 pub fn current_client_check(nonce : Int64, handle : Int, current : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.client_checks.get(handle) is Some(record) &&
@@ -193,7 +191,6 @@ pub fn current_client_check(nonce : Int64, handle : Int, current : Int) -> Int {
 }
 
 ///|
-#export_name("actql_check_produce")
 pub fn produce_client_check(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.client_checks.get(handle) is Some(record) &&
@@ -247,7 +244,6 @@ pub fn produce_client_check(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_check_length")
 pub fn client_check_length(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.client_checks.get(handle) is Some(record) &&
@@ -259,7 +255,6 @@ pub fn client_check_length(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_check_close")
 pub fn close_client_check(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.client_checks.get(handle) is Some(record) else {

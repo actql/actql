@@ -4,6 +4,7 @@ from threading import RLock
 import unittest
 
 from actql_sdk._local_core import LocalCore, LocalCoreError, _Input, _Output
+from local_abi_declaration_fixture import original_byte_fixture_port
 
 
 class PayloadReservationCustodyTests(unittest.TestCase):
@@ -38,7 +39,7 @@ class PayloadReservationCustodyTests(unittest.TestCase):
                 return 0 if core._cleanup(8) == 0 else -9
             return state[name]
 
-        core._call = call
+        core._call = original_byte_fixture_port(call)
         return core, request, observation, calls, state, wire
 
     def test_original_request_current_context_and_physical_input_are_forwarded(self):

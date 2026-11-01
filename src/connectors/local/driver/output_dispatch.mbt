@@ -8,10 +8,15 @@ pub fn configure_local_retained_output(
     installed.output_policy is Some(_) ||
     installed.import_policy is None ||
     @strategy.strategy_history_count(installed.run) != 0 ||
-    @local.local_export_retention_capacity(limits) is None ||
-    (milliseconds is Some(value) && value < 0L) {
+    !local_retained_output_policy_valid(limits, milliseconds) {
     return Err(Configuration(InvalidLimits))
   }
+  installed.preparation = local_dispatch_preparation_policies(
+    installed.preparation,
+    installed.import_policy,
+    installed.import_metadata,
+    Some((limits, milliseconds)),
+  )
   installed.output_policy = Some((limits, milliseconds))
   Ok(())
 }

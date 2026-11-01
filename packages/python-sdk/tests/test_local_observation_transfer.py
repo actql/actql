@@ -11,6 +11,7 @@ from actql_sdk._local_observation_transfer import OriginalObservationTransfer
 from actql_sdk._local_storage import LocalByteStore
 import test_local_commit_store_caller as original_fixture
 import test_local_reader_facts as facts_fixture
+from local_abi_declaration_fixture import original_byte_fixture_port
 
 
 class ObservationTransferTests(unittest.TestCase):
@@ -64,7 +65,7 @@ class ObservationTransferTests(unittest.TestCase):
                     return 0
                 self.fail(f'Unexpected physical transfer operation: {family}/{name}')
             return original_call(family, name, *args)
-        core._call = call
+        core._call = original_byte_fixture_port(call)
         transfer = OriginalObservationTransfer(
             projection, publisher, max_source_bytes=source, max_packet_bytes=packet,
             cleanup=lambda: state['cleanup_input'], stopped=lambda _: not state['borrow'],

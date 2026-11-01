@@ -170,6 +170,19 @@ pub fn check_installed_effect_managed_run(
   prepared : @publication_host.PreparedClientEffectComputation,
   request : @publication_host.ClientRequestIdentity,
 ) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  match check_installed_effect_managed_run_binding(value, prepared, request) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  require_installed_managed_run(value).map(_ => ())
+}
+
+///|
+fn check_installed_effect_managed_run_binding(
+  value : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
   guard value.preparation is Some(preparation) else { return Err(Retired) }
   let original = match preparation {
     EffectManaged(_, original) => original
@@ -184,25 +197,30 @@ pub fn check_installed_effect_managed_run(
   guard physical_equal(original, prepared) && value.request == request else {
     return Err(ForeignOriginal)
   }
-  require_installed_managed_run(value).map(_ => ())
+  Ok(())
 }
 
 ///|
-/// The admission is bound to this exact plan original, not merely a prepared
-/// Program or an equal six-number quote. The Host retains it before start so a
-/// failed constructor still has the original admission's cleanup carrier.
-pub fn begin_prepared_installed_effect_managed_run(
+/// Install the same recorded Model Scope before any Source or Compute child.
+/// No sequence/contract/provider is re-prepared here. The Host retains this
+/// admission before calling: bootstrap/Scope failure keeps its original cleanup.
+pub fn begin_prepared_installed_effect_mock_model_managed_run(
   admission : @resources.NodeManagedRunAdmission[
     ClientInstalledEffectManagedPlan,
   ],
   prepared : @publication_host.PreparedClientEffectComputation,
   request : @publication_host.ClientRequestIdentity,
   plan : ClientInstalledEffectManagedPlan,
-) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue] {
+) -> Result[
+  (ClientInstalledManagedRun, @publication_host.ClientModelReadScope),
+  ClientInstalledManagedRunIssue,
+] {
   if !installed_effect_plan_matches(plan, prepared, request) {
     return Err(ForeignOriginal)
   }
-  match @resources.check_node_source_compute_run_preparation(admission, plan) {
+  guard plan.model is Some(selected) else { return Err(Unsupported) }
+  match
+    @resources.check_node_local_mock_model_run_preparation(admission, plan) {
     Err(issue) => return Err(Resource(issue))
     Ok(_) => ()
   }
@@ -213,13 +231,38 @@ pub fn begin_prepared_installed_effect_managed_run(
   if !installed_effect_limits_fit(plan.limits, @resources.ledger_limits(ledger)) {
     return Err(InsufficientCapacity)
   }
-  let value = new_installed_managed_run_owned(
+  let bootstrap = match
+    @resources.reserve_node_managed_run_read_bootstrap(
+      admission,
+      plan,
+      ledger,
+      selected.bootstrap_retained_bytes,
+      selected.bootstrap_execution_bytes,
+    ) {
+    Err(issue) => return Err(Resource(issue))
+    Ok(value) => value
+  }
+  let scope = match
+    @publication_host.begin_client_model_read_scope(
+      selected.compiled,
+      selected.definition,
+      selected.graph,
+      ledger,
+      bootstrap,
+      selected.max_reservations,
+      selected.max_holdings,
+      selected.max_delegations,
+    ) {
+    Err(issue) => return Err(ModelRead(issue))
+    Ok(value) => value
+  }
+  let run = new_installed_managed_run_owned(
     PlannedEffectManaged(admission, plan),
     request,
     ledger,
   )
-  value.source_free_preparation = plan.source_free
-  require_installed_managed_run(value).map(_ => value)
+  run.source_free_preparation = plan.source_free
+  require_installed_managed_run(run).map(_ => (run, scope))
 }
 
 ///|
@@ -227,11 +270,34 @@ pub fn begin_prepared_installed_effect_managed_run(
 /// Compute-only Effect parents cannot fund a normal operation from spare bytes.
 pub fn installed_effect_managed_operation_plan(
   value : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
 ) -> Result[ClientInstalledEffectManagedPlan, ClientInstalledManagedRunIssue] {
+  require_installed_effect_operation_plan(value, prepared, request).map(pair => {
+    pair.0
+  })
+}
+
+///|
+// One synchronous original-current boundary supplies both retained DATA and
+// its Ledger. The existing require call checks the same original preparation
+// again after its callback; this pair never escapes as a reusable proof.
+fn require_installed_effect_operation_plan(
+  value : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+) -> Result[
+  (ClientInstalledEffectManagedPlan, @resources.Ledger),
+  ClientInstalledManagedRunIssue,
+] {
   guard value.preparation is Some(PlannedEffectManaged(_, plan)) else {
     return Err(Unsupported)
   }
-  require_installed_managed_run(value).map(_ => plan)
+  match check_installed_effect_managed_run_binding(value, prepared, request) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  require_installed_managed_run(value).map(ledger => (plan, ledger))
 }
 
 ///|

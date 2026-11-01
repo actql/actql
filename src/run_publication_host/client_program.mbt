@@ -8,12 +8,15 @@ pub(all) struct ClientProgramPreparationLimits {
   max_parameter_name_bytes : Int
   max_tasks : Int
   max_graph_work : Int
+  // Selected Local Values execution envelope; None retains ordinary demand.
+  values_max_rows : Int?
 }
 
 ///|
 pub(all) enum ClientProgramPreparationIssue {
   Syntax(@syntax.SyntaxError)
   EffectNotSupported(String)
+  ValuesProfileUnsupported
   NeedsInputs(@checked.InputRequests)
   Check(@checked.CheckDiagnostic)
   MissingCheckedStage(Int)
@@ -34,6 +37,8 @@ struct PreparedClientProgram {
   sequence_preparation_demand : @lower.SequencePreparationDemand
   mut local_normalization : ClientLocalNormalization?
   full_sequences : Array[ClientFullSequence]
+  task_pipeline_inputs : Array[ClientTaskPipelineRetained]
+  mut compiler_contracts : ClientCompilerContracts?
 }
 
 ///|
@@ -45,28 +50,44 @@ pub fn with_prepared_client_values_row_limit(
   value : PreparedClientProgram,
   max_rows : Int,
 ) -> PreparedClientProgram? {
+  if !client_values_row_limit_supported(value.graph, max_rows) {
+    return None
+  }
+  Some({
+    ..value,
+    local_values_max_rows: max_rows,
+    full_sequences: [],
+    task_pipeline_inputs: [],
+  })
+}
+
+///|
+fn client_values_row_limit_supported(
+  graph : @strategy.CheckedDAG,
+  max_rows : Int,
+) -> Bool {
   let standard = client_standard_values_sequence_limits()
   if max_rows < 1 ||
     max_rows > standard.max_cells ||
-    @strategy.graph_task_count(value.graph) != 1 ||
-    prepared_client_uses_graph_carrier(value) {
-    return None
+    @strategy.graph_task_count(graph) != 1 ||
+    client_graph_uses_graph_carrier(graph) {
+    return false
   }
-  guard @strategy.graph_task_owner(value.graph, 0) is Some(owner) else {
-    return None
+  guard @strategy.graph_task_owner(graph, 0) is Some(owner) else {
+    return false
   }
   let prepared = @lower.bound_preparation(owner)
   let pipeline = @lower.pipeline(prepared)
   if !@pipeline.starts_with_values(pipeline) {
-    return None
+    return false
   }
   for step in 0..<@pipeline.step_count(pipeline) {
     if @lower.node_at(prepared, step) is Some(node) &&
       @lower.payload(node) is @lower.Infer(_) {
-      return None
+      return false
     }
   }
-  Some({ ..value, local_values_max_rows: max_rows, full_sequences: [], })
+  true
 }
 
 ///|
@@ -166,8 +187,13 @@ pub fn prepared_client_values_max_rows(value : PreparedClientProgram) -> Int {
 pub fn prepared_client_uses_graph_carrier(
   value : PreparedClientProgram,
 ) -> Bool {
-  for task in 0..<@strategy.graph_task_count(value.graph) {
-    guard @strategy.graph_task_owner(value.graph, task) is Some(owner) else {
+  client_graph_uses_graph_carrier(value.graph)
+}
+
+///|
+fn client_graph_uses_graph_carrier(graph : @strategy.CheckedDAG) -> Bool {
+  for task in 0..<@strategy.graph_task_count(graph) {
+    guard @strategy.graph_task_owner(graph, task) is Some(owner) else {
       continue
     }
     let pipeline = @lower.pipeline(@lower.bound_preparation(owner))
@@ -192,7 +218,9 @@ pub fn prepared_client_requires_task_compilation(
     return true
   }
   if !@strategy.graph_source_free_inputs_complete(value.graph) {
-    return false
+    // A single captured task still has an original receiving input. The
+    // direct Values compiler requires its own source-free Values root.
+    return true
   }
   guard @strategy.graph_task_owner(value.graph, 0) is Some(owner) else {
     return false
@@ -528,6 +556,7 @@ pub fn emit_prepared_client_task_aoa_steps(
       max_body_depth: max_depth,
     },
     writer,
+    compiler_contracts=value.compiler_contracts,
   ) catch {
     _ => return Err(Encoding)
   }
@@ -606,6 +635,101 @@ fn client_task_target_port(
 /// Emit the checked AoA pipeline of one task, including its declared input
 /// ports. A source input remains an input port; this does not claim that its
 /// physical acquisition, barrier, or Run observation has been admitted.
+priv struct ClientTaskPipelineInput {
+  owner : @lower.BoundPrepared
+  sequence : @lower.PreparedSequence
+  end_step : Int
+  output : String
+  selected : Int?
+  prefix_end : Int?
+  first_sequence_step : Int
+  sequence_end : Int
+  mut emission : ClientTaskPipelineEmission?
+  compiler_contracts : ClientCompilerContracts?
+}
+
+///|
+priv struct ClientTaskPipelineEmission {
+  max_wire_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  steps : ClientSequenceEmission
+}
+
+///|
+fn client_task_pipeline_emission(
+  input : ClientTaskPipelineInput,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  prepare? : (@lower.PreparedSequence, Int, Int, @execution.RegistryLimits) -> ClientSequenceEmission raise @encode.EncodeFailure = prepare_client_sequence_steps,
+) -> ClientSequenceEmission raise @encode.EncodeFailure {
+  if input.emission is Some(retained) &&
+    retained.max_wire_bytes == max_wire_bytes &&
+    retained.max_nodes == max_nodes &&
+    retained.max_depth == max_depth {
+    return retained.steps
+  }
+  let physical : @execution.RegistryLimits = {
+    max_body_bytes: max_wire_bytes,
+    max_body_nodes: max_nodes,
+    max_body_depth: max_depth,
+  }
+  let steps = match input.compiler_contracts {
+    Some(original) =>
+      prepare_client_sequence_steps_owned(
+        input.sequence,
+        input.first_sequence_step,
+        input.sequence_end,
+        physical,
+        Some(original),
+      )
+    None =>
+      prepare(
+        input.sequence,
+        input.first_sequence_step,
+        input.sequence_end,
+        physical,
+      )
+  }
+  // The ordered-reference work and registered contract belong to this exact
+  // sequence/range and codec profile, not to another Program or new bounds.
+  input.emission = Some({ max_wire_bytes, max_nodes, max_depth, steps, })
+  steps
+}
+
+///|
+priv struct ClientTaskPipelineRetained {
+  task : Int
+  limits : @lower.SequenceLimits
+  input : ClientTaskPipelineInput
+}
+
+///|
+fn retain_client_task_pipeline_input(
+  original : PreparedClientProgram,
+  task : Int,
+  limits : @lower.SequenceLimits,
+  prepared : Result[ClientTaskPipelineInput, ClientTaskPipelineIssue],
+) -> Result[ClientTaskPipelineInput, ClientTaskPipelineIssue] {
+  let input = match prepared {
+    Ok(input) => input
+    Err(issue) => return Err(issue)
+  }
+  let retained = { task, limits, input, }
+  for index in 0..<original.task_pipeline_inputs.length() {
+    if original.task_pipeline_inputs[index].task == task {
+      original.task_pipeline_inputs[index] = retained
+      return Ok(input)
+    }
+  }
+  // One successful selection per original graph task. Changed limits replace
+  // it; a failed preparation cannot overwrite an earlier successful selection.
+  original.task_pipeline_inputs.push(retained)
+  Ok(input)
+}
+
+///|
 pub fn emit_prepared_client_task_pipeline(
   value : PreparedClientProgram,
   task : Int,
@@ -614,8 +738,224 @@ pub fn emit_prepared_client_task_pipeline(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[String, ClientTaskPipelineIssue] {
+  construct_prepared_client_task_pipeline(
+    value, task, limits, max_wire_bytes, max_nodes, max_depth,
+  ).map(original => original.wire)
+}
+
+///|
+// The canonical reader already admitted this exact body before its original
+// final stringify. Retaining that SAME immutable value avoids parsing our own
+// wire again at Fragment construction. This private per-call data is neither
+// a foreign-wire admission nor a grant; it is not cached on a Program or Run.
+priv struct ClientTaskPipelineConstruction {
+  wire : String
+  body : @canonical.CanonicalValue
+}
+
+///|
+fn construct_prepared_client_task_pipeline(
+  value : PreparedClientProgram,
+  task : Int,
+  limits : @lower.SequenceLimits,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[ClientTaskPipelineConstruction, ClientTaskPipelineIssue] {
+  let input = match
+    prepare_prepared_client_task_pipeline_input(value, task, limits) {
+    Ok(input) => input
+    Err(issue) => return Err(issue)
+  }
+  construct_client_task_pipeline(input, max_wire_bytes, max_nodes, max_depth)
+}
+
+///|
+/// Measure the actual initial Task pipeline writer, before canonical admission
+/// and selected-task projection. This is not the final projected wire size or
+/// a grant for lowering, parsing, projection or their overlapping live bodies.
+/// The same original task/limits retain the selected sequence for construction.
+pub fn measure_prepared_client_task_pipeline_input(
+  value : PreparedClientProgram,
+  task : Int,
+  limits : @lower.SequenceLimits,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[(Int, Int, Int), ClientTaskPipelineIssue] {
+  let input = match
+    prepare_prepared_client_task_pipeline_input(value, task, limits) {
+    Ok(input) => input
+    Err(issue) => return Err(issue)
+  }
+  measure_client_task_pipeline_input(
+    input, max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+fn measure_client_task_pipeline_input(
+  input : ClientTaskPipelineInput,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[(Int, Int, Int), ClientTaskPipelineIssue] {
+  try {
+    let writer = @encode.measuring_writer(max_wire_bytes, max_nodes, max_depth)
+    emit_client_task_pipeline_input_body(
+      input, max_wire_bytes, max_nodes, max_depth, writer,
+    )
+    Ok(@encode.finish_measurement_usage(writer))
+  } catch {
+    _ => Err(Encoding)
+  }
+}
+
+///|
+/// Initial writer geometry and a bound on the final selected pipeline. The
+/// initial extent is exact. Projected bytes are an upper bound; nodes/depth
+/// retain the same structural counts. Neither tuple admits a pipeline or
+/// replaces the original constructor's canonical, reference or codec checks.
+pub fn measure_prepared_client_task_pipeline_construction(
+  value : PreparedClientProgram,
+  task : Int,
+  limits : @lower.SequenceLimits,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[((Int, Int, Int), (Int, Int, Int)), ClientTaskPipelineIssue] {
+  let input = match
+    prepare_prepared_client_task_pipeline_input(value, task, limits) {
+    Ok(input) => input
+    Err(issue) => return Err(issue)
+  }
+  measure_client_task_pipeline_construction(
+    input, max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+// SAME original selected pipeline measurement for ordinary tasks and private
+// Content/Model prefix constructors. No pipeline wire or identity is issued.
+fn measure_client_task_pipeline_construction(
+  input : ClientTaskPipelineInput,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[((Int, Int, Int), (Int, Int, Int)), ClientTaskPipelineIssue] {
+  let initial = match
+    measure_client_task_pipeline_input(
+      input, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(geometry) => geometry
+    Err(issue) => return Err(issue)
+  }
+  if input.selected is None && input.prefix_end is None {
+    // The preserving canonical reader changes object order, not this emitted
+    // structure, keys, scalar text or already canonical Number encodings.
+    return Ok((initial, initial))
+  }
+  try {
+    let retained = client_task_pipeline_emission(
+      input, max_wire_bytes, max_nodes, max_depth,
+    )
+    let slice_writer = @encode.measuring_writer(
+      max_wire_bytes, max_nodes, max_depth,
+    )
+    emit_prepared_client_sequence_range(
+      retained,
+      input.selected.unwrap_or(0),
+      input.end_step + 1,
+      slice_writer,
+    )
+    let slice = @encode.finish_measurement_usage(slice_writer)
+    let label_bytes = if input.selected is Some(step) {
+      let count = @lower.node_at(@lower.bound_preparation(input.owner), step)
+        .map(@lower.node_input_count)
+        .unwrap_or(0)
+      if count == 0 {
+        0
+      } else {
+        let label = @encode.measuring_writer(
+          max_wire_bytes, max_nodes, max_depth,
+        )
+        @encode.string_value(label, "input_" + (count - 1).to_string())
+        @encode.finish_measurement(label)
+      }
+    } else {
+      0
+    }
+    // Every replaced reference is a String value node. Count all slice nodes
+    // as a conservative occurrence bound, even if most are other payloads;
+    // no old reference length is subtracted. Generated labels are ASCII and
+    // the largest input ordinal has the longest exact encoded label.
+    let step_bytes_upper = if label_bytes == 0 {
+      slice.0.to_int64()
+    } else {
+      guard @execution.checked_preparation_add_product(
+          slice.0.to_int64(),
+          slice.1.to_int64(),
+          label_bytes.to_int64(),
+        )
+        is Some(bytes) else {
+        return Err(Encoding)
+      }
+      bytes
+    }
+    let empty = @encode.measuring_writer(max_wire_bytes, max_nodes, max_depth)
+    @encode.begin_array(empty)
+    @encode.end_array(empty)
+    let empty_steps = @encode.finish_measurement_usage(empty)
+    let header_writer = @encode.measuring_writer(
+      max_wire_bytes, max_nodes, max_depth,
+    )
+    match
+      emit_client_task_pipeline_body(
+        input, true, empty_steps, emit_client_task_pipeline_measurement, header_writer,
+      ) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+    let header = @encode.finish_measurement_usage(header_writer)
+    // Any successful final writer already satisfies its selected codec bound.
+    // Clamp only the sizing bound for its subtree to the exact shared header's
+    // remaining byte room. This does not alter admission or a Resource policy.
+    let step_room = max_wire_bytes.to_int64() -
+      header.0.to_int64() +
+      empty_steps.0.to_int64()
+    let steps_upper = (
+      Int64::min(step_room, step_bytes_upper).to_int(),
+      slice.1,
+      slice.2,
+    )
+    let writer = @encode.measuring_writer(max_wire_bytes, max_nodes, max_depth)
+    match
+      emit_client_task_pipeline_body(
+        input, true, steps_upper, emit_client_task_pipeline_measurement, writer,
+      ) {
+      Ok(_) => Ok((initial, @encode.finish_measurement_usage(writer)))
+      Err(issue) => Err(issue)
+    }
+  } catch {
+    _ => Err(Encoding)
+  }
+}
+
+///|
+fn prepare_prepared_client_task_pipeline_input(
+  value : PreparedClientProgram,
+  task : Int,
+  limits : @lower.SequenceLimits,
+) -> Result[ClientTaskPipelineInput, ClientTaskPipelineIssue] {
   guard @strategy.graph_task_owner(value.graph, task) is Some(owner) else {
     return Err(MissingTask)
+  }
+  for retained in value.task_pipeline_inputs {
+    if retained.task == task &&
+      physical_equal(retained.input.owner, owner) &&
+      client_full_sequence_limits_match(retained.limits, limits) {
+      return Ok(retained.input)
+    }
   }
   let pipeline = @lower.pipeline(@lower.bound_preparation(owner))
   let count = @pipeline.step_count(pipeline)
@@ -627,17 +967,20 @@ pub fn emit_prepared_client_task_pipeline(
       is Some(port) else {
       return Err(MissingOutput)
     }
-    return emit_client_task_pipeline_prefix(
-      owner,
-      -1,
-      port,
-      None,
-      None,
-      false,
+    return retain_client_task_pipeline_input(
+      value,
+      task,
       limits,
-      max_wire_bytes,
-      max_nodes,
-      max_depth,
+      prepare_client_task_pipeline_input(
+        owner,
+        -1,
+        port,
+        None,
+        None,
+        false,
+        limits,
+        preparation=Some((value, task)),
+      ),
     )
   }
   guard client_task_output_step(value.graph, task, count) is Some(end_step) &&
@@ -664,26 +1007,29 @@ pub fn emit_prepared_client_task_pipeline(
       }
     }
   }
-  emit_client_task_pipeline_prefix(
-    owner,
-    end_step,
-    @lower.node_id(output),
-    selected,
-    prefix_end,
-    selected is Some(_) && completed_serialization is None,
+  retain_client_task_pipeline_input(
+    value,
+    task,
     limits,
-    max_wire_bytes,
-    max_nodes,
-    max_depth,
-    infer_boundary=completed_infer,
-    completed_serialization~,
+    prepare_client_task_pipeline_input(
+      owner,
+      end_step,
+      @lower.node_id(output),
+      selected,
+      prefix_end,
+      selected is Some(_) && completed_serialization is None,
+      limits,
+      infer_boundary=completed_infer,
+      completed_serialization~,
+      preparation=Some((value, task)),
+    ),
   )
 }
 
 ///|
 /// The caller chooses a checked output before preparing pure computation.
 /// Acquisition steps after that output must not enter its AoA fragment.
-fn emit_client_task_pipeline_prefix(
+fn prepare_client_task_pipeline_input(
   owner : @lower.BoundPrepared,
   end_step : Int,
   output : String,
@@ -691,15 +1037,12 @@ fn emit_client_task_pipeline_prefix(
   prefix_end : Int?,
   acquisition_prefix : Bool,
   limits : @lower.SequenceLimits,
-  max_wire_bytes : Int,
-  max_nodes : Int,
-  max_depth : Int,
   infer_boundary? : Int? = None,
   serialization_input? : @lower.PreparedSerialization? = None,
   completed_serialization? : (Int, Int)? = None,
   serialization_boundary? : Int? = None,
-) -> Result[String, ClientTaskPipelineIssue] {
-  let pipeline = @lower.pipeline(@lower.bound_preparation(owner))
+  preparation? : (PreparedClientProgram, Int)? = None,
+) -> Result[ClientTaskPipelineInput, ClientTaskPipelineIssue] {
   let prepared_sequence = if completed_serialization
     is Some((producer, terminal)) {
     guard serialization_input is None &&
@@ -732,6 +1075,19 @@ fn emit_client_task_pipeline_prefix(
     )
   } else if acquisition_prefix {
     @lower.prepare_sequence_prefix(owner, end_step, limits)
+  } else if preparation is Some((original, task)) {
+    guard @strategy.graph_task_owner(original.graph, task) is Some(selected) &&
+      physical_equal(selected, owner) else {
+      return Err(MissingTask)
+    }
+    // Reuse the SAME full lowering already retained by this Program/module.
+    // Selected acquisition, Model and Content prefixes stay on their distinct
+    // branches above; an equal owner or different limits cannot supply it.
+    match prepare_prepared_client_full_sequence(original, task, limits) {
+      Ok(sequence) => Ok(sequence)
+      Err(Sequence(issue)) => Err(issue)
+      Err(_) => return Err(MissingTask)
+    }
   } else {
     @lower.prepare_sequence(owner, limits)
   }
@@ -739,66 +1095,251 @@ fn emit_client_task_pipeline_prefix(
     Ok(value) => value
     Err(issue) => return Err(Sequence(issue))
   }
+  let (first_sequence_step, sequence_end) = if infer_boundary is Some(_) ||
+    completed_serialization is Some(_) {
+    guard selected is Some(step) else { return Err(Encoding) }
+    (step, step + 1)
+  } else {
+    (0, @lower.sequence_count(sequence))
+  }
+  Ok({
+    owner,
+    sequence,
+    end_step,
+    output,
+    selected,
+    prefix_end,
+    first_sequence_step,
+    sequence_end,
+    emission: None,
+    compiler_contracts: preparation.bind(pair => pair.0.compiler_contracts),
+  })
+}
+
+///|
+fn construct_client_task_pipeline_prefix(
+  owner : @lower.BoundPrepared,
+  end_step : Int,
+  output : String,
+  selected : Int?,
+  prefix_end : Int?,
+  acquisition_prefix : Bool,
+  limits : @lower.SequenceLimits,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  infer_boundary? : Int? = None,
+  serialization_input? : @lower.PreparedSerialization? = None,
+  completed_serialization? : (Int, Int)? = None,
+  serialization_boundary? : Int? = None,
+  preparation? : (PreparedClientProgram, Int)? = None,
+) -> Result[ClientTaskPipelineConstruction, ClientTaskPipelineIssue] {
+  let input = match
+    prepare_client_task_pipeline_input(
+      owner,
+      end_step,
+      output,
+      selected,
+      prefix_end,
+      acquisition_prefix,
+      limits,
+      infer_boundary~,
+      serialization_input~,
+      completed_serialization~,
+      serialization_boundary~,
+      preparation~,
+    ) {
+    Ok(input) => input
+    Err(issue) => return Err(issue)
+  }
+  construct_client_task_pipeline(input, max_wire_bytes, max_nodes, max_depth)
+}
+
+///|
+fn emit_client_task_pipeline_measurement(
+  measurement : (Int, Int, Int),
+  writer : @encode.Writer,
+) -> Unit raise @encode.EncodeFailure {
+  @encode.emit_measurement(writer, measurement)
+}
+
+///|
+fn[T] emit_client_task_pipeline_body(
+  input : ClientTaskPipelineInput,
+  projected : Bool,
+  steps : T,
+  emit_steps : (T, @encode.Writer) -> Unit raise @encode.EncodeFailure,
+  writer : @encode.Writer,
+) -> Result[Unit, ClientTaskPipelineIssue] raise @encode.EncodeFailure {
+  let prepared = @lower.bound_preparation(input.owner)
+  let pipeline = @lower.pipeline(prepared)
+  @encode.begin_object(writer)
+  @encode.key(writer, "output")
+  @encode.string_value(writer, input.output)
+  @encode.key(writer, "sources")
+  @encode.begin_object(writer)
+  if projected && input.selected is Some(step) {
+    let node = @lower.node_at(prepared, step).unwrap()
+    for index in 0..<@lower.node_input_count(node) {
+      guard @lower.node_input_target(node, index) is Some(target) &&
+        @lower.preparation_carrier_at(prepared, target) is Some(carrier) else {
+        return Err(UnsupportedCarrier)
+      }
+      @encode.key(writer, "input_" + index.to_string())
+      @encode.begin_object(writer)
+      @encode.key(writer, "sort")
+      @encode.string_value(writer, client_task_carrier_sort(carrier))
+      @encode.end_object(writer)
+    }
+  } else {
+    for index in 0..<@pipeline.input_count(pipeline) {
+      guard @pipeline.input_at(pipeline, index) is Some((name, carrier)) else {
+        return Err(if projected { UnsupportedCarrier } else { Encoding })
+      }
+      @encode.key(writer, name)
+      @encode.begin_object(writer)
+      @encode.key(writer, "sort")
+      @encode.string_value(writer, client_task_carrier_sort(carrier))
+      @encode.end_object(writer)
+    }
+  }
+  @encode.end_object(writer)
+  @encode.key(writer, "steps")
+  emit_steps(steps, writer)
+  @encode.key(writer, "version")
+  @encode.string_value(writer, "aoa-pipeline/0.1")
+  @encode.end_object(writer)
+  Ok(())
+}
+
+///|
+fn emit_client_task_pipeline_initial_steps(
+  input : (ClientTaskPipelineInput, Int, Int, Int),
+  writer : @encode.Writer,
+) -> Unit raise @encode.EncodeFailure {
+  emit_prepared_client_sequence_steps(
+    client_task_pipeline_emission(input.0, input.1, input.2, input.3),
+    writer,
+  )
+}
+
+///|
+fn emit_client_task_pipeline_input_body(
+  input : ClientTaskPipelineInput,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  writer : @encode.Writer,
+) -> Unit raise @encode.EncodeFailure {
+  match
+    emit_client_task_pipeline_body(
+      input,
+      false,
+      (input, max_wire_bytes, max_nodes, max_depth),
+      emit_client_task_pipeline_initial_steps,
+      writer,
+    ) {
+    Ok(_) => ()
+    Err(_) => raise @encode.InvalidStructure
+  }
+}
+
+///|
+priv struct ClientTaskPipelineProjection {
+  selected : Int?
+  included : Array[String]
+  remap : Array[(String, String)]
+  step_values : @canonical.FrozenArray[@canonical.CanonicalValue]
+}
+
+///|
+fn emit_client_task_pipeline_projected_steps(
+  input : ClientTaskPipelineProjection,
+  writer : @encode.Writer,
+) -> Unit raise @encode.EncodeFailure {
+  @encode.begin_array(writer)
+  let mut emitted = 0
+  for node in @canonical.array_values(input.step_values) {
+    guard @canonical.object_field(node, "id") is Some(@canonical.String(id)) else {
+      raise @encode.InvalidStructure
+    }
+    if !input.included.contains(id) {
+      continue
+    }
+    emitted += 1
+    if input.selected is None {
+      @canonical.emit_value(node, writer)
+      continue
+    }
+    guard @canonical.object_fields(node) is Some(fields) else {
+      raise @encode.InvalidStructure
+    }
+    @encode.begin_object(writer)
+    for (key, field) in fields {
+      @encode.key(writer, key)
+      if key == "in" {
+        guard field is @canonical.Array(refs) else {
+          raise @encode.InvalidStructure
+        }
+        @encode.begin_array(writer)
+        for reference in @canonical.array_values(refs) {
+          guard reference is @canonical.String(name) else {
+            raise @encode.InvalidStructure
+          }
+          let mut resolved = if input.included.contains(name) {
+            Some(name)
+          } else {
+            None
+          }
+          if resolved is None {
+            for pair in input.remap {
+              if pair.0 == name {
+                resolved = Some(pair.1)
+                break
+              }
+            }
+          }
+          guard resolved is Some(port) else { raise @encode.InvalidStructure }
+          @encode.string_value(writer, port)
+        }
+        @encode.end_array(writer)
+      } else {
+        @canonical.emit_value(field, writer)
+      }
+    }
+    @encode.end_object(writer)
+  }
+  if emitted != input.included.length() {
+    raise @encode.InvalidStructure
+  }
+  @encode.end_array(writer)
+}
+
+///|
+fn construct_client_task_pipeline(
+  input : ClientTaskPipelineInput,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[ClientTaskPipelineConstruction, ClientTaskPipelineIssue] {
+  let { owner, sequence, end_step, selected, prefix_end, .. } = input
   let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
     _ => return Err(Encoding)
   }
   try {
-    @encode.begin_object(writer)
-    @encode.key(writer, "output")
-    @encode.string_value(writer, output)
-    @encode.key(writer, "sources")
-    @encode.begin_object(writer)
-    for index in 0..<@pipeline.input_count(pipeline) {
-      guard @pipeline.input_at(pipeline, index) is Some((name, carrier)) else {
-        return Err(Encoding)
-      }
-      let sort = client_task_carrier_sort(carrier)
-      @encode.key(writer, name)
-      @encode.begin_object(writer)
-      @encode.key(writer, "sort")
-      @encode.string_value(writer, sort)
-      @encode.end_object(writer)
-    }
-    @encode.end_object(writer)
-    @encode.key(writer, "steps")
-    if infer_boundary is Some(_) || completed_serialization is Some(_) {
-      guard selected is Some(step) else { return Err(Encoding) }
-      emit_client_sequence_steps(
-        sequence,
-        step,
-        step + 1,
-        {
-          max_body_bytes: max_wire_bytes,
-          max_body_nodes: max_nodes,
-          max_body_depth: max_depth,
-        },
-        writer,
-      )
-    } else {
-      emit_client_sequence_steps(
-        sequence,
-        0,
-        @lower.sequence_count(sequence),
-        {
-          max_body_bytes: max_wire_bytes,
-          max_body_nodes: max_nodes,
-          max_body_depth: max_depth,
-        },
-        writer,
-      )
-    }
-    @encode.key(writer, "version")
-    @encode.string_value(writer, "aoa-pipeline/0.1")
-    @encode.end_object(writer)
+    emit_client_task_pipeline_input_body(
+      input, max_wire_bytes, max_nodes, max_depth, writer,
+    )
     let raw = @encode.finish(writer)
     guard parse_plan_identity_value(raw, max_wire_bytes, max_nodes, max_depth)
       is Some(body) else {
       return Err(Encoding)
     }
     if selected is None && prefix_end is None {
-      return Ok(
-        @canonical.stringify_value(body, max_wire_bytes, max_nodes, max_depth),
+      let wire = @canonical.stringify_value(
+        body, max_wire_bytes, max_nodes, max_depth,
       )
+      return Ok({ wire, body, })
     }
     let first_step = selected.unwrap_or(0)
     let included : Array[String] = []
@@ -839,98 +1380,17 @@ fn emit_client_task_pipeline_prefix(
       return Err(Encoding)
     }
     let task_writer = @encode.writer(max_wire_bytes, max_nodes, max_depth)
-    @encode.begin_object(task_writer)
-    @encode.key(task_writer, "output")
-    @encode.string_value(task_writer, output)
-    @encode.key(task_writer, "sources")
-    @encode.begin_object(task_writer)
-    if selected is Some(step) {
-      let node = @lower.node_at(@lower.bound_preparation(owner), step).unwrap()
-      for input in 0..<@lower.node_input_count(node) {
-        guard @lower.node_input_target(node, input) is Some(target) &&
-          @lower.preparation_carrier_at(@lower.bound_preparation(owner), target)
-          is Some(carrier) else {
-          return Err(UnsupportedCarrier)
-        }
-        let sort = client_task_carrier_sort(carrier)
-        @encode.key(task_writer, "input_" + input.to_string())
-        @encode.begin_object(task_writer)
-        @encode.key(task_writer, "sort")
-        @encode.string_value(task_writer, sort)
-        @encode.end_object(task_writer)
-      }
-    } else {
-      for input in 0..<@pipeline.input_count(pipeline) {
-        guard @pipeline.input_at(pipeline, input) is Some((name, carrier)) else {
-          return Err(UnsupportedCarrier)
-        }
-        let sort = client_task_carrier_sort(carrier)
-        @encode.key(task_writer, name)
-        @encode.begin_object(task_writer)
-        @encode.key(task_writer, "sort")
-        @encode.string_value(task_writer, sort)
-        @encode.end_object(task_writer)
-      }
+    match
+      emit_client_task_pipeline_body(
+        input,
+        true,
+        { selected, included, remap, step_values, },
+        emit_client_task_pipeline_projected_steps,
+        task_writer,
+      ) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
     }
-    @encode.end_object(task_writer)
-    @encode.key(task_writer, "steps")
-    @encode.begin_array(task_writer)
-    let mut emitted = 0
-    for node in @canonical.array_values(step_values) {
-      guard @canonical.object_field(node, "id") is Some(@canonical.String(id)) else {
-        return Err(Encoding)
-      }
-      if !included.contains(id) {
-        continue
-      }
-      emitted += 1
-      if selected is None {
-        @canonical.emit_value(node, task_writer)
-        continue
-      }
-      guard @canonical.object_fields(node) is Some(fields) else {
-        return Err(Encoding)
-      }
-      @encode.begin_object(task_writer)
-      for (key, field) in fields {
-        @encode.key(task_writer, key)
-        if key == "in" {
-          guard field is @canonical.Array(refs) else { return Err(Encoding) }
-          @encode.begin_array(task_writer)
-          for reference in @canonical.array_values(refs) {
-            guard reference is @canonical.String(name) else {
-              return Err(Encoding)
-            }
-            let mut resolved = if included.contains(name) {
-              Some(name)
-            } else {
-              None
-            }
-            if resolved is None {
-              for pair in remap {
-                if pair.0 == name {
-                  resolved = Some(pair.1)
-                  break
-                }
-              }
-            }
-            guard resolved is Some(port) else { return Err(Encoding) }
-            @encode.string_value(task_writer, port)
-          }
-          @encode.end_array(task_writer)
-        } else {
-          @canonical.emit_value(field, task_writer)
-        }
-      }
-      @encode.end_object(task_writer)
-    }
-    if emitted != included.length() {
-      return Err(Encoding)
-    }
-    @encode.end_array(task_writer)
-    @encode.key(task_writer, "version")
-    @encode.string_value(task_writer, "aoa-pipeline/0.1")
-    @encode.end_object(task_writer)
     let task_raw = @encode.finish(task_writer)
     guard parse_plan_identity_value(
         task_raw, max_wire_bytes, max_nodes, max_depth,
@@ -938,11 +1398,10 @@ fn emit_client_task_pipeline_prefix(
       is Some(task_body) else {
       return Err(Encoding)
     }
-    Ok(
-      @canonical.stringify_value(
-        task_body, max_wire_bytes, max_nodes, max_depth,
-      ),
+    let wire = @canonical.stringify_value(
+      task_body, max_wire_bytes, max_nodes, max_depth,
     )
+    Ok({ wire, body: task_body, })
   } catch {
     _ => Err(Encoding)
   }
@@ -1083,6 +1542,7 @@ fn emit_client_values_pipeline_into(
         max_body_depth: max_depth,
       },
       writer,
+      compiler_contracts=preparation.bind(value => value.compiler_contracts),
     )
     @encode.key(writer, "version")
     @encode.string_value(writer, "aoa-pipeline/0.1")
@@ -1590,7 +2050,10 @@ fn prepare_client_task_sequence_graph(
 /// substitute a pipeline, parameter binding, profile, or owner at this step.
 fn prepare_client_stage_owners(
   checked : @checked.CheckedProgram,
-  limits : ClientProgramPreparationLimits,
+  limits : @lower.Limits,
+  max_parameters~ : Int,
+  max_parameter_name_bytes~ : Int,
+  lowering_work_out? : Ref[Int64]? = None,
 ) -> Result[Array[@lower.BoundPrepared], ClientStageOwnerIssue] {
   let identity = @checked.source_identity(checked)
   let selected = @checked.selected_expression_profiles(checked)
@@ -1600,9 +2063,12 @@ fn prepare_client_stage_owners(
     guard @checked.unit_pipeline(checked, stage) is Some(pipeline) else {
       return Err(MissingCheckedStage(stage))
     }
-    let preparation = match @lower.prepare(pipeline, limits.lowering) {
+    let preparation = match @lower.prepare(pipeline, limits) {
       Ok(value) => value
       Err(issue) => return Err(Lowering(issue))
+    }
+    if lowering_work_out is Some(observed) {
+      observed.val += @lower.usage(preparation).work.to_int64()
     }
     guard @context.program_identity_stage_at(identity, stage) is Some(source) else {
       return Err(MissingStageIdentity(stage))
@@ -1614,8 +2080,8 @@ fn prepare_client_stage_owners(
       @lower.bind_parameters(
         preparation,
         Some(parameters),
-        max_parameters=limits.max_parameters,
-        max_name_bytes=limits.max_parameter_name_bytes,
+        max_parameters~,
+        max_name_bytes=max_parameter_name_bytes,
         expression_profiles={
           text_time: selected.text_time,
           veca: selected.veca,
@@ -1633,7 +2099,7 @@ fn prepare_client_stage_owners(
             owner,
             closure,
             stage,
-            limits.lowering.max_work,
+            limits.max_work,
           ) {
           Ok(value) => value
           Err(issue) => return Err(Binding(issue))
@@ -1697,7 +2163,125 @@ pub fn prepare_parsed_effect_free_client_program(
     NeedsInputs(requests) => return Err(NeedsInputs(requests))
     Rejected(diagnostic) => return Err(Check(diagnostic))
   }
-  let owners = match prepare_client_stage_owners(checked, limits) {
+  // The Effect restriction ran before checking, preserving its original
+  // refusal precedence. Continue this exact result, without another scan/check.
+  compile_effect_free_checked_client_program(
+    checked,
+    limits.lowering,
+    max_parameters=limits.max_parameters,
+    max_parameter_name_bytes=limits.max_parameter_name_bytes,
+    max_tasks=limits.max_tasks,
+    max_graph_work=limits.max_graph_work,
+    values_max_rows=limits.values_max_rows,
+  )
+}
+
+///|
+/// Compile the original completed check without parsing, input/evidence
+/// admission or semantic checking again. Lowering binds the original checked
+/// Parameter values to its own expressions. Source, Environment and Result
+/// inventory come only from that original. The caller funds graph coexistence
+/// before entry; this function does not create a Resource owner or admit a Run.
+/// Effect preparations still require their separate original candidate path.
+pub fn prepare_checked_effect_free_client_program(
+  checked : @checked.CheckedProgram,
+  lowering : @lower.Limits,
+  max_parameters~ : Int,
+  max_parameter_name_bytes~ : Int,
+  max_tasks~ : Int,
+  max_graph_work~ : Int,
+  values_max_rows? : Int? = None,
+) -> Result[PreparedClientProgram, ClientProgramPreparationIssue] {
+  prepare_checked_effect_free_client_program_owned(
+    checked,
+    lowering,
+    max_parameters~,
+    max_parameter_name_bytes~,
+    max_tasks~,
+    max_graph_work~,
+    values_max_rows~,
+  )
+}
+
+///|
+/// The SAME compiler, with work of each completed original lowering pass.
+/// This is a known prefix, not complete binding/Graph or late-failure Usage.
+/// No parser, checker, lowering pass or Plan is repeated to obtain it.
+pub fn observe_prepare_checked_effect_free_client_program(
+  checked : @checked.CheckedProgram,
+  lowering : @lower.Limits,
+  max_parameters~ : Int,
+  max_parameter_name_bytes~ : Int,
+  max_tasks~ : Int,
+  max_graph_work~ : Int,
+  values_max_rows? : Int? = None,
+) -> (Result[PreparedClientProgram, ClientProgramPreparationIssue], Int64) {
+  let work = Ref(0L)
+  let result = prepare_checked_effect_free_client_program_owned(
+    checked,
+    lowering,
+    max_parameters~,
+    max_parameter_name_bytes~,
+    max_tasks~,
+    max_graph_work~,
+    values_max_rows~,
+    lowering_work_out=Some(work),
+  )
+  (result, work.val)
+}
+
+///|
+fn prepare_checked_effect_free_client_program_owned(
+  checked : @checked.CheckedProgram,
+  lowering : @lower.Limits,
+  max_parameters~ : Int,
+  max_parameter_name_bytes~ : Int,
+  max_tasks~ : Int,
+  max_graph_work~ : Int,
+  values_max_rows? : Int? = None,
+  lowering_work_out? : Ref[Int64]? = None,
+) -> Result[PreparedClientProgram, ClientProgramPreparationIssue] {
+  // The checker already refused nonempty Effects on its Pure path. Read its
+  // retained classification instead of copying/scanning every Stage again.
+  // Only an Effect candidate needs its original Stage for the typed refusal.
+  if @checked.checked_program_has_effects(checked) {
+    for stage in @syntax.stages(@checked.checked_source_program(checked)) {
+      if !@syntax.effect_names(stage).is_empty() {
+        return Err(EffectNotSupported(stage.id))
+      }
+    }
+  }
+  compile_effect_free_checked_client_program(
+    checked,
+    lowering,
+    max_parameters~,
+    max_parameter_name_bytes~,
+    max_tasks~,
+    max_graph_work~,
+    values_max_rows~,
+    lowering_work_out~,
+  )
+}
+
+///|
+fn compile_effect_free_checked_client_program(
+  checked : @checked.CheckedProgram,
+  lowering : @lower.Limits,
+  max_parameters~ : Int,
+  max_parameter_name_bytes~ : Int,
+  max_tasks~ : Int,
+  max_graph_work~ : Int,
+  values_max_rows? : Int? = None,
+  lowering_work_out? : Ref[Int64]? = None,
+) -> Result[PreparedClientProgram, ClientProgramPreparationIssue] {
+  let owners = match
+    prepare_client_stage_owners(
+      checked,
+      lowering,
+      max_parameters~,
+      max_parameter_name_bytes~,
+      lowering_work_out~,
+    ) {
     Ok(value) => value
     Err(issue) =>
       return Err(
@@ -1710,7 +2294,7 @@ pub fn prepare_parsed_effect_free_client_program(
       )
   }
   let sequence_preparation_demand = match
-    client_sequence_preparation_demand(owners, limits.max_graph_work) {
+    client_sequence_preparation_demand(owners, max_graph_work) {
     Ok(value) => value
     Err(issue) => return Err(Graph(issue))
   }
@@ -1718,33 +2302,46 @@ pub fn prepare_parsed_effect_free_client_program(
     @strategy.prepare_checked_dag(
       checked,
       owners,
-      limits.max_tasks,
-      limits.max_graph_work,
+      max_tasks,
+      max_graph_work,
       captured_prefix=client_program_acquisition_prefix(checked),
       source_free_root=owners.length() > 0 &&
         @pipeline.starts_with_selected_local_generator(
           @lower.pipeline(@lower.bound_preparation(owners[0])),
         ),
     ) {
-    Ok(graph) =>
+    Ok(graph) => {
+      if values_max_rows is Some(max_rows) &&
+        !client_values_row_limit_supported(graph, max_rows) {
+        return Err(ValuesProfileUnsupported)
+      }
       Ok({
         graph,
         sequence_preparation_demand,
-        check_environment_cid: @checked.checking_environment_cid(environment),
-        source: parsed,
+        check_environment_cid: @environment.cid(
+          @checked.checked_environment(checked),
+        ),
+        source: @checked.checked_source_program(checked),
         local_normalization: None,
         full_sequences: [],
+        task_pipeline_inputs: [],
+        compiler_contracts: None,
         // The default covers authored inlet demand and checked closed outputs.
-        // An explicit row-limit view replaces this envelope. The owned capacity
+        // An explicit installed row setting selects its first bound. The owned capacity
         // plan still independently admits the actual execution resources.
-        local_values_max_rows: Int::max(
-          client_standard_values_sequence_limits().max_rows,
-          Int::max(
-            sequence_preparation_demand.authored_literal_rows,
-            client_closed_owner_rows(owners, limits.max_graph_work).unwrap_or(0),
-          ),
-        ),
+        local_values_max_rows: match values_max_rows {
+          Some(max_rows) => max_rows
+          None =>
+            Int::max(
+              client_standard_values_sequence_limits().max_rows,
+              Int::max(
+                sequence_preparation_demand.authored_literal_rows,
+                client_closed_owner_rows(owners, max_graph_work).unwrap_or(0),
+              ),
+            )
+        },
       })
+    }
     Err(issue) => Err(Graph(issue))
   }
 }

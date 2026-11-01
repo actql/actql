@@ -8,7 +8,8 @@ test "original Model current Writer precharges same census without advancing Mod
   prepared_call_set(active).unwrap() |> ignore
   let model_work = active.work
   let before = @resources.ledger_usage(ledger)
-  assert_eq(before.attempts, 1)
+  assert_eq(before.attempts, 0)
+  assert_eq(before.reserved_attempts, 1)
   let quantities = @resources.quantity_usage(ledger)
   let park = park_original_model_resources_for_state_write(active, scope).unwrap()
   let charged = @resources.ledger_usage(ledger)

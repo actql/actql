@@ -8,6 +8,7 @@ from actql_sdk._local_core import (
     LocalCore, LocalCoreError, LOCAL_CORE_ABI, _ORIGINAL_SIGNATURES,
     _Input, _PhysicalInput,
 )
+from local_abi_declaration_fixture import original_byte_fixture_port
 
 
 class OriginalMetadataTests(unittest.TestCase):
@@ -43,7 +44,7 @@ class OriginalMetadataTests(unittest.TestCase):
             if (family, name) == ('original', 'close'):
                 return 0 if core._cleanup(2) == 0 else -9
             raise AssertionError('Unexpected adoption, Run or authority ABI')
-        core._call = call
+        core._call = original_byte_fixture_port(call)
         return core, source, calls, codes, payload
 
     def test_original_projection_preserves_bytes_and_source_without_adoption(self):

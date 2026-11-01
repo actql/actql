@@ -132,6 +132,39 @@ fn range_json_value(range : GridRange) -> Json {
 }
 
 ///|
+fn range_provider_identity_document(origin : String, spreadsheet_id : String) -> Json {
+  {
+    "version": "actql-sheets-provider/0.1",
+    "api_origin": origin.to_json(),
+    "spreadsheet_id": spreadsheet_id.to_json(),
+  }
+}
+
+///|
+fn range_identity_document(range : GridRange) -> Json {
+  { "version": "actql-sheets-range/0.1", "range": range_json_value(range) }
+}
+
+///|
+fn range_reference_document(
+  provider_cid : String,
+  identity_cid : String,
+  catalog_cid : String,
+  binding_cid : String,
+) -> Json {
+  {
+    "$actql_ref": "resource",
+    "version": "actql-resource-ref/0.1",
+    "provider_namespace": "sheets",
+    "resource_kind": "sheet_range",
+    "provider_identity_cid": provider_cid.to_json(),
+    "identity_cid": identity_cid.to_json(),
+    "authority_scope_cid": binding_cid.to_json(),
+    "boundary_cid": catalog_cid.to_json(),
+  }
+}
+
+///|
 pub fn range_reference(
   origin : String,
   spreadsheet_id : String,
@@ -142,11 +175,7 @@ pub fn range_reference(
 ) -> Result[Json, RangeFailure] {
   let provider_cid = match
     range_content_cid(
-      {
-        "version": "actql-sheets-provider/0.1",
-        "api_origin": origin.to_json(),
-        "spreadsheet_id": spreadsheet_id.to_json(),
-      },
+      range_provider_identity_document(origin, spreadsheet_id),
       limits,
     ) {
     Ok(value) => value
@@ -154,22 +183,13 @@ pub fn range_reference(
   }
   let identity_cid = match
     range_content_cid(
-      { "version": "actql-sheets-range/0.1", "range": range_json_value(range) },
+      range_identity_document(range),
       limits,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  Ok({
-    "$actql_ref": "resource",
-    "version": "actql-resource-ref/0.1",
-    "provider_namespace": "sheets",
-    "resource_kind": "sheet_range",
-    "provider_identity_cid": provider_cid.to_json(),
-    "identity_cid": identity_cid.to_json(),
-    "authority_scope_cid": binding_cid.to_json(),
-    "boundary_cid": catalog_cid.to_json(),
-  })
+  Ok(range_reference_document(provider_cid, identity_cid, catalog_cid, binding_cid))
 }
 
 ///|

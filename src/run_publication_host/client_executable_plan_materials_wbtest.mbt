@@ -20,7 +20,7 @@ test "original Values and Task compilations retain complete prior Plan emission"
     }
     let admitted = parse_plan_identity_value(original.wire, 65536, 8192, 64).unwrap()
     let profiles = executable_plan_emission_array(admitted, "required_profiles")
-    let parts : ClientExecutablePlanBody = {
+    let parts : ClientExecutablePlanBody[@canonical.CanonicalValue, String] = {
       fact_values: executable_plan_emission_array(admitted, "plan_facts"),
       limit_values: executable_plan_emission_array(admitted, "resolved_limits"),
       binding_values: executable_plan_emission_array(admitted, "limit_bindings"),

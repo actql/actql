@@ -101,3 +101,32 @@ test "capacity input binding rejects unknown and duplicate authored selectors" {
   assert_true(bind_capacity_inputs(program, [], -1) is Err(InvalidLimits))
   assert_true(bind_capacity_inputs(program, [], 0) is Err(BudgetExceeded))
 }
+
+///|
+test "original capacity input observer retains exact successful and failed work without rebinding" {
+  let prepared = prepared_local_source_fixture(third_stage=true)
+  let program = @stages.program(@stage_results.local_source_source(prepared))
+  let (result, used) = observe_capacity_input_binding(program, [], 29)
+  let inputs = result.unwrap()
+  assert_eq(used, 4 + 2 * 3 + 6 + 7 + 6)
+  assert_eq(capacity_inputs_work(inputs), used)
+  let (short, spent) = observe_capacity_input_binding(program, [], 28)
+  assert_true(short is Err(BudgetExceeded))
+  assert_true(spent > 0 && spent <= 28)
+  let (invalid, spent) = observe_capacity_input_binding(program, [], -1)
+  assert_true(invalid is Err(InvalidLimits))
+  assert_eq(spent, 0)
+  let (unknown, spent) = observe_capacity_input_binding(
+    program,
+    [
+      {
+        stage: "not-an-original-stage",
+        sources: empty_capacity_sources(),
+        uses: [],
+      },
+    ],
+    1000,
+  )
+  assert_true(unknown is Err(UnknownStage(0)))
+  assert_true(spent > 0 && spent < 1000)
+}

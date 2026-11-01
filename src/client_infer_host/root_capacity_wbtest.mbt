@@ -5,7 +5,10 @@ test "caller Ledger does not fund an original Model root before input constructi
     prepared,
   ).unwrap()
   let prefix = @input.prepare_client_composed_infer_prefix(
-    prepared, occurrence, infer_fixture_registry, infer_fixture_values,
+    prepared,
+    occurrence,
+    infer_fixture_installed_contracts(),
+    infer_fixture_values,
   ).unwrap()
   let limits = standard_limits()
   // Retain the existing independent estimate; it is not allocation authority.

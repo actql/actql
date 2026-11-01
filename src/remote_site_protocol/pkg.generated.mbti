@@ -40,6 +40,10 @@ pub fn admit_remote_effect_checkpoint_reply_json(String, RemoteEffectCheckpointR
 
 pub fn admit_remote_effect_checkpoint_report_json(String, DispatchRequest, @checkpoint_runtime.WireLimits) -> Result[RemoteEffectCheckpointReport, DispatchIssue]
 
+pub fn admit_remote_effect_completion_reply_json(String, RemoteEffectCompletionReport, @checkpoint_runtime.WireLimits) -> Result[RemoteEffectCompletionReply, DispatchIssue]
+
+pub fn admit_remote_effect_completion_report_json(String, RemoteEffectResumeDelivery, @checkpoint_runtime.WireLimits) -> Result[RemoteEffectCompletionReport, DispatchIssue]
+
 pub fn admit_remote_effect_current_query_json(String, RemoteEffectCheckpointReport, @checkpoint_runtime.WireLimits) -> Result[RemoteEffectCurrentQuery, DispatchIssue]
 
 pub fn admit_remote_effect_current_reply_json(RemoteEffectCurrentQuery, String, @checkpoint_runtime.WireLimits) -> Result[RemoteEffectCurrentReply, DispatchIssue]
@@ -402,6 +406,8 @@ pub fn prepare_remote_dispatch_budget(Int64, Int64) -> Result[RemoteDispatchBudg
 
 pub fn prepare_remote_effect_checkpoint_report(DispatchRequest, @checkpoint_runtime.PersistedCheckpoint, @checkpoint_runtime.WireLimits) -> Result[RemoteEffectCheckpointReport, DispatchIssue]
 
+pub fn prepare_remote_effect_completion_report(RemoteEffectResumeDelivery, String, @checkpoint_runtime.WireLimits) -> Result[RemoteEffectCompletionReport, DispatchIssue]
+
 pub fn prepare_remote_effect_current_query(RemoteEffectCheckpointReport, String, String, @checkpoint_runtime.WireLimits) -> Result[RemoteEffectCurrentQuery, DispatchIssue]
 
 pub fn prepare_remote_effect_current_reply(RemoteEffectCurrentQuery, String?, Int, Bool, @checkpoint_runtime.WireLimits) -> Result[RemoteEffectCurrentReply, DispatchIssue]
@@ -499,6 +505,18 @@ pub fn remote_effect_checkpoint_report_dispatch(RemoteEffectCheckpointReport) ->
 pub fn remote_effect_checkpoint_report_identity(RemoteEffectCheckpointReport) -> String
 
 pub fn remote_effect_checkpoint_report_json(RemoteEffectCheckpointReport) -> String
+
+pub fn remote_effect_completion_reply_json(RemoteEffectCompletionReport, RemoteEffectCompletionReply, @checkpoint_runtime.WireLimits) -> Result[String, DispatchIssue]
+
+pub fn remote_effect_completion_report_completion_identity(RemoteEffectCompletionReport) -> String
+
+pub fn remote_effect_completion_report_completion_wire(RemoteEffectCompletionReport) -> String
+
+pub fn remote_effect_completion_report_delivery(RemoteEffectCompletionReport) -> RemoteEffectResumeDelivery
+
+pub fn remote_effect_completion_report_identity(RemoteEffectCompletionReport) -> String
+
+pub fn remote_effect_completion_report_json(RemoteEffectCompletionReport) -> String
 
 pub fn remote_effect_current_query_effect_id(RemoteEffectCurrentQuery) -> String
 
@@ -822,7 +840,11 @@ pub fn restore_durable_dispatch_record(SiteDispatchJournal, DurableDispatchRecor
 
 pub fn restore_historical_dispatch(SiteDispatchJournal, DispatchRequest) -> Result[DispatchRecord, DispatchIssue]
 
+pub fn restore_remote_runtime_completed_cleanup_custody(DispatchRecord, RemoteExecutionEvidence, RemoteManagedOutputSubject, RemoteManagedOutputMeasurement) -> Result[RemoteRuntimeCustody, DispatchIssue]
+
 pub fn restore_remote_runtime_completed_custody(DispatchRecord, RemoteExecutionEvidence, RemoteManagedOutputSubject, RemoteManagedOutputMeasurement) -> Result[RemoteRuntimeCustody, DispatchIssue]
+
+pub fn restore_remote_runtime_failed_partial_custody(DispatchRecord, Int, String, String, String, String, RemoteManagedOutputMeasurement, String, String, String, String, String, String) -> Result[RemoteRuntimeCustody, DispatchIssue]
 
 pub fn site_dispatch_binding_json(SiteDispatchJournal) -> Result[String, DispatchIssue]
 
@@ -862,6 +884,7 @@ type CoordinatorDispatchTransition
 pub(all) struct CoordinatorExecutionObservation {
   execution : RemoteExecutionState?
   cleanup : RemoteCleanupState?
+  evidence_rejected : Bool
   revision : Int
   execution_terminal : Bool
   cleanup_complete : Bool
@@ -960,6 +983,13 @@ pub(all) enum RemoteEffectCheckpointReply {
 } derive(Eq, @debug.Debug)
 
 type RemoteEffectCheckpointReport
+
+pub(all) enum RemoteEffectCompletionReply {
+  Accepted
+  Refused(String)
+} derive(Eq, @debug.Debug)
+
+type RemoteEffectCompletionReport
 
 type RemoteEffectCurrentQuery
 

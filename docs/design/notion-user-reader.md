@@ -101,7 +101,7 @@ bind the selected workspace/integration and information capabilities itself.
 The reader does not infer those bindings from a user's name, id or bot fields.
 
 Rejected and malformed responses are charged before projection and their exact
-original raw bodies remain on the failure. A lost response retains the original
+original raw bodies remain with the same Host reader. A lost response retains the original
 Credential Journal use as Unknown; another `read()` or reuse of that claim
 cannot resend or resolve a replacement token. Cancellation also retains the
 same failure, raw observations and cleanup responsibility. No retry queue,
@@ -117,22 +117,21 @@ includes original options and callback/credential references, AbortController
 and combined signal, frozen projection/limit/export tables, the reader state
 and its three methods, original raw response/body aliases across all pages,
 metadata and parsed Catalog/checked-cell graphs, complete id/cursor sets,
-request target/query encoding, bounded row output/JSON parse and the escaped
-success/failure observation arrays. Shared objects and cloned arrays still
+request target/query encoding, bounded row output/JSON parse and original
+Host response/callback/error inventories. Shared objects and cloned arrays still
 have reference/layout costs; they do not make overlapping holdings free.
 Pending I/O, signing/secret resolution, callback Promises and their handlers
 may overlap this graph. Retention lasts through the original consuming
 acquisition, not merely through the last physical socket read.
 
-The same reader is single-use. Its private WeakMap rejects copied receivers;
-`read`, `requestStop` and `observe` retain the original phase and stop handle.
-`observe().cleanupConfirmed` remains false because raw, row, closure and error
-aliases can escape. Transport close, fulfilled Promise, canonical RowRun close,
-freezing or GC does not manufacture a retirement receipt. The existing
-provider-reader caller must keep the same Resource/RowRun borrower pending
-until a genuine transfer/retirement supplier exists. Normal installation,
-complete reader funding, actual physical retirement and public Notion
-read/write acceptance remain separate outstanding boundaries.
+The shared Host reader is single-use and retains the original phase, stop,
+response and cleanup duties. The provider returns only page DATA, without a
+second read handle or escaped raw-response inventory. The Host can retire its
+aliases only after its original callbacks, physical binding and response duties
+have settled. A failed or pending child keeps that same duty. Transport close,
+fulfilled Promise, canonical RowRun close, freezing or GC alone supplies no
+retirement acknowledgement. Complete reader funding and public Notion
+read/write acceptance remain separate from provider page interpretation.
 
 The actual physical counters use original Common SQL/AQL preparation, Account,
 signed Credential grants, SQLite claims, loopback TLS and canonical RowRun.
@@ -164,32 +163,32 @@ when projection does not retain `id`. This supplies no KeySet, ResourceRef,
 Command ID proof or mutation authority. Account/current admission and the same
 trusted installation remain separately required at every acquisition.
 
-The trusted installer must supply the same-runtime original provider-reader
-capacity. Neither public configuration numbers nor page/transfer ceilings issue
-that declaration. Missing supply is `NotionReaderCapacityUnavailable`; absent
-physical Credential material is `NotionCredentialMaterialUnavailable`. The
-ordinary factory can be discovered while those independent supplies are absent.
-Private test capacity amounts do not establish normal numerical adequacy.
+The installed loader captures the same Source initialization constructor and
+Host service methods before configuration awaits. `prepareDeclaration` retains
+the original schema, facts and Environment through that existing initialization
+owner. `sourceReaderImplementationProfile` and `sourceReaderImplementation`
+select the existing Host implementation; `openRowSite` retains its original
+Account, Credential and acquisition limits. Public configuration numbers and
+page limits are bounded DATA, not a capacity grant or a new Resource owner.
+Missing original initialization or services refuses without a legacy fallback.
 
-The factory uses the existing provider-reader path. It installs the original
-response borrow/cleanup observation and reserves on the original Run Ledger
-before the synchronous I/O-free factory. That wrapper obtains the original
-read grant, creates one physical binding and one user-list reader, and forwards
-the same columns, request occurrence, current checks, page charges and RowRun
-admission. Each cursor request receives its own original use id; an earlier
-use cannot be resent. There is no ordinary `readPages` fallback, second parser,
-retry, resolver I/O shortcut or factory-local Ledger.
+`createSourceReader` supplies the one original Host reader. Its capacity must be
+the exact original selected by that implementation, and its limits must agree
+with the installed Source demand. The provider retains only pure users request
+and checked-page callbacks. It captures original provider methods and their
+receiver, preserves all declared columns, sizes each request by remaining rows,
+and checks duplicate identities and cursors. There is no provider-owned binding,
+Promise graph, stop controller, raw-response array or factory-local Ledger.
 
-The wrapper retains original options, capacity/preparer receiver, child,
-credential binding/material aliases, controller/signal, read/stop Promises and
-handlers, original read failure, close failure, last result and callbacks.
-Those overlap the complete user reader inventory above and the original RowRun
-capture. Closing the transport cannot retire any escaped raw/row/error aliases.
-Close failure retains both duties; it does not replace a prior read failure.
-`observe().cleanupConfirmed` stays false and the same capture/recovery retains
-its reservation until a genuine physical transfer/retirement is supplied. A
-fulfilled Promise, Site close, canonical RowRun close or garbage collection is
-not that acknowledgement.
+The same Host obtains every current original read grant, charges each response
+before projection, and admits the complete row through the original RowRun.
+Each cursor request receives its own original use id; an earlier use cannot be
+resent. Failed construction retains the same created reader and Site through
+the existing initialization cleanup carrier. A refused constructor or pending
+physical child cannot be replaced with another reader or a cleanup success.
+The complete same-parent constructor, retained prefix/output and failed-child
+overlap must remain backed before normal use; a component port is not that
+backing or ordinary execution authority.
 
 Actual private integration must distinguish metadata loading, SQL/AQL capture,
 Account denial, original journal Unknown/nonresend and preserved cleanup debt.

@@ -4,6 +4,7 @@ from threading import RLock
 import unittest
 
 from actql_sdk._local_core import LocalCore, LocalCoreError, _Input, _Output
+from local_abi_declaration_fixture import original_byte_fixture_port
 
 
 class PublicationPreflightCustodyTests(unittest.TestCase):
@@ -37,7 +38,7 @@ class PublicationPreflightCustodyTests(unittest.TestCase):
                 return len(wire)
             return state[name]
 
-        core._call = call
+        core._call = original_byte_fixture_port(call)
         return core, source, request, calls, state, wire
 
     def test_original_source_input_and_current_account_are_forwarded(self):
@@ -132,7 +133,7 @@ class PublicationPreflightCustodyTests(unittest.TestCase):
                 self.assertEqual(core._cleanup(value.ticket), 0)
             return code
 
-        core._call = call
+        core._call = original_byte_fixture_port(call)
         self.assertTrue(core.retire_publication_preflight_output(value))
         self.assertNotIn(value.ticket, core._inputs)
         self.assertIs(core._loans[value.ticket], value)
@@ -163,9 +164,9 @@ class PublicationPreflightCustodyTests(unittest.TestCase):
         core.read_publication_preflight(value)
         original_call = core._call
         state['retire_output'] = 0
-        core._call = lambda family, name, *args: (
+        core._call = original_byte_fixture_port(lambda family, name, *args: (
             core._cleanup(value.ticket) * -9 if name == 'retire_output'
-            else original_call(family, name, *args))
+            else original_call(family, name, *args)))
         core._closing = True
         self.assertFalse(core.retire_publication_preflight_output(value))
         self.assertIs(core._loans[value.ticket], value)

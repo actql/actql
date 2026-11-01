@@ -19,47 +19,27 @@ pub fn clear_command_json(
     Err(issue) => return Err(range_contract_failure(issue))
   }
   let input_fields : Json = Json::object(Map([]))
+  let (input_id, output_id, command_id, operation) = range_declaration_names(
+    connector_id, true,
+  )
   let input = match
-    range_named_contract(
-      connector_id + ".sheets.clear_range.command_input",
-      "command_input",
-      input_fields,
-      limits,
-    ) {
-    Ok(input) => input
+    range_named_contract(input_id, "command_input", input_fields, limits) {
+    Ok(value) => value
     Err(issue) => return Err(issue)
   }
   let output = match
     range_named_contract(
-      connector_id + ".sheets.clear_range.command_output",
+      output_id,
       "command_output",
-      {
-        "spreadsheet_id": { "type": "string", "nullable": false },
-        "sheet_id": { "type": "number", "nullable": false },
-        "cleared_rows": { "type": "number", "nullable": false },
-      },
+      range_output_fields_document(true),
       limits,
     ) {
-    Ok(output) => output
+    Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let command_id = "command:" + connector_id + ".sheets.clear_range.v1"
-  let body : Json = {
-    "schema": "actql.command_contract/0.1",
-    "command_id": command_id.to_json(),
-    "connector_id": connector_id.to_json(),
-    "version": "sheets/0.1",
-    "target": { "resource_kind": "sheet_range", "cardinality": "single" },
-    "input_schema": range_contract_ref(input),
-    "output_schema": range_contract_ref(output),
-    "input_contract": { "additional_properties": false, "fields": input_fields },
-    "permissions": ["sheets:cells:clear"],
-    "preview": { "strength": "exact" },
-    "outcome": "synchronous",
-    "idempotency": { "support": "unsupported" },
-    "reversibility": "unknown",
-    "atomicity": "single_target",
-  }
+  let body = range_command_document(
+    connector_id, command_id, input, output, input_fields, operation,
+  )
   let cid = match range_content_cid(body, limits) {
     Ok(cid) => cid
     Err(issue) => return Err(issue)
@@ -74,16 +54,7 @@ pub fn clear_command_json(
     Err(issue) => return Err(issue)
   }
   range_canonical(
-    {
-      "command": command,
-      "contracts": [input, output],
-      "installed": {
-        "resource": "range_target",
-        "commandRef": command_id.to_json(),
-        "commandCid": cid.to_json(),
-        "body": body.to_json(),
-      },
-    },
+    range_command_bundle_document(command, input, output, command_id, cid, body),
     limits,
   )
 }

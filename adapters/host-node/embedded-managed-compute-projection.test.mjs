@@ -39,7 +39,7 @@ function fixture() {
     clientSubmittedIntent(wire, ...bounds) {calls.push(['intent', wire, bounds]); return wire;},
     clientSubmittedIntentCid(intent) {calls.push(['cid', intent]); return 'sha256:' + 'a'.repeat(64);},
   };
-  const originals = {host: {}, installation: {initialControl, projectRuntime: moon},
+  const originals = {host: {}, installation: {initialControl, projectRuntime: moon, retainedRelationOutput: false},
     generation: {}, supplier: {}, moduleLifetime: {}};
   const assets = new Map([
     ['spec/contracts/actql-aoa.json', JSON.stringify({execution_contracts: {
@@ -95,6 +95,8 @@ test('installed managed contract strings are projected once across distinct Host
   f.stop();
   assert.throws(() => read(f.originals, second), /CurrentRefused/);
   assert.equal(f.calls.length, 3, 'Static strings cannot supply current Run admission');
+  assert.deepEqual(f.installationCalls, ['manifests', 'contracts'],
+    'Fixed installation admission is retained, not repeated for each Run quote');
 });
 
 test('installed contract projection is immutable and cannot cross Host control originals', () => {
@@ -122,7 +124,7 @@ test('installed contract projection is immutable and cannot cross Host control o
   assert.equal(broken.calls.length, 1);
 });
 
-test('Mock Model requirement purposes reuse only the same installed static strings', () => {
+test('Pure Mock Model requirements reuse only the same installed static strings', () => {
   const f = fixture(), modelCalls = [], budgets = Array(15).fill(0n);
   f.requirements()(f.originals, f.prepared);
   const held = f.originals.installation.managedRunContracts;
@@ -132,7 +134,7 @@ test('Mock Model requirement purposes reuse only the same installed static strin
     assert.strictEqual(runtime, f.moon);
     return {publicationControl: {
       checkedClientMockModelRunRequirements(...args) {modelCalls.push(['pure', args]); return budgets;},
-      checkedClientEffectMockModelRunRequirements(...args) {modelCalls.push(['effect', args]); return budgets;},
+
     }};
   };
   f.ports.readInitialControlInstallationAsset = (control, original, path) => {
@@ -142,7 +144,7 @@ test('Mock Model requirement purposes reuse only the same installed static strin
     return f.assets.get(path);
   };
   const read = actual('readLocalMockModelRunRequirements', f.ports);
-  for (const compilation of [undefined, {}]) {
+  for (const compilation of [undefined]) {
     const model = {compiled: {}, runDefinition: {}, occurrence: 0, graph: {}, compilation};
     read(f.originals, f.prepared, model);
     const [, args] = modelCalls.at(-1);
@@ -152,7 +154,7 @@ test('Mock Model requirement purposes reuse only the same installed static strin
       readRetainedBytes: 0n, readExecutionBytes: 0n, modelRetainedBytes: 0n,
       modelExecutionBytes: 0n, maxReservations: 0, maxHoldings: 0, maxDelegations: 0});
   }
-  assert.deepEqual(modelCalls.map(([kind]) => kind), ['pure', 'effect']);
+  assert.deepEqual(modelCalls.map(([kind]) => kind), ['pure']);
 });
 
 test('source-free requirements forward the same checked preparation and empty Source inventories', () => {
@@ -200,7 +202,7 @@ test('malformed or overflowing requirement observations are refused', () => {
 
 function preparedRunFixture() {
   const f = fixture(), original = {}, run = {runtime: f.moon, prepared: f.prepared, request: f.request, closed: false};
-  f.originals.installation.computeRuns = new Map([[f.prepared, run]]);
+  f.originals.installation.computeRuns = new WeakMap([[f.prepared, run]]);
   f.moon.clientProgramInstalledManagedRunIssueIsUnsupported = () => false;
   f.moon.clientProgramPrepareInstalledManagedSourceFreeWithContracts = (...args) => {
     f.calls.push(['prepare', args]); return original;
@@ -220,7 +222,7 @@ test('same Host Run retains one typed sequence preparation before repeated scala
   assert.equal(f.calls.filter(([name]) => name === 'prepare').length, 1);
   assert.equal(f.calls.filter(([name]) => name === 'project').length, 2);
   assert.deepEqual(f.calls[0][1], [f.prepared, f.contractAdmission,
-    '{"kind":"values"}', '{"kind":"expression"}', '{"kind":"derive"}']);
+    '{"kind":"values"}', '{"kind":"expression"}', '{"kind":"derive"}', false]);
 });
 
 test('same typed preparation survives failed projection or current observation without replacement', () => {
@@ -398,4 +400,183 @@ test('missing installed manifest or sequence port refuses before reading contrac
     assert.deepEqual(f.installationCalls, []);
     assert.equal(f.originals.installation.sequenceContractOriginal, undefined);
   }
+});
+
+test('fixed compilation manifest refusal cannot publish a sequence original or quote', () => {
+  const f = fixture(), failure = new Error('OriginalCompilationManifestsRefused');
+  f.moon.clientPrepareInstalledCompilationManifests = () => {throw failure;};
+  f.moon.clientPrepareInstalledSequenceContracts = () => assert.fail('No sequence admission after failed manifests');
+  assert.throws(() => f.requirements()(f.originals, f.prepared), error => error === failure);
+  assert.equal(f.originals.installation.sequenceContractOriginal, undefined);
+  assert.equal(f.calls.length, 0);
+});
+
+test('retired raw Effect Model quote refuses before original current or static projection', () => {
+  const f = fixture(); let calls = 0;
+  f.ports.assertSourceManagedHostPreparation = () => {calls++; assert.fail('No legacy Effect quote');};
+  const read = actual('readLocalMockModelRunRequirements', f.ports);
+  assert.throws(() => read(f.originals, f.prepared, {compilation: {}}),
+    {code: 'InstalledEffectPlanUnavailable'});
+  assert.equal(calls, 0); assert.deepEqual(f.installationCalls, []);
+});
+
+test('retired raw LocalFiles Effect constructor refuses before a replacement Root or record', () => {
+  const text = readFileSync(new URL('../connectors/local/host/installed-project-files.mjs', import.meta.url), 'utf8');
+  const tree = parse(text, {ecmaVersion: 'latest', sourceType: 'module'});
+  const install = tree.body.find(n => n.type === 'ExportNamedDeclaration' &&
+    n.declaration?.id?.name === 'installPreparedProjectLocalFiles').declaration;
+  const node = install.body.body.find(n => n.type === 'FunctionDeclaration' && n.id.name === 'prepareRun');
+  assert(node);
+  const runs = new Map(); let calls = 0;
+  const no = () => {calls++; assert.fail('No legacy LocalFiles Effect admission');};
+  const fail = code => {throw Object.assign(new Error(code), {code});};
+  const prepare = new Function('current', 'runs', 'checked', 'moon', 'sourceManaged', 'fail', 'sameRun',
+    text.slice(node.start, node.end) + ';return prepareRun;')(
+    no, runs, no, {}, {prepareEffectRun: no, prepareRun: no}, fail, no);
+  assert.throws(() => prepare({}, {}, true), {code: 'InstalledEffectPlanUnavailable'});
+  assert.equal(calls, 0); assert.equal(runs.size, 0);
+});
+
+
+// Actual unchanged Pure constructor and Source-read callee, with explicit
+// manager/Core ports only; this does not supply a physical/native parent.
+test('LocalFiles Pure admission preserves original identity and Effect read cannot borrow it', () => {
+  const text = readFileSync(new URL('../connectors/local/host/installed-project-files.mjs', import.meta.url), 'utf8');
+  const tree = parse(text, {ecmaVersion: 'latest', sourceType: 'module'});
+  const install = tree.body.find(n => n.type === 'ExportNamedDeclaration' &&
+    n.declaration?.id?.name === 'installPreparedProjectLocalFiles').declaration;
+  const node = install.body.body.find(n => n.type === 'FunctionDeclaration' && n.id.name === 'prepareRun');
+  const prepared = {}, request = {}, original = {}, admission = {}, parent = {}, runs = new Map(), calls = [];
+  const fail = code => {throw Object.assign(new Error(code), {code});};
+  const current = () => {calls.push('current');};
+  const sameRun = value => {assert.equal(value, prepared); return runs.get(value);};
+  const moon = {
+    clientProgramNodeManagedRunPrepare(o, p) {assert.equal(o, original); assert.equal(p, prepared); calls.push('admit'); return admission;},
+    clientProgramInstalledManagedRunBegin(a, p, r) {assert.equal(a, admission); assert.equal(p, prepared); assert.equal(r, request); calls.push('begin'); return parent;},
+    clientProgramInstalledManagedRunCheck(p, owner, r) {assert.equal(p, parent); assert.equal(owner, prepared); assert.equal(r, request); calls.push('check');},
+  };
+  const sourceManaged = {prepareRun(p) {assert.equal(p, prepared); calls.push('original'); return original;}};
+  const prepare = new Function('current', 'runs', 'checked', 'moon', 'sourceManaged', 'fail', 'sameRun',
+    text.slice(node.start, node.end) + ';return prepareRun;')(
+    current, runs, value => value, moon, sourceManaged, fail, sameRun);
+  prepare(prepared, request, false); prepare(prepared, request, false);
+  assert.equal(runs.get(prepared).value, parent); assert.equal(runs.get(prepared).original, original);
+  assert.equal(calls.filter(x => x === 'original').length, 1); assert.equal(calls.filter(x => x === 'begin').length, 1);
+  const found = [];
+  const visit = n => {if (!n || typeof n !== 'object') return;
+    if (n.type === 'Property' && n.key?.name === 'prepareSourceRead') found.push(n);
+    for (const value of Object.values(n)) {if (Array.isArray(value)) value.forEach(visit); else if (value && typeof value === 'object') visit(value);}};
+  visit(install); assert.equal(found.length, 1);
+  const read = new Function('sameRun', 'fail', 'return ({' + text.slice(found[0].start, found[0].end) + '}).prepareSourceRead;')(
+    () => assert.fail('No Pure Run borrow from Effect read'), fail);
+  assert.throws(() => read({checkedOwner: prepared, effectful: true, occurrence: {stage: 0}}),
+    {code: 'InstalledEffectPlanUnavailable'});
+});
+
+// Execute the real Local cleanup owner with explicit typed-read/parent and
+// native-child ports. These are retirement ordering counters, not actual Core
+// capacity, FileHandle closure, ordinary Host or same-process Saved acceptance.
+function localReadCleanupFixture({keyed = false, physical = false} = {}) {
+  const text = readFileSync(new URL('../connectors/local/host/installed-project-files.mjs', import.meta.url), 'utf8');
+  const tree = parse(text, {ecmaVersion: 'latest', sourceType: 'module'});
+  const install = tree.body.find(node => node.type === 'ExportNamedDeclaration' &&
+    node.declaration?.id?.name === 'installPreparedProjectLocalFiles').declaration;
+  const functions = install.body.body.filter(node => node.type === 'FunctionDeclaration' &&
+    ['captureClose', 'closeRead', 'close'].includes(node.id.name));
+  assert.equal(functions.length, 3);
+  const acknowledgment = tree.body.find(node => node.type === 'VariableDeclaration' &&
+    node.declarations.some(value => value.id.name === 'acknowledged'));
+  assert(acknowledgment);
+  const typedRead = {}, parent = {}, events = [];
+  const state = {rawAck: {pending: false}, physicalAck: {pending: false},
+    rawCalls: 0, physicalCalls: 0, readRetireCalls: 0, parentRetireCalls: 0,
+    rawThrows: false, rawFailure: undefined, retireThrows: false, retireFailure: undefined,
+    readReceivers: [], readKinds: []};
+  const raw = {close() {
+    assert.strictEqual(this, raw); state.rawCalls++; events.push('raw');
+    if (state.rawThrows) throw state.rawFailure;
+    return state.rawAck;
+  }};
+  const native = {close() {
+    assert.strictEqual(this, native); state.physicalCalls++; events.push('physical');
+    return state.physicalAck;
+  }};
+  const read = {raw, keyed, value: typedRead, physical: physical ? native : undefined,
+    close: undefined, closeCaptured: false, closed: false};
+  const run = {value: parent, reads: new Map([[0, read]]), retired: false};
+  const runs = new Map([[{}, run]]);
+  const retireRead = kind => function(value) {
+    assert.strictEqual(value, typedRead); state.readRetireCalls++; state.readReceivers.push(this);
+    state.readKinds.push(kind); events.push('typed-read');
+    if (state.retireThrows) throw state.retireFailure;
+  };
+  const moon = {clientProgramInstalledSourceReadRetire: retireRead('ordinary'),
+    clientProgramInstalledKeyedSourceReadRetire: retireRead('keyed'),
+    clientProgramInstalledManagedRunRetire(value) {
+      assert.strictEqual(this, moon); assert.strictEqual(value, parent);
+      state.parentRetireCalls++; events.push('parent');
+    }, clientProgramNodeManagedRunCleanup() {assert.fail('No replacement parent cleanup');}};
+  const fail = code => {throw Object.assign(new Error(code), {code});};
+  const cleanup = new Function('runs', 'moon', 'checked', 'fail',
+    text.slice(acknowledgment.start, acknowledgment.end) + ';let closing=false;\n' +
+    functions.map(node => text.slice(node.start, node.end)).join('\n') +
+    ';return {close,closeRead};')(runs, moon, value => value, fail);
+  return {...cleanup, state, read, raw, run, runs, moon, events};
+}
+
+test('Local Source typed read and parent remain live until the original raw child acknowledges', async () => {
+  const f = localReadCleanupFixture(); f.state.rawAck = {pending: true};
+  await assert.rejects(f.close(), {name: 'AggregateError', message: 'LocalFilesCleanupPending'});
+  assert.equal(f.state.rawCalls, 1); assert.equal(f.state.readRetireCalls, 0);
+  assert.equal(f.state.parentRetireCalls, 0); assert.equal(f.read.closed, false);
+  f.raw.close = () => assert.fail('Replacement close must not be selected');
+  f.state.rawAck = {pending: false}; await f.close();
+  assert.deepEqual(f.events, ['raw', 'raw', 'typed-read', 'parent']);
+  assert.deepEqual(f.state.readReceivers, [f.moon]);
+  assert.equal(f.read.closed, true); assert.equal(f.run.retired, true); assert.equal(f.runs.size, 0);
+});
+
+test('Local keyed cleanup preserves an original thrown undefined before typed retirement', async () => {
+  const f = localReadCleanupFixture({keyed: true}); f.state.rawThrows = true;
+  await assert.rejects(f.close(), cause => cause instanceof AggregateError &&
+    cause.errors.length === 1 && cause.errors[0] === undefined);
+  assert.equal(f.state.readRetireCalls, 0); assert.equal(f.state.parentRetireCalls, 0);
+  assert.equal(f.read.closed, false); f.state.rawThrows = false; await f.close();
+  assert.deepEqual(f.state.readKinds, ['keyed']); assert.deepEqual(f.state.readReceivers, [f.moon]);
+  assert.equal(f.state.parentRetireCalls, 1);
+});
+
+test('Local cleanup waits for physical and raw acknowledgments before typed retirement', async () => {
+  const f = localReadCleanupFixture({physical: true}); f.state.physicalAck = {pending: true};
+  await assert.rejects(f.close(), {name: 'AggregateError'});
+  assert.equal(f.state.rawCalls, 0); assert.equal(f.state.readRetireCalls, 0);
+  f.state.physicalAck = {pending: false}; f.state.rawAck = {pending: true};
+  await assert.rejects(f.close(), {name: 'AggregateError'});
+  assert.equal(f.state.rawCalls, 1); assert.equal(f.state.readRetireCalls, 0);
+  f.state.rawAck = {pending: false}; await f.close();
+  assert.equal(f.state.readRetireCalls, 1); assert.equal(f.state.parentRetireCalls, 1);
+});
+
+test('Local cleanup retains the same stopped child while typed retirement fails', async () => {
+  const f = localReadCleanupFixture(), failure = new Error('OriginalTypedRetirementPending');
+  f.state.retireThrows = true; f.state.retireFailure = failure;
+  await assert.rejects(f.close(), cause => cause instanceof AggregateError && cause.errors[0] === failure);
+  assert.equal(f.state.rawCalls, 1); assert.equal(f.state.readRetireCalls, 1);
+  assert.equal(f.read.closed, false); assert.equal(f.state.parentRetireCalls, 0);
+  f.state.retireThrows = false; await f.close();
+  assert.equal(f.state.readRetireCalls, 2); assert.equal(f.state.parentRetireCalls, 1);
+  assert.deepEqual(f.state.readReceivers, [f.moon, f.moon]);
+});
+
+test('Local cleanup never treats absent inherited or accessor stop DATA as acknowledgment', async () => {
+  let getters = 0;
+  for (const ack of [undefined, Object.create({pending: false}),
+    Object.defineProperty({}, 'pending', {get() {getters++; return false;}})]) {
+    const f = localReadCleanupFixture(); f.state.rawAck = ack;
+    await assert.rejects(f.close(), {name: 'AggregateError'});
+    assert.equal(f.state.readRetireCalls, 0); assert.equal(f.state.parentRetireCalls, 0);
+    f.state.rawAck = {pending: false}; await f.close();
+    assert.equal(f.state.readRetireCalls, 1);
+  }
+  assert.equal(getters, 0);
 });

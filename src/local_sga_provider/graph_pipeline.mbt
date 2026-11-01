@@ -509,22 +509,30 @@ fn provider_capacity(
   generation_count : Int,
   private_scratch_bytes : Int64,
 ) -> @execution.ExecutionCapacity? {
-  if storage_bytes < 0L || private_scratch_bytes < 0L || generation_count < 1 {
+  if generation_count < 1 {
     return None
   }
-  let count = generation_count.to_int64()
-  if storage_bytes != 0L && count > 9223372036854775807L / storage_bytes {
-    return None
-  }
-  let extra = storage_bytes * count
-  let execution = @execution.execution_capacity_execution_bytes(base)
-  if execution > 9223372036854775807L - extra ||
-    private_scratch_bytes > 9223372036854775807L - execution - extra {
+  // Graph generations and private scratch remain distinct domain
+  // occurrences. Their shared quoted-byte fold does not price them twice.
+  guard @execution.execution_capacity_inventory_add(
+      @execution.execution_capacity_execution_bytes(base),
+      QuotedBytes,
+      storage_bytes,
+      generation_count,
+    )
+    is Some(generations) &&
+    @execution.execution_capacity_inventory_add(
+      generations,
+      QuotedBytes,
+      private_scratch_bytes,
+      1,
+    )
+    is Some(execution) else {
     return None
   }
   @execution.execution_capacity(
     @execution.execution_capacity_retained_bytes(base),
-    execution + extra + private_scratch_bytes,
+    execution,
   )
 }
 

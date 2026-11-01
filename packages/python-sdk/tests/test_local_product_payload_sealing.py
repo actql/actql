@@ -10,6 +10,7 @@ from unittest.mock import patch
 from actql_sdk._local_files import LocalFileError
 from actql_sdk._local_storage import LocalStorageCommitUnknown
 import test_local_product_payload_copy as copy_fixture
+from local_abi_declaration_fixture import original_byte_fixture_port
 
 
 SEALED = b'{"original":"Core Sealed e\xcc\x81/~","null":null}'
@@ -69,7 +70,7 @@ class ProductPayloadSealingTests(unittest.TestCase):
                 if args[0] in begun and args[0] not in confirmed: return -9
                 return core._cleanup(children.pop(args[0]))
             return 0
-        core._call = call
+        core._call = original_byte_fixture_port(call)
         return host, core, held, calls
 
     def test_original_eof_snapshot_final_name_and_actual_sealed_row_share_custody(self):

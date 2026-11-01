@@ -226,3 +226,24 @@ test('initial retirement retry does not reread a consumed Core handler',()=>{
  assert.throws(()=>registry.retireRetiringOriginal(prepared),/ConsumedSettlementPending/);
  registry.retireRetiringOriginal(prepared);assert.equal(returns,1);
 });
+
+test('Request registry cannot select a domain body without an actual original Core borrower', () => {
+  let borrows = 0, returns = 0, retirements = 0;
+  const prepared = {}, runtime = {
+    clientProgramPreparationBorrowRead() {assert.fail('No borrower was issued');},
+    clientProgramPreparationBorrowSibling() {assert.fail('No dispatch borrower may be issued');},
+    clientProgramPreparationBorrowReturn() {returns++; assert.fail('No borrower may be returned');},
+  };
+  const registry = installLocalPreparationRegistry(() => true, () => {retirements++;}, {
+    runtime, borrow() {borrows++; return undefined;},
+  });
+  const input = {stages: []}, request = registry.capture({kind: 'program', input});
+  const original = registry.adopt(prepared, request);
+  assert.equal(original, prepared);
+  const submission = registry.attach(registry.copy(request), original);
+  assert.equal(submission.preparedProgram, prepared);
+  assert.equal(registry.begin(submission), undefined);
+  registry.finishHandler(request); registry.retireQuiescentUndispatched();
+  assert.equal(request.input, input);
+  assert.equal(borrows, 1); assert.equal(returns, 0); assert.equal(retirements, 0);
+});

@@ -8,12 +8,12 @@ fn saved_reference_rows() -> Array[(String, ClientJournalPhysicalRow)] {
 ///|
 fn saved_reference_select(
   rows : Array[(String, ClientJournalPhysicalRow)],
-  namespace? : String = "scope",
+  namespace_scope? : String = "scope",
   authority? : String = "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
   definition? : String = "sha256:7a12ebea352eee2a7d88bf6df5c5b6d7b56d6383f7e6e5fc9231fef79412fafc",
 ) -> Result[ClientSavedSubmissionSnapshot?, String] {
   inspect_client_saved_run_reference(
-    namespace,
+    namespace_scope,
     authority,
     definition,
     1024,
@@ -52,7 +52,7 @@ test "Run reference equality never substitutes a namespace scope or definition" 
   let rows = saved_reference_rows()
   for
     selected in [
-      saved_reference_select(rows, namespace="foreign"),
+      saved_reference_select(rows, namespace_scope="foreign"),
       saved_reference_select(
         rows,
         authority="sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",

@@ -9,7 +9,7 @@ let resident_native_effect_document : String =
 fn resident_native_effect_prepared() -> @host.PreparedClientEffectComputation {
   let environment = @host.admit_client_check_environment(
     resident_effect_source_environment,
-    "sha256:c110639082170812464555ae57368f5fc5a8ffa2edb159b2433dd3fc36f56227",
+    resident_effect_source_bundle_cid,
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
   ).unwrap()
@@ -75,7 +75,7 @@ fn resident_native_effect_bound_run() -> @host.PreparedClientEffectRun {
   // materials and dispatch admission, rather than the sender's local handle.
   let environment = @host.admit_client_check_environment(
     resident_effect_source_environment,
-    "sha256:c110639082170812464555ae57368f5fc5a8ffa2edb159b2433dd3fc36f56227",
+    resident_effect_source_bundle_cid,
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
   ).unwrap()
@@ -171,12 +171,7 @@ fn resident_native_effect_bound_run() -> @host.PreparedClientEffectRun {
     wire,
     @host.prepare_client_effect_source_input_binding(compilation).unwrap(),
     "2026-10-09T01:00:00.000Z",
-    @local.prepare_installed_sequence_contracts(
-      resident_effect_source_registry,
-      resident_effect_source_values,
-      Some(resident_effect_source_fragment),
-      None,
-    ).unwrap(),
+    resident_compute_installed_contracts(),
     resident_effect_source_values,
     resident_effect_source_fragment,
   ).unwrap()

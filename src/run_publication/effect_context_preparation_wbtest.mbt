@@ -17,6 +17,7 @@ fn context_test_start(
     name: "authoring_context",
     identity: "authoring",
     wire: "{\"k\":7}",
+    wire_usage: None, // This private fixture is not an admitted bound witness.
     value: parse_contract_wire("{\"k\":7}", 10000, 1000, 16).unwrap(),
   }
   start_effect_context_preparation(
@@ -204,6 +205,7 @@ test "Effect context sorted IDs retain the original member plan position" {
     name: "authoring_context",
     identity: "authoring",
     wire: "{\"k\":7}",
+    wire_usage: None, // This private fixture is not an admitted bound witness.
     value: parse_contract_wire("{\"k\":7}", 10000, 1000, 16).unwrap(),
   }
   let plan = parse_contract_wire("{\"k\":9}", 10000, 1000, 16).unwrap()

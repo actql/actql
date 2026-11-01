@@ -14,11 +14,17 @@ pub(all) enum LocalRunPublicationBindingIssue[E] {
 }
 
 ///|
+/// The original submitted candidate or the genuine admitted cold snapshot.
+pub enum LocalRunPublicationRows {
+  Submitted(LocalSubmittedRunRows, @input.LocalSubmittedPreparation)
+  Saved(@host.ClientSavedSubmissionSnapshot)
+}
+
+///|
 /// Original saved publication binding/current custody, never a permission or ACK.
 pub struct LocalRunPublicationBinding[Store, E] {
   plan : LocalRunPlan
-  rows : LocalSubmittedRunRows
-  preparation : @input.LocalSubmittedPreparation
+  rows : LocalRunPublicationRows
   material : @host.ClientLocalAdoptedHostMaterial[Store, E]
   store : Store
   binding : String
@@ -87,6 +93,118 @@ fn[Store, E] publication_binding_current(
 }
 
 ///|
+/// Validate evolving saved rows against the same admitted original snapshot
+/// and the exact restored compiled Run. This is no inventory or start grant.
+pub fn validate_local_saved_snapshot_rows(
+  plan : LocalRunPlan,
+  snapshot : @host.ClientSavedSubmissionSnapshot,
+  run : @host.ClientJournalPhysicalRow,
+  submitted : @host.ClientJournalPhysicalRow,
+) -> Result[Unit, LocalSubmittedRunRowsIssue] {
+  local_saved_snapshot_row_originals(plan, snapshot, run, submitted).map(_ => ())
+}
+
+///|
+fn local_saved_snapshot_row_originals(
+  plan : LocalRunPlan,
+  snapshot : @host.ClientSavedSubmissionSnapshot,
+  run : @host.ClientJournalPhysicalRow,
+  submitted : @host.ClientJournalPhysicalRow,
+  decode_run? : (Bytes) -> Result[
+    (@host.ClientRunJournalEncoding, String?, String?),
+    @host.ClientJournalDecodingIssue,
+  ] = @host.decode_client_run_journal_row_with_observation_originals,
+) -> Result[
+  (@host.ClientRunJournalEncoding, String?, String?),
+  LocalSubmittedRunRowsIssue,
+] {
+  guard @host.client_saved_submission_run_row(snapshot) is Some(original_run) &&
+    @host.client_saved_submission_task_materials_original(snapshot) is Some(_) else {
+    return Err(CustodyLost)
+  }
+  let original = @host.client_saved_submission_record(snapshot)
+  let original_submitted = @host.client_saved_submission_row(snapshot)
+  if run.key != original_run.key ||
+    run.key != @host.client_request_scope_cid(plan.request) ||
+    submitted.key != original_submitted.key ||
+    run.revision < original_run.revision ||
+    submitted.revision < original_submitted.revision ||
+    (run.revision == original_run.revision && run.body != original_run.body) ||
+    (
+      submitted.revision == original_submitted.revision &&
+      submitted.body != original_submitted.body
+    ) {
+    return Err(CustodyLost)
+  }
+  let (retained, finite_policy, observation) = match
+    @host.decode_client_run_journal_row_with_observation_originals(
+      original_run.body,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(CustodyLost)
+  }
+  let (encoding, actual_policy, actual_observation) = match
+    decode_run(run.body) {
+    Ok(value) => value
+    Err(_) => return Err(CustodyLost)
+  }
+  let actual = match @host.decode_client_submitted_journal_row(submitted.body) {
+    Ok(value) => value
+    Err(_) => return Err(CustodyLost)
+  }
+  if (retained.dispatch_reserved && !encoding.dispatch_reserved) ||
+    (retained.physical_start_claimed && !encoding.physical_start_claimed) ||
+    (retained.cancellation_requested && !encoding.cancellation_requested) ||
+    (
+      retained.publication_binding is Some(binding) &&
+      encoding.publication_binding != Some(binding)
+    ) ||
+    (
+      retained.publication_policy_originals is Some(policy) &&
+      encoding.publication_policy_originals != Some(policy)
+    ) ||
+    actual_policy != finite_policy ||
+    actual_observation != observation ||
+    retained.task_materials_cid is None ||
+    encoding.task_materials_cid != retained.task_materials_cid ||
+    @host.client_submission_reference_record_wire(actual.reference) !=
+    @host.client_submission_reference_record_wire(original.reference) ||
+    @host.client_submitted_intent_cid(actual.intent) !=
+    @host.client_submitted_intent_cid(original.intent) ||
+    @host.client_request_identity_relation(plan.request, retained.request) !=
+    @host.SameRequest ||
+    @host.client_request_identity_relation(plan.request, encoding.request) !=
+    @host.SameRequest ||
+    @publication.publication_contract_identity(retained.definition) !=
+    local_run_definition_cid(plan) ||
+    @publication.publication_contract_identity(encoding.definition) !=
+    local_run_definition_cid(plan) {
+    return Err(CustodyLost)
+  }
+  if @host.validate_client_run_binding(
+      encoding.request,
+      plan.prepared,
+      plan.compiled,
+      encoding.definition,
+    )
+    is Err(_) {
+    return Err(CustodyLost)
+  }
+  guard actual.run_admission is Some(admission) else { return Err(CustodyLost) }
+  match
+    @host.validate_client_submitted_retained_run(
+      actual.reference,
+      admission,
+      encoding.request,
+      encoding.definition,
+      run.revision,
+    ) {
+    Ok(_) => Ok((encoding, actual_policy, actual_observation))
+    Err(_) => Err(CustodyLost)
+  }
+}
+
+///|
 fn[Store, E] publication_binding_saved_rows(
   original : LocalRunPublicationBinding[Store, E],
   run : @host.ClientJournalPhysicalRow,
@@ -99,19 +217,30 @@ fn[Store, E] publication_binding_saved_rows(
   (@host.ClientRunJournalEncoding, String?, String?),
   LocalRunPublicationBindingIssue[E],
 ] {
-  let decoded = match
-    local_saved_submitted_row_originals(
-      original.rows,
-      original.plan,
-      original.preparation,
-      run.key,
-      run.revision,
-      run.body,
-      submitted.key,
-      submitted.revision,
-      submitted.body,
-      decode_run~,
-    ) {
+  let decoded = match original.rows {
+    Submitted(rows, preparation) =>
+      local_saved_submitted_row_originals(
+        rows,
+        original.plan,
+        preparation,
+        run.key,
+        run.revision,
+        run.body,
+        submitted.key,
+        submitted.revision,
+        submitted.body,
+        decode_run~,
+      )
+    Saved(snapshot) =>
+      local_saved_snapshot_row_originals(
+        original.plan,
+        snapshot,
+        run,
+        submitted,
+        decode_run~,
+      )
+  }
+  let decoded = match decoded {
     Ok(value) => value
     Err(issue) => return Err(SavedRows(issue))
   }
@@ -150,6 +279,68 @@ pub fn[Store, E] prepare_local_run_publication_binding(
     !physical_equal(rows.preparation, preparation) {
     return Err(ForeignPreparation)
   }
+  prepare_local_run_publication_binding_original(
+    plan,
+    Submitted(rows, preparation),
+    material,
+    store,
+    namespace_id,
+    store_authority_cid,
+    device,
+    inode,
+    run,
+    submitted,
+  )
+}
+
+///|
+/// Retain or bind only the actual admitted saved snapshot. No initial row
+/// candidates, new preparation or renewed finite policy are manufactured.
+pub fn[Store, E] prepare_local_saved_run_publication_binding(
+  plan : LocalRunPlan,
+  snapshot : @host.ClientSavedSubmissionSnapshot,
+  material : @host.ClientLocalAdoptedHostMaterial[Store, E],
+  store : Store,
+  namespace_id : String,
+  store_authority_cid : String,
+  device : UInt64,
+  inode : UInt64,
+  run : @host.ClientJournalPhysicalRow,
+  submitted : @host.ClientJournalPhysicalRow,
+) -> Result[
+  LocalRunPublicationBindingPlan[Store, E],
+  LocalRunPublicationBindingIssue[E],
+] {
+  prepare_local_run_publication_binding_original(
+    plan,
+    Saved(snapshot),
+    material,
+    store,
+    namespace_id,
+    store_authority_cid,
+    device,
+    inode,
+    run,
+    submitted,
+  )
+}
+
+///|
+fn[Store, E] prepare_local_run_publication_binding_original(
+  plan : LocalRunPlan,
+  rows : LocalRunPublicationRows,
+  material : @host.ClientLocalAdoptedHostMaterial[Store, E],
+  store : Store,
+  namespace_id : String,
+  store_authority_cid : String,
+  device : UInt64,
+  inode : UInt64,
+  run : @host.ClientJournalPhysicalRow,
+  submitted : @host.ClientJournalPhysicalRow,
+) -> Result[
+  LocalRunPublicationBindingPlan[Store, E],
+  LocalRunPublicationBindingIssue[E],
+] {
   // Match the existing Native installation selector bounds. The pure binding
   // codec remains a byte projection, not admission of arbitrary selectors.
   if namespace_id.is_empty() ||
@@ -179,7 +370,7 @@ pub fn[Store, E] prepare_local_run_publication_binding(
     Ok(value) => value
     Err(issue) => return Err(Policy(issue))
   }
-  let original = { plan, rows, preparation, material, store, binding, policy, }
+  let original = { plan, rows, material, store, binding, policy, }
   match publication_binding_current(original) {
     Ok(_) => ()
     Err(issue) => return Err(issue)

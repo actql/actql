@@ -108,6 +108,7 @@ pub fn open_source_free_local_retained_host(
   per_row_ms : Int64,
   per_wire_byte_ms : Int64,
   per_pair_ms : Int64,
+  requirements? : ClientLocalRequirements? = None,
   fragment_body? : String? = None,
   ordered_body? : String? = None,
   provider_factory? : (@execution.ExecutionCapacity) -> Array[
@@ -127,6 +128,7 @@ pub fn open_source_free_local_retained_host(
     ordered_body~,
     provider_factory~,
     retained_output=true,
+    requirements~,
   )
 }
 
@@ -177,6 +179,7 @@ pub fn open_captured_local_retained_host(
   per_pair_ms : Int64,
   fragment_body? : String? = None,
   ordered_body? : String? = None,
+  requirements? : ClientLocalRequirements? = None,
   provider_factory? : (@execution.ExecutionCapacity) -> Array[
     @local.ManagedProvider,
   ] = _ => [],
@@ -194,6 +197,7 @@ pub fn open_captured_local_retained_host(
     ordered_body~,
     provider_factory~,
     retained_output=true,
+    requirements~,
   )
 }
 
@@ -238,6 +242,7 @@ pub fn open_captured_local_retained_host_on_ledger(
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
+  requirements? : ClientLocalRequirements? = None,
   provider_factory? : (@execution.ExecutionCapacity) -> Array[
     @local.ManagedProvider,
   ] = _ => [],
@@ -255,6 +260,7 @@ pub fn open_captured_local_retained_host_on_ledger(
     ordered_body~,
     provider_factory~,
     retained_output=true,
+    requirements~,
     acquisition_ledger=Some(ledger),
   )
 }
@@ -270,7 +276,7 @@ pub fn open_source_free_local_retained_host_on_ledger(
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
-  requirements? : ClientLocalSourceFreeRequirements? = None,
+  requirements? : ClientLocalRequirements? = None,
 ) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue]? {
   open_checked_local_host(
     prepared,
@@ -285,7 +291,7 @@ pub fn open_source_free_local_retained_host_on_ledger(
     ordered_body~,
     retained_output=true,
     acquisition_ledger=Some(ledger),
-    source_free_requirements=requirements,
+    requirements~,
   )
 }
 
@@ -308,7 +314,7 @@ fn open_checked_local_host(
   captured_sources? : Array[(Int, @query.CapturedInputSource)] = [],
   acquisition_ledger? : @resources.Ledger? = None,
   opened_run? : @strategy.CapturedDAG? = None,
-  source_free_requirements? : ClientLocalSourceFreeRequirements? = None,
+  requirements? : ClientLocalRequirements? = None,
   source_free_preparation? : ClientInstalledManagedSourceFreePreparation? = None,
 ) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue]? {
   if installed_contracts.original.registry_body.length() > 100000 ||
@@ -342,15 +348,15 @@ fn open_checked_local_host(
   }
   // Both closed callers retain their own checked preparation. An ambiguous
   // internal selection cannot replace either original or issue another quote.
-  let generated = match (source_free_requirements, source_free_preparation) {
+  let generated = match (requirements, source_free_preparation) {
     (Some(original), None) => {
       if !original.matches(
           prepared, installed_contracts, values_body, fragment_body, ordered_body,
         ) ||
-        source is Some(_) ||
+        (original.capacity_plan.graph_offset == 0 && source is Some(_)) ||
+        (original.capacity_plan.graph_offset == 1 && source is None) ||
         !captured_sources.is_empty() ||
         opened_run is Some(_) ||
-        acquisition_ledger is None ||
         !retained_output {
         return None
       }
@@ -399,16 +405,27 @@ fn open_checked_local_host(
   } else {
     1
   }
-  let compute_sequences : Array[@execution.GeneratedSequence] = []
-  for task in first_compute..<generated.length() {
-    compute_sequences.push(generated[task])
+  let compute_sequences = match (requirements, source_free_preparation) {
+    (Some(original), None) => original.capacity_plan.sequences
+    (None, Some(original)) => original.capacity_plan.sequences
+    (None, None) =>
+      Array::makei(generated.length() - first_compute, index => {
+        generated[index + first_compute]
+      })
+    _ => return None
   }
   let max_rows = @publication_host.prepared_client_values_max_rows(prepared)
-  let capacity_plan = match
-    (source_free_requirements, source_free_preparation) {
+  let graph = @publication_host.prepared_client_graph(prepared)
+  let capacity_plan = match (requirements, source_free_preparation) {
     (Some(original), None) => original.capacity_plan
     (None, Some(original)) => original.capacity_plan
-    (None, None) => client_local_capacity_plan(compute_sequences, max_rows)
+    (None, None) =>
+      client_local_capacity_plan(
+        compute_sequences,
+        max_rows,
+        graph=Some(graph),
+        graph_offset=first_compute,
+      )
     _ => return None
   }
   if !client_local_capacity_plan_matches(
@@ -416,15 +433,11 @@ fn open_checked_local_host(
     ) {
     return None
   }
-  let values = capacity_plan.values
-  let execution = capacity_plan.execution
-  let measurement = capacity_plan.measurement
-  let graph = @publication_host.prepared_client_graph(prepared)
   if capacity_plan.graph is Some(original_graph) &&
     !physical_equal(original_graph, graph) {
     return None
   }
-  let retained_inputs = if retained_output {
+  let retained_inputs = {
     let inputs = Array::make(compute_sequences.length(), 0)
     for index in 0..<@strategy.graph_data_count(graph) {
       let edge = @strategy.graph_data_at(graph, index).unwrap()
@@ -434,10 +447,8 @@ fn open_checked_local_host(
       }
     }
     Some(inputs)
-  } else {
-    None
   }
-  let capacity = match (source_free_requirements, source_free_preparation) {
+  let capacity = match (requirements, source_free_preparation) {
     (Some(original), None) =>
       Some(
         (
@@ -461,10 +472,18 @@ fn open_checked_local_host(
         capacity_plan=Some(capacity_plan),
         retained_inputs~,
         max_rows~,
+        retained_output~,
       )
     (Some(_), Some(_)) => None
   }
   guard capacity is Some((limits, retained_bytes, execution_bytes)) else {
+    return None
+  }
+  let retained_configuration = source_free_preparation.bind(value => {
+    value.configuration
+  })
+  if retained_configuration is Some(original) &&
+    original.retained_output != retained_output {
     return None
   }
   let opened = if opened_run is Some(run) {
@@ -505,16 +524,18 @@ fn open_checked_local_host(
     Ok(value) => value
     Err(_) => return None
   }
+  if retained_configuration is Some(original) {
+    return bind_client_local_configuration(
+      run, original, fixed_ms, per_row_ms, per_wire_byte_ms, per_pair_ms,
+    )
+  }
   configure_client_local_run(
     run,
     graph,
-    compute_sequences,
+    capacity_plan,
     first_compute,
     task_count,
-    max_rows,
-    values,
-    execution,
-    measurement,
+    AdmittedRows,
     retained_bytes,
     execution_bytes,
     retained_output,
@@ -523,36 +544,57 @@ fn open_checked_local_host(
     per_wire_byte_ms,
     per_pair_ms,
     provider_factory,
-    capacity_plan=Some(capacity_plan),
   )
 }
 
 ///|
-// Shared installed Local configuration on the exact already-open Run. The
-// Pure and Effect entrypoints retain their own original preparation/admission;
-// this helper neither opens a Run/Ledger nor grants execution authority.
-fn configure_client_local_run(
-  run : @strategy.CapturedDAG,
+// Preserve the established Pure/Node and installed Effect request boundaries.
+// Both row dimensions are retained by the same checked plan.
+priv enum ClientLocalManagedBoundaryProfile {
+  AdmittedRows
+  ExecutionRows
+}
+
+///|
+/// Pure selected Local module and immutable policies retained before a Run.
+/// The actual driver binds this original instead of reconstructing providers
+/// or selecting another module from equal numerical limits.
+priv struct ClientPreparedLocalConfiguration {
+  graph : @strategy.CheckedDAG
+  capacity_plan : ClientLocalCapacityPlan
+  registry : @connector.CapabilityRegistry
+  dispatch : @local_driver.LocalDispatchPreparation
+  capacity : @connector.FixedComputeCapacity
+  retained_output : Bool
+}
+
+///|
+fn prepare_client_local_configuration(
   graph : @strategy.CheckedDAG,
-  compute_sequences : Array[@execution.GeneratedSequence],
-  first_compute : Int,
-  task_count : Int,
-  max_rows : Int,
-  values : @execution.ValueLimits,
-  execution : @execution.SequenceExecutionLimits,
-  measurement : @execution.FixedInputGuardMeasureLimits,
+  capacity_plan : ClientLocalCapacityPlan,
+  boundary_profile : ClientLocalManagedBoundaryProfile,
   retained_bytes : Int64,
   execution_bytes : Int64,
   retained_output : Bool,
-  fixed_ms : Int64,
-  per_row_ms : Int64,
-  per_wire_byte_ms : Int64,
-  per_pair_ms : Int64,
   provider_factory : (@execution.ExecutionCapacity) -> Array[
     @local.ManagedProvider,
   ],
-  capacity_plan? : ClientLocalCapacityPlan? = None,
-) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue]? {
+) -> ClientPreparedLocalConfiguration? {
+  let compute_sequences = capacity_plan.sequences
+  if !(capacity_plan.graph is Some(original) && physical_equal(original, graph)) ||
+    !client_local_capacity_plan_matches(
+      capacity_plan,
+      compute_sequences,
+      capacity_plan.admitted_rows,
+    ) {
+    return None
+  }
+  // These two existing boundary profiles are projections of the same plan,
+  // not caller-supplied alternative execution or serialization limits.
+  let max_rows = match boundary_profile {
+    AdmittedRows => capacity_plan.admitted_rows
+    ExecutionRows => capacity_plan.execution.rows.max_rows
+  }
   let capacity : @connector.FixedComputeCapacity = {
     contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
     max_rows,
@@ -562,14 +604,14 @@ fn configure_client_local_run(
   let providers = match
     @execution.execution_capacity(retained_bytes, execution_bytes) {
     Some(base) => provider_factory(base)
-    None => return reject_client_local_run(run)
+    None => return None
   }
   let local_configuration : @local_driver.LocalComputeConfiguration = {
     sequences: compute_sequences,
     managed_providers: providers,
     managed_capacity: capacity,
-    execution,
-    measurement,
+    execution: capacity_plan.execution,
+    measurement: capacity_plan.measurement,
     max_work: 100,
   }
   let bundle : @connector.CapabilityBundle[
@@ -584,30 +626,80 @@ fn configure_client_local_run(
   }
   let installed_bundles = match @connector.install_bundles([bundle], 1, 100) {
     Ok(value) => value
-    Err(_) => return reject_client_local_run(run)
+    Err(_) => return None
   }
   let registry = @connector.installed_bundle_registry(installed_bundles)
   guard @connector.capability_registration_at(registry, 0)
     is Some(local_registration) else {
-    return reject_client_local_run(run)
+    return None
   }
   guard @connector.capability_implementation(
       @connector.installed_compute_implementations(installed_bundles),
       local_registration,
     )
     is Some(local_configuration) else {
+    return None
+  }
+  let dispatch = match
+    @local_driver.prepare_local_dispatch_plan(
+      graph,
+      registry,
+      local_registration,
+      compute_sequences,
+      capacity_plan.execution,
+      capacity_plan.measurement,
+      100,
+      managed_capacity=capacity,
+      managed_providers=local_configuration.managed_providers,
+      inputs=Some((capacity_plan.imports, Some(0L))),
+      metadata=Some(capacity_plan.metadata),
+      output=if retained_output {
+        Some((capacity_plan.exports, Some(0L)))
+      } else {
+        None
+      },
+    ) {
+    Ok(value) => value
+    Err(_) => return None
+  }
+  Some({ graph, capacity_plan, registry, dispatch, capacity, retained_output, })
+}
+
+///|
+fn bind_client_local_configuration(
+  run : @strategy.CapturedDAG,
+  original : ClientPreparedLocalConfiguration,
+  fixed_ms : Int64,
+  per_row_ms : Int64,
+  per_wire_byte_ms : Int64,
+  per_pair_ms : Int64,
+) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue]? {
+  let graph = original.graph
+  let capacity_plan = original.capacity_plan
+  let first_compute = capacity_plan.graph_offset
+  let task_count = @strategy.graph_task_count(graph)
+  let registry = original.registry
+  let capacity = original.capacity
+  let retained_output = original.retained_output
+  if !physical_equal(@strategy.captured_dag_graph(run), graph) ||
+    @strategy.captured_compute_first_task(run) != first_compute {
     return reject_client_local_run(run)
   }
+  let driver = @host_driver.open_dispatch_driver(run)
+  let installed = match
+    @local_driver.bind_local_dispatch_plan(driver, original.dispatch) {
+    Ok(value) => value
+    Err(_) => return reject_client_local_run(run)
+  }
   let modules = match
-    @builtin.configure_compute_modules(
-      @host_driver.open_dispatch_driver(run),
+    @builtin.assemble_configured_compute_modules(
+      driver,
       registry,
       1,
       _ => @strategy.RunIssue::ForeignCandidate,
       with_local=Some(
         (
-          local_registration,
-          local_configuration,
+          installed,
           _ => @strategy.RunIssue::ForeignCandidate,
           _ => @strategy.RunIssue::ForeignCandidate,
         ),
@@ -616,44 +708,7 @@ fn configure_client_local_run(
     Ok(value) => value
     Err(_) => return reject_client_local_run(run)
   }
-  guard @builtin.configured_local_module(modules) is Some(installed) else {
-    return reject_client_local_run(run)
-  }
-  // Local import limits follow the bounds around them: the checked
-  // requirement's rows and value size (`capacity`), the Store's column,
-  // depth and 64 KiB batch bounds, and a whole-input wire sized for what one
-  // acquisition captures (500 KB of text, encoded). One row must fit one
-  // batch, so a row is bounded by the batch size; a larger input is split
-  // into batches. The worst-case retention these limits imply stays within
-  // the Run's capacity.
-  match
-    @local_driver.configure_local_retained_inputs(
-      installed,
-      capacity_plan
-      .map(plan => plan.imports)
-      .unwrap_or_else(() => client_local_import_limits(capacity, values)),
-      Some(0L),
-      metadata=capacity_plan.map(plan => plan.metadata),
-    ) {
-    Ok(_) => ()
-    Err(_) => return reject_client_local_run(run)
-  }
   let slots = @local_driver.local_dispatch_work_slots()
-  if retained_output {
-    match
-      @local_driver.configure_local_retained_output(
-        installed,
-        capacity_plan
-        .map(plan => plan.exports)
-        .unwrap_or_else(() => {
-          client_local_export_limits(capacity.max_rows, values)
-        }),
-        Some(0L),
-      ) {
-      Ok(_) => ()
-      Err(_) => return reject_client_local_run(run)
-    }
-  }
   let schedule = match
     @cost.prepare_rate_schedule(
       slots,
@@ -689,8 +744,8 @@ fn configure_client_local_run(
       modules,
       registry,
       capacity,
-      capacity_plan.map(plan => plan.dispatch_entries).unwrap_or(100),
-      capacity_plan.map(plan => plan.dispatch_name_bytes).unwrap_or(10000),
+      capacity_plan.dispatch_entries,
+      capacity_plan.dispatch_name_bytes,
       1,
     ) {
     Ok(value) => {
@@ -760,6 +815,54 @@ fn configure_client_local_run(
     }
     Err(_) => reject_client_local_run(run)
   }
+}
+
+///|
+// Shared installed Local configuration on the exact already-open Run. The
+// Pure and Effect entrypoints retain their own original preparation/admission;
+// this helper neither opens a Run/Ledger nor grants execution authority.
+fn configure_client_local_run(
+  run : @strategy.CapturedDAG,
+  graph : @strategy.CheckedDAG,
+  capacity_plan : ClientLocalCapacityPlan,
+  first_compute : Int,
+  task_count : Int,
+  boundary_profile : ClientLocalManagedBoundaryProfile,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+  retained_output : Bool,
+  fixed_ms : Int64,
+  per_row_ms : Int64,
+  per_wire_byte_ms : Int64,
+  per_pair_ms : Int64,
+  provider_factory : (@execution.ExecutionCapacity) -> Array[
+    @local.ManagedProvider,
+  ],
+) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue]? {
+  let compute_sequences = capacity_plan.sequences
+  if !physical_equal(@strategy.captured_dag_graph(run), graph) ||
+    @strategy.graph_task_count(graph) != task_count ||
+    @strategy.captured_compute_first_task(run) != first_compute ||
+    capacity_plan.graph_offset != first_compute ||
+    !(capacity_plan.graph is Some(original) && physical_equal(original, graph)) ||
+    !client_local_capacity_plan_matches(
+      capacity_plan,
+      compute_sequences,
+      capacity_plan.admitted_rows,
+    ) {
+    return reject_client_local_run(run)
+  }
+  let original = match
+    prepare_client_local_configuration(
+      graph, capacity_plan, boundary_profile, retained_bytes, execution_bytes, retained_output,
+      provider_factory,
+    ) {
+    Some(value) => value
+    None => return reject_client_local_run(run)
+  }
+  bind_client_local_configuration(
+    run, original, fixed_ms, per_row_ms, per_wire_byte_ms, per_pair_ms,
+  )
 }
 
 ///|

@@ -4,6 +4,7 @@ from threading import RLock
 import unittest
 
 from actql_sdk._local_core import LocalCore, LocalCoreError, _Task
+from local_abi_declaration_fixture import original_byte_fixture_port
 
 
 class ResultCustodyTests(unittest.TestCase):
@@ -50,7 +51,7 @@ class ResultCustodyTests(unittest.TestCase):
                 return state['close']
             return 0
 
-        core._call = call
+        core._call = original_byte_fixture_port(call)
         return core, task, calls, state, wire
 
     def test_explicit_progress_and_repeated_chunk_read_do_not_advance_or_publish(self):
@@ -121,7 +122,7 @@ class ResultCustodyTests(unittest.TestCase):
             core.read_result_chunk(chunk)
         self.assertIs(core._loans[1], chunk)
         original = core._call
-        core._call = lambda family, name, *args: -33 if name == 'progress' else original(family, name, *args)
+        core._call = original_byte_fixture_port(lambda family, name, *args: -33 if name == 'progress' else original(family, name, *args))
         with self.assertRaises(LocalCoreError):
             core.advance_result_export(result, 1)
 

@@ -67,7 +67,7 @@ pub fn prepare_local_source(
   let declarations = @parameters.declarations(source)
   let (decl_nodes, decl_text) = @binding.declaration_usage(declarations)
   let bound = match
-    @binding.bind(declarations, supplied, {
+    @parameters.bind(source, supplied, {
       max_nodes: limits.max_nodes - decl_nodes,
       max_text_bytes: limits.max_text_bytes - decl_text,
       max_depth: limits.max_depth,

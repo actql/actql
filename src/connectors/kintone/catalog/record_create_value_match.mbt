@@ -9,7 +9,7 @@ pub fn record_create_request_matches_value_wire(
   write_limits : RecordWriteLimits,
   limits : RecordMutationLimits,
 ) -> Result[Bool, RecordCreateJsonIssue] {
-  if !create_json_write_limits_valid(write_limits) ||
+  if !write_json_limits_valid(write_limits) ||
     !mutation_limits_valid(limits) ||
     max_input_bytes <= 2 {
     return Err(InvalidLimits)

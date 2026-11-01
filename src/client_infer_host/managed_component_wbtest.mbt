@@ -18,10 +18,16 @@ test "Local component keeps composed INFER work deltas and output custody" {
     prepared,
   ).unwrap()
   let prefix = @input.prepare_client_composed_infer_prefix(
-    prepared, occurrence, infer_fixture_registry, infer_fixture_values,
+    prepared,
+    occurrence,
+    infer_fixture_installed_contracts(),
+    infer_fixture_values,
   ).unwrap()
   let suffix = @input.prepare_client_composed_infer_suffix(
-    prepared, occurrence, infer_fixture_registry, infer_fixture_values,
+    prepared,
+    occurrence,
+    infer_fixture_installed_contracts(),
+    infer_fixture_values,
   ).unwrap()
   let calls = Ref(0)
   let provider = @model.install_model_provider("models/fixture", _ => {

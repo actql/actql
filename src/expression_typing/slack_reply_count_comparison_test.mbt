@@ -149,21 +149,18 @@ test "comparison NULL annotations and ordinary Number literal identity stay unch
     "{\"eq\":[{\"field\":\"i\"},{\"literal\":0}]}", "{\"i\":{\"type\":\"int64\",\"nullable\":true}}",
     "null", "{\"type\":\"boolean\",\"nullable\":true}",
   )
-  // Ordinary literal-NULL comparison remains a syntax refusal, before typing.
-  assert_true(
-    @syntax.admit(cursor("{\"eq\":[{\"field\":\"i\"},{\"literal\":null}]}"), {
-      max_nodes: 1000,
-      max_depth: 100,
-      max_text_bytes: 10000,
-      max_tokens: 1000,
-      tree: {
-        max_nodes: 1000,
-        max_depth: 100,
-        max_string_bytes: 10000,
-        max_total_string_bytes: 10000,
-      },
-    })
-    is Err(_),
+  // The independently typed peer supplies literal NULL's comparable domain.
+  assert_type(
+    "{\"eq\":[{\"field\":\"i\"},{\"literal\":null}]}",
+    int64_fields(),
+    "null",
+    "{\"type\":\"boolean\",\"nullable\":true}",
+  )
+  assert_rejected(
+    "{\"eq\":[{\"literal\":null},{\"literal\":null}]}",
+    int64_fields(),
+    "null",
+    "NullTypeUnresolved",
   )
   // Negative zero never supplies an admitted Number value in the first place.
   assert_true(

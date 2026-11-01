@@ -196,3 +196,38 @@ test "authored selector structure failures retain common categories and original
     )
   }
 }
+
+///|
+test "original input failure projection preserves configuration limits and syntax without reparsing" {
+  let (text, _, _, _, limits) = public_input_fixture()
+  for
+    (document, selected, expected) in [
+      ("{", limits.input, @program_check.InvalidInput),
+      (
+        text,
+        {
+          ..limits.input,
+          source: { ..limits.input.source, max_input_bytes: 1, },
+        },
+        @program_check.CompileLimit,
+      ),
+      (
+        text,
+        {
+          ..limits.input,
+          source: { ..limits.input.source, max_input_bytes: -1, },
+        },
+        @program_check.InvalidConfiguration,
+      ),
+    ] {
+    guard @syntax.parse(document, selected, format=Json) is Err(issue) else {
+      fail("The selected original input must refuse before projection")
+    }
+    let diagnostic = @program_check.program_input_diagnostic(issue)
+    assert_eq(@program_check.diagnostic_category(diagnostic), expected)
+    guard @program_check.diagnostic_cause(diagnostic) is Program(original) else {
+      fail("The same original input failure must remain attached")
+    }
+    assert_eq(original, issue)
+  }
+}

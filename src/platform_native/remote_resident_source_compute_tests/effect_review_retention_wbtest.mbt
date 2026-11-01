@@ -19,6 +19,10 @@ fn retained_effect_review_retention_store(
     @client.NativeClientEffectSourceWork,
     @client.NativeClientRunJournal,
   )? = None,
+  initial_reviewer? : (
+    PairedInitialReviewerFixture,
+    @client.NativeClientSubmissionReference,
+  )? = None,
   original_context? : (
     @resident.ResidentEffectReviewInputContext,
     @dispatch_journal.Journal,
@@ -41,6 +45,21 @@ fn retained_effect_review_retention_store(
     max_nodes: 10000,
     max_depth: 64,
   }
+  let initial_host = initial_reviewer is Some((fixture, _)) &&
+    fixture.attest_host
+  let now = @env.now().to_int64()
+  let created_at = if initial_host {
+    @values.epoch_milliseconds_timestamp(now).unwrap()
+  } else {
+    "2026-10-10T00:00:00.000Z"
+  }
+  let expires_at = if initial_host {
+    // Same one-day interval as the original Oct10 -> Oct11 fixture. Only
+    // this new actual-time Host case moves the dates, not its finite window.
+    @values.epoch_milliseconds_timestamp(now + 86400000L).unwrap()
+  } else {
+    "2026-10-11T00:00:00.000Z"
+  }
   // Test charges are explicit; they are not a production layout declaration.
   let computation_capacity : @resident.ResidentEffectComputationCapacity = {
     contract_bytes: 1048576L,
@@ -52,8 +71,8 @@ fn retained_effect_review_retention_store(
   let prepare = (material, secret, bounds) => {
     consumer.prepare_effect_review_retention(
       material, inputs, result, invocation, preview, captured, wire, authoring_cid,
-      authority, crypto, secret, "native-original-review-retention", "2026-10-10T00:00:00.000Z",
-      "2026-10-11T00:00:00.000Z", bounds,
+      authority, crypto, secret, "native-original-review-retention", created_at,
+      expires_at, bounds,
     )
   }
   println("native-original-review: preparing review retention")
@@ -73,8 +92,8 @@ fn retained_effect_review_retention_store(
     Some(work) => {
       let retained = work
         .prepare_retention(
-          crypto, key, "native-original-review-retention", "2026-10-10T00:00:00.000Z",
-          "2026-10-11T00:00:00.000Z", limits,
+          crypto, key, "native-original-review-retention", created_at, expires_at,
+          limits,
         )
         .unwrap()
       assert_true(
@@ -82,16 +101,16 @@ fn retained_effect_review_retention_store(
           retained,
           work
           .prepare_retention(
-            crypto, key, "native-original-review-retention", "2026-10-10T00:00:00.000Z",
-            "2026-10-11T00:00:00.000Z", limits,
+            crypto, key, "native-original-review-retention", created_at, expires_at,
+            limits,
           )
           .unwrap(),
         ),
       )
       assert_true(
         work.prepare_retention(
-          crypto, key, "native-original-review-retention", "2026-10-10T00:00:00.000Z",
-          "2026-10-12T00:00:00.000Z", limits,
+          crypto, key, "native-original-review-retention", created_at, "2026-10-12T00:00:00.000Z",
+          limits,
         )
         is Err(Unavailable),
       )
@@ -131,9 +150,11 @@ fn retained_effect_review_retention_store(
     is Err(Unavailable),
   )
   let binding : @checkpoint.ResumeBinding = {
-    // The original Local fixture explicitly installed these Host bindings at
-    // admission. They are not inferred from Source, Preview or a report.
-    authorization_context_cid: retained_compute_cid("a"),
+    // Use the same original Run admission, including a genuinely adopted
+    // Host's context. A legacy literal is not that Host's authority original.
+    authorization_context_cid: @publication.run_publication_execution_context(
+      @host.client_effect_allowed_run_admission(materials.allowed),
+    ),
     environment_binding_cid: retained_compute_cid("b"),
   }
   if original_work is Some((work, journal)) {
@@ -487,9 +508,59 @@ fn retained_effect_review_retention_store(
       ])
       is Err(@client.Journal(@client.Checkpoint(@client.InvalidMaterial))),
     )
-    let waiting = work
-      .wait_review_checkpoint(retention, revision, binding, [])
-      .unwrap()
+    if binding.authorization_context_cid != retained_compute_cid("a") {
+      assert_true(
+        work.wait_review_checkpoint(
+          retention,
+          revision,
+          { ..binding, authorization_context_cid: retained_compute_cid("a"), },
+          [],
+        )
+        is Err(@client.Journal(@client.Checkpoint(@client.InvalidMaterial))),
+      )
+      guard journal.lookup(request, true) is Ok(@client.Retained(unchanged)) else {
+        fail("mismatched waiting binding lost original Run custody")
+      }
+      assert_eq(@client.native_client_run_record_revision(unchanged), revision)
+    }
+    let waiting = match
+      work.wait_review_checkpoint(retention, revision, binding, []) {
+      Ok(value) => value
+      Err(@client.Original(_)) =>
+        fail("original Review waiting refused by Work current")
+      Err(@client.Retention(_)) =>
+        fail("original Review waiting refused by retained Checkpoint")
+      Err(@client.Journal(@client.Checkpoint(issue))) => {
+        let reason = match issue {
+          @client.InvalidMaterial => "InvalidMaterial"
+          @client.StaleRevision => "StaleRevision"
+          @client.ConflictingResolution => "ConflictingResolution"
+          @client.Expired => "Expired"
+          @client.NeedsOriginalContinuation => "NeedsOriginalContinuation"
+          @client.State(issue) => "State: " + @debug.to_string(issue)
+          @client.Signature(_) => "Signature"
+          @client.Resume(_) => "Resume"
+          @client.Ledger(_) => "Ledger"
+          @client.EffectBinding(@host.Checkpoint(issue)) =>
+            "EffectCheckpoint: " + @debug.to_string(issue)
+          @client.EffectBinding(_) => "EffectBinding"
+        }
+        fail("original Review waiting Checkpoint refused: " + reason)
+      }
+      Err(@client.Journal(@client.CapacityExceeded)) =>
+        fail("original Review waiting journal capacity exceeded")
+      Err(@client.Journal(@client.AuthorizationDenied)) =>
+        fail("original Review waiting journal authorization denied")
+      Err(@client.Journal(@client.CustodyLost)) =>
+        fail("original Review waiting journal custody lost")
+      Err(@client.Journal(@client.Fenced)) =>
+        fail("original Review waiting journal fenced")
+      Err(@client.Journal(@client.TransactionUnknown)) =>
+        fail("original Review waiting transaction unknown")
+      Err(@client.Journal(@client.Physical(_))) =>
+        fail("original Review waiting journal physical failure")
+      Err(@client.Journal(_)) => fail("original Review waiting journal refused")
+    }
     assert_eq(@client.native_client_run_record_revision(waiting), revision + 1L)
     let state = @client.native_client_run_checkpoint_state(waiting).unwrap()
     assert_eq(state.run_id, "original-local-effect-source-run")
@@ -522,9 +593,22 @@ fn retained_effect_review_retention_store(
       @client.native_client_run_record_revision(after_read),
       revision + 1L,
     )
+    if initial_reviewer is Some((value, reference)) {
+      paired_initial_reviewer_signing(
+        value,
+        reference,
+        request,
+        approval_scope,
+        persisted.artifact,
+      )
+    }
     // Discharge this test's actual review obligation before exercising custody
     // cleanup below. No fixture receipt replaces the signed common rejection.
-    native_local_effect_reject_review(journal, request, persisted.artifact)
+    if initial_host {
+      assert_true(initial_reviewer.unwrap().0.host_applied)
+    } else {
+      native_local_effect_reject_review(journal, request, persisted.artifact)
+    }
     // Historical read authority does not require another execution grant and
     // cannot undo rejection or acquire another Provider-send capability.
     let (rejected_checkpoint, rejected_wire) = work
@@ -757,8 +841,8 @@ fn retained_effect_review_retention_store(
         crypto,
         key,
         checkpoint_id: "native-original-review-retention",
-        created_at: "2026-10-10T00:00:00.000Z",
-        expires_at: "2026-10-11T00:00:00.000Z",
+        created_at,
+        expires_at,
         limits,
         report_url: @env.get_env_var(
           "ACTQL_TEST_EFFECT_REVIEW_REPORT_FIXTURE_URL",

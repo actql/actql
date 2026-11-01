@@ -35,6 +35,7 @@ pub fn issue_prepared_client_infer_compilation(
       max_nodes,
       max_depth,
       required_profiles=client_infer_required_profiles(graph),
+      result_plans=graph.graph.result_plans,
     ) {
     Ok(value) => { plan: value, }
     Err(issue) => return Err(Plan(issue))

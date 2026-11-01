@@ -39,7 +39,6 @@ fn command_preparation_cleanup_kind(
     CommandInvalidProfile => "profile"
     CommandUnavailable => "original-unavailable"
     CommandNativeStorage(_) => "native-storage"
-    CommandBacking(code) => "backing(" + code.to_string() + ")"
     CommandHost(_) => "host"
     CommandDomain(_) => "domain"
     CommandRead(_) => "read"
@@ -102,7 +101,8 @@ fn[T] command_preparation_result(
     // read_command retains the original public ClientStop across its physical
     // return. Preserve that application failure after the return completes;
     // it must not become an unrelated preparation/supplier error.
-    Err(CommandApplication(message)) => stop(message)
+    Err(CommandApplication(message)) =>
+      stop(local_command_recovery_failure(message))
     Err(issue) => {
       // Closed caller-owned labels and the existing error-family projection
       // identify the failed boundary without exposing paths, keys or messages.
@@ -119,7 +119,7 @@ fn[T] command_preparation_result(
           local_bounded_file_diagnostic_message(message, original)
         _ => message
       }
-      stop(disclosed)
+      stop(local_command_recovery_failure(disclosed))
     }
   }
 }
@@ -136,6 +136,17 @@ fn local_command_preparation_operation_selected(
   operation == "check" ||
   operation == "explain" ||
   operation == "adopt" ||
+  (
+    matches.subcommand is Some((selected, _)) &&
+    selected == operation &&
+    (
+      selected == "new-submission" ||
+      selected == "lookup-submission" ||
+      selected == "lookup-request" ||
+      selected == "cancel" ||
+      selected == "lookup-cancellation"
+    )
+  ) ||
   (
     matches.subcommand is Some((selected, child)) &&
     selected == operation &&
@@ -343,9 +354,14 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
   // Trusted literal quick queries may initialize a genuinely absent default
   // Host through the same original Session. This selects physical setup only,
   // not Reviewer registration, Effect approval or missing-state repair.
+  // Explicit first Product adoption uses that same initial-signing entrance;
+  // the original Session still checks eligibility before issuing material.
   let initialize_signing = (
       operation == "adopt" &&
-      child.flags.get("initialize-signing").unwrap_or(false)
+      (
+        child.flags.get("initialize-signing").unwrap_or(false) ||
+        self.initial_product_selected
+      )
     ) ||
     (
       local_quick_query_requested(operation, child) &&
@@ -357,11 +373,12 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
       ttl_ms: settings.ttl_ms,
       max_records: settings.record_limit,
       max_snapshot_bytes: settings.snapshot_bytes,
+      initial_host_signing: settings.initial_host_signing,
     }),
     stage=Some("journal-open"),
   )
   |> ignore
-  if operation == "status" {
+  if operation == "status" || operation == "cancel" {
     command_preparation_result(self.prepare_run_observation_operation())
   }
   let crypto = self.inner_library.unwrap()
@@ -388,6 +405,55 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
             child,
             capture=Some(capture),
             configuration=Some(configuration),
+          )
+        } else if operation == "new-submission" {
+          local_new_submission_reference(settings, capture, child)
+        } else if operation == "lookup-submission" {
+          local_submission_lookup(
+            host,
+            settings,
+            crypto,
+            input_root,
+            child,
+            capture=Some(capture),
+          )
+        } else if operation == "lookup-request" {
+          local_request_lookup(
+            host,
+            settings,
+            crypto,
+            child,
+            capture=Some(capture),
+          )
+        } else if operation == "lookup-cancellation" {
+          local_cancellation_lookup(
+            host,
+            settings,
+            crypto,
+            input_root,
+            child,
+            capture=Some(capture),
+          )
+        } else if operation == "cancel" {
+          let physical = self.host.unwrap_or_else(() => {
+            stop("LocalRunObservationOriginalUnavailable")
+          })
+          let pair = self.pair.unwrap_or_else(() => {
+            stop("LocalRunObservationOriginalUnavailable")
+          })
+          let sqlite = physical
+            .borrow_local_host_sqlite(pair)
+            .unwrap_or_else(() => stop("LocalRunObservationOriginalUnavailable"))
+          local_cancellation_operation(
+            host,
+            settings,
+            crypto,
+            sqlite,
+            input_root,
+            child,
+            self.cancellation_recovery,
+            capture=Some(capture),
+            prepared=Some((self, configuration)),
           )
         } else if operation == "explain" {
           if optional(child, "run") is Some(_) {
@@ -472,11 +538,36 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
             prepared=Some(selected),
           )
         } else if public_run && operation == local_run_original_operation() {
+          let preflight = local_explicit_submission_preflight(
+            host, capture, settings, crypto, input_root, operation, child,
+          )
+          if preflight is RetainedSubmissionRun(reply) {
+            let runtime = preparation_runtime.unwrap_or_else(() => {
+              stop("LocalReadOriginalCustodyUnavailable")
+            })
+            return Ok(
+              self.present_retained_run(
+                host, capture, configuration, runtime, crypto, child, reply,
+              ),
+            )
+          }
+          let original_input = match preflight {
+            ExplicitSubmissionInput(selection, intent) =>
+              Some((selection, intent))
+            _ => None
+          }
           let runtime = preparation_runtime.unwrap_or_else(() => {
             stop("LocalBusinessOriginalUnavailable")
           })
           let selection = self.prepare_business_submission(
-            host, capture, configuration, runtime, input_root, operation, child,
+            host,
+            capture,
+            configuration,
+            runtime,
+            input_root,
+            operation,
+            child,
+            original_input~,
           )
           let physical = self.host.unwrap_or_else(() => {
             stop("LocalBusinessOriginalUnavailable")
@@ -585,4 +676,62 @@ fn command_project_original_text(
     original.read_failure = Some(failure)
   }
   result
+}
+
+///|
+// The same cancellation reference survives command/cleanup failure. It grants
+// no resend, physical ACK or replacement operation.
+fn local_command_recovery_failure(message : String) -> String {
+  match command_preparation_invocation.val {
+    Some(original) =>
+      local_cancellation_recovery_failure(
+        original.cancellation_recovery.val,
+        message,
+      )
+    None => message
+  }
+}
+
+///|
+// Closed response projection only; the reference is retained by the actual
+// command before its cancellation transaction, never inferred here.
+fn local_cancellation_recovery_failure(
+  reference : String?,
+  message : String,
+) -> String {
+  match reference {
+    Some(original) =>
+      local_cancellation_unknown(original) + " reason=" + message
+    None => message
+  }
+}
+
+///|
+// Keep only immutable public correlation DATA in the existing initial-control
+// owner before the cancellation transaction. Its original Read and every
+// Store/DB receiver remain with their existing actual cleanup owners.
+fn LocalCommandPreparationOriginal::retain_cancellation_recovery(
+  self : LocalCommandPreparationOriginal,
+  capture : @local_host.NativeLocalJournalCapture,
+  reference : String,
+) -> Result[Unit, LocalCommandPreparationIssue] {
+  guard self.journal is Some(actual) &&
+    physical_equal(actual, capture) &&
+    self.journal_read_open &&
+    self.cancellation_recovery.val is None &&
+    !self.closing &&
+    !self.closed &&
+    self.primary is None else {
+    return Err(CommandUnavailable)
+  }
+  match capture.suspend_original_read_for_preparation() {
+    Err(issue) => return Err(CommandAdoption(issue))
+    Ok(_) => ()
+  }
+  // The SAME bounded wire is borrowed while that Read remains retained. Only
+  // its exact UTF-16 DATA is copied in the actual initial control context.
+  self.cancellation_recovery.val = Some(command_control_copy_text(reference))
+  capture
+  .resume_original_read_after_preparation()
+  .map_err(issue => CommandAdoption(issue))
 }

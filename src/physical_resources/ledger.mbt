@@ -177,6 +177,7 @@ pub fn charge_planning(
     ..ledger.usage,
     planning_work: ledger.usage.planning_work + work,
   }
+  record_original_prefix_work(ledger, work)
   Ok(())
 }
 
@@ -212,6 +213,7 @@ fn reserve_attempt_current(
   retained_bytes : Int64,
   execution_bytes : Int64,
   quantities : QuantityAmounts?,
+  preparation_input? : Bool = false,
 ) -> Result[Reservation, LedgerIssue] {
   match check_original_reservation_slot_current(ledger) {
     Err(issue) => return Err(issue)
@@ -284,7 +286,7 @@ fn reserve_attempt_current(
     observed_quantities: (false, false, false),
     completed_output: None,
   }
-  record_original_reservation(ledger, reservation)
+  record_original_reservation(ledger, reservation, preparation_input~)
   Ok(reservation)
 }
 
@@ -303,12 +305,23 @@ fn reservation_check(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  // The original current callback may synchronously finish this same token.
-  if reservation.open {
-    Ok(())
-  } else {
-    Err(ClosedReservation)
+  reservation_check_current(ledger, reservation)
+}
+
+///|
+// SAME synchronous boundary after its original current callback. This private
+// DATA/lifetime check creates no reusable proof and invokes no external port.
+fn reservation_check_current(
+  ledger : Ledger,
+  reservation : Reservation,
+) -> Result[Unit, LedgerIssue] {
+  if !physical_equal(ledger, reservation.owner) {
+    return Err(ForeignOwner)
   }
+  if !reservation.open {
+    return Err(ClosedReservation)
+  }
+  check_original_resources_mutable_current(ledger)
 }
 
 ///|

@@ -178,3 +178,95 @@ test "measurement rejects the same malformed emissions as text output" {
     _ => assert_true(false)
   }
 }
+
+///|
+test "subtree measurement composes exact parent punctuation nodes and depth" {
+  let child = writer(1000, 20, 5)
+  measurement_fixture(child)
+  let document = finish_document(child)
+  let child_measure = measuring_writer(1000, 20, 5)
+  measurement_fixture(child_measure)
+  let measurement = finish_measurement_usage(child_measure)
+  let total = document_bytes(document) * 2 + 13
+  for bytes in [total - 1, total, total + 1] {
+    for nodes in [13, 14, 15] {
+      for depth in [3, 4, 5] {
+        let actual = try {
+          let out = writer(bytes, nodes, depth)
+          begin_object(out)
+          key(out, "items")
+          begin_array(out)
+          emit_document(out, document)
+          emit_document(out, document)
+          end_array(out)
+          end_object(out)
+          Some(document_bytes(finish_document(out)))
+        } catch {
+          _ => None
+        }
+        let composed = try {
+          let out = measuring_writer(bytes, nodes, depth)
+          begin_object(out)
+          key(out, "items")
+          begin_array(out)
+          emit_measurement(out, measurement)
+          emit_measurement(out, measurement)
+          end_array(out)
+          end_object(out)
+          Some(finish_measurement_usage(out))
+        } catch {
+          _ => None
+        }
+        if bytes >= total && nodes >= 14 && depth >= 4 {
+          assert_eq(actual, Some(total))
+          assert_eq(composed, Some((total, 14, 4)))
+        } else {
+          assert_eq(actual, None)
+          assert_eq(composed, None)
+        }
+      }
+    }
+  }
+}
+
+///|
+test "subtree measurement cannot become encoded text hash or comparison evidence" {
+  let outputs = [
+    writer(100, 10, 5),
+    hashing_writer(100, 10, 5),
+    comparing_writer("null", 100, 10, 5),
+    buffered_writer(100, 10, 5, 100),
+    buffered_hashing_writer(100, 10, 5, 100),
+  ]
+  for out in outputs {
+    try emit_measurement(out, (4, 1, 0)) catch {
+      InvalidStructure => ()
+      _ => assert_true(false)
+    } noraise {
+      _ => assert_true(false)
+    }
+    try null_value(out) catch {
+      ClosedWriter => ()
+      _ => assert_true(false)
+    } noraise {
+      _ => assert_true(false)
+    }
+  }
+  for invalid in [(0, 1, 0), (1, 0, 0), (1, 1, -1), (1, 1, 2)] {
+    let out = measuring_writer(100, 10, 5)
+    try emit_measurement(out, invalid) catch {
+      InvalidStructure => ()
+      _ => assert_true(false)
+    } noraise {
+      _ => assert_true(false)
+    }
+  }
+  let object = measuring_writer(100, 10, 5)
+  begin_object(object)
+  try emit_measurement(object, (4, 1, 0)) catch {
+    InvalidStructure => ()
+    _ => assert_true(false)
+  } noraise {
+    _ => assert_true(false)
+  }
+}

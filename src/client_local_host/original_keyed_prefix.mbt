@@ -52,6 +52,7 @@ fn original_keyed_left_prefix_provider(
       infer_prefix=Some((task, left)),
       acquisition_source=Some((task, input)),
     )
+    .to_option()
     .bind(sequences => sequences.get(0))
     .bind(sequence => {
       @execution.select_generated_sequence_range(sequence, capture + 1, left)

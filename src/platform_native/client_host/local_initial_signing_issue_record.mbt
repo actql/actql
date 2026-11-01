@@ -8,6 +8,7 @@ priv struct NativeLocalInitialSigningIssueRecord {
   host_configuration_file : String
   host_configuration_cid : String
   connection : String
+  signing_resource : String?
 }
 
 ///|
@@ -27,7 +28,7 @@ fn local_initial_signing_issue_payload(
   policy_cid : String,
   record : NativeLocalInitialSigningIssueRecord,
 ) -> Result[Bytes, NativeClientRunJournalIssue] {
-  local_adoption_record([
+  let fields = [
     ("connection", record.connection),
     (
       "earlier_valid_until",
@@ -41,7 +42,11 @@ fn local_initial_signing_issue_payload(
     ("policy_cid", policy_cid),
     ("sampled_at", record.sampled_at.to_string()),
     ("version", "actql-native-local-installation-original/0.1"),
-  ]).map_err(_ => Encoding)
+  ]
+  if record.signing_resource is Some(resource) {
+    fields.push(("signing_resource", resource))
+  }
+  local_adoption_record(fields).map_err(_ => Encoding)
 }
 
 ///|
@@ -61,14 +66,28 @@ fn read_local_initial_signing_issue_record(
     Ok(value) => value
     Err(_) => return Err(CustodyLost)
   }
-  let values = match
-    local_adoption_fields(payload, [
-      "connection", "earlier_valid_until", "grant_cid", "host_configuration_cid",
-      "host_configuration_file", "initialization_intent_cid", "operation_cid", "policy_cid",
-      "sampled_at", "version",
-    ]) {
+  let keys = [
+    "connection", "earlier_valid_until", "grant_cid", "host_configuration_cid", "host_configuration_file",
+    "initialization_intent_cid", "operation_cid", "policy_cid", "sampled_at", "version",
+  ]
+  let scope = @credential.local_signing_credential_grant_scope(grant)
+  if scope.purpose == @credential.HostAttestation {
+    keys.push("signing_resource")
+  }
+  let values = match local_adoption_fields(payload, keys) {
     Ok(value) => value
     Err(_) => return Err(CustodyLost)
+  }
+  let signing_resource = if scope.purpose == @credential.HostAttestation {
+    let resource = values[10]
+    if resource.is_empty() ||
+      resource.length() > 256 ||
+      resource.contains("\u{0}") {
+      return Err(CustodyLost)
+    }
+    Some(resource)
+  } else {
+    None
   }
   guard initial_signing_issue_int64(values[8]) is Some(sampled_at) else {
     return Err(CustodyLost)
@@ -93,7 +112,6 @@ fn read_local_initial_signing_issue_record(
     Ok(value) => value
     Err(_) => return Err(CustodyLost)
   }
-  let scope = @credential.local_signing_credential_grant_scope(grant)
   let expected = match
     @credential.prepare_local_signing_credential_grant(
       fields.issuer,
@@ -114,6 +132,7 @@ fn read_local_initial_signing_issue_record(
     host_configuration_file: values[4],
     host_configuration_cid: values[3],
     connection: values[0],
+    signing_resource,
   })
 }
 
@@ -136,6 +155,11 @@ fn NativeLocalHostConnection::check_initial_signing_grant_original_locked(
     Err(issue) => return Err(issue)
   }
   let scope = @credential.local_signing_credential_grant_scope(grant)
+  if scope.purpose == @credential.HostAttestation {
+    return self.check_initial_host_attestation_grant_original_locked(
+      original, expected_run,
+    )
+  }
   let control = match
     self.database.read("client_local_installation_custody", "host") {
     Ok(value) if value.revision == 0L => value
@@ -242,6 +266,7 @@ fn local_initial_signing_grant_original_locked(
       Err(_) => return Err(Encoding)
     },
     connection: key.installed.reviewer.connection,
+    signing_resource: None,
   }
   let payload = match
     local_initial_signing_issue_payload(

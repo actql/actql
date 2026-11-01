@@ -1,0 +1,7 @@
+///|
+extern "js" fn closed_module_test_throw() -> Array[@local.ManagedProvider] =
+  #|() => { throw new Error('closed-module-original-callback'); }
+
+///|
+extern "js" fn closed_module_test_catch(body : () -> Unit) -> Bool =
+  #|(body) => { try { body(); return false; } catch(error) { if(error.message!=='closed-module-original-callback')throw error; return true; } }

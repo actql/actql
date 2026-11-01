@@ -9,6 +9,16 @@ priv struct StoredSDKStartStep {
 }
 
 ///|
+/// Keep the live first-admission Owner distinct from an actual saved snapshot.
+priv enum StoredSDKOriginalRows {
+  Submitted(
+    @local_run.LocalSubmittedRunRows,
+    @preparation.LocalSubmittedPreparation
+  )
+  Saved(@host.ClientSavedSubmissionSnapshot)
+}
+
+///|
 fn sdk_saved_original_rows(
   value : Instance,
   run : Int,
@@ -17,8 +27,7 @@ fn sdk_saved_original_rows(
   (
     @host.ClientJournalPhysicalRow,
     @host.ClientJournalPhysicalRow,
-    @local_run.LocalSubmittedRunRows,
-    @preparation.LocalSubmittedPreparation,
+    StoredSDKOriginalRows,
     Int,
   ),
   Int,
@@ -27,8 +36,27 @@ fn sdk_saved_original_rows(
     value.run_configurations.get(record.configuration) is Some(current) &&
     current.sdk is Some(_) &&
     record.sdk_submission is Some(held) &&
-    value.submissions.get(held) is Some(observation) &&
-    value.preparations.get(record.preparation)
+    value.submissions.get(held) is Some(observation) else {
+    return Err(-2)
+  }
+  if record.restoration is Some(restoration) {
+    let snapshot = match sdk_restored_run_snapshot(value, run, plan) {
+      Ok(snapshot) => snapshot
+      Err(code) => return Err(code)
+    }
+    guard @host.client_saved_submission_run_row(snapshot) is Some(row) else {
+      return Err(-35)
+    }
+    let submission = @host.client_saved_submission_row(snapshot)
+    if @local_run.validate_local_saved_snapshot_rows(
+        plan, snapshot, row, submission,
+      )
+      is Err(_) {
+      return Err(-31)
+    }
+    return Ok((row, submission, Saved(snapshot), restoration))
+  }
+  guard value.preparations.get(record.preparation)
     is Some({ submitted: Some(preparation), .. }) else {
     return Err(-2)
   }
@@ -60,7 +88,7 @@ fn sdk_saved_original_rows(
         is Err(_) {
         return Err(-31)
       }
-      return Ok((row, submission, rows, preparation, handle))
+      return Ok((row, submission, Submitted(rows, preparation), handle))
     }
   }
   Err(-2)
@@ -81,7 +109,7 @@ fn sdk_start_original_row(
   ),
   Int,
 ] {
-  let (row, submission, _, _, _) = match
+  let (row, submission, rows, rows_material) = match
     sdk_saved_original_rows(value, run, plan) {
     Ok(value) => value
     Err(code) => return Err(code)
@@ -112,7 +140,28 @@ fn sdk_start_original_row(
       }
     }
   }
-  Err(-42)
+  match rows {
+    Submitted(_, _) => Err(-42)
+    Saved(snapshot) =>
+      // A cold process has no live kind-9 handle. Retain only the already
+      // saved binding through the same Common Owner and current Store checks.
+      match
+        sdk_saved_publication_binding(
+          value, run, plan, snapshot, row, submission,
+        ) {
+        Ok(@local_run.Retained(original)) =>
+          match
+            @local_run.validate_local_run_publication_binding_original(
+              original, row, submission,
+            ) {
+            Ok(_) =>
+              Ok((row, encoding, policy, observation_originals, rows_material))
+            Err(issue) => Err(sdk_publication_binding_issue(issue))
+          }
+        Ok(@local_run.Append(_)) => Err(-42)
+        Err(code) => Err(code)
+      }
+  }
 }
 
 ///|
@@ -245,7 +294,6 @@ fn sdk_start_material_wire(
 }
 
 ///|
-#export_name("actql_material_validate_sdk_start")
 pub fn validate_sdk_start_material(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.materials.get(handle) is Some(material) &&
@@ -334,7 +382,6 @@ fn validate_sdk_start_claim(
 }
 
 ///|
-#export_name("actql_material_confirm_sdk_start")
 pub fn confirm_sdk_start_material(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.materials.get(handle) is Some(material) &&
@@ -345,7 +392,6 @@ pub fn confirm_sdk_start_material(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_run_reserve_sdk_physical_start")
 pub fn reserve_sdk_physical_start(
   nonce : Int64,
   run : Int,

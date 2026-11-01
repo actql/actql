@@ -336,9 +336,9 @@ fn issue_client_serialization_effect_component(
     let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth)
     @encode.begin_object(writer)
     @encode.key(writer, "data_edges")
-    client_plan_emit_array(writer, edges)
+    client_plan_emit_array(writer, edges, @canonical.emit_value)
     @encode.key(writer, "nodes")
-    client_plan_emit_array(writer, nodes)
+    client_plan_emit_array(writer, nodes, @canonical.emit_value)
     @encode.key(writer, "root_refs")
     @encode.begin_array(writer)
     @encode.end_array(writer)
@@ -351,6 +351,7 @@ fn issue_client_serialization_effect_component(
         graph: {
           wire: @encode.finish(writer),
           transformations: [],
+          result_plans: [],
           standard_progress_keys: None,
         },
         external_ports,

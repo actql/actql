@@ -11,9 +11,9 @@ import {
   "actql/actql/execution_relation",
   "actql/actql/execution_site",
   "actql/actql/logical_request_scope",
-  "actql/actql/physical_host",
+  "actql/actql/physical_host_dispatch",
   "actql/actql/physical_manifest",
-  "actql/actql/physical_strategy",
+  "actql/actql/physical_strategy_host",
   "actql/actql/publication_payload",
   "actql/actql/remote_bundle",
   "actql/actql/remote_credential",
@@ -28,17 +28,17 @@ pub fn physical_manifest_admit(String, String, String, String, Int, Array[String
 
 pub fn physical_representation_contracts(String, Array[Int], Int) -> Array[String]
 
-pub fn reference_compute_dispatch(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], @physical_host.PreparedTaskDispatch, () -> Bool) -> Unit raise NodeHostFailure
+pub fn reference_compute_dispatch(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy_host.RunIssue], @physical_host_dispatch.PreparedTaskDispatch, () -> Bool) -> Unit raise NodeHostFailure
 
 pub fn reference_compute_managed_capacity(@driver.NumericManagedDispatchConfiguration[Int]) -> (Int64, Int64)?
 
-pub fn reference_compute_managed_dispatch(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], Array[@execution_relation.ManagedCompletedOutput[Int]], Int64) -> @driver.NumericManagedDispatchConfiguration[Int]? raise NodeHostFailure
+pub fn reference_compute_managed_dispatch(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy_host.RunIssue], Array[@execution_relation.ManagedCompletedOutput[Int]], Int64) -> @driver.NumericManagedDispatchConfiguration[Int]? raise NodeHostFailure
 
 pub fn reference_compute_managed_duration(@driver.NumericManagedDispatchConfiguration[Int]) -> Int64?
 
 pub fn reference_compute_managed_start(@driver.NumericManagedDispatchConfiguration[Int]) -> @driver.NumericManagedDispatchOperations[Int] raise NodeHostFailure
 
-pub fn reference_compute_registration(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> @connector_sdk.CapabilityRegistration
+pub fn reference_compute_registration(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy_host.RunIssue]) -> @connector_sdk.CapabilityRegistration
 
 pub fn strategy_admit_captured_effect_source_artifact(@run_publication.EffectPreviewIdentity, Int, @run_publication.PublicationContract, @run_publication.PublicationContract, String) -> @run_publication.CapturedEffectSourceArtifact raise NodeHostFailure
 
@@ -270,55 +270,55 @@ pub fn strategy_finish_durable_result_row_frames(@run_publication.DurableResultR
 
 pub fn strategy_finish_result_delivery(@run_publication.ResultDeliverySerializer) -> String raise NodeHostFailure
 
-pub fn strategy_host_begin_cleanup_progress() -> @physical_strategy.HostCleanupProgress
+pub fn strategy_host_begin_cleanup_progress() -> @physical_strategy_host.HostCleanupProgress
 
-pub fn strategy_host_begin_managed_failure_progress(Bool, Bool, Bool) -> @physical_strategy.ManagedFailureProgress
+pub fn strategy_host_begin_managed_failure_progress(Bool, Bool, Bool) -> @physical_strategy_host.ManagedFailureProgress
 
-pub fn strategy_host_begin_task_success_progress(Bool, Bool) -> @physical_strategy.HostTaskSuccessProgress
+pub fn strategy_host_begin_task_success_progress(Bool, Bool) -> @physical_strategy_host.HostTaskSuccessProgress
 
-pub fn strategy_host_begin_transfer_progress(@physical_strategy.ManagedTransfer) -> @physical_strategy.ManagedTransferProgress
+pub fn strategy_host_begin_transfer_progress(@physical_strategy_host.ManagedTransfer) -> @physical_strategy_host.ManagedTransferProgress
 
-pub fn strategy_host_carrier_managed_output_matches(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], Int, @execution_relation.CarrierManagedCompletedOutput) -> Bool
+pub fn strategy_host_carrier_managed_output_matches(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy_host.RunIssue], Int, @execution_relation.CarrierManagedCompletedOutput) -> Bool
 
-pub fn strategy_host_cleanup_action(@physical_strategy.HostCleanupProgress, Bool, Bool, Bool, Bool) -> Int
+pub fn strategy_host_cleanup_action(@physical_strategy_host.HostCleanupProgress, Bool, Bool, Bool, Bool) -> Int
 
 pub fn strategy_host_cleanup_pending(Bool, Bool, Bool) -> Bool
 
-pub fn strategy_host_close_outputs(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Unit
+pub fn strategy_host_close_outputs(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy_host.RunIssue]) -> Unit
 
-pub fn strategy_host_configure_managed_identity(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], Bool, Bool, Bool, Bool) -> Bool
+pub fn strategy_host_configure_managed_identity(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy_host.RunIssue], Bool, Bool, Bool, Bool) -> Bool
 
-pub fn strategy_host_count(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Int
+pub fn strategy_host_count(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy_host.RunIssue]) -> Int
 
-pub fn strategy_host_cover_activation(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], Int) -> Bool
+pub fn strategy_host_cover_activation(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy_host.RunIssue], Int) -> Bool
 
-pub fn strategy_host_explain(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], Int, Int) -> String raise NodeHostFailure
+pub fn strategy_host_explain(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy_host.RunIssue], Int, Int) -> String raise NodeHostFailure
 
-pub fn strategy_host_finished(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Bool
+pub fn strategy_host_finished(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy_host.RunIssue]) -> Bool
 
-pub fn strategy_host_has_effects(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Bool
+pub fn strategy_host_has_effects(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy_host.RunIssue]) -> Bool
 
 pub fn strategy_host_managed_execution_profile_cid() -> String
 
-pub fn strategy_host_managed_failure_action(@physical_strategy.ManagedFailureProgress) -> Int
+pub fn strategy_host_managed_failure_action(@physical_strategy_host.ManagedFailureProgress) -> Int
 
-pub fn strategy_host_managed_input_count(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Int
+pub fn strategy_host_managed_input_count(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy_host.RunIssue]) -> Int
 
 pub fn strategy_host_managed_input_matches_material(@execution_relation.ManagedProducerRead[Int], @execution_relation.ManagedRetainedOutput[Int]) -> Bool
 
-pub fn strategy_host_managed_obligations(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> @execution_relation.ManagedObligations raise NodeHostFailure
+pub fn strategy_host_managed_obligations(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy_host.RunIssue]) -> @execution_relation.ManagedObligations raise NodeHostFailure
 
-pub fn strategy_host_managed_output_matches(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], Int, @execution_relation.ManagedCompletedOutput[Int]) -> Bool
+pub fn strategy_host_managed_output_matches(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy_host.RunIssue], Int, @execution_relation.ManagedCompletedOutput[Int]) -> Bool
 
-pub fn strategy_host_managed_producer(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Int
+pub fn strategy_host_managed_producer(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy_host.RunIssue]) -> Int
 
-pub fn strategy_host_managed_producers(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Array[Int]
+pub fn strategy_host_managed_producers(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy_host.RunIssue]) -> Array[Int]
 
-pub fn strategy_host_managed_requires_logical_identity(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Bool raise NodeHostFailure
+pub fn strategy_host_managed_requires_logical_identity(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy_host.RunIssue]) -> Bool raise NodeHostFailure
 
 pub fn strategy_host_managed_result_import_append(StrategyHostManagedResultImport, String, Int, Int, Int, Int) -> Unit raise NodeHostFailure
 
-pub fn strategy_host_managed_result_import_begin(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], Int, @execution_relation.ManagedCompletedOutput[Int], @execution_relation.ManagedRetainedOutput[Int], Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> StrategyHostManagedResultImport raise NodeHostFailure
+pub fn strategy_host_managed_result_import_begin(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy_host.RunIssue], Int, @execution_relation.ManagedCompletedOutput[Int], @execution_relation.ManagedRetainedOutput[Int], Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> StrategyHostManagedResultImport raise NodeHostFailure
 
 pub fn strategy_host_managed_result_import_cancel(StrategyHostManagedResultImport) -> Unit
 
@@ -326,13 +326,13 @@ pub fn strategy_host_managed_result_import_finish(StrategyHostManagedResultImpor
 
 pub fn strategy_host_managed_result_transformation_begin(StrategyHostManagedResultImport, @run_publication_host.ClientResultTransformation?) -> StrategyHostResultTransformation raise NodeHostFailure
 
-pub fn strategy_host_modules(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Array[String]
+pub fn strategy_host_modules(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy_host.RunIssue]) -> Array[String]
 
-pub fn strategy_host_next(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> @physical_host.PreparedTaskDispatch? raise NodeHostFailure
+pub fn strategy_host_next(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy_host.RunIssue]) -> @physical_host_dispatch.PreparedTaskDispatch? raise NodeHostFailure
 
-pub fn strategy_host_next_task(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Int
+pub fn strategy_host_next_task(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy_host.RunIssue]) -> Int
 
-pub fn strategy_host_output(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], Int) -> @execution_relation.CompletedOutput?
+pub fn strategy_host_output(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy_host.RunIssue], Int) -> @execution_relation.CompletedOutput?
 
 pub fn strategy_host_output_export_admit_captured_result_snapshot(StrategyHostOutputExport, Int, Int, Int) -> @run_publication.CapturedResultSnapshot raise NodeHostFailure
 
@@ -390,9 +390,9 @@ pub fn strategy_host_output_snapshot_cancel(@run_publication_host.PublicationOut
 
 pub fn strategy_host_output_snapshot_finish(@run_publication_host.PublicationOutputSnapshotPreparation) -> @run_publication.CapturedResultSnapshot raise NodeHostFailure
 
-pub fn strategy_host_program_definition_cid(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> String
+pub fn strategy_host_program_definition_cid(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy_host.RunIssue]) -> String
 
-pub fn strategy_host_publication_inventory(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> @run_publication.CheckedPublicationInventory raise NodeHostFailure
+pub fn strategy_host_publication_inventory(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy_host.RunIssue]) -> @run_publication.CheckedPublicationInventory raise NodeHostFailure
 
 pub fn strategy_host_publication_inventory_count(@run_publication.CheckedPublicationInventory) -> Int
 
@@ -406,123 +406,123 @@ pub fn strategy_host_publication_inventory_program_cid(@run_publication.CheckedP
 
 pub fn strategy_host_publication_inventory_task(@run_publication.CheckedPublicationInventory, Int) -> Int raise NodeHostFailure
 
-pub fn strategy_host_record_cleanup_closes_awaited(@physical_strategy.HostCleanupProgress) -> Bool
+pub fn strategy_host_record_cleanup_closes_awaited(@physical_strategy_host.HostCleanupProgress) -> Bool
 
-pub fn strategy_host_record_cleanup_retry(@physical_strategy.HostCleanupProgress) -> Bool
+pub fn strategy_host_record_cleanup_retry(@physical_strategy_host.HostCleanupProgress) -> Bool
 
-pub fn strategy_host_record_managed_failure_additional_closed(@physical_strategy.ManagedFailureProgress) -> Bool
+pub fn strategy_host_record_managed_failure_additional_closed(@physical_strategy_host.ManagedFailureProgress) -> Bool
 
-pub fn strategy_host_record_managed_failure_cleanup_refreshed(@physical_strategy.ManagedFailureProgress) -> Bool
+pub fn strategy_host_record_managed_failure_cleanup_refreshed(@physical_strategy_host.ManagedFailureProgress) -> Bool
 
-pub fn strategy_host_record_managed_failure_cleanup_stopped(@physical_strategy.ManagedFailureProgress) -> Bool
+pub fn strategy_host_record_managed_failure_cleanup_stopped(@physical_strategy_host.ManagedFailureProgress) -> Bool
 
-pub fn strategy_host_record_managed_failure_execution_settled(@physical_strategy.ManagedFailureProgress) -> Bool
+pub fn strategy_host_record_managed_failure_execution_settled(@physical_strategy_host.ManagedFailureProgress) -> Bool
 
-pub fn strategy_host_record_managed_failure_operations_close_attempted(@physical_strategy.ManagedFailureProgress) -> Bool
+pub fn strategy_host_record_managed_failure_operations_close_attempted(@physical_strategy_host.ManagedFailureProgress) -> Bool
 
-pub fn strategy_host_record_managed_failure_operations_closed(@physical_strategy.ManagedFailureProgress) -> Bool
+pub fn strategy_host_record_managed_failure_operations_closed(@physical_strategy_host.ManagedFailureProgress) -> Bool
 
-pub fn strategy_host_record_task_common_completion(@physical_strategy.HostTaskSuccessProgress, Bool) -> Bool
+pub fn strategy_host_record_task_common_completion(@physical_strategy_host.HostTaskSuccessProgress, Bool) -> Bool
 
-pub fn strategy_host_record_task_managed_binding(@physical_strategy.HostTaskSuccessProgress, Bool) -> Bool
+pub fn strategy_host_record_task_managed_binding(@physical_strategy_host.HostTaskSuccessProgress, Bool) -> Bool
 
-pub fn strategy_host_record_task_output_retained(@physical_strategy.HostTaskSuccessProgress) -> Bool
+pub fn strategy_host_record_task_output_retained(@physical_strategy_host.HostTaskSuccessProgress) -> Bool
 
-pub fn strategy_host_record_task_site_completion(@physical_strategy.HostTaskSuccessProgress, Bool) -> Bool
+pub fn strategy_host_record_task_site_completion(@physical_strategy_host.HostTaskSuccessProgress, Bool) -> Bool
 
-pub fn strategy_host_record_task_site_operation_settled(@physical_strategy.HostTaskSuccessProgress) -> Bool
+pub fn strategy_host_record_task_site_operation_settled(@physical_strategy_host.HostTaskSuccessProgress) -> Bool
 
-pub fn strategy_host_record_transfer_destination_admission(@physical_strategy.ManagedTransferProgress, Bool, Bool, Int, Int, Int, Int, Int64, Int64, Int64, Int64) -> Bool
+pub fn strategy_host_record_transfer_destination_admission(@physical_strategy_host.ManagedTransferProgress, Bool, Bool, Int, Int, Int, Int, Int64, Int64, Int64, Int64) -> Bool
 
-pub fn strategy_host_record_transfer_destination_cleanup_release(@physical_strategy.ManagedTransferProgress) -> Bool
+pub fn strategy_host_record_transfer_destination_cleanup_release(@physical_strategy_host.ManagedTransferProgress) -> Bool
 
-pub fn strategy_host_record_transfer_destination_created(@physical_strategy.ManagedTransferProgress) -> Bool
+pub fn strategy_host_record_transfer_destination_created(@physical_strategy_host.ManagedTransferProgress) -> Bool
 
-pub fn strategy_host_record_transfer_destination_holding(@physical_strategy.ManagedTransferProgress) -> Bool
+pub fn strategy_host_record_transfer_destination_holding(@physical_strategy_host.ManagedTransferProgress) -> Bool
 
-pub fn strategy_host_record_transfer_destination_reclaimed(@physical_strategy.ManagedTransferProgress) -> Bool
+pub fn strategy_host_record_transfer_destination_reclaimed(@physical_strategy_host.ManagedTransferProgress) -> Bool
 
-pub fn strategy_host_record_transfer_destination_site_settlement(@physical_strategy.ManagedTransferProgress) -> Bool
+pub fn strategy_host_record_transfer_destination_site_settlement(@physical_strategy_host.ManagedTransferProgress) -> Bool
 
-pub fn strategy_host_record_transfer_site_holding_release(@physical_strategy.ManagedTransferProgress) -> Bool
+pub fn strategy_host_record_transfer_site_holding_release(@physical_strategy_host.ManagedTransferProgress) -> Bool
 
-pub fn strategy_host_record_transfer_source_site_settlement(@physical_strategy.ManagedTransferProgress) -> Bool
+pub fn strategy_host_record_transfer_source_site_settlement(@physical_strategy_host.ManagedTransferProgress) -> Bool
 
-pub fn strategy_host_record_transfer_source_stop(@physical_strategy.ManagedTransferProgress) -> Bool
+pub fn strategy_host_record_transfer_source_stop(@physical_strategy_host.ManagedTransferProgress) -> Bool
 
-pub fn strategy_host_registration(@physical_host.PreparedTaskDispatch) -> @connector_sdk.CapabilityRegistration?
+pub fn strategy_host_registration(@physical_host_dispatch.PreparedTaskDispatch) -> @connector_sdk.CapabilityRegistration?
 
 pub fn strategy_host_registration_selection_key(@connector_sdk.CapabilityRegistration) -> String
 
-pub fn strategy_host_releasable_managed_producers(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Array[Int]
+pub fn strategy_host_releasable_managed_producers(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy_host.RunIssue]) -> Array[Int]
 
-pub fn strategy_host_require_activation(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Unit
+pub fn strategy_host_require_activation(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy_host.RunIssue]) -> Unit
 
-pub fn strategy_host_resident(@physical_host.PreparedTaskDispatch) -> Bool
+pub fn strategy_host_resident(@physical_host_dispatch.PreparedTaskDispatch) -> Bool
 
-pub fn strategy_host_resident_inputs(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], Int) -> Array[Array[Int64]] raise NodeHostFailure
+pub fn strategy_host_resident_inputs(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy_host.RunIssue], Int) -> Array[Array[Int64]] raise NodeHostFailure
 
-pub fn strategy_host_resource_binding(@physical_host.PreparedTaskDispatch) -> @connector_sdk.ResourceBinding?
+pub fn strategy_host_resource_binding(@physical_host_dispatch.PreparedTaskDispatch) -> @connector_sdk.ResourceBinding?
 
-pub fn strategy_host_result_definitions(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Array[String] raise NodeHostFailure
+pub fn strategy_host_result_definitions(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy_host.RunIssue]) -> Array[String] raise NodeHostFailure
 
-pub fn strategy_host_result_names(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Array[String]
+pub fn strategy_host_result_names(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy_host.RunIssue]) -> Array[String]
 
-pub fn strategy_host_result_output_export_begin(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> StrategyHostOutputExport raise NodeHostFailure
+pub fn strategy_host_result_output_export_begin(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy_host.RunIssue], Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> StrategyHostOutputExport raise NodeHostFailure
 
-pub fn strategy_host_result_output_export_begin_converted(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, @execution_relation.CompletedOutput?) -> StrategyHostOutputExport raise NodeHostFailure
+pub fn strategy_host_result_output_export_begin_converted(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy_host.RunIssue], Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, @execution_relation.CompletedOutput?) -> StrategyHostOutputExport raise NodeHostFailure
 
-pub fn strategy_host_result_tasks(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Array[Int]
+pub fn strategy_host_result_tasks(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy_host.RunIssue]) -> Array[Int]
 
 pub fn strategy_host_result_transformation_advance(StrategyHostResultTransformation, Int) -> Bool raise NodeHostFailure
 
-pub fn strategy_host_result_transformation_begin(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, @execution_relation.CompletedOutput?, @run_publication_host.ClientResultTransformation?) -> StrategyHostResultTransformation raise NodeHostFailure
+pub fn strategy_host_result_transformation_begin(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy_host.RunIssue], Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, @execution_relation.CompletedOutput?, @run_publication_host.ClientResultTransformation?) -> StrategyHostResultTransformation raise NodeHostFailure
 
 pub fn strategy_host_result_transformation_cancel(StrategyHostResultTransformation) -> Unit
 
 pub fn strategy_host_result_transformation_finish(StrategyHostResultTransformation) -> StrategyHostOutputExport raise NodeHostFailure
 
-pub fn strategy_host_run(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> @physical_strategy.CapturedDAG
+pub fn strategy_host_run(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy_host.RunIssue]) -> @physical_strategy_host.CapturedDAG
 
-pub fn strategy_host_select_managed_registration(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], Int, @connector_sdk.CapabilityRegistration) -> Bool
+pub fn strategy_host_select_managed_registration(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy_host.RunIssue], Int, @connector_sdk.CapabilityRegistration) -> Bool
 
-pub fn strategy_host_stop(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Unit
+pub fn strategy_host_stop(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy_host.RunIssue]) -> Unit
 
-pub fn strategy_host_task(@physical_host.PreparedTaskDispatch) -> Int
+pub fn strategy_host_task(@physical_host_dispatch.PreparedTaskDispatch) -> Int
 
-pub fn strategy_host_task_capacity(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], Int) -> Array[Int64] raise NodeHostFailure
+pub fn strategy_host_task_capacity(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy_host.RunIssue], Int) -> Array[Int64] raise NodeHostFailure
 
-pub fn strategy_host_task_completed(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], Int) -> Bool
+pub fn strategy_host_task_completed(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy_host.RunIssue], Int) -> Bool
 
 pub fn strategy_host_task_run_outcome(Bool, Bool) -> Int
 
-pub fn strategy_host_task_site_operation_settled(@physical_strategy.HostTaskSuccessProgress) -> Bool
+pub fn strategy_host_task_site_operation_settled(@physical_strategy_host.HostTaskSuccessProgress) -> Bool
 
-pub fn strategy_host_task_success_action(@physical_strategy.HostTaskSuccessProgress) -> Int
+pub fn strategy_host_task_success_action(@physical_strategy_host.HostTaskSuccessProgress) -> Int
 
-pub fn strategy_host_transfer_abort(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], @physical_strategy.ManagedTransfer, Bool) -> Unit raise NodeHostFailure
+pub fn strategy_host_transfer_abort(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy_host.RunIssue], @physical_strategy_host.ManagedTransfer, Bool) -> Unit raise NodeHostFailure
 
-pub fn strategy_host_transfer_begin(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], Int, Int64, Int64, Int64) -> @physical_strategy.ManagedTransfer raise NodeHostFailure
+pub fn strategy_host_transfer_begin(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy_host.RunIssue], Int, Int64, Int64, Int64) -> @physical_strategy_host.ManagedTransfer raise NodeHostFailure
 
-pub fn strategy_host_transfer_charge(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], @physical_strategy.ManagedTransfer, Int64) -> Unit raise NodeHostFailure
+pub fn strategy_host_transfer_charge(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy_host.RunIssue], @physical_strategy_host.ManagedTransfer, Int64) -> Unit raise NodeHostFailure
 
-pub fn strategy_host_transfer_cleanup_action(@physical_strategy.ManagedTransferProgress) -> Int raise NodeHostFailure
+pub fn strategy_host_transfer_cleanup_action(@physical_strategy_host.ManagedTransferProgress) -> Int raise NodeHostFailure
 
-pub fn strategy_host_transfer_commit_action(@physical_strategy.ManagedTransferProgress) -> Int raise NodeHostFailure
+pub fn strategy_host_transfer_commit_action(@physical_strategy_host.ManagedTransferProgress) -> Int raise NodeHostFailure
 
-pub fn strategy_host_transfer_complete(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], @physical_strategy.ManagedTransfer, Int64) -> @physical_strategy.ManagedTransferReceipt raise NodeHostFailure
+pub fn strategy_host_transfer_complete(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy_host.RunIssue], @physical_strategy_host.ManagedTransfer, Int64) -> @physical_strategy_host.ManagedTransferReceipt raise NodeHostFailure
 
-pub fn strategy_host_transfer_pending(@physical_strategy.ManagedTransfer) -> Bool
+pub fn strategy_host_transfer_pending(@physical_strategy_host.ManagedTransfer) -> Bool
 
-pub fn strategy_host_transfer_receipt(@physical_strategy.ManagedTransferReceipt) -> Array[Int64]
+pub fn strategy_host_transfer_receipt(@physical_strategy_host.ManagedTransferReceipt) -> Array[Int64]
 
-pub fn strategy_host_transfer_receipt_matches(@physical_strategy.ManagedTransferReceipt, @physical_strategy.ManagedTransfer, Int, Int64, Int64) -> Bool
+pub fn strategy_host_transfer_receipt_matches(@physical_strategy_host.ManagedTransferReceipt, @physical_strategy_host.ManagedTransfer, Int, Int64, Int64) -> Bool
 
-pub fn strategy_host_transfer_release(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], @physical_strategy.ManagedTransferReceipt) -> Bool raise NodeHostFailure
+pub fn strategy_host_transfer_release(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy_host.RunIssue], @physical_strategy_host.ManagedTransferReceipt) -> Bool raise NodeHostFailure
 
-pub fn strategy_host_transfer_settle(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], @physical_strategy.ManagedTransfer, Bool) -> Unit raise NodeHostFailure
+pub fn strategy_host_transfer_settle(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy_host.RunIssue], @physical_strategy_host.ManagedTransfer, Bool) -> Unit raise NodeHostFailure
 
-pub fn strategy_host_usage(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Array[Int64]
+pub fn strategy_host_usage(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy_host.RunIssue]) -> Array[Int64]
 
 pub fn strategy_issue_delivery_attempt(@run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, String, String, String, String, Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
 
@@ -1226,6 +1226,10 @@ pub fn strategy_remote_runtime_owned_failure_plan(@remote_site_protocol.Dispatch
 
 pub fn strategy_remote_runtime_reclaim_unknown_plan(@remote_site_protocol.DispatchRecord) -> @remote_site_protocol.RemoteRuntimeStep raise NodeHostFailure
 
+pub fn strategy_remote_runtime_restore_completed_cleanup_custody(@remote_site_protocol.DispatchRecord, @remote_site_protocol.RemoteExecutionEvidence, @remote_site_protocol.RemoteManagedOutputSubject, @remote_site_protocol.RemoteManagedOutputMeasurement) -> @remote_site_protocol.RemoteRuntimeCustody raise NodeHostFailure
+
+pub fn strategy_remote_runtime_restore_failed_partial_custody(@remote_site_protocol.DispatchRecord, Int, String, String, String, String, @remote_site_protocol.RemoteManagedOutputMeasurement, String, String, String, String, String, String) -> @remote_site_protocol.RemoteRuntimeCustody raise NodeHostFailure
+
 pub fn strategy_remote_runtime_startable(@remote_site_protocol.DispatchRecord) -> Bool
 
 pub fn strategy_remote_runtime_step_action(@remote_site_protocol.RemoteRuntimeStep) -> Int
@@ -1404,6 +1408,8 @@ pub fn strategy_run_publication_admit(@run_publication.RunEvidenceValue, @run_pu
 
 pub fn strategy_run_publication_chain_valid(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, Int, Int, Int) -> Bool
 
+pub fn strategy_site_acquire_restored_holding(@execution_site.SiteHoldingRestoration) -> @execution_site.SiteHolding?
+
 pub fn strategy_site_available(@execution_site.ExecutionSite) -> Bool
 
 pub fn strategy_site_begin_failed_operation_progress(Bool, Bool) -> @execution_site.FailedSiteOperationProgress
@@ -1427,6 +1433,8 @@ pub fn strategy_site_managed_candidate_fallback(Int, Array[Int]) -> Int
 pub fn strategy_site_operation_available(@execution_site.SiteOperation) -> Bool
 
 pub fn strategy_site_plan_candidate(Int64?, Int64?, Bool, Bool, Bool, Int64?, Array[Bool], Array[Bool], Array[Bool], Array[Bool], Array[Int64], Array[Int64], Array[Int64]) -> (Int, Int64)
+
+pub fn strategy_site_prepare_holding_restoration(@execution_site.ExecutionSite, Int64) -> @execution_site.SiteHoldingRestoration?
 
 pub fn strategy_site_record_failed_operation_settlement(@execution_site.FailedSiteOperationProgress) -> Bool
 
@@ -1486,9 +1494,9 @@ pub fn strategy_trusted_clock_not_before(String?, String) -> Bool
 
 // Errors
 pub(all) suberror NodeHostFailure {
-  Diagnostics(@physical_host.ComputeDiagnosticsIssue)
-  Dispatch(@physical_host.ComputeHostIssue[@physical_strategy.RunIssue])
-  Execution(@physical_strategy.RunIssue)
+  Diagnostics(@physical_host_dispatch.ComputeDiagnosticsIssue)
+  Dispatch(@physical_host_dispatch.ComputeHostIssue[@physical_strategy_host.RunIssue])
+  Execution(@physical_strategy_host.RunIssue)
   InvalidCommand
   Encoding(@encode_core.EncodeFailure)
   OutputExport(@execution_relation.CompletedExportIssue)

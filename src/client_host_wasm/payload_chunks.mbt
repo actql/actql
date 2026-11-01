@@ -43,7 +43,6 @@ fn payload_replay_current(
 }
 
 ///|
-#export_name("actql_payload_request_start_replay")
 pub fn start_payload_replay(
   nonce : Int64,
   handle : Int,
@@ -84,7 +83,6 @@ pub fn start_payload_replay(
 }
 
 ///|
-#export_name("actql_payload_chunk_reserve")
 pub fn reserve_payload_chunk(
   nonce : Int64,
   request : Int,
@@ -142,7 +140,6 @@ pub fn reserve_payload_chunk(
 }
 
 ///|
-#export_name("actql_payload_chunk_produce")
 pub fn produce_payload_chunk(
   nonce : Int64,
   handle : Int,
@@ -203,7 +200,6 @@ pub fn produce_payload_chunk(
 }
 
 ///|
-#export_name("actql_payload_chunk_validate")
 pub fn validate_payload_chunk(
   nonce : Int64,
   handle : Int,
@@ -228,7 +224,6 @@ pub fn validate_payload_chunk(
 }
 
 ///|
-#export_name("actql_payload_chunk_length")
 pub fn payload_chunk_length(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.payload_chunks.get(handle) is Some(chunk) &&
@@ -241,7 +236,6 @@ pub fn payload_chunk_length(nonce : Int64, handle : Int) -> Int {
 
 ///|
 /// This final marker proves only exact original Result replay completion.
-#export_name("actql_payload_chunk_final")
 pub fn payload_chunk_final(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.payload_chunks.get(handle) is Some(chunk) &&
@@ -257,7 +251,6 @@ pub fn payload_chunk_final(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_payload_chunk_close")
 pub fn close_payload_chunk(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.payload_chunks.get(handle) is Some(chunk) else {

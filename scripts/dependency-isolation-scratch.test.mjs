@@ -18,7 +18,8 @@ function fixture(t, script, mode = 'passed') {
   const scratch = join(root, 'scratch');
   const bin = join(root, 'bin');
   for (const directory of [join(checkout, 'scripts'),
-    join(checkout, 'adapters/connectors/duckdb/node'), scratch, bin]) {
+    join(checkout, 'adapters/connectors/duckdb/node'),
+    join(checkout, 'packages/client-wire'), scratch, bin]) {
     mkdirSync(directory, {recursive: true});
   }
   for (const name of [script, 'owned-scratch.mjs']) {
@@ -33,7 +34,10 @@ export function copyProductionCore(root, isolated) {
   writeFileSync(join(isolated, 'diagnostic'), 'core evidence');
   return {roots: [], packages: []};
 }`);
+  writeFileSync(join(checkout, 'packages/client-wire/index.mjs'), 'export const originalWire = true;');
   writeFileSync(join(checkout, 'scripts/node-host-subset-fixture.mjs'), `
+import {originalWire} from '../packages/client-wire/index.mjs';
+if (!originalWire) throw new Error('missing original Client wire closure');
 import {writeFileSync} from 'node:fs';
 writeFileSync('diagnostic', 'node evidence');
 ${mode === 'failed' ? "throw new Error('original isolation child failure');" : ''}`);

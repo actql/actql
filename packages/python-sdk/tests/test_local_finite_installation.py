@@ -9,6 +9,7 @@ from actql_sdk import _wire
 from actql_sdk._local_installation import OriginalLocalInstallation, LocalInstallationCleanupPending, _object
 from actql_sdk._local_core import LocalCoreError
 import test_local_installation as old
+from local_abi_declaration_fixture import original_byte_fixture_port
 
 ROOT = Path(__file__).resolve().parents[3]
 VECTOR = json.loads((ROOT / 'scripts/fixtures/python-local-sdk-read-selection.json').read_text())
@@ -61,7 +62,7 @@ class FiniteInstallationTests(unittest.TestCase):
             if family == 'buffer' and name == 'byte' and args[0] in outputs:
                 return outputs[args[0]][args[1]]
             return previous(family, name, *args)
-        core._call = call
+        core._call = original_byte_fixture_port(call)
         return core, calls, workspaces
 
     def create(self, core, path):

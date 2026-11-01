@@ -464,3 +464,74 @@ rejects proxy/accessor/incomplete readers through the connector's original
 refusal callback; a returning callback still refuses. Connector adapters retain
 their error identity, profile validation, CA bounds and byte/hash semantics.
 This shared selection does not replace currentness or resource admission.
+
+When the initializer supplies its existing `readOriginalText` method, selection
+captures that own data method and the same receiver before any read awaits.
+The initializer funds the opened file's observed extent and retains its physical
+cleanup; connectors neither select a replacement byte ceiling nor fall back to
+the bounded text reader. An omitted capability remains absent. Malformed or
+accessor-backed capabilities refuse without invoking them. Original text and
+pending cleanup failures pass through unchanged.
+
+The same selection independently captures the initializer's optional
+`readOriginalBytes` method with its original receiver. It returns the original
+byte result or Promise without text conversion or copying. Callers require that
+capability only for the selected byte input; its absence does not manufacture
+a text substitute or require a byte reader when no such input was selected.
+The initializer retains physical admission and cleanup responsibility.
+
+## Standard CREATE declaration
+
+Standard JSON write requests use the existing captured connector-recovery
+record. It retains the complete plain request DATA, logical value and original
+request CID under the existing contract wire/node/depth bounds. Restoration
+selects the original member slot and full transport binding, then restores that
+DATA without invoking the provider request mapping or creating a new tag.
+The existing authenticated capture, approved Preview, claim and currentness
+checks still validate it before use. This does not reconstruct opaque native
+provider objects or authenticate a bare saved record; those require the
+provider's complete existing codec. Missing saved material refuses instead of
+repreparing. The existing capture owner remains responsible for the real saved
+bytes and their same-Run retention; a metadata limit is not a capacity receipt.
+
+The ordinary Effect loader forwards the original Host installation services
+from the embedded owner. Before invoking an installer it retains the exact
+selected installation and runtime association in that same service owner.
+Profile refusal still precedes runtime selection; a copied service or changed
+runtime refuses before installer acquisition. An absent service preserves the
+legacy installer envelope. Existing failed-initialization and adapter cleanup
+remain with their original owners. This installation/Site connection does not
+supply a Run admission, confirmation read, grant or physical operation budget.
+
+Standard GitHub comment and Sheets append installation uses that original
+service's `openRowSite` factory. The provider supplies the unchanged connection,
+immutable Site configuration, secret resolver and published approval-target
+predicate. Host root, principal, runtime, currentness and Account ownership come
+from the existing service. Source, publication and Sheets range installation
+retain their existing paths; an unavailable service retains the legacy opening
+path. Factory refusal propagates without a second Account or Site acquisition.
+
+The existing installed Row Effect accepts either a standard `write` declaration
+or an advanced driver. The internal `deriveInstalledRowWrite` adapter derives
+routine hooks without another execution owner. Provider mapping runs once on
+the same deeply frozen proposal value; a private original-request association
+retains that value and the exact admitted HTTP projection. Copies cannot supply
+facts, send or classify through that association. Provider-issued CIDs remain
+unchanged. Plain HTTP request identity includes the installation namespace,
+boundary, operation, fixed origin and exact method, target, ordered headers and
+body bytes, without parsing or normalizing the body.
+
+Standard transformation and classification callbacks receive closed provider
+DATA views. The transform sees only the original resource and logical value;
+classification additionally receives the same request and observation, with
+the original presence or absence of headers. Internal Run, Preview, grants,
+currentness and child lifetime ports remain with the existing Row Effect.
+
+The adapter captures fixed transport and callback inputs before provider awaits.
+It checks the original grant's origin and uses the existing scoped credential
+invocation for one send inside the Row Effect's durable claim. It preserves the
+original observation/header envelope and original transport errors. It neither
+authorizes nor retries nor settles a response. Provider subject/target checks
+keep their existing separate resource and read operation; response classification
+cannot manufacture a confirmation, Receipt or OperationRef. Advanced conditional
+write, recovery and reconciliation semantics remain under the same Row Effect.

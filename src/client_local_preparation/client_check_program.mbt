@@ -147,10 +147,8 @@ fn check_program_findings(
       )
     }
   }
-  let root = @decode.open_object(@syntax.program_body(program)).unwrap()
-  let declarations_node = @decode.lookup(root, "params")
-  let declarations = match
-    @parameters.read_declarations(declarations_node, {
+  let source = match
+    @stage_parameters.prepare(program, {
       max_parameters: 1024,
       max_nodes: 8192,
       max_depth: 64,
@@ -174,17 +172,18 @@ fn check_program_findings(
       )
     }
   }
+  let declarations = @stage_parameters.declarations(source)
   // Declaration-owned requirements are independent of private resolution.
   // Presence is read from the supplied object, so an explicit null is never
   // turned into an absent binding. This does not validate supplied values.
   check_missing_value_findings(findings, declarations, supplied, scope)
   let mut binding_invalid = false
-  match
-    @parameters.bind(declarations, supplied, {
-      max_nodes: 8192,
-      max_depth: 64,
-      max_text_bytes: 65536,
-    }) {
+  let (source, binding) = @stage_parameters.prepare_bindings(source, supplied, {
+    max_nodes: 8192,
+    max_depth: 64,
+    max_text_bytes: 65536,
+  })
+  match binding {
     Ok(_) => ()
     Err(issue) =>
       match check_binding_fault(issue) {
@@ -206,16 +205,6 @@ fn check_program_findings(
   // Inventory belongs to the existing Source Owner. It is admitted before
   // consulting installed contracts; absent and denied names share one public
   // unresolved boundary. No protected cursor, count or expected type escapes.
-  let source = match
-    @stage_parameters.prepare(program, {
-      max_parameters: 1024,
-      max_nodes: 8192,
-      max_depth: 64,
-      max_text_bytes: 65536,
-    }) {
-    Ok(value) => value
-    Err(_) => return Failed("check_internal")
-  }
   let inputs = match
     @sourceview_input.collect(source, {
       max_work: 1000000,
@@ -227,7 +216,13 @@ fn check_program_findings(
       return Report
     }
     Err(_) => {
-      guard @checked.check_parsed(program, environment, supplied, limits)
+      guard @checked.check_parsed(
+          program,
+          environment,
+          supplied,
+          limits,
+          source_preparation=Some(source),
+        )
         is Rejected(diagnostic) else {
         return Failed("check_internal")
       }
@@ -333,7 +328,13 @@ fn check_program_findings(
   if has_hidden_dependency {
     // The common checker audits unsupported authored declarations before
     // consulting Sources. Preserve that independent limitation as well.
-    if @checked.check_parsed(program, environment, supplied, limits)
+    if @checked.check_parsed(
+        program,
+        environment,
+        supplied,
+        limits,
+        source_preparation=Some(source),
+      )
       is Rejected(diagnostic) &&
       @checked.diagnostic_cause(diagnostic)
       is Source(UnsupportedBindings(_) | UnsupportedEffects(_)) {
@@ -356,7 +357,15 @@ fn check_program_findings(
   }
   let outcome : CheckProjection = match scope {
     BoundInput =>
-      Bound(@checked.check_parsed(program, environment, supplied, limits))
+      Bound(
+        @checked.check_parsed(
+          program,
+          environment,
+          supplied,
+          limits,
+          source_preparation=Some(source),
+        ),
+      )
     TemplateOnly =>
       match
         @checked.check_parsed_scoped(
@@ -365,6 +374,7 @@ fn check_program_findings(
           TemplateOnly,
           None,
           limits,
+          source_preparation=Some(source),
         ) {
         TemplateOnly(Verified(checked)) =>
           return check_template_public_stop(findings, checked)

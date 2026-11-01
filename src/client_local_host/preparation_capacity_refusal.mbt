@@ -1,13 +1,4 @@
 ///|
-priv enum PreparationRefusalPhase {
-  TextEligibility
-  SnapshotAndIntent
-  SourceParsing
-  ProgramConstruction
-  CheckLowerAndPlan
-}
-
-///|
 /// Immutable explanation DATA. It conveys no owner, reservation or authority.
 pub(all) struct ClientPreparationCapacityRefusal {
   phase : String
@@ -17,51 +8,6 @@ pub(all) struct ClientPreparationCapacityRefusal {
   available_retention : Int64
   available_execution : Int64
 } derive(Eq, Debug)
-
-///|
-fn[I, P] reserve_closed_values_phase(
-  capacity : @resources.PreparationCapacity[I, P],
-  input : I,
-  phase : PreparationRefusalPhase,
-  retained : Int64,
-  execution : Int64,
-) -> Result[Unit, ClientClosedValuesPreparationIssue] {
-  match
-    @resources.reserve_working_preparation_phase(
-      capacity, input, retained, execution,
-    ) {
-    Ok(_) => Ok(())
-    Err(issue) => {
-      let dimension = match issue {
-        Resource(RetentionLimit) => "retention"
-        Resource(ExecutionLimit) => "execution"
-        _ => return Err(Capacity(issue))
-      }
-      let (available_retention, available_execution) = match
-        @resources.preparation_capacity_available(capacity, input) {
-        Ok(value) => value
-        Err(_) => return Err(Capacity(issue))
-      }
-      let phase = match phase {
-        TextEligibility => "text_eligibility"
-        SnapshotAndIntent => "snapshot_and_intent"
-        SourceParsing => "source_parsing"
-        ProgramConstruction => "program_construction"
-        CheckLowerAndPlan => "check_lower_and_plan"
-      }
-      Err(
-        CapacityExceeded({
-          phase,
-          dimension,
-          required_retention: retained,
-          required_execution: execution,
-          available_retention,
-          available_execution,
-        }),
-      )
-    }
-  }
-}
 
 ///|
 /// Fixed bridge projection; the returned tuple contains scalar diagnostic data

@@ -214,12 +214,45 @@ test "Notion timestamp normalizes the exact original offset and never drops an u
       "{\"start\":\"2026-10-17T10:00:00+09:00\",\"end\":\"2026-10-18T10:00:00+09:00\",\"time_zone\":null}",
       "{\"start\":\"2026-10-17T10:00:00\",\"end\":null,\"time_zone\":\"Asia/Tokyo\"}",
       "{\"start\":\"2026-10-17T10:00:00-00:00\",\"end\":null,\"time_zone\":null}",
-      "{\"start\":\"2026-10-17T10:00:00.0001Z\",\"end\":null,\"time_zone\":null}",
+      "{\"start\":\"2026-10-17T10:00:00.0000000001Z\",\"end\":null,\"time_zone\":null}",
     ] {
     let row = cell_test_row(source, cell_test_scalar_native("date", native))
     assert_true(
       admit_notion_property_read_cell(read, row, 0, cell_test_limits(), 1000)
       is Err(_),
+    )
+  }
+}
+
+///|
+test "Notion timestamp property preserves exact fractional instants and native input" {
+  let source = cell_test_scalar_source("date")
+  let read = cell_test_scalar_binding(
+    source, "{\"type\":\"timestamp\",\"nullable\":false}", "start",
+  )
+  for
+    (original, expected) in [
+      ("2026-10-17T00:00:00.0001Z", "2026-10-17T00:00:00.0001Z"),
+      ("2026-10-17T09:00:00.000000001+09:00", "2026-10-17T00:00:00.000000001Z"),
+    ] {
+    let native = "{\"start\":\"" +
+      original +
+      "\",\"end\":null,\"time_zone\":null}"
+    let row = cell_test_row(source, cell_test_scalar_native("date", native))
+    let (value, _, _) = admit_notion_property_read_cell(
+      read,
+      row,
+      0,
+      cell_test_limits(),
+      1000,
+    ).unwrap()
+    assert_eq(@admitted.canonical_scalar_text(value, 32), Some(expected))
+    assert_eq(
+      notion_query_property_value_json(
+        notion_query_row_property_at(row, 0).unwrap(),
+        1024,
+      ),
+      Ok(native),
     )
   }
 }

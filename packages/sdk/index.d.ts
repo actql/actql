@@ -1,6 +1,7 @@
 /// <reference lib="esnext.disposable" />
 import type {StandardSchemaV1} from './standard-schema.js';
 export type {StandardSchemaV1} from './standard-schema.js';
+export {connectInProcess} from './host-port.js';
 export {getCheckReasonCatalogInfo, getCheckReasonCatalogEntry,
   type CheckReasonCatalogInfo, type CheckReasonCatalogEntry, type KnownCheckReasonCode} from './check-reason-catalog.generated.js';
 import type {ClientSourceFormat, WireCancellationAttempt, WireCancellationRef, WireOperationAttemptRef,

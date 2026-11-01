@@ -1,5 +1,7 @@
 // One retired publication owns the transition from a hidden index to
 // durably reclaimed metadata. The Store remains the sole capacity ledger.
+import {retainFirstAndLatestCleanupError} from '../host-common/managed-failure.mjs';
+
 export function createMetadataDeletionOwner(marker, operations) {
   let pending = true;
   const errors = [];
@@ -43,7 +45,7 @@ export function createMetadataDeletionOwner(marker, operations) {
           operations.settle();
         });
       } catch (error) {
-        errors.push(error);
+        retainFirstAndLatestCleanupError(errors, error);
         throw error;
       }
       return status();

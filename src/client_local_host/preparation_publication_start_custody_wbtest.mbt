@@ -1,15 +1,16 @@
 ///|
 test "publication capture start rechecks exact plan after callback cancellation" {
   let armed = Ref(false)
-  let selected : Ref[ClientProgramCapture[Array[Int]]?] = Ref(None)
-  let (value, ledger) = publication_custody_fixture(() => {
-    if armed.val {
-      armed.val = false
-      if selected.val is Some(capture) {
-        cancel_program_capture(capture)
+  let selected : Ref[ClientProgramCapture?] = Ref(None)
+  let (value, ledger, capacity, initial) = publication_custody_fixture_originals(() => {
+      if armed.val {
+        armed.val = false
+        if selected.val is Some(capture) {
+          cancel_program_capture(capture)
+        }
       }
-    }
-  })
+    },
+  )
   let contract = publication_custody_contract()
   let authoring = @publication.seal_run_evidence_value(
     "authoring_context",
@@ -31,7 +32,7 @@ test "publication capture start rechecks exact plan after callback cancellation"
     authoring,
     [],
   ).unwrap()
-  let capture : ClientProgramCapture[Array[Int]] = {
+  let capture : ClientProgramCapture = {
     publication: value,
     plan: Some(plan),
     issuer: None,
@@ -45,11 +46,11 @@ test "publication capture start rechecks exact plan after callback cancellation"
   assert_true(capture.plan is None)
   assert_true(capture.issuer is None)
   assert_true(@publication.capture_construction_layout_facts(plan) is None)
-  assert_false(
-    @resources.retire_preparation_capacity(value.owner.capacity).unwrap(),
-  )
-  assert_true(sever_closed_values_body(value.owner, value.holder))
+  assert_false(@resources.retire_preparation_capacity(capacity).unwrap())
+  clear_program_publication(value)
+  assert_true(@resources.preparation_body_retirement_started(value.holder))
   assert_true(@resources.return_preparation_body_borrow(value.holder).unwrap())
   assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
   assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 0L)
+  @resources.cleanup_node_preparation_admission(initial).unwrap()
 }

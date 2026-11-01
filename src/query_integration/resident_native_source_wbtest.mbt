@@ -88,7 +88,7 @@ fn resident_native_source_evidence_catalog() -> @environment.SourceRequestContra
   let snapshot =
     #|[{"carrier_schema_contract_cid":"sha256:19f617653f557bcc5e2d851a889101df45e60326a4192a6fe5b109ccef4d0a1e","data_classification":"unknown","output_carrier":"relation","read_mode":"snapshot","source_contract_cid":"sha256:1f5ce9a50072a24f9cf0673d174f4f0639a216cc5537277e15299fef59db921f","source_data_policy_cid":"sha256:e29dbae5d01c451177772ccd55550b9ec4be9b47eb12e56afffea74cfdd879bf","source_ref":"connector://crm/main/r#v","source_view_contract_cid":"sha256:1f5ce9a50072a24f9cf0673d174f4f0639a216cc5537277e15299fef59db921f"}]
   let capabilities =
-    #|[{"capability_contract_cids":["sha256:db7ce19477afd82a8488a9f64fd75697c850eaaccdc738995483cc138a06361a"],"read_mode":"snapshot","source_contract_cid":"sha256:1f5ce9a50072a24f9cf0673d174f4f0639a216cc5537277e15299fef59db921f","source_ref":"connector://crm/main/r#v","source_view_contract_cid":"sha256:1f5ce9a50072a24f9cf0673d174f4f0639a216cc5537277e15299fef59db921f"}]
+    #|[{"capability_contract_cids":["sha256:dcf4b1e2c8a078d96f9160a75a9f8279047e7448ea39b3b882588e18b9ab0929"],"read_mode":"snapshot","source_contract_cid":"sha256:1f5ce9a50072a24f9cf0673d174f4f0639a216cc5537277e15299fef59db921f","source_ref":"connector://crm/main/r#v","source_view_contract_cid":"sha256:1f5ce9a50072a24f9cf0673d174f4f0639a216cc5537277e15299fef59db921f"}]
   query_program_catalog_fixture(
     schema_snapshots=snapshot,
     connector_capabilities=capabilities,

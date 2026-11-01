@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import {mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
+import {mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
+import {pathToFileURL} from 'node:url';
 import {join, relative} from 'node:path';
 import {test} from 'node:test';
 import {runtimePackageInputs} from './runtime-package-inputs.mjs';
@@ -10,6 +11,51 @@ import {sourceInterfaceClosure} from './source-interface-closure.mjs';
 import {typescriptInterface, typescriptInterfaceClosure} from './typescript-interface-inventory.mjs';
 import {npmInterfaceRoots} from './distribution-interface-roots.mjs';
 import {assertInterfaceCoverage, javascriptInterface} from './interface-inventory.mjs';
+
+function publicFacadeFixture(t, name) {
+  const root = process.cwd(), source = join(root, 'packages', name);
+  const directory = mkdtempSync(join(root, '_build-public-facade-'));
+  t.after(() => rmSync(directory, {recursive: true, force: true}));
+  const manifest = JSON.parse(readFileSync(join(source, 'package.json'), 'utf8'));
+  writeFileSync(join(directory, 'package.json'), JSON.stringify(manifest));
+  for (const path of manifest.files.filter(path => !path.includes('/') && path.endsWith('.mjs'))) {
+    writeFileSync(join(directory, path), readFileSync(join(source, path)));
+  }
+  symlinkSync(join(root, 'adapters'), join(directory, 'adapters'), 'dir');
+  mkdirSync(join(directory, 'node_modules/@actql'), {recursive: true});
+  symlinkSync(join(root, 'packages/client-wire'), join(directory, 'node_modules/@actql/client-wire'), 'dir');
+  const load = path => import(pathToFileURL(join(directory, path)).href);
+  return {root, directory, manifest, load};
+}
+
+test('public observation facade retains the two original typed values and private nominal helpers', async t => {
+  const {root, manifest, load} = publicFacadeFixture(t, 'local-node');
+  const selected = manifest.exports['./observation'].default;
+  const exposed = await load(selected);
+  assert.deepEqual(Object.keys(exposed).sort(), ['createHostObservationConnection', 'observationLimits']);
+  assert(manifest.files.includes(selected.slice(2)));
+  const original = await import(pathToFileURL(join(root, 'adapters/host-common/observation.mjs')).href);
+  for (const name of Object.keys(exposed)) assert.equal(exposed[name], original[name]);
+  assert.equal(typeof original.installHostObservation, 'function');
+  assert.equal(original.isHostObservationProjection({}), false);
+  assert.equal(original.isHostObservationProjection(Object.freeze({})), false);
+});
+
+test('public Result facade retains all five original typed functions and the original private error class', async t => {
+  const {root, manifest, load} = publicFacadeFixture(t, 'run-host-core');
+  const selected = manifest.exports['./result-access'].default;
+  const exposed = await load(selected);
+  assert.deepEqual(Object.keys(exposed).sort(), ['deliverAuthorizedResult', 'describeAuthorizedResult',
+    'inspectAuthorizedDeliveryAttempt', 'installResultAccessAuthority', 'installResultAccessService']);
+  assert(manifest.files.includes(selected.slice(2)));
+  const original = await load('result-access.mjs');
+  for (const name of Object.keys(exposed)) assert.equal(exposed[name], original[name]);
+  assert.throws(() => exposed.installResultAccessAuthority({}), error =>
+    error instanceof original.ResultAccessError && error.code === 'InvalidResultAccessAuthority');
+  const canonical = readFileSync(join(root, 'adapters/host-common/result-access.mjs'), 'utf8')
+    .replace("'../../packages/client-wire/index.mjs'", "'@actql/client-wire'");
+  assert.equal(readFileSync(join(root, 'packages/run-host-core/result-access.mjs'), 'utf8'), canonical);
+});
 
 test('ordinary runtime builder consumes the same side-effect-free input reader', () => {
   const root = process.cwd(), inputs = runtimePackageInputs(root);

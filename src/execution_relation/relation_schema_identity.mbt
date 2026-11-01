@@ -44,6 +44,8 @@ struct RelationSchemaIdentityPreparation {
   mut contract : @contract.CheckedEmission?
   mut names : Array[String]
   mut identity : RelationSchemaIdentity?
+  measurement_only : Bool
+  mut measured : (Int, Int, Int)?
   mut closed : Bool
 }
 
@@ -54,6 +56,17 @@ struct RelationSchemaIdentityPreparation {
 pub fn start_relation_schema_identity(
   schema : @schema.Schema,
   limits : RelationSchemaIdentityLimits,
+) -> Result[RelationSchemaIdentityPreparation, RelationSchemaIdentityIssue] {
+  start_relation_schema_output(schema, limits, false)
+}
+
+///|
+// The measuring interpretation uses this same field/contract continuation.
+// It never allocates hash/text sinks or exposes an identity preparation.
+fn start_relation_schema_output(
+  schema : @schema.Schema,
+  limits : RelationSchemaIdentityLimits,
+  measurement_only : Bool,
 ) -> Result[RelationSchemaIdentityPreparation, RelationSchemaIdentityIssue] {
   if limits.max_fields < 0 ||
     limits.max_bytes < 0 ||
@@ -66,16 +79,24 @@ pub fn start_relation_schema_identity(
     return Err(FieldLimit)
   }
   try {
-    let identity_writer = @encode.hashing_writer(
-      limits.max_bytes,
-      limits.max_nodes,
-      limits.max_depth,
-    )
-    let wire_writer = @encode.writer(
-      limits.max_bytes,
-      limits.max_nodes,
-      limits.max_depth,
-    )
+    let identity_writer = if measurement_only {
+      @encode.measuring_writer(
+        limits.max_bytes,
+        limits.max_nodes,
+        limits.max_depth,
+      )
+    } else {
+      @encode.hashing_writer(
+        limits.max_bytes,
+        limits.max_nodes,
+        limits.max_depth,
+      )
+    }
+    let wire_writer = if measurement_only {
+      None
+    } else {
+      Some(@encode.writer(limits.max_bytes, limits.max_nodes, limits.max_depth))
+    }
     // At most two pending child continuations per admitted value node, plus
     // fixed emission handles. No object-width-sized stack is constructed.
     let max_frames = Int64::min(
@@ -85,7 +106,7 @@ pub fn start_relation_schema_identity(
     Ok({
       schema: Some(schema),
       hash_writer: Some(identity_writer),
-      wire_writer: Some(wire_writer),
+      wire_writer,
       max_frames,
       fields,
       pass: 0,
@@ -95,6 +116,8 @@ pub fn start_relation_schema_identity(
       contract: None,
       names: [],
       identity: None,
+      measurement_only,
+      measured: None,
       closed: false,
     })
   } catch {
@@ -129,6 +152,7 @@ pub fn cancel_relation_schema_identity(
   value.contract = None
   value.names = []
   value.identity = None
+  value.measured = None
   true
 }
 
@@ -142,7 +166,7 @@ pub fn advance_relation_schema_identity(
   if value.closed || quantum <= 0 {
     return Err(Closed)
   }
-  if value.identity is Some(_) {
+  if value.identity is Some(_) || value.measured is Some(_) {
     return Ok((true, 0))
   }
   try {
@@ -163,7 +187,9 @@ pub fn advance_relation_schema_identity(
         1 =>
           if value.field == value.fields {
             @encode.end_object(writer)
-            if value.pass == 0 {
+            if value.measurement_only {
+              value.phase = 6
+            } else if value.pass == 0 {
               value.pass = 1
               value.field = 0
               value.phase = 0
@@ -215,8 +241,14 @@ pub fn advance_relation_schema_identity(
           value.phase = 1
         }
         6 =>
-          // Own one independent name per poll before exposing any receipt.
-          if value.names.length() < value.fields {
+          // Identity mode owns one independent name per poll before its receipt.
+          // Measurement mode completes without a name inventory or identity.
+          if value.measurement_only {
+            value.measured = Some(
+              @encode.finish_measurement_usage(value.hash_writer.unwrap()),
+            )
+            return Ok((true, steps))
+          } else if value.names.length() < value.fields {
             value.names.push(
               @schema.field_reference_name_at(schema, value.names.length()).unwrap(),
             )
@@ -282,6 +314,31 @@ pub fn identify_relation_schema(
     }
   }
   finish_relation_schema_identity(value)
+}
+
+///|
+/// Exact complete field-map geometry through the original resumable codec.
+/// Conditional presence wrappers, qualified/Unicode keys and nested contracts
+/// retain their original encoding and limits. No wire, hash or identity is
+/// constructed; this DATA does not reserve backing or admit another schema.
+pub fn measure_relation_schema_identity(
+  schema : @schema.Schema,
+  limits : RelationSchemaIdentityLimits,
+) -> Result[(Int, Int, Int), RelationSchemaIdentityIssue] {
+  let value = match start_relation_schema_output(schema, limits, true) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  while true {
+    match advance_relation_schema_identity(value, 64) {
+      Err(issue) => return Err(issue)
+      Ok((true, _)) => break
+      Ok(_) => ()
+    }
+  }
+  let measured = value.measured.unwrap()
+  cancel_relation_schema_identity(value) |> ignore
+  Ok(measured)
 }
 
 ///|

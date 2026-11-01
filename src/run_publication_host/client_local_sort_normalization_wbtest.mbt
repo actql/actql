@@ -11,7 +11,7 @@ let local_sort_journal : String =
 fn local_sort_normalization(
   owner : PreparedClientProgram,
 ) -> ClientLocalNormalization raise {
-  let issued = issue_prepared_client_legacy_local_normalization(owner).unwrap()
+  let issued = _issue_prepared_client_legacy_local_normalization(owner).unwrap()
   assert_true(
     @checked.local_completion_free_inventory_uses_sort(
       match issued.audit {

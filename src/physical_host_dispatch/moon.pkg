@@ -1,0 +1,12 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "actql/actql/physical_host" @estimates,
+  "actql/actql/physical_cost" @cost,
+  "actql/actql/execution_relation" @execution,
+  "actql/actql/physical_strategy_host" @strategy,
+  "actql/actql/physical_resources" @resources,
+  "actql/actql/connector_sdk" @connector,
+  "actql/actql/lowering_relation" @lower,
+  "actql/actql/pipeline_typing" @pipeline,
+}

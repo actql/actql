@@ -16,10 +16,14 @@ import {
   "actql/actql/source_value" @source,
   "actql/actql/decode_core" @decode,
   "actql/actql/execution_relation" @execution,
-  "actql/actql/physical_strategy" @strategy,
+  "actql/actql/physical_strategy_host" @strategy,
   "actql/actql/query_planning" @planning,
   "actql/actql/query_program" @query,
   "actql/actql/encode_core" @encode,
   "actql/actql/host_observation" @observation,
   "moonbitlang/core/encoding/utf8",
 }
+
+import {
+  "actql/actql/execution_site" @site,
+} for "wbtest"

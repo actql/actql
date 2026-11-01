@@ -119,7 +119,6 @@ fn publication_observation_publisher(
 ///|
 /// Retain the same physical response loan, even after parse/validation failure.
 /// Completion here is not Store ACK, durable Unknown recording or Run admission.
-#export_name("actql_publication_prepare_observation")
 pub fn prepare_publication_observation(
   nonce : Int64,
   handle : Int,
@@ -253,7 +252,6 @@ pub fn prepare_publication_observation(
 ///|
 /// Share capture/commit's original total work limit; a fresh response cannot
 /// issue a new budget. Non-Stored observations require no semantic traversal.
-#export_name("actql_publication_advance_observation")
 pub fn advance_publication_observation(
   nonce : Int64,
   handle : Int,
@@ -322,7 +320,6 @@ pub fn advance_publication_observation(
 }
 
 ///|
-#export_name("actql_publication_observation_progress")
 pub fn publication_observation_progress(
   nonce : Int64,
   handle : Int,
@@ -346,7 +343,6 @@ pub fn publication_observation_progress(
 ///|
 /// Return an existing Core failure action, not an accepted/committed boolean.
 /// AppendUnknown still needs the original durable record Owner and Store ACK.
-#export_name("actql_publication_finish_observation")
 pub fn finish_publication_observation(
   nonce : Int64,
   handle : Int,
@@ -412,7 +408,6 @@ pub fn finish_publication_observation(
 ///|
 /// Return only the same physical response borrow after all observed outputs
 /// stopped. Failed cleanup retains the exact input and blocks replacement.
-#export_name("actql_publication_retire_observation")
 pub fn retire_publication_observation(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.publications.get(handle) is Some(record) else {

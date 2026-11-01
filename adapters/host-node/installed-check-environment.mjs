@@ -1,5 +1,5 @@
 // Compose independently published installation facts without turning either
-// adapter's authority into the other's. Each input is admitted on its own;
+// adapter's authority into the other's. Each distinct complete input is admitted;
 // shared declarations are retained once only when their bodies are identical.
 import {canonicalJson, contentCid} from './local-account-config.mjs';
 
@@ -79,13 +79,23 @@ function mergeManifest(left, right) {
     connectors: mergeMembers(left.connectors, right.connectors)};
 }
 
+// The original role inputs are immutable DATA. Exact complete wire equality
+// makes the Source and Effect publication the same semantic check input; it
+// says nothing about their independent Sites, bindings or permissions.
+// The constructor quote consumes this SAME selection before parsing/checking.
+export function installedCheckEnvironmentInputs(baseWire, sourceWire, effectWire) {
+  return [baseWire, sourceWire,
+    typeof sourceWire === 'string' && sourceWire === effectWire ? undefined : effectWire];
+}
+
 // The Host passes the resulting wire to its ordinary MoonBit checker and
 // Checkpoint owner. This is not a union of read and commit permissions.
 export function composeInstalledCheckEnvironment(moon, baseWire,
   sourceWire, effectWire) {
-  const base = admittedDocument(moon, baseWire);
-  const source = sourceWire === undefined ? undefined : admittedDocument(moon, sourceWire);
-  const effect = effectWire === undefined ? undefined : admittedDocument(moon, effectWire);
+  const [baseInput, sourceInput, effectInput] = installedCheckEnvironmentInputs(baseWire, sourceWire, effectWire);
+  const base = admittedDocument(moon, baseInput);
+  const source = sourceInput === undefined ? undefined : admittedDocument(moon, sourceInput);
+  const effect = effectInput === undefined ? undefined : admittedDocument(moon, effectInput);
   const allowedKeys = new Set([...Object.keys(base),
     'connector_manifest']);
   // Adapter publications extend this Host's base facts. Their number never

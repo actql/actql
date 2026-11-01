@@ -1,3 +1,5 @@
+import {publicationOriginalFixture} from './fixtures/local-publication-original.mjs';
+import {checked} from '../host-common/runtime-result.mjs';
 // Real checked Program, physical Run, publication Store and Delivery custody.
 // The injected fault loses only attempt admission's reply, never retries it.
 import assert from 'node:assert/strict';
@@ -70,15 +72,26 @@ export async function openReadOpeningFixture(directory, loss,
       traceReadRecovery('delivery-record:finished', {state});
       return recorded;
     },
-    async createDeliveryAttempt(wire, grantWire) {
+    // Observe the actual installed START owner, preserving its opaque original
+    // and atomic initial streaming record rather than the legacy wire adapter.
+    async beginDeliveryAttempt(original, streaming) {
       counts.admissions++;
       const phase = armed; armed = undefined;
       traceReadRecovery('delivery-admission:start', {loss: phase ?? null});
       if (phase === 'before-commit') { loseReply?.(); throw new Error('InjectedOpeningReplyLoss'); }
-      const committed = await store.createDeliveryAttempt(wire, grantWire);
+      const committed = await store.beginDeliveryAttempt(original, streaming);
       traceReadRecovery('delivery-admission:committed', {loss: phase ?? null});
       if (phase === 'after-commit') { loseReply?.(); throw new Error('InjectedOpeningReplyLoss'); }
       return committed;
+    },
+    // The installed completion path commits the receipt and terminal record
+    // together. Hold that same original operation, never a fabricated ACK.
+    async appendDeliveryCompletion(attempt, receipt, contract) {
+      traceReadRecovery('delivery-record:start', {state: 'succeeded'});
+      await beforeSuccessRecord?.();
+      const recorded = await store.appendDeliveryCompletion(attempt, receipt, contract);
+      traceReadRecovery('delivery-record:finished', {state: 'succeeded'});
+      return recorded;
     },
     async withCommittedResultRows(...args) {
       counts.readers++;
@@ -131,6 +144,8 @@ export async function openReadOpeningFixture(directory, loss,
   const values = JSON.stringify(contracts.execution_contracts['REL.values']);
   const fragment = expressionFragment ? JSON.stringify(
     contracts.execution_contracts['ACTQL.expression_fragment/0.1']) : undefined;
+  const installedContracts = checked(moon.clientPrepareInstalledSequenceContracts(
+    registry, values, fragment, undefined));
   const startRun = installNodeClientRunStart({journal, requestControl: moon, publicationControl: control, authorizeRunStart: () => true});
   const services = {
     authenticate: () => 'principal', authorizeConnection: () => true,
@@ -147,7 +162,7 @@ export async function openReadOpeningFixture(directory, loss,
       let plan;
       const admitted = await journal.admitOrLookupDefinition(identity, {...scope, submission, lookupExpiresAt: '2099-01-01T00:00:00.000Z', issueDefinition() {
         counts.definitions++;
-        plan = sourceFreeValuesPlan({moon, control, preparedProgram, ...scope, storeAuthorityCid: cid('7'), now});
+        plan = sourceFreeValuesPlan({moon, control, preparedProgram, publicationOriginal: publicationOriginalFixture(moon, preparedProgram), ...scope, storeAuthorityCid: cid('7'), now});
         const evidence = sourceFreeValuesAdmissionEvidence(plan);
         return evidence === undefined ? plan.runDefinition : {
           runDefinition: plan.runDefinition, runAdmissionEvidence: evidence};
@@ -158,7 +173,7 @@ export async function openReadOpeningFixture(directory, loss,
       if (started.kind !== 'reserved') return {ref: started.ref,
         durability: started.durability, revision: started.revision};
       counts.computes++;
-      const setup = moon.clientProgramOpenSourceFreeLocalHost(preparedProgram, registry, values, 1n, 0n, 0n, 0n, fragment);
+      const setup = moon.clientProgramOpenSourceFreeLocalHost(preparedProgram, installedContracts, values, 1n, 0n, 0n, 0n, fragment);
       assert.ok(setup);
       observeSubmission('opened');
       let published;

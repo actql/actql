@@ -4,6 +4,7 @@ package "actql/actql/local_relation_snapshot"
 import {
   "actql/actql/check_environment",
   "actql/actql/decode_core",
+  "actql/actql/decode_shape",
   "actql/actql/encode_core",
   "actql/actql/local_source_ref",
   "actql/actql/relation_schema",
@@ -27,6 +28,24 @@ pub fn environment_member(EnvironmentSnapshot) -> @check_environment.Member
 pub fn environment_snapshot(EnvironmentSnapshot) -> Snapshot
 
 pub fn materialization(Snapshot) -> Materialization?
+
+pub fn member_batch_read_construction_inventory(Array[@check_environment.Member]) -> MemberReadConstructionInventory?
+
+pub fn member_emission_observation_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn member_read_construction_inspection_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn member_read_construction_inventory(@check_environment.Member) -> MemberReadConstructionInventory?
+
+pub fn member_reference_construction_inspection_bound(@check_environment.Member) -> Int64
+
+pub fn member_reference_observation_construction_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn member_reference_observation_retained_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn observe_member_reference_read_construction(@check_environment.Member) -> (@local_source_ref.ReferenceReadConstructionInventory?, Int64)
+
+pub fn observe_read_member(@check_environment.Member, Limits) -> (Result[EnvironmentSnapshot, MembershipIssue], (Int, Int, Int)?)
 
 pub fn read(Bytes, String, Limits) -> Result[Snapshot, Issue]
 
@@ -74,6 +93,12 @@ pub struct Materialization {
   completeness : Completeness
   integration_binding_cid : String?
 }
+
+pub(all) struct MemberReadConstructionInventory {
+  peak : @check_environment.RegistryConstructionExtent
+  retained : @check_environment.RegistryConstructionExtent
+  inspection_work : Int64
+} derive(Eq, @debug.Debug)
 
 pub enum MembershipIssue {
   WrongSection

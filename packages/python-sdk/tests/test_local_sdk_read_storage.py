@@ -16,6 +16,7 @@ from actql_sdk._local_sdk_read_storage import (
 from actql_sdk._local_storage import LocalStorageCommitUnknown, LocalStorageError, StoredBytes
 import test_local_reader_facts as file_fixture
 import test_local_store_current_caller as store_fixture
+from local_abi_declaration_fixture import original_byte_fixture_port
 
 
 class SDKReadEvidenceStoreTests(unittest.TestCase):
@@ -67,7 +68,7 @@ class SDKReadEvidenceStoreTests(unittest.TestCase):
             if family == 'buffer' and name == 'byte' and args[0] in outputs:
                 return outputs[args[0]][args[1]]
             return previous(family, name, *args)
-        core._call = call
+        core._call = original_byte_fixture_port(call)
         holder = OriginalSDKReadEvidenceStore(observation, cleanup=lambda: state['cleanup'])
         return holder, store, core, binding, observation, request, queries, producers, codes, state
 

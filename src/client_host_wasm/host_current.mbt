@@ -18,6 +18,10 @@ priv struct StoredHostCurrent {
   mut principal : String?
   mut connection : String?
   mut material : @host.ClientLocalAdoptedHostMaterial[Ref[Int], Int]?
+  // Alias only the first genuine row also retained by the original Common
+  // material. Later observations never retain another body or copied payload.
+  mut original_adoption_row : @host.ClientJournalPhysicalRow?
+  mut observed_operation : Int64
 }
 
 ///|
@@ -38,6 +42,42 @@ fn host_current_physical(
 }
 
 ///|
+// A fresh physical current/fence check plus DATA from this entered Host's
+// existing operation. Zero deliberately keeps the complete raw/cleanup path.
+fn host_current_checked_operation(
+  value : Instance,
+  record : StoredHostCurrent,
+) -> Result[Int64, Int] {
+  if value.closing ||
+    value.runtime_closing ||
+    record.closing ||
+    record.output_closed {
+    record.observed_operation = 0L
+    return Err(-5)
+  }
+  let operation = physical_journal_current_operation(record.physical)
+  if operation < 0L {
+    record.observed_operation = 0L
+    Err(-41)
+  } else {
+    Ok(operation)
+  }
+}
+
+///|
+fn host_current_observation_reusable(
+  record : StoredHostCurrent,
+  operation : Int64,
+) -> Bool {
+  operation > 0L &&
+  record.observed_operation == operation &&
+  !record.closing &&
+  !record.output_closed &&
+  record.material is Some(_) &&
+  record.original_adoption_row is Some(_)
+}
+
+///|
 /// Core selects the singleton namespace/cursor. The trusted Host current port
 /// retains original filesystem/settings/epoch/generation and same-Store fences.
 /// It cannot return a caller permission boolean or authenticate a malicious Host.
@@ -45,21 +85,59 @@ fn host_current_observation(
   value : Instance,
   record : StoredHostCurrent,
 ) -> Result[@host.ClientLocalAdoptionCurrentObservation[Ref[Int]], Int] {
+  // These closed physical functions belong to this SAME retained record and
+  // original Instance. No external caller supplies observation reuse ports.
+  let current = () => host_current_physical(value, record)
+  host_current_observe_original(
+    record,
+    () => host_current_checked_operation(value, record),
+    current,
+    cursor => {
+      physical_journal_row(
+        record.physical,
+        current,
+        0,
+        "client_local_adoption",
+        cursor,
+      )
+    },
+  )
+}
+
+///|
+fn host_current_observe_original(
+  record : StoredHostCurrent,
+  checked_operation : () -> Result[Int64, Int],
+  current : () -> Result[Unit, Int],
+  select_row : (String) -> Result[@host.ClientJournalPhysicalRow?, Int],
+) -> Result[@host.ClientLocalAdoptionCurrentObservation[Ref[Int]], Int] {
   guard record.account is Some(account) &&
     record.account_original is Some(original) &&
     record.adoption_original is Some(expected) &&
     record.generation is Some(generation) else {
     return Err(-33)
   }
-  let current = () => host_current_physical(value, record)
-  let row = match
-    physical_journal_row(
-      record.physical,
-      current,
-      0,
-      "client_local_adoption",
-      "",
-    ) {
+  let operation = match checked_operation() {
+    Ok(value) => value
+    Err(code) => return Err(code)
+  }
+  if host_current_observation_reusable(record, operation) &&
+    record.original_adoption_row is Some(row) {
+    // Common still compares full original row/account/generation and decides
+    // each protected operation. Only immutable already-admitted DATA is reused.
+    match checked_operation() {
+      Ok(after) if after == operation =>
+        return Ok(
+          @host.Observed(record.store, account, original, row, generation),
+        )
+      _ => {
+        record.observed_operation = 0L
+        return Err(-41)
+      }
+    }
+  }
+  record.observed_operation = 0L
+  let row = match select_row("") {
     Ok(None) => return Ok(@host.NotAdopted)
     Ok(Some(row)) => row
     Err(code) => return Err(code)
@@ -67,23 +145,30 @@ fn host_current_observation(
   if row.key != "adoption" || row.revision != 0L || row.body != expected {
     return Err(-32)
   }
-  match
-    physical_journal_row(
-      record.physical,
-      current,
-      0,
-      "client_local_adoption",
-      "adoption",
-    ) {
+  match select_row("adoption") {
     Ok(None) => ()
     Ok(Some(_)) => return Err(-32)
     Err(code) => return Err(code)
   }
   match current() {
-    Ok(_) =>
-      Ok(@host.Observed(record.store, account, original, row, generation))
-    Err(code) => Err(code)
+    Err(code) => return Err(code)
+    Ok(_) => ()
   }
+  let after = match checked_operation() {
+    Ok(value) => value
+    Err(code) => return Err(code)
+  }
+  if after != operation {
+    return Err(-41)
+  }
+  // The initial constructor and its Common material share this SAME actual
+  // immutable row. Keep only that alias under the original input/current
+  // lifetime; repeated frames cannot add another retained payload.
+  if record.original_adoption_row is None {
+    record.original_adoption_row = Some(row)
+  }
+  record.observed_operation = operation
+  Ok(@host.Observed(record.store, account, original, row, generation))
 }
 
 ///|
@@ -98,7 +183,6 @@ fn host_current_issue(issue : @host.ClientLocalAdoptedCurrentIssue[Int]) -> Int 
 }
 
 ///|
-#export_name("actql_current_reserve")
 pub fn reserve_host_current(
   nonce : Int64,
   input : Int,
@@ -161,6 +245,8 @@ pub fn reserve_host_current(
     principal: None,
     connection: None,
     material: None,
+    original_adoption_row: None,
+    observed_operation: 0L,
   }
   value.copies[handle] = (slot, physical_ticket)
   value.next_handle += 1
@@ -169,7 +255,6 @@ pub fn reserve_host_current(
 
 ///|
 /// Bind actual already-committed adoption, never initialize or repair it.
-#export_name("actql_current_bind")
 pub fn bind_host_current(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.host_currents.get(handle) is Some(record) else {
@@ -225,7 +310,6 @@ pub fn bind_host_current(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_current_validate")
 pub fn validate_host_current(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.host_currents.get(handle) is Some(record) &&
@@ -241,7 +325,6 @@ pub fn validate_host_current(nonce : Int64, handle : Int) -> Int {
 ///|
 /// Project original current scope metadata. It is neither Account Allow,
 /// execution/read permission, Host adoption nor durable acknowledgement.
-#export_name("actql_current_produce")
 pub fn produce_host_current(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.host_currents.get(handle) is Some(record) &&
@@ -293,7 +376,6 @@ pub fn produce_host_current(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_current_length")
 pub fn host_current_length(nonce : Int64, handle : Int) -> Int {
   let checked = validate_host_current(nonce, handle)
   if checked != 0 {
@@ -311,13 +393,13 @@ pub fn host_current_length(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_current_close")
 pub fn close_host_current(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.host_currents.get(handle) is Some(record) else {
     return -2
   }
   record.closing = true
+  record.observed_operation = 0L
   if value.run_configurations
     .values()
     .any(configuration => configuration.host_current == Some(handle)) {

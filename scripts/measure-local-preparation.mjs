@@ -23,6 +23,13 @@ const {sourceFreeValuesPlan, acquiredTaskRunAdmission} = await import(url(
   'adapters/host-node/local-values-plan.mjs'));
 const control = runtimeCore(moon).publicationControl;
 const cid = digit => `sha256:${digit.repeat(64)}`;
+const {checked} = await import(url('adapters/host-common/runtime-result.mjs'));
+const aoa = JSON.parse(await read('spec/contracts/actql-aoa.json'));
+const contracts = [JSON.stringify(aoa.execution_contracts['REL.values']),
+  JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
+  JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])];
+const registry = checked(moon.clientPrepareInstalledSequenceContracts(
+  await read('spec/dependencies/aoa-pipeline-registry.json'), ...contracts));
 const results = [];
 for (const kind of ['values', 'tasks']) {
   const acquired = kind === 'tasks';
@@ -42,7 +49,11 @@ for (const kind of ['values', 'tasks']) {
   const once = () => {
     const preparedProgram = prepare({kind: 'aql',
       input: {text: document, format: 'json'}, parameters});
+    const publicationOriginal = acquired ? undefined : {kind: 'preparation',
+      value: checked(moon.clientProgramPrepareInstalledManagedSourceFreeWithContracts(
+        preparedProgram, registry, ...contracts))};
     return (acquired ? acquiredTaskRunAdmission : sourceFreeValuesPlan)({
+      publicationOriginal,
       moon, control, preparedProgram, document, format: 'json', parameters,
       environmentWire, environmentCid, authorityScopeCid: cid('a'),
       namespaceId: 'local', requestId: 'preparation-probe',

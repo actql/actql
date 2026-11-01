@@ -32,6 +32,7 @@ priv struct StoredRun {
   mut outcome : Result[@local_run.LocalRunPlan, @local_run.LocalRunIssue]?
   mut finite_policy : @host.ClientLocalRunPolicyOriginal?
   mut sdk_submission : Int?
+  mut saved_snapshot : @host.ClientSavedSubmissionSnapshot?
 }
 
 ///|
@@ -47,7 +48,6 @@ fn required_text(object : @decode.ObjectView, name : String) -> String? {
 }
 
 ///|
-#export_name("actql_run_install_configuration")
 pub fn install_run_configuration(nonce : Int64, input : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.copies.get(input) is Some((slot, physical)) else {
@@ -119,7 +119,6 @@ pub fn install_run_configuration(nonce : Int64, input : Int) -> Int {
 ///|
 /// Product assembly uses original current material; no Account/scope/context
 /// or policy CID supplied by Python can stand in for that existing Owner.
-#export_name("actql_run_install_current_configuration")
 pub fn install_current_run_configuration(
   nonce : Int64,
   current : Int,
@@ -216,7 +215,6 @@ fn run_configuration_current(
 ///|
 /// The issued handle precedes compilation. Reservation neither accepts a
 /// Submission nor invokes Source, Compute, Model, Effect or durable storage.
-#export_name("actql_run_reserve")
 pub fn reserve_run(
   nonce : Int64,
   configuration : Int,
@@ -256,6 +254,7 @@ pub fn reserve_run(
     outcome: None,
     finite_policy: None,
     sdk_submission: None,
+    saved_snapshot: None,
   }
   value.next_handle += 1
   handle
@@ -264,7 +263,6 @@ pub fn reserve_run(
 ///|
 /// Compilation/readiness is not durable Run acceptance or physical start.
 /// A interrupted invocation cannot silently recompile under the same handle.
-#export_name("actql_run_prepare")
 pub fn prepare_run(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.runs.get(handle) is Some(record) &&
@@ -362,7 +360,6 @@ pub fn prepare_run(nonce : Int64, handle : Int) -> Int {
 ///|
 /// Restore the original request and codec-retained Run under current installed
 /// authorization. This does not reserve a durable dispatch or start a task.
-#export_name("actql_run_restore")
 pub fn restore_run(nonce : Int64, handle : Int, materials : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.runs.get(handle) is Some(record) &&
@@ -382,6 +379,12 @@ pub fn restore_run(nonce : Int64, handle : Int, materials : Int) -> Int {
     (record.invoked && record.restoration is None) {
     return -3
   }
+  if record.outcome is Some(Ok(plan)) && configuration.sdk is Some(_) {
+    return match sdk_restored_run_snapshot(value, handle, plan) {
+      Ok(_) => 0
+      Err(code) => code
+    }
+  }
   if record.outcome is Some(_) {
     return 0
   }
@@ -390,13 +393,57 @@ pub fn restore_run(nonce : Int64, handle : Int, materials : Int) -> Int {
   }
   record.restoration = Some(materials)
   record.invoked = true
-  guard @buffers.buffer_wire(value.pool, record.slot) is Some(bytes) else {
-    return -5
-  }
-  let request_wire = @utf8.decode(bytes) catch { _ => return -12 }
-  guard @host.admit_client_request_identity_record_wire(request_wire)
-    is Ok(retained_request) else {
-    return -31
+  let retained_request = if configuration.sdk is Some(sdk) {
+    guard restoration.sdk_configuration == Some(record.configuration) &&
+      preparation.restoration == Some(materials) &&
+      physical_equal(record.slot, restoration.borrow.slot) &&
+      restoration.saved_original is Some(original) &&
+      physical_equal(
+        @preparation.local_prepared_program(input),
+        @host.client_task_run_materials_retained_program(
+          @host.client_saved_task_materials_input(original),
+        ),
+      ) else {
+      return -35
+    }
+    let snapshot = match sdk_restoration_snapshot(value, restoration) {
+      Ok(value) => value
+      Err(code) => return code
+    }
+    let submitted = @host.client_saved_submission_record(snapshot)
+    guard @host.client_saved_submission_run_row(snapshot) is Some(row) &&
+      @host.decode_client_run_journal_row_with_observation_originals(row.body)
+      is Ok((saved, Some(policy_wire), Some(_))) &&
+      @publication.publication_contract_identity(saved.definition) ==
+      definition_cid else {
+      return -35
+    }
+    let policy = match
+      @host.admit_client_local_run_policy_original(
+        @utf8.encode(policy_wire),
+        sdk.profile,
+        submitted.reference,
+        saved.request,
+        saved.definition,
+        sdk.adoption_cid,
+        @publication.local_sdk_result_read_selection_cid(sdk.read),
+      ) {
+      Ok(value) => value
+      Err(_) => return -35
+    }
+    record.finite_policy = Some(policy)
+    record.sdk_submission = restoration.sdk_submission
+    record.saved_snapshot = Some(snapshot)
+    saved.request
+  } else {
+    guard @buffers.buffer_wire(value.pool, record.slot) is Some(bytes) else {
+      return -5
+    }
+    let request_wire = @utf8.decode(bytes) catch { _ => return -12 }
+    match @host.admit_client_request_identity_record_wire(request_wire) {
+      Ok(value) => value
+      Err(_) => return -31
+    }
   }
   let permit = match
     @authorization.bind_dispatch_authorization(
@@ -420,26 +467,99 @@ pub fn restore_run(nonce : Int64, handle : Int, materials : Int) -> Int {
   } else {
     @local_run.restore_captured_source_local_run_from_materials
   }
+  let outcome = restore(
+    input,
+    restored,
+    definition_cid,
+    retained_request,
+    configuration.authority_scope_cid,
+    permit,
+    configuration.account,
+    configuration.tuple,
+    configuration.context_cid,
+    configuration.policy_cid,
+  )
   record.outcome = Some(
-    restore(
-      input,
-      restored,
-      definition_cid,
-      retained_request,
-      configuration.authority_scope_cid,
-      permit,
-      configuration.account,
-      configuration.tuple,
-      configuration.context_cid,
-      configuration.policy_cid,
-    ),
+    if configuration.sdk is Some(_) {
+      match outcome {
+        Ok(plan) =>
+          @local_run.restore_source_free_local_run_policy_original(
+            plan,
+            restoration.saved_original.unwrap(),
+          )
+        Err(issue) => Err(issue)
+      }
+    } else {
+      outcome
+    },
   )
   0
 }
 
 ///|
+/// Fresh original saved rows for an already restored Run. This reuses the
+/// canonical codec Owner and original Journal binding rather than manufacturing
+/// a first-admission row candidate or treating a prior successful read as current.
+fn sdk_restored_run_snapshot(
+  value : Instance,
+  run : Int,
+  plan : @local_run.LocalRunPlan,
+) -> Result[@host.ClientSavedSubmissionSnapshot, Int] {
+  guard value.runs.get(run) is Some(record) &&
+    record.outcome is Some(Ok(held)) &&
+    physical_equal(held, plan) &&
+    record.restoration is Some(restoration_handle) &&
+    value.restorations.get(restoration_handle) is Some(restoration) &&
+    restoration.outcome is Some(Ok(materials)) &&
+    restoration.saved_original is Some(original) &&
+    record.saved_snapshot is Some(prior) &&
+    physical_equal(
+      @local_run.local_run_prepared(plan),
+      @host.client_task_run_materials_retained_program(
+        @host.client_saved_task_materials_input(original),
+      ),
+    ) else {
+    return Err(-2)
+  }
+  let snapshot = match sdk_restoration_snapshot(value, restoration) {
+    Ok(value) => value
+    Err(code) => return Err(code)
+  }
+  guard @host.client_saved_submission_run_row(snapshot) is Some(row) else {
+    return Err(-35)
+  }
+  if @local_run.validate_local_saved_snapshot_rows(
+      plan,
+      prior,
+      row,
+      @host.client_saved_submission_row(snapshot),
+    )
+    is Err(_) {
+    return Err(-35)
+  }
+  let checked = match
+    @host.bind_client_saved_submission_task_materials(snapshot, materials) {
+    Ok(value) => value
+    Err(_) => return Err(-35)
+  }
+  let saved = @host.client_saved_submission_record(
+    @host.client_saved_task_materials_snapshot(checked),
+  )
+  guard saved.run_admission is Some((request, definition, _)) &&
+    @host.client_request_identity_relation(
+      request,
+      @local_run.local_run_request(plan),
+    )
+    is @host.SameRequest &&
+    definition == @local_run.local_run_definition_cid(plan) else {
+    return Err(-35)
+  }
+  record.saved_snapshot = Some(snapshot)
+  Ok(snapshot)
+}
+
+///|
 /// Private readiness codes are not public diagnostic classifications.
-#export_name("actql_run_prepared")
 pub fn run_prepared(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) && value.runs.get(handle) is Some(record) else {
     return -2
@@ -452,7 +572,6 @@ pub fn run_prepared(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_run_close")
 pub fn close_run(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) && value.runs.get(handle) is Some(record) else {
     return -2
@@ -470,7 +589,6 @@ pub fn close_run(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_run_close_configuration")
 pub fn close_run_configuration(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.run_configurations.get(handle) is Some(record) else {

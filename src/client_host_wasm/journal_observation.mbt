@@ -2,6 +2,9 @@
 fn physical_journal_current(ticket : Int) -> Int = "actql_host" "journal_current"
 
 ///|
+fn physical_journal_current_operation(ticket : Int) -> Int64 = "actql_host" "journal_current_operation"
+
+///|
 fn physical_journal_begin(
   ticket : Int,
   mode : Int,
@@ -10,7 +13,19 @@ fn physical_journal_begin(
 ) -> Int = "actql_host" "journal_begin"
 
 ///|
-fn physical_journal_query_byte(ticket : Int, index : Int, byte : Int) -> Int = "actql_host" "journal_query_byte"
+fn physical_journal_query_copy(
+  ticket : Int,
+  index : Int,
+  offset : Int,
+  length : Int,
+) -> Int = "actql_host" "journal_query_copy"
+
+///|
+// Source-pinned wasm32 payload borrow. The synchronous Host validates this
+// same instance's original memory; no Moon object/header is decoded in Python.
+#borrow(bytes)
+extern "wasm" fn journal_bytes_offset(bytes : Bytes) -> Int =
+  #|(func (param i32) (result i32) local.get 0)
 
 ///|
 fn physical_journal_query(ticket : Int) -> Int = "actql_host" "journal_query"
@@ -19,7 +34,13 @@ fn physical_journal_query(ticket : Int) -> Int = "actql_host" "journal_query"
 fn physical_journal_length(ticket : Int, field : Int) -> Int = "actql_host" "journal_length"
 
 ///|
-fn physical_journal_byte(ticket : Int, field : Int, index : Int) -> Int = "actql_host" "journal_byte"
+fn physical_journal_copy(
+  ticket : Int,
+  field : Int,
+  index : Int,
+  offset : Int,
+  length : Int,
+) -> Int = "actql_host" "journal_copy"
 
 ///|
 fn physical_journal_revision(ticket : Int) -> Int64 = "actql_host" "journal_revision"
@@ -131,12 +152,20 @@ fn physical_journal_row(
   }
   let mut ordinal = 0
   for bytes in [namespace_bytes, key_bytes] {
-    for index in 0..<bytes.length() {
-      if physical_journal_query_byte(physical, ordinal, bytes[index].to_int()) !=
-        0 {
+    let mut index = 0
+    while index < bytes.length() {
+      let length = (bytes.length() - index).min(16384)
+      if physical_journal_query_copy(
+          physical,
+          ordinal,
+          journal_bytes_offset(bytes) + index,
+          length,
+        ) !=
+        length {
         return Err(-41)
       }
-      ordinal += 1
+      ordinal += length
+      index += length
     }
   }
   let code = physical_journal_query(physical)
@@ -162,14 +191,23 @@ fn physical_journal_row(
   let fields : Array[Bytes] = []
   for (field, length) in [(0, key_length), (1, body_length)] {
     let bytes : FixedArray[Byte] = FixedArray::make(length, 0)
-    for index in 0..<length {
-      let byte = physical_journal_byte(physical, field, index)
-      if byte < 0 || byte > 255 {
+    let payload = bytes.unsafe_reinterpret_as_bytes()
+    let mut index = 0
+    while index < length {
+      let count = (length - index).min(16384)
+      if physical_journal_copy(
+          physical,
+          field,
+          index,
+          journal_bytes_offset(payload) + index,
+          count,
+        ) !=
+        count {
         return Err(-41)
       }
-      bytes[index] = byte.to_byte()
+      index += count
     }
-    fields.push(Bytes::from_array(bytes[:]))
+    fields.push(payload)
   }
   let actual_key = @utf8.decode(fields[0]) catch { _ => return Err(-41) }
   if physical_journal_release(physical) != 0 {
@@ -185,7 +223,6 @@ fn physical_journal_row(
 ///|
 /// Reserve the physical query/decoder holding before allocating/calling it.
 /// The original material's input borrow owns the Reference and checked rows.
-#export_name("actql_journal_reserve")
 pub fn reserve_journal_observation(
   nonce : Int64,
   material : Int,
@@ -243,7 +280,6 @@ pub fn reserve_journal_observation(
 ///|
 /// Core chooses each query and validates the same original saved snapshot.
 /// Completion here is inspection only; physical COMMIT/Store ACK is separate.
-#export_name("actql_journal_inspect")
 pub fn inspect_journal_observation(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.journal_observations.get(handle) is Some(child) &&
@@ -306,7 +342,6 @@ pub fn inspect_journal_observation(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_journal_revision")
 pub fn journal_observation_revision(
   nonce : Int64,
   handle : Int,
@@ -341,7 +376,6 @@ pub fn journal_observation_revision(
 ///|
 /// Produce the saved Owner admission under the original current/snapshot
 /// frame. Cached output still requires current validation on every read.
-#export_name("actql_journal_admission_length")
 pub fn journal_admission_length(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.journal_observations.get(handle) is Some(child) &&
@@ -384,7 +418,6 @@ pub fn journal_admission_length(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_journal_close")
 pub fn close_journal_observation(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.journal_observations.get(handle) is Some(child) else {

@@ -5,7 +5,7 @@
 fn LocalCommandPreparationOriginal::prepare_business_capacity(
   self : LocalCommandPreparationOriginal,
   capture : @local_host.NativeLocalJournalCapture,
-  requirements : @local_values.ClientLocalSourceFreeRequirements,
+  requirements : @local_values.ClientLocalRequirements,
 ) -> Result[Unit, LocalCommandPreparationIssue] {
   guard self.host is Some(host) &&
     self.journal is Some(journal) &&
@@ -130,5 +130,62 @@ fn LocalCommandPreparationOriginal::finish_business_backing_scope(
       self.backing_scope = None
       Ok(())
     }
+  }
+}
+
+///|
+// Retained-run presentation selects the existing Read/SQLite routing only.
+// The parsed Compute candidate is not an acquired execution or authority. No
+// domain, work Ledger, payload capacity or preparation grant is constructed.
+fn LocalCommandPreparationOriginal::prepare_saved_result_operation(
+  self : LocalCommandPreparationOriginal,
+  capture : @local_host.NativeLocalJournalCapture,
+) -> Result[Unit, LocalCommandPreparationIssue] {
+  guard self.host is Some(host) &&
+    self.pair is Some(pair) &&
+    self.journal is Some(actual) &&
+    physical_equal(actual, capture) &&
+    self.runtime is Some(runtime) &&
+    self.journal_read_open &&
+    self.business is Some(business) &&
+    business.selected_profile is None &&
+    business.domain is None &&
+    business.execution is None &&
+    business.operation is None &&
+    self.backing_scope is None &&
+    !self.closing &&
+    !self.closed &&
+    self.primary is None else {
+    return Err(CommandUnavailable)
+  }
+  let library = match host.borrow_local_host_sqlite(pair) {
+    Ok(value) => value
+    Err(issue) => return Err(CommandPair(issue))
+  }
+  match capture.suspend_original_read_for_preparation() {
+    Err(issue) => return Err(CommandAdoption(issue))
+    Ok(_) => ()
+  }
+  let prepared = match
+    @local_host.prepare_native_local_run_observation_store_operation(
+      capture, runtime, library,
+    ) {
+    Ok(operation) => {
+      // Retain before the fallible original Read return. The existing child-
+      // first business cleanup retires this same routing, Store and failures.
+      business.operation = Some(operation)
+      Ok(())
+    }
+    Err(issue) => Err(CommandStoreOperation(issue))
+  }
+  let resumed = capture
+    .resume_original_read_after_preparation()
+    .map_err(issue => CommandAdoption(issue))
+  match prepared {
+    Err(issue) => {
+      self.retain_primary(issue)
+      Err(issue)
+    }
+    Ok(_) => resumed
   }
 }

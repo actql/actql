@@ -3918,7 +3918,7 @@
           ]
         }
       ],
-      "sha256": "ae6724b52f264b75fd4b6d890f5a90742adcf89898df67fa5af1613e124bcc9e",
+      "sha256": "0c9df9233fd132fa4e16c96862d565cb61ac49acfa32f14fa1668ef525c1d034",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -9179,7 +9179,7 @@
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "max_bytes > 2147483519"
+                "anchor": "fn valid_client_submitted_intent_limits("
               },
               {
                 "path": "docs/design/check-sdk.md",

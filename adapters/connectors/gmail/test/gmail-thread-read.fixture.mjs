@@ -9,8 +9,10 @@ import {mkdir, mkdtemp, readFile, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {join} from 'node:path';
 import {execFileSync} from 'node:child_process';
-import * as common from '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
-import * as provider from '../../../../_build/js/release/build/connectors/gmail/host_node/host_node.js';
+const common = await import(process.env.ACTQL_TEST_GMAIL_COMMON_MODULE ??
+  new URL('../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url).href);
+const provider = await import(process.env.ACTQL_TEST_GMAIL_PROVIDER_MODULE ??
+  new URL('../../../../_build/js/release/build/connectors/gmail/host_node/host_node.js', import.meta.url).href);
 import {runtimeCore} from '../../../host-common/runtime-core.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {canonicalJson, createLocalAuthorizationGate} from '../../../host-node/local-account-config.mjs';
@@ -66,10 +68,12 @@ export async function threadRowOwner(verifyOriginalTransport, factsWire, format,
   const [registry, aoa, query, evidence] = await Promise.all([
     read('spec/dependencies/aoa-pipeline-registry.json'), read('spec/contracts/actql-aoa.json').then(JSON.parse),
     read('spec/contracts/actql-query-acquisition.json'), read('spec/contracts/actql-query-process-evidence.json')]);
-  const requirement = checked(common.clientProgramPrepareLocalQueryRequirement(program, 0, 0, registry,
-    JSON.stringify(aoa.execution_contracts['REL.values']),
-    JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
-    JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])));
+  const values = JSON.stringify(aoa.execution_contracts['REL.values']);
+  const fragment = JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']);
+  const ordered = JSON.stringify(aoa.execution_contracts['REL.derive.ordered']);
+  const contracts = checked(common.clientPrepareInstalledSequenceContracts(registry, values, fragment, ordered));
+  const requirement = checked(common.clientProgramPrepareLocalQueryRequirement(program, 0, 0, contracts,
+    values, fragment, ordered));
   const acquisition = checked(common.clientProgramRowSourcePrepareAcquisition(declaration, requirement, query, evidence));
   // Explicit independent component bounds, not normal Host funding.
   const ledger = checked(common.clientProgramAcquisitionLedger(1, 1, 262144n, 100000000n, 100000000n, 0));

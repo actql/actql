@@ -217,3 +217,112 @@ test('selected Source uses its original same-body intent identity without starti
   await client.close();
   assert.equal(digests, 0); assert.equal(hashes, 1); assert.equal(sends, 1);
 });
+
+
+test('native snapshot fence stops original retired producer before clone freeze and retains primary cleanup carrier', async t => {
+  const receipt = {}, order = [], cleanupHandle = {};
+  const primary = Object.assign(new Error('OriginalSnapshotCurrentLost'), {cleanupHandle});
+  let retired = false, sends = 0, freezes = 0;
+  const receiver = {beforeSourceSnapshot() {order.push('before');return receipt;},
+    assertSourceSnapshotCurrent(actual) {assert.equal(actual, receipt);order.push('current');if (retired) throw primary;},
+    bindSourceSnapshot() {order.push('bind');throw primary;}, bindSourceRequest() {assert.fail('NoPacket');},
+    finishSourceProducer(actual, terminal) {assert.equal(actual, receipt);order.push(terminal);}};
+  const {client} = await fixture(receiver, () => {sends++;assert.fail('NoDispatch');});
+  t.after(() => client.close());
+  const values = Object.values;
+  Object.values = value => {if (Object.hasOwn(value, 'snapshotFenceTarget')) freezes++;return values(value);};
+  t.after(() => {Object.values = values;});
+  const parameters = {value: {toJSON() {order.push('toJSON');retired = true;return {snapshotFenceTarget: true};}}};
+  await assert.rejects(client.startSource('SELECT @value AS value', {format: 'sql', parameters,
+    submissionRef: originalSubmission('snapshot-current')}), error => error === primary && error.cleanupHandle === cleanupHandle);
+  assert.equal(freezes, 0);assert.equal(sends, 0);
+  assert.deepEqual(order, ['before', 'current', 'toJSON', 'current', 'failed']);
+});
+
+test('native snapshot fence preserves thrown undefined while same producer cleanup remains retryable', async () => {
+  const receipt = {};let visits = 0, finishes = 0, rejected = false, failure = 'not-rejected';
+  const {client} = await fixture({beforeSourceSnapshot() {return receipt;},
+    assertSourceSnapshotCurrent(actual) {assert.equal(actual, receipt);throw undefined;},
+    bindSourceSnapshot() {assert.fail('NoSnapshot');}, bindSourceRequest() {assert.fail('NoPacket');},
+    finishSourceProducer(actual, terminal) {assert.equal(actual, receipt);assert.equal(terminal, 'failed');
+      if (++finishes === 1) throw new Error('SameProducerCleanupPending');}}, () => assert.fail('NoDispatch'));
+  const parameters = {get value() {visits++;throw new Error('NoNativeSnapshot');}};
+  try {await client.startSource('SELECT @value AS value', {format: 'sql', parameters,
+    submissionRef: originalSubmission('snapshot-undefined')});} catch (error) {rejected = true;failure = error;}
+  assert.equal(rejected, true);assert.equal(failure, undefined);assert.equal(visits, 0);assert.equal(finishes, 1);
+  await client.close();assert.equal(finishes, 2);assert.equal(visits, 0);
+});
+
+
+test('selected snapshot uses the captured original serializer receiver once before binding', async t => {
+  const receipt = {}, events = [];let gets = 0, body, originalWire;
+  const parameters = {get n() {gets++; return 7;}};
+  const receiver = {
+    beforeSourceSnapshot() {events.push('before');return receipt;},
+    captureSourceSnapshot(original, value, snapshot) {
+      assert.equal(this, receiver);assert.equal(original, receipt);assert.equal(gets, 0);
+      events.push('capture');
+      return snapshot(value, (_units, wire) => {if (wire !== undefined) originalWire = wire;});
+    },
+    bindSourceSnapshot(original, value) {
+      assert.equal(original, receipt);assert.equal(gets, 1);body = value;events.push('bind');
+      assert.deepEqual(JSON.parse(originalWire), value);
+    },
+    bindSourceRequest() {},finishSourceProducer() {events.push('finish');},
+  };
+  const {client} = await fixture(receiver, (_operation, packet) => readySubmissionAttempt(packet, admission));
+  t.after(() => client.close());
+  receiver.captureSourceSnapshot = () => assert.fail('ReplacedSnapshotMethod');
+  const execution = await client.startSource('SELECT @n AS n', {format: 'sql', parameters,
+    submissionRef: originalSubmission('source-funded-snapshot')});
+  assert.equal(body.parameters.n, 7);assert.equal(gets, 1);
+  assert.deepEqual(events, ['before', 'capture', 'bind', 'finish']);
+  assert.equal(getSubmissionOutcome(execution).kind, 'ready');
+});
+
+test('snapshot preserves only the original observer failure and maps caller errors independently', async () => {
+  for (const resourceFailure of [true, false]) {
+    const receipt = {}, original = Object.assign(new Error('SameSpelling'), {code: 'PreparationCapacityExceeded'});
+    let sends = 0, finishes = 0;
+    const receiver = {
+      beforeSourceSnapshot() {return receipt;},
+      captureSourceSnapshot(actual, value, snapshot) {
+        assert.equal(actual, receipt);
+        return snapshot(value, resourceFailure ? () => {throw original;} : undefined);
+      },
+      bindSourceSnapshot() {assert.fail('FailedSnapshotMustNotBind');},bindSourceRequest() {},
+      finishSourceProducer(actual, terminal) {assert.equal(actual, receipt);assert.equal(terminal, 'failed');finishes++;},
+    };
+    const {client} = await fixture(receiver, () => {sends++;assert.fail('NoFailedSnapshotSend');});
+    try {
+      const parameters = resourceFailure ? {n: 7} : {get n() {throw original;}};
+      await assert.rejects(client.startSource('SELECT @n AS n', {format: 'sql', parameters,
+        submissionRef: originalSubmission('source-snapshot-failure')}), cause =>
+        resourceFailure ? cause === original : cause.code === 'InvalidClientPayload' && cause !== original);
+      assert.equal(sends, 0);assert.equal(finishes, 1);
+    } finally {await client.close();}
+  }
+});
+
+
+test('selected capture cannot replace or repeat the SDK original native snapshot', async () => {
+  for (const selected of ['skip', 'copy', 'repeat', 'foreign']) {
+    let finishes = 0, sends = 0;
+    const {client} = await fixture({beforeSourceSnapshot() {return {};},
+      captureSourceSnapshot(_receipt, value, snapshot) {
+        if (selected === 'skip') return value;
+        if (selected === 'foreign') return snapshot({...value});
+        const original = snapshot(value);
+        if (selected === 'copy') return {...original};
+        return snapshot(value);
+      },
+      bindSourceSnapshot() {assert.fail('NoSubstitutedSnapshotBind');},bindSourceRequest() {},
+      finishSourceProducer(_receipt, terminal) {assert.equal(terminal, 'failed');finishes++;},
+    }, () => {sends++;assert.fail('NoSubstitutedSnapshotSend');});
+    try {
+      await assert.rejects(client.startSource('SELECT 1 AS n', {format: 'sql',
+        submissionRef: originalSubmission('source-snapshot-original')}), {code: 'InvalidHostSourceSnapshot'});
+      assert.equal(finishes, 1);assert.equal(sends, 0);
+    } finally {await client.close();}
+  }
+});

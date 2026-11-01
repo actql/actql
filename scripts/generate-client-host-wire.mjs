@@ -45,11 +45,18 @@ export function nativeProgramSchema(protocol) {
   if (Buffer.byteLength(body, 'utf8') > 1048576) {
     throw new Error('NativeProgramSchemaOutputLimit');
   }
+  // Keep each compiler text segment below its column limit without splitting
+  // a Unicode scalar; the concatenated discovery bytes remain unchanged.
+  const scalars = Array.from(body);
+  const chunks = [];
+  for (let offset = 0; offset < scalars.length; offset += 4096) {
+    chunks.push(JSON.stringify(scalars.slice(offset, offset + 4096).join('')));
+  }
   return '// Generated from the registered Program JSON Schema. Do not edit.\n' +
     '// Run: node scripts/generate-client-host-wire.mjs --write\n' +
     '// DATA for language discovery; this does not admit a Program or issue authority.\n\n' +
     '///|\nfn generated_program_schema() -> String {\n  ' +
-    JSON.stringify(body) + '\n}\n';
+    chunks.join(' +\n  ') + '\n}\n';
 }
 
 export function projectClientHostOptionalFields(registry) {

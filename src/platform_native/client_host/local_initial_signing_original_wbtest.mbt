@@ -183,7 +183,7 @@ test "initial Signing foreign material refuses before journal creation and authe
     .read("client_local_installation_custody", "host")
     .unwrap().body
   let header = local_adoption_fields(body, [
-    "adoption_body", "initial_signing_original",
+    "adoption_body", "initial_signing_original", "initial_host_attestation_original",
   ]).unwrap()
   let packet = @base64.decode(header[1])
   let payload = read_local_installation_authenticated_payload(host, packet).unwrap()

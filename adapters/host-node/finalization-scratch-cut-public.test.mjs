@@ -7,7 +7,6 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {verifyLocalSourceRuntime,assertSourceRuntimeReceiptCurrent} from '../../scripts/verify-local-source-runtime.mjs';
-import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 
 // Read-only original accounting at the fixed manager boundary. No compiled
@@ -20,7 +19,7 @@ test('completed managed finalization retires scratch before publication while ou
  const key=Symbol.for('actql.test.finalization-scratch-cut');
  const samples=[];
  globalThis[key]=(state,phase)=>{
-  const value=checked(state.context.runtime.clientProgramClosedValuesPreparationAccounting(state.phase));
+  const value=state.context.runtime.clientProgramRequestPreparationAccounting(state.parent);
   const names=['reservedR','reservedE','held','peakR','tokenR','tokenE'];
   const sample={phase};
   for(let i=0;i<6;i++){const n=runtimeField(value,i);assert.equal(typeof n,'bigint');sample[names[i]]=n;}
@@ -31,12 +30,12 @@ test('completed managed finalization retires scratch before publication while ou
   const original=String(loaded.source);
   const reserve=`      return checkedPreparation(state.context.runtime,
         state.context.runtime.clientProgramReservePublication(
-          state.phase, prepared, state.holder));`;
+          run.value, prepared));`;
   const stop='      liveRuns.delete(run);producer.liveRuns--;';
   assert.equal(original.split(reserve).length,2);assert.equal(original.split(stop).length,2);
   const source=original.replace(reserve,`      const publication = checkedPreparation(state.context.runtime,
         state.context.runtime.clientProgramReservePublication(
-          state.phase, prepared, state.holder));
+          run.value, prepared));
       globalThis[Symbol.for('actql.test.finalization-scratch-cut')](state,'publication');
       return publication;`).replace(stop,`      globalThis[Symbol.for('actql.test.finalization-scratch-cut')](state,'stopped');\n${stop}`);
   console.log(JSON.stringify({testInstrumentation:'readonly-finalization-accounting',cohort:coherence.sourceTreeDigest,originalSha256:createHash('sha256').update(original).digest('hex'),instrumentedSha256:createHash('sha256').update(source).digest('hex')}));

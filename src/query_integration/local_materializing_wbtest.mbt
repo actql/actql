@@ -322,7 +322,12 @@ test "Local materializing execution uses the common reservation and exact retain
         is Err(State),
       )
     }
-    assert_eq(@resources.ledger_usage(ledger).attempts, before.attempts + 1)
+    // Registration retains capacity; the input/execute boundary has not run.
+    assert_eq(@resources.ledger_usage(ledger).attempts, before.attempts)
+    assert_eq(
+      @resources.ledger_usage(ledger).reserved_attempts,
+      before.reserved_attempts + 1,
+    )
     assert_eq(@resources.ledger_usage(ledger).reserved_transfer_bytes, 100L)
     assert_true(
       @local_connector.execute_local_materializing_attempt(consumer)

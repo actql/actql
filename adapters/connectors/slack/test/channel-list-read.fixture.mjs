@@ -8,8 +8,10 @@ import {mkdir,mkdtemp,readFile,writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {join} from 'node:path';
 import {execFileSync} from 'node:child_process';
-import * as common from '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
-import * as provider from '../../../../_build/js/release/build/connectors/slack/host_node/host_node.js';
+const common=await import(process.env.ACTQL_TEST_SLACK_COMMON_MODULE ??
+  new URL('../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js',import.meta.url).href);
+const provider=await import(process.env.ACTQL_SLACK_PROVIDER_MODULE ??
+  new URL('../../../../_build/js/release/build/connectors/slack/host_node/host_node.js',import.meta.url).href);
 import {runtimeCore} from '../../../host-common/runtime-core.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {canonicalJson,createLocalAuthorizationGate} from '../../../host-node/local-account-config.mjs';

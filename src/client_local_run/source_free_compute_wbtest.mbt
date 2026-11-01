@@ -238,3 +238,35 @@ test "source-free compute cannot bind a foreign original physical start" {
     @strategy.refresh_captured_retention(run)
   }
 }
+
+///|
+test "Wasm compute and publication retain the same requirements owner without another grant" {
+  let original = plan(
+    prepared(@input.Aql("SELECT 1 AS n")),
+    "same-publication-plan",
+  )
+  let root = source_free_root()
+  let host = source_free_shared_host(original, root).unwrap()
+  guard host.publication is SourceFree(requirements) else {
+    fail("source-free original missing")
+  }
+  let before = @resources.ledger_usage(root)
+  let output = local_compute_wasm_publication_limits(host).unwrap()
+  let repeated = requirements
+    .wasm_publication_limits(original.prepared)
+    .unwrap()
+  assert_eq(output.max_rows, 1)
+  assert_eq(output.max_result_fields, 1)
+  assert_eq(output.max_result_order_work, 1)
+  assert_eq(output.max_result_workspace_entries, 100)
+  assert_eq(output.payload_wire.max_bytes, 68)
+  assert_eq(output.payload_wire.max_bytes, repeated.payload_wire.max_bytes)
+  assert_eq(output.values.max_nodes, 10000)
+  assert_eq(@resources.ledger_usage(root), before)
+  assert_true(
+    @strategy.captured_task_activation_required(local_compute_run(host)),
+  )
+  assert_false(@strategy.captured_task_completed(local_compute_run(host), 0))
+  @strategy.stop_captured_dag(local_compute_run(host))
+  @strategy.refresh_captured_retention(local_compute_run(host))
+}

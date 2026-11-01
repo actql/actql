@@ -21,6 +21,52 @@ const result = (name, task, definition, prepared) => ({
   prepared,
 });
 
+test('completed Result cleanup retains its initial refusal and bounded original retry diagnostics', async () => {
+  const primary = Object.freeze(new Error('original second export failure'));
+  const initial = Object.freeze(new Error('initial prepared release failure'));
+  const retries = [undefined, Object.freeze(new Error('retry failure')), 'primitive retry failure', null];
+  let pending = true, allow = false, retryCalls = 0, exports = 0;
+  const prepared = Object.freeze({
+    status: () => ({pending}),
+    async release() {throw initial;},
+    async retry() {
+      if (!allow) throw retries[retryCalls++];
+      pending = false;
+    },
+  });
+  const definition = contract(cid('1'));
+  const execution = {
+    status: 'host-tasks-completed', resultInventory: [{name: 'first'}, {name: 'second'}],
+    publicationInventory: {occurrences: [{name: 'first', task: 0, definitionContract: definition},
+      {name: 'second', task: 1, definitionContract: definition}]},
+    async storePublicationResult(index) {
+      exports++;
+      if (index === 0) return result('first', 0, definition, prepared);
+      throw primary;
+    },
+  };
+  let failure;
+  try {await storeCompletedRunResultSet({execution, store: {}, control: runtimeCore(moon).publicationControl,
+    runDefinition: contract(cid('2')), invocation: contract(cid('3')),
+    results: [{retention: contract(cid('4')), evidenceContext: {}},
+      {retention: contract(cid('4')), evidenceContext: {}}], outputLimits: {}, contractLimits: {}});}
+  catch (error) {failure = error;}
+  assert.equal(failure.primaryFailure, primary);
+  const original = failure.cleanupHandle.status();
+  assert.deepEqual(original.errors, [initial]);
+  for (let index = 0; index < retries.length; index++) {
+    const status = await failure.cleanupHandle.retry();
+    assert.equal(status.pending, true); assert.equal(pending, true);
+    assert.deepEqual(status.errors, [initial, ...(index === 0 ? [retries[0]] : [retries[0], retries[index]])]);
+    assert.deepEqual(original.errors, [initial]);
+  }
+  allow = true;
+  assert.equal((await failure.cleanupHandle.retry()).pending, false);
+  assert.equal(pending, false); assert.equal(exports, 2);
+  assert.equal(failure.primaryFailure, primary);
+  assert.deepEqual(failure.cleanupErrors, [initial, retries[0], retries.at(-1)]);
+});
+
 test('a later export failure releases every earlier prepared Result',
   async () => {
     let released = 0;

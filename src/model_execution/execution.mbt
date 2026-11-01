@@ -636,16 +636,9 @@ fn advance_model(
   // its wire ceiling reserved without inventing a physical transfer history.
   // This does not clear any earlier or restored uncertain usage.
   if state.progress.entry is None {
-    if !(provider.invocation is OriginalMock(_)) {
-      match
-        @resources.mark_transfer_uncertain(
-          state.ledger,
-          reservation,
-          state.limits.max_request_bytes + state.limits.max_response_bytes,
-        ) {
-        Err(issue) => return @bounded.Failed(Ledger(issue), 1, 1)
-        Ok(_) => ()
-      }
+    match mark_model_attempt_entered(state, reservation) {
+      Err(issue) => return @bounded.Failed(Ledger(issue), 1, 1)
+      Ok(_) => ()
     }
     if state.quantity_capacity is Some(_) {
       match @resources.mark_quantities_uncertain(state.ledger, reservation) {
@@ -1622,4 +1615,23 @@ fn replay_model_capture_rows_owned(
     }
   }
   replay_model_capture(task, fixed_request_cid, bundle)
+}
+
+///|
+// Entered responsibility consumes an attempt even for a local original Mock.
+// Its absence of transport must not erase attempt history or invent wire use.
+fn mark_model_attempt_entered(
+  state : ModelState,
+  reservation : @resources.Reservation,
+) -> Result[Unit, @resources.LedgerIssue] {
+  if state.source is Provider(provider) &&
+    provider.invocation is OriginalMock(_) {
+    @resources.consume_reserved_attempt(state.ledger, reservation)
+  } else {
+    @resources.mark_transfer_uncertain(
+      state.ledger,
+      reservation,
+      state.limits.max_request_bytes + state.limits.max_response_bytes,
+    )
+  }
 }

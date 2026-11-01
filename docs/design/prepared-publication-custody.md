@@ -69,3 +69,54 @@ material queue. Thus a marker appearing after the read cannot leave an unowned
 allocation: the durable Index or its original retirement owner still owns it.
 If its own witness is retired or absent, cleanup uses existing live-reference and
 original-generation recovery rather than reusing stale successful-adoption state.
+
+## Bounded deletion diagnostics
+
+Prepared-object release and the original Result/metadata deletion owners share
+the same first/latest cleanup diagnostic operation. Each private list retains
+its first original throwable and replaces only its latest positional slot.
+Repeated identical values still occupy both roles; primitives, frozen errors
+and `undefined` retain their exact identity. Frozen status snapshots remain
+independent of later list updates. This bounds retained retry history without
+restricting the number of retries or inspecting an error to infer success.
+
+The original deletion serialization, unconfirmed object inventory, unlink and
+directory durability stages remain authoritative. A failed observation keeps
+that same owner pending and retains its capacity. Only the existing successful
+durability/accounting transition settles it. Diagnostic replacement supplies no
+physical acknowledgement, new reservation, refund or permission to resend.
+
+## Bounded managed-execution diagnostics
+
+The synchronous managed-failure adapter records its own first/latest cleanup
+throwables through the same diagnostic operation. Original read failure,
+upstream/additional cleanup owners and their current observations remain
+separate. Diagnostic replacement neither advances the Core failure progression
+nor marks operations closed. Repeated failures can remain pending indefinitely;
+only their original successful close/stop/settlement transitions advance it.
+The execution settles once, and an Unknown reader still cannot be treated as
+stopped because a diagnostic slot was replaced or an input reader disappeared.
+
+## Publication retry diagnostic prefixes
+
+A publication failure can initially collect separate diagnostics from its
+original prepared payload, export or Transfer children. Preserve that finite
+initial prefix, and capture its length once before exposing retry. The shared
+diagnostic operation retains the first and latest subsequent retry failure
+after that prefix. It never recomputes the prefix from a growing history.
+Commit-pin confirmation, pending writer cancellation and schema release use
+the same operation with an empty prefix. Delivery keeps its initial record
+failure; Unknown publication keeps its separate reconciliation/record facts.
+
+Transfer retains the prefix on its existing state so source-stop and
+destination-recovery helpers follow the same rule as the outer cleanup handle.
+Its aggregate close and source-release handles preserve their initial
+per-entry failures too. The existing original child inventory, cursor,
+single-flight guard and physical status decide progress. Replacing a diagnostic
+does not drop a child record, resolve Unknown, repeat a mutation, release a pin
+or settle capacity. Earlier frozen snapshots retain their original contents.
+
+These diagnostic references and the fixed prefix selector are retained caller
+controls. Their presence neither supplies the complete physical construction
+recipe nor permits a Store quota or protocol byte ceiling to substitute for
+that caller's live memory/failed-child backing.

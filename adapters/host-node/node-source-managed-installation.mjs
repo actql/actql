@@ -9,7 +9,7 @@ import {assertSourceManagedHostPreparation, prepareInstalledMockSourcePreparatio
   managedComputeSubmittedIntentCid, readSourceManagedRunRequirements, readManagedComputeRunRequirements,
   readSourceManagedEffectRunRequirements,
   readLocalMockModelRunRequirements, readLocalContentRunRequirements,
-  readLocalPreparationResourceRequirements, prepareInstalledSequenceContractOriginal,
+  prepareInstalledSequenceContractOriginal,
   readLocalPreparationContext, retireSourceManagedInitialPreparation}
   from './embedded-local.mjs';
 
@@ -119,14 +119,25 @@ export function assertManagedComputePreparationCurrent(originalInstallation, sam
   if (invoke(1, [originalInstallation, sameOriginals], computeCallbacks) !== undefined) unavailable();
 }
 
+// Same private Host preparation and already-opened Source successor. A missing
+// fixed supplier is unavailable; it cannot select a raw Environment fallback.
+function borrowSourceInitializationMaterial(originals) {
+  assertSourceManagedHostPreparation(originals);
+  const borrow = originals.installation.borrowSourceInitializationMaterial;
+  if (typeof borrow !== 'function') unavailable();
+  return apply(borrow,originals.installation,[]);
+}
+
 // Selection is private and fixed by these two exported consumer entries,
 // never a callback table or purpose Boolean supplied by an application.
 export function prepareSourceManagedInstallation(originals) {
   if (!explicitStartup) return prepareOrdinarySourceManagedInstallation(originals, {
-    validator: assertSourceManagedHostPreparation, prepare: prepareInstalledMockSourcePreparation,
+    validator: assertSourceManagedHostPreparation, borrowSourceInitializationMaterial, prepare: prepareInstalledMockSourcePreparation,
     read: readInstalledMockPreparation, request: originalSourceManagedHostRequest,
     intent: sourceManagedSubmittedIntentCid, requirements: readSourceManagedRunRequirements,
     effectRequirements: readSourceManagedEffectRunRequirements,
+    preparationContext: readLocalPreparationContext,
+    retireInitialPreparation: retireSourceManagedInitialPreparation,
     mockRequirements: readLocalMockModelRunRequirements,
   }, true);
   return prepareInstallation(originals, callbacks);
@@ -135,9 +146,9 @@ export function prepareManagedComputeInstallation(originals) {
   if (!explicitStartup) {
     prepareInstalledSequenceContractOriginal(originals);
     return prepareOrdinarySourceManagedInstallation(originals, {
-    validator: assertSourceManagedHostPreparation, request: originalSourceManagedHostRequest,
+    validator: assertSourceManagedHostPreparation, borrowSourceInitializationMaterial, request: originalSourceManagedHostRequest,
     intent: managedComputeSubmittedIntentCid, requirements: readManagedComputeRunRequirements,
-    preparationRequirements: readLocalPreparationResourceRequirements,
+    effectRequirements: readSourceManagedEffectRunRequirements,
     preparationContext: readLocalPreparationContext,
     retireInitialPreparation: retireSourceManagedInitialPreparation,
     mockRequirements: readLocalMockModelRunRequirements,
@@ -152,11 +163,13 @@ export function prepareManagedComputeInstallation(originals) {
 export function prepareProjectSourceManagedInstallation(originals) {
   if (explicitStartup) unavailable();
   return prepareOrdinaryProjectSourceManagedInstallation(originals, {
-    validator: assertSourceManagedHostPreparation,
+    validator: assertSourceManagedHostPreparation, borrowSourceInitializationMaterial,
     prepare: () => {readInstalledProjectSourcePreparation(originals);},
     read: readInstalledProjectSourcePreparation, request: originalSourceManagedHostRequest,
     intent: sourceManagedSubmittedIntentCid, requirements: readSourceManagedRunRequirements,
     effectRequirements: readSourceManagedEffectRunRequirements,
+    preparationContext: readLocalPreparationContext,
+    retireInitialPreparation: retireSourceManagedInitialPreparation,
     contentRequirements: readLocalContentRunRequirements,
   });
 }

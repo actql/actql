@@ -1,0 +1,791 @@
+///|
+priv enum ClientRequestPreparationPhase {
+  Open
+  Selecting
+  QuerySyntaxQuoted
+  QuerySyntaxParsed
+  QuerySyntaxFailed
+  QueryLoweringQuoted
+  QueryLowered
+  QueryLoweringFailed
+  ProgramJson
+  ProgramJsonFailed
+  ProgramCheck
+  ProgramCheckFailed
+  ProgramCompiled
+  EffectCompiled
+  EffectPlanQuoted
+  EffectPlanReserved
+  EffectModelScopeQuoted
+  EffectBodyReady
+  EffectBodyFailed
+  EffectCaptureRecovery
+  ProgramPlanQuoted
+  ProgramPlanReserved
+  ModelPlanReserved
+  ModelScopeQuoted
+  ContentPlanReserved
+  ProgramBodyReady
+  ProgramBodyFailed
+  Selected
+  Retiring
+  Closed
+} derive(Eq)
+
+///|
+// Replace the former four-field Model input tuple in its existing resident
+// slot. Both selected compiler inputs have the same four original fields;
+// no additional parent, phase, retained controller or parameter cache exists.
+priv enum ClientRequestDomainCompilationInputs {
+  // Read-only recovery retains the existing journal-selected originals. It
+  // never continues into a compiler, Source/Model/Effect Plan or send owner.
+  RequestEffectCaptureRecovery(
+    @publication_host.ClientRequestIdentity,
+    @publication.PublicationContract
+  )
+  RequestModelCompilation(
+    @publication_host.ClientCompilationManifests,
+    @publication_host.ClientPureCompilationLimits,
+    ClientInstalledSequenceContracts,
+    @publication_host.ClientInferPlanGraph
+  )
+  // The original component is already backed before the caller can compile
+  // it. Reuse this same four-reference slot, then transfer it to that compiler.
+  // Same resident four-reference slot while the backed Graph constructor
+  // retains its original mappings/lowering through a failed issuer/current.
+  RequestModelGraphConstruction(
+    @publication_host.ClientCompilationManifests,
+    @publication_host.ClientPureCompilationLimits,
+    ClientInstalledSequenceContracts,
+    @publication_host.ClientInferGraphConstruction
+  )
+  RequestModelGraph(
+    @publication_host.ClientCompilationManifests,
+    @publication_host.ClientPureCompilationLimits,
+    ClientInstalledSequenceContracts,
+    @publication_host.ClientInferPlanGraph
+  )
+  RequestSerializationGraph(
+    @publication_host.ClientCompilationManifests,
+    @publication_host.ClientPureCompilationLimits,
+    ClientInstalledSequenceContracts,
+    @publication_host.ClientSerializationPlanGraph
+  )
+  RequestSerializationCompilation(
+    @publication_host.ClientCompilationManifests,
+    @publication_host.ClientPureCompilationLimits,
+    ClientInstalledSequenceContracts,
+    @publication_host.ClientSerializationPlanGraph
+  )
+  RequestKeyedSerializationCompilation(
+    @publication_host.ClientCompilationManifests,
+    @publication_host.ClientPureCompilationLimits,
+    ClientInstalledManagedKeyedPreparation,
+    @publication_host.ClientSerializationPlanGraph
+  )
+}
+
+///|
+/// Request bootstrap on the original Node preparation child, before an output
+/// body type is selected. Unit is never completed or interpreted as a body.
+/// This record owns no second Ledger, byte allowance, parser or serializer.
+struct ClientRequestPreparation[I] {
+  initial : @resources.NodePreparationAdmission[I]
+  ledger : @resources.Ledger
+  capacity : @resources.PreparationCapacity[I, Unit]
+  mut input : I?
+  mut snapshot_base : (Int64, Int64)?
+  mut snapshot_units : Int64
+  mut snapshot_values : Int64
+  mut submitted_intent : @publication_host.ClientSubmittedIntent?
+  mut intent_base : (Int64, Int64)?
+  mut intent_attempted : Bool
+  mut intent_peak_live : Bool
+  mut intent_work : @resources.PreparationPhaseWork64?
+  mut _observed_intent_work : Int64
+  mut query_syntax : ClientRequestQuerySyntax?
+  // The same generic domain holder owns its source/index/Program aliases.
+  // Unit remains uncompleted until the actual output-type continuation.
+  mut program_json : ClientProgramJsonPreparation[I, Unit]?
+  mut native_parameters : @decode.Cursor?
+  mut native_parameters_ready : Bool
+  mut native_query_declarations : (@decode.Cursor, @parameters.Declarations)?
+  mut held_program : @syntax.Program?
+  mut parameter_source : @stages.Source?
+  mut program_check : ClientProgramCheckPreparation[I, Unit]?
+  mut computation_limits : @publication_host.ClientProgramPreparationLimits?
+  // SAME reservation continued to its actual final body type; no second owner.
+  mut program_capacity : @resources.PreparationCapacity[
+    I,
+    @publication_host.PreparedClientProgram,
+  ]?
+  mut compiled_program : @publication_host.PreparedClientProgram?
+  mut effect_capacity : @resources.PreparationCapacity[
+    I,
+    ClientInstalledEffectManagedPlan,
+  ]?
+  mut compiled_effect : @publication_host.PreparedClientEffectComputation?
+  mut effect_plan : ClientInstalledEffectManagedPlan?
+  mut program_data : @checked.ParsedCheckDataEstimate?
+  mut program_plan_quote : (Int64, Int64)?
+  mut program_measurement_quote : (Int64, Int64)?
+  // Graph, Model Scope and Content Plan are exclusive domain constructors. Retain
+  // their absolute target in the same prepaid slot across a declined grow.
+  mut program_domain_quote : (Int64, Int64)?
+  mut program_artifact_geometry : @publication_host.ClientPureCompilationConstruction?
+  mut program_artifact_quote : (Int64, Int64)?
+  mut program_invocation_quote : (Int64, Int64)?
+  mut program_artifact_work : @resources.PreparationPhaseWork64?
+  mut program_artifact_work_charged : Bool
+  mut program_artifact_work_spent : Int64
+  program_artifact_plan_encoding_nodes : Ref[Int64]
+  mut program_artifact_work_issue : @resources.PreparationWorkIssue?
+  mut program_artifact_inputs : (
+    @publication_host.ClientCompilationManifests,
+    @publication_host.ClientPureCompilationLimits,
+    ClientInstalledSequenceContracts,
+    Bool,
+    (@execution.ExecutionCapacity) -> Array[@local.ManagedProvider],
+  )?
+  mut program_domain_compilation_inputs : ClientRequestDomainCompilationInputs?
+  // One existing resident output slot for either ordinary or Model emission.
+  // Its original sum is moved to the selected Plan, never a parallel cache.
+  mut program_compilation : @publication_host.ClientRunCompilation?
+  mut program_source_free : ClientInstalledManagedSourceFreePreparation?
+  mut program_captured : ClientInstalledManagedCapturePlan?
+  mut program_model : ClientInstalledManagedModelPlan?
+  mut program_content : ClientInstalledContentPreparation
+  mut program_content_request : @publication_host.ClientRequestIdentity?
+  mut program_body_attempted : Bool
+  mut phase : ClientRequestPreparationPhase
+}
+
+///|
+let request_preparation_borrow_limit : Int = 6
+
+///|
+// Fixed Resource-owned census layout, priced by the existing common tariff.
+// This is retained installed DATA, not another per-Request owner or budget.
+let request_preparation_inventory_slots : (Int64, Int64, Int64) = @resources.preparation_inventory_initial_control_slots(
+  request_preparation_borrow_limit, 0, 0,
+).unwrap()
+
+///|
+pub(all) enum ClientRequestPreparationIssue {
+  ForeignOriginal
+  WrongPhase
+  Policy
+  Initial(@resources.ImportedChildLedgerIssue)
+  Capacity(@resources.PreparationCapacityIssue)
+  ProgramJson(ClientProgramJsonPreparationIssue)
+  ProgramCheck(ClientProgramCheckPreparationIssue)
+  Parameters(@local_preparation.LocalProgramInputIssue)
+  Intent(@publication_host.ClientSubmittedIntentIssue)
+  Work(@resources.PreparationWorkIssue)
+  ParameterDeclarations(@parameters.Issue)
+  ParameterSource(@stages.Issue)
+} derive(Debug)
+
+///|
+// Preserve the original typed suberror for this caller's existing Debug sum.
+// Error's native representation retains the actual constructor/cause.
+pub impl Debug for ClientProgramCheckPreparationIssue with fn to_repr(self) {
+  let original : Error = self
+  Repr(original)
+}
+
+///|
+/// Fixed controls only. No Values shape, source count, compiler body, wire,
+/// parsed tree or provider inventory is included here. Each selected next
+/// phase must reserve its own complete representation before constructing it.
+fn request_preparation_control_units() -> @execution.PreparationRepresentationUnits {
+  let (inventory_headers, inventory_refs, inventory_words) = request_preparation_inventory_slots
+  // JS producer/empty receipt/preparation state; original Resource record and
+  // state; fixed quota6 and weak identity membership; ports and six closures.
+  // The original runtime's fixed validation arrays have lengths4,6,3,7,5,5;
+  // their slots borrow existing names/purpose or contain scalar counters.
+  let js_headers = 3L * 2L +
+    2L +
+    1L +
+    1L +
+    1L +
+    2L +
+    2L +
+    1L +
+    6L +
+    1L +
+    2L * 6L +
+    4L
+  let js_refs = 1L +
+    1L +
+    3L * 3L +
+    8L +
+    6L +
+    6L +
+    1L +
+    1L +
+    4L +
+    12L +
+    2L +
+    6L +
+    4L +
+    6L +
+    1L
+  let js_words = 1L + 1L + 5L + 2L + 6L + 2L * 6L + 3L + 7L + 2L * 5L
+  // Original imported origin/child/admission/initial wrapper and eight fixed
+  // closures. Ledger/limits/reservation/byte wrapper retain the same token;
+  // old/new usage and zero quantity records coexist during initial reserve.
+  let import_headers = 1L + 1L + 1L + 1L + 8L
+  let import_refs = 7L + 8L + 7L + 1L + 9L
+  let import_words = 4L + 3L + 4L + 1L
+  let ledger_headers = 1L + 1L + 2L + 4L + 1L + 1L + 1L
+  let ledger_refs = 7L + 3L + 5L + 1L
+  let ledger_words = 4L + 6L + 20L + 9L + 6L + 3L
+  // Generic JSON entrance allocates before its first domain grow. Fund these
+  // independently in the original bootstrap: debit tuple+Ok2H1R3W; two
+  // checked-add Some2H0R4W; conservative error alternatives6H6R6W
+  // (debit Err/Capacity/Err3, overflow Err1, resize Capacity/Err2).
+  // Sum10H7R13W=320 logical bytes, held until original parent retirement.
+  // This is not the B initial Source packet or a subset subtracted from it.
+  // Original current/resize objects use the same declared scratch below;
+  // fixed nonrecursive VM frames stay installed baseline. Borrowed input,
+  // limits/path and external callback backing still belong to their owners.
+  // Capacity: six reference fields and four scalars. Original parent: six references
+  // and phase. Live Some/Result carriers conservatively cover eight headers,
+  // eight references and eight tags. Original-current/resize scratch has
+  // sixteen headers, thirty-two references and twenty-four scalar slots.
+  // Later same-parent links add two parent reference slots and two live Some
+  // carriers (2H4R2W). The Check return/error alternatives add3H3R3W;
+  // conservative Source-take and both child-clear returned carriers add4H4R4W.
+  // Total9H11R9W=304 is caller control, prepaid here before the Source take or
+  // Check grow callback. It does not include another copy of either domain.
+  {
+    // One resident domain link; its Some(1H1R1W), and conservative sum of
+    // returned Ok plus Err/ProgramJson carriers(3H3R3W). No domain payload
+    // or B initial recipe is represented by these caller-only controls.
+    // Shared compiler caller controls: original input tuple/Some, selected
+    // argument/artifact carriers, component Array/backing and closures.
+    // The closed domain variant replaces its former four-field tuple, adding
+    // one scalar tag. Keep it in this existing common fixed caller allowance,
+    // rather than introduce a per-domain control reservation.
+    // This is 11H21R10W, not recursive measurement or provider backing.
+    record_headers: request_model_scope_quote_controls.record_headers +
+    11L +
+    inventory_headers +
+    js_headers +
+    import_headers +
+    ledger_headers +
+    2L +
+    8L +
+    16L +
+    4L +
+    10L +
+    9L,
+    // Resident Model Plan and Content Plan/Request links. Selected Some and
+    // domain construction are separately funded before their allocation.
+    reference_slots: request_model_scope_quote_controls.reference_slots +
+    21L +
+    inventory_refs +
+    3L +
+    js_refs +
+    import_refs +
+    ledger_refs +
+    12L +
+    8L +
+    32L +
+    5L +
+    7L +
+    11L,
+    scalar_words: request_model_scope_quote_controls.scalar_words +
+    10L +
+    inventory_words +
+    js_words +
+    import_words +
+    ledger_words +
+    5L +
+    8L +
+    24L +
+    4L +
+    13L +
+    9L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }
+}
+
+///|
+/// Fixed supplier precondition before JS per-request controls exist. This is
+/// only a control quote under the original Local policy, not a body budget.
+pub fn client_request_preparation_control_capacity(
+  policy : ClientLocalResourcePolicy,
+) -> (Int64, Int64)? {
+  guard client_local_preparation_initial_limits(policy) is Some(limits) &&
+    @execution.preparation_representation_cost(
+      request_preparation_control_units(),
+    )
+    is Some(original) &&
+    @execution.checked_preparation_add_product(original, 4096L, 1L)
+    is Some(retained) else {
+    return None
+  }
+  // One trusted private control group: invocation sizing/Option/lean view, or
+  // the exclusive read-only capture-recovery quote/reader controls, or the
+  // pre-compiler Content Graph measurement/selection call frame. This is
+  // installed coarse control overhead, not variable wire/body admission.
+  if retained > limits.retained_bytes {
+    return None
+  }
+  Some((retained, 0L))
+}
+
+///|
+pub fn[I] begin_request_preparation(
+  initial : @resources.NodePreparationAdmission[I],
+  input : I,
+  policy : ClientLocalResourcePolicy,
+) -> Result[ClientRequestPreparation[I], ClientRequestPreparationIssue] {
+  guard client_local_preparation_initial_limits(policy) is Some(expected) &&
+    client_request_preparation_control_capacity(policy)
+    is Some((retained, execution)) else {
+    return Err(Policy)
+  }
+  match @resources.check_node_preparation_input(initial, input) {
+    Err(issue) => return Err(Initial(issue))
+    Ok(_) => ()
+  }
+  let ledger = match @resources.start_node_preparation_admission(initial) {
+    Err(issue) => return Err(Initial(issue))
+    Ok(value) => value
+  }
+  // Actual sealed initial envelope may cover additional installed domains.
+  // It must contain the Local baseline; no caller-supplied limit is admitted.
+  if !installed_effect_limits_fit(expected, @resources.ledger_limits(ledger)) {
+    return Err(Policy)
+  }
+  let capacity : @resources.PreparationCapacity[I, Unit] = match
+    @resources.reserve_preparation_capacity_inventory(
+      ledger,
+      input,
+      retained,
+      execution,
+      max_borrowers=request_preparation_borrow_limit,
+    ) {
+    Err(issue) => return Err(Capacity(issue))
+    Ok(value) => value
+  }
+  // The manager stores this original before any shape-specific constructor.
+  Ok({
+    initial,
+    ledger,
+    capacity,
+    input: Some(input),
+    snapshot_base: None,
+    snapshot_units: 0L,
+    snapshot_values: 0L,
+    submitted_intent: None,
+    intent_base: None,
+    intent_attempted: false,
+    intent_peak_live: false,
+    intent_work: None,
+    _observed_intent_work: 0L,
+    query_syntax: None,
+    program_json: None,
+    native_parameters: None,
+    native_parameters_ready: false,
+    native_query_declarations: None,
+    held_program: None,
+    parameter_source: None,
+    program_check: None,
+    computation_limits: None,
+    program_capacity: None,
+    compiled_program: None,
+    effect_capacity: None,
+    compiled_effect: None,
+    effect_plan: None,
+    program_data: None,
+    program_plan_quote: None,
+    program_measurement_quote: None,
+    program_domain_quote: None,
+    program_artifact_geometry: None,
+    program_artifact_quote: None,
+    program_invocation_quote: None,
+    program_artifact_work: None,
+    program_artifact_work_charged: false,
+    program_artifact_work_spent: 0L,
+    program_artifact_plan_encoding_nodes: Ref(0L),
+    program_artifact_work_issue: None,
+    program_artifact_inputs: None,
+    program_domain_compilation_inputs: None,
+    program_compilation: None,
+    program_source_free: None,
+    program_captured: None,
+    program_model: None,
+    program_content: NoContent,
+    program_content_request: None,
+    program_body_attempted: false,
+    phase: Open,
+  })
+}
+
+///|
+/// Caller connection to the existing generic domain driver. The SAME original
+/// working capacity/input enter B's constructor; Unit is never completed or
+/// converted into a prepared Program or Effect. The constructor itself adds
+/// its initial domain inventory once, before creating its Source cursor.
+///
+/// This caller declares only its own resident link and return carriers above.
+/// The backend's real first-prelude/input/outer backing is a separate required
+/// precondition. The same already selected immutable syntax limits are DATA,
+/// not another resource allowance or a new public request option. No standard
+/// default is substituted here. Normal SDK snapshot admission is not enabled.
+pub fn[I] prepare_request_program_json_preparation(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  document : String,
+  limits : @syntax.Limits,
+) -> Result[
+  ClientProgramJsonPreparation[I, Unit],
+  ClientRequestPreparationIssue,
+] {
+  if owner.phase != Open ||
+    !request_intent_input_ready(owner) ||
+    owner.program_json is Some(_) {
+    return Err(WrongPhase)
+  }
+  guard owner.input is Some(original) && physical_equal(original, input) else {
+    return Err(ForeignOriginal)
+  }
+  // Retain the exact parent before B's original current/reservation boundary.
+  // No second current call, copied byte quota or pre-reservation is inserted.
+  owner.phase = Selecting
+  match
+    begin_program_json_preparation(owner.capacity, input, document, limits) {
+    Err(issue) => {
+      owner.phase = ProgramJsonFailed
+      Err(ProgramJson(issue))
+    }
+    Ok(child) => {
+      owner.program_json = Some(child)
+      owner.phase = ProgramJson
+      Ok(child)
+    }
+  }
+}
+
+///|
+/// Continue only this parent's original Source Program into the later domain.
+/// Keep the exact Program before its grow callback; the original Source packet
+/// remains charged, and the later constructor adds its own packet once. These
+/// borrowed environment/evidence/limits and callback frames require their real
+/// caller backing. No output body, raw capacity or cleanup authority is issued.
+pub fn[I] prepare_request_program_check_preparation(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  environment : @checked.CheckEnvironment,
+  supplied : @decode.Cursor?,
+  evidence : Array[@context.StageCapacityInput],
+  limits : @checked.CheckLimits,
+  source_catalog? : @checked.PreparedSourceCatalog? = None,
+  source_preparation? : @stages.Source? = None,
+) -> Result[
+  ClientProgramCheckPreparation[I, Unit],
+  ClientRequestPreparationIssue,
+] {
+  prepare_request_check_preparation_owned(
+    owner,
+    input,
+    environment,
+    supplied,
+    evidence,
+    limits,
+    source_catalog~,
+    source_preparation~,
+  )
+}
+
+///|
+pub fn[I] prepare_request_effect_check_preparation(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  environment : @checked.CheckEnvironment,
+  supplied : @decode.Cursor?,
+  evidence : Array[@context.StageCapacityInput],
+  limits : @publication_host.ClientEffectComputationLimits,
+  source_catalog? : @checked.PreparedSourceCatalog? = None,
+  source_preparation? : @stages.Source? = None,
+) -> Result[
+  ClientProgramCheckPreparation[I, Unit],
+  ClientRequestPreparationIssue,
+] {
+  prepare_request_check_preparation_owned(
+    owner,
+    input,
+    environment,
+    supplied,
+    evidence,
+    limits.program.checking,
+    source_catalog~,
+    source_preparation~,
+    effect_limits=Some(limits),
+  )
+}
+
+///|
+fn[I] prepare_request_check_preparation_owned(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  environment : @checked.CheckEnvironment,
+  supplied : @decode.Cursor?,
+  evidence : Array[@context.StageCapacityInput],
+  limits : @checked.CheckLimits,
+  source_catalog? : @checked.PreparedSourceCatalog? = None,
+  source_preparation? : @stages.Source? = None,
+  effect_limits? : @publication_host.ClientEffectComputationLimits? = None,
+  computation_limits? : (
+    @publication_host.ClientProgramPreparationLimits,
+    @publication_host.ClientEffectComputationLimits,
+  )? = None,
+) -> Result[
+  ClientProgramCheckPreparation[I, Unit],
+  ClientRequestPreparationIssue,
+] {
+  guard owner.program_check is None &&
+    (owner.phase == ProgramJson || owner.phase == QueryLowered) else {
+    return Err(WrongPhase)
+  }
+  guard owner.input is Some(original) && physical_equal(original, input) else {
+    return Err(ForeignOriginal)
+  }
+  let supplied = if owner.native_parameters_ready {
+    match (owner.native_parameters, supplied) {
+      (Some(original), Some(selected)) if !physical_equal(original, selected) =>
+        return Err(ForeignOriginal)
+      (None, Some(_)) => return Err(ForeignOriginal)
+      (original, _) => original
+    }
+  } else {
+    supplied
+  }
+  let (program, source_catalog) = if owner.phase == QueryLowered {
+    guard owner.held_program is Some(program) &&
+      owner.query_syntax is Some(query) &&
+      query.lowering is Some(lowering) &&
+      physical_equal(lowering.environment, environment) &&
+      lowering.output is Some((_, catalog, _)) else {
+      return Err(ForeignOriginal)
+    }
+    let catalog = match source_catalog {
+      Some(selected) => {
+        // Required-reuse wrappers retain the SAME interpreted Catalog owners.
+        // Keep the selected wrapper, including its no-fallback requirement;
+        // equal CIDs or a separately admitted Catalog cannot replace it.
+        if !@checked.source_catalog_same_original(selected, catalog) {
+          return Err(ForeignOriginal)
+        }
+        selected
+      }
+      None => catalog
+    }
+    // The lowerer already retained this exact Program and Catalog. Taking
+    // immutable DATA cannot reenter current or construct a replacement tree.
+    (program, Some(catalog))
+  } else {
+    guard owner.held_program is None && owner.program_json is Some(source) else {
+      return Err(WrongPhase)
+    }
+    owner.phase = Selecting
+    let program = match take_program_json_preparation_program(source) {
+      Err(issue) => {
+        owner.phase = ProgramJson
+        return Err(ProgramJson(issue))
+      }
+      Ok(value) => value
+    }
+    owner.held_program = Some(program)
+    (program, source_catalog)
+  }
+  // This is the original Program's retained parser inventory, not another
+  // operation-name scan, check, resource quote or caller classification.
+  let effect_limits = match computation_limits {
+    None => effect_limits
+    Some((program_limits, effect_limits)) =>
+      if @syntax.program_preparation_data(program).effect_members == 0 {
+        owner.computation_limits = Some(program_limits)
+        None
+      } else {
+        owner.computation_limits = Some(effect_limits.program)
+        Some(effect_limits)
+      }
+  }
+  owner.phase = Selecting
+  let outcome = prepare_request_parameter_check_owned(
+    owner, input, program, environment, supplied, evidence, limits, source_catalog,
+    source_preparation, effect_limits,
+  )
+  match outcome {
+    Err(issue) => {
+      owner.phase = ProgramCheckFailed
+      Err(issue)
+    }
+    Ok(child) => {
+      owner.program_check = Some(child)
+      owner.phase = ProgramCheck
+      Ok(child)
+    }
+  }
+}
+
+///|
+/// Only after this fixed callback's construction/snapshot aliases unwound.
+/// Pending original report/stop remains on this same admission; a later callback
+/// cannot replace its original unknown outcome with an acknowledgement.
+/// A selected stale bootstrap cannot settle its successor's shared token.
+pub fn[I] abort_request_preparation_after_cleanup(
+  owner : ClientRequestPreparation[I],
+) -> Result[Unit, ClientRequestPreparationIssue] {
+  if owner.phase == Selected || owner.phase == Selecting {
+    return Err(WrongPhase)
+  }
+  if owner.phase == Closed {
+    return Ok(())
+  }
+  // A Check output transferred outside this registered chain still belongs
+  // to its next consumer, even if the Check controller's DATA was cleared.
+  if owner.program_check is Some(child) && child.phase == Transferred {
+    return Err(WrongPhase)
+  }
+  if owner.program_json is Some(child) && child.phase == Transferred {
+    // Only our own retained Program/later-controller transition can clear the
+    // Source transfer. Direct index/Program take has no such registered link.
+    guard owner.held_program is Some(_) &&
+      (
+        owner.phase == ProgramCheck ||
+        owner.phase == ProgramCheckFailed ||
+        owner.program_capacity is Some(_) ||
+        owner.effect_capacity is Some(_)
+      ) else {
+      return Err(WrongPhase)
+    }
+  }
+  if owner.program_check is Some(child) {
+    let previous = owner.phase
+    owner.phase = Selecting
+    match clear_program_check_preparation(child) {
+      Err(issue) => {
+        owner.phase = previous
+        return Err(ProgramCheck(issue))
+      }
+      Ok(_) => owner.program_check = None
+    }
+    owner.phase = previous
+  }
+  if owner.program_json is Some(child) {
+    let previous = owner.phase
+    owner.phase = Selecting
+    match clear_program_json_preparation(child) {
+      Err(issue) => {
+        owner.phase = previous
+        return Err(ProgramJson(issue))
+      }
+      Ok(_) => owner.program_json = None
+    }
+    owner.phase = previous
+  }
+  clear_request_parameter_source(owner)
+  // Registered controllers have relinquished only their own aliases.
+  // This caller is explicitly after its borrowed arguments/returned frames.
+  if owner.intent_work is Some(work) {
+    match @resources.finish_preparation_phase_work64(work) {
+      Err(issue) => return Err(Work(issue))
+      Ok(spent) => {
+        owner._observed_intent_work = spent
+        owner.intent_work = None
+      }
+    }
+  }
+  match finish_request_program_artifact_work(owner) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  owner.submitted_intent = None
+  owner.intent_base = None
+  owner.intent_peak_live = false
+  owner.held_program = None
+  owner.native_parameters = None
+  owner.native_query_declarations = None
+  owner.native_parameters_ready = false
+  owner.query_syntax = None
+  owner.compiled_program = None
+  owner.computation_limits = None
+  owner.compiled_effect = None
+  owner.effect_plan = None
+  owner.program_data = None
+  owner.program_plan_quote = None
+  owner.program_domain_quote = None
+  owner.program_artifact_geometry = None
+  owner.program_artifact_quote = None
+  owner.program_invocation_quote = None
+  owner.program_artifact_inputs = None
+  owner.program_compilation = None
+  owner.program_domain_compilation_inputs = None
+  owner.program_source_free = None
+  owner.program_captured = None
+  owner.program_model = None
+  owner.program_content = NoContent
+  owner.program_content_request = None
+
+  let retiring = owner.phase == Retiring
+  owner.phase = Retiring
+  let stopped = if owner.effect_capacity is Some(capacity) {
+    if retiring || owner.program_body_attempted {
+      @resources.retire_preparation_capacity(capacity)
+    } else {
+      guard owner.input is Some(input) else { return Err(ForeignOriginal) }
+      @resources.abort_preparation_capacity_after_cleanup(capacity, input)
+    }
+  } else {
+    match owner.program_capacity {
+      Some(capacity) =>
+        if retiring || owner.program_body_attempted {
+          @resources.retire_preparation_capacity(capacity)
+        } else {
+          guard owner.input is Some(input) else { return Err(ForeignOriginal) }
+          @resources.abort_preparation_capacity_after_cleanup(capacity, input)
+        }
+      None =>
+        if retiring {
+          @resources.retire_preparation_capacity(owner.capacity)
+        } else {
+          guard owner.input is Some(input) else { return Err(ForeignOriginal) }
+          @resources.abort_preparation_capacity_after_cleanup(
+            owner.capacity,
+            input,
+          )
+        }
+    }
+  }
+  match stopped {
+    Err(issue) => return Err(Capacity(issue))
+    Ok(false) => return Err(WrongPhase)
+    Ok(true) => owner.input = None
+  }
+  match @resources.cleanup_node_preparation_admission(owner.initial) {
+    Err(issue) => Err(Initial(issue))
+    Ok(_) => {
+      owner.program_capacity = None
+      owner.effect_capacity = None
+      owner.phase = Closed
+      Ok(())
+    }
+  }
+}
+
+///|
+/// Read-only scalar diagnostics of this Request's SAME Ledger and reservation.
+/// The typed body continuation shares that reservation; observing it neither
+/// checks currentness nor grants, resizes, settles or restores any resource.
+pub fn[I] request_preparation_accounting(
+  owner : ClientRequestPreparation[I],
+) -> (Int64, Int64, Int64, Int64, Int64, Int64) {
+  @resources.preparation_capacity_accounting(owner.capacity)
+}

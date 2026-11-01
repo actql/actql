@@ -685,16 +685,16 @@ test "Graph bounds yields during typed identity ordering and rejects partial out
         ).unwrap(),
         "{\"degree\":" +
         expected_degree.to_string() +
-        ",\"node\":" +
+        ",\"node_id\":" +
         ("{\"$json\":" + identity(key) + "}") +
         "}",
       )
     }
     assert_true(@local_sga.cleanup_graph_degree(degree).unwrap())
     if direction == "in" {
-      // Each row costs one row node, ten field-name bytes, one degree node,
+      // Each row costs one row node, thirteen field-name bytes, one degree node,
       // and 8 identity nodes plus 110 fixed text bytes and 161 key bytes:
-      // 291 units. Two rows plus 178 control units require exactly 760.
+      // 294 units. Two rows plus 178 control units require exactly 766.
       let combined_degree = fn(max_work) raise {
         @local_sga.start_graph_degree(
           @bounded.control(),
@@ -711,7 +711,7 @@ test "Graph bounds yields during typed identity ordering and rejects partial out
           control_work_limit=Some(178),
         ).unwrap()
       }
-      let combined_exact = combined_degree(760)
+      let combined_exact = combined_degree(766)
       let mut exact_output = None
       for _ in 0..<10000 {
         match @local_sga.advance_graph_degree(combined_exact, 1).unwrap() {
@@ -731,12 +731,12 @@ test "Graph bounds yields during typed identity ordering and rejects partial out
           10000,
           50,
         ).unwrap(),
-        "{\"degree\":0,\"node\":" +
+        "{\"degree\":0,\"node_id\":" +
         ("{\"$json\":" + identity(first) + "}") +
         "}",
       )
       assert_true(@local_sga.cleanup_graph_degree(combined_exact).unwrap())
-      let combined_short = combined_degree(759)
+      let combined_short = combined_degree(765)
       let mut combined_rejected = false
       for _ in 0..<10000 {
         match @local_sga.advance_graph_degree(combined_short, 1).unwrap() {
@@ -816,7 +816,7 @@ test "Graph bounds yields during typed identity ordering and rejects partial out
           @local_sga.GraphDegreeComplete(output, ..) => {
             assert_eq(
               @execution.completed_output_row_wire(output, 0, 10000, 10000, 50).unwrap(),
-              "{\"degree\":0,\"node\":" +
+              "{\"degree\":0,\"node_id\":" +
               ("{\"$json\":" + identity(first) + "}") +
               "}",
             )
@@ -844,7 +844,7 @@ test "Graph bounds yields during typed identity ordering and rejects partial out
           control_work_limit=Some(178),
         ).unwrap()
       }
-      let view_exact = combined_degree_view(760)
+      let view_exact = combined_degree_view(766)
       let mut view_exact_output = None
       for _ in 0..<10000 {
         match @local_sga.advance_graph_degree(view_exact, 1).unwrap() {
@@ -864,12 +864,12 @@ test "Graph bounds yields during typed identity ordering and rejects partial out
           10000,
           50,
         ).unwrap(),
-        "{\"degree\":0,\"node\":" +
+        "{\"degree\":0,\"node_id\":" +
         ("{\"$json\":" + identity(first) + "}") +
         "}",
       )
       assert_true(@local_sga.cleanup_graph_degree(view_exact).unwrap())
-      let view_combined_short = combined_degree_view(759)
+      let view_combined_short = combined_degree_view(765)
       let mut view_combined_rejected = false
       for _ in 0..<10000 {
         match @local_sga.advance_graph_degree(view_combined_short, 1).unwrap() {
@@ -1020,7 +1020,7 @@ test "Graph diagnostics count typed edge definitions and self-loop incidences" {
         ).unwrap(),
         "{\"degree\":" +
         degree.to_string() +
-        ",\"node\":" +
+        ",\"node_id\":" +
         ("{\"$json\":" + identity(key) + "}") +
         "}",
       )

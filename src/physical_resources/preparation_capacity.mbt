@@ -1,9 +1,11 @@
 ///|
 priv enum PreparationCapacityPhase {
   Working
+  SelectedWorking
   Completing
   Ready
   Transferring
+  Continued
   Run
   Retiring
   Settling
@@ -11,9 +13,19 @@ priv enum PreparationCapacityPhase {
 } derive(Eq)
 
 ///|
+fn preparation_capacity_phase_is_working(
+  phase : PreparationCapacityPhase,
+) -> Bool {
+  phase == Working || phase == SelectedWorking
+}
+
+///|
 /// One preparation allocation on an already selected original Ledger. This
 /// API cannot create a Ledger, select a Host, or grant a second resource pool.
 /// The fixed supplier must fund this control envelope before constructing it.
+/// An empty working entrance may reserve zero bytes before its first domain
+/// quote. That live original still occupies a reservation and must be retired;
+/// zero bytes never certify absence or physical cleanup.
 struct PreparationCapacity[I, P] {
   ledger : Ledger
   reservation : CapacityReservation
@@ -23,7 +35,7 @@ struct PreparationCapacity[I, P] {
   mut borrowers : Int
   max_borrowers : Int
   mut retirement_claimed : Bool
-  mut active_phase_work : Ref[Bool]?
+  mut active_phase_work : Ref[PreparationWorkState]?
   mut last_work_phase : Int
 }
 
@@ -54,12 +66,25 @@ pub fn[I, P] reserve_preparation_capacity(
   execution_peak : Int64,
   max_borrowers~ : Int,
 ) -> Result[PreparationCapacity[I, P], PreparationCapacityIssue] {
-  if max_borrowers < 1 || retained_peak <= 0L || execution_peak < 0L {
+  if max_borrowers < 1 || retained_peak < 0L || execution_peak < 0L {
     return Err(InvalidExtent)
   }
   reserve_capacity(ledger, retained_peak, execution_peak)
   .map_err(issue => PreparationCapacityIssue::Resource(issue))
   .map(reservation => {
+    make_preparation_capacity(ledger, input, reservation, max_borrowers)
+  })
+}
+
+///|
+// One owner record constructor for ordinary and atomic-census entrances.
+fn[I, P] make_preparation_capacity(
+  ledger : Ledger,
+  input : I,
+  reservation : CapacityReservation,
+  max_borrowers : Int,
+) -> PreparationCapacity[I, P] {
+  {
     ledger,
     reservation,
     input: Some(input),
@@ -70,7 +95,7 @@ pub fn[I, P] reserve_preparation_capacity(
     retirement_claimed: false,
     active_phase_work: None,
     last_work_phase: -1,
-  })
+  }
 }
 
 ///|
@@ -130,7 +155,7 @@ pub fn[I, P] complete_preparation_capacity(
   if !(owner.input is Some(original) && physical_equal(original, input)) {
     return Err(ForeignOriginal)
   }
-  if owner.phase != Working {
+  if !preparation_capacity_phase_is_working(owner.phase) {
     return Err(AlreadyCompleted)
   }
   if owner.active_phase_work is Some(_) {
@@ -190,41 +215,52 @@ pub fn[I, P] transfer_preparation_capacity_to_run(
     }
     Ok(_) => ()
   }
-  if ledger.imported_child is Some(origin) && origin.stopping {
-    owner.phase = Ready
-    return Err(Resource(ClosedReservation))
+  finish_preparation_capacity_run_current(owner, input, body, ledger)
+}
+
+///|
+// Only after the SAME original current boundary, while Transferring fences
+// reentry. No callback, await or foreign mutation belongs before this helper.
+fn[I, P] finish_preparation_capacity_run_current(
+  owner : PreparationCapacity[I, P],
+  input : I,
+  body : P,
+  ledger : Ledger,
+) -> Result[Unit, PreparationCapacityIssue] {
+  if owner.phase != Transferring {
+    return Err(WorkActive)
   }
-  owner.phase = Run
-  Ok(())
+  let result : Result[Unit, PreparationCapacityIssue] = if !physical_equal(
+      owner.ledger,
+      ledger,
+    ) ||
+    !(owner.input is Some(original) && physical_equal(original, input)) ||
+    !(owner.body is Some(original) && physical_equal(original, body)) {
+    Err(ForeignOriginal)
+  } else {
+    match reservation_check_current(ledger, owner.reservation.reservation) {
+      Err(issue) => Err(Resource(issue))
+      Ok(_) =>
+        if (ledger.imported_child is Some(origin) && origin.stopping) ||
+          (ledger.original_inventory is Some(inventory) && inventory.closing) {
+          Err(Resource(ClosedReservation))
+        } else {
+          Ok(())
+        }
+    }
+  }
+  owner.phase = if result is Ok(_) { Run } else { Ready }
+  result
 }
 
 ///|
 pub fn[I, P] borrow_preparation_capacity(
   owner : PreparationCapacity[I, P],
 ) -> Result[PreparationCapacityBorrow[I, P], PreparationCapacityIssue] {
-  if owner.phase != Ready && owner.phase != Run {
-    return Err(Retired)
-  }
-  if owner.borrowers >= owner.max_borrowers {
-    return Err(InvalidExtent)
-  }
   guard owner.body is Some(body) else { return Err(Retired) }
-  // Claim the finite borrower slot before invoking imported currentness. A
-  // reentrant retirement cannot release the body's reservation during that
-  // callback, and recursive borrows cannot bypass the original slot bound.
-  owner.borrowers += 1
-  match check_imported_child_admission(owner.ledger) {
-    Err(issue) => {
-      owner.borrowers -= 1
-      return Err(Resource(issue))
-    }
+  match claim_preparation_borrow_slot(owner, false) {
+    Err(issue) => return Err(issue)
     Ok(_) => ()
-  }
-  if owner.phase != Ready && owner.phase != Run {
-    owner.borrowers -= 1
-    // The existing retirement owner retries cleanup; do not convert a failed
-    // borrow into an independent release acknowledgement.
-    return Err(Retired)
   }
   Ok({ owner, body: Some(body), returned: false, })
 }
@@ -244,17 +280,53 @@ pub fn[I, P] preparation_capacity_borrow_value(
 fn[I, P] finish_preparation_retirement(
   owner : PreparationCapacity[I, P],
 ) -> Result[Bool, PreparationCapacityIssue] {
+  if owner.phase == Continued {
+    return Err(AlreadyTransferred)
+  }
   if owner.phase == Closed {
     return Ok(true)
   }
   if owner.borrowers != 0 {
     return Ok(false)
   }
+  let inventory = match owner.ledger.original_inventory {
+    Some(value) if physical_equal(value.bootstrap, owner.reservation) &&
+      original_inventory_preparation_owned(value) => {
+      if !preparation_inventory_can_retire(value) {
+        return Ok(false)
+      }
+      // Fence allocation before original current can reenter this owner.
+      value.closing = true
+      Some(value)
+    }
+    _ => None
+  }
   // Remove actual strong references before returning the retained allowance.
   owner.body = None
   owner.input = None
   owner.phase = Settling
-  match settle_capacity(owner.ledger, owner.reservation) {
+  let settled = match inventory {
+    None => settle_capacity(owner.ledger, owner.reservation)
+    Some(value) => {
+      let previous = value.binding
+      value.binding = PreparationSettling
+      let result = match
+        reservation_check(owner.ledger, owner.reservation.reservation) {
+        Err(issue) => Err(issue)
+        Ok(_) =>
+          settle_preparation_inventory_current(
+            owner.ledger,
+            owner.reservation,
+            value,
+          )
+      }
+      if result is Err(_) {
+        value.binding = previous
+      }
+      result
+    }
+  }
+  match settled {
     Err(issue) => {
       owner.phase = Retiring
       Err(Resource(issue))
@@ -270,7 +342,10 @@ fn[I, P] finish_preparation_retirement(
 pub fn[I, P] retire_preparation_capacity(
   owner : PreparationCapacity[I, P],
 ) -> Result[Bool, PreparationCapacityIssue] {
-  if owner.phase == Working ||
+  if owner.phase == Continued {
+    return Err(AlreadyTransferred)
+  }
+  if preparation_capacity_phase_is_working(owner.phase) ||
     owner.phase == Completing ||
     owner.phase == Transferring ||
     owner.phase == Settling {
@@ -293,7 +368,7 @@ pub fn[I, P] abort_preparation_capacity_after_cleanup(
   if !(owner.input is Some(original) && physical_equal(original, input)) {
     return Err(ForeignOriginal)
   }
-  if owner.phase != Working {
+  if !preparation_capacity_phase_is_working(owner.phase) {
     return Err(AlreadyCompleted)
   }
   if owner.active_phase_work is Some(_) {
@@ -345,6 +420,19 @@ pub fn[I, P] transfer_preparation_retirement_to_run(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  claim_preparation_run_retirement(owner)
+}
+
+///|
+fn[I, P] claim_preparation_run_retirement(
+  owner : PreparationCapacity[I, P],
+) -> Result[PreparationRetirement, PreparationCapacityIssue] {
+  if owner.retirement_claimed {
+    return Err(AlreadyTransferred)
+  }
+  if owner.phase != Run {
+    return Err(WorkActive)
+  }
   owner.retirement_claimed = true
   Ok({ retire_original: () => retire_preparation_capacity(owner), })
 }
@@ -362,6 +450,10 @@ pub fn retire_transferred_preparation(
 /// Returning it clears that token's body and decrements the same owner once.
 struct PreparationBodyBorrow[P] {
   read_original : () -> P?
+  reserved_extents_original : () -> Result[
+    (Int64, Int64),
+    PreparationCapacityIssue,
+  ]
   return_original : () -> Result[Bool, PreparationCapacityIssue]
   retirement_started_original : () -> Bool
   borrow_original : () -> Result[
@@ -369,35 +461,63 @@ struct PreparationBodyBorrow[P] {
     PreparationCapacityIssue,
   ]
   isolated_usage_original : (Ledger) -> Bool
+  reserve_publication_original : (P, Int64, Int64) -> Result[
+    Unit,
+    PreparationCapacityIssue,
+  ]
 }
 
 ///|
 pub fn[I, P] borrow_preparation_body(
   owner : PreparationCapacity[I, P],
 ) -> Result[PreparationBodyBorrow[P], PreparationCapacityIssue] {
-  match borrow_preparation_capacity(owner) {
-    Err(issue) => Err(issue)
-    Ok(value) =>
-      Ok({
-        read_original: () => preparation_capacity_borrow_value(value),
-        return_original: () => return_preparation_capacity_borrow(value),
-        retirement_started_original: () => {
-          value.owner.phase == Retiring ||
-          value.owner.phase == Settling ||
-          value.owner.phase == Closed
-        },
-        borrow_original: () => {
-          if value.returned {
-            Err(BorrowReturned)
-          } else {
-            borrow_preparation_body(value.owner)
-          }
-        },
-        isolated_usage_original: ledger => {
-          !value.returned &&
-          preparation_capacity_usage_isolated(value.owner, ledger)
-        },
-      })
+  borrow_preparation_capacity(owner).map(make_preparation_body_borrow)
+}
+
+///|
+// The slot is claimed by the SAME synchronous Resource boundary. Wrapping it
+// neither checks current again nor issues another slot or reservation.
+fn[I, P] make_preparation_body_borrow(
+  value : PreparationCapacityBorrow[I, P],
+) -> PreparationBodyBorrow[P] {
+  {
+    read_original: () => preparation_capacity_borrow_value(value),
+    reserved_extents_original: () => {
+      if value.returned {
+        Err(BorrowReturned)
+      } else if value.owner.phase != Ready && value.owner.phase != Run {
+        Err(Retired)
+      } else {
+        let token = value.owner.reservation.reservation
+        if !token.open {
+          Err(Retired)
+        } else {
+          Ok((token.retention, token.execution))
+        }
+      }
+    },
+    return_original: () => return_preparation_capacity_borrow(value),
+    retirement_started_original: () => {
+      value.owner.phase == Retiring ||
+      value.owner.phase == Settling ||
+      value.owner.phase == Closed
+    },
+    borrow_original: () => {
+      if value.returned {
+        Err(BorrowReturned)
+      } else {
+        borrow_preparation_body(value.owner)
+      }
+    },
+    isolated_usage_original: ledger => {
+      !value.returned &&
+      preparation_capacity_usage_isolated(value.owner, ledger)
+    },
+    reserve_publication_original: (body, retained, execution) => {
+      reserve_original_preparation_publication_phase(
+        value, body, retained, execution,
+      )
+    },
   }
 }
 
@@ -457,12 +577,27 @@ fn[I, P] preparation_capacity_usage_isolated(
     ledger.quantity_usage.uncertain != zero_quantities() {
     return false
   }
+  // Zero-byte children still occupy original identities. Byte equality alone
+  // cannot prove that this original preparation reservation is isolated.
+  if ledger.original_inventory is Some(inventory) {
+    if !physical_equal(inventory.bootstrap, owner.reservation) ||
+      !original_inventory_preparation_owned(inventory) ||
+      !inventory.reservations.is_empty() ||
+      !inventory.holdings.is_empty() ||
+      !inventory.delegations.is_empty() {
+      return false
+    }
+  }
   let usage = ledger.usage
+  usage.live_reservations == 1 &&
+  usage.live_delegations == 0 &&
+  usage.holdings == 0 &&
+  usage.reserved_attempts == 0 &&
+  usage.reserved_retention_bytes == token.retention &&
+  usage.reserved_execution_bytes == token.execution &&
   usage.held_bytes == 0L &&
   usage.reserved_transfer_bytes == 0L &&
   usage.uncertain_transfer_bytes == 0L &&
-  usage.reserved_retention_bytes == token.retention &&
-  usage.reserved_execution_bytes == token.execution &&
   ledger.delegated_planning == 0 &&
   ledger.delegated_attempts == 0 &&
   ledger.delegated_holdings == 0
@@ -493,15 +628,16 @@ pub fn[I, P] reserve_working_preparation_phase(
   if !(owner.input is Some(original) && physical_equal(original, input)) {
     return Err(ForeignOriginal)
   }
-  if owner.phase != Working ||
+  if !preparation_capacity_phase_is_working(owner.phase) ||
     owner.body is Some(_) ||
-    owner.active_phase_work is Some(_) {
+    preparation_capacity_has_executing_work(owner) {
     return Err(WorkActive)
   }
   let token = owner.reservation.reservation
   if retained_peak < token.retention || execution_peak < token.execution {
     return Err(InvalidExtent)
   }
+  let working_phase = owner.phase
   owner.phase = Completing
   let outcome = resize_capacity_reservation(
     owner.ledger,
@@ -509,7 +645,7 @@ pub fn[I, P] reserve_working_preparation_phase(
     retained_peak,
     execution_peak,
   )
-  owner.phase = Working
+  owner.phase = working_phase
   outcome.map_err(issue => PreparationCapacityIssue::Resource(issue))
 }
 
@@ -526,9 +662,9 @@ pub fn[I, P] reconcile_working_preparation_phase(
   if !(owner.input is Some(original) && physical_equal(original, input)) {
     return Err(ForeignOriginal)
   }
-  if owner.phase != Working ||
+  if !preparation_capacity_phase_is_working(owner.phase) ||
     owner.body is Some(_) ||
-    owner.active_phase_work is Some(_) {
+    preparation_capacity_has_executing_work(owner) {
     return Err(WorkActive)
   }
   let token = owner.reservation.reservation
@@ -538,6 +674,7 @@ pub fn[I, P] reconcile_working_preparation_phase(
     execution_bytes > token.execution {
     return Err(InvalidExtent)
   }
+  let working_phase = owner.phase
   owner.phase = Completing
   let outcome = resize_capacity_reservation(
     owner.ledger,
@@ -545,6 +682,38 @@ pub fn[I, P] reconcile_working_preparation_phase(
     retained_bytes,
     execution_bytes,
   )
-  owner.phase = Working
+  owner.phase = working_phase
   outcome.map_err(issue => PreparationCapacityIssue::Resource(issue))
+}
+
+///|
+// A returned constructor keeps its SAME receipt pending, but has no executing
+// body at a resize boundary. Completion, transfer, continuation and abort still
+// reject any pending receipt through their unchanged presence checks.
+fn[I, P] preparation_capacity_has_executing_work(
+  owner : PreparationCapacity[I, P],
+) -> Bool {
+  match owner.active_phase_work {
+    Some(state) => state.val != Returned
+    None => false
+  }
+}
+
+///|
+/// Observe the original reservation, including a zero-byte entrance, after a
+/// typed continuation. The old handle cannot retire its successor or supply
+/// a physical acknowledgement; this only fences its initial admission close.
+pub fn[I, P] preparation_capacity_reservation_retired(
+  owner : PreparationCapacity[I, P],
+) -> Bool {
+  !capacity_reservation_open(owner.reservation)
+}
+
+///|
+/// Exact reserved debit of this original body borrower, not headroom or a
+/// caller quote. Pure DATA: no current callback, Ledger export or allowance.
+pub fn[P] preparation_body_borrow_reserved_extents(
+  value : PreparationBodyBorrow[P],
+) -> Result[(Int64, Int64), PreparationCapacityIssue] {
+  (value.reserved_extents_original)()
 }

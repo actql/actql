@@ -5,23 +5,24 @@ pub struct RecordCreateRequest {
   priv mut self : RecordCreateRequest?
   priv catalog : FormFieldCatalog
   priv records : Array[RecordWriteValues]
-  priv document : @encode.EncodedDocument
+  priv document : String
 }
 
 ///|
 /// Each original target remains paired with its own checked write values.
 /// Required revisions are never omitted or replaced by an unchecked -1.
 pub struct RecordUpdateRequest {
+  priv mut self : RecordUpdateRequest?
   priv records : Array[(OriginalRecordTarget, RecordWriteValues)]
   priv document : @encode.EncodedDocument
 }
 
 ///|
-pub fn prepare_record_create_request(
+fn check_record_create_values(
   catalog : FormFieldCatalog,
   records : Array[RecordWriteValues],
   limits : RecordMutationLimits,
-) -> Result[RecordCreateRequest, RecordMutationIssue] {
+) -> Result[Unit, RecordMutationIssue] {
   if !mutation_limits_valid(limits) {
     return Err(InvalidLimits)
   }
@@ -37,6 +38,38 @@ pub fn prepare_record_create_request(
       return Err(ForeignCatalog)
     }
   }
+  Ok(())
+}
+
+///|
+// One original serialization for emission and exact saved-body comparison.
+fn emit_record_create_body(
+  writer : @encode.Writer,
+  catalog : FormFieldCatalog,
+  records : Array[RecordWriteValues],
+) -> Unit raise @encode.EncodeFailure {
+  @encode.begin_ordered_object(writer)
+  @encode.ordered_key(writer, "app")
+  @encode.string_value(writer, catalog.app_id)
+  @encode.ordered_key(writer, "records")
+  @encode.begin_array(writer)
+  for record in records {
+    @encode.emit_document(writer, record.document)
+  }
+  @encode.end_array(writer)
+  @encode.end_object(writer)
+}
+
+///|
+pub fn prepare_record_create_request(
+  catalog : FormFieldCatalog,
+  records : Array[RecordWriteValues],
+  limits : RecordMutationLimits,
+) -> Result[RecordCreateRequest, RecordMutationIssue] {
+  match check_record_create_values(catalog, records, limits) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
   let writer = @encode.writer(
     limits.max_output_bytes,
     limits.max_output_nodes,
@@ -45,16 +78,7 @@ pub fn prepare_record_create_request(
     _ => return Err(BudgetExceeded)
   }
   let document = try {
-    @encode.begin_ordered_object(writer)
-    @encode.ordered_key(writer, "app")
-    @encode.string_value(writer, catalog.app_id)
-    @encode.ordered_key(writer, "records")
-    @encode.begin_array(writer)
-    for record in records {
-      @encode.emit_document(writer, record.document)
-    }
-    @encode.end_array(writer)
-    @encode.end_object(writer)
+    emit_record_create_body(writer, catalog, records)
     @encode.finish_document(writer)
   } catch {
     _ => {
@@ -66,7 +90,55 @@ pub fn prepare_record_create_request(
     self: None,
     catalog,
     records: records.copy(),
-    document,
+    document: @encode.document_text(document),
+  }
+  result.self = Some(result)
+  Ok(result)
+}
+
+///|
+/// Restore protocol DATA only after the same serializer matches the complete
+/// saved body. No emitted request, tag, CID, approval or dispatch is issued.
+/// The caller still authenticates its saved row and original Mapping/Form.
+pub fn restore_record_create_request(
+  catalog : FormFieldCatalog,
+  records : Array[RecordWriteValues],
+  original_body : String,
+  limits : RecordMutationLimits,
+) -> Result[RecordCreateRequest, RecordMutationIssue] {
+  match check_record_create_values(catalog, records, limits) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  guard @scalar.admit_utf8_length(original_body, limits.max_output_bytes)
+    is Ok(_) else {
+    return Err(BudgetExceeded)
+  }
+  let writer = @encode.comparing_writer(
+    original_body,
+    limits.max_output_bytes,
+    limits.max_output_nodes,
+    limits.max_output_depth,
+  ) catch {
+    _ => return Err(BudgetExceeded)
+  }
+  let equal = try {
+    emit_record_create_body(writer, catalog, records)
+    @encode.finish_comparison_usage(writer).0
+  } catch {
+    _ => {
+      @encode.cancel_writer(writer)
+      return Err(BudgetExceeded)
+    }
+  }
+  if !equal {
+    return Err(InvalidRequest)
+  }
+  let result : RecordCreateRequest = {
+    self: None,
+    catalog,
+    records: records.copy(),
+    document: original_body,
   }
   result.self = Some(result)
   Ok(result)
@@ -74,7 +146,7 @@ pub fn prepare_record_create_request(
 
 ///|
 pub fn record_create_request_body(request : RecordCreateRequest) -> String {
-  @encode.document_text(request.document)
+  request.document
 }
 
 ///|
@@ -165,7 +237,13 @@ pub fn prepare_record_update_request(
       return Err(BudgetExceeded)
     }
   }
-  Ok({ records: records.copy(), document, })
+  let result : RecordUpdateRequest = {
+    self: None,
+    records: records.copy(),
+    document,
+  }
+  result.self = Some(result)
+  Ok(result)
 }
 
 ///|
@@ -192,6 +270,7 @@ pub struct RecordCreateAcknowledgement {
 
 ///|
 pub struct RecordUpdateAcknowledgement {
+  priv mut self : RecordUpdateAcknowledgement?
   priv request : RecordUpdateRequest
   priv records : Array[(String, String)]
   response_sha256 : String
@@ -378,7 +457,14 @@ pub fn project_record_update_acknowledgement(
       return Err(UncorrelatedResult)
     }
   }
-  Ok({ request, records, response_sha256: @sha.hex(bytes), })
+  let result : RecordUpdateAcknowledgement = {
+    self: None,
+    request,
+    records,
+    response_sha256: @sha.hex(bytes),
+  }
+  result.self = Some(result)
+  Ok(result)
 }
 
 ///|
@@ -459,6 +545,20 @@ pub fn record_create_request_is_original(value : RecordCreateRequest) -> Bool {
 ///|
 pub fn record_create_acknowledgement_is_original(
   value : RecordCreateAcknowledgement,
+) -> Bool {
+  value.self is Some(original) && physical_equal(original, value)
+}
+
+///|
+/// Original request DATA, not authority or an acknowledged provider action.
+pub fn record_update_request_is_original(value : RecordUpdateRequest) -> Bool {
+  value.self is Some(original) && physical_equal(original, value)
+}
+
+///|
+/// Same decoded response object, not a copy with equal private request fields.
+pub fn record_update_acknowledgement_is_original(
+  value : RecordUpdateAcknowledgement,
 ) -> Bool {
   value.self is Some(original) && physical_equal(original, value)
 }

@@ -2,12 +2,13 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {parse} from 'acorn';
+import {runtimeField, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';
 import {publishEffectFreeRun} from './run-publication.mjs';
 
 // Execute the two actual private loops with explicit Common ports. These
 // counters establish scheduling and cleanup, not installed Host acceptance.
 const source=readFileSync(new URL('./runtime-core.mjs',import.meta.url),'utf8');
-const wanted=new Set(['finishCapturedPreparation','finishPublicationValidation']);
+const wanted=new Set(['capturedPreparationLimits','finishCapturedPreparation','finishPublicationValidation']);
 const declarations=new Map();
 function visit(node){
   if(node===null||typeof node!=='object')return;
@@ -22,13 +23,14 @@ function visit(node){
   }
 }
 visit(parse(source,{ecmaVersion:'latest',sourceType:'module'}));
-assert.equal(declarations.size,2);
-const compile=new Function('moon','checked','inspect','setTimeout','setImmediate',
+assert.equal(declarations.size,3);
+const compile=new Function('moon','checked','inspect','setTimeout','setImmediate','runtimeField','runtimeIsBoxedSome',
   [...declarations.values()].join('\n')+';return {finishCapturedPreparation,finishPublicationValidation};');
 function fixture({pending=3,advance,finish,inspect=x=>x,onYield,immediate=true}={}){
   const preparation=Object.freeze({original:'preparation'}),result=Object.freeze({original:'captured'});
   const counts={advance:0,finish:0,cancel:0,yields:0,timers:0};
   const moon={
+    strategyCapturedRunPreparationLimits(value){assert.strictEqual(value,preparation);return {$tag:1,_0:[65536,4096,64]};},
     strategyCapturedRunAdvance(value,quantum){assert.strictEqual(this,moon);assert.strictEqual(value,preparation);assert.equal(quantum,256);counts.advance++;return advance?advance(counts.advance):counts.advance>pending;},
     strategyCapturedRunFinish(value){assert.strictEqual(this,moon);assert.strictEqual(value,preparation);counts.finish++;return finish?finish():result;},
     strategyCapturedRunCancel(value){assert.strictEqual(this,moon);assert.strictEqual(value,preparation);counts.cancel++;},
@@ -37,7 +39,7 @@ function fixture({pending=3,advance,finish,inspect=x=>x,onYield,immediate=true}=
     assert(!immediate,'A bounded serialization yield must not start a delay timer');return setTimeout(callback,delay);};
   const loops=compile(moon,x=>x,inspect,timer,immediate?callback=>{
     counts.yields++;return setImmediate(()=>{onYield?.(counts.yields);callback();});
-  }:undefined);
+  }:undefined,runtimeField,runtimeIsBoxedSome);
   return{preparation,result,counts,moon,...loops};
 }
 

@@ -1,0 +1,139 @@
+///|
+/// The independent Host-purpose original captured by the same actual fresh
+/// initialization. This metadata/projection supplies no Account sign decision,
+/// claim, attestation signature, Resolution admission or cleanup acknowledgement.
+struct NativeLocalInitialHostSigningOriginal {
+  reviewer : NativeLocalInitialSigningOriginal
+  projection : @filesystem.PrivateFileProjection
+  exported : Bytes
+  public_key : @credential.LocalSigningPublicKey
+  public_key_pem : String
+  signing_subject : (String, String, String)?
+}
+
+///|
+fn read_local_initial_host_signing_control(
+  host : NativeLocalHostConnection,
+  body : Bytes,
+) -> Result[NativeLocalInitialSigningFields, NativeLocalAdoptionIssue] {
+  guard read_local_initial_signing_control(host, body) is Ok(Some(reviewer)) else {
+    return Err(CustodyLost)
+  }
+  let header = match local_initial_signing_control_header(body) {
+    Ok(value) if value.length() >= 3 => value
+    _ => return Err(CustodyLost)
+  }
+  let packet = @base64.decode(header[2]) catch { _ => return Err(CustodyLost) }
+  if @base64.encode(packet) != header[2] {
+    return Err(CustodyLost)
+  }
+  let fields = match
+    read_local_initial_signing_packet(
+      host, packet, "host_attestation", "local-host-attestation-key.pem",
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if fields.policy.cid() != reviewer.policy.cid() ||
+    fields.issuer != reviewer.issuer {
+    return Err(CustodyLost)
+  }
+  Ok(fields)
+}
+
+///|
+/// Read the already-authenticated independent Host key generation only.
+/// A raw/legacy Reviewer-only control, missing file or partial initialization
+/// cannot create or adopt another key, even if a matching PEM is present now.
+pub fn NativeLocalHostConnection::restore_initial_host_signing_original(
+  self : NativeLocalHostConnection,
+) -> Result[NativeLocalInitialHostSigningOriginal, NativeLocalAdoptionIssue] {
+  let reviewer = match self.restore_initial_signing_original() {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let fields = match
+    read_local_initial_host_signing_control(self, reviewer.control_body) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let projection = match
+    self.session.root.restore_private_file_projection(fields.exported) {
+    Ok(value) => value
+    Err(issue) => return Err(Filesystem(issue))
+  }
+  let original : NativeLocalInitialHostSigningOriginal = {
+    reviewer,
+    projection,
+    exported: fields.exported,
+    public_key: fields.public_key,
+    public_key_pem: fields.public_key_pem,
+    signing_subject: match
+      read_initial_host_signing_subject(self, reviewer.control_body, fields) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    },
+  }
+  original.require_current().map(_ => original)
+}
+
+///|
+/// Same original Root/file and authenticated control only; purpose-specific
+/// current actor, Account and signing-use gates remain operational obligations.
+pub fn NativeLocalInitialHostSigningOriginal::require_current(
+  self : NativeLocalInitialHostSigningOriginal,
+) -> Result[Unit, NativeLocalAdoptionIssue] {
+  match self.reviewer.require_current() {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  let host = self.reviewer.host
+  let fields = match
+    read_local_initial_host_signing_control(host, self.reviewer.control_body) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let subject = match
+    read_initial_host_signing_subject(host, self.reviewer.control_body, fields) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if fields.exported != self.exported ||
+    fields.public_key_pem != self.public_key_pem ||
+    fields.public_key.cid() != self.public_key.cid() ||
+    subject != self.signing_subject {
+    return Err(CustodyLost)
+  }
+  guard self.projection.export_original() is Ok(exported) &&
+    exported == self.exported else {
+    return Err(CustodyLost)
+  }
+  match host.session.root.restore_private_file_projection(self.exported) {
+    Ok(_) => ()
+    Err(issue) => return Err(Filesystem(issue))
+  }
+  host.check_binding()
+}
+
+///|
+/// Public-key identity DATA only. It neither reads the secret nor signs.
+pub fn NativeLocalInitialHostSigningOriginal::public_key(
+  self : NativeLocalInitialHostSigningOriginal,
+) -> Result[@credential.LocalSigningPublicKey, NativeLocalAdoptionIssue] {
+  self.require_current().map(_ => self.public_key)
+}
+
+///|
+/// Same original initialization issuer DATA, never a generic issuance service.
+pub fn NativeLocalInitialHostSigningOriginal::issuer_identity(
+  self : NativeLocalInitialHostSigningOriginal,
+) -> Result[String, NativeLocalAdoptionIssue] {
+  self.require_current().map(_ => self.reviewer.issuer)
+}
+
+///|
+pub fn NativeLocalInitialHostSigningOriginal::policy(
+  self : NativeLocalInitialHostSigningOriginal,
+) -> Result[@host.ClientLocalSigningBootstrapPolicy, NativeLocalAdoptionIssue] {
+  self.require_current().map(_ => self.reviewer.policy)
+}

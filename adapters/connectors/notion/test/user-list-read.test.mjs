@@ -3,8 +3,6 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {NotionUserListReadFailure, NOTION_USER_LIST_OPERATION,
   NOTION_USER_LIST_API_VERSION} from '../site/user-list-read.mjs';
-import {invokeScopedCredentialOperation} from '../../../host-common/owned-invocation-context.mjs';
-import {callHttpsCredentialResource} from '../../../site-node/https-credential-resource.mjs';
 import {userListFixture, userPage} from './user-list-read.fixture.mjs';
 
 const one={id:'U1',name:'one',type:'person',email:'one@example.test'};
@@ -23,7 +21,7 @@ test('Notion actual SQL and AQL original paged Credential reads capture person a
       x.authorization==='Bearer notion-fixture-token'));
     assert.equal(NOTION_USER_LIST_API_VERSION,'2026-03-11');
     assert.equal(f.state.resolutions,2);assert.equal(f.state.charges,2);
-    assert.equal(ledgerUsageSnapshot(f.row.usage()).transferredBytes,BigInt(result.observations.reduce((sum,x)=>sum+x.body.length,0)));
+    assert.equal(ledgerUsageSnapshot(f.row.usage()).transferredBytes,reader.observe().receivedBodyBytes);
     f.row.finish();assert.equal(f.row.captureCount(),2);
     assert.deepEqual(f.journal.recover().map(x=>x.outcome),['succeeded','succeeded']);
     assert.equal(new Set(f.journal.recover().map(x=>x.grantCid)).size,1);
@@ -40,16 +38,18 @@ test('Notion empty continued page keeps the opaque cursor while an empty termina
   f.row.finish();assert.equal(f.row.captureCount(),0);
 });
 
-test('Notion constructor rejects invalid projection callbacks binding and page limits before I/O',async t=>{
+test('Notion page meaning and Host callbacks refuse invalid selections before I/O',async t=>{
   const f=await userListFixture(t);
   for(const override of [{names:['foreign']},{names:['id','id']},{names:Array(1000).fill('id')},
-    {current:undefined},{chargeResponse:undefined},{consumePage:undefined},
-    {credential:{...f.options.credential,binding:undefined}},
-    {limits:{...f.options.limits,pageSize:101}},{limits:{...f.options.limits,maxPages:0}}]){
-    assert.throws(()=>f.create(override),{code:'InvalidNotionUserListRead'});
+    {limits:{...f.options.limits,pageSize:101}}]) {
+    await assert.rejects(async()=>f.create(override).read(),e=>e.code==='InvalidNotionUserListRead');
   }
-  assert.throws(()=>f.create({initialAuthorization:{...f.options.initialAuthorization,
-    scope:{...f.scope,operation:'notion:pages:foreign'}}}),{code:'ForeignNotionUserListOperation'});
+  for(const override of [{current:undefined},{chargeResponse:undefined},{consumePage:undefined}])
+    assert.throws(()=>f.create(override),{code:'InstalledSourceReaderMethodUnavailable'});
+  assert.throws(()=>f.create({limits:{...f.options.limits,maxPages:0}}),{code:'InvalidInstalledCredentialSourceReader'});
+  await assert.rejects(f.create({authorizationFor:({index})=>({grant:f.grant,
+    scope:{...f.scope,operation:'notion:pages:foreign'},useId:`foreign-${index}`})}).read(),
+    e=>e.cause?.code==='ForeignInstalledSourceReaderAuthorization');
   assert.equal(f.state.requests.length,0);assert.equal(f.state.resolutions,0);
 });
 
@@ -67,13 +67,17 @@ test('Notion original operation and invocation cannot be replaced by a foreign s
   }
 });
 
-test('Notion cross-page IDs stay checked when the user selection omits identity',async t=>{
-  const f=await userListFixture(t),captured=[];
+test('Notion cross-page IDs stay checked when selected output omits identity',async t=>{
+  const f=await userListFixture(t),projected=[];
   f.state.pages=[userPage([user('U1','one')],'next'),userPage([user('U1','changed')],null)];
   await assert.rejects(f.create({names:['name'],consumePage:(rows,{charge})=>{
-    f.row.observe(charge);captured.push(...rows);
-  }}).read(),error=>error.cause.code==='NotionUserListDuplicateUser'&&error.observations.length===2);
-  assert.deepEqual(captured,[one]);assert.equal(f.state.requests.length,2);f.row.assertNoCapture();
+    f.row.observe(charge);
+    // User projection follows complete Source capture; it cannot prune the
+    // Source callback's identity or other declared cells first.
+    assert.deepEqual(rows,[{email:null,id:'U1',name:'one',type:null}]);
+    projected.push(...rows.map(({name})=>({name})));
+  }}).read(),error=>error.cause.code==='NotionUserListDuplicateUser');
+  assert.deepEqual(projected,[{name:'one'}]);assert.equal(f.state.requests.length,2);f.row.assertNoCapture();
 });
 
 test('Notion repeated cursor page and total row bounds refuse incomplete capture',async t=>{
@@ -84,7 +88,7 @@ test('Notion repeated cursor page and total row bounds refuse incomplete capture
     if(mode==='rows')limits.maxTotalRows=1;
     const code={cursor:'NotionUserListRepeatedCursor',pages:'NotionUserListPageLimit',rows:'NotionUserListRowLimit'}[mode];
     await assert.rejects(f.create({limits}).read(),error=>error.cause.code===code);
-    assert.equal(f.state.requests.length,mode==='cursor'?2:1);f.row.assertNoCapture();
+    assert.equal(f.state.requests.length,mode==='pages'?1:2);f.row.assertNoCapture();
   }
 });
 
@@ -92,8 +96,7 @@ test('Notion aggregate raw bound charges and retains the exact offending body',a
   const f=await userListFixture(t);
   const total=f.state.pages.reduce((sum,page)=>sum+Buffer.byteLength(JSON.stringify(page)),0);
   await assert.rejects(f.create({limits:{...f.options.limits,maxTotalResponseBytes:total-1}}).read(),
-    error=>error.cause.code==='NotionUserListResponseLimit'&&error.observations.length===2&&
-      error.observations[1].body.toString()===JSON.stringify(f.state.pages[1]));
+    error=>error.cause.code==='NotionUserListResponseLimit');
   assert.equal(f.state.charges,2);assert.deepEqual(f.state.rows,[one]);f.row.assertNoCapture();
 });
 
@@ -105,7 +108,7 @@ test('Notion malformed pages inconsistent cursors and restricted responses never
     if(mode==='error')f.state.pages=[{object:'error',status:403,code:'restricted_resource'}];
     if(mode==='cursor')f.state.pages=[{...userPage([],null),has_more:true}];
     if(mode==='cell')f.state.pages=[userPage([{object:'user',id:'U1',type:'person',person:{email:false}}],null)];
-    await assert.rejects(f.create().read(),error=>error instanceof NotionUserListReadFailure&&error.observations.length===1);
+    await assert.rejects(f.create().read(),error=>error instanceof NotionUserListReadFailure&&!Object.hasOwn(error,'observations'));
     assert.equal(f.state.requests.length,1);assert.equal(f.state.charges,1);assert.deepEqual(f.state.rows,[]);f.row.assertNoCapture();
   }
 });
@@ -121,7 +124,7 @@ test('Notion current Account denies before I/O and after original credential res
 
 test('Notion original token binding refuses replacement between workspace pages',async t=>{
   const f=await userListFixture(t);f.state.resolved=()=>{if(f.state.resolutions===2)f.state.secret='replacement-token';};
-  await assert.rejects(f.create().read(),error=>error.cause.code==='RemoteCredentialBindingChanged'&&error.observations.length===1);
+  await assert.rejects(f.create().read(),error=>error.cause.code==='RemoteCredentialBindingChanged');
   assert.equal(f.state.requests.length,1);assert.equal(f.state.resolutions,2);assert.deepEqual(f.state.rows,[one]);f.row.assertNoCapture();
 });
 
@@ -129,12 +132,7 @@ test('Notion lost original page reply remains Unknown and cannot resend or resol
   const f=await userListFixture(t);f.state.beforeResponse=request=>request.socket.destroy();
   const reader=f.create();await assert.rejects(reader.read(),error=>error.cause.code==='ECONNRESET');
   const original=f.journal.recover().find(x=>x.outcome==='unknown');assert(original);
-  await assert.rejects(invokeScopedCredentialOperation({authorization:{grant:f.grant,scope:f.scope,useId:'users-0'},
-    credential:f.options.credential,callResource:callHttpsCredentialResource,operation:NOTION_USER_LIST_OPERATION,
-    method:'GET',path:'/v1/users',query:[['page_size','10']],
-    headers:[['notion-version',NOTION_USER_LIST_API_VERSION]],maxResponseBytes:f.options.limits.maxResponseBytes}),
-  {code:'RemoteCredentialUseAlreadyClaimed'});
-  await assert.rejects(reader.read(),{code:'NotionUserListReaderAlreadyStarted'});
+  await assert.rejects(reader.read(),{code:'InstalledSourceReaderAlreadyStarted'});
   assert.equal(f.journal.inspect(original.useCid).outcome,'unknown');
   assert.equal(f.state.requests.length,1);assert.equal(f.state.resolutions,1);assert.equal(reader.observe().cleanupConfirmed,false);
 });
@@ -142,12 +140,14 @@ test('Notion lost original page reply remains Unknown and cannot resend or resol
 test('Notion cancellation and escaped raw or copied handles cannot manufacture retirement',async t=>{
   const f=await userListFixture(t),stop=new AbortController(),cause=new Error('OriginalNotionStop');let raw;
   const reader=f.create({signal:stop.signal,chargeResponse:body=>{raw=body;stop.abort(cause);return f.options.chargeResponse(body);}});
-  await assert.rejects(reader.read(),error=>error.cause===cause&&error.observations[0].body===raw);
-  assert.equal(reader.observe().phase,'failed');assert.equal(reader.observe().stopRequested,true);
+  await assert.rejects(reader.read(),error=>error.cause===cause&&!Object.hasOwn(error,'observations'));
+  assert.equal(reader.observe().phase,'failed');assert.equal(reader.observe().readPending,false);
+  assert.equal(reader.observe().receivedBodyBytes,BigInt(raw.byteLength));
   assert.equal(reader.observe().cleanupConfirmed,false);assert.equal(f.state.requests.length,1);
-  const copy={...reader};await assert.rejects(copy.read(),{code:'ForeignNotionUserListReader'});
-  assert.throws(()=>copy.observe(),{code:'ForeignNotionUserListReader'});
-  assert.throws(()=>copy.requestStop(),{code:'ForeignNotionUserListReader'});
+  const copy={...reader};await assert.rejects(copy.read(),{code:'ForeignInstalledCredentialSourceReader'});
+  assert.throws(()=>copy.observe(),{code:'ForeignInstalledCredentialSourceReader'});
+  assert.throws(()=>copy.requestStop(),{code:'ForeignInstalledCredentialSourceReader'});
+  reader.requestStop();assert.equal(reader.observe().cleanupConfirmed,true);
 });
 
 test('Notion original reader snapshots functions selection and limits before the secret await',async t=>{

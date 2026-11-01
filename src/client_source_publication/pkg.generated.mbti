@@ -4,13 +4,19 @@ package "actql/actql/client_source_publication"
 import {
   "actql/actql/client_host_buffers",
   "actql/actql/decode_core",
+  "actql/actql/parameter_binding",
   "actql/actql/physical_resources",
   "actql/actql/program_check",
+  "actql/actql/program_source_builder",
   "actql/actql/query_program",
+  "actql/actql/query_syntax",
   "actql/actql/source_frontend",
+  "actql/actql/source_value",
 }
 
 // Values
+pub fn[T] admit_captured_query_declarations(T, @source_value.JsonDataReader[T]) -> Result[(@decode_core.Cursor, @parameter_binding.Declarations), PublicationIssue]
+
 pub fn bind_published_query_context(@program_check.CheckEnvironment, String, String?) -> Result[@query_program.Context, PublicationIssue]
 
 pub fn bind_published_query_parts(@program_check.CheckEnvironment, String, String?) -> Result[(@query_program.Context, Array[@query_program.TableWriteBinding], @query_program.UpdateTargetPublication?, @query_program.StoreTargetPublication?, @query_program.CommandTargetPublication?), PublicationIssue]
@@ -21,7 +27,11 @@ pub fn[T] enter_installation_preparation_read(InstallationPreparationRead[T], T)
 
 pub fn[T] installation_preparation_read_current(InstallationPreparationRead[T], T) -> Bool
 
+pub fn lower_prepared_published_parsed_query(PreparedPublishedQueryEnvironment, @program_check.CheckEnvironment, @query_syntax.Query, String?, public_primary? : Bool) -> Result[(@source_frontend.Lowered, @program_check.PreparedSourceCatalog, @program_source_builder.Source), PreparedPublicationIssue]
+
 pub fn lower_prepared_published_query(PreparedPublishedQueryEnvironment, @program_check.CheckEnvironment, String, @source_frontend.Format, String?, public_primary? : Bool) -> Result[(@source_frontend.Lowered, @program_check.PreparedSourceCatalog), PreparedPublicationIssue]
+
+pub fn lower_prepared_query_with_declarations(PreparedPublishedQueryEnvironment, @program_check.CheckEnvironment, @query_syntax.Query, @parameter_binding.Declarations?, public_primary? : Bool) -> Result[(@source_frontend.Lowered, @program_check.PreparedSourceCatalog, @program_source_builder.Source), PreparedPublicationIssue]
 
 pub fn[T] prepare_installation_preparation_read(@client_host_buffers.OriginalWorkspaceRead[T], T, @client_host_buffers.WorkspaceLoan, Int64, Int64) -> Result[InstallationPreparationRead[T], @physical_resources.OriginalReadIssue]
 
@@ -48,6 +58,8 @@ pub fn published_update_targets(@program_check.CheckEnvironment, String) -> Resu
 pub fn read_publication_data(String) -> Result[@decode_core.Cursor, PublicationIssue]
 
 pub fn[T] retire_installation_preparation_read(InstallationPreparationRead[T], T) -> Result[Unit, @physical_resources.OriginalReadIssue]
+
+pub fn source_publication_input_limits() -> (@source_value.ParseLimits, @decode_core.Limits)
 
 // Errors
 

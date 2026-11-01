@@ -23,19 +23,15 @@ pub fn issue_client_model_provider_binding(
   }
   try {
     let writer = @encode.writer(16384, 256, 8)
-    @encode.begin_object(writer)
-    for
-      (name, value) in [
-        ("version", "actql-model-provider-binding/0.1"),
-        ("provider_id", provider_id),
-        ("installation_revision_cid", ids[0]),
-        ("configuration_contract_cid", ids[1]),
-        ("configuration_cid", ids[2]),
-      ] {
-      @encode.key(writer, name)
-      @encode.string_value(writer, value)
-    }
-    @encode.end_object(writer)
+    emit_client_model_provider_binding_body(
+      writer,
+      provider_id,
+      ids[0],
+      ids[1],
+      ids[2],
+      None,
+      (cid, writer) => @encode.string_value(writer, cid),
+    )
     @publication.seal_run_evidence_value(
       "model_provider_binding",
       @encode.finish(writer),
@@ -45,6 +41,61 @@ pub fn issue_client_model_provider_binding(
     )
   } catch {
     _ => Err(@publication.RunEvidenceInvalidWire)
+  }
+}
+
+///|
+// Same original field order/spelling. Measurement includes the sealer's one
+// self-CID field by encoded extent only, without issuing a binding or CID.
+fn[C] emit_client_model_provider_binding_body(
+  writer : @encode.Writer,
+  provider_id : String,
+  installation : C,
+  contract : C,
+  configuration : C,
+  self_cid : C?,
+  emit_cid : (C, @encode.Writer) -> Unit raise @encode.EncodeFailure,
+) -> Unit raise @encode.EncodeFailure {
+  @encode.begin_object(writer)
+  @encode.key(writer, "version")
+  @encode.string_value(writer, "actql-model-provider-binding/0.1")
+  @encode.key(writer, "provider_id")
+  @encode.string_value(writer, provider_id)
+  @encode.key(writer, "installation_revision_cid")
+  emit_cid(installation, writer)
+  @encode.key(writer, "configuration_contract_cid")
+  emit_cid(contract, writer)
+  @encode.key(writer, "configuration_cid")
+  emit_cid(configuration, writer)
+  if self_cid is Some(cid) {
+    @encode.key(writer, "self_cid")
+    emit_cid(cid, writer)
+  }
+  @encode.end_object(writer)
+}
+
+///|
+/// Pure construction DATA for the original binding/sealed evidence body.
+/// No input contract, provider or authority has been admitted by this measure.
+pub fn measure_client_model_provider_binding_construction(
+  provider_id : String,
+) -> (Int, Int, Int)? {
+  let writer = @encode.measuring_writer(16384, 256, 8) catch {
+    _ => return None
+  }
+  emit_client_model_provider_binding_body(
+    writer,
+    provider_id,
+    (),
+    (),
+    (),
+    Some(()),
+    measure_client_fragment_cid,
+  ) catch {
+    _ => return None
+  }
+  Some(@encode.finish_measurement_usage(writer)) catch {
+    _ => None
   }
 }
 

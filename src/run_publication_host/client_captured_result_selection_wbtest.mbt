@@ -43,7 +43,7 @@ test "captured Result selection follows the original occurrence across physical 
     graph,
     @strategy.graph_task_count(graph) - 1,
   ).unwrap()
-  let view = @strategy.retained_task_projection_graph(projection)
+  let view = @strategy_view.retained_task_projection_graph(projection)
   assert_false(physical_equal(graph, view))
   assert_true(
     physical_equal(

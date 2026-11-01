@@ -7,14 +7,12 @@ import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {captureConfigurationReaders} from '../../../host-node/source-profile-json.mjs';
 import {retainInstalledHostInitializationFailure} from '../../../host-node/installed-host-cleanup.mjs';
-import {createInstalledRowSource,installRowSourceAuthorization,openRowSourceCredentialSite,
-  rowSourceCheckEnvironment} from '../../../host-node/installed-row-source.mjs';
+import {createInstalledRowSource} from '../../../host-node/installed-row-source.mjs';
+import {captureInstalledSourceServices} from '../../../host-node/installed-host-services.mjs';
+import {prepareSlackSourceReadSequence} from '../site/slack-source-read.mjs';
 import {SLACK_USER_LIST_OPERATION} from '../site/user-list-read.mjs';
-import {createSlackUserSourceReaderFactory} from './user-source-reader.mjs';
 import {SLACK_CHANNEL_LIST_OPERATION} from '../site/channel-list-read.mjs';
-import {createSlackChannelSourceReaderFactory} from './channel-source-reader.mjs';
 import {SLACK_MESSAGE_HISTORY_OPERATION} from '../site/message-history-read.mjs';
-import {createSlackMessageSourceReaderFactory} from './message-source-reader.mjs';
 
 export const INSTALLED_SLACK_SOURCE_VERSION='actql-installed-slack-source/0.1';
 export const INSTALLED_SLACK_SITE_VERSION='actql-installed-slack-site/0.1';
@@ -92,23 +90,36 @@ export async function installedSlackSourceIdentityParts(profile,providerProfile,
   return[{...profile,accountConfigurationWire:JSON.parse(profile.accountConfigurationWire)},site,binding];
 }
 
-export async function loadInstalledSlackSource(profile,{root,principalId,moon,providerMoon:provider,
-  baseEnvironmentWire,runtimeBundleCid,resolveSecret,readerCapacity,configurationReader}={}){
-  // The existing trusted installer must supply its same-runtime declaration.
-  // Public profile amounts, page/transfer limits and fixed spare constants are
-  // not a full reader retained/workspace supplier. Never choose legacy readPages.
-  if(readerCapacity===undefined||readerCapacity===null)fail('SlackReaderCapacityUnavailable');
+export async function loadInstalledSlackSource(profile,{moon,providerMoon:provider,
+  runtimeBundleCid,resolveSecret,configurationReader,sourceInitialization,installationServices,installation}={}){
+  if(!sourceInitialization||typeof sourceInitialization!=='object'||types.isProxy(sourceInitialization)||
+      installation===undefined)fail('SlackSourceInitializationUnavailable');
+  const constructor=Object.getOwnPropertyDescriptor(sourceInitialization,'prepareDeclaration');
+  if(!constructor||!Object.hasOwn(constructor,'value')||typeof constructor.value!=='function'||
+      types.isAsyncFunction(constructor.value))fail('SlackSourceInitializationUnavailable');
+  const prepareDeclaration=constructor.value;
+  const services=captureInstalledSourceServices(installationServices,()=>Object.assign(
+    new Error('InstalledSlackSourceServicesUnavailable'),{code:'InstalledSlackSourceServicesUnavailable'}));
   if(typeof resolveSecret!=='function')fail('SlackCredentialMaterialUnavailable');
   const{installed,site:siteProfile,ca,binding}=await readInputs(profile,configurationReader);
   const{limits}=installed;
   if(provider===null||typeof provider!=='object'||types.isProxy(provider))fail('InvalidInstalledSlackProvider');
   const declarationPorts=Object.freeze(Object.fromEntries(['slackUserListSchemaWire',
     'slackUserListRelationFactsWire','slackChannelListSchemaWire','slackChannelListRelationFactsWire',
-    'slackMessageSchemaWire','slackMessageRelationFactsWire'].map(name=>{
+    'slackMessageSchemaWire','slackMessageRelationFactsWire','slackUserListColumnNames',
+    'slackChannelListColumnNames','slackMessageColumnNames'].map(name=>{
     const descriptor=Object.getOwnPropertyDescriptor(provider,name);
     if(!descriptor||!Object.hasOwn(descriptor,'value')||typeof descriptor.value!=='function')fail('InvalidInstalledSlackProvider');
     return [name,descriptor.value];
   })));
+  const policy=services('sourceReaderImplementationProfile',{installation,sourceInitialization,
+    metadataResponses:1,originUnits:siteProfile.apiOrigin.length});
+  if(limits.maxDeclarationBytes>policy.maxDeclarationBytes||limits.maxDeclarationNodes>policy.maxDeclarationNodes){
+    fail('InstalledSlackImplementationBoundsExceeded');
+  }
+  const columnCount=Math.max(...['slackUserListColumnNames','slackChannelListColumnNames','slackMessageColumnNames']
+    .map(name=>Reflect.apply(declarationPorts[name],provider,[]).length));
+  const implementation=services('sourceReaderImplementation',{installation,sourceInitialization,limits,columnCount});
   const views=[['users','slack_users','slackUserListSchemaWire','slackUserListRelationFactsWire'],
     ['channels','slack_channels','slackChannelListSchemaWire','slackChannelListRelationFactsWire'],
     ['messages','slack_messages','slackMessageSchemaWire','slackMessageRelationFactsWire']].map(
@@ -118,12 +129,7 @@ export async function loadInstalledSlackSource(profile,{root,principalId,moon,pr
       return {resource,resource_kind,schema_wire:wire,schema_cid:sha(wire),
         facts_wire:Reflect.apply(declarationPorts[facts],provider,[])};
     });
-  const declaration=checked(moon.clientProgramRowSourceRestoreRelationDeclaration(installed.connectorId,
-    registration,revision,JSON.stringify({views}),undefined));
-  const declared=JSON.parse(moon.clientProgramRowSourceDeclarationJson(declaration));
-  const environment=rowSourceCheckEnvironment(baseEnvironmentWire,declared);
-  const authorization=await installRowSourceAuthorization({root,principalId,connectorRegistration:registration,
-    accountConfiguration:installed.accountConfigurationWire});
+  const{declaration,declared,environment}=Reflect.apply(prepareDeclaration,sourceInitialization,[views,undefined]);
   const connection=`slack:${installed.connectorId}`;
   const target=(selected,fields)=>Object.freeze({version:selected==='users'
     ?'actql-installed-slack-users-target/0.1':selected==='channels'
@@ -134,34 +140,28 @@ export async function loadInstalledSlackSource(profile,{root,principalId,moon,pr
     Array.isArray(value?.fields)&&new Set(value.fields).size===value.fields.length&&
     value.fields.every(name=>declared.views.find(view=>view.resource===selected).fields.includes(name))&&
     canonicalJson(value)===canonicalJson(target(selected,value.fields));
-  const site=await openRowSourceCredentialSite({profile:{...siteProfile,resourceOrigin:siteProfile.apiOrigin},
-    principalId,authorization,connection,connectorRegistration:registration,connectorRevision:revision,
-    runtimeBundleCid,commonMoon:moon,ca,admitsApprovalTarget,responseHeaders:[],resolveSecret});
+  let opened,providerReader;
   try{
-    return await createInstalledRowSource({moon,declaration,declared,environmentWire:environment.wire,
-      connectorId:installed.connectorId,connectorRegistration:registration,connectorRevision:revision,
+    opened=await services('openRowSite',{installation,sourceInitialization,
+      profile:Object.freeze({...siteProfile,resourceOrigin:siteProfile.apiOrigin}),
+      accountConfiguration:installed.accountConfigurationWire,connection,ca,
+      admitsApprovalTarget,responseHeaders:[],resolveSecret,runAcquisitionLimits:implementation.runAcquisitionLimits});
+    const{authorization,site}=opened;
+    providerReader=services('createSourceReader',{installation,sourceInitialization,implementation,site,
+      prepareReadSequence({resource,columns},applySynchronousProjection){
+        return prepareSlackSourceReadSequence({moon:provider,workspaceId:installed.workspaceId,
+          resource,names:columns,limits},applySynchronousProjection);
+      }});
+    if(providerReader.capacity!==implementation.capacity)fail('InstalledSlackReaderImplementationMismatch');
+    return await createInstalledRowSource({moon,declaration,declared,environment,environmentWire:environment.wire,
+      sourceInitialization,connectorId:installed.connectorId,connectorRegistration:registration,connectorRevision:revision,
       authorization,site,readOperation:{users:SLACK_USER_LIST_OPERATION,channels:SLACK_CHANNEL_LIST_OPERATION,
         messages:SLACK_MESSAGE_HISTORY_OPERATION},physicalTarget:target,
       bindingCid:cid({version:'actql-installed-slack-source-binding/0.1',connectorId:installed.connectorId,
         connectorRegistration:registration,connectorRevision:revision,contextCid:authorization.context.contextCid,
         runtimeBundleCid,workspaceId:installed.workspaceId,...binding,site:siteProfile}),
-      limits:{maxPages:limits.maxPages,maxPageBytes:limits.maxResponseBytes,maxPageRows:limits.maxRows,maxCaptureRows:limits.maxTotalRows},
-      providerReader:(()=>{
-        const selected=new Map([
-          ['users',createSlackUserSourceReaderFactory],['channels',createSlackChannelSourceReaderFactory],
-          ['messages',createSlackMessageSourceReaderFactory],
-        ].map(([name,factory])=>[name,factory({provider,site,capacity:readerCapacity,
-          workspaceId:installed.workspaceId,limits,maxSecretBytes:limits.maxSecretBytes})]));
-        const reader=Object.freeze({capacity:readerCapacity,prepare(options){
-          if(this!==reader)fail('ForeignInstalledSlackReaderFactory');
-          if(options===null||typeof options!=='object'||types.isProxy(options))fail('ForeignInstalledSlackRead');
-          const descriptor=Object.getOwnPropertyDescriptor(options,'resource');
-          if(!descriptor||!Object.hasOwn(descriptor,'value'))fail('ForeignInstalledSlackRead');
-          const factory=selected.get(descriptor.value);if(factory===undefined)fail('ForeignInstalledSlackRead');
-          return Reflect.apply(factory.prepare,factory,[options]);
-        }});
-        return reader;
-      })(),
-      readPages(){fail('InstalledSlackLegacyReaderUnavailable');}});
-  }catch(cause){throw await retainInstalledHostInitializationFailure(cause,{sourceProfile:site});}
+      limits:{maxPages:limits.maxPages+1,maxPageBytes:limits.maxResponseBytes,
+        maxPageRows:limits.maxRows,maxCaptureRows:limits.maxTotalRows},providerReader});
+  }catch(cause){throw await retainInstalledHostInitializationFailure(cause,
+    {sourceReader:providerReader,sourceProfile:opened?.site});}
 }

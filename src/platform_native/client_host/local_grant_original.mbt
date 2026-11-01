@@ -21,6 +21,7 @@ fn initialize_local_grant_originals(
   for
     table in [
       "client_local_grant_custody", "client_local_grant_originals", "client_local_preparation_target_originals",
+      "client_local_signing_result_originals", "client_local_signing_candidate_originals",
     ] {
     match
       scan_client_journal_value(
@@ -299,6 +300,8 @@ fn NativeLocalHostConnection::local_grant_custody(
   )
   let mut cursor = ""
   let mut observed = 0
+  let mut signing_results = 0
+  let mut signing_candidates = 0
   while true {
     let row = match
       self.database.scan_after("client_local_grant_originals", cursor) {
@@ -372,14 +375,83 @@ fn NativeLocalHostConnection::local_grant_custody(
     }
     let reservation = local_original_grant_reservation_scope(original)
     let (entries, bytes) = runs.get(reservation).unwrap_or((0, 0))
-    if entries >= 64 || row.body.length() > 65536 - bytes {
+    let mut result_bytes = 0
+    if original.grant is SigningGrant(grant) &&
+      original.initial_issue is Some(_) &&
+      @credential.local_signing_credential_grant_scope(grant).purpose ==
+      @credential.HostAttestation {
+      let prepared = match local_initial_host_prepared_locked(self, original) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      result_bytes += prepared.length()
+      signing_candidates += 1
+    }
+    match
+      self.database.read(
+        "client_local_signing_result_originals",
+        original.operation_cid,
+      ) {
+      Err(@sqlite.NotFound) => ()
+      Err(issue) => return Err(Physical(issue))
+      Ok(result) => {
+        guard original.grant is SigningGrant(_) else { return Err(CustodyLost) }
+        let history = match
+          local_initial_signing_original_history_locked(self, original) {
+          Ok(value) if value.observed_outcome() ==
+            @credential_resource.Succeeded => value
+          _ => return Err(CustodyLost)
+        }
+        let (_, candidate) = match
+          local_initial_resolution_result_locked(
+            self,
+            original,
+            history.original_use(),
+          ) {
+          Ok(value) => value
+          Err(issue) => return Err(issue)
+        }
+        result_bytes += result.body.length() +
+          candidate.map(wire => @utf8.encode(wire).length()).unwrap_or(0)
+        signing_results += 1
+        if candidate is Some(_) {
+          signing_candidates += 1
+        }
+      }
+    }
+    if entries >= 64 || row.body.length() + result_bytes > 65536 - bytes {
       return Err(CustodyLost)
     }
-    runs[reservation] = (entries + 1, bytes + row.body.length())
+    runs[reservation] = (entries + 1, bytes + row.body.length() + result_bytes)
     if runs.length() > self.journal.max_records {
       return Err(CustodyLost)
     }
     cursor = row.key
+  }
+  // No orphan result or wire may escape the existing immutable grant bucket.
+  for
+    (table, expected) in [
+      ("client_local_signing_result_originals", signing_results),
+      ("client_local_signing_candidate_originals", signing_candidates),
+    ] {
+    let mut after = ""
+    let mut found = 0
+    while true {
+      match self.database.scan_after(table, after) {
+        Err(@sqlite.NotFound) => break
+        Err(issue) => return Err(Physical(issue))
+        Ok(row) => {
+          found += 1
+          if found > expected {
+            return Err(CustodyLost)
+          }
+          after = row.key
+        }
+      }
+    }
+    if found != expected {
+      return Err(CustodyLost)
+    }
   }
   // Optional old target absence is not repaired. Every retained target row
   // must instead have an immutable original Preparation grant in this bucket.

@@ -18,6 +18,7 @@ priv struct LocalHostSettings {
   read_file : String?
   run_policy_profile_file : String?
   reviewer_file : String?
+  initial_host_signing : (String, String, String)?
 }
 
 ///|
@@ -59,7 +60,7 @@ fn local_host_settings(text : String) -> LocalHostSettings raise ClientStop {
     "account_id", "principal", "connection", "state_parent", "state_name", "managed_root",
     "sqlite_library", "signature_library", "submission_ttl_ms", "journal_record_limit",
     "journal_snapshot_bytes", "installation_files", "source_file", "run_file", "read_file",
-    "reviewer_file", "run_policy_profile_file",
+    "reviewer_file", "run_policy_profile_file", "initial_host_signing",
   ]).unwrap_or_else(() => stop("InvalidLocalHostConfiguration"))
   let number = fn(key : String) -> Int64 raise ClientStop {
     guard @decode.lookup(fields, key) is Some(value) &&
@@ -94,6 +95,24 @@ fn local_host_settings(text : String) -> LocalHostSettings raise ClientStop {
       installation_files.push(name)
     }
   }
+  let initial_host_signing = match
+    @decode.lookup(fields, "initial_host_signing") {
+    None => None
+    Some(value) => {
+      let selected = @decode.closed_object(value, [
+        "principal", "connection", "resource",
+      ]).unwrap_or_else(() => stop("InvalidInitialHostSigningSelection"))
+      let principal = local_settings_text(selected, "principal")
+      let connection = local_settings_text(selected, "connection")
+      let resource = local_settings_text(selected, "resource")
+      for text in [principal, connection, resource] {
+        if text.length() > 256 || text.contains("\u{0}") {
+          stop("InvalidInitialHostSigningSelection")
+        }
+      }
+      Some((principal, connection, resource))
+    }
+  }
   let settings : LocalHostSettings = {
     account_file: local_settings_text(root, "account_config"),
     account_id: local_settings_text(fields, "account_id"),
@@ -108,6 +127,7 @@ fn local_host_settings(text : String) -> LocalHostSettings raise ClientStop {
     record_limit: records.to_int(),
     snapshot_bytes: snapshot,
     installation_files,
+    initial_host_signing,
     run_policy_profile_file: match
       @decode.lookup(fields, "run_policy_profile_file") {
       None => None
@@ -424,6 +444,7 @@ fn execute_native_local_adoption(
       ttl_ms: settings.ttl_ms,
       max_records: settings.record_limit,
       max_snapshot_bytes: settings.snapshot_bytes,
+      initial_host_signing: settings.initial_host_signing,
     }) {
     Ok(value) => value
     Err(DatabasePending(database, issue)) => {
@@ -444,158 +465,161 @@ fn execute_native_local_adoption(
   }
   // Produce the reply before closing, but never publish it before confirmed close.
   let cancellation_recovery : Ref[String?] = Ref(None)
-  let reply = try {
-    // Static check uses the original Host/configuration and the outer product
-    // physical fences; it does not bind a Run or demand an execution upgrade.
-    if packaged_runtime is Some(runtime) && operation != "check" {
-      let run_file = settings.run_file.unwrap_or_else(() => {
-        stop("LocalRunInstallationRequired")
-      })
-      host
-      .bind_packaged_runtime(
-        runtime,
-        settings.principal,
-        settings.connection,
-        environment_file,
-        run_file,
-        "runtime.json",
-      )
-      .unwrap_or_else(() => stop("PackagedLocalRuntimeChanged"))
-      |> ignore
-      if operation != "upgrade-policy" && operation != "lookup-policy-upgrade" {
-        host
-        .require_packaged_runtime_upgrade()
-        .unwrap_or_else(() => stop("ExplicitLocalRuntimeUpgradeRequired"))
-        |> ignore
-      }
-    }
-    if operation == "check" {
-      local_check_for_host(host, crypto, name, input_root, child)
-    } else if local_quick_query_requested(operation, child) {
-      local_quick_query(
-        host, settings, crypto, sqlite, check_environment, input_root, operation,
-        child,
-      )
-    } else if operation == "start" || operation == "aql" {
-      local_submission_start(
-        host,
-        settings,
-        crypto,
-        sqlite,
-        check_environment,
-        input_root,
-        operation,
-        child,
-        public_run=matches.subcommand is Some(("run", _)),
-      )
-    } else if operation == "upgrade-policy" ||
-      operation == "lookup-policy-upgrade" {
-      local_run_policy_upgrade_operation(
-        host, settings, crypto, operation, child,
-      )
-    } else if operation == "lookup-submission" {
-      local_submission_lookup(host, settings, crypto, input_root, child)
-    } else if operation == "lookup-request" {
-      local_request_lookup(host, settings, crypto, child)
-    } else if operation == "approve" || operation == "reject" {
-      local_checkpoint_answer_by_id(host, settings, crypto, operation, child)
-    } else if operation == "checkpoint-state" {
-      local_checkpoint_metadata_lookup(
-        host, settings, crypto, input_root, child,
-      )
-    } else if operation == "status" {
-      local_saved_run_status_command(host, settings, crypto, input_root, child)
-    } else if operation == "lookup-preparation-grant" {
-      local_preparation_grant_lookup(host, settings, crypto, input_root, child)
-    } else if operation == "lookup-preparation-raw" {
-      local_preparation_raw_lookup(
-        host, settings, crypto, sqlite, input_root, child,
-      )
-    } else if operation == "lookup-cancellation" {
-      local_cancellation_lookup(host, settings, crypto, input_root, child)
-    } else if operation == "cancel" {
-      local_cancellation_operation(
-        host, settings, crypto, sqlite, input_root, child, cancellation_recovery,
-      )
-    } else if operation == "delivery-attempt" {
-      local_delivery_attempt_lookup(
-        host, settings, crypto, sqlite, input_root, child,
-      )
-    } else if operation == "result" {
-      local_public_result(host, settings, crypto, sqlite, child)
-    } else if operation == "read" {
-      local_result_stream(host, settings, crypto, sqlite, input_root, child)
-    } else if operation == "adopt" &&
-      child.flags.get("migrate-journal").unwrap_or(false) {
-      match
-        host.migrate_journal_append_metadata(
-          settings.principal,
-          settings.connection,
-          settings.snapshot_bytes,
-        ) {
-        Ok(_) => ()
-        Err(issue) => stop(local_journal_migration_issue(issue))
-      }
-      local_adoption_metadata_reply(
-        true,
-        settings.account_id,
-        local_host_result(host.configuration()).configuration_cid(),
-        host.adoption_cid(),
-        child,
-      )
-    } else if operation == "new-submission" {
-      guard host.authorize({
-          principal: settings.principal,
-          connection: settings.connection,
-          resource: "run",
-          operation: "submit",
-        })
-        is Ok(Allow(_)) else {
-        stop("LocalSubmissionAuthorizationDenied")
-      }
-      let scope = local_host_result(
-        host.authority_scope_cid(
-          settings.principal,
-          settings.connection,
-          crypto,
-        ),
-      )
-      let epoch = local_host_result(host.epoch_authority())
-        .issue_epoch(scope, true, @env.now().to_double())
-        .unwrap_or_else(() => stop("LocalSubmissionEpochUnavailable"))
-      @local_host.native_client_submission_reference_wire(
-        @local_host.prepare_native_client_submission_reference(
-          epoch,
-          required(child, "request-id"),
-        ).unwrap_or_else(() => stop("InvalidSubmissionRef")),
-      )
-    } else {
-      local_adoption_metadata_reply(
-        operation == "adopt",
-        settings.account_id,
-        local_host_result(host.configuration()).configuration_cid(),
-        host.adoption_cid(),
-        child,
-      )
-    }
-  } catch {
-    issue => {
-      if host.close() is Err(_) {
-        if cancellation_recovery.val is Some(reference) {
-          stop(
-            local_cancellation_unknown(reference) +
-            " reason=LocalHostCleanupPending",
-          )
-        }
-        stop("LocalHostCleanupPending")
-      }
+  let reply = {
+    errdefer (if host.close() is Err(_) {
       if cancellation_recovery.val is Some(reference) {
-        match issue {
-          ClientStop(reason) =>
-            stop(local_cancellation_unknown(reference) + " reason=" + reason)
+        stop(
+          local_cancellation_unknown(reference) +
+          " reason=LocalHostCleanupPending",
+        )
+      }
+      stop("LocalHostCleanupPending")
+    })
+    try {
+      // Static check uses the original Host/configuration and the outer product
+      // physical fences; it does not bind a Run or demand an execution upgrade.
+      if packaged_runtime is Some(runtime) && operation != "check" {
+        let run_file = settings.run_file.unwrap_or_else(() => {
+          stop("LocalRunInstallationRequired")
+        })
+        host
+        .bind_packaged_runtime(
+          runtime,
+          settings.principal,
+          settings.connection,
+          environment_file,
+          run_file,
+          "runtime.json",
+        )
+        .unwrap_or_else(() => stop("PackagedLocalRuntimeChanged"))
+        |> ignore
+        if operation != "upgrade-policy" && operation != "lookup-policy-upgrade" {
+          host
+          .require_packaged_runtime_upgrade()
+          .unwrap_or_else(() => stop("ExplicitLocalRuntimeUpgradeRequired"))
+          |> ignore
         }
       }
-      raise issue
+      if operation == "check" {
+        local_check_for_host(host, crypto, name, input_root, child)
+      } else if local_quick_query_requested(operation, child) {
+        local_quick_query(
+          host, settings, crypto, sqlite, check_environment, input_root, operation,
+          child,
+        )
+      } else if operation == "start" || operation == "aql" {
+        local_submission_start(
+          host,
+          settings,
+          crypto,
+          sqlite,
+          check_environment,
+          input_root,
+          operation,
+          child,
+          public_run=matches.subcommand is Some(("run", _)),
+        )
+      } else if operation == "upgrade-policy" ||
+        operation == "lookup-policy-upgrade" {
+        local_run_policy_upgrade_operation(
+          host, settings, crypto, operation, child,
+        )
+      } else if operation == "lookup-submission" {
+        local_submission_lookup(host, settings, crypto, input_root, child)
+      } else if operation == "lookup-request" {
+        local_request_lookup(host, settings, crypto, child)
+      } else if operation == "approve" || operation == "reject" {
+        local_checkpoint_answer_by_id(host, settings, crypto, operation, child)
+      } else if operation == "checkpoint-state" {
+        local_checkpoint_metadata_lookup(
+          host, settings, crypto, input_root, child,
+        )
+      } else if operation == "status" {
+        local_saved_run_status_command(
+          host, settings, crypto, input_root, child,
+        )
+      } else if operation == "lookup-preparation-grant" {
+        local_preparation_grant_lookup(
+          host, settings, crypto, input_root, child,
+        )
+      } else if operation == "lookup-preparation-raw" {
+        local_preparation_raw_lookup(
+          host, settings, crypto, sqlite, input_root, child,
+        )
+      } else if operation == "lookup-cancellation" {
+        local_cancellation_lookup(host, settings, crypto, input_root, child)
+      } else if operation == "cancel" {
+        local_cancellation_operation(
+          host, settings, crypto, sqlite, input_root, child, cancellation_recovery,
+        )
+      } else if operation == "delivery-attempt" {
+        local_delivery_attempt_lookup(
+          host, settings, crypto, sqlite, input_root, child,
+        )
+      } else if operation == "result" {
+        local_public_result(host, settings, crypto, sqlite, child)
+      } else if operation == "read" {
+        local_result_stream(host, settings, crypto, sqlite, input_root, child)
+      } else if operation == "adopt" &&
+        child.flags.get("migrate-journal").unwrap_or(false) {
+        match
+          host.migrate_journal_append_metadata(
+            settings.principal,
+            settings.connection,
+            settings.snapshot_bytes,
+          ) {
+          Ok(_) => ()
+          Err(issue) => stop(local_journal_migration_issue(issue))
+        }
+        local_adoption_metadata_reply(
+          true,
+          settings.account_id,
+          local_host_result(host.configuration()).configuration_cid(),
+          host.adoption_cid(),
+          child,
+        )
+      } else if operation == "new-submission" {
+        guard host.authorize({
+            principal: settings.principal,
+            connection: settings.connection,
+            resource: "run",
+            operation: "submit",
+          })
+          is Ok(Allow(_)) else {
+          stop("LocalSubmissionAuthorizationDenied")
+        }
+        let scope = local_host_result(
+          host.authority_scope_cid(
+            settings.principal,
+            settings.connection,
+            crypto,
+          ),
+        )
+        let epoch = local_host_result(host.epoch_authority())
+          .issue_epoch(scope, true, @env.now().to_double())
+          .unwrap_or_else(() => stop("LocalSubmissionEpochUnavailable"))
+        @local_host.native_client_submission_reference_wire(
+          @local_host.prepare_native_client_submission_reference(
+            epoch,
+            required(child, "request-id"),
+          ).unwrap_or_else(() => stop("InvalidSubmissionRef")),
+        )
+      } else {
+        local_adoption_metadata_reply(
+          operation == "adopt",
+          settings.account_id,
+          local_host_result(host.configuration()).configuration_cid(),
+          host.adoption_cid(),
+          child,
+        )
+      }
+    } catch {
+      ClientStop(reason) => {
+        if cancellation_recovery.val is Some(reference) {
+          stop(local_cancellation_unknown(reference) + " reason=" + reason)
+        }
+        raise ClientStop(reason)
+      }
     }
   }
   if host.close() is Err(_) {
@@ -631,12 +655,19 @@ fn local_submission_lookup(
   crypto : @local_crypto.Library,
   input_root : String,
   child : @argparse.Matches,
+  capture? : @local_host.NativeLocalJournalCapture? = None,
 ) -> String raise ClientStop {
-  local_submission_lookup_selected(host, settings, crypto, () => {
-    @local_host.admit_native_client_submission_reference(
-      text_file(input_root, required(child, "submission-ref-file"), 4096L),
-    ).unwrap_or_else(() => stop("InvalidSubmissionRef"))
-  })
+  local_submission_lookup_selected(
+    host,
+    settings,
+    crypto,
+    () => {
+      @local_host.admit_native_client_submission_reference(
+        text_file(input_root, required(child, "submission-ref-file"), 4096L),
+      ).unwrap_or_else(() => stop("InvalidSubmissionRef"))
+    },
+    capture~,
+  )
 }
 
 ///|
@@ -645,7 +676,40 @@ fn local_request_lookup(
   settings : LocalHostSettings,
   crypto : @local_crypto.Library,
   child : @argparse.Matches,
+  capture? : @local_host.NativeLocalJournalCapture? = None,
 ) -> String raise ClientStop {
+  if capture is Some(original) {
+    let scope = local_host_result(
+      original.authority_scope_cid_in_original_read(
+        settings.principal,
+        settings.connection,
+      ),
+    )
+    let observed = original
+      .lookup_submitted_intent_by_request_id_in_original_read(
+        settings.principal,
+        settings.connection,
+        scope,
+        required(child, "request-id"),
+        @env.now().to_double(),
+      )
+      .unwrap_or_else(() => stop("LocalRequestLookupUnavailable"))
+      .unwrap_or_else(() => stop("LocalRequestHistoryUnavailable"))
+    guard observed is @local_host.Submitted(record) else {
+      stop("LocalRequestHistoryUnavailable")
+    }
+    // The same Owner already checked RunRead and Submit around its one clock
+    // and selected row. Keep that admitted row; do not look it up a second time.
+    return local_submission_lookup_reply(
+      host,
+      settings,
+      crypto,
+      @local_host.native_client_submitted_intent_reference(record),
+      scope,
+      observed,
+      capture~,
+    )
+  }
   let scope = local_host_result(
     host.authority_scope_cid(settings.principal, settings.connection, crypto),
   )
@@ -661,8 +725,7 @@ fn local_request_lookup(
       .unwrap_or_else(() => stop("LocalRequestLookupUnavailable"))
     reference.unwrap_or_else(() => stop("LocalRequestHistoryUnavailable"))
   })
-  // The shared lookup advances the clock and reads the journal again. Preserve
-  // the selector's current RunRead requirement through that final read as well.
+  // Independent compatibility entrance retains its original read boundary.
   if !local_run_operation_allowed(host, settings, crypto, scope, "read") {
     stop("LocalRequestReadAuthorizationDenied")
   }
@@ -675,42 +738,101 @@ fn local_submission_lookup_selected(
   settings : LocalHostSettings,
   crypto : @local_crypto.Library,
   select_reference : () -> @local_host.NativeClientSubmissionReference raise ClientStop,
+  capture? : @local_host.NativeLocalJournalCapture? = None,
 ) -> String raise ClientStop {
-  guard host.authorize({
-      principal: settings.principal,
-      connection: settings.connection,
-      resource: "run",
-      operation: "submit",
-    })
-    is Ok(Allow(_)) else {
+  let authorized = match capture {
+    Some(original) =>
+      original.authorize_in_original_read({
+        principal: settings.principal,
+        connection: settings.connection,
+        resource: "run",
+        operation: "submit",
+      })
+    None =>
+      host.authorize({
+        principal: settings.principal,
+        connection: settings.connection,
+        resource: "run",
+        operation: "submit",
+      })
+  }
+  guard authorized is Ok(Allow(_)) else {
     stop("LocalSubmissionAuthorizationDenied")
   }
   let reference = select_reference()
   let scope = local_host_result(
-    host.authority_scope_cid(settings.principal, settings.connection, crypto),
+    match capture {
+      Some(original) =>
+        original.authority_scope_cid_in_original_read(
+          settings.principal,
+          settings.connection,
+        )
+      None =>
+        host.authority_scope_cid(
+          settings.principal,
+          settings.connection,
+          crypto,
+        )
+    },
   )
-  let journal = local_host_result(host.run_journal())
-  let epoch = local_host_result(host.epoch_authority())
-  let observed = journal
-    .lookup_submitted_intent(
-      epoch,
-      reference,
-      scope,
-      true,
-      @env.now().to_double(),
-    )
-    .unwrap_or_else(() => stop("LocalSubmissionLookupUnavailable"))
-  // Recheck the same adopted account/configuration after the durable clock and
-  // journal read. No saved reference is a substitute for current authority.
-  guard host.authorize({
-      principal: settings.principal,
-      connection: settings.connection,
-      resource: "run",
-      operation: "submit",
-    })
-    is Ok(Allow(_)) else {
-    stop("LocalSubmissionAuthorizationDenied")
+  let observed = match capture {
+    Some(original) =>
+      original
+      .lookup_submitted_intent_in_original_read(
+        settings.principal,
+        settings.connection,
+        scope,
+        reference,
+        @env.now().to_double(),
+      )
+      .unwrap_or_else(() => stop("LocalSubmissionLookupUnavailable"))
+    None => {
+      let journal = local_host_result(host.run_journal())
+      let epoch = local_host_result(host.epoch_authority())
+      let observed = journal
+        .lookup_submitted_intent(
+          epoch,
+          reference,
+          scope,
+          true,
+          @env.now().to_double(),
+        )
+        .unwrap_or_else(() => stop("LocalSubmissionLookupUnavailable"))
+      guard host.authorize({
+          principal: settings.principal,
+          connection: settings.connection,
+          resource: "run",
+          operation: "submit",
+        })
+        is Ok(Allow(_)) else {
+        stop("LocalSubmissionAuthorizationDenied")
+      }
+      observed
+    }
   }
+  local_submission_lookup_reply(
+    host,
+    settings,
+    crypto,
+    reference,
+    scope,
+    observed,
+    capture~,
+  )
+}
+
+///|
+// Projection of the same checked original. It creates no preparation or Run;
+// a retained Run joins only its original Journal record, never current files.
+fn local_submission_lookup_reply(
+  host : @local_host.NativeLocalHostConnection,
+  settings : LocalHostSettings,
+  crypto : @local_crypto.Library,
+  reference : @local_host.NativeClientSubmissionReference,
+  scope : String,
+  observed : @local_host.NativeClientSubmittedIntentLookup,
+  capture? : @local_host.NativeLocalJournalCapture? = None,
+) -> String raise ClientStop {
   let reference_json = @json.parse(
     @local_host.native_client_submission_reference_wire(reference),
   ) catch {
@@ -748,13 +870,31 @@ fn local_submission_lookup_selected(
         Some(admission) => {
           // Resolve the original durable Run rather than rebuilding a reference
           // from current settings or treating admission revision as control.
-          let (_, run) = local_resolve_admitted_run(journal, admission, scope, () => {
-            local_submit_allowed(host, settings, crypto, scope)
-          })
-          let definition = @local_host.native_client_run_definition(run)
-          if !local_submit_allowed(host, settings, crypto, scope) {
-            stop("LocalSubmissionAuthorizationDenied")
+          let run = match capture {
+            Some(original) =>
+              original
+              .lookup_submitted_run_in_original_read(
+                settings.principal,
+                settings.connection,
+                scope,
+                admission,
+              )
+              .unwrap_or_else(() => stop("LocalOriginalRunUnavailable"))
+            None => {
+              let journal = local_host_result(host.run_journal())
+              let (_, run) = local_resolve_admitted_run(
+                journal,
+                admission,
+                scope,
+                () => local_submit_allowed(host, settings, crypto, scope),
+              )
+              if !local_submit_allowed(host, settings, crypto, scope) {
+                stop("LocalSubmissionAuthorizationDenied")
+              }
+              run
+            }
           }
+          let definition = @local_host.native_client_run_definition(run)
           fields.set("ref", local_original_run_reference(definition, scope))
           fields.set(
             "controlRevision",

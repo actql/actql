@@ -640,3 +640,55 @@ Subjects: neither control nor use is converted between those purposes.
   physical identity, copied/foreign rejection, byte mutation, receiver errors,
   lost replies, COMMIT uncertainty and purpose separation. These components do
   not establish complete installed publication, recovery or live service.
+
+
+### Original bounded response byte observation
+
+- Response reader responsibility: the existing HTTPS Credential Owner may take
+  an internal synchronous `observeResponseBytes` callback from its original
+  funded operation. It changes no grant, request, Journal owner or outcome law.
+- Response reader inputs and outputs: the opt-in path uses paused binary
+  `response.read(size)` with a fixed quantum of 16384 bytes and at most the
+  remaining protocol body bound plus one. The callback receives each actual
+  consumed chunk length before copying or checking body acceptance. No secret,
+  raw body, quota-derived observation or terminal Effect outcome is returned.
+  The binary read size follows the pinned [Node.js 22.22 contract](https://nodejs.org/download/release/v22.22.0/docs/api/stream.html#readablereadsize).
+- Response reader identity: the callback is captured for that same call and
+  requires its original Credential binding. It cannot replace the original
+  grant, current checks, scoped request, use identity or saved claim.
+- Response reader ownership: original request/socket and invalid callback
+  borrowing remain with the existing binding. No result, error, callback
+  settlement or numeric extent can supply a close acknowledgement.
+  If native callback registration fails, the first unresolved original and
+  cause stay in that same binding. Acquisition refuses before another claim
+  or send, even when no current callback was selected and close has not yet
+  been requested. Later failures cannot replace the retained original.
+- Response reader synchronization: a conforming callback returns only
+  `undefined`. A returned Promise/thenable is refused, but remains joined to
+  the same request promise until it settles and the actual socket/request
+  close events arrive. No rejection is detached to make cleanup appear done.
+  Native registration precedes a replaceable public `then` observation. A
+  constructor/species refusal supplies no native settlement witness: socket
+  close or a caller-held resolver cannot acknowledge that unresolved duty.
+- Response reader failure: every consumed chunk, including the final offending
+  byte, reaches the callback before protocol refusal. A callback throw remains
+  the original failure and stops the same response; callers retain unresolved
+  accounting as pending. A partial lost reply never refunds its observed prefix
+  or enables resend; existing Journal Unknown/non-resend law remains.
+- Response reader cancellation: original signal/current and binding retirement
+  still stop the same physical request. Pending socket or callback settlement
+  keeps that binding pending; cleanup never starts another read or request.
+- Response reader resources: `httpsCredentialResponseWindowBytes(B)` describes
+  the implementation's B+1 consumed-byte refusal window, not actual usage or a
+  larger accepted body. The selected Plan must fund that window, request/body,
+  chunk headers/copies/concat, secret, response projection and failed-child
+  overlap before I/O. Opaque Node/TLS buffers are not an all-wire/RSS claim.
+- Response reader extension: omission retains the existing flowing reader and
+  its original protocol cap. This internal observation does not enable an
+  installed Effect, admit an initial parent or supply missing Source/service
+  backing. The actual operation still selects and charges its same native slot.
+- Response reader verification: actual TLS cases in
+  `https-credential-response-accounting.test.mjs` cover binary lengths, a real
+  offending byte, a consumed prefix before reply loss, both invalid callback
+  settlements, charge failure and absence. Authority/Journal are explicit
+  ports; these are not normal Account, Common funding or ordinary acceptance.

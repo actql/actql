@@ -28,6 +28,10 @@ pub fn client_values_host_admit_effect_preview_identity(String, String, String, 
 
 pub fn client_values_host_admit_effect_run_materials(String, String, Bool, Bool, Bool, Bool, Bool, Bool, Bool, @run_publication_host.ClientEffectIssuedNormalizationMaterials?, @run_publication_host.ClientRequestIdentity?, @run_publication_host.ClientSourcePreparation?, String?) -> Result[@run_publication_host.ClientEffectRunMaterials, ClientValuesHostEffectRestorationIssue]
 
+pub fn client_values_host_admit_effectful_final_run_evidence(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.EffectPreviewIdentity, String, Array[String], @run_publication.PublicationContract, Int, Int, Int) -> Result[@run_publication.EffectfulFinalRunEvidence, @run_publication.EffectfulPublicationCommitIssue]
+
+pub fn client_values_host_admit_original_result_occurrence_evidence(@run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, String, String, String) -> Result[@run_publication.ResultOrderingEvidence, ClientValuesHostOriginalResultOccurrenceIssue]
+
 pub fn client_values_host_admit_publication_contract(String, String, Int, Int, Int) -> Result[@run_publication.PublicationContract, @run_publication.PublicationContractIssue]
 
 pub fn client_values_host_admit_request_identity(String, String, String, String, String, String, String) -> Result[@run_publication_host.ClientRequestIdentity, @run_publication_host.ClientRequestIdentityIssue]
@@ -180,6 +184,16 @@ pub fn client_values_host_effect_task_run_work(@run_publication_host.ClientRemot
 
 pub fn client_values_host_effect_template_wire(@run_publication_host.ClientEffectCompilation) -> String
 
+pub fn client_values_host_effectful_final_run_all_unattempted(@run_publication.EffectfulFinalRunEvidence) -> Bool
+
+pub fn client_values_host_effectful_final_run_failed_state(@run_publication.EffectfulFinalRunEvidence, String, Int, Int, Int) -> Result[String, @run_publication.RunStateIssue]
+
+pub fn client_values_host_effectful_final_run_receipt(@run_publication.EffectfulFinalRunEvidence) -> @run_publication.PublicationContract
+
+pub fn client_values_host_effectful_final_run_reconciliation_state(@run_publication.EffectfulFinalRunEvidence, String, Int, Int, Int) -> Result[String, @run_publication.RunStateIssue]
+
+pub fn client_values_host_effectful_final_run_status(@run_publication.EffectfulFinalRunEvidence) -> String
+
 pub fn client_values_host_environment(String, String, Bool, Bool, Bool, Bool, Bool, Bool, Bool, String?) -> @program_check.CheckEnvironment?
 
 pub fn client_values_host_existing_delivery_attempt_action(@run_publication.PublicationContract?) -> Int
@@ -219,6 +233,8 @@ pub fn client_values_host_issue_effect_free_run_receipt(@run_publication.RunPubl
 pub fn client_values_host_issue_effect_run_definition(@run_publication_host.ClientEffectAllowedRun, String, String, String, String) -> Result[@run_publication.PublicationContract, @run_publication_host.ClientEffectCompiledRunIssue]
 
 pub fn client_values_host_issue_effect_run_materials(@run_publication_host.ClientEffectAllowedRun, @run_publication.PublicationContract, @program_check.CheckEnvironment, String, String, String?, @run_publication_host.ClientRequestIdentity?) -> Result[String, @run_publication_host.ClientEffectRunMaterialsIssue]
+
+pub fn client_values_host_issue_effect_succeeded_run_state_wire(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientEffectAllowedRun, @run_publication.PublicationContract, @run_publication.EffectfulFinalRunEvidence, String, Array[String], Array[String], Array[String], Array[String]) -> String?
 
 pub fn client_values_host_issue_effectful_final_run_receipt(@run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.EffectPreviewIdentity, String, Array[String], Int, Int, Int) -> Result[@run_publication.PublicationContract, @run_publication.EffectfulFinalReceiptIssuanceIssue]
 
@@ -582,6 +598,8 @@ pub fn client_values_host_validate_publication_chain(@run_publication.Publicatio
 
 pub fn client_values_host_validate_publication_record_transition(@run_publication.PublicationContract?, @run_publication.PublicationContract, Bool) -> Result[Unit, @run_publication.PublicationTransitionIssue]
 
+pub fn client_values_host_validate_retained_effectful_publication_commit(@run_publication.EffectfulFinalRunEvidence, Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract) -> Result[@run_publication.PublicationContract, @run_publication.EffectfulPublicationCommitIssue]
+
 pub fn client_values_host_validate_retained_input_plan(ClientValuesHostRetainedInputPlan) -> Result[Unit, @run_publication_host.ClientRetainedTaskInputIssue]
 
 pub fn client_values_host_validate_retained_task_input(ClientValuesHostRetainedTaskInput) -> Result[Unit, @run_publication_host.ClientRetainedTaskInputIssue]
@@ -635,6 +653,11 @@ pub(all) enum ClientValuesHostOriginalPlanIssue {
   ValuesBinding(@run_publication_host.ClientValuesRunBindingIssue)
   TaskBinding(@run_publication_host.ClientTaskRunBindingIssue)
   Plan(@run_publication_host.ClientInteractivePlanIssue)
+}
+
+pub(all) enum ClientValuesHostOriginalResultOccurrenceIssue {
+  Ordering(@run_publication.ResultOrderingEvidenceIssue)
+  Artifact(@run_publication.ResultArtifactEvidenceIssue)
 }
 
 pub(all) enum ClientValuesHostPreparationIssue {

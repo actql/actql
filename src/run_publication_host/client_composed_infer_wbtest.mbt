@@ -30,6 +30,128 @@ fn client_composed_infer_test_program(
 }
 
 ///|
+fn original_infer_graph_parts_fixture() -> (
+  PreparedClientProgram,
+  ClientInferPlanGraph,
+) {
+  let prepared = client_infer_prefix_test_program()
+  let occurrence = prepared_client_composed_infer_occurrence(prepared).unwrap()
+  let bounds = run_materials_limits()
+  let graph = issue_installed_client_composed_infer_plan_graph(
+    occurrence,
+    client_infer_graph_test_execution(prepared, occurrence=Some(occurrence)),
+    bounds.sequence,
+    bounds.max_evidence_bytes,
+    bounds.max_evidence_nodes,
+    bounds.max_evidence_depth,
+  ).unwrap()
+  (prepared, graph)
+}
+
+///|
+test "Model component graph retains its original arrays and completed writer geometry for the actual task compiler" {
+  let (prepared, component) = original_infer_graph_parts_fixture()
+  let bounds = run_materials_limits()
+  let parsed = @source.parse_json_bytes_measured(
+    @utf8.encode(component.graph.wire),
+    {
+      max_input_bytes: bounds.max_evidence_bytes,
+      max_nodes: bounds.max_evidence_nodes,
+      max_depth: bounds.max_evidence_depth,
+    },
+  ).unwrap()
+  assert_eq(component.graph_wire_bytes, parsed.usage.input_bytes)
+  assert_eq(component.graph_wire_nodes, parsed.usage.nodes)
+  assert_eq(component.graph_wire_depth, parsed.usage.depth)
+  let (nodes, edges, roots) = client_infer_graph_original_parts(
+    component,
+    prepared,
+    parsed.usage.input_bytes,
+    parsed.usage.nodes,
+    parsed.usage.depth,
+  ).unwrap()
+  assert_true(physical_equal(nodes, component.graph_nodes))
+  assert_true(physical_equal(edges, component.graph_edges))
+  assert_true(physical_equal(roots, component.graph_roots))
+  assert_eq(nodes.length(), 2)
+  assert_eq(edges.length(), 1)
+  assert_true(roots.is_empty())
+  assert_true(
+    @canonical.object_field(nodes[1], "node_id") is Some(@canonical.String(id)) &&
+    id == "task_0_infer_2",
+  )
+  let compiled = issue_prepared_client_multi_infer_compilation(
+    prepared,
+    [component],
+    run_materials_manifests(),
+    bounds.sequence,
+    bounds.max_sequence_steps,
+    bounds.max_sequence_work,
+    bounds.max_evidence_bytes,
+    bounds.max_evidence_nodes,
+    bounds.max_evidence_depth,
+  ).unwrap()
+  assert_eq(compiled.infers.length(), 1)
+  assert_true(physical_equal(compiled.infers[0], component))
+  assert_eq(client_task_compilation_result_names(compiled), ["answer"])
+}
+
+///|
+test "Model original graph parts keep tighter codec bounds and refuse foreign or changed wire" {
+  let (prepared, component) = original_infer_graph_parts_fixture()
+  let b = component.graph_wire_bytes
+  let n = component.graph_wire_nodes
+  let d = component.graph_wire_depth
+  for
+    (bytes, nodes, depth) in [
+      (b - 1, n, d),
+      (b, n - 1, d),
+      (b, n, d - 1),
+      (0, n, d),
+    ] {
+    assert_true(
+      client_infer_graph_original_parts(
+        component, prepared, bytes, nodes, depth,
+      )
+      is None,
+    )
+  }
+  assert_true(
+    client_infer_graph_original_parts(
+      component,
+      client_infer_prefix_test_program(),
+      b,
+      n,
+      d,
+    )
+    is None,
+  )
+  let changed = { ..component, graph: { ..component.graph, wire: "{}", }, }
+  assert_true(
+    client_infer_graph_original_parts(changed, prepared, b, n, d) is None,
+  )
+  let equal_copy = {
+    ..component,
+    graph: { ..component.graph, wire: component.graph.wire, },
+  }
+  assert_true(!physical_equal(equal_copy.graph, component.graph))
+  assert_true(
+    client_infer_graph_original_parts(equal_copy, prepared, b, n, d) is None,
+  )
+  assert_true(
+    issue_prepared_client_multi_infer_task_plan_graph(
+      prepared,
+      [changed],
+      run_materials_limits().sequence,
+      b,
+      n,
+      d,
+    )
+    is Err(UnsupportedGraph),
+  )
+}
+
+///|
 test "composed INFER selects its checked JOIN task rather than task zero" {
   let prepared = client_composed_infer_test_program()
   // The existing one-task component selection remains scoped to its input.
@@ -102,7 +224,7 @@ test "two independent INFER Units retain distinct logical occurrences for the sa
 test "historical independent INFER scopes resolve the same checked Source by its graph edge" {
   let base = admit_client_check_environment(
     local_normalization_environment_wire,
-    "sha256:9882e5f1412beaf650b0fdaf55035b198b7b87e8e9e3c3a0f07730953b0a72ed",
+    "sha256:e3da0e91ef758728bdf6e58957c09fe044d97d1fa2a21c9c19e3bdf5109bf45b",
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
   ).unwrap()
@@ -729,7 +851,7 @@ test "two acquired roots JOIN INFER KEEP and downstream Effect compile together"
   }
   let base = admit_client_check_environment(
     local_normalization_environment_wire,
-    "sha256:9882e5f1412beaf650b0fdaf55035b198b7b87e8e9e3c3a0f07730953b0a72ed",
+    "sha256:e3da0e91ef758728bdf6e58957c09fe044d97d1fa2a21c9c19e3bdf5109bf45b",
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
   ).unwrap()
@@ -865,4 +987,147 @@ test "two acquired roots JOIN INFER KEEP and downstream Effect compile together"
     })
     is Err(UnknownClassification),
   )
+}
+
+///|
+test "composed Model construction geometry covers original repeated edges Results and final writer work" {
+  for
+    prepared in [
+      client_infer_prefix_test_program(),
+      client_composed_infer_test_program(),
+      client_two_independent_infer_test_program(),
+    ] {
+    let bounds = run_materials_limits()
+    let components = prepared_client_composed_infer_occurrences(prepared)
+      .unwrap()
+      .map(occurrence => {
+        issue_installed_client_composed_infer_plan_graph(
+          occurrence,
+          client_infer_graph_test_execution(
+            prepared,
+            occurrence=Some(occurrence),
+          ),
+          bounds.sequence,
+          bounds.max_evidence_bytes,
+          bounds.max_evidence_nodes,
+          bounds.max_evidence_depth,
+        ).unwrap()
+      })
+    let geometry = measure_prepared_client_model_compilation_construction(
+      prepared,
+      components,
+      run_materials_manifests(),
+      bounds.sequence,
+      bounds.max_sequence_steps,
+      bounds.max_sequence_work,
+      bounds.max_evidence_bytes,
+      bounds.max_evidence_nodes,
+      bounds.max_evidence_depth,
+    ).unwrap()
+    let count = Ref(-1L)
+    let compiled = observe_prepared_client_multi_infer_plan_encoding(
+      prepared,
+      components,
+      run_materials_manifests(),
+      bounds.sequence,
+      bounds.max_sequence_steps,
+      bounds.max_sequence_work,
+      bounds.max_evidence_bytes,
+      bounds.max_evidence_nodes,
+      bounds.max_evidence_depth,
+      nodes_out=count,
+    ).unwrap()
+    let parsed = @source.parse_json_bytes_measured(
+      @utf8.encode(compiled.plan.plan.wire),
+      {
+        max_input_bytes: bounds.max_evidence_bytes,
+        max_nodes: bounds.max_evidence_nodes,
+        max_depth: bounds.max_evidence_depth,
+      },
+    ).unwrap()
+    assert_eq(count.val, 2L * parsed.usage.nodes.to_int64() - 1L)
+    assert_true(parsed.usage.input_bytes <= geometry.executable_plan.0)
+    assert_true(parsed.usage.nodes <= geometry.executable_plan.1)
+    assert_true(parsed.usage.depth <= geometry.executable_plan.2)
+    assert_eq(geometry.borrowed_inputs.length(), components.length())
+    assert_eq(
+      geometry.fragments.length() + components.length(),
+      @strategy.graph_task_count(prepared.graph),
+    )
+    for index in 0..<components.length() {
+      assert_true(physical_equal(compiled.infers[index], components[index]))
+    }
+    let limits = client_standard_pure_compilation_limits()
+    let units = prepared_client_model_measurement_storage(
+      prepared, components, limits,
+    ).unwrap()
+    assert_true(
+      units ==
+      prepared_client_model_measurement_storage(prepared, components, {
+        ..limits,
+        max_wire_bytes: 2000000,
+        max_nodes: 200000,
+        max_depth: 200,
+      }).unwrap(),
+    )
+  }
+}
+
+///|
+test "composed Model measurement retains foreign inventory refusal and bounded compiler failure prefix" {
+  let (prepared, component) = original_infer_graph_parts_fixture()
+  let bounds = run_materials_limits()
+  let measure = (value, components) => {
+    measure_prepared_client_model_compilation_construction(
+      value,
+      components,
+      run_materials_manifests(),
+      bounds.sequence,
+      bounds.max_sequence_steps,
+      bounds.max_sequence_work,
+      bounds.max_evidence_bytes,
+      bounds.max_evidence_nodes,
+      bounds.max_evidence_depth,
+    )
+  }
+  assert_true(
+    measure(client_infer_prefix_test_program(), [component]) is Err(_),
+  )
+  assert_true(measure(prepared, [component, component]) is Err(_))
+  measure(prepared, [component]).unwrap() |> ignore
+  let successful = issue_prepared_client_multi_infer_compilation(
+    prepared,
+    [component],
+    run_materials_manifests(),
+    bounds.sequence,
+    bounds.max_sequence_steps,
+    bounds.max_sequence_work,
+    bounds.max_evidence_bytes,
+    bounds.max_evidence_nodes,
+    bounds.max_evidence_depth,
+  ).unwrap()
+  let original = @source.parse_json_bytes_measured(
+    @utf8.encode(successful.plan.plan.wire),
+    {
+      max_input_bytes: bounds.max_evidence_bytes,
+      max_nodes: bounds.max_evidence_nodes,
+      max_depth: bounds.max_evidence_depth,
+    },
+  ).unwrap()
+  let one_short = original.usage.nodes - 1
+  let count = Ref(-1L)
+  let result = observe_prepared_client_multi_infer_plan_encoding(
+    prepared,
+    [component],
+    run_materials_manifests(),
+    bounds.sequence,
+    bounds.max_sequence_steps,
+    bounds.max_sequence_work,
+    bounds.max_evidence_bytes,
+    one_short,
+    bounds.max_evidence_depth,
+    nodes_out=count,
+  )
+  assert_true(result is Err(_))
+  assert_true(count.val >= 0L && count.val <= 2L * one_short.to_int64())
 }

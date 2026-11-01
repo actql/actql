@@ -7,15 +7,20 @@ import {runtimeCore} from './runtime-core.mjs';
 // these fixtures do not issue a real publication or physical cleanup receipt.
 const limits = Object.freeze({maxWireBytes: 65536, maxNodes: 4096, maxDepth: 64});
 const ok = value => ({$tag: 1, _0: value});
+// Distinct from caller metadata limits: the fixture models the existing
+// Common port's original-owner projection, not a new extent issuer.
+const originalLimits = Object.freeze([131072, 8192, 96]);
 
 function fixture() {
   const calls = {begin: [], finish: [], cancel: [], chain: [], commit: []};
   let serial = 0;
+  const preparations = new WeakMap();
   const contract = (name, wire) => Object.freeze({name, wire,
     identity: name === 'captured_run' ? 'same-captured-identity' : `${name}-${++serial}`});
   const begin = (args, effectful) => {
     const preparation = {args, effectful,
       contract: contract('captured_run', '{"captured":"same-visible-body"}')};
+    preparations.set(preparation, originalLimits);
     calls.begin.push(preparation);
     return preparation;
   };
@@ -39,11 +44,16 @@ function fixture() {
     strategyRunEvidenceIdentity: value => value.identity,
     strategyRunEvidenceJson: value => value.wire,
     strategyPublicationEvidenceWorkspace: value => value * 4,
-    strategyBeginEffectFreeCapturedRun(...args) {
+    strategyBeginOriginalEffectFreeCapturedRun(...args) {
       assert.strictEqual(this, moon); return begin(args, false);
     },
     strategyBeginEffectfulCapturedRun(...args) {
       assert.strictEqual(this, moon); return ok(begin(args, true));
+    },
+    strategyCapturedRunPreparationLimits(preparation) {
+      assert.strictEqual(this, moon);
+      const owned = preparations.get(preparation);
+      return owned === undefined ? {$tag: 0} : {$tag: 1, _0: owned};
     },
     strategyCapturedRunAdvance() {return ok(true);},
     strategyCapturedRunFinish(preparation) {
@@ -56,6 +66,7 @@ function fixture() {
     },
     strategyCapturedRunCancel(preparation) {
       assert.strictEqual(this, moon); calls.cancel.push(preparation);
+      preparations.delete(preparation);
     },
     strategyBeginEffectFreeChainCheck(...args) {
       assert.strictEqual(this, moon); return check('chain', undefined, args);
@@ -117,7 +128,7 @@ test('the original captured preparation reaches both checks with unchanged argum
   assert.deepEqual(chain.slice(2, 4), issued.slice(2, 4));
   assert.deepEqual(commit.slice(2, 4), issued.slice(2, 4));
   assert.strictEqual(chain[6], commit[10]);
-  assert.deepEqual(chain.slice(7), [65536, 4096, 64, 16384]);
+  assert.deepEqual(chain.slice(7), [...originalLimits, originalLimits[1] * 4]);
   assert.deepEqual(commit.slice(14), chain.slice(7));
   assert.equal(f.calls.cancel.length, 0, 'checks borrow rather than retire the operation holder');
   f.control.retireCapturedComputation(captured);
@@ -164,7 +175,7 @@ test('restored wrappers take full checking and copied or foreign wrappers refuse
   f.control.retireCapturedComputation(captured);
 });
 
-test('changed inventories and tighter bounds still reach Common without a Node compatibility shortcut', async () => {
+test('changed inventories reach Common with the same original envelope, not replacement caller bounds', async () => {
   const f = fixture(), captured = await f.issue();
   const changed = {...f.chain, definitions: [...f.chain.definitions, f.seal('result_definition')],
     receipt: f.seal('computation_receipt')};
@@ -174,8 +185,8 @@ test('changed inventories and tighter bounds still reach Common without a Node c
   assert.strictEqual(f.calls.chain[0].original, f.calls.begin[0]);
   assert.strictEqual(f.calls.commit[0].original, f.calls.begin[0]);
   assert.equal(f.calls.chain[0].args[2].length, 2);
-  assert.deepEqual(f.calls.chain[0].args.slice(7), [32768, 2048, 32, 8192]);
-  assert.deepEqual(f.calls.commit[0].args.slice(14), [32768, 2048, 32, 8192]);
+  assert.deepEqual(f.calls.chain[0].args.slice(7), [...originalLimits, originalLimits[1] * 4]);
+  assert.deepEqual(f.calls.commit[0].args.slice(14), [...originalLimits, originalLimits[1] * 4]);
   assert.notStrictEqual(f.calls.chain[0].args[5], f.calls.begin[0].args[5]);
   f.control.retireCapturedComputation(captured);
 });
@@ -225,4 +236,20 @@ test('Effectful issuance keeps its existing finish and does not retain computati
   assert.deepEqual(f.calls.finish, [{preparation: f.calls.begin[0], retained: false}]);
   f.control.retireCapturedComputation(captured);
   assert.equal(f.calls.cancel.length, 0);
+});
+
+
+test('missing or malformed original preparation extents cancel before traversal', async () => {
+  for (const projected of [{$tag: 0}, {$tag: 1, _0: [1, 2]},
+    {$tag: 1, _0: [1, -1, 3]}, {$tag: 1, _0: [2147483648, 2, 3]}]) {
+    const f = fixture();
+    f.moon.strategyCapturedRunPreparationLimits = original => {
+      assert.strictEqual(original, f.calls.begin[0]);
+      return projected;
+    };
+    f.moon.strategyCapturedRunAdvance = () => assert.fail('No traversal without original limits');
+    await assert.rejects(f.issue(), /Invalid original Captured Run preparation limits/);
+    assert.deepEqual(f.calls.cancel, f.calls.begin);
+    assert.equal(f.calls.finish.length, 0);
+  }
 });

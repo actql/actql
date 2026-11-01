@@ -3,6 +3,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {prepareSheetsGridPages} from '../site/sheets-grid-pages.mjs';
+import {prepareSheetsTargetRequest,projectSheetsTarget} from '../site/sheets-exchange.mjs';
+import {isEffectPreparationRefusal} from '../../../host-common/effect-preparation-result.mjs';
 import {columns,expectedRows,sheetsRoutes,errorGridRows} from './sheets-api.fixture.mjs';
 const moon=await import(process.env.ACTQL_TEST_SHEETS_PROVIDER_MODULE??
   new URL('../../../../_build/js/release/build/connectors/sheets/host_node/host_node.js',import.meta.url).href);
@@ -27,4 +29,19 @@ test('actual Sheets callback codec refuses cell errors foreign spreadsheet and e
   assert.throws(()=>p.decodePage({...original,body:Buffer.from(original.body.toString().replace('"book"','"foreign"'))},frame),error=>error.code==='SheetsContractRefused'&&error.cause.kind==='ForeignSpreadsheet');
   const exceeded=response({gridRows:Array(5).fill({values:[{effectiveValue:{stringValue:'one'}}]})},request.body);
   assert.throws(()=>p.decodePage(exceeded,frame),{code:'SheetsContractRefused'});
+});
+
+test('actual Sheets metadata projection preserves original target refusal separately from transport rejection',()=>{
+  const request=prepareSheetsTargetRequest('book');assert.equal(request.method,'GET');
+  assert.equal(Object.hasOwn(request,'body'),false);
+  assert.equal(new URL(request.path,'https://fixture.invalid').searchParams.get('fields'),
+    'spreadsheetId,sheets(properties(sheetId,sheetType,gridProperties(rowCount,columnCount)))');
+  const body=Buffer.from(JSON.stringify(sheetsRoutes({}).find(route=>route.method==='GET').handle().body));
+  const selected={moon,spreadsheetId:'book',columns,range,appendSheetId:7};
+  assert.equal(projectSheetsTarget({...selected,response:{accepted:true,statusCode:200,body}}),undefined);
+  assert.throws(()=>projectSheetsTarget({...selected,response:{accepted:false,statusCode:200,body}}),
+    error=>error.code==='SheetsTargetUnverified'&&!isEffectPreparationRefusal(error));
+  const foreign=Buffer.from(body.toString().replace('"book"','"foreign"'));
+  assert.throws(()=>projectSheetsTarget({...selected,response:{accepted:true,statusCode:200,body:foreign}}),
+    error=>error.code==='SheetsContractRefused'&&error.cause.kind==='ForeignSpreadsheet'&&isEffectPreparationRefusal(error));
 });

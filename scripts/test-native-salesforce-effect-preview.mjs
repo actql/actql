@@ -11,7 +11,9 @@ import {readNativeEffectCaptureProgress} from './fixtures/native-effect-capture-
 import {startNativeBearerServers} from './fixtures/native-bearer-servers.mjs';
 const residentMappedCreate = process.argv.includes('--resident-original-mapped-create-write');
 const residentApprovedRow = residentMappedCreate || process.argv.includes('--resident-approved-row-write');
-const originalLocalReview = process.argv.includes('--original-local-review');
+const adoptedInitialHost = process.argv.includes('--adopted-initial-host-attestation');
+const adoptedInitialReviewer = adoptedInitialHost || process.argv.includes('--adopted-initial-reviewer');
+const originalLocalReview = adoptedInitialReviewer || process.argv.includes('--original-local-review');
 const directLocalClaimCustody = process.argv.includes('--direct-local-claim-custody');
 const residentOriginalHolder = residentApprovedRow || process.argv.includes('--resident-original-holder-review');
 const residentCheckpoint = residentOriginalHolder || process.argv.includes('--resident-checkpoint-custody');
@@ -338,7 +340,11 @@ try {
   // successful writes to the existing Provider expectations.
   if (!residentProposals && !originalLocalReview) testEnv.ACTQL_TEST_NATIVE_DIRECT_LOCAL_CLAIM_CUSTODY = '1';
   else delete testEnv.ACTQL_TEST_NATIVE_DIRECT_LOCAL_CLAIM_CUSTODY;
-  const selection = directLocalClaimCustody
+  const selection = adoptedInitialHost
+    ? 'src/platform_native/remote_resident_source_compute_tests/initial_host_attestation_paired_signing_wbtest.mbt'
+    : adoptedInitialReviewer
+    ? 'src/platform_native/remote_resident_source_compute_tests/initial_reviewer_paired_signing_wbtest.mbt'
+    : directLocalClaimCustody
     ? 'src/platform_native/credential_resource/guarded_write_native_wbtest.mbt'
     : originalLocalReview
     ? 'src/platform_native/remote_resident_source_compute_tests/local_client_effect_source_wbtest.mbt'
@@ -374,7 +380,11 @@ try {
     provider: bearer?.effectTargets(), providerValue: bearer?.effectTargetValue(),
     providerCreated: residentMappedCreate ? bearer.effectCreatedValues() : undefined,
     captureProgress: residentOriginalHolder ? await readNativeEffectCaptureProgress(join(root, 'retained')) : undefined,
-    scope: directLocalClaimCustody
+    scope: adoptedInitialHost
+      ? 'Actual adopted Host/Source/computation/Preview/Checkpoint -> same initial Reviewer candidate -> explicit independent Account Sign -> first full unsigned Host wrapper/time durable before claim -> actual independent Host signature -> same stored wrapper restore -> original Native Resolution admission/rejection/cleanup; component only, no public CLI approval/whole-engine backing/performance acceptance'
+      : adoptedInitialReviewer
+      ? 'Actual adopted Local Host journal/epoch/Account scope -> original Source/computation/Preview/Checkpoint -> same initial Reviewer physical signing and current candidate restore; existing independent fixture rejection retires review; no Local Host attestation, CLI approval, whole-engine backing or performance acceptance'
+      : directLocalClaimCustody
       ? 'Native credential adapter original ordinal/use custody refusal for Local and Remote types; no adopted Local Host, public CLI, approval or Provider write acceptance'
       : originalLocalReview
       ? 'Actual accepted original Local Run -> acquired Source and imported Result -> checked protocol Preview -> encrypted capture/Preview/Checkpoint -> original journal waiting -> signed explicit rejection -> retryable cleanup; no public CLI or Provider write or separate-process recovery'
@@ -411,7 +421,7 @@ try {
     assert.equal(localRejectionRequests, 0);
     assert.deepEqual(paths, []);
   } else if (originalLocalReview) {
-    assert.equal(localRejectionRequests, 1);
+    assert.equal(localRejectionRequests, adoptedInitialHost ? 0 : 1);
     assert.deepEqual(paths, []);
   } else if (residentProposals) {
     assert.deepEqual(paths, []);

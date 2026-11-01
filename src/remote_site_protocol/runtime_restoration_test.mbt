@@ -1,4 +1,347 @@
 ///|
+fn failed_partial_runtime_fixture(
+  name : String,
+) -> (DispatchRecord, RemoteManagedOutputMeasurement) {
+  let dispatch = request(name, 1, 1, cid("a".repeat(64)))
+  let (_, record) = commit_dispatch_acceptance(
+    prepare_dispatch_acceptance(journal(), dispatch).unwrap(),
+    true,
+  ).unwrap()
+  commit_dispatch_transition(
+    prepare_begin_provisioning(record, execution_capability()).unwrap(),
+    true,
+  ).unwrap()
+  commit_dispatch_transition(
+    prepare_begin_remote_execution(record).unwrap(),
+    true,
+  ).unwrap()
+  commit_dispatch_transition(
+    prepare_confirm_native_settled(record).unwrap(),
+    true,
+  ).unwrap()
+  commit_dispatch_transition(
+    prepare_mark_execution_unknown(record).unwrap(),
+    true,
+  ).unwrap()
+  let measurement = prepare_remote_managed_output_measurement(
+    1,
+    1,
+    1,
+    1,
+    [1],
+    [1],
+    [1],
+    [1],
+    [0],
+    [1],
+  ).unwrap()
+  (record, measurement)
+}
+
+///|
+// These are explicit trusted physical ports, not an observed Worker exit,
+// actual Source metadata admission, resource ACK or current-policy proof.
+fn restore_failed_partial_fixture(
+  record : DispatchRecord,
+  measurement : RemoteManagedOutputMeasurement,
+  revision? : Int? = None,
+  source_request? : String? = None,
+  source_wire? : String = "original-admitted-source-metadata",
+  source_measurement? : String? = None,
+  source_generation? : String = "original-worker-generation",
+  process_material? : String = "original-material-generation",
+  process_generation? : String = "original-worker-generation",
+) -> Result[RemoteRuntimeCustody, DispatchIssue] {
+  let request = dispatch_request_identity(dispatch_record_request(record))
+  restore_remote_runtime_failed_partial_custody(
+    record,
+    revision.unwrap_or(dispatch_record_revision(record)),
+    source_request.unwrap_or(request),
+    source_wire,
+    "original-material-generation",
+    source_measurement.unwrap_or(
+      remote_managed_output_measurement_cid(measurement),
+    ),
+    measurement,
+    "original-worker-owner",
+    source_generation,
+    request,
+    process_material,
+    "original-worker-owner",
+    process_generation,
+  )
+}
+
+///|
+test "failed partial cleanup restores its original rejected and releasing phases after cursor loss" {
+  for releasing in [false, true] {
+    let (record, measured) = failed_partial_runtime_fixture(
+      if releasing {
+        "partial-cold-releasing"
+      } else {
+        "partial-cold-rejected"
+      },
+    )
+    let original = restore_failed_partial_fixture(record, measured).unwrap()
+    assert_true(remote_runtime_custody_confirm_stop(original))
+    let rejected = prepare_owned_remote_runtime_cleanup(record, original).unwrap()
+    commit_dispatch_transition(
+      remote_runtime_step_transition(rejected).unwrap(),
+      true,
+    ).unwrap()
+    if releasing {
+      let release = prepare_owned_remote_runtime_cleanup(record, original).unwrap()
+      commit_dispatch_transition(
+        remote_runtime_step_transition(release).unwrap(),
+        true,
+      ).unwrap()
+    }
+    let revision = dispatch_record_revision(record)
+    // The process-local cursor is lost. The same admitted Source, measurement
+    // and process-generation observations must bind the new cleanup-only cursor.
+    let restored = restore_failed_partial_fixture(record, measured).unwrap()
+    assert_eq(dispatch_record_revision(record), revision)
+    assert_eq(dispatch_record_state_codes(record)[1], 3)
+    assert_true(remote_runtime_custody_operation_settled(restored))
+    assert_true(remote_runtime_custody_stop_pending(restored))
+    assert_false(remote_runtime_custody_output_released(restored))
+    assert_false(remote_runtime_custody_holding_released(restored))
+    assert_false(remote_runtime_custody_bundle_released(restored))
+    assert_false(remote_runtime_custody_resources_reclaimed(restored))
+    assert_false(remote_runtime_custody_acquire_operation(restored))
+    assert_true(
+      prepare_remote_runtime_success(record, restored)
+      is Err(MaterialUnavailable),
+    )
+    assert_eq(
+      remote_runtime_step_action_code(
+        prepare_owned_remote_runtime_cleanup(record, restored).unwrap(),
+      ),
+      0,
+    )
+    // These explicit physical ports represent separate original acknowledgments.
+    // A cold cursor or historical rejection alone supplies none of them.
+    assert_true(remote_runtime_custody_confirm_stop(restored))
+    if !releasing {
+      let release = prepare_owned_remote_runtime_cleanup(record, restored).unwrap()
+      commit_dispatch_transition(
+        remote_runtime_step_transition(release).unwrap(),
+        true,
+      ).unwrap()
+    }
+    assert_eq(
+      remote_runtime_step_action_code(
+        prepare_owned_remote_runtime_cleanup(record, restored).unwrap(),
+      ),
+      3,
+    )
+    assert_true(remote_runtime_custody_release_output(restored))
+    assert_false(remote_runtime_custody_resources_reclaimed(restored))
+    assert_true(remote_runtime_custody_release_holding(restored))
+    assert_false(remote_runtime_custody_resources_reclaimed(restored))
+    assert_true(remote_runtime_custody_release_bundle(restored))
+    let released = prepare_owned_remote_runtime_cleanup(record, restored).unwrap()
+    commit_dispatch_transition(
+      remote_runtime_step_transition(released).unwrap(),
+      true,
+    ).unwrap()
+    assert_eq(
+      remote_runtime_step_action_code(
+        prepare_owned_remote_runtime_cleanup(record, restored).unwrap(),
+      ),
+      4,
+    )
+    assert_eq(dispatch_record_state_codes(record)[1], 3)
+    assert_false(remote_runtime_record_startable(record))
+    assert_true(
+      prepare_remote_runtime_success(record, restored)
+      is Err(MaterialUnavailable),
+    )
+    assert_true(restore_failed_partial_fixture(record, measured) is Err(_))
+  }
+}
+
+///|
+test "failed partial cleanup durably rejects original evidence before any release" {
+  let (record, measured) = failed_partial_runtime_fixture(
+    "partial-reject-original",
+  )
+  let custody = restore_failed_partial_fixture(record, measured).unwrap()
+  assert_true(remote_runtime_custody_confirm_stop(custody))
+  let step = prepare_owned_remote_runtime_cleanup(record, custody).unwrap()
+  assert_eq(remote_runtime_step_action_code(step), 1)
+  commit_dispatch_transition(
+    remote_runtime_step_transition(step).unwrap(),
+    true,
+  ).unwrap()
+  // Existing durable rejection is the original failed-outcome fact. Resource
+  // release cannot replace it with a NativeSettled/NoEvidence completion.
+  assert_eq(dispatch_record_state_codes(record)[1], 3)
+  assert_eq(dispatch_record_state_codes(record)[2], 3)
+  assert_false(remote_runtime_custody_resources_reclaimed(custody))
+  assert_false(remote_runtime_custody_output_released(custody))
+  assert_false(remote_runtime_custody_holding_released(custody))
+  assert_false(remote_runtime_custody_bundle_released(custody))
+}
+
+///|
+test "failed partial restoration retains every original obligation and can never enter success" {
+  let (record, measured) = failed_partial_runtime_fixture("partial-original")
+  let revision = dispatch_record_revision(record)
+  let custody = restore_failed_partial_fixture(record, measured).unwrap()
+  assert_eq(dispatch_record_revision(record), revision)
+  assert_true(remote_runtime_custody_operation_acquired(custody))
+  assert_true(remote_runtime_custody_operation_settled(custody))
+  assert_true(remote_runtime_custody_stop_pending(custody))
+  assert_false(remote_runtime_custody_resources_reclaimed(custody))
+  assert_eq(
+    remote_runtime_step_action_code(
+      prepare_owned_remote_runtime_cleanup(record, custody).unwrap(),
+    ),
+    0,
+  )
+  assert_true(
+    prepare_remote_runtime_success(record, custody) is Err(MaterialUnavailable),
+  )
+  assert_true(
+    prepare_owned_remote_runtime_failure(record, custody)
+    is Err(InvalidTransition),
+  )
+  assert_false(confirm_remote_runtime_completed_restoration(record, custody))
+  // Only the installed physical Owner may report the separately established
+  // original process stop. This alone returns none of the three resources.
+  assert_true(remote_runtime_custody_confirm_stop(custody))
+  assert_false(remote_runtime_custody_resources_reclaimed(custody))
+  let rejected = prepare_owned_remote_runtime_cleanup(record, custody).unwrap()
+  commit_dispatch_transition(
+    remote_runtime_step_transition(rejected).unwrap(),
+    true,
+  ).unwrap()
+  assert_eq(dispatch_record_state_codes(record)[1], 3)
+  let release = prepare_owned_remote_runtime_cleanup(record, custody).unwrap()
+  assert_eq(remote_runtime_step_action_code(release), 1)
+  commit_dispatch_transition(
+    remote_runtime_step_transition(release).unwrap(),
+    true,
+  ).unwrap()
+  assert_eq(
+    remote_runtime_step_action_code(
+      prepare_owned_remote_runtime_cleanup(record, custody).unwrap(),
+    ),
+    3,
+  )
+  assert_true(remote_runtime_custody_release_output(custody))
+  assert_false(remote_runtime_custody_release_output(custody))
+  assert_false(remote_runtime_custody_resources_reclaimed(custody))
+  assert_true(remote_runtime_custody_release_holding(custody))
+  assert_false(remote_runtime_custody_resources_reclaimed(custody))
+  assert_true(remote_runtime_custody_release_bundle(custody))
+  assert_true(remote_runtime_custody_resources_reclaimed(custody))
+  let released = prepare_owned_remote_runtime_cleanup(record, custody).unwrap()
+  commit_dispatch_transition(
+    remote_runtime_step_transition(released).unwrap(),
+    true,
+  ).unwrap()
+  assert_eq(
+    remote_runtime_step_action_code(
+      prepare_owned_remote_runtime_cleanup(record, custody).unwrap(),
+    ),
+    4,
+  )
+  assert_false(remote_runtime_custody_acquire_operation(custody))
+  assert_false(remote_runtime_custody_acquire_output(custody))
+  assert_false(remote_runtime_custody_acquire_holding(custody))
+  assert_false(remote_runtime_custody_acquire_bundle(custody))
+  assert_false(remote_runtime_record_startable(record))
+  assert_eq(dispatch_record_state_codes(record)[1], 3)
+  assert_true(
+    prepare_remote_runtime_success(record, custody) is Err(MaterialUnavailable),
+  )
+}
+
+///|
+test "failed partial restoration refuses mixed request revision Source measurement and process generation" {
+  let (record, measured) = failed_partial_runtime_fixture("partial-binding")
+  assert_true(
+    restore_failed_partial_fixture(
+      record,
+      measured,
+      revision=Some(dispatch_record_revision(record) + 1),
+    )
+    is Err(InvalidTransition),
+  )
+  assert_true(
+    restore_failed_partial_fixture(
+      record,
+      measured,
+      source_request=Some(cid("f".repeat(64))),
+    )
+    is Err(DispatchIdentityMismatch),
+  )
+  assert_true(
+    restore_failed_partial_fixture(record, measured, source_wire="")
+    is Err(InvalidDispatch),
+  )
+  assert_true(
+    restore_failed_partial_fixture(
+      record,
+      measured,
+      source_measurement=Some(cid("e".repeat(64))),
+    )
+    is Err(DispatchIdentityMismatch),
+  )
+  assert_true(
+    restore_failed_partial_fixture(
+      record,
+      measured,
+      process_material="foreign-material",
+    )
+    is Err(DispatchIdentityMismatch),
+  )
+  assert_true(
+    restore_failed_partial_fixture(
+      record,
+      measured,
+      process_generation="foreign-generation",
+    )
+    is Err(DispatchIdentityMismatch),
+  )
+  assert_true(
+    restore_failed_partial_fixture(record, measured, source_generation="")
+    is Err(InvalidDispatch),
+  )
+}
+
+///|
+test "failed partial cleanup refuses a foreign record or lost capacity and preserves unknown COMMIT" {
+  let (record, measured) = failed_partial_runtime_fixture("partial-unknown")
+  let custody = restore_failed_partial_fixture(record, measured).unwrap()
+  let (foreign, _) = failed_partial_runtime_fixture("partial-foreign")
+  assert_true(
+    prepare_owned_remote_runtime_cleanup(foreign, custody)
+    is Err(DispatchIdentityMismatch),
+  )
+  assert_true(remote_runtime_custody_confirm_stop(custody))
+  let revision = dispatch_record_revision(record)
+  let next = prepare_owned_remote_runtime_cleanup(record, custody).unwrap()
+  assert_true(
+    commit_dispatch_transition(
+      remote_runtime_step_transition(next).unwrap(),
+      false,
+    )
+    is Err(DurabilityUnconfirmed),
+  )
+  assert_eq(dispatch_record_revision(record), revision)
+  assert_eq(dispatch_record_state_codes(record)[2], 3)
+  assert_false(remote_runtime_custody_resources_reclaimed(custody))
+  commit_force_loss(prepare_force_loss(journal(), record, true).unwrap(), true).unwrap()
+  assert_true(
+    prepare_owned_remote_runtime_cleanup(record, custody)
+    is Err(DispatchIdentityMismatch),
+  )
+}
+
+///|
 fn completed_runtime_fixture(
   name : String,
   commit_evidence? : Bool = true,
@@ -429,5 +772,184 @@ test "completed runtime cleanup observation refuses changed material foreign ide
       ).unwrap(),
     )
     is Err(StateCollision),
+  )
+}
+
+///|
+test "cold completed cleanup retains all original release duties and cannot become readable" {
+  let (record, evidence, subject, measurement) = completed_runtime_fixture(
+    "cold-completed-cleanup",
+  )
+  commit_dispatch_transition(
+    prepare_begin_remote_release(record).unwrap(),
+    true,
+  ).unwrap()
+  assert_true(
+    restore_remote_runtime_completed_custody(
+      record, evidence, subject, measurement,
+    )
+    is Err(InvalidTransition),
+  )
+  let custody = restore_remote_runtime_completed_cleanup_custody(
+    record, evidence, subject, measurement,
+  ).unwrap()
+  assert_true(remote_runtime_custody_operation_settled(custody))
+  assert_false(remote_runtime_custody_output_acquired(custody))
+  assert_false(remote_runtime_custody_bundle_acquired(custody))
+  assert_false(remote_runtime_custody_holding_acquired(custody))
+  assert_false(remote_runtime_custody_resources_reclaimed(custody))
+  assert_true(
+    prepare_owned_remote_runtime_cleanup(record, custody)
+    is Err(MaterialUnavailable),
+  )
+  assert_true(remote_runtime_custody_acquire_output(custody))
+  assert_true(remote_runtime_custody_acquire_bundle(custody))
+  // No reconstructed holding is not evidence that its original debt vanished.
+  assert_true(
+    prepare_owned_remote_runtime_cleanup(record, custody)
+    is Err(MaterialUnavailable),
+  )
+  assert_true(remote_runtime_custody_acquire_holding(custody))
+  assert_false(confirm_remote_runtime_completed_restoration(record, custody))
+  assert_false(
+    confirm_remote_runtime_completed_cleanup_restoration(
+      record, custody, evidence, subject, measurement,
+    ),
+  )
+  assert_true(
+    prepare_remote_runtime_success(record, custody) is Err(MaterialUnavailable),
+  )
+  assert_true(
+    prepare_owned_remote_runtime_failure(record, custody)
+    is Err(InvalidTransition),
+  )
+  assert_eq(
+    remote_runtime_step_action_code(
+      prepare_owned_remote_runtime_cleanup(record, custody).unwrap(),
+    ),
+    3,
+  )
+  assert_true(remote_runtime_custody_release_output(custody))
+  assert_false(remote_runtime_custody_resources_reclaimed(custody))
+  assert_true(remote_runtime_custody_release_bundle(custody))
+  assert_false(remote_runtime_custody_resources_reclaimed(custody))
+  assert_true(remote_runtime_custody_release_holding(custody))
+  assert_true(remote_runtime_custody_resources_reclaimed(custody))
+  let released = prepare_owned_remote_runtime_cleanup(record, custody).unwrap()
+  assert_eq(remote_runtime_step_action_code(released), 1)
+  commit_dispatch_transition(
+    remote_runtime_step_transition(released).unwrap(),
+    true,
+  ).unwrap()
+  assert_eq(
+    remote_runtime_step_action_code(
+      prepare_owned_remote_runtime_cleanup(record, custody).unwrap(),
+    ),
+    4,
+  )
+  assert_true(
+    prepare_remote_runtime_success(record, custody) is Err(MaterialUnavailable),
+  )
+  assert_false(remote_runtime_record_startable(record))
+  assert_true(
+    restore_remote_runtime_completed_cleanup_custody(
+      record, evidence, subject, measurement,
+    )
+    is Err(InvalidTransition),
+  )
+}
+
+///|
+test "cold completed cleanup refuses foreign completion and a rewound or foreign current record" {
+  let (record, evidence, subject, measurement) = completed_runtime_fixture(
+    "cold-completed-current",
+  )
+  let previous = restore_durable_dispatch_record(
+    journal(),
+    admit_durable_dispatch_record(
+      @utf8.encode(dispatch_record_durable_json(record).unwrap()),
+    ).unwrap(),
+  ).unwrap()
+  commit_dispatch_transition(
+    prepare_begin_remote_release(record).unwrap(),
+    true,
+  ).unwrap()
+  let custody = restore_remote_runtime_completed_cleanup_custody(
+    record, evidence, subject, measurement,
+  ).unwrap()
+  let (foreign, other_evidence, other_subject, other_measurement) = completed_runtime_fixture(
+    "cold-completed-foreign",
+  )
+  assert_true(
+    restore_remote_runtime_completed_cleanup_custody(
+      record, other_evidence, other_subject, other_measurement,
+    )
+    is Err(DispatchIdentityMismatch),
+  )
+  assert_true(
+    prepare_owned_remote_runtime_cleanup(previous, custody)
+    is Err(DispatchIdentityMismatch),
+  )
+  assert_true(
+    prepare_owned_remote_runtime_cleanup(foreign, custody)
+    is Err(DispatchIdentityMismatch),
+  )
+  let (unknown, _) = failed_partial_runtime_fixture("cold-completed-current")
+  assert_true(
+    restore_remote_runtime_completed_cleanup_custody(
+      unknown, evidence, subject, measurement,
+    )
+    is Err(InvalidTransition),
+  )
+  assert_false(remote_runtime_custody_resources_reclaimed(custody))
+}
+
+///|
+test "cold completed cleanup preserves physical release facts across a failed durable commit" {
+  let (record, evidence, subject, measurement) = completed_runtime_fixture(
+    "cold-completed-commit",
+  )
+  commit_dispatch_transition(
+    prepare_begin_remote_release(record).unwrap(),
+    true,
+  ).unwrap()
+  let custody = restore_remote_runtime_completed_cleanup_custody(
+    record, evidence, subject, measurement,
+  ).unwrap()
+  assert_true(remote_runtime_custody_acquire_output(custody))
+  assert_true(remote_runtime_custody_acquire_holding(custody))
+  assert_true(remote_runtime_custody_acquire_bundle(custody))
+  assert_true(remote_runtime_custody_release_output(custody))
+  assert_true(remote_runtime_custody_release_holding(custody))
+  assert_true(remote_runtime_custody_release_bundle(custody))
+  let revision = dispatch_record_revision(record)
+  let first = prepare_owned_remote_runtime_cleanup(record, custody).unwrap()
+  assert_true(
+    commit_dispatch_transition(
+      remote_runtime_step_transition(first).unwrap(),
+      false,
+    )
+    is Err(_),
+  )
+  assert_eq(dispatch_record_revision(record), revision)
+  assert_false(remote_runtime_record_released(record))
+  assert_true(remote_runtime_custody_resources_reclaimed(custody))
+  assert_false(remote_runtime_custody_release_output(custody))
+  assert_false(remote_runtime_custody_release_holding(custody))
+  assert_false(remote_runtime_custody_release_bundle(custody))
+  let same = prepare_owned_remote_runtime_cleanup(record, custody).unwrap()
+  assert_eq(remote_runtime_step_action_code(same), 1)
+  commit_dispatch_transition(
+    remote_runtime_step_transition(same).unwrap(),
+    true,
+  ).unwrap()
+  assert_eq(
+    remote_runtime_step_action_code(
+      prepare_owned_remote_runtime_cleanup(record, custody).unwrap(),
+    ),
+    4,
+  )
+  assert_true(
+    prepare_remote_runtime_success(record, custody) is Err(MaterialUnavailable),
   )
 }

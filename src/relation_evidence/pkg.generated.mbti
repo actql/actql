@@ -7,6 +7,7 @@ import {
   "actql/actql/carrier_projection",
   "actql/actql/check_environment",
   "actql/actql/decode_core",
+  "actql/actql/decode_shape",
   "actql/actql/event_typing",
   "actql/actql/expression_syntax",
   "actql/actql/expression_typing",
@@ -37,6 +38,8 @@ pub fn advance_calendar_keys(KeySet?, @calendar_typing.CheckedCalendar, Transfer
 pub fn advance_event_keys(KeySet?, @event_typing.CheckedEvent, TransferLimits) -> Result[KeySetTransfer, Issue]
 
 pub fn advance_keys(KeySet?, @relation_typing.CheckedOperation, TransferLimits) -> Result[KeySetTransfer, Issue]
+
+pub fn advance_literal_domains_read(LiteralDomainsRead) -> LiteralDomainsReadPhase
 
 pub fn advance_set_keys(KeySet?, @relation_set.CheckedSet, TransferLimits) -> Result[KeySetTransfer, Issue]
 
@@ -84,6 +87,8 @@ pub fn asof_usage(CheckedAsOf) -> @relation_join_shape.Usage
 
 pub fn asof_uses_timestamp(CheckedAsOf, @relation_schema.Side) -> Bool
 
+pub fn begin_literal_domains_read(@decode_core.Cursor, LiteralDomains, TransferLimits) -> Result[LiteralDomainsRead, Issue]
+
 pub fn check_asof(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, @parameter_binding.Declarations?, @relation_join_shape.Limits) -> Result[CheckedAsOf, @relation_join_shape.Issue]
 
 pub fn check_asof_sources(@decode_core.Cursor, AsOfSource, AsOfSource, @parameter_binding.Declarations?, @relation_join_shape.Limits) -> Result[CheckedAsOf, @relation_join_shape.Issue]
@@ -111,6 +116,8 @@ pub fn check_ranking_shape(RankingOptions, RankingInput, @vector_checking.Limits
 pub fn check_text_rank(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, @vector_checking.Limits, profile? : @text_rank_profile.Profile?) -> Result[CheckedTextRank, @vector_checking.Issue]
 
 pub fn check_text_rank_inputs(TextRankOptions, @carrier_contract.Carrier, @carrier_contract.Carrier, @vector_checking.Limits, profile? : @text_rank_profile.Profile?) -> Result[CheckedTextRank, @vector_checking.Issue]
+
+pub fn clear_literal_domains_read(LiteralDomainsRead) -> Unit
 
 pub fn collect_keys(@decode_core.Cursor, @carrier_contract.Carrier, Array[KeyedRelation], KeySetLimits) -> Result[KeySet, Issue]
 
@@ -238,6 +245,8 @@ pub fn key_ranking_producer(KeyedRelation) -> CheckedRanking?
 
 pub fn key_sequence_producer(KeyedRelation) -> @relation_typing.CheckedSequence?
 
+pub fn key_set_container_retained_extent(KeySet) -> @decode_shape.CollectionConstructionExtent?
+
 pub fn key_set_producer(KeyedRelation) -> @relation_set.CheckedSet?
 
 pub fn key_set_records(KeySet) -> @carrier_contract.Knowledge
@@ -269,6 +278,18 @@ pub fn key_witness_count(KeySet) -> Int
 pub fn keyed_records(KeyedRelation) -> @carrier_contract.Knowledge
 
 pub fn literal_domain(LiteralDomains, @relation_schema.FieldName) -> LiteralDomain?
+
+pub fn literal_domains_read_consumed_work(LiteralDomainsRead) -> Int?
+
+pub fn literal_domains_read_entry_construction(Int64) -> @decode_shape.CollectionConstructionExtent?
+
+pub fn literal_domains_read_issue(LiteralDomainsRead) -> Issue?
+
+pub fn literal_domains_read_phase(LiteralDomainsRead) -> LiteralDomainsReadPhase
+
+pub fn literal_domains_read_retained_extent(LiteralDomainsRead) -> @decode_shape.CollectionConstructionExtent?
+
+pub fn literal_domains_read_step_construction(LiteralDomainsRead) -> @decode_shape.CollectionConstructionExtent?
 
 pub fn literal_origin(LiteralDomain) -> LiteralOrigin
 
@@ -344,6 +365,8 @@ pub fn nearest_source(NearestOptions) -> @decode_core.Cursor
 
 pub fn nearest_usage(CheckedNearest) -> @vector_checking.Usage
 
+pub fn primary_key_read_construction_inventory(Int, Int, Int64) -> KeyReadConstructionInventory?
+
 pub fn ranking_by(RankingOptions) -> Array[@relation_schema.FieldName]
 
 pub fn ranking_by_at(RankingOptions, Int) -> @relation_schema.FieldName?
@@ -398,6 +421,8 @@ pub fn ranking_score_declaration(RankingInput) -> DeclaredScore?
 
 pub fn ranking_score_declarations(RankingInput) -> Iter[DeclaredScore]
 
+pub fn ranking_scores_construction_inventory(@decode_core.SubtreeGeometry, Int, Int64, Int) -> RankingReadConstructionInventory?
+
 pub fn ranking_shape_input(RankingShape) -> RankingInput
 
 pub fn ranking_shape_options(RankingShape) -> RankingOptions
@@ -426,6 +451,20 @@ pub fn read_ranking_options(@decode_core.Cursor, @vector_checking.Limits) -> Res
 
 pub fn read_text_rank_options(@decode_core.Cursor, @vector_checking.Limits) -> Result[TextRankOptions, @vector_checking.Issue]
 
+pub fn refine_infer_filter(@decode_core.Cursor, Array[InferFilterNode], @relation_typing.CheckedOperation, FilterProofLimits) -> Result[FilterProofResult, FilterProofIssue]
+
+pub fn refined_filter_keys(KeySet?, RefinedFilter, TransferLimits) -> Result[KeySetTransfer, Issue]
+
+pub fn refined_filter_lineage_count(RefinedFilter) -> Int
+
+pub fn refined_filter_literals(LiteralDomains?, RefinedFilter, TransferLimits) -> Result[LiteralTransfer, Issue]
+
+pub fn refined_filter_original(RefinedFilter) -> @relation_typing.CheckedOperation
+
+pub fn refined_filter_output(RefinedFilter) -> @relation_schema.Schema
+
+pub fn refined_filter_ranking(RankingInput, RefinedFilter, @vector_checking.Limits) -> Result[RankingTransfer, @vector_checking.Issue]
+
 pub fn score_contract_domain(@vector_checking.ScoreContract) -> String
 
 pub fn score_contract_maximum(@vector_checking.ScoreContract) -> Double
@@ -448,9 +487,19 @@ pub fn sequence_keys(@relation_typing.CheckedSequence, TransferLimits) -> Result
 
 pub fn singleton_key(KeyedRelation) -> KeySet
 
+pub fn source_key_set_retained_construction(KeySet) -> InputEvidenceRetainedConstruction?
+
+pub fn source_ranking_retained_construction(RankingInput) -> InputEvidenceRetainedConstruction?
+
+pub fn source_view_key_construction_inventory(@check_environment.SourceViewCarrier) -> SourceInputConstructionInventory?
+
 pub fn source_view_keys(@check_environment.SourceViewCarrier, TransferLimits) -> Result[KeySetTransfer?, Issue]
 
+pub fn source_view_ranking_construction_inventory(@check_environment.SourceViewCarrier) -> SourceInputConstructionInventory?
+
 pub fn source_view_scores(@check_environment.SourceViewCarrier, @vector_checking.Limits) -> Result[RankingTransfer?, @vector_checking.Issue]
+
+pub fn take_literal_domains_read(LiteralDomainsRead) -> Result[LiteralTransfer, Issue]?
 
 pub fn text_rank_bm25(TextRankOptions) -> (Double, Double)
 
@@ -544,11 +593,45 @@ type CheckedTextRank
 
 type DeclaredScore
 
+pub struct FilterProofIssue {
+  source : @decode_core.Cursor
+  kind : FilterProofIssueKind
+}
+
+pub(all) enum FilterProofIssueKind {
+  InvalidProofLimits
+  ProofBudgetExceeded
+  ForeignProofSource
+  ForeignProofInput
+}
+
+pub(all) struct FilterProofLimits {
+  max_work : Int
+  max_nodes : Int
+  max_depth : Int
+  max_text_bytes : Int
+}
+
+pub struct FilterProofResult {
+  proof : RefinedFilter
+  work : Int
+  nodes : Int
+  text_bytes : Int
+}
+
 pub(all) enum GraphKeyOperation {
   MatchOperation(@graph_typing.CheckedMatch)
   TraverseOperation(@graph_typing.CheckedTraverse)
   ComponentsOperation(@graph_typing.CheckedComponents)
   DegreeOperation(@graph_typing.CheckedDegree)
+}
+
+pub(all) enum InferFilterNode {
+  Infer(CheckedInfer)
+  Unary(@relation_typing.CheckedOperation)
+  Join(@relation_join_shape.CheckedJoin)
+  Refined(RefinedFilter)
+  Other(@decode_core.Cursor, @relation_schema.Schema?)
 }
 
 pub struct InferInputBinding {
@@ -612,6 +695,12 @@ pub(all) struct InferUsage {
   tokens : Int
 } derive(Eq, @debug.Debug)
 
+pub(all) struct InputEvidenceRetainedConstruction {
+  extent : @decode_shape.CollectionConstructionExtent
+  owned_utf16_units : Int64
+  observation_work : Int64
+} derive(Eq, @debug.Debug)
+
 pub struct Issue {
   kind : IssueKind
   path : Array[@source_value.PathSegment]
@@ -666,6 +755,12 @@ pub(all) enum KeyOrigin {
   InferResult
 } derive(Eq, @debug.Debug)
 
+pub(all) struct KeyReadConstructionInventory {
+  retained : @decode_shape.CollectionConstructionExtent
+  scratch : @decode_shape.CollectionConstructionExtent
+  scratch_utf16_units : Int64
+} derive(Eq, @debug.Debug)
+
 pub struct KeySelection {
   key : KeyedRelation?
   work : Int
@@ -701,6 +796,16 @@ pub(all) struct Limits {
 type LiteralDomain
 
 type LiteralDomains
+
+type LiteralDomainsRead
+
+pub(all) enum LiteralDomainsReadPhase {
+  Pending
+  Complete
+  Failed
+  Taken
+  Cleared
+} derive(Eq, @debug.Debug)
 
 pub enum LiteralOrigin {
   Binding(@relation_typing.CheckedOperation, Int)
@@ -799,12 +904,29 @@ pub(all) enum RankingPolicy {
   ReciprocalRank
 } derive(Eq, @debug.Debug)
 
+pub(all) struct RankingReadConstructionInventory {
+  retained : @decode_shape.CollectionConstructionExtent
+  scratch : @decode_shape.CollectionConstructionExtent
+  retained_utf16_units : Int64
+  scratch_utf16_units : Int64
+} derive(Eq, @debug.Debug)
+
 type RankingShape
 
 pub struct RankingTransfer {
   input : RankingInput
   usage : @vector_checking.Usage
 }
+
+type RefinedFilter
+
+pub(all) struct SourceInputConstructionInventory {
+  retained : @decode_shape.CollectionConstructionExtent
+  scratch : @decode_shape.CollectionConstructionExtent
+  retained_utf16_units : Int64
+  scratch_utf16_units : Int64
+  inspection_work : Int64
+} derive(Eq, @debug.Debug)
 
 pub(all) enum TextRankObligation {
   ValidateCompleteTextInputs

@@ -101,7 +101,7 @@ fn native_original_call_start_with(
   start(
     prepared,
     2,
-    infer_fixture_registry,
+    infer_fixture_installed_contracts(),
     infer_fixture_values,
     provider,
     @publication_host.client_infer_plan_graph_request_cid(plan),

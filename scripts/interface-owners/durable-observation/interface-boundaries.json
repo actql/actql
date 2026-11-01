@@ -24,12 +24,72 @@
       "owner": "F / existing Credential Owner",
       "contracts": [
         {
-          "operations": [
-            "<module>"
-          ],
+          "operations": [],
           "exports": [
             "credentialInvocationBindingKeys"
           ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Responsibility |"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Inputs/outputs |"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Identity |"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Ownership |"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Immutable generated field-name projection performs no I/O or state transition; current decisions remain in the referenced Credential Owner."
+            },
+            "failure": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Failure |"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Immutable field-name projection has no task, cancellation or cleanup lifecycle."
+            },
+            "resources": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Resources |"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Extension |"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Verification |"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [],
           "attributes": {
             "responsibility": [
               {
@@ -160,7 +220,6 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
             "createDiagnosticObserver",
             "createDiagnosticObserver/emit/emit",
             "createDiagnosticObserver/pump/pump",
@@ -175,6 +234,74 @@
             "createDiagnosticObserver",
             "diagnosticObserver"
           ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "anchor": "Best-effort diagnostics have no authority"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "anchor": "Object.assign(emit"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "anchor": "installed.get(observe)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "anchor": "active"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "anchor": "outside the caller"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "anchor": "catch"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "anchor": "active?.abort()"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "anchor": "maxQueued"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "anchor": "InvalidDiagnosticObserver"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-http.test.mjs",
+                "anchor": "maxQueued: 1"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [],
           "attributes": {
             "responsibility": [
               {
@@ -710,7 +837,6 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
             "cid/cid",
             "createHostObservationConnection",
             "createHostObservationConnection/allowed/allowed",
@@ -1313,6 +1439,82 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Responsibility |"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "Delivery remains an application callback even on that later turn:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Inputs/outputs |"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Identity |"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Ownership |"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Synchronization |"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Failure |"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Cancellation |"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Resources |"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Extension |"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Verification |"
+              },
+              {
+                "path": "adapters/host-common/observation.test.mjs",
+                "anchor": "application callback state changes at actual delivery entry and thrown settlement only"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -1326,7 +1528,7 @@
     {
       "module": "adapters/host-common/owned-invocation-context.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e01af6e4b9bff2152fddeb89fe08bd7f93a7be8d1f40324f8aa9e47ccfebdc5e",
+      "sha256": "97c759c8c07bfa9dcd1b0e89e2f4bb92d37d4caacbf596b73b2004d4366b0d4b",
       "exports": [
         "invocationBindingsMatch",
         "invocationScopeFields",
@@ -1382,6 +1584,7 @@
             "responseHeaders",
             "maxRequestBytes",
             "maxResponseBytes",
+            "responseCustody",
             "signal"
           ],
           "async": false
@@ -1438,7 +1641,6 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
             "fail/fail",
             "invocationBindingsMatch",
             "invocationBindingsMatch/invocationBindingsMatch",
@@ -1459,6 +1661,166 @@
             "ownInvocationContext",
             "ownInvocationLimits"
           ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Responsibility |"
+              },
+              {
+                "path": "adapters/host-common/http-body-lifetime.md",
+                "anchor": "# Scoped HTTP body ownership"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original installation metadata HTTPS binding"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Inputs/outputs |"
+              },
+              {
+                "path": "adapters/host-common/http-body-lifetime.md",
+                "anchor": "## Two explicit shapes"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original installation metadata HTTPS binding"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Identity |"
+              },
+              {
+                "path": "adapters/host-common/http-body-lifetime.md",
+                "anchor": "## Original use and currentness"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original installation metadata HTTPS binding"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Ownership |"
+              },
+              {
+                "path": "adapters/host-common/http-body-lifetime.md",
+                "anchor": "## Simultaneous inventory"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original installation metadata HTTPS binding"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Synchronization |"
+              },
+              {
+                "path": "adapters/host-common/http-body-lifetime.md",
+                "anchor": "secret-resolution await."
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original installation metadata HTTPS binding"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Failure |"
+              },
+              {
+                "path": "adapters/host-common/http-body-lifetime.md",
+                "anchor": "Lost responses retain the same nominal Unknown use."
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original installation metadata HTTPS binding"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Cancellation |"
+              },
+              {
+                "path": "adapters/host-common/http-body-lifetime.md",
+                "anchor": "Bound\ncleanup retains its existing pending state"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original installation metadata HTTPS binding"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Resources |"
+              },
+              {
+                "path": "adapters/host-common/http-body-lifetime.md",
+                "anchor": "two distinct dedicated N-byte backings"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original installation metadata HTTPS binding"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Extension |"
+              },
+              {
+                "path": "adapters/host-common/http-body-lifetime.md",
+                "anchor": "not public JSON wire"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original installation metadata HTTPS binding"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Verification |"
+              },
+              {
+                "path": "adapters/host-common/http-body-lifetime.md",
+                "anchor": "## Verification boundary"
+              },
+              {
+                "path": "adapters/site-node/https-credential-resource.test.mjs",
+                "anchor": "bounded binary invocation sends exact non-UTF8 bytes"
+              },
+              {
+                "path": "adapters/host-common/http-exchange.test.mjs",
+                "anchor": "byte length/backing properties cannot disguise"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original installation metadata HTTPS binding"
+              },
+              {
+                "path": "adapters/site-node/installation-metadata-https.integration.test.mjs",
+                "anchor": "test('metadata actual publication sends"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [],
           "attributes": {
             "responsibility": [
               {
@@ -1700,7 +2062,6 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
             "createSqliteTransaction",
             "createSqliteTransaction/assertUsable/assertUsable",
             "createSqliteTransaction/createSqliteTransaction",
@@ -1716,6 +2077,106 @@
             "createSqliteTransaction",
             "throwSqliteInitializationFailure"
           ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Responsibility |"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Inputs/outputs |"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Identity |"
+              },
+              {
+                "path": "adapters/host-common/sqlite-transaction.mjs",
+                "anchor": "originalClose = selected;"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Ownership |"
+              },
+              {
+                "path": "adapters/host-common/sqlite-transaction.mjs",
+                "anchor": "const observation = Reflect.apply(originalClose, database, []);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Synchronization |"
+              },
+              {
+                "path": "adapters/host-common/sqlite-transaction.mjs",
+                "anchor": "if (closing) return status();"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Failure |"
+              },
+              {
+                "path": "adapters/host-common/sqlite-transaction.mjs",
+                "anchor": "errors: Object.freeze(first === latest ? [first] : [first, latest])"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Cancellation |"
+              },
+              {
+                "path": "adapters/host-common/sqlite-transaction.mjs",
+                "anchor": "if (observation !== undefined) {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Resources |"
+              },
+              {
+                "path": "adapters/host-common/sqlite-transaction.mjs",
+                "anchor": "const first = Object.freeze({owner, error: closeFailure});"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Extension |"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Verification |"
+              },
+              {
+                "path": "adapters/host-common/sqlite-initialization-custody.test.mjs",
+                "anchor": "initialization cleanup retries only the captured original close receiver"
+              },
+              {
+                "path": "adapters/host-common/sqlite-initialization-custody.test.mjs",
+                "anchor": "synchronous cleanup reentry only observes the existing close flight"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [],
           "attributes": {
             "responsibility": [
               {
@@ -1848,7 +2309,6 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
             "installTaskObservation",
             "projectTaskObservation"
           ],
@@ -1856,6 +2316,71 @@
             "installTaskObservation",
             "projectTaskObservation"
           ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/task-observation.mjs",
+                "anchor": "Optional copied facts"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/task-observation.mjs",
+                "anchor": "Object.freeze({event, task, durationMs})"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/task-observation.mjs",
+                "anchor": "observers.get(observer)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/task-observation.mjs",
+                "anchor": "new WeakMap()"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/task-observation.mjs",
+                "anchor": "try { project"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/task-observation.mjs",
+                "anchor": "Optional projection never changes"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Synchronous optional projection creates no cancellable operation, physical reader, task stop, or release authority."
+            },
+            "resources": [
+              {
+                "path": "adapters/host-common/task-observation.mjs",
+                "anchor": "new WeakMap()"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/task-observation.mjs",
+                "anchor": "InvalidTaskObservation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/observation.test.mjs",
+                "anchor": "queue overflow and delivery failure"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [],
           "attributes": {
             "responsibility": [
               {
@@ -2148,162 +2673,6 @@
         }
       ],
       "contracts": [
-        {
-          "operations": [
-            "<module>"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "src/model_execution/raw_capture_save.mbt",
-                "anchor": "ModelPhysicalCall"
-              },
-              {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
-                "anchor": "// Shared private custody for the existing installed Model component. Local"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Responsibility"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/infer-entry-persistence.mjs",
-                "anchor": "original.entry"
-              },
-              {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
-                "anchor": "// Shared private custody for the existing installed Model component. Local"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Inputs and outputs"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
-                "anchor": "receipt binding mutations"
-              },
-              {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
-                "anchor": "// Shared private custody for the existing installed Model component. Local"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Identity"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
-                "anchor": "rawCustodyRetained"
-              },
-              {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
-                "anchor": "// Shared private custody for the existing installed Model component. Local"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Ownership"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
-                "anchor": "one original ACK"
-              },
-              {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
-                "anchor": "// Shared private custody for the existing installed Model component. Local"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Synchronization"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
-                "anchor": "unknown without re-entry"
-              },
-              {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
-                "anchor": "// Shared private custody for the existing installed Model component. Local"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Failure"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
-                "anchor": "cancellation and permission loss"
-              },
-              {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
-                "anchor": "// Shared private custody for the existing installed Model component. Local"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Cancellation"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
-                "anchor": "maximumStoredCaptureWire"
-              },
-              {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
-                "anchor": "// Shared private custody for the existing installed Model component. Local"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Resources"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-node/infer-entry-persistence.mjs",
-                "anchor": "InferEntryPersistenceUnavailable"
-              },
-              {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
-                "anchor": "// Shared private custody for the existing installed Model component. Local"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Extension"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
-                "anchor": "wrong original bytes"
-              },
-              {
-                "path": "adapters/host-node/infer-physical-observation.test.mjs",
-                "anchor": "pre-gate diagnostic is unsent"
-              },
-              {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
-                "anchor": "// Shared private custody for the existing installed Model component. Local"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Verification"
-              },
-              {
-                "path": "scripts/js-compiler-binding-runtime.test.mjs",
-                "anchor": "actual pinned MoonBit Result"
-              }
-            ]
-          }
-        },
         {
           "operations": [
             "openNodeInferCaptureCustody",
@@ -2719,6 +3088,162 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/model_execution/raw_capture_save.mbt",
+                "anchor": "ModelPhysicalCall"
+              },
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "// Shared private custody for the existing installed Model component. Local"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "anchor": "original.entry"
+              },
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "// Shared private custody for the existing installed Model component. Local"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "receipt binding mutations"
+              },
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "// Shared private custody for the existing installed Model component. Local"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "rawCustodyRetained"
+              },
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "// Shared private custody for the existing installed Model component. Local"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "one original ACK"
+              },
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "// Shared private custody for the existing installed Model component. Local"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "unknown without re-entry"
+              },
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "// Shared private custody for the existing installed Model component. Local"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "cancellation and permission loss"
+              },
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "// Shared private custody for the existing installed Model component. Local"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "maximumStoredCaptureWire"
+              },
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "// Shared private custody for the existing installed Model component. Local"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "anchor": "InferEntryPersistenceUnavailable"
+              },
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "// Shared private custody for the existing installed Model component. Local"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "wrong original bytes"
+              },
+              {
+                "path": "adapters/host-node/infer-physical-observation.test.mjs",
+                "anchor": "pre-gate diagnostic is unsent"
+              },
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "// Shared private custody for the existing installed Model component. Local"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -2831,7 +3356,6 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
             "createNodeInferEntryPersistence",
             "createNodeInferEntryPersistence/begin",
             "createNodeInferEntryPersistence/begin/begin",
@@ -2848,6 +3372,78 @@
           "exports": [
             "createNodeInferEntryPersistence"
           ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/model_execution/raw_capture_save.mbt",
+                "anchor": "ModelPhysicalCall"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "anchor": "original.entry"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "receipt binding mutations"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "rawCustodyRetained"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "one original ACK"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "unknown without re-entry"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "cancellation and permission loss"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "maximumStoredCaptureWire"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "anchor": "InferEntryPersistenceUnavailable"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "wrong original bytes"
+              },
+              {
+                "path": "adapters/host-node/infer-physical-observation.test.mjs",
+                "anchor": "pre-gate diagnostic is unsent"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [],
           "attributes": {
             "responsibility": [
               {
@@ -2950,13 +3546,80 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
             "createInferPhysicalObservation",
             "createInferPhysicalObservation/createInferPhysicalObservation"
           ],
           "exports": [
             "createInferPhysicalObservation"
           ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/infer-physical-observation.mjs",
+                "anchor": "Project Common entry facts only"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/infer-physical-observation.mjs",
+                "anchor": "createInferPhysicalObservation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/infer-physical-observation.mjs",
+                "anchor": "reference"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "rawCustodyRetained"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/infer-physical-observation.mjs",
+                "anchor": "facts.event === 'started'"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/infer-physical-observation.mjs",
+                "anchor": "observation.noteLoss()"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/infer-physical-observation.mjs",
+                "anchor": "'cancelled'"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/infer-physical-observation.mjs",
+                "anchor": "let physical"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/infer-physical-observation.mjs",
+                "anchor": "'returned', 'failed', 'cancelled'"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/infer-physical-observation.test.mjs",
+                "anchor": "foreign attempt"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [],
           "attributes": {
             "responsibility": [
               {
@@ -3230,162 +3893,6 @@
         }
       ],
       "contracts": [
-        {
-          "operations": [
-            "<module>"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "src/model_execution/raw_capture_save.mbt",
-                "anchor": "ModelPhysicalCall"
-              },
-              {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
-                "anchor": "// Membership of a private physical port"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Responsibility"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/infer-entry-persistence.mjs",
-                "anchor": "original.entry"
-              },
-              {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
-                "anchor": "// Membership of a private physical port"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Inputs and outputs"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
-                "anchor": "receipt binding mutations"
-              },
-              {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
-                "anchor": "// Membership of a private physical port"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Identity"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
-                "anchor": "rawCustodyRetained"
-              },
-              {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
-                "anchor": "// Membership of a private physical port"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Ownership"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
-                "anchor": "one original ACK"
-              },
-              {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
-                "anchor": "// Membership of a private physical port"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Synchronization"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
-                "anchor": "unknown without re-entry"
-              },
-              {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
-                "anchor": "// Membership of a private physical port"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Failure"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
-                "anchor": "cancellation and permission loss"
-              },
-              {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
-                "anchor": "// Membership of a private physical port"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Cancellation"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
-                "anchor": "maximumStoredCaptureWire"
-              },
-              {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
-                "anchor": "// Membership of a private physical port"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Resources"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-node/infer-entry-persistence.mjs",
-                "anchor": "InferEntryPersistenceUnavailable"
-              },
-              {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
-                "anchor": "// Membership of a private physical port"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Extension"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
-                "anchor": "wrong original bytes"
-              },
-              {
-                "path": "adapters/host-node/infer-physical-observation.test.mjs",
-                "anchor": "pre-gate diagnostic is unsent"
-              },
-              {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
-                "anchor": "// Membership of a private physical port"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Verification"
-              },
-              {
-                "path": "adapters/host-node/infer-raw-capture.test.mjs",
-                "anchor": "raw tuple projection preserves field roles"
-              }
-            ]
-          }
-        },
         {
           "operations": [
             "createModelRawCaptureStorePort",
@@ -4351,6 +4858,162 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/model_execution/raw_capture_save.mbt",
+                "anchor": "ModelPhysicalCall"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "// Membership of a private physical port"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "anchor": "original.entry"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "// Membership of a private physical port"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "receipt binding mutations"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "// Membership of a private physical port"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "rawCustodyRetained"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "// Membership of a private physical port"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "one original ACK"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "// Membership of a private physical port"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "unknown without re-entry"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "// Membership of a private physical port"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "cancellation and permission loss"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "// Membership of a private physical port"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "maximumStoredCaptureWire"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "// Membership of a private physical port"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "anchor": "InferEntryPersistenceUnavailable"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "// Membership of a private physical port"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "wrong original bytes"
+              },
+              {
+                "path": "adapters/host-node/infer-physical-observation.test.mjs",
+                "anchor": "pre-gate diagnostic is unsent"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "// Membership of a private physical port"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.test.mjs",
+                "anchor": "raw tuple projection preserves field roles"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -4685,7 +5348,6 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
             "cleanupState/cleanupState",
             "createRemoteSiteCoordinator",
             "createRemoteSiteCoordinator/currentContext/currentContext",
@@ -4732,6 +5394,74 @@
           "exports": [
             "createRemoteSiteCoordinator"
           ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Responsibility |"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Inputs/outputs |"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Identity |"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Ownership |"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Synchronization |"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Failure |"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Cancellation |"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Resources |"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Extension |"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Verification |"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [],
           "attributes": {
             "responsibility": [
               {
@@ -5291,7 +6021,6 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
             "count/count",
             "fail/fail",
             "inspectCoordinatorFormat",
@@ -5487,6 +6216,142 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Responsibility |"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Ordinary Host initialization and preparation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Inputs/outputs |"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Ordinary Host initialization and preparation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Identity |"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Ordinary Host initialization and preparation"
+              },
+              {
+                "path": "adapters/host-node/sqlite-coordinator-journal.mjs",
+                "anchor": "if (metadataTable?.type !== 'table' || typeof metadataTable.sql !== 'string' ||"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Ownership |"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Ordinary Host initialization and preparation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Synchronization |"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Ordinary Host initialization and preparation"
+              },
+              {
+                "path": "adapters/host-node/sqlite-coordinator-journal.mjs",
+                "anchor": "// Admit the closed plain metadata table BEFORE selecting any of its values."
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Failure |"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Ordinary Host initialization and preparation"
+              },
+              {
+                "path": "adapters/host-node/sqlite-coordinator-journal.mjs",
+                "anchor": "// A small file can otherwise substitute a VIEW or generated-column expression"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Cancellation |"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Ordinary Host initialization and preparation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Resources |"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Ordinary Host initialization and preparation"
+              },
+              {
+                "path": "adapters/host-node/sqlite-coordinator-journal.mjs",
+                "anchor": "maxInspectionBytes = 64 * 1024 * 1024,"
+              },
+              {
+                "path": "adapters/host-node/sqlite-coordinator-journal.mjs",
+                "anchor": "SELECT type, CASE WHEN length(sql) <= 512 THEN sql ELSE NULL END AS sql FROM sqlite_schema"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Extension |"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Ordinary Host initialization and preparation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Verification |"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Ordinary Host initialization and preparation"
+              },
+              {
+                "path": "adapters/host-node/coordinator-inspection-bounds.test.mjs",
+                "anchor": "Coordinator pending Dir cleanup keeps the same original receiver before any database handoff"
+              },
+              {
+                "path": "adapters/host-node/coordinator-schema-before-values.test.mjs",
+                "anchor": "refuses before selecting any of its values"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -5507,8 +6372,12 @@
         "callHttpsCredentialResource",
         "closeHttpsCredentialBinding",
         "exchangeHttpsCredentialAuthentication",
+        "httpsCredentialAuthorizationPrefix",
+        "httpsCredentialResponseHeaderByteLimit",
+        "httpsCredentialResponseWindowBytes",
         "openHttpsCredentialBinding",
         "prepareHttpsCredentialAuthenticationMaterial",
+        "retainHttpsCredentialBindingReadChild",
         "withHttpsCredentialRunResponseOriginal"
       ],
       "operations": [
@@ -5519,7 +6388,8 @@
             "scope",
             "control",
             "journal",
-            "resolveSecret"
+            "resolveSecret",
+            "bindingBorrow"
           ],
           "async": false
         },
@@ -5616,6 +6486,13 @@
           "async": false
         },
         {
+          "name": "bindingQuiescent",
+          "parameters": [
+            "state"
+          ],
+          "async": false
+        },
+        {
           "name": "callCredentialResource",
           "parameters": [
             "grant",
@@ -5634,10 +6511,25 @@
             "returnRejectedResponse",
             "retainRunResponseOriginal",
             "currentBeforeSend",
+            "responseCustody",
+            "observeResponseBytes",
             "signal",
             "binding"
           ],
           "async": true
+        },
+        {
+          "name": "callCredentialResource/retainResponse/retainResponse",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "callCredentialResource/retainResponse/retainResponse#2",
+          "parameters": [
+            "original",
+            "cause"
+          ],
+          "async": false
         },
         {
           "name": "callHttpsCredentialResource",
@@ -5756,6 +6648,13 @@
           "async": false
         },
         {
+          "name": "httpsCredentialResponseWindowBytes",
+          "parameters": [
+            "maxResponseBytes"
+          ],
+          "async": false
+        },
+        {
           "name": "openHttpsCredentialBinding",
           "parameters": [
             "scope",
@@ -5867,7 +6766,8 @@
             "signal",
             "maxResponseBytes",
             "binding",
-            "retainRunResponseOriginal"
+            "retainRunResponseOriginal",
+            "observeResponseBytes"
           ],
           "async": false
         },
@@ -5929,6 +6829,29 @@
           "async": false
         },
         {
+          "name": "receive/receive/request/request/readObservedResponse/readObservedResponse",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "receive/receive/request/request/readObservedResponse/readObservedResponse/finishObserver/finishObserver",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "receive/receive/request/request/readObservedResponse/readObservedResponse/finishObserver/finishObserver#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "receive/receive/request/request/readObservedResponse/readObservedResponse/joined/joined",
+          "parameters": [
+            "yes",
+            "no"
+          ],
+          "async": false
+        },
+        {
           "name": "receive/receive/request/request/request",
           "parameters": [
             "chunk"
@@ -5944,6 +6867,28 @@
         },
         {
           "name": "receive/receive/request/request/request#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "retainHttpsCredentialBindingReadChild",
+          "parameters": [
+            "binding"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainHttpsCredentialBindingReadChild/borrow/init:available/init:available",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "retainHttpsCredentialBindingReadChild/borrow/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "retainHttpsCredentialBindingReadChild/borrow/init:retire/init:retire",
           "parameters": [],
           "async": false
         },
@@ -5982,7 +6927,6 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
             "acquireBinding",
             "acquireBinding/acquireBinding",
             "acquireBinding/acquireBinding#2",
@@ -6031,6 +6975,7 @@
             "receive/receive/receive/receive",
             "receive/receive/release/release",
             "receive/receive/request/request",
+            "receive/receive/request/request/readObservedResponse/readObservedResponse/finishObserver/finishObserver#2",
             "receive/receive/request/request/request",
             "receive/receive/request/request/request#2",
             "receive/receive/request/request/request#3",
@@ -6041,6 +6986,8 @@
             "callHttpsCredentialResource",
             "closeHttpsCredentialBinding",
             "exchangeHttpsCredentialAuthentication",
+            "httpsCredentialAuthorizationPrefix",
+            "httpsCredentialResponseHeaderByteLimit",
             "openHttpsCredentialBinding",
             "prepareHttpsCredentialAuthenticationMaterial"
           ],
@@ -6073,6 +7020,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Original Run current fences"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader responsibility:"
               }
             ],
             "inputsOutputs": [
@@ -6115,6 +7066,10 @@
               {
                 "path": "adapters/site-node/https-credential-resource.mjs",
                 "anchor": "responseRepresentation: response.responseRepresentation"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader inputs and outputs:"
               }
             ],
             "identity": [
@@ -6149,6 +7104,10 @@
               {
                 "path": "adapters/site-node/https-credential-resource.mjs",
                 "anchor": "response.rawHeaders[index].toLowerCase()"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader identity:"
               }
             ],
             "ownership": [
@@ -6179,6 +7138,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Original Run current fences"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader ownership:"
               }
             ],
             "synchronization": [
@@ -6209,6 +7172,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Original Run current fences"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader synchronization:"
               }
             ],
             "failure": [
@@ -6239,6 +7206,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Original Run current fences"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader failure:"
               }
             ],
             "cancellation": [
@@ -6269,6 +7240,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Original Run current fences"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader cancellation:"
               }
             ],
             "resources": [
@@ -6307,6 +7282,14 @@
               {
                 "path": "adapters/site-node/https-credential-resource.mjs",
                 "anchor": "Object.freeze({etagCount, contentEncodingCount})"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader resources:"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Initial headers and trailers have separate parser counters and can"
               }
             ],
             "extension": [
@@ -6337,6 +7320,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Original Run current fences"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader extension:"
               }
             ],
             "verification": [
@@ -6415,6 +7402,18 @@
               {
                 "path": "adapters/connectors/salesforce/test/account-target-original.test.mjs",
                 "anchor": "Account target original rejects missing weak wildcard"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader verification:"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_response_buffer_wbtest.mbt",
+                "anchor": "test \"HTTP response inventory retains initial headers and trailers beside the original body\""
+              },
+              {
+                "path": "adapters/site-node/https-credential-response-accounting.test.mjs",
+                "anchor": "test('original HTTP overflow in either header block stays Unknown without another claim'"
               }
             ]
           }
@@ -6486,6 +7485,10 @@
               {
                 "path": "adapters/site-node/https-credential-resource.mjs",
                 "anchor": "const requestRepresentation = !retainRunResponseOriginal"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Initial headers and trailers have separate parser counters and can"
               }
             ],
             "extension": [
@@ -6514,20 +7517,599 @@
               {
                 "path": "adapters/site-node/https-credential-resource.test.mjs",
                 "anchor": "representation on the original fenced acquisition"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_response_buffer_wbtest.mbt",
+                "anchor": "test \"HTTP response inventory retains initial headers and trailers beside the original body\""
+              },
+              {
+                "path": "adapters/site-node/https-credential-response-accounting.test.mjs",
+                "anchor": "test('original HTTP overflow in either header block stays Unknown without another claim'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "bindingQuiescent",
+            "callCredentialResource/retainResponse/retainResponse",
+            "callCredentialResource/retainResponse/retainResponse#2",
+            "httpsCredentialResponseWindowBytes",
+            "receive/receive/request/request/readObservedResponse/readObservedResponse",
+            "receive/receive/request/request/readObservedResponse/readObservedResponse/finishObserver/finishObserver",
+            "receive/receive/request/request/readObservedResponse/readObservedResponse/joined/joined",
+            "retainHttpsCredentialBindingReadChild",
+            "retainHttpsCredentialBindingReadChild/borrow/init:available/init:available",
+            "retainHttpsCredentialBindingReadChild/borrow/init:close/init:close",
+            "retainHttpsCredentialBindingReadChild/borrow/init:retire/init:retire"
+          ],
+          "exports": [
+            "httpsCredentialResponseWindowBytes",
+            "retainHttpsCredentialBindingReadChild"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader resources:"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Initial headers and trailers have separate parser counters and can"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/embedded-source-identity-initialization.test.mjs",
+                "anchor": "identity and Host loader reuse one actual service and parent with the original Project and current fences"
+              },
+              {
+                "path": "adapters/host-node/rest-source-initial-material.test.mjs",
+                "anchor": "REST factory forwards the same managed CA bytes to its original Site service"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader verification:"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_response_buffer_wbtest.mbt",
+                "anchor": "test \"HTTP response inventory retains initial headers and trailers beside the original body\""
+              },
+              {
+                "path": "adapters/site-node/https-credential-response-accounting.test.mjs",
+                "anchor": "test('original HTTP overflow in either header block stays Unknown without another claim'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Responsibility |"
+              },
+              {
+                "path": "adapters/host-common/http-body-lifetime.md",
+                "anchor": "# Scoped HTTP body ownership"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Native authentication material in the original binding"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original authentication exchange and token custody"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original installation metadata HTTPS binding"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Run response responsibility:"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original Run current fences"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Inputs/outputs |"
+              },
+              {
+                "path": "adapters/host-common/http-body-lifetime.md",
+                "anchor": "## Two explicit shapes"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Native authentication material in the original binding"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original authentication exchange and token custody"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Private kintone API-token presentation"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original installation metadata HTTPS binding"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Run response inputs and outputs:"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original Run current fences"
+              },
+              {
+                "path": "adapters/site-node/https-credential-resource.mjs",
+                "anchor": "requestRepresentation: response.requestRepresentation"
+              },
+              {
+                "path": "adapters/site-node/https-credential-resource.mjs",
+                "anchor": "responseRepresentation: response.responseRepresentation"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Identity |"
+              },
+              {
+                "path": "adapters/host-common/http-body-lifetime.md",
+                "anchor": "## Original use and currentness"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Native authentication material in the original binding"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original authentication exchange and token custody"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original installation metadata HTTPS binding"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Run response identity:"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original Run current fences"
+              },
+              {
+                "path": "adapters/site-node/https-credential-resource.mjs",
+                "anchor": "response.rawHeaders[index].toLowerCase()"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Ownership |"
+              },
+              {
+                "path": "adapters/host-common/http-body-lifetime.md",
+                "anchor": "## Simultaneous inventory"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Native authentication material in the original binding"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original authentication exchange and token custody"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original installation metadata HTTPS binding"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Run response ownership:"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original Run current fences"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Synchronization |"
+              },
+              {
+                "path": "adapters/host-common/http-body-lifetime.md",
+                "anchor": "secret-resolution await."
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Native authentication material in the original binding"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original authentication exchange and token custody"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original installation metadata HTTPS binding"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Run response synchronization:"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original Run current fences"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Failure |"
+              },
+              {
+                "path": "adapters/host-common/http-body-lifetime.md",
+                "anchor": "Lost responses retain the same nominal Unknown use."
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Native authentication material in the original binding"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original authentication exchange and token custody"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original installation metadata HTTPS binding"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Run response failure:"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original Run current fences"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Cancellation |"
+              },
+              {
+                "path": "adapters/host-common/http-body-lifetime.md",
+                "anchor": "Bound\ncleanup retains its existing pending state"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Native authentication material in the original binding"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original authentication exchange and token custody"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original installation metadata HTTPS binding"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Run response cancellation:"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original Run current fences"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Resources |"
+              },
+              {
+                "path": "adapters/host-common/http-body-lifetime.md",
+                "anchor": "two distinct dedicated N-byte backings"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Native authentication material in the original binding"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original authentication exchange and token custody"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original installation metadata HTTPS binding"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Run response resources:"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original Run current fences"
+              },
+              {
+                "path": "adapters/site-node/https-credential-resource.mjs",
+                "anchor": "const requestRepresentation = !retainRunResponseOriginal"
+              },
+              {
+                "path": "adapters/site-node/https-credential-resource.mjs",
+                "anchor": "Object.freeze({etagCount, contentEncodingCount})"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader resources:"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Initial headers and trailers have separate parser counters and can"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Extension |"
+              },
+              {
+                "path": "adapters/host-common/http-body-lifetime.md",
+                "anchor": "not public JSON wire"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Native authentication material in the original binding"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original authentication exchange and token custody"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original installation metadata HTTPS binding"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Run response extension:"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original Run current fences"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Verification |"
+              },
+              {
+                "path": "adapters/host-common/http-body-lifetime.md",
+                "anchor": "## Verification boundary"
+              },
+              {
+                "path": "adapters/site-node/https-credential-resource.test.mjs",
+                "anchor": "bounded binary invocation sends exact non-UTF8 bytes"
+              },
+              {
+                "path": "adapters/host-common/http-exchange.test.mjs",
+                "anchor": "byte length/backing properties cannot disguise"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Native authentication material in the original binding"
+              },
+              {
+                "path": "adapters/site-node/credential-authentication-material.test.mjs",
+                "anchor": "a reentrant material-current revocation still reaches final Journal authorization before signing"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original authentication exchange and token custody"
+              },
+              {
+                "path": "adapters/site-node/credential-authentication-exchange.test.mjs",
+                "anchor": "lost outcome COMMIT reply publishes no token and never repeats the confirmed SQLite write"
+              },
+              {
+                "path": "adapters/site-node/credential-authentication-exchange.test.mjs",
+                "anchor": "failed outcome recording keeps original current failure and its same pending cleanup receiver"
+              },
+              {
+                "path": "adapters/site-node/https-credential-resource.test.mjs",
+                "anchor": "kintone token presentation uses the retained secret"
+              },
+              {
+                "path": "adapters/site-node/https-credential-resource.test.mjs",
+                "anchor": "kintone lost response retains the original Unknown use"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original installation metadata HTTPS binding"
+              },
+              {
+                "path": "adapters/site-node/installation-metadata-https.integration.test.mjs",
+                "anchor": "test('metadata actual publication sends"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Run response verification:"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original Run current fences"
+              },
+              {
+                "path": "adapters/site-node/https-credential-resource.test.mjs",
+                "anchor": "physical conditional request representation after caller mutation"
+              },
+              {
+                "path": "adapters/site-node/https-credential-resource.test.mjs",
+                "anchor": "actual default Accept without inventing absent conditions"
+              },
+              {
+                "path": "adapters/site-node/https-credential-resource.test.mjs",
+                "anchor": "representation on the original fenced acquisition"
+              },
+              {
+                "path": "adapters/connectors/salesforce/test/account-target-original.test.mjs",
+                "anchor": "Account target original rejects missing weak wildcard"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader verification:"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_response_buffer_wbtest.mbt",
+                "anchor": "test \"HTTP response inventory retains initial headers and trailers beside the original body\""
+              },
+              {
+                "path": "adapters/site-node/https-credential-response-accounting.test.mjs",
+                "anchor": "test('original HTTP overflow in either header block stays Unknown without another claim'"
               }
             ]
           }
         }
       ],
-      "sha256": "c61b2876b407e448439a5a276c099c572dee6057b3e3dcbb5e51036e172153ee",
+      "sha256": "19f0b1294016fe29a3f4f81f8f06862cecd01bbfeb7cbdd3ae27369cdcfa388e",
       "imports": [
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/credential-scope-fields.generated.mjs",
         "../host-common/http-exchange.mjs",
         "../host-common/installation-preparation-fields.generated.mjs",
         "../host-common/runtime-result.mjs",
+        "../host-common/source-response-custody.mjs",
         "./google-service-account-assertion.mjs",
         "node:crypto",
+        "node:http",
         "node:https",
         "node:util"
       ],
@@ -6764,7 +8346,6 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
             "count/count",
             "fail/fail",
             "openSqliteCredentialJournal",
@@ -6800,6 +8381,90 @@
           "exports": [
             "openSqliteCredentialJournal"
           ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Responsibility |"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Inputs/outputs |"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Identity |"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original grant of an authentication claim"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same-journal installation metadata admission"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Ownership |"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Synchronization |"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Failure |"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Cancellation |"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Resources |"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Extension |"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Verification |"
+              },
+              {
+                "path": "adapters/site-node/credential-authentication-journal.test.mjs",
+                "anchor": "the actual signature-admitted claim grant binds only its own original authentication use"
+              },
+              {
+                "path": "adapters/site-node/installation-metadata-credential-journal.integration.test.mjs",
+                "anchor": "metadata original signed grant enters the existing Journal with the same original claim"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [],
           "attributes": {
             "responsibility": [
               {
@@ -7239,7 +8904,6 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
             "count/count",
             "fail/fail",
             "openSqliteDispatchJournal",
@@ -7289,6 +8953,74 @@
           "exports": [
             "openSqliteDispatchJournal"
           ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Responsibility |"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Inputs/outputs |"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Identity |"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Ownership |"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Synchronization |"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Failure |"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Cancellation |"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Resources |"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Extension |"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Verification |"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [],
           "attributes": {
             "responsibility": [
               {
@@ -7585,7 +9317,6 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
             "count/count",
             "equal/equal",
             "equal/equal/equal",
@@ -7619,6 +9350,74 @@
           "exports": [
             "openSqliteTransferJournal"
           ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Responsibility |"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Inputs/outputs |"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Identity |"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Ownership |"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Synchronization |"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Failure |"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Cancellation |"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Resources |"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Extension |"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Verification |"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [],
           "attributes": {
             "responsibility": [
               {

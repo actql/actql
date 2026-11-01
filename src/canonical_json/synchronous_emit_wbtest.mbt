@@ -126,3 +126,29 @@ test "synchronous emission preserves malformed input refusal and closed writer" 
   }
   assert_true(closed)
 }
+
+///|
+test "complete writer usage retains exact Unicode bytes nodes and depth" {
+  let value = from_json(
+    { "k": ["東京", Json::null()] },
+    100,
+    8,
+    64,
+    data_keys=true,
+  )
+  assert_eq(
+    stringify_value_with_usage(value, 21, 4, 2),
+    ("{\"k\":[\"東京\",null]}", 21, 4, 2),
+  )
+  assert_eq(stringify_value(value, 21, 4, 2), "{\"k\":[\"東京\",null]}")
+  for (bytes, nodes, depth) in [(20, 4, 2), (21, 3, 2), (21, 4, 1)] {
+    let refused = try {
+      ignore(stringify_value_with_usage(value, bytes, nodes, depth))
+      false
+    } catch {
+      @encode.OutputLimit => true
+      _ => false
+    }
+    assert_true(refused)
+  }
+}

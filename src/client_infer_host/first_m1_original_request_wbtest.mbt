@@ -92,8 +92,20 @@ fn first_m1_original_request_check(
   ).unwrap()
   let read = @publication_host.prepare_client_model_read(scope, 7L, 5L).unwrap()
   let started = original_funded_start_from_read(
-    prepared, 2, infer_fixture_registry, infer_fixture_values, provider, limits,
-    compiled, definition, plan, read, 7L, 5L, 100L, 5L,
+    prepared,
+    2,
+    infer_fixture_installed_contracts(),
+    infer_fixture_values,
+    provider,
+    limits,
+    compiled,
+    definition,
+    plan,
+    read,
+    7L,
+    5L,
+    100L,
+    5L,
   )
   let active = match started {
     Ok(value) => value
@@ -201,7 +213,8 @@ fn first_m1_original_request_check(
     assert_eq(starts.val, 0)
     assert_eq(advances.val, 0)
     let usage = @model.model_execution_resource_usage(active.model.unwrap())
-    assert_eq(usage.attempts, 1)
+    assert_eq(usage.attempts, 0)
+    assert_eq(usage.reserved_attempts, 1)
     assert_true(usage.reserved_retention_bytes > 0L)
     assert_true(usage.reserved_transfer_bytes > 0L)
     assert_true(acquire_output(active) is None)
@@ -227,10 +240,10 @@ fn first_m1_original_request_check(
     }
   }
   assert_eq(starts.val, 1)
-  assert_eq(
-    @model.model_execution_resource_usage(active.model.unwrap()).attempts,
-    1,
-  )
+  // A prepared physical cursor is not an entered Model attempt.
+  let usage = @model.model_execution_resource_usage(active.model.unwrap())
+  assert_eq(usage.attempts, 0)
+  assert_eq(usage.reserved_attempts, 1)
   assert_true(original_matches.val)
   assert_true(advances.val > 0)
   assert_eq(observed.val, projection_work == 10000)

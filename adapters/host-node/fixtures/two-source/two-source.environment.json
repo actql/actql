@@ -3,23 +3,23 @@
   "connector_capabilities": [
     {
       "capability_contract_cids": [
-        "sha256:cdaab753fd3c01709fbd9ae32022a8462bc8200edf1e9c93d533a293989f8a3b",
-        "sha256:db7ce19477afd82a8488a9f64fd75697c850eaaccdc738995483cc138a06361a"
-      ],
-      "read_mode": "snapshot",
-      "source_contract_cid": "sha256:ffa240d28d8b7253cd0f9750544576ab92aac05eee6ee95626210b41978e5eb3",
-      "source_ref": "connector://crm/main/r#v",
-      "source_view_contract_cid": "sha256:ffa240d28d8b7253cd0f9750544576ab92aac05eee6ee95626210b41978e5eb3"
-    },
-    {
-      "capability_contract_cids": [
-        "sha256:cdaab753fd3c01709fbd9ae32022a8462bc8200edf1e9c93d533a293989f8a3b",
-        "sha256:db7ce19477afd82a8488a9f64fd75697c850eaaccdc738995483cc138a06361a"
+        "sha256:2e9959187141ac09be2f4684ac2d0dc7a2819059c6764b1a527b48e0cee6a08d",
+        "sha256:dcf4b1e2c8a078d96f9160a75a9f8279047e7448ea39b3b882588e18b9ab0929"
       ],
       "read_mode": "snapshot",
       "source_contract_cid": "sha256:3e9acc1b4279fc56faba3fd1fd060d15305bb0c2f3e4e1bd2de827e4991e6246",
       "source_ref": "connector://crm/right/r#v",
       "source_view_contract_cid": "sha256:3e9acc1b4279fc56faba3fd1fd060d15305bb0c2f3e4e1bd2de827e4991e6246"
+    },
+    {
+      "capability_contract_cids": [
+        "sha256:2e9959187141ac09be2f4684ac2d0dc7a2819059c6764b1a527b48e0cee6a08d",
+        "sha256:dcf4b1e2c8a078d96f9160a75a9f8279047e7448ea39b3b882588e18b9ab0929"
+      ],
+      "read_mode": "snapshot",
+      "source_contract_cid": "sha256:ffa240d28d8b7253cd0f9750544576ab92aac05eee6ee95626210b41978e5eb3",
+      "source_ref": "connector://crm/main/r#v",
+      "source_view_contract_cid": "sha256:ffa240d28d8b7253cd0f9750544576ab92aac05eee6ee95626210b41978e5eb3"
     }
   ],
   "connector_catalogs": [
@@ -357,7 +357,6 @@
       "version": "fixture"
     }
   ],
-  "evidence_bundle_cid": "sha256:8dddb2a590629efb451ee5c579798da0ec64a674980601b49a97ff6a79140505",
   "host_policy_profile": {
     "capacity": {
       "max_aggregate_array_items": 1000,
@@ -514,5 +513,6 @@
       "view_version": "fixture"
     }
   ],
-  "version": "actql-check-environment/0.1"
+  "version": "actql-check-environment/0.1",
+  "evidence_bundle_cid": "sha256:9b20c429c53c8eb9b5b057b26f86209d6964f1ca97d83e594b3a628aebe79c4a"
 }

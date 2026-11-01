@@ -300,6 +300,7 @@ class StoreInventoryTests(unittest.TestCase):
                     if outcome == 'lost_ack':
                         store._connection.close()
                         store._connection = sqlite3.connect(Path(directory) / 'core.sqlite', isolation_level=None, factory=LostAck)
+                        store._physical._connection = store._connection
                     facts.validate()
                     original_loan = facts.pending_input
                     count = projection.storage_count()

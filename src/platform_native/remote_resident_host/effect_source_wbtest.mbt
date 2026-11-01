@@ -2,7 +2,7 @@
 fn resident_effect_source_prepared() -> @host.PreparedClientEffectComputation {
   let environment = @host.admit_client_check_environment(
     resident_effect_source_environment,
-    "sha256:4ea01561b9ac9815baaf04a81cff8260c8a47c56f19828b5889cf45ec1436e78",
+    "sha256:05ee9059ef5f173069a3f3f1896e16ee62d34d0c842d81e9b0f8421db62e67a8",
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
   ).unwrap()
@@ -45,7 +45,7 @@ fn resident_effect_source_requirement(
     resident_effect_source_prepared(),
     task,
     source_index,
-    resident_effect_source_contracts(),
+    resident_effect_installed_contracts(),
     resident_effect_source_values,
     Some(resident_effect_source_fragment),
     source_ref,
@@ -116,7 +116,7 @@ test "Effect Source rejects an invalid execution registry without a physical fal
 }
 
 ///|
-fn resident_effect_source_contracts() -> @local.ClientInstalledSequenceContracts {
+fn resident_effect_installed_contracts() -> @local.ClientInstalledSequenceContracts {
   @local.prepare_installed_sequence_contracts(
     resident_effect_source_registry,
     resident_effect_source_values,

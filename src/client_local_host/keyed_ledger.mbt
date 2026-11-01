@@ -59,6 +59,47 @@ fn keyed_captured_local_installed_limits(
   infer? : (Int, Int, Int64, Int64)? = None,
   captured_content? : Bool = false,
 ) -> @resources.LedgerLimits? {
+  keyed_captured_local_installed_requirements(
+    prepared,
+    direct,
+    keyed,
+    keyed_capacity,
+    transport_bytes,
+    transport_execution_bytes,
+    max_bytes,
+    max_work,
+    installed_contracts,
+    values_body,
+    fragment_body,
+    ordered_body,
+    serialization~,
+    infer~,
+    captured_content~,
+  ).map(value => value.0)
+}
+
+///|
+// One calculation returns the original checked coordinates and request bound
+// along with limits. Retaining those completed facts avoids another graph/
+// lookup-capacity derivation in the installed keyed Content constructor.
+fn keyed_captured_local_installed_requirements(
+  prepared : @publication_host.PreparedClientProgram,
+  direct : ClientInstalledCaptureCapacity,
+  keyed : @publication_host.ClientKeyedAcquisition,
+  keyed_capacity : @row_source_host.RowKeyedCapacity,
+  transport_bytes : Array[Int64],
+  transport_execution_bytes : Array[Int64],
+  max_bytes : Int,
+  max_work : Int,
+  installed_contracts : ClientInstalledSequenceContracts,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+  serialization? : (Int, Int, Int64, Int64)? = None,
+  infer? : (Int, Int, Int64, Int64)? = None,
+  captured_content? : Bool = false,
+  original_requirement? : @planning.QueryRequirement? = None,
+) -> (@resources.LedgerLimits, Int, Int, Int64)? {
   guard @publication_host.client_keyed_acquisition_matches_program(
       keyed, prepared,
     ) &&
@@ -71,10 +112,25 @@ fn keyed_captured_local_installed_limits(
       @publication_host.client_keyed_acquisition_owner(keyed),
       @publication_host.client_keyed_acquisition_facts(keyed),
     ) &&
-    prepare_local_query_requirement(
-      prepared, stage, input, installed_contracts, values_body, fragment_body, ordered_body,
-    )
-    is Ok(requirement) &&
+    (match original_requirement {
+      None =>
+        prepare_local_query_requirement(
+          prepared, stage, input, installed_contracts, values_body, fragment_body, ordered_body,
+        ).to_option()
+      Some(requirement) =>
+        if physical_equal(requirement, direct.requirement) &&
+          @publication_host.client_query_requirement_matches_program(
+            prepared, stage, input, requirement,
+          ) &&
+          values_body == installed_contracts.original.values_body &&
+          fragment_body == installed_contracts.original.fragment_body &&
+          ordered_body == installed_contracts.original.ordered_body {
+          Some(requirement)
+        } else {
+          None
+        }
+    })
+    is Some(requirement) &&
     @planning.query_requirement_cid(requirement) ==
     @planning.query_requirement_cid(direct.requirement) &&
     @publication_host.client_keyed_lookup_capacity(keyed, max_bytes, max_work)
@@ -161,7 +217,7 @@ fn keyed_captured_local_installed_limits(
           values_body,
           fragment_body,
           ordered_body,
-        )
+        ).to_option()
         is Some(sequences) else {
         return None
       }
@@ -249,12 +305,21 @@ fn keyed_captured_local_installed_limits(
     }
     transfer += bytes * multiplier
   }
-  Some({
-    planning_work: limits.planning_work,
-    attempts: count + key_runs.to_int() + (if captured_content { 2 } else { 1 }),
-    holdings: count + key_runs.to_int() + 1,
-    transfer_bytes: transfer,
-    retained_bytes: retained,
-    execution_bytes: executing,
-  })
+  Some(
+    (
+      {
+        planning_work: limits.planning_work,
+        attempts: count +
+        key_runs.to_int() +
+        (if captured_content { 2 } else { 1 }),
+        holdings: count + key_runs.to_int() + 1,
+        transfer_bytes: transfer,
+        retained_bytes: retained,
+        execution_bytes: executing,
+      },
+      stage,
+      input,
+      key_runs,
+    ),
+  )
 }

@@ -12,9 +12,12 @@ import {
   "actql/actql/source_frontend",
   "actql/actql/source_value",
   "actql/actql/stage_syntax",
+  "moonbitlang/core/debug",
 }
 
 // Values
+pub fn[T] admit_captured_local_parameters(T, @source_value.JsonDataReader[T]) -> Result[@decode_core.Cursor, LocalProgramInputIssue]
+
 pub fn admit_local_program_input(String, String?) -> Result[(@stage_syntax.Format, @decode_core.Cursor?), LocalProgramInputIssue]
 
 pub fn bind_local_input_context(@program_check.CheckEnvironment, Array[@source_frontend.PublishedAlias], String, parameter_declarations? : @parameter_binding.Declarations?, input_schemas? : Array[(String, @relation_schema.Schema)], source_catalog? : @check_environment.SourceRequestContracts?) -> Result[LocalInputContext, LocalPreparationIssue]
@@ -41,6 +44,8 @@ pub fn client_program_check_source_selector_range(@program_check.CheckEnvironmen
 
 pub fn client_program_check_unavailable(String) -> String
 
+pub fn local_parameter_input_limits() -> (@source_value.ParseLimits, @decode_core.Limits)
+
 pub fn local_prepared_document(LocalPreparedInput) -> String
 
 pub fn local_prepared_original(LocalPreparedInput) -> LocalInput
@@ -63,6 +68,8 @@ pub fn local_submitted_preparation_input(LocalSubmittedPreparation) -> LocalPrep
 
 pub fn local_submitted_preparation_intent(LocalSubmittedPreparation) -> @run_publication_host.ClientSubmittedIntent
 
+pub fn local_submitted_preparation_parameters_wire(LocalSubmittedPreparation) -> Result[String?, @run_publication_host.ClientSubmittedIntentIssue]
+
 pub fn prepare_local_input(LocalInput, @program_check.CheckEnvironment, @decode_core.Cursor?, LocalInputContext?, @run_publication_host.ClientProgramPreparationLimits) -> Result[@run_publication_host.PreparedClientProgram, LocalPreparationIssue]
 
 pub fn prepare_local_input_material(LocalInput, @program_check.CheckEnvironment, @decode_core.Cursor?, LocalInputContext?, @run_publication_host.ClientProgramPreparationLimits) -> Result[LocalPreparedInput, LocalPreparationIssue]
@@ -70,6 +77,8 @@ pub fn prepare_local_input_material(LocalInput, @program_check.CheckEnvironment,
 pub fn prepare_local_source_computation(@run_publication_host.ClientSubmittedIntent, @program_check.CheckEnvironment, String, public_primary? : Bool, publication_environment? : @client_source_publication.PreparedPublishedQueryEnvironment?) -> Result[@run_publication_host.ClientSourcePreparation, @run_publication_host.ClientSourcePreparationIssue]
 
 pub fn prepare_local_submitted_input(String, @program_check.CheckEnvironment, LocalInputContext?, @run_publication_host.ClientProgramPreparationLimits) -> Result[LocalSubmittedPreparation, LocalPreparationIssue]
+
+pub fn restore_local_submitted_input(@run_publication_host.ClientSavedTaskMaterials) -> Result[LocalSubmittedPreparation, LocalPreparationIssue]
 
 // Errors
 
@@ -114,7 +123,7 @@ pub(all) enum LocalProgramInputIssue {
   InvalidFormat
   SuppliedSyntax(@source_value.ParseError)
   SuppliedAdmission(@decode_core.Issue)
-}
+} derive(@debug.Debug)
 
 pub struct LocalSubmittedPreparation {
   intent : @run_publication_host.ClientSubmittedIntent

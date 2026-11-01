@@ -2,7 +2,6 @@
 /// Check the original physical Run loan behind this publication. This is only
 /// a nominal routing fence; current Account read and publisher checks remain
 /// in the original RunState export. No admission, state or ACK is issued here.
-#export_name("actql_publication_validate_run")
 pub fn validate_publication_run(
   nonce : Int64,
   handle : Int,

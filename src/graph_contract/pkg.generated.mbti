@@ -4,6 +4,7 @@ package "actql/actql/graph_contract"
 import {
   "actql/actql/carrier_contract",
   "actql/actql/decode_core",
+  "actql/actql/decode_shape",
   "actql/actql/encode_core",
   "actql/actql/value_contract",
   "moonbitlang/core/debug",
@@ -22,9 +23,23 @@ pub fn emit_checked_graph(CheckedContract, @encode_core.Writer) -> Unit raise @e
 
 pub fn graph(CheckedContract) -> @carrier_contract.Graph
 
+pub fn graph_read_construction_extent(GraphReadConstructionInventory) -> @decode_shape.CollectionConstructionExtent
+
+pub fn graph_read_construction_text(GraphReadConstructionInventory) -> (Int64, Int64, Int64)
+
+pub fn graph_read_construction_work(GraphReadConstructionInventory) -> Int64
+
+pub fn graph_read_retained_extent(GraphReadConstructionInventory) -> @decode_shape.CollectionConstructionExtent
+
 pub fn law_cid() -> String
 
+pub fn measure(@carrier_contract.Carrier, Limits) -> Result[(Int, Int, Int), Issue]
+
 pub fn nodes(CheckedContract) -> Int
+
+pub fn observe_graph_read_construction(@decode_core.Cursor) -> GraphReadConstructionInventory
+
+pub fn observe_read_cursor_usage(@decode_core.Cursor, Limits, max_contract_work~ : Int) -> (Result[CheckedContract, ReadIssue], Int)
 
 pub fn read_cursor(@decode_core.Cursor, Limits) -> Result[CheckedContract, ReadIssue]
 
@@ -36,6 +51,10 @@ pub fn stringify(CheckedContract, Limits) -> String raise @encode_core.EncodeFai
 
 // Types and methods
 type CheckedContract
+
+pub struct GraphReadConstructionInventory {
+  // private fields
+}
 
 pub(all) enum Issue {
   InvalidLimits
