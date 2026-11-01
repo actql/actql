@@ -686,14 +686,25 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
         plain && (model.selection?.graph !== model.graph || model.selection?.occurrence !== model.occurrence ||
           Object.getOwnPropertyDescriptor(model, 'component')?.value !== undefined ||
           Object.getOwnPropertyDescriptor(model, 'component')?.writable !== true) ||
-        run.sourceProfile !== originals.installation.managedSourceProfile || typeof construct !== 'function') {
+        run.sourceProfile !== originals.installation.managedSourceProfile || typeof construct !== 'function' ||
+        typeof model.control[plain ? 'prepareCheckedClientRequestModelProviderComponentCaptureModule'
+          : 'prepareCheckedClientRequestModelProviderCaptureModule'] !== 'function') {
       throw clientOperationError('InstalledModelSourcePreparationUnavailable');
     }
-    const selected = checked(moon.clientProgramSelectInstalledSourceInput(run.prepared, 0, 0));
-    if (moon.clientProgramInstalledSourceInputKind(selected) !== 'query') {
+    if (typeof moon.clientProgramSelectInstalledSourceInput !== 'function' ||
+        typeof moon.clientProgramSelectedSourceInputKind !== 'function' ||
+        typeof moon.clientProgramSelectedSourceInputRef !== 'function') {
+      throw clientOperationError('NodeManagedRunRuntimeUnavailable');
+    }
+    const selected = checked(moon.clientProgramSelectInstalledSourceInput(run.prepared, run.request, 0, 0));
+    if (moon.clientProgramSelectedSourceInputKind(selected) !== 'query') {
       throw clientOperationError('InstalledModelSourcePreparationUnavailable');
     }
-    const adapter = installedSourceFor(run.sourceProfile, moon.clientProgramInstalledSourceInputRef(selected));
+    const sourceRef = moon.clientProgramSelectedSourceInputRef(selected);
+    if (typeof sourceRef !== 'string' || sourceRef.length === 0) {
+      throw clientOperationError('InstalledModelSourcePreparationUnavailable');
+    }
+    const adapter = installedSourceFor(run.sourceProfile, sourceRef);
     if (typeof adapter?.managedEffectPlanSelection !== 'function') {
       throw clientOperationError('InstalledModelSourcePreparationUnavailable');
     }
@@ -708,7 +719,8 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
     }
     run.modelSourceSelection = original;
   }
-  if (count === 0 && typeof moon.clientProgramPrepareRequestModelSourceFreeModule !== 'function') {
+  if (count === 0 && (typeof moon.clientProgramPrepareRequestModelSourceFreeModule !== 'function' ||
+      typeof model.control.prepareCheckedClientRequestModelSourceFreeModule !== 'function')) {
     throw clientOperationError('NodeManagedRunRuntimeUnavailable');
   }
   if (model.serializationGraph !== undefined) {
@@ -727,9 +739,9 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
     current();
   }
   if (count === 0) {
-    run.preparedSequences = checked(moon.clientProgramPrepareRequestModelSourceFreeModule(
+    run.preparedSequences = model.control.prepareCheckedClientRequestModelSourceFreeModule(
       parent, input, run.request, model.compiled, model.runDefinition, compilation,
-      installed.admission, retainedRelationOutput, run.queryTimePreparation));
+      installed.admission, retainedRelationOutput, run.queryTimePreparation);
     current();
     run.modelPlan = physical === undefined
       ? model.control.prepareCheckedClientRequestModelSourceFreePlan(parent, input,
@@ -745,8 +757,8 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
     const evidence = readInitialControlInstallationAsset(initialControl, originals,
       'spec/contracts/actql-query-process-evidence.json');
     const plain = model.serializationGraph === undefined;
-    const construct = plain ? moon.clientProgramPrepareRequestModelProviderComponentCaptureModule
-      : moon.clientProgramPrepareRequestModelProviderCaptureModule;
+    const construct = plain ? model.control.prepareCheckedClientRequestModelProviderComponentCaptureModule
+      : model.control.prepareCheckedClientRequestModelProviderCaptureModule;
     const args = [parent, input, run.request, model.compiled, model.runDefinition, compilation,
       original.declaration, original.provider, query, evidence,
       original.transferBytes, original.executionBytes, installed.admission,
@@ -769,14 +781,15 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
       current();
       return component.provider;
     });
-    run.preparedSequences = checked(Reflect.apply(construct, moon, args));
+    run.preparedSequences = Reflect.apply(construct, model.control, args);
     current();
     run.modelPlan = model.control.prepareCheckedClientRequestNodeModelCapturePlan(parent, input,
       run.preparedSequences, run.request, model.compiled, model.runDefinition,
       model.occurrence, model.graph, model.selectedBounds, physical);
   } else {
     const sources = readInstalledMockPreparation(originals).sources;
-    if (sources.length !== 2 || typeof moon.clientProgramPrepareRequestModelCaptureModule !== 'function') {
+    if (sources.length !== 2 || typeof moon.clientProgramPrepareRequestModelCaptureModule !== 'function' ||
+        typeof model.control.prepareCheckedClientRequestModelCaptureModule !== 'function') {
       throw clientOperationError('InstalledMockModelOperationalAdmissionUnavailable');
     }
     const query = readInitialControlInstallationAsset(initialControl, originals,
@@ -786,10 +799,10 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
     // Same fixed Mock document limits as its real original reader. These
     // supply demand to Core; no row, Source observation or ACK is fabricated.
     const documentBytes = Object.freeze([1048576n, 1048576n]);
-    run.preparedSequences = checked(moon.clientProgramPrepareRequestModelCaptureModule(
+    run.preparedSequences = model.control.prepareCheckedClientRequestModelCaptureModule(
       parent, input, run.request, model.compiled, model.runDefinition, compilation,
       sources.map(value => value.declaration), query, evidence,
-      documentBytes, documentBytes, installed.admission, retainedRelationOutput, run.queryTimePreparation));
+      documentBytes, documentBytes, installed.admission, retainedRelationOutput, run.queryTimePreparation);
     current();
     run.modelPlan = model.control.bindCheckedClientMockModelCapturePlan(run.preparedSequences,
       model.compiled, model.runDefinition, model.occurrence, model.graph, model.selectedBounds);
