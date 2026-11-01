@@ -1617,6 +1617,8 @@ pub fn client_program_prepare_request_serialization_compilation(@client_local_ho
 
 pub fn client_program_prepare_request_serialization_graph(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Int, Int, String, String, Int, Int, Bool, @client_local_host.ClientInstalledSequenceContracts) -> Result[@run_publication_host.ClientSerializationPlanGraph, ClientRequestProgramModuleBridgeIssue]
 
+pub fn client_program_prepare_request_serialized_model_graph(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.ClientInferOccurrence, @run_publication_host.ClientSerializationPlanGraph, @check_environment.ModelExecutionContract, @client_local_host.ClientInstalledSequenceContracts) -> Result[@run_publication_host.ClientInferPlanGraph, ClientRequestProgramModuleBridgeIssue]
+
 pub fn client_program_prepare_request_source_computation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, NativeJsonValue, NativeJsonValue, @program_check.CheckEnvironment, @client_source_publication.PreparedPublishedQueryEnvironment, Int?) -> Result[Unit, @client_local_host.ClientRequestTerminalIssue]
 
 pub fn client_program_prepare_request_submitted_intent(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, NativeJsonValue) -> Result[String, @client_local_host.ClientRequestPreparationIssue]
