@@ -2833,3 +2833,13 @@ constructor shares the fixed recovery phase only when the original complete
 fixed peak covers that prefix plus the current row workspace. Overflow or an
 uncovered phase preserves the original row quantity. Clear marker history
 cannot be subtracted by that conditional fold.
+
+The saved standard Effect control frame uses the common upper input geometry
+of the actual logical Ledger and retained Outcome readers. Candidate Receipt,
+typed outcome, expected Receipt and their Ledger original can overlap within
+that single synchronous family. Its conservative executor envelopes retain
+their full values/text and failed writer/decoder prefixes; the existing4096-byte
+fixed Host control allowance is charged once. The normalizing Ledger peak and
+that complete Receipt-family envelope are alternative bounds of the same
+control frame, not separately issued reservations. Physical saved response
+buffers, native projection results and distinct Grants remain additive.

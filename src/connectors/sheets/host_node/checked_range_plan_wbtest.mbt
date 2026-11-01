@@ -231,8 +231,8 @@ test "authored bounded range Program quotes the installed Sheets Source profile 
     7,
     16384,
     1000000,
-    64,
-    4,
+    512,
+    16,
     0L,
     response_read_quantum=16384,
   ).unwrap()
@@ -600,8 +600,8 @@ test "authored clear Program quotes original empty input Command and installed S
     7,
     16384,
     1000000,
-    64,
-    4,
+    512,
+    16,
     0L,
     response_read_quantum=16384,
   ).unwrap()

@@ -562,6 +562,42 @@ test "stored Ledger admission and original projector keep all outputs without su
 }
 
 ///|
+test "stored control includes retained Receipt outcomes beyond the smaller Ledger syntax" {
+  let selected = standard_create_saved_control_capacity(1000000, 512, 16).unwrap()
+  // The actual Host outcome bounds are512/16, independently of the logical
+  // entry's64/4. Preserve the existing coarse retained and failed-prefix
+  // envelopes, even for a data-key outcome with no Unicode normalization.
+  let retained = @execution.execution_capacity_inventory(
+    [
+      { unit: ValueNodeSlots, count: 512L, copies: 4, },
+      { unit: DecodedTextBytes, count: 1000000L, copies: 3, },
+      { unit: QuotedBytes, count: 4096L, copies: 1, },
+    ],
+    [],
+    RetainedAlongsideExecution,
+  ).unwrap()
+  assert_true(
+    @execution.execution_capacity_retained_bytes(selected) >=
+    @execution.execution_capacity_retained_bytes(retained),
+  )
+  assert_true(
+    @execution.execution_capacity_execution_bytes(selected) >=
+    @execution.execution_capacity_retained_bytes(retained) + 48000000L,
+  )
+  let entry_only = standard_create_saved_control_capacity(1000000, 64, 4).unwrap()
+  assert_true(
+    @execution.execution_capacity_retained_bytes(selected) >
+    @execution.execution_capacity_retained_bytes(entry_only),
+  )
+  for
+    (bytes, nodes, depth) in [(0, 512, 16), (1000000, 0, 16), (1000000, 512, 0)] {
+    assert_true(
+      standard_create_saved_control_capacity(bytes, nodes, depth) is None,
+    )
+  }
+}
+
+///|
 test "stored control sequential scratch keeps retained and execution overflow closed" {
   let maximum = @execution.execution_capacity(
     9223372036854775807L, 9223372036854775807L,

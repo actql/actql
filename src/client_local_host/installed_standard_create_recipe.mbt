@@ -87,6 +87,69 @@ fn standard_create_sequence_pair_capacity(
 }
 
 ///|
+// Existing saved-control family, including the retained Receipt's actual
+// data-key outcome path, not only the smaller logical Ledger entry. Both use
+// the same synchronous original controlConstruction frame. The normalizing
+// Ledger codec keeps its complete Unicode peak; this additional coarse
+// envelope covers candidate Receipt, typed outcome, expected Receipt and the
+// original Ledger result which can coexist during cross-reference admission.
+// Use only the existing executor units and fixed4096 Host-call allowance.
+fn standard_create_saved_control_capacity(
+  bytes : Int,
+  nodes : Int,
+  depth : Int,
+) -> @execution.ExecutionCapacity? {
+  guard installed_json_effect_response_construction_capacity(
+      @execution.execution_capacity(0L, 0L).unwrap(),
+      bytes,
+      nodes,
+      depth,
+    )
+    is Some(ledger) &&
+    @execution.execution_capacity_inventory(
+      [
+        // Four complete returned/overlapping value families above. This
+        // intentionally also retains their private construction alternatives.
+        { unit: ValueNodeSlots, count: nodes.to_int64(), copies: 4, },
+        // Three existing decoded-text envelopes cover12 UTF16 text domains:
+        // Ledger wire/fields, candidate wire/text, typed wire/text, expected
+        // body/text/wire, and three old/new returned-text alternatives. Input
+        // aliases are conservatively included, never used as extra grants.
+        { unit: DecodedTextBytes, count: bytes.to_int64(), copies: 3, },
+        { unit: QuotedBytes, count: 4096L, copies: 1, },
+      ],
+      [
+        // Current Source/index/schema/canonical/writer and failed prefixes.
+        // Completed sibling codecs return before the next begins. Preserve
+        // the full conservative phase on refusal, not a successful-body cut.
+        { unit: ValueNodeSlots, count: nodes.to_int64(), copies: 6, },
+        { unit: CursorRootSlots, count: depth.to_int64(), copies: 2, },
+        // Encode/parse, canonical text emission and digest input alternatives
+        // remain separate from retained result text and received body copies.
+        { unit: CanonicalWireBytes, count: bytes.to_int64(), copies: 6, },
+      ],
+      RetainedAlongsideExecution,
+    )
+    is Some(receipts) else {
+    return None
+  }
+  // These are two envelopes for the SAME complete control family, not two
+  // simultaneous grants. The Receipt envelope already includes its Ledger
+  // original. Select the dominating dimensions once; keep every other
+  // Grant, native provider result and saved physical buffer additive below.
+  @execution.execution_capacity(
+    Int64::max(
+      @execution.execution_capacity_retained_bytes(ledger),
+      @execution.execution_capacity_retained_bytes(receipts),
+    ),
+    Int64::max(
+      @execution.execution_capacity_execution_bytes(ledger),
+      @execution.execution_capacity_execution_bytes(receipts),
+    ),
+  )
+}
+
+///|
 // The SAME remote Credential owner supplies its actual encoder/decoder and
 // signature domains. No Node copy of its limits or serialized grant schema.
 fn standard_create_grant_capacity() -> @execution.ExecutionCapacity? {
@@ -408,8 +471,8 @@ fn installed_standard_recipe_capacities(
     standard_create_secret_capacity(secret_bytes, secret_prefix_units)
     is Some(secret) &&
     standard_create_grant_capacity() is Some(grant) &&
-    installed_json_effect_response_construction_capacity(
-      empty, stored_bytes, stored_nodes, stored_depth,
+    standard_create_saved_control_capacity(
+      stored_bytes, stored_nodes, stored_depth,
     )
     is Some(stored) &&
     standard_create_representation_capacity(

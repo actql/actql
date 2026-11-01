@@ -89,8 +89,11 @@ export function prepareInstalledStandardCreatePlanRecipe({moon, providerMoon, co
     ...(captureProfile === undefined ? [] : [requestInput.maxWireBytes,requestInput.maxNodes,requestInput.maxDepth]),
     write.maxRequestBytes, write.maxResponseBytes, check?.maxRequestBytes ?? 0, check?.maxResponseBytes ?? 0,
     check?.beforeSend === true, secret.limits.maxSecretBytes, httpsCredentialAuthorizationPrefix.length,
-    httpsCredentialResponseHeaderByteLimit, effectLedgerImplementationBounds.maxResponseBytes,
-    effectLedgerImplementationBounds.maxNodes, effectLedgerImplementationBounds.maxDepth, units, httpsCredentialResponseReadQuantum));
+    httpsCredentialResponseHeaderByteLimit,
+    Math.max(effectLedgerImplementationBounds.maxEntryBytes, effectLedgerImplementationBounds.maxResponseBytes),
+    Math.max(effectLedgerImplementationBounds.maxNodes, effectLedgerImplementationBounds.maxOutcomeNodes),
+    Math.max(effectLedgerImplementationBounds.maxDepth, effectLedgerImplementationBounds.maxOutcomeDepth),
+    units, httpsCredentialResponseReadQuantum));
   if (!Array.isArray(capacities) || capacities.length !== (check === undefined ? 5 : 6) + (captureProfile === undefined ? 0 : 1)) {
     fail('InstalledStandardCreateConstructionUnavailable');
   }

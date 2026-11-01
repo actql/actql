@@ -26,8 +26,9 @@ test('automatic standard recipe forwards original constructor capacities and kee
       clientProgramInstalledStandardCreateRecipeCapacities(...args){
         assert.equal(this,moon);calls.push('capacities');
         assert.deepEqual(args,[profile,512,32,8,128,64,32,16,beforeSend,23,httpsCredentialAuthorizationPrefix.length,
-          httpsCredentialResponseHeaderByteLimit,effectLedgerImplementationBounds.maxResponseBytes,
-          effectLedgerImplementationBounds.maxNodes,effectLedgerImplementationBounds.maxDepth,41n,16384]);
+          httpsCredentialResponseHeaderByteLimit,
+          Math.max(effectLedgerImplementationBounds.maxEntryBytes,effectLedgerImplementationBounds.maxResponseBytes),
+          effectLedgerImplementationBounds.maxOutcomeNodes,effectLedgerImplementationBounds.maxOutcomeDepth,41n,16384]);
         return {$tag:1,_0:capacities};
       },
       clientProgramInstalledEffectCaptureExtentPrepare(operation,fixed,row){
@@ -548,6 +549,7 @@ test('automatic Command recipe forwards opaque native capture originals and sepa
   const moon={clientProgramInstalledStandardDriverRecipeCapacities(...args){assert.equal(this,moon);
     assert.equal(args[0],profile);assert.equal(args[1],capture);assert.deepEqual(args.slice(2,13),[1024,64,8,128,16,4,256,64,0,0,false]);
     assert.equal(args.at(-1),16384);
+    assert.deepEqual(args.slice(-5,-2),[1_000_000,512,16]);
     calls.push('fold');return {$tag:1,_0:capacities};},
     clientProgramInstalledStandardCreateRecipeCapacities(){assert.fail('No old fold dropping native capture');},
     clientProgramInstalledEffectCaptureRecipeExtentPrepare(operation,original){assert.equal(this,moon);assert.equal(operation,'write');assert.strictEqual(original,capacities);return {$tag:1,_0:{}};},

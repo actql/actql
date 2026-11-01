@@ -59284,7 +59284,7 @@
     },
     {
       "module": "src/client_local_host/installed_standard_create_recipe.mbt",
-      "sha256": "7f4e942382dfb3a5e106e81483f4a15850a545262454abb739fdd27ad77c81c9",
+      "sha256": "3675bdcac6a1bc6c54d68b846523298ef1a850c33c3cbfb6199cae097f448e51",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
@@ -59310,6 +59310,10 @@
         {
           "name": "standard_create_representation_capacity",
           "declaration": "standard_create_representation_capacity ( retained : @ execution . PreparationRepresentationUnits , workspace : @ execution . PreparationRepresentationUnits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "standard_create_saved_control_capacity",
+          "declaration": "standard_create_saved_control_capacity ( bytes : Int , nodes : Int , depth : Int , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "standard_create_secret_capacity",
@@ -59400,6 +59404,74 @@
         {
           "operations": [
             "standard_create_sequence_pair_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Sequential installed Effect construction"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Sequential installed Effect construction"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Sequential installed Effect construction"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Sequential installed Effect construction"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Sequential installed Effect construction"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Sequential installed Effect construction"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Sequential installed Effect construction"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Sequential installed Effect construction"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Sequential installed Effect construction"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Sequential installed Effect construction"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "standard_create_saved_control_capacity"
           ],
           "exports": [],
           "attributes": {
