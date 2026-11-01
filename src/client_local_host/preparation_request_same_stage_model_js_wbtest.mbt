@@ -22,10 +22,17 @@ test "same-stage acquired serialized Model preserves original capture module inp
     initial_limits=Some(@resources.add_ledger_limits(ordinary, domain).unwrap()),
   )
   finish_program_check_preparation(child).unwrap() |> ignore
-  let prepared = compile_program_check_preparation(
-    child,
-    @publication_host.client_standard_program_preparation_limits(),
-  ).unwrap()
+  let prepared = match
+    compile_program_check_preparation(
+      child,
+      @publication_host.client_standard_program_preparation_limits(),
+    ) {
+    Ok(value) => value
+    Err(issue) => {
+      let original : Error = issue
+      fail("same-stage checked fixture: " + @debug.to_string(original))
+    }
+  }
   assert_true(
     physical_equal(
       continue_request_program_preparation(parent, input).unwrap(),
