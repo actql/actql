@@ -279,6 +279,7 @@ export function prepareInstalledEffectRequestChild({run, memberIndex, rowIndex,
   const {runtime, value: parent, prepared, request, operationPlan: plan, readPlan} = run;
   const borrow = runtime?.clientProgramInstalledEffectOperationBorrow;
   const retire = runtime?.clientProgramInstalledEffectOperationRetire;
+  const complete = runtime?.clientProgramInstalledEffectOperationConstructionComplete;
   if (![borrow, retire, readPlan].every(method => typeof method === 'function')) {
     fail('InstalledEffectOperationRuntimeUnavailable');
   }
@@ -351,7 +352,14 @@ export function prepareInstalledEffectRequestChild({run, memberIndex, rowIndex,
           if (typeof value.then === 'function') fail('InstalledEffectConstructorNotSynchronous');
           pendingConstructor = undefined;
         }
-        current();
+        // Only the real per-row synchronous callback is complete here. The
+        // member placeholder still precedes later capture/recovery work.
+        if (perRow) {
+          originalRecord();
+          if (typeof complete !== 'function') fail('InstalledEffectOperationRuntimeUnavailable');
+          checked(Reflect.apply(complete, runtime, [token]));
+          originalRecord();
+        } else current();
         state = 'prepared';
         preparing = false;
         return value;

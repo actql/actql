@@ -189,3 +189,11 @@ pub fn client_program_installed_standard_create_constructor_capacities(
 ] {
   @client_local_host.installed_standard_create_constructor_capacities(original)
 }
+
+///|
+#export_name("clientProgramInstalledEffectOperationConstructionComplete")
+pub fn client_program_installed_effect_operation_construction_complete(
+  original : @client_local_host.ClientInstalledEffectOperationBorrow,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.complete_installed_effect_operation_construction(original)
+}

@@ -2370,3 +2370,16 @@ NFC, while saved range also has its earlier independent wire guard. The same
 representation owner takes the coordinate maximum and keeps returned material
 separate. This quote does not certify a consumer's actual phase reconciliation,
 physical cleanup, or the complete Compute/HTTP/Store Plan.
+
+
+Successful synchronous Effect row construction returns its workspace on the
+SAME original operation reservation while keeping the admitted output's
+retained backing and spent occurrence. The Host calls completion after the
+actual constructor, and Core observes original current once with callback-free
+post-fences before shrinking that byte-only reservation. It allocates no new
+reservation and changes no attempts, transfer, retained material or physical
+cleanup status. The private caller then checks its original Run record without
+another callbackful Plan read. Failed or asynchronous constructors retain their
+full original backing until existing cleanup; the enclosing capture placeholder
+also retains its later work allowance. This completion alone does not change
+the Plan's aggregate bound or fund unrelated recovery/control construction.

@@ -201,6 +201,9 @@ test('constructor child debits the same original before work and retains it unti
       assert.deepEqual([member, perRow, operation, row, name], [2, true, 3, 4, 'construct']);
       calls.push('debit'); return {$tag: 1, _0: token};
     },
+    clientProgramInstalledEffectOperationConstructionComplete(original) {
+      assert.equal(original, token); return {$tag: 1, _0: undefined};
+    },
     clientProgramInstalledEffectOperationRetire(original, ack) {
       assert.equal(this, runtime); assert.equal(original, token); assert.equal(ack, true);
       assert(aliasesRetired); calls.push('retire'); return {$tag: 1, _0: cleanupConfirmed};
@@ -234,6 +237,9 @@ function constructorControlFixture(construct) {
   const runtime = {
     clientProgramInstalledEffectManagedOperationPlan: () => ({$tag: 1, _0: plan}),
     clientProgramInstalledEffectOperationBorrow() {debits++; return {$tag: 1, _0: token};},
+    clientProgramInstalledEffectOperationConstructionComplete(original) {
+      assert.equal(original, token); return {$tag: 1, _0: undefined};
+    },
     clientProgramInstalledEffectOperationRetire(original) {
       assert.equal(original, token); settlements++; return {$tag: 1, _0: true};
     },
@@ -241,7 +247,7 @@ function constructorControlFixture(construct) {
   const run = {runtime, prepared, request, value: parent, operationPlan: plan,
     readPlan: runtime.clientProgramInstalledEffectManagedOperationPlan, closed: false};
   return {run, construct, requestsRetired: () => retired,
-    memberIndex: 0, rowIndex: 0, operationIndex: 0, operation: 'construct',
+    memberIndex: 0, rowIndex: 0, operationIndex: 0, operation: 'construct', originalToken: token,
     retireAliases() {retired = true;}, debits: () => debits, settlements: () => settlements};
 }
 
@@ -537,4 +543,65 @@ test('automatic Command recipe forwards opaque native capture originals and sepa
   assert.deepEqual(calls,['request','capture','fold']);assert.equal(recipe.rowOperations.length,2);
   assert.deepEqual(recipe.credentialOperations.map(x=>x.phase),['write']);assert.equal(recipe.rowOperations[0].extent.physical,false);
   assert.equal(recipe.rowOperations[1].extent.physical,true);assert.equal(recipe.controlsPerRow,capacities[4]);
+});
+
+
+test('successful row constructor returns temporary workspace while original request aliases remain held', () => {
+  const output = Object.freeze({original: true});
+  const f = constructorControlFixture(() => output);
+  let completed = 0;
+  f.run.runtime.clientProgramInstalledEffectOperationConstructionComplete = function(original) {
+    assert.equal(this, f.run.runtime); assert.equal(original, f.originalToken);
+    completed++; return {$tag: 1, _0: undefined};
+  };
+  const child = prepareInstalledEffectRequestChild(f);
+  assert.equal(child.prepare(), output);
+  assert.equal(completed, 1);
+  assert.equal(child.release(), false);
+  assert.equal(f.settlements(), 0, 'returned material remains with its original token');
+  f.retireAliases(); assert.equal(child.retry(), true);
+  assert.equal(f.settlements(), 1);
+  assert.equal(completed, 1);
+  const member = constructorControlFixture(() => []);
+  let premature = 0;
+  member.run.runtime.clientProgramInstalledEffectOperationConstructionComplete = () => {
+    premature++; return {$tag: 1, _0: undefined};
+  };
+  const enclosing = prepareInstalledEffectRequestChild({...member, perRow: false});
+  enclosing.prepare();
+  assert.equal(premature, 0, 'the enclosing capture still has actual later recovery work');
+});
+
+
+test('constructor completion keeps original post-current reentry fences without a second Plan getter', () => {
+  for (const mode of ['same', 'replaced Plan', 'thrown undefined']) {
+    const output = {};
+    const f = constructorControlFixture(() => output);
+    let reads = 0, completions = 0;
+    f.run.readPlan = f.run.runtime.clientProgramInstalledEffectManagedOperationPlan = () => {
+      reads++; return {$tag: 1, _0: f.run.operationPlan};
+    };
+    f.run.runtime.clientProgramInstalledEffectOperationConstructionComplete = original => {
+      assert.equal(original, f.originalToken); completions++;
+      if (mode === 'replaced Plan') f.run.operationPlan = {};
+      if (mode === 'thrown undefined') f.run.failure = undefined;
+      return {$tag: 1, _0: undefined};
+    };
+    const child = prepareInstalledEffectRequestChild(f);
+    if (mode === 'same') assert.equal(child.prepare(), output);
+    else {
+      let caught = false;
+      try {child.prepare();} catch (cause) {
+        caught = true;
+        if (mode === 'thrown undefined') assert.strictEqual(cause, undefined);
+        else assert.equal(cause.code, 'ForeignInstalledEffectManagedRun');
+      }
+      assert.equal(caught, true);
+    }
+    assert.equal(reads, 1, 'completion Core owns the post-callback current; no second readPlan');
+    assert.equal(completions, 1);
+    assert.equal(child.status().pending, true);
+    assert.equal(child.release(), false);
+    f.retireAliases(); assert.equal(child.retry(), true);
+  }
 });

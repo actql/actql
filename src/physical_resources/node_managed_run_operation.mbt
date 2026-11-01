@@ -135,3 +135,32 @@ fn reserve_node_managed_run_operation_control_owned(
     }
   }
 }
+
+///|
+/// The original synchronous constructor has returned its admitted output.
+/// Keep its SAME retained backing and spent slot; dispose only workspace.
+/// This creates no reservation, attempt, physical stop or cleanup ACK. The
+/// closed consumer fence runs after the one original current observation.
+pub fn[P, E] complete_node_managed_run_operation_construction(
+  value : NodeManagedRunAdmission[P],
+  prepared : P,
+  ledger : Ledger,
+  original : () -> Result[Unit, E],
+  backing : NodeManagedRunOperationBacking,
+) -> Result[Unit, NodeManagedRunOperationIssue[E]] {
+  match
+    check_node_managed_run_operation_original(value, prepared, ledger, original) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  guard backing is Construction(capacity) else {
+    return Err(Control(InvalidCharge))
+  }
+  let retained = capacity.reservation.retention
+  resize_capacity_reservation_current(
+    ledger,
+    capacity,
+    retained,
+    Int64::min(retained, capacity.reservation.execution),
+  ).map_err(issue => Control(issue))
+}

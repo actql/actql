@@ -47653,7 +47653,7 @@
     },
     {
       "module": "src/client_local_host/installed_effect_operation_borrow.mbt",
-      "sha256": "d3d9191a202b6cd068f061034ad51206561b2a35b29e08834a7af3c846ea0821",
+      "sha256": "c5d1ffd94bbdf488b7aa0e5a56562b9330a03d82f3e468da24715ceca0832ea1",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "D — original installed Effect operation borrow and retained same-Run management controls",
@@ -47663,6 +47663,10 @@
         {
           "name": "begin_installed_effect_operation_controls",
           "declaration": "begin_installed_effect_operation_controls ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , expected_plan : ClientInstalledEffectManagedPlan , ) - > Result [ ClientInstalledEffectManagedPlan , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "begin_installed_effect_operation_controls_original",
+          "declaration": "begin_installed_effect_operation_controls_original ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , expected_plan : ClientInstalledEffectManagedPlan , ) - > Result [ ClientInstalledEffectManagedPlan , ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "borrow_installed_effect_operation",
@@ -47677,16 +47681,40 @@
           "declaration": "charge_installed_effect_operation ( value : ClientInstalledEffectOperationBorrow , bytes : Int64 , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
         },
         {
+          "name": "check_installed_effect_operation_original",
+          "declaration": "check_installed_effect_operation_original ( owner : ClientInstalledManagedRun , ledger : @ resources . Ledger , preparation : ClientInstalledManagedRunOriginal , control : ClientEffectOperationControls ? , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "complete_installed_effect_operation_construction",
+          "declaration": "complete_installed_effect_operation_construction ( value : ClientInstalledEffectOperationBorrow , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
+        },
+        {
           "name": "installed_effect_operation_control_capacity",
           "declaration": "installed_effect_operation_control_capacity ( children : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "installed_effect_operation_reservation_issue",
+          "declaration": "installed_effect_operation_reservation_issue ( issue : @ resources . NodeManagedRunOperationIssue [ ClientInstalledManagedRunIssue , ] , ) - > ClientInstalledManagedRunIssue"
         },
         {
           "name": "mark_installed_effect_operation_transfer_uncertain",
           "declaration": "mark_installed_effect_operation_transfer_uncertain ( value : ClientInstalledEffectOperationBorrow , bytes : Int64 , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
         },
         {
+          "name": "record_effect_operation_lookup_probe",
+          "declaration": "record_effect_operation_lookup_probe ( probes : Ref [ Int64 ] ? ) - > Unit"
+        },
+        {
+          "name": "refuse_installed_effect_operation_after_current",
+          "declaration": "refuse_installed_effect_operation_after_current ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , refusal : ClientInstalledManagedRunIssue , ) - > Result [ ClientInstalledEffectOperationBorrow , ClientInstalledManagedRunIssue , ]"
+        },
+        {
           "name": "require_installed_effect_operation",
           "declaration": "require_installed_effect_operation ( value : ClientInstalledEffectOperationBorrow , lookup_probes ? : Ref [ Int64 ] ?"
+        },
+        {
+          "name": "retain_installed_effect_operation_controls",
+          "declaration": "retain_installed_effect_operation_controls ( owner : ClientInstalledManagedRun , previous : ClientEffectOperationControls ? , reservation : @ resources . CapacityReservation , ) - > ClientEffectOperationControls"
         },
         {
           "name": "retire_installed_effect_operation",
@@ -47775,6 +47803,80 @@
               {
                 "path": "src/client_local_host/installed_effect_operation_borrow_js_wbtest.mbt",
                 "anchor": "test \"original Effect controls are debited once before the consumer borrows a body\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "begin_installed_effect_operation_controls_original",
+            "check_installed_effect_operation_original",
+            "complete_installed_effect_operation_construction",
+            "installed_effect_operation_reservation_issue",
+            "record_effect_operation_lookup_probe",
+            "refuse_installed_effect_operation_after_current",
+            "retain_installed_effect_operation_controls"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Successful synchronous Effect row construction returns its workspace on the"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Successful synchronous Effect row construction returns its workspace on the"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Successful synchronous Effect row construction returns its workspace on the"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Successful synchronous Effect row construction returns its workspace on the"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Successful synchronous Effect row construction returns its workspace on the"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Successful synchronous Effect row construction returns its workspace on the"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Successful synchronous Effect row construction returns its workspace on the"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Successful synchronous Effect row construction returns its workspace on the"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Successful synchronous Effect row construction returns its workspace on the"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Successful synchronous Effect row construction returns its workspace on the"
               }
             ]
           }
@@ -48746,9 +48848,77 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "client_program_installed_effect_operation_construction_complete"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Successful synchronous Effect row construction returns its workspace on the"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Successful synchronous Effect row construction returns its workspace on the"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Successful synchronous Effect row construction returns its workspace on the"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Successful synchronous Effect row construction returns its workspace on the"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Successful synchronous Effect row construction returns its workspace on the"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Successful synchronous Effect row construction returns its workspace on the"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Successful synchronous Effect row construction returns its workspace on the"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Successful synchronous Effect row construction returns its workspace on the"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Successful synchronous Effect row construction returns its workspace on the"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Successful synchronous Effect row construction returns its workspace on the"
+              }
+            ]
+          }
         }
       ],
-      "sha256": "b209c26fc573d523c97750592facab26acfa33f1a304ea49a4318857396d11b8",
+      "sha256": "b83de435dea5aa1cbfea30a640f4de64364ed9ebb9c01f04bbbf9428fa6b0c50",
       "operations": [
         {
           "name": "client_program_installed_effect_http_response_construction_capacity",
@@ -48761,6 +48931,10 @@
         {
           "name": "client_program_installed_effect_operation_charge",
           "declaration": "client_program_installed_effect_operation_charge ( original : @ client_local_host . ClientInstalledEffectOperationBorrow , bytes : Int64 , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "client_program_installed_effect_operation_construction_complete",
+          "declaration": "client_program_installed_effect_operation_construction_complete ( original : @ client_local_host . ClientInstalledEffectOperationBorrow , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "client_program_installed_effect_operation_controls_begin",

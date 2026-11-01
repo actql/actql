@@ -162,6 +162,8 @@ pub fn[T] close_model_io_admission(ModelIoAdmission[T], T) -> Result[Bool, Model
 
 pub fn close_shared_capacity(SharedCapacity) -> Result[Unit, LedgerIssue]
 
+pub fn[P, E] complete_node_managed_run_operation_construction(NodeManagedRunAdmission[P], P, Ledger, () -> Result[Unit, E], NodeManagedRunOperationBacking) -> Result[Unit, NodeManagedRunOperationIssue[E]]
+
 pub fn[I, P] complete_preparation_capacity(PreparationCapacity[I, P], I, P, Int64, Int64) -> Result[Unit, PreparationCapacityIssue]
 
 pub fn configure_quantities(Ledger, QuantityAmounts) -> Result[Unit, LedgerIssue]

@@ -561,3 +561,68 @@ fn begin_installed_effect_operation_controls_original(
   // Return this same immutable original, never a current proof or new Plan.
   Ok(plan)
 }
+
+///|
+/// Retain the original request/output after its synchronous constructor has
+/// completed. The existing Host supplies this boundary only after the actual
+/// callback and its current/reentry fence, never for the capture placeholder,
+/// an asynchronous/failed constructor, a physical operation or cleanup ACK.
+pub fn complete_installed_effect_operation_construction(
+  value : ClientInstalledEffectOperationBorrow,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  guard value.original is Some(original) && physical_equal(original, value) else {
+    return Err(ForeignOriginal)
+  }
+  guard !value.retired &&
+    value.owner is Some(owner) &&
+    value.ledger is Some(ledger) &&
+    value.backing is Some(backing) else {
+    return Err(Retired)
+  }
+  guard backing is @resources.NodeManagedRunOperationBacking::Construction(_) else {
+    return Err(Unsupported)
+  }
+  guard owner.preparation is Some(preparation) &&
+    preparation is PlannedEffectManaged(admission, plan) else {
+    return Err(Retired)
+  }
+  if owner.effect_operation_opening || owner.effect_operation_closing {
+    return Err(AlreadyBound)
+  }
+  owner.effect_operation_opening = true
+  let result = @resources.complete_node_managed_run_operation_construction(
+    admission,
+    plan,
+    ledger,
+    () => {
+      match check_installed_managed_run_original(owner, ledger, preparation) {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
+      }
+      guard !value.retired &&
+        value.owner is Some(current_owner) &&
+        physical_equal(current_owner, owner) &&
+        value.ledger is Some(current_ledger) &&
+        physical_equal(current_ledger, ledger) &&
+        owner.effect_operations.get(value.slot) is Some(Some(current)) &&
+        physical_equal(current, value) &&
+        value.backing
+        is Some(
+          @resources.NodeManagedRunOperationBacking::Construction(
+            current_backing
+          )
+        ) &&
+        backing
+        is @resources.NodeManagedRunOperationBacking::Construction(
+          original_backing
+        ) &&
+        physical_equal(current_backing, original_backing) else {
+        return Err(Retired)
+      }
+      Ok(())
+    },
+    backing,
+  ).map_err(installed_effect_operation_reservation_issue)
+  owner.effect_operation_opening = false
+  result
+}
