@@ -43,10 +43,10 @@ test('ordinary source Run retirement preserves nonzero usage and sibling Run cus
   const portsB = resourceRuntime.prepareOriginalManagedRunPorts(b, second);
   f.view.finishSourceProducer(f.receipt, 'returned');
   assert.equal(portsA.status(0), 0);
-  assert.equal(portsA.report(0, 0, 0, 0n, 0n, 0n, 1n, 0n, 0n, 1n), 0);
+  assert.equal(portsA.report(0, 0, 0, 0n, 0n, 0n, 1n, 0n, 0n, 1n, 0, 0, 0), 0);
   assert.equal(portsA.status(2), -42);
   assert.throws(() => f.view.retireRun(first, a), /CleanupPending/);
-  assert.equal(portsA.report(0, 0, 0, 0n, 0n, 0n, 0n, 0n, 0n, 1n), 0);
+  assert.equal(portsA.report(0, 0, 0, 0n, 0n, 0n, 0n, 0n, 0n, 1n, 0, 0, 0), 0);
   assert.equal(portsA.status(2), 0);
   f.view.retireRun(first, a);
   assert.equal(portsB.status(1), 0);
@@ -78,7 +78,7 @@ test('ordinary installation close retains admitted Run until original stop and t
   assert.equal(ports.status(0), 0);
   f.view.finishSourceProducer(f.receipt, 'returned');
   assert.deepEqual(await f.view.close(), {pending: true});
-  assert.equal(ports.report(0, 0, 0, 0n, 0n, 0n, 0n, 0n, 0n, 0n), 0);
+  assert.equal(ports.report(0, 0, 0, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0, 0, 0), 0);
   assert.equal(ports.status(2), 0);
   assert.deepEqual(await f.view.close(), {pending: false});
   assert.deepEqual(await f.view.close(), {pending: false});
