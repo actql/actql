@@ -1,6 +1,6 @@
 {
   "source": "d5d66cd86ac2e153f31a511e7d37c78e0cc28ae3",
-  "syntaxProjectionSha256": "40bf26b27ecc537fc00a69c3f90f02e2721dbef33612a1baddbfcf07ab63efc8",
+  "syntaxProjectionSha256": "d3c5ab04739699ae1cc926bba1b0e9abf999a41da38d28570247ae12a97d4d02",
   "qualification": "Source-reference coverage only; original Native/FFI/Python executions retain their own source, artifact and target qualifications. No normal funding, VM or installed product admission.",
   "generated": [
     {
@@ -65,7 +65,7 @@
     },
     {
       "module": "packages/python-sdk/src/actql_sdk/_local_wasm_abi.py",
-      "sha256": "7b1a2a69f665a3a77d5b36877714eb3bf4d7fc3b00c0adf50eed475cb317d6d9",
+      "sha256": "daff3328c9253fde5e1db74686a615e1b5a368d6b989bdc871c9cb3254bb062e",
       "generator": {
         "path": "scripts/generate-local-wasm-abi.py",
         "anchor": "def render("
@@ -29869,8 +29869,7 @@
       "imports": [
         "._local_storage",
         "collections.abc",
-        "dataclasses",
-        "json"
+        "dataclasses"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_journal_port.py",
       "responsibilityFacet": "primary",
@@ -29993,7 +29992,7 @@
           ]
         }
       ],
-      "sha256": "11ff934555a5cf8cdca13868d0220ec407736983e05d6dc059a9f04e8b59ac58",
+      "sha256": "78ec4eaa1ccbda1709c0c354d4907ea5a71a6a3a1001b3dbf4f6ffd28e50a71e",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -30027,10 +30026,6 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
-              },
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "Private ABI85 adds one exact-publication-fence query mode to the existing"
               }
             ],
             "inputsOutputs": [
@@ -30045,10 +30040,6 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
-              },
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "Private ABI85 adds one exact-publication-fence query mode to the existing"
               }
             ],
             "identity": [
@@ -30067,10 +30058,6 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
-              },
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "Private ABI85 adds one exact-publication-fence query mode to the existing"
               }
             ],
             "ownership": [
@@ -30089,10 +30076,6 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
-              },
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "Private ABI85 adds one exact-publication-fence query mode to the existing"
               }
             ],
             "synchronization": [
@@ -30107,10 +30090,6 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
-              },
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "Private ABI85 adds one exact-publication-fence query mode to the existing"
               }
             ],
             "failure": [
@@ -30129,10 +30108,6 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
-              },
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "Private ABI85 adds one exact-publication-fence query mode to the existing"
               }
             ],
             "cancellation": [
@@ -30147,10 +30122,6 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
-              },
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "Private ABI85 adds one exact-publication-fence query mode to the existing"
               }
             ],
             "resources": [
@@ -30169,10 +30140,6 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
-              },
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "Private ABI85 adds one exact-publication-fence query mode to the existing"
               }
             ],
             "extension": [
@@ -30187,10 +30154,6 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
-              },
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "Private ABI85 adds one exact-publication-fence query mode to the existing"
               }
             ],
             "verification": [
@@ -30225,22 +30188,6 @@
               {
                 "path": "src/client_host_wasm/submission_targeted_lookup_wbtest.mbt",
                 "anchor": "test \"indexed saved cold lookup selects exact original without unrelated Run audit\""
-              },
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "Private ABI85 adds one exact-publication-fence query mode to the existing"
-              },
-              {
-                "path": "packages/python-sdk/tests/test_local_storage.py",
-                "anchor": "def test_original_fence_set_matches_exact_bytes_in_one_physical_read("
-              },
-              {
-                "path": "packages/python-sdk/tests/test_local_snapshot_transport.py",
-                "anchor": "def test_original_fence_packet_matches_actual_rows_with_two_currents_and_no_row_copy("
-              },
-              {
-                "path": "packages/python-sdk/tests/test_local_snapshot_transport.py",
-                "anchor": "def test_original_fence_packet_counts_copied_bytes_across_queries("
               }
             ]
           }
@@ -58117,14 +58064,6 @@
         },
         {
           "async": false,
-          "name": "_SQLiteByteDatabase/_match_rows",
-          "parameters": [
-            "self",
-            "rows"
-          ]
-        },
-        {
-          "async": false,
           "name": "_SQLiteByteDatabase/_snapshot_identity",
           "parameters": [
             "self"
@@ -58289,7 +58228,7 @@
           ]
         }
       ],
-      "sha256": "6f97d5d1680b4e8bf19c22d6b9b88c5dacb5dc1f8c302313bc53d884a0d4db85",
+      "sha256": "1d72d09d685f00b0bce773fb6959fe2fb319b828f7d42bf4b5ea4fecc29be337",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -58689,7 +58628,6 @@
             "_SQLiteByteDatabase",
             "_SQLiteByteDatabase/__init__",
             "_SQLiteByteDatabase/_journal_schema",
-            "_SQLiteByteDatabase/_match_rows",
             "_SQLiteByteDatabase/_snapshot_identity",
             "_SQLiteByteDatabase/begin_immediate",
             "_SQLiteByteDatabase/begin_read",
@@ -58729,10 +58667,6 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
-              },
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "Private ABI85 adds one exact-publication-fence query mode to the existing"
               }
             ],
             "inputsOutputs": [
@@ -58751,10 +58685,6 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
-              },
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "Private ABI85 adds one exact-publication-fence query mode to the existing"
               }
             ],
             "identity": [
@@ -58777,10 +58707,6 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
-              },
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "Private ABI85 adds one exact-publication-fence query mode to the existing"
               }
             ],
             "ownership": [
@@ -58803,10 +58729,6 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
-              },
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "Private ABI85 adds one exact-publication-fence query mode to the existing"
               }
             ],
             "synchronization": [
@@ -58825,10 +58747,6 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
-              },
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "Private ABI85 adds one exact-publication-fence query mode to the existing"
               }
             ],
             "failure": [
@@ -58851,10 +58769,6 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
-              },
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "Private ABI85 adds one exact-publication-fence query mode to the existing"
               }
             ],
             "cancellation": [
@@ -58873,10 +58787,6 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
-              },
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "Private ABI85 adds one exact-publication-fence query mode to the existing"
               }
             ],
             "resources": [
@@ -58899,10 +58809,6 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
-              },
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "Private ABI85 adds one exact-publication-fence query mode to the existing"
               }
             ],
             "extension": [
@@ -58921,10 +58827,6 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
-              },
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "Private ABI85 adds one exact-publication-fence query mode to the existing"
               }
             ],
             "verification": [
@@ -58995,22 +58897,6 @@
               {
                 "path": "src/client_host_wasm/submission_targeted_lookup_wbtest.mbt",
                 "anchor": "test \"indexed saved cold lookup selects exact original without unrelated Run audit\""
-              },
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "Private ABI85 adds one exact-publication-fence query mode to the existing"
-              },
-              {
-                "path": "packages/python-sdk/tests/test_local_storage.py",
-                "anchor": "def test_original_fence_set_matches_exact_bytes_in_one_physical_read("
-              },
-              {
-                "path": "packages/python-sdk/tests/test_local_snapshot_transport.py",
-                "anchor": "def test_original_fence_packet_matches_actual_rows_with_two_currents_and_no_row_copy("
-              },
-              {
-                "path": "packages/python-sdk/tests/test_local_snapshot_transport.py",
-                "anchor": "def test_original_fence_packet_counts_copied_bytes_across_queries("
               }
             ]
           }
@@ -59330,16 +59216,6 @@
           "name": "LocalByteStore/_inspect_namespace_locked/journal_schema",
           "parameters": [
             "view",
-            "required_current"
-          ]
-        },
-        {
-          "async": false,
-          "name": "LocalByteStore/_inspect_namespace_locked/match_rows_current",
-          "parameters": [
-            "view",
-            "namespace",
-            "rows",
             "required_current"
           ]
         },
@@ -59988,7 +59864,7 @@
           "parameters": []
         }
       ],
-      "sha256": "8429eae8f33e3fabb8aac72e54c9b2854d5a0191000f2278672c699e837b0e15",
+      "sha256": "19be6ecf123ccfe435fc5ca358317b90a4844c0d8e7c4bdf3451379e5bc5a67b",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -60550,7 +60426,6 @@
             "LocalByteStore/_inspect_namespace_locked/current_snapshot",
             "LocalByteStore/_inspect_namespace_locked/fence",
             "LocalByteStore/_inspect_namespace_locked/journal_schema",
-            "LocalByteStore/_inspect_namespace_locked/match_rows_current",
             "LocalByteStore/_inspect_namespace_locked/metadata_fence",
             "LocalByteStore/_inspect_namespace_locked/observe",
             "LocalByteStore/_inspect_namespace_locked/query_current",
@@ -60634,10 +60509,6 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
-              },
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "Private ABI85 adds one exact-publication-fence query mode to the existing"
               }
             ],
             "inputsOutputs": [
@@ -60656,10 +60527,6 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
-              },
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "Private ABI85 adds one exact-publication-fence query mode to the existing"
               }
             ],
             "identity": [
@@ -60682,10 +60549,6 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
-              },
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "Private ABI85 adds one exact-publication-fence query mode to the existing"
               }
             ],
             "ownership": [
@@ -60708,10 +60571,6 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
-              },
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "Private ABI85 adds one exact-publication-fence query mode to the existing"
               }
             ],
             "synchronization": [
@@ -60734,10 +60593,6 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The physical connection selects its existing `temp_store = FILE` configuration"
-              },
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "Private ABI85 adds one exact-publication-fence query mode to the existing"
               }
             ],
             "failure": [
@@ -60760,10 +60615,6 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
-              },
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "Private ABI85 adds one exact-publication-fence query mode to the existing"
               }
             ],
             "cancellation": [
@@ -60782,10 +60633,6 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
-              },
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "Private ABI85 adds one exact-publication-fence query mode to the existing"
               }
             ],
             "resources": [
@@ -60808,10 +60655,6 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
-              },
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "Private ABI85 adds one exact-publication-fence query mode to the existing"
               }
             ],
             "extension": [
@@ -60830,10 +60673,6 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
-              },
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "Private ABI85 adds one exact-publication-fence query mode to the existing"
               }
             ],
             "verification": [
@@ -60920,22 +60759,6 @@
               {
                 "path": "packages/python-sdk/tests/test_local_owned_store.py",
                 "anchor": "def test_owned_indexed_journal_reopens_in_fresh_process_with_original_rows("
-              },
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "Private ABI85 adds one exact-publication-fence query mode to the existing"
-              },
-              {
-                "path": "packages/python-sdk/tests/test_local_storage.py",
-                "anchor": "def test_original_fence_set_matches_exact_bytes_in_one_physical_read("
-              },
-              {
-                "path": "packages/python-sdk/tests/test_local_snapshot_transport.py",
-                "anchor": "def test_original_fence_packet_matches_actual_rows_with_two_currents_and_no_row_copy("
-              },
-              {
-                "path": "packages/python-sdk/tests/test_local_snapshot_transport.py",
-                "anchor": "def test_original_fence_packet_counts_copied_bytes_across_queries("
               }
             ]
           }
@@ -63568,7 +63391,7 @@
       "module": "packages/python-sdk/src/actql_sdk/_local_wasm_abi.py",
       "responsibilityFacet": "primary",
       "operations": [],
-      "sha256": "7b1a2a69f665a3a77d5b36877714eb3bf4d7fc3b00c0adf50eed475cb317d6d9",
+      "sha256": "daff3328c9253fde5e1db74686a615e1b5a368d6b989bdc871c9cb3254bb062e",
       "role": "generated-binding",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -73573,7 +73396,7 @@
     },
     {
       "module": "src/client_host_wasm/journal_observation.mbt",
-      "sha256": "7ab4b95578d0dc5e2ca7a26424be3719d209d8ce1dc65c8b96202d6e728c1362",
+      "sha256": "80a50493fd6d7ca91bd13851c80bfcd91360a268d79e847c617a0f9db1878427",
       "exports": [],
       "operations": [
         {
@@ -73621,10 +73444,6 @@
           "declaration": "physical_journal_current_operation ( ticket : Int ) - > Int64"
         },
         {
-          "name": "physical_journal_fence_packet",
-          "declaration": "physical_journal_fence_packet ( physical : Int , current : ( ) - > Result [ Unit , Int ] , packet : String , ) - > Result [ Bool ? , Int ]"
-        },
-        {
           "name": "physical_journal_length",
           "declaration": "physical_journal_length ( ticket : Int , field : Int ) - > Int"
         },
@@ -73639,10 +73458,6 @@
         {
           "name": "physical_journal_release",
           "declaration": "physical_journal_release ( ticket : Int ) - > Int"
-        },
-        {
-          "name": "physical_journal_request",
-          "declaration": "physical_journal_request ( physical : Int , mode : Int , table_name : String , key : String , ) - > Int"
         },
         {
           "name": "physical_journal_revision",
@@ -73679,12 +73494,10 @@
             "physical_journal_copy",
             "physical_journal_current",
             "physical_journal_current_operation",
-            "physical_journal_fence_packet",
             "physical_journal_length",
             "physical_journal_query",
             "physical_journal_query_copy",
             "physical_journal_release",
-            "physical_journal_request",
             "physical_journal_revision",
             "physical_journal_row",
             "physical_journal_schema",
@@ -73700,10 +73513,6 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
-              },
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "Private ABI85 adds one exact-publication-fence query mode to the existing"
               }
             ],
             "inputsOutputs": [
@@ -73714,20 +73523,12 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
-              },
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "Private ABI85 adds one exact-publication-fence query mode to the existing"
               }
             ],
             "identity": [
               {
                 "path": "src/run_publication_host/client_saved_run_reference_locator.mbt",
                 "anchor": "pub fn[E] read_client_saved_run_reference("
-              },
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "Private ABI85 adds one exact-publication-fence query mode to the existing"
               }
             ],
             "ownership": [
@@ -73738,10 +73539,6 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
                 "anchor": "def _journal_schema("
-              },
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "Private ABI85 adds one exact-publication-fence query mode to the existing"
               }
             ],
             "synchronization": [
@@ -73752,10 +73549,6 @@
               {
                 "path": "src/client_host_wasm/submission_lookup.mbt",
                 "anchor": "let physical_schema = physical_journal_schema(current.physical)"
-              },
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "Private ABI85 adds one exact-publication-fence query mode to the existing"
               }
             ],
             "failure": [
@@ -73766,10 +73559,6 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_journal_port.py",
                 "anchor": "def _fail("
-              },
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "Private ABI85 adds one exact-publication-fence query mode to the existing"
               }
             ],
             "cancellation": [
@@ -73780,10 +73569,6 @@
               {
                 "path": "src/client_host_wasm/submission_lookup.mbt",
                 "anchor": "fn submission_lookup_current("
-              },
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "Private ABI85 adds one exact-publication-fence query mode to the existing"
               }
             ],
             "resources": [
@@ -73794,10 +73579,6 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_storage_physical.py",
                 "anchor": "ORDER BY name LIMIT 4"
-              },
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "Private ABI85 adds one exact-publication-fence query mode to the existing"
               }
             ],
             "extension": [
@@ -73808,10 +73589,6 @@
               {
                 "path": "src/client_host_wasm/version.mbt",
                 "anchor": "pub fn host_abi_version()"
-              },
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "Private ABI85 adds one exact-publication-fence query mode to the existing"
               }
             ],
             "verification": [
@@ -73822,14 +73599,6 @@
               {
                 "path": "packages/python-sdk/tests/test_local_owned_store.py",
                 "anchor": "def test_catalog_observation_uses_existing_query_budget_and_rejects_boolean_permission("
-              },
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "Private ABI85 adds one exact-publication-fence query mode to the existing"
-              },
-              {
-                "path": "src/client_host_wasm/saved_fence_batch_wbtest.mbt",
-                "anchor": "test \"saved fence batch keeps exact original fields and one physical packet\""
               }
             ]
           }
@@ -73989,7 +73758,7 @@
     },
     {
       "module": "src/client_host_wasm/version.mbt",
-      "sha256": "9a2f41f6aa25c37f5b03ab89d08862892819186b7ea627f8b4f8aaa0facceeda",
+      "sha256": "62c4f4a51185c05fa06e27828731b27381f4781da38fd03f3ec0e03dfb6f01f0",
       "exports": [],
       "operations": [
         {
@@ -74012,20 +73781,12 @@
               {
                 "path": "src/client_host_wasm/version.mbt",
                 "anchor": "/// Private scalar ABI version, independent of Client wire and package versions."
-              },
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "Private ABI85 adds one exact-publication-fence query mode to the existing"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "src/client_host_wasm/version.mbt",
                 "anchor": "pub fn host_abi_version() -> Int {"
-              },
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "Private ABI85 adds one exact-publication-fence query mode to the existing"
               }
             ],
             "identity": [
@@ -74036,10 +73797,6 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
                 "anchor": "def _validate_core_module("
-              },
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "Private ABI85 adds one exact-publication-fence query mode to the existing"
               }
             ],
             "ownership": {
@@ -74052,10 +73809,6 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
                 "anchor": "def _validate_core_module("
-              },
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "Private ABI85 adds one exact-publication-fence query mode to the existing"
               }
             ],
             "cancellation": {
@@ -74072,10 +73825,6 @@
               {
                 "path": "scripts/generate-local-wasm-abi.py",
                 "anchor": "def render_compiler_header("
-              },
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "Private ABI85 adds one exact-publication-fence query mode to the existing"
               }
             ],
             "verification": [
@@ -74086,14 +73835,6 @@
               {
                 "path": "packages/python-sdk/tests/local_abi_declaration_fixture.py",
                 "anchor": "def assert_current_local_abi("
-              },
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "Private ABI85 adds one exact-publication-fence query mode to the existing"
-              },
-              {
-                "path": "src/client_host_wasm/saved_fence_batch_wbtest.mbt",
-                "anchor": "test \"saved fence batch keeps exact original fields and one physical packet\""
               }
             ]
           }
@@ -74102,7 +73843,7 @@
     },
     {
       "module": "src/client_host_wasm/saved_result_read.mbt",
-      "sha256": "adc8f9964f7afac1616b6b76cc6cfc77382dc0906a7aa57cd51cc384f6653566",
+      "sha256": "4e588dfe16ea3167f49eaf25bb65bf4ad30cedc95da2e836f2ff9a80024c9a93",
       "exports": [],
       "operations": [
         {
@@ -74114,16 +73855,8 @@
           "declaration": "prepare_saved_result_read ( value : Instance , record : StoredSubmissionProjection , configuration : StoredRunConfiguration , ) - > Result [ Bytes , Int ]"
         },
         {
-          "name": "saved_result_fence_packet",
-          "declaration": "saved_result_fence_packet ( fences : Array [ ( String , String , Int64 , Bytes ) ] , start : Int , ) - > ( String , Int ) ?"
-        },
-        {
           "name": "saved_result_read_current",
           "declaration": "saved_result_read_current ( value : Instance , record : StoredSubmissionProjection , configuration : StoredRunConfiguration , result_name : String , ) - > Result [ Unit , Int ]"
-        },
-        {
-          "name": "validate_saved_result_fences",
-          "declaration": "validate_saved_result_fences ( fences : Array [ ( String , String , Int64 , Bytes ) ] , read : ( String , String ) - > Result [ @ host . ClientJournalPhysicalRow ? , Int ] , packet : ( String ) - > Result [ Bool ? , Int ] , ) - > Result [ Unit , Int ]"
         },
         {
           "name": "validate_saved_result_read",
@@ -74139,9 +73872,7 @@
             "<module>",
             "close_saved_result_read",
             "prepare_saved_result_read",
-            "saved_result_fence_packet",
             "saved_result_read_current",
-            "validate_saved_result_fences",
             "validate_saved_result_read"
           ],
           "exports": [],
@@ -74149,21 +73880,21 @@
             "responsibility": [
               {
                 "path": "src/client_host_wasm/saved_result_read.mbt",
-                "anchor": "fn validate_saved_result_fences("
+                "anchor": "fn validate_saved_result_read("
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "Private ABI85 adds one exact-publication-fence query mode to the existing"
+                "anchor": "The selected private image uses the original scalar Journal scan and exact-row"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "src/client_host_wasm/saved_result_read.mbt",
-                "anchor": "fn saved_result_fence_packet("
+                "anchor": "priv struct StoredSavedResultRead"
               },
               {
-                "path": "packages/python-sdk/src/actql_sdk/_local_journal_port.py",
-                "anchor": "if self.mode == 2:"
+                "path": "src/client_host_wasm/journal_observation.mbt",
+                "anchor": "fn physical_journal_row("
               }
             ],
             "identity": [
@@ -74172,8 +73903,8 @@
                 "anchor": "row.revision == revision"
               },
               {
-                "path": "packages/python-sdk/src/actql_sdk/_local_storage_physical.py",
-                "anchor": "def _match_rows("
+                "path": "src/client_host_wasm/saved_result_read.mbt",
+                "anchor": "row.body == body"
               }
             ],
             "ownership": [
@@ -74182,8 +73913,8 @@
                 "anchor": "priv struct StoredSavedResultRead"
               },
               {
-                "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
-                "anchor": "def match_rows_current("
+                "path": "src/client_host_wasm/saved_result_read.mbt",
+                "anchor": "fn close_saved_result_read("
               }
             ],
             "synchronization": [
@@ -74192,14 +73923,14 @@
                 "anchor": "fn saved_result_read_current("
               },
               {
-                "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
-                "anchor": "fence(required_current, reuse_snapshot=True)"
+                "path": "src/client_host_wasm/saved_result_read.mbt",
+                "anchor": "for (table, key, revision, body) in retained.fences"
               }
             ],
             "failure": [
               {
                 "path": "src/client_host_wasm/saved_result_read.mbt",
-                "anchor": "Ok(Some(false)) => return Err(-32)"
+                "anchor": "fn validate_saved_result_read("
               },
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_journal_port.py",
@@ -74212,18 +73943,14 @@
                 "anchor": "fn close_saved_result_read("
               },
               {
-                "path": "src/client_host_wasm/journal_observation.mbt",
-                "anchor": "fn physical_journal_fence_packet("
+                "path": "src/client_host_wasm/saved_result_read.mbt",
+                "anchor": "owner.cancel()"
               }
             ],
             "resources": [
               {
                 "path": "src/client_host_wasm/saved_result_read.mbt",
-                "anchor": "@encode.writer(4096, 129, 2)"
-              },
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
-                "anchor": "if len(rows) > self._max_inspection_queries - reads:"
+                "anchor": "@publication.read_stored_effect_free_publication("
               },
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
@@ -74233,21 +73960,25 @@
             "extension": [
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "Private ABI85 adds one exact-publication-fence query mode to the existing"
+                "anchor": "The selected private image uses the original scalar Journal scan and exact-row"
               },
               {
-                "path": "src/client_host_wasm/saved_result_read.mbt",
-                "anchor": "let mut scalar_only = false"
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Saved Run observations and Result reads"
               }
             ],
             "verification": [
               {
-                "path": "src/client_host_wasm/saved_fence_batch_wbtest.mbt",
-                "anchor": "test \"saved fence batch refuses mismatch and original error without scalar fallback\""
+                "path": "packages/python-sdk/tests/test_local_snapshot_transport.py",
+                "anchor": "def test_original_journal_row_transfer_has_only_query_entry_and_return_currents("
               },
               {
                 "path": "packages/python-sdk/tests/test_local_snapshot_transport.py",
-                "anchor": "def test_original_fence_packet_keeps_current_changes_at_entry_and_return("
+                "anchor": "def test_transport_never_turns_revocation_or_failed_reader_into_permission("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_saved_read_ports.py",
+                "anchor": "def test_real_saved_descriptor_keeps_original_metadata_loan_and_current_refusal("
               }
             ]
           }
