@@ -110,6 +110,12 @@ export function createEmbeddedHostRegistry(sameInstallation) {
     const entry = preparationFor(host, installation, generation);
     if (entry.closing || entry.failure !== undefined) preparationChanged();
   },
+  // An already admitted Run retains this same Host through graceful drain.
+  // This identity-only check cannot admit a new Request or preparation.
+  assertRetainedPreparation(host, installation, generation) {
+    const entry = preparationFor(host, installation, generation);
+    if (entry.failure !== undefined) preparationChanged();
+  },
   // The actual Host retains this one original before its first root/Journal
   // operation. This association is not a native facility, issuer or grant.
   retainHostJournalPreparation(host, installation, generation, view) {

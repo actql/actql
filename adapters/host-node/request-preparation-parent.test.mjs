@@ -12,7 +12,7 @@ const input = () => ({version:'actql/0.1',id:'parent',stages:[{id:'main',inputs:
   schema:{n:{type:'number',nullable:false}},rows:[{n:1}],
 }}],results:{rows:{from:'v',fields:['n']}}}],results:{answer:{from:{stage:'main',result:'rows'}}}});
 const connection = Object.freeze({mode:'local',owner:'local',consentRefs:Object.freeze([]),runners:Object.freeze([])});
-async function fixture({beginFailure, environment, observe, control=[1024n,0n], policyLimits=[10000n,10000n,10000n,100000n,100000n,100000n]}={}) {
+async function fixture({beginFailure, environment, observe, validate = () => {}, validateRetained = validate, control=[1024n,0n], policyLimits=[10000n,10000n,10000n,100000n,100000n,100000n]}={}) {
   const calls=[],shapes=[],policy={},parent={};let admission;
   const stop = () => {
     assert.equal(admission.ports.report(0,0,0,0n,0n,0n,0n,0n,0n,0n,0,0,0),0);
@@ -60,7 +60,8 @@ async function fixture({beginFailure, environment, observe, control=[1024n,0n], 
   };
   const context=Object.freeze({runtime:moon,environment,preparedEnvironment:{},retainedRelationOutput:false});
   const originals=observe===undefined?{}:{installation:{authorization:{observe}}};const view=await prepareOrdinarySourceManagedInstallation(originals,{
-    validator(actual){assert.equal(actual,originals);},
+    validator(actual){assert.equal(actual,originals);validate();},
+    retainedValidator(actual){assert.equal(actual,originals);validateRetained();},
     preparationContext(actual){assert.equal(actual,originals);return context;},
     retireInitialPreparation(actual,prepared){assert.equal(actual,originals);assert.ok(prepared);calls.push('retire-registry-original');},
   },false);
@@ -641,7 +642,8 @@ test('normal generic Native Request preserves failed Plan construction and rejec
 });
 
 test('normal generic Native Request adopts the same Run and retains its current after handler completion', async () => {
-  const f=await fixture(),moon=f.context.runtime,request={},prepared={},holder={},identity={},value={};
+  let accepting = true, duringRetained;
+  const f=await fixture({validate() {assert.ok(accepting, 'NewPreparationRefused');}, validateRetained() {duringRetained?.();}}),moon=f.context.runtime,request={},prepared={},holder={},identity={},value={};
   const receipt=f.view.beforeSourceSnapshot('program',input(),{},connection);
   const body=f.view.captureSourceSnapshot(receipt,{kind:'program',input:input(),parameters:null},snapshotClientRequest);
   f.view.bindSourceSnapshot(receipt,body);f.view.bindSourceRequest(receipt,body,request);
@@ -667,16 +669,29 @@ test('normal generic Native Request adopts the same Run and retains its current 
   // Actual ordinary Resource calls its originally retained current callback.
   // Finishing the SDK producer must not invalidate this same live Run.
   assert.equal(f.view.publicationPreparation(prepared),value);
+  accepting = false;
+  assert.throws(() => f.view.beforeSourceSnapshot('program', input(), {}, connection), /NewPreparationRefused/);
+  const publicationResource = {};
+  moon.clientProgramReservePublication = (actual, p) => {assert.equal(actual, value); assert.equal(p, prepared); return ok(publicationResource);};
+  assert.equal(f.view.reservePublication(prepared), publicationResource);
+  assert.throws(() => f.view.reservePublication({}), {code: 'ForeignInstalledSourceProducer'});
   assert.throws(()=>f.view.severPreparation(prepared,f.original),{code:'ForeignInstalledSourceProducer'});
   assert.equal(returns,0);
-  retiring=true;
-  f.view.severPreparation(prepared,f.original);assert.equal(returns,1);
+  duringRetained = () => {
+    duringRetained = undefined; retiring = true;
+    f.view.severPreparation(prepared, f.original);
+  };
+  assert.throws(() => f.view.reservePublication(prepared), {code: 'ForeignInstalledSourceProducer'});
+  assert.equal(returns, 1);
   f.view.severPreparation(prepared,f.original);assert.equal(returns,1);
   // The explicit Common fixture supplies no physical operation. Its original
   // Resource port still owns stop; the token return above was not that ACK.
   assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped,false);
   f.context.runtime.clientProgramAbortRequestPreparation(f.parent);
+  assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, true);
+  assert.throws(() => f.view.reservePublication(prepared), {code: 'ForeignInstalledSourceProducer'});
   f.view.retireSeveredPreparation(f.original);
+  assert.throws(() => f.view.reservePublication(prepared), {code: 'ForeignInstalledSourceProducer'});
   assert.equal((await f.view.close()).pending,false);
 });
 
@@ -1611,6 +1626,19 @@ test('timed Request backs invocation before constructor and retains original ref
     assert.deepEqual(f.events,['check','borrow','requires-time','artifact','invocation-backing']);
     await f.failedCleanup();assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped,true);
   }
+});
+
+test('an unadopted original Request cannot borrow retained Run currentness after ingress closes', async () => {
+  let accepting = true;
+  const f = await fixture({validate() {assert.ok(accepting, 'NewPreparationRefused');},
+    validateRetained() {assert.fail('No Run was adopted');}});
+  const receipt = f.view.beforeSourceSnapshot('program', input(), {}, connection);
+  accepting = false;
+  assert.throws(() => resources.assertOrdinaryManagedRunCurrent(f.original, receipt),
+    /NewPreparationRefused/);
+  assert.throws(() => f.view.reservePublication({}), {code: 'ForeignInstalledSourceProducer'});
+  f.view.finishSourceProducer(receipt, 'failed');
+  assert.equal((await f.view.close()).pending, false);
 });
 
 test('Remote Request uses the existing managed parent and rejects mixed transport ownership', async () => {

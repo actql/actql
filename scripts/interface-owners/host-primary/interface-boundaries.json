@@ -6381,13 +6381,14 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "6febf3acd0198eed22aabc86fc679bcaff66267803940eadc615683deb19e4ef",
+      "sha256": "283349c38a03b9c8c89f0f0bfee1413c7f61ecf1549bca642e6f47b682c81959",
       "exports": [
         "admitOriginalHostRootFormat",
         "assertInitialControlHostPreparation",
         "assertOriginalHostPublicationOwnershipCurrent",
         "assertOriginalHostPublicationStoreFacilityCurrent",
         "assertOriginalHostRequestJournalFacilityCurrent",
+        "assertRetainedSourceManagedHost",
         "assertSourceManagedHostPreparation",
         "closeOriginalHostPublicationOwnership",
         "connectEmbeddedLocal",
@@ -6424,6 +6425,13 @@
       "operations": [
         {
           "name": "assertInitialControlHostPreparation",
+          "parameters": [
+            "originals"
+          ],
+          "async": false
+        },
+        {
+          "name": "assertRetainedSourceManagedHost",
           "parameters": [
             "originals"
           ],
@@ -17413,6 +17421,74 @@
               {
                 "path": "adapters/host-node/content-preparation-retirement.test.mjs",
                 "anchor": "retired keyed Content does not exhaust the unchanged 4096 live-preparation limit"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "assertRetainedSourceManagedHost"
+          ],
+          "exports": [
+            "assertRetainedSourceManagedHost"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "// An already admitted Run retains this same Host through graceful drain."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "export function assertRetainedSourceManagedHost"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "function retainedRunCurrent(run)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "!liveRuns.has(run)"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "assertRetainedPreparation(host, installation, generation)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "fail('ForeignInstalledSourceProducer');"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Identity validation does not request cancellation or issue a physical stop acknowledgement; existing Run and shutdown owners retain those duties."
+            },
+            "resources": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "resourceRuntime.assertOrdinaryManagedRunCurrent(run.original, run.producer.receipt);"
+              }
+            ],
+            "extension": {
+              "notApplicable": "Private fixed Host/manager correspondence only, not a caller-selected authority or new Resource protocol."
+            },
+            "verification": [
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('graceful drain retains the original Host identity without reopening preparation'"
+              },
+              {
+                "path": "adapters/host-node/client-publication-capacity.test.mjs",
+                "anchor": "test('normal Local close preserves accepted publication through immediate prewait and sibling paths'"
               }
             ]
           }

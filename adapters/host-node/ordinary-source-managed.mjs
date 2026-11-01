@@ -211,6 +211,27 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
     child.flight = work;
     try {return await work;} finally {if (child.flight === work) child.flight = undefined;}
   }
+  function retainedRunCurrent(run) {
+    const producer = run?.producer, state = producer?.preparation;
+    if (closed || run === undefined || runs.get(run.prepared) !== run ||
+        !liveRuns.has(run) || state === undefined || !state.adopting ||
+        state.prepared !== run.prepared || state.original !== run.original ||
+        receipts.get(producer.receipt) !== producer || run.value === undefined) {
+      fail('ForeignInstalledSourceProducer');
+    }
+    callbacks.retainedValidator(originals);
+    // Keep exact custody across the currentness callback's possible reentry.
+    if (closed || runs.get(run.prepared) !== run || !liveRuns.has(run) ||
+        producer.preparation !== state || state.original !== run.original) {
+      fail('ForeignInstalledSourceProducer');
+    }
+  }
+  function publicationRunFor(prepared) {
+    const run = runs.get(prepared);
+    retainedRunCurrent(run);
+    resourceRuntime.assertOrdinaryManagedRunCurrent(run.original, run.producer.receipt);
+    return run;
+  }
   function runFor(prepared) {
     current();
     const run = runs.get(prepared);
@@ -387,7 +408,10 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
             if (closed || receipts.get(receipt) !== producer || producer.preparation !== state) {
               fail('ForeignInstalledSourceProducer');
             }
-            callbacks.validator(originals);
+            const adopted = state.prepared === undefined ? undefined : runs.get(state.prepared);
+            if (adopted?.producer === producer && adopted.original === state.original &&
+                adopted.value !== undefined) retainedRunCurrent(adopted);
+            else callbacks.validator(originals);
             // The original external current callback may retire this same
             // input before opening returns. Cheap state fences, not another
             // external current call, preserve the exact original after reentry.
@@ -862,7 +886,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       return run.value;
     },
     reservePublication(prepared) {
-      const run = runFor(prepared), state = run.producer.preparation;
+      const run = publicationRunFor(prepared), state = run.producer.preparation;
       if (state === undefined || state.prepared !== prepared ||
           state.holder === undefined || !state.adopting) {
         fail('ForeignInstalledSourceProducer');
