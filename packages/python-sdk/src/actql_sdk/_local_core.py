@@ -938,6 +938,17 @@ class LocalCore:
                 or getattr(self, '_host_cleanup_depth', 0) != 0
                 or self._closing or self._closed or self._retired):
             return 0
+        # Only the standard original receiver has completed the full physical
+        # singleton/settings fence in this very reader. Other private/raw
+        # suppliers keep Core's complete observation path, never an error fallback.
+        from ._local_host_binding import OriginalHostBinding
+        receiver = getattr(callbacks.current, '__self__', None)
+        if type(receiver) is not OriginalHostBinding:
+            return 0
+        try:
+            receiver._require_observation_frame(self, loan, callbacks.reader)
+        except ValueError:
+            return -41
         operation = getattr(self, '_host_operation_id', 0)
         if (not self._invoking or type(operation) is not int
                 or not 0 < operation < 2**63

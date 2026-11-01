@@ -94,6 +94,7 @@ class OriginalHostBinding:
         self._active = False
         self._frame_epoch: ByteFence | None = None
         self._bound_operation: tuple[int, _Output, _Input] | None = None
+        self._observed_reader: _NamespaceReader | None = None
         self._closing = False
         self._fences: tuple[ByteFence, ...] = ()
         try:
@@ -186,6 +187,45 @@ class OriginalHostBinding:
         else:
             self._epoch.observe_custody()
 
+    def _adoption_inventory(self, reader: _NamespaceReader) -> None:
+        """Fence the complete original singleton in EACH actual SQL reader.
+
+        This is physical original-byte correspondence, not adoption or Allow.
+        A known-row fence alone cannot certify absence of another member after
+        a different transaction. Core retains all original semantic decisions.
+        """
+        found: list[tuple[str, bytes, int]] = []
+        def receive(row: tuple[str, StoredBytes] | None) -> None:
+            if row is not None:
+                found.append((row[0], row[1].payload, row[1].generation))
+        reader.scan_after('client_local_adoption', '', receive)
+        if (len(found) != 1 or found[0][0] != 'adoption' or found[0][2] != 0
+                or found[0][1] != self._fences[0].payload):
+            raise LocalStorageError('Original Local adoption singleton changed')
+        extra: list[object] = []
+        reader.scan_after('client_local_adoption', 'adoption',
+                          lambda row: extra.append(row) if row is not None else None)
+        if extra:
+            raise LocalStorageError('Original Local adoption singleton is incomplete')
+
+    def _require_observation_frame(self, core: LocalCore, current: _Output,
+                                   reader: _NamespaceReader | None) -> None:
+        """Require this original receiver's completely fenced live reader.
+
+        No caller flag, equal tuple or operation number supplies this witness.
+        It owns no transaction and cannot survive the enclosing callback.
+        """
+        self._nominal()
+        if (core is not self._core or current is not self._current
+                or reader is None or reader is not self._observed_reader
+                or not self._active or self._frame_epoch is None or self._closing):
+            raise ValueError('Foreign or retired original current observation frame')
+        core._owned_output(current, 'current')
+        if self._input is None:
+            raise ValueError('Original current observation input is unavailable')
+        core._owned_input(self._input)
+        reader.check_fences(reader, (*self._fences, self._frame_epoch))
+
     def _settings_inventory(self, reader: _NamespaceReader) -> None:
         # This is the same bounded raw membership fence as Native's retained
         # settings port, not a scope or authorization decision. Core-issued
@@ -264,6 +304,8 @@ class OriginalHostBinding:
         Store retains transaction/COMMIT/cleanup responsibility, and Core reads
         original inventory/admission/commit materials through this same reader.
         """
+        if self._observed_reader is not None:
+            raise ValueError('Original current observation reader is already borrowed')
         prior = self._bound_operation
         self._bound_operation = None
         self._nominal()
@@ -277,29 +319,36 @@ class OriginalHostBinding:
         self._physical_current()
         required = (*self._fences, self._frame_epoch)
         reader.check_fences(reader, required)
+        self._adoption_inventory(reader)
         self._settings_inventory(reader)
         operation = getattr(self._core, '_host_operation_id', 0)
         normal = (getattr(self._core, '_ordinary_host', False)
                   and self._core._host_fuel_phase == 'operation'
                   and getattr(self._core, '_host_cleanup_depth', 0) == 0
                   and not self._core._closing
-                  and type(operation) is int and 0 < operation < 2**63)
+                  and type(operation) is int and 0 < operation < 2**63
+                  and operation == self._core._host_operation_sequence)
         same = (normal and prior is not None and prior[0] == operation
                 and prior[1] is self._current and prior[2] is self._input)
-        with self._core.host_current_frame(self._current, reader):
-            # Only the same completed original binding within this existing
-            # operation is reusable. Every actual reader/current/files/settings
-            # fence still runs, and Core owns each protected Account decision.
-            if not same:
-                self._core.bind_host_current(self._current)
-            consume(self._current)
-            self._physical_current()
-            if not same:
-                self._core.validate_host_current(self._current)
-            if normal and self._core._host_operation_id != operation:
-                raise ValueError('Original Host operation changed during current binding')
-        self._settings_inventory(reader)
-        reader.check_fences(reader, required)
+        self._observed_reader = reader
+        try:
+            with self._core.host_current_frame(self._current, reader):
+                # Only the same completed original binding within this existing
+                # operation is reusable. Every actual reader/current/files/settings
+                # fence still runs, and Core owns each protected Account decision.
+                if not same:
+                    self._core.bind_host_current(self._current)
+                consume(self._current)
+                self._physical_current()
+                if not same:
+                    self._core.validate_host_current(self._current)
+                if normal and self._core._host_operation_id != operation:
+                    raise ValueError('Original Host operation changed during current binding')
+            self._settings_inventory(reader)
+            self._adoption_inventory(reader)
+            reader.check_fences(reader, required)
+        finally:
+            self._observed_reader = None
         if normal:
             self._bound_operation = (operation, self._current, self._input)
 
