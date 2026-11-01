@@ -100,6 +100,53 @@ class OriginalCommitStoreCallerTests(unittest.TestCase):
         caller = OriginalCommitProjection(core, parent, 31, cleanup=lambda: state['cleanup'])
         return core, parent, publisher, caller, calls, state, identities, wires, key
 
+    def test_original_identity_and_full_body_keep_pair_with_bounded_wire_overlap(self):
+        core, parent, _, caller, _, state, identities, wires, _ = self.bridge()
+        original_call = core._call
+        capacities = {}
+        limit = 6 * 1048576
+        peak = 0
+
+        def call(family, name, *args):
+            nonlocal peak
+            if family == 'publication_commit_export' and name in ('reserve', 'reserve_bounded'):
+                if name == 'reserve':
+                    selected_parent, ticket, physical_bytes = args
+                    wire_limit = 1048576
+                else:
+                    selected_parent, ticket, wire_limit, physical_bytes = args
+                self.assertEqual(selected_parent, parent.handle)
+                charge = physical_bytes + 2 * wire_limit
+                if sum(capacities.values()) + charge > limit:
+                    return -4
+                # This is an explicit physical buffer port, not an installed
+                # Core/Store or a claim about E's unrecorded numeric usage.
+                result = original_call(family, 'reserve', selected_parent, ticket,
+                                       max(physical_bytes, 2 * 1048576))
+                capacities[result] = charge
+                peak = max(peak, sum(capacities.values()))
+                return result
+            result = original_call(family, name, *args)
+            if family == 'publication_commit_export' and name == 'close' and result == 0:
+                capacities.pop(args[0], None)
+            return result
+
+        core._call = call
+        delivered = []
+        def consume(write):
+            self.assertEqual(len(caller.pending_outputs), 2)
+            self.assertEqual([value.limit for value in caller.pending_outputs], [71, 1048576])
+            self.assertEqual(write.key, 'namespace:20:publication_contract:' + identities[0].decode())
+            self.assertEqual(write.payload, wires[0])
+            self.assertEqual(state['close_calls'], [])
+            delivered.append(True)
+        caller.project_contract(0, consume)
+        self.assertEqual(delivered, [True])
+        self.assertLessEqual(peak, limit)
+        self.assertEqual(capacities, {})
+        self.assertEqual(caller.pending_outputs, ())
+        self.assertIs(core._loans[parent.ticket], parent)
+
     def test_contract_consumes_original_identity_and_bytes_while_both_loans_are_live(self):
         core, parent, _, caller, calls, _, identities, wires, _ = self.bridge()
         writes = []
