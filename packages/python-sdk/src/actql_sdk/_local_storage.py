@@ -1007,7 +1007,7 @@ class LocalByteStore:
                 if reads >= self._max_inspection_queries:
                     raise LocalStorageError('Local inventory inspection capacity exceeded')
                 reading = entered = True
-                fence(required_current)
+                fence(required_current, reuse_snapshot=required_current is not None)
                 # A malformed empty logical key must be observed and refused,
                 # not silently excluded from the original namespace inventory.
                 row = self._physical.scan_range(lower, upper,
@@ -1026,13 +1026,13 @@ class LocalByteStore:
                     self._key(logical)
                     copied += len(payload)
                     observation = (logical, StoredBytes(generation, payload))
-                fence(required_current)
+                fence(required_current, reuse_snapshot=required_current is not None)
                 # The Host completes transfer into its reserved Core input and
                 # returns the same input/output loan before requesting a row.
                 if consume(observation) is not None:
                     raise ValueError('Invalid Local inventory consumer result')
                 del observation, row
-                fence(required_current)
+                fence(required_current, reuse_snapshot=required_current is not None)
             except BaseException as error:
                 failure = error
                 raise
