@@ -55,6 +55,15 @@ test "same-stage acquired serialized Model preserves original capture module inp
         @checked.Source(@checked.Checks(_)) => "Source.Checks"
         @checked.Source(@checked.SourceView(@context.InvalidLimits)) =>
           "Source.SourceView.InvalidLimits"
+        @checked.Source(
+          @checked.SourceView(
+            @context.Program(@stage_results.Pipeline(stage, issue))
+          )
+        ) =>
+          "Source.SourceView.Program.Pipeline/" +
+          stage.to_string() +
+          "/" +
+          @debug.to_string(issue.kind)
         @checked.Source(@checked.SourceView(@context.Program(_))) =>
           "Source.SourceView.Program"
         @checked.Source(@checked.SourceView(@context.Binding(_))) =>
