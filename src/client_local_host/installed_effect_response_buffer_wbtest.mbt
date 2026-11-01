@@ -44,7 +44,9 @@ test "automatic standard recipe retains original body header secret and stored r
   assert_eq(
     @execution.execution_capacity_execution_bytes(selected[4]) -
     @execution.execution_capacity_execution_bytes(fewer[4]),
-    @execution.execution_capacity_execution_bytes(grant),
+    // The extra original Grant remains live, but its completed constructor
+    // does not run simultaneously with one of the four preceding Grants.
+    @execution.execution_capacity_retained_bytes(grant),
   )
   assert_true(
     @execution.execution_capacity_retained_bytes(selected[4]) >
@@ -311,8 +313,12 @@ test "Command recipe adds SAME native capture fixed and row quantities once with
     )
     assert_eq(
       @execution.execution_capacity_execution_bytes(selected[index]),
-      @execution.execution_capacity_execution_bytes(base[index]) +
-      @execution.execution_capacity_execution_bytes(extra),
+      Int64::max(
+        @execution.execution_capacity_execution_bytes(base[index]) +
+        @execution.execution_capacity_retained_bytes(extra),
+        @execution.execution_capacity_execution_bytes(extra) +
+        @execution.execution_capacity_retained_bytes(base[index]),
+      ),
     )
   }
   assert_eq(selected.length(), base.length() + 1)

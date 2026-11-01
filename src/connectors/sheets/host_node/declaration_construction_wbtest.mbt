@@ -111,13 +111,14 @@ test "range and clear driver profiles retain original binding constructor and in
       @execution.execution_capacity_execution_bytes(captures[index][0]) > 0L,
     )
     // The actual Core composer adds Host projection once to the fresh row.
-    // Direct recovery must cover that SAME complete constructor, plus its
-    // retained outer/inner request array slots; never a physical send grant.
+    // Direct recovery retains that SAME constructor's returned material and
+    // outer/inner slots. The conditional fixed-phase proof may cover its
+    // private workspace. Clear additionally retains its whole marker envelope.
     let complete = @client_host.installed_standard_create_constructor_capacities(
         Some(profiles[index]),
       ).unwrap()[0]
-    assert_eq(
-      @execution.execution_capacity_execution_bytes(captures[index][1]),
+    assert_true(
+      @execution.execution_capacity_execution_bytes(captures[index][1]) <=
       @execution.execution_capacity_execution_bytes(complete) +
       96L +
       (if index == 1 {
@@ -128,9 +129,17 @@ test "range and clear driver profiles retain original binding constructor and in
         0L
       }),
     )
-    assert_eq(
-      @execution.execution_capacity_retained_bytes(captures[index][1]),
-      @execution.execution_capacity_retained_bytes(complete) + 96L,
+    assert_true(
+      @execution.execution_capacity_retained_bytes(captures[index][1]) >=
+      @execution.execution_capacity_retained_bytes(complete) +
+      96L +
+      (if index == 1 {
+        @execution.execution_capacity_execution_bytes(
+          sheets_clear_recovery_marker_capacity(limits.max_depth).unwrap(),
+        )
+      } else {
+        0L
+      }),
     )
   }
   // Validate actual native emitted bytes, including escaped/Unicode cells,
@@ -694,54 +703,9 @@ test "clear recovery fixed metadata does not reserve maximum range cells as requ
   )
 }
 
-///|
-// Frozen 2d6ebc88 quote, retained only to compare the displaced max-cell term.
-fn previous_clear_metadata_text_units(
-  metadata : @catalog.RangeConstructionMetadata,
-  clear : Bool,
-) -> Int64? {
-  guard @execution.checked_preparation_add_product(
-      1024L,
-      metadata.schema_bytes,
-      1L,
-    )
-    is Some(total) &&
-    @execution.checked_preparation_add_product(
-      total,
-      metadata.identity_units,
-      1L,
-    )
-    is Some(total) &&
-    @execution.checked_preparation_add_product(
-      total,
-      metadata.target_units.to_int64(),
-      3L,
-    )
-    is Some(total) &&
-    @execution.checked_preparation_add_product(
-      total,
-      metadata.origin_units.to_int64(),
-      1L,
-    )
-    is Some(total) &&
-    @execution.checked_preparation_add_product(
-      total,
-      metadata.spreadsheet_units.to_int64(),
-      1L,
-    )
-    is Some(total) else {
-    return None
-  }
-  if clear {
-    @execution.checked_preparation_add_product(
-      total,
-      metadata.limits.max_cells.to_int64(),
-      @catalog.clear_marker_text_units().to_int64(),
-    )
-  } else {
-    Some(total)
-  }
-}
+// Genuine722877b5 fixed prefix and original row fold, without the later
+// checked per-row marker envelope. This isolates marker history from older
+// parser overquotation; the original displaced fixture remains in Git.
 
 ///|
 fn previous_clear_capture_profile(
@@ -785,7 +749,7 @@ fn previous_clear_capture_profile(
   let (_, entry_bytes) = sheets_range_capture_normalization_inputs(
     binding_bytes, b, clear,
   )
-  guard previous_clear_metadata_text_units(metadata, clear)
+  guard sheets_range_recovery_metadata_text_units(metadata)
     is Some(metadata_text_units) else {
     return None
   }
@@ -804,8 +768,7 @@ fn previous_clear_capture_profile(
   // UTF8 input is <=3*the retained original UTF16 units. No new input cap.
   let metadata_nodes = 4L * metadata.columns.to_int64() +
     3L * metadata.target_units.to_int64() +
-    64L +
-    (if clear { metadata.limits.max_cells.to_int64() } else { 0L })
+    64L
   if metadata_nodes > 2147483643L {
     return None
   }
@@ -818,7 +781,9 @@ fn previous_clear_capture_profile(
     owned_wire_bytes: 0L,
   }
   guard sheets_range_parsed_construction(b, n, recovery_depth) is Some(input) &&
-    sheets_range_json_inventory(b, n) is Some(native) &&
+    sheets_range_json_inventory(b, n) is Some(native_build) &&
+    sheets_range_json_retained_inventory(b, n) is Some(native) &&
+    sheets_range_native_parse_text(b, n, recovery_depth) is Some(native_text) &&
     (if clear {
       sheets_range_parsed_construction(entry_bytes, entry_nodes, recovery_depth)
     } else {
@@ -830,7 +795,19 @@ fn previous_clear_capture_profile(
     } else {
       Some(zero)
     })
+    is Some(entry_build) &&
+    (if clear {
+      sheets_range_json_retained_inventory(entry_bytes, entry_nodes)
+    } else {
+      Some(zero)
+    })
     is Some(entry) &&
+    (if clear {
+      sheets_range_native_parse_text(entry_bytes, entry_nodes, recovery_depth)
+    } else {
+      Some(zero)
+    })
+    is Some(entry_text) &&
     sheets_writer_units(recovery_bytes, metadata_nodes + 4, recovery_depth)
     is Some(writer) &&
     sheets_range_normalization_construction(cold_normalization_bytes)
@@ -895,14 +872,24 @@ fn previous_clear_capture_profile(
   // range compares its entire wire directly without another supplied tree.
   let normalized = { ..metadata_native, owned_utf16_units: 0L, }
   let metadata_normalized = { ..metadata_native, owned_utf16_units: 0L, }
-  guard @execution.compose_preparation_representation([
-      inputs, input, native, native,
-    ])
+  // The first range_parse has returned before the second starts. The
+  // completed first native tree survives; the second Source check and native
+  // constructor are sequential. Both input Strings/encodings and every
+  // complete failed-prefix constructor keep their original bounds.
+  guard @execution.compose_preparation_representation([inputs, input, native])
     is Some(parse_peak) &&
     @execution.compose_preparation_representation([
-      inputs, native, native, entry_input, entry,
+      inputs, native, native_build, native_text,
+    ])
+    is Some(native_parse_peak) &&
+    @execution.compose_preparation_representation([
+      inputs, native, native, entry_input,
     ])
     is Some(entry_peak) &&
+    @execution.compose_preparation_representation([
+      inputs, native, native, entry_build, entry_text,
+    ])
+    is Some(entry_native_peak) &&
     @execution.compose_preparation_representation([
       inputs, native, native, entry, metadata_native, normalized, normalization,
     ])
@@ -941,8 +928,9 @@ fn previous_clear_capture_profile(
     ])
     is Some(metadata_canonical_peak) &&
     sheets_range_capture_phase_capacity(retained, [
-      parse_peak, entry_peak, normalize_peak, canonical_peak, expected_peak, metadata_parse_peak,
-      metadata_normalize_peak, metadata_canonical_peak,
+      parse_peak, native_parse_peak, entry_peak, entry_native_peak, normalize_peak,
+      canonical_peak, expected_peak, metadata_parse_peak, metadata_normalize_peak,
+      metadata_canonical_peak,
     ])
     is Some(fixed) &&
     sheets_range_request_capacity(
@@ -966,6 +954,22 @@ fn previous_clear_capture_profile(
     @execution.add_execution_capacity(row, row_slots) is Some(row) else {
     return None
   }
+  // recover_range_requests finishes its input parses and metadata checks
+  // before its synchronous per-change prepare_range_request calls. The two
+  // complete native input forests and even the full metadata canonical/writer
+  // envelope remain co-counted by canonical_peak here. Every returned row
+  // stays charged by row.R; only the current request's private constructor
+  // scratch is additional to that fixed prefix.
+  //
+  // Reuse is selected ONLY when this explicit same-owner phase (including
+  // the fixed returned holders) fits the already selected complete fixed
+  // peak. Otherwise keep the original row quotation unchanged. Clear keeps
+  // its old row rate because its marker-history prefixes coexist across rows.
+  let row = if clear {
+    row
+  } else {
+    sheets_range_cofund_recovery_row(fixed, canonical_peak, row)
+  }
   guard sheets_range_effect_id_capacity() is Some(effect_id) else {
     return None
   }
@@ -973,7 +977,7 @@ fn previous_clear_capture_profile(
 }
 
 ///|
-test "checked clear marker workspace dominates the displaced cell-count envelope" {
+test "checked clear marker history retains the complete original per-row envelope" {
   for cells in [6, 64, 6400] {
     let original = recovery_guard_test_metadata(300000)
     let metadata = {
@@ -992,7 +996,8 @@ test "checked clear marker workspace dominates the displaced cell-count envelope
     assert_eq(@execution.execution_capacity_retained_bytes(marker), 0L)
     assert_true(@execution.execution_capacity_execution_bytes(marker) > 0L)
     // This comparison does not lower any incoming forest/node/depth guard.
-    // At the old maximum count, SAME checked-row funding dominates it.
+    // The current fixed parser phase is unchanged. Every checked row now
+    // retains the whole original marker envelope, including old scratch.
     assert_eq(
       @execution.execution_capacity_retained_bytes(after[0]),
       @execution.execution_capacity_retained_bytes(before[0]),
@@ -1003,8 +1008,8 @@ test "checked clear marker workspace dominates the displaced cell-count envelope
       @execution.execution_capacity_execution_bytes(before[0]),
     )
     assert_eq(
-      @execution.execution_capacity_execution_bytes(after[1]),
-      @execution.execution_capacity_execution_bytes(before[1]) +
+      @execution.execution_capacity_retained_bytes(after[1]),
+      @execution.execution_capacity_retained_bytes(before[1]) +
       @execution.execution_capacity_execution_bytes(marker),
     )
   }

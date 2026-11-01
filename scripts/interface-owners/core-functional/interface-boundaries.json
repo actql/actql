@@ -34263,7 +34263,7 @@
     {
       "module": "src/client_local_host/preparation_request_program_body.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "b1de36bd13e57c366dbb4a0af12cddbd94cca5f9461eec718df8642a53e89cef",
+      "sha256": "b3fdc913d5a92194fbfc63d10c5f606f3834820138a4027412f48dd5911eba66",
       "role": "common-semantics",
       "owner": "Existing Request preparation and installed Plan owners",
       "exports": [],
@@ -43785,7 +43785,7 @@
     },
     {
       "module": "src/client_local_host/installed_effect_operation_demand.mbt",
-      "sha256": "6e8d41e85d895787f85e80ca8a033e3aab31f0b1f617db67829c9e95bcd027a6",
+      "sha256": "3db67722ce9215e8901e94682d832c57102aefb32e0a3348e96aee014a9b3d6c",
       "exports": [],
       "operations": [
         {
@@ -58945,7 +58945,7 @@
     },
     {
       "module": "src/client_local_host/installed_compute_preparation.mbt",
-      "sha256": "3172e253973fff09de5d4cef34d217f79017a3e1fed3753143eb36a18cc6e816",
+      "sha256": "3ec8022668799013fc57705766ce5fbd986f2ad7101c3739db9f756b577ef6a8",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing installed Compute preparation and original capacity Plan; no new runtime or Resource owner",
@@ -59284,7 +59284,7 @@
     },
     {
       "module": "src/client_local_host/installed_standard_create_recipe.mbt",
-      "sha256": "d741d5f791a4a32b4c1d3e5f9f10c4c596b71ef3968b51704e5009293fd09b65",
+      "sha256": "7f4e942382dfb3a5e106e81483f4a15850a545262454abb739fdd27ad77c81c9",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
@@ -59314,6 +59314,10 @@
         {
           "name": "standard_create_secret_capacity",
           "declaration": "standard_create_secret_capacity ( bytes : Int , prefix_units : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "standard_create_sequence_pair_capacity",
+          "declaration": "standard_create_sequence_pair_capacity ( left : @ execution . ExecutionCapacity , right : @ execution . ExecutionCapacity , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "standard_create_sum_capacities",
@@ -59392,12 +59396,80 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "standard_create_sequence_pair_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Sequential installed Effect construction"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Sequential installed Effect construction"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Sequential installed Effect construction"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Sequential installed Effect construction"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Sequential installed Effect construction"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Sequential installed Effect construction"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Sequential installed Effect construction"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Sequential installed Effect construction"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Sequential installed Effect construction"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Sequential installed Effect construction"
+              }
+            ]
+          }
         }
       ]
     },
     {
       "module": "src/client_local_host/installed_source_reader_capacity.mbt",
-      "sha256": "411678e07afe49d1625b74b74d593810a4b73f610fc5124173e63d42816f0973",
+      "sha256": "16a8c107720fccbfc5bf55255cfa27b24339c8af63649f5970bf2cfd17781384",
       "operations": [
         {
           "name": "installed_gmail_thread_reader_capacity",
@@ -61428,6 +61500,90 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Provider response workspace retirement keeps the original captured Source"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/installed_effect_source_phases.mbt",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing installed Effect original Plan and provider Source owner",
+      "sha256": "3b6bab2c7ab8b6de7c2747d08946fdf7063b5028b584a74887a36f268618d409",
+      "exports": [],
+      "operations": [
+        {
+          "name": "installed_effect_provider_execution_phases",
+          "declaration": "installed_effect_provider_execution_phases ( captures : Array [ ClientInstalledCaptureCapacity ] , transport_execution : Array [ Int64 ] , tail_execution : Int64 , complete_retained : Int64 , ) - > ( Int64 , Int64 ) ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "installed_effect_provider_execution_phases"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Sequential installed Effect construction"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Sequential installed Effect construction"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Sequential installed Effect construction"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Sequential installed Effect construction"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Sequential installed Effect construction"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Sequential installed Effect construction"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Sequential installed Effect construction"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Sequential installed Effect construction"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Sequential installed Effect construction"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Sequential installed Effect construction"
               }
             ]
           }

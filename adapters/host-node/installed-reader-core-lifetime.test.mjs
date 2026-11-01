@@ -17,7 +17,7 @@ const moon = await import(moduleUrl.href);
 // Actual Reader + RowRun/adapter JS + actual Core capture/Resource state.
 // Authority, credential transport and its physical-close observation remain
 // explicit ports. The small declaration is not a normal numerical profile.
-async function fixture({pendingBinding = false} = {}) {
+async function fixture({pendingBinding = false, deferOpen = false} = {}) {
   const read = path => readFile(new URL(`../../${path}`, import.meta.url), 'utf8');
   const declaration = checked(moon.clientProgramRowSourceRestoreDeclaration(
     'fixture', 'fixture', 'fixture/0.1', JSON.stringify({views:[{resource:'records',
@@ -49,7 +49,7 @@ async function fixture({pendingBinding = false} = {}) {
   const capacity = moon.clientProgramRowSourceProviderCapacity(4096n,8192n);
   const authorization = {grant:{},scope:{operation:'read'},useId:'reader-core-use'};
   const credential = {}, site = {}, events = [];
-  let bindingClosed = !pendingBinding, reader;
+  let bindingClosed = !pendingBinding, reader, ledger, providerReadUsage;
   const response = Object.freeze({accepted:true,statusCode:200,body:Buffer.from('{"records":[{"id":1}]}')});
   const originalSite = Object.freeze({site,referenceCurrent(){return true;},
     authorizationPurpose(original){assert.equal(original,authorization);return {kind:'read'};},
@@ -63,7 +63,11 @@ async function fixture({pendingBinding = false} = {}) {
     operation:'read',maxResponses:1,maxResponseBytes:128,maxSecretBytes:128,
     preparePageReader(){return Object.freeze({
       fetchPage(){return {method:'GET',path:'/one',headers:[],query:[],responseHeaders:[]};},
-      decodePage(original){assert.equal(original,response);return {rows:[{id:1}],done:true};},
+      decodePage(original){
+        assert.equal(original,response);
+        providerReadUsage=ledgerUsageSnapshot(moon.clientProgramMultiCapturedLedgerUsage(ledger));
+        return {rows:[{id:1}],done:true};
+      },
     });}});
   const providerReader = Object.freeze({capacity,prepare(options){
     assert.equal(this,providerReader);reader=Reflect.apply(factory.prepare,factory,[options]);return reader;
@@ -76,13 +80,20 @@ async function fixture({pendingBinding = false} = {}) {
     readOperation:'read',physicalTarget:(resource,fields)=>({resource,fields}),providerReader,
     limits:{maxPages:1,maxPageBytes:1024,maxPageRows:10,maxCaptureRows:10}});
   const preparedSource=await adapter.prepare(preparation),planned=adapter.ledgerCapacity(preparedSource);
-  const ledger=moon.clientProgramPrepareSingleCapturedLocalInstalledLedger(preparedProgram,
+  ledger=moon.clientProgramPrepareSingleCapturedLocalInstalledLedger(preparedProgram,
     planned.capacity,planned.transferBytes,planned.executionBytes,
     preparation.registry,preparation.values,preparation.fragment,preparation.ordered);
   assert.ok(ledger);
-  const capture=await adapter.openCapture({...preparation,preparedSource,ledger});
-  return {capture,reader:()=>reader,events,allowBindingClose(){bindingClosed=true;},
+  let opened=false;
+  const fixture={reader:()=>reader,events,allowBindingClose(){bindingClosed=true;},
+    providerReadUsage:()=>providerReadUsage,
+    async openCapture(){
+      assert.equal(opened,false,'never replay an original failed acquisition');opened=true;
+      return adapter.openCapture({...preparation,preparedSource,ledger});
+    },
     usage:()=>ledgerUsageSnapshot(moon.clientProgramMultiCapturedLedgerUsage(ledger))};
+  if(!deferOpen) fixture.capture=await fixture.openCapture();
+  return fixture;
 }
 
 async function closeOriginal(capture) {
@@ -97,6 +108,8 @@ test('actual Reader and Core retain live captured Source and evidence after read
   const f=await fixture(),source=f.capture.capture.source(),read=f.capture.capture.originalRead();
   assert.ok(source);assert.ok(read);
   const held=f.usage();assert.ok(held.reservedExecutionBytes>0n);
+  assert.equal(f.providerReadUsage().reservedExecutionBytes-held.reservedExecutionBytes,4096n,
+    'completion returns only the selected original provider E-R');
   f.reader().requestStop();assert.equal(f.reader().observe().cleanupConfirmed,true);
   assert.deepEqual(f.usage(),held,'reader stop alone must not credit the real Core reservation');
   assert.equal(f.capture.capture.source(),source);
@@ -114,16 +127,22 @@ test('actual Reader and Core retain live captured Source and evidence after read
 });
 
 test('actual pending Reader binding keeps Core reservation until same original late cleanup',async()=>{
-  const f=await fixture({pendingBinding:true}),source=f.capture.capture.source(),held=f.usage();
-  f.reader().requestStop();assert.equal(f.reader().observe().cleanupConfirmed,false);
-  assert.deepEqual(f.usage(),held);assert.equal(f.capture.capture.source(),source);
-  assert.throws(()=>f.capture.close(),{code:'MoonBitHostFailure'});
+  const f=await fixture({pendingBinding:true,deferOpen:true});
+  let failure;
+  await assert.rejects(f.openCapture(),error=>{
+    failure=error;
+    assert.equal(error.code,'MoonBitHostFailure');assert.equal(error.outcome,'unknown');
+    assert.equal(error.recovery.cleanupPending(),true);return true;
+  });
+  const held=f.usage();assert.ok(held.reservedExecutionBytes>0n);
+  assert.equal(f.capture,undefined,'pending completion returned no Source capture');
+  assert.equal(f.reader().observe().cleanupConfirmed,false);
+  assert.equal(await failure.recovery.cleanup(),false);
   assert.deepEqual(f.usage(),held,'pending original cleanup cannot credit Core backing');
-  // Core close invalidates its Source even while cleanup remains pending.
-  assert.throws(()=>f.capture.capture.source(),{code:'MoonBitHostFailure'});
   f.allowBindingClose();f.reader().retry();
   assert.equal(f.reader().observe().cleanupConfirmed,true);
-  await closeOriginal(f.capture);
+  assert.equal(await failure.recovery.cleanup(),true);
+  assert.equal(failure.recovery.cleanupPending(),false);
   assert.equal(f.usage().reservedExecutionBytes,0n);assert.equal(f.usage().heldBytes,0n);
   assert.equal(f.events.filter(name=>name==='receive').length,1);
 });

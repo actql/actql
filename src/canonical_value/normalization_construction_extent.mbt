@@ -28,15 +28,23 @@ pub fn nfc_lf_construction_extent(
   let u = max_input_utf16_units.to_int64()
   // The pinned canonical tables expand one input scalar to <=4 scalars, with
   // recursive expansion derived by the canonical generator (Hangul <=3).
-  // Extraction <=U; decomposition and composition <=4U. Scalar-backed array old/new growth is <=3N+12;
-  // classes and one sorted run each <=4U, plus the 256 counting-sort offsets.
-  // Six wrappers/backings and three growing backing overlaps:15H6R, with
-  // 12 wrapper words and three 12-slot growth minima.
+  // Extraction <=U; decomposition and composition <=4U. Scalar-backed array
+  // old/new growth is <=3N+12. Keep that complete growth bound even for each
+  // preceding array which is no longer growing. order_canonically owns its
+  // classes and one sorted run (each <=4U) plus 256 counting-sort offsets;
+  // both arrays are private to that synchronous call and cannot escape it.
+  // compose_nfc starts only after it returns. Thus ordering has at most
+  // (3+5E)U scalar slots and composition (3+6E)U, not their sum. The latter
+  // dominates for the same pinned positive expansion E. Every input,
+  // decomposed and returned array remains charged through rendering; this
+  // does not infer GC, refund a reservation or change the Unicode algorithm.
+  // Conservatively keep all six wrappers/backings, three growth overlaps,
+  // 12 wrapper words, three 12-slot minima and the sort table in both phases.
   let array_headers = 15L
   let array_refs = 6L
   let array_words = 12L +
     36L +
-    (3L + 8L * canonical_decomposition_max_scalar_expansion) * u +
+    (3L + 6L * canonical_decomposition_max_scalar_expansion) * u +
     256L
   // The generated table proves NFC output is <=4U UTF16 units. JS retains
   // old/new concat text (and the current character), then at most the two preceding LF-pass Strings.

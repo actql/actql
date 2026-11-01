@@ -2808,3 +2808,28 @@ neither an error nor a retry restores a historical debit or issues a new owner.
 The Node completion boundary delegates its one retirement observation to Core
 before returning the captured Source. Final cleanup still uses the same
 reader, receiver, observer and reservation.
+
+### Sequential installed Effect construction
+
+The installed Effect Plan retains the original Compute tail extent before its
+Source capture maximum is folded. During ordinary provider reads, preceding
+captures retain their acquisition, evidence, provider result and transport
+scratch; each current reader keeps its complete construction peak. Only the
+original completed reader workspace return selects the later phase. The
+Compute tail remains fully charged alongside those capture remainders and
+Effect constructor material. No completed task is assumed to have zero scratch.
+
+Synchronous standard Grant, recovery and provider constructors retain all
+returned results while sharing only workspace whose owning call has returned.
+The Unicode owner likewise separates the private canonical-ordering arrays
+from the later composition array. Its input, decomposition, returned text and
+complete failure envelope remain bounded by the pinned Unicode geometry.
+These representation folds neither observe physical cleanup nor change any
+resource policy, operation occurrence, consumed work or transfer accounting.
+
+Sheets recovery retains every row request and the full original clear-marker
+envelope, including conservative marker parser and writer workspace. A row
+constructor shares the fixed recovery phase only when the original complete
+fixed peak covers that prefix plus the current row workspace. Overflow or an
+uncovered phase preserves the original row quantity. Clear marker history
+cannot be subtracted by that conditional fold.

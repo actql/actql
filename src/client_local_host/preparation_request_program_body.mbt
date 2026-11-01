@@ -86,7 +86,14 @@ fn[I] request_program_plan_quote(
       Err(issue) => return Err(issue)
       Ok(value) => value
     }
-    owner.program_plan_quote = Some((r, e))
+    // The shared Compute constructor now retains its original tail execution
+    // aggregate. This is one fixed scalar, not another Plan or policy knob.
+    if e > 9223372036854775807L - installed_compute_tail_inventory_bytes {
+      return Err(Policy)
+    }
+    owner.program_plan_quote = Some(
+      (r, e + installed_compute_tail_inventory_bytes),
+    )
     owner.phase = ProgramPlanQuoted
   }
   Ok(owner.program_plan_quote.unwrap())

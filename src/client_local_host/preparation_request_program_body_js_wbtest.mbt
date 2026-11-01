@@ -1572,9 +1572,19 @@ test "Request Plan quote backs original checked node proof frames before factory
   let scratch = client_local_value_node_proof_scratch_bytes().unwrap()
   assert_true(scratch > 100L * 200L)
   let quote = request_program_plan_quote(parent, input).unwrap()
+  let original_tail_field = @execution.preparation_representation_cost({
+    record_headers: 0L,
+    reference_slots: 0L,
+    scalar_words: 1L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }).unwrap()
   assert_eq(
     quote,
-    (before.0 + data + retained, before.1 + data + retained + scratch),
+    (
+      before.0 + data + retained,
+      before.1 + data + retained + scratch + original_tail_field,
+    ),
   )
   // The old data-only allowance is deliberately insufficient. The original
   // parent capacity must grow before ANY selected module/provider callback.

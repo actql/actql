@@ -326,7 +326,9 @@ fn installed_effect_control_phase_quote_capacity() -> @execution.ExecutionCapaci
     workspace: {
       record_headers: 2L,
       reference_slots: 0L,
-      scalar_words: 6L,
+      // The shared Compute preparation retains one original tail aggregate;
+      // the quote retains the two phase accumulators, also when unselected.
+      scalar_words: 9L,
       owned_utf16_units: 0L,
       owned_wire_bytes: 0L,
     },
@@ -341,13 +343,18 @@ fn installed_effect_control_phase_quote_capacity() -> @execution.ExecutionCapaci
 // The optional original Effect graph, current source/owner/target/bound
 // carriers and nested row Option add at most six headers/references/tags;
 // selected-source/max/count and scratch controls add four scalar words. No new arrays,
-// copied graph or persistent inventory are introduced. The Request backs this
+// copied graph or persistent inventory are introduced. Provider phase folding
+// additionally holds its checked-add Options, result tuple/Some and caller
+// phase-add Options, borrowed capture/transport selections, scalar arguments,
+// loop accumulators and the caller's completed phase values. Keep their full
+// simultaneous envelope rather than reusing hypothetical expression slots. The
+// Request backs this
 // scratch BEFORE Plan construction; the finished Plan records the same cost.
 fn installed_effect_source_result_bound_scratch_bytes() -> Int64 {
   @execution.preparation_representation_cost({
-    record_headers: 6L,
-    reference_slots: 6L,
-    scalar_words: 10L,
+    record_headers: 16L,
+    reference_slots: 14L,
+    scalar_words: 36L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }).unwrap()
@@ -506,6 +513,21 @@ pub fn prepare_installed_effect_managed_plan(
   let compute_limits = compute.limits
 
   let original_compute_limits = compute_limits
+  let mut reading_execution = compute_limits.execution_bytes
+  let mut completed_execution = compute_limits.execution_bytes
+  if provider_sources > 0 {
+    guard installed_effect_provider_execution_phases(
+        captures,
+        transport_execution_bytes,
+        compute.tail_execution_bytes,
+        compute_limits.retained_bytes,
+      )
+      is Some((reading, completed)) else {
+      return Err(Unsupported)
+    }
+    reading_execution = reading
+    completed_execution = completed
+  }
   let compute_limits = match model {
     None => compute_limits
     Some(selected) =>
@@ -671,16 +693,52 @@ pub fn prepare_installed_effect_managed_plan(
       }
     }
   }
-  guard @execution.execution_capacity_inventory_add(
-      execution,
-      QuotedBytes,
-      constructor_workspace,
-      1,
-    )
-    is Some(with_constructor_workspace) else {
-    return Err(Unsupported)
+  if provider_sources > 0 {
+    // Only the same ordinary provider profile selects this phase cut. Its
+    // actual Row completion returns the reader's transient E-R first; all
+    // acquisition/evidence/scratch and earlier capture remainders remain.
+    // Keep Model/physical/held implementation material fully additive. The
+    // normal Host retains inactive controls before Source, and its row Effect
+    // callbacks first pin completed Compute sources. Source readers never
+    // receive that controlConstruction function. Its workspace belongs to
+    // the later constructor phase; the full retained control remains below.
+    let coexist = execution - original_compute_limits.execution_bytes
+    guard @execution.execution_capacity_inventory_add(
+        coexist,
+        QuotedBytes,
+        reading_execution,
+        1,
+      )
+      is Some(reading) &&
+      @execution.execution_capacity_inventory_add(
+        coexist,
+        QuotedBytes,
+        completed_execution,
+        1,
+      )
+      is Some(completed) &&
+      @execution.execution_capacity_inventory_add(
+        completed,
+        QuotedBytes,
+        constructor_workspace,
+        1,
+      )
+      is Some(completed) else {
+      return Err(Unsupported)
+    }
+    execution = Int64::max(reading, completed)
+  } else {
+    guard @execution.execution_capacity_inventory_add(
+        execution,
+        QuotedBytes,
+        constructor_workspace,
+        1,
+      )
+      is Some(with_constructor_workspace) else {
+      return Err(Unsupported)
+    }
+    execution = with_constructor_workspace
   }
-  execution = with_constructor_workspace
   // Own only new plan/demand/container controls. Borrow installed immutable
   // extents, contract/Program bodies and generated originals once at their
   // actual owners. Array spare capacity uses the existing pinned builtin rule.

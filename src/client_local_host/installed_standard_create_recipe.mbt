@@ -62,6 +62,31 @@ fn standard_create_sum_capacities(
 }
 
 ///|
+// Binary form of the same retained-sum/workspace-maximum fold. Fixed Host
+// callsites already hold the two original quantities; do not allocate another
+// input Array just to compose them. The caller owns the sequential-lifetime
+// proof; these immutable quantities neither grant nor return any resource.
+fn standard_create_sequence_pair_capacity(
+  left : @execution.ExecutionCapacity,
+  right : @execution.ExecutionCapacity,
+) -> @execution.ExecutionCapacity? {
+  let left_r = @execution.execution_capacity_retained_bytes(left)
+  let right_r = @execution.execution_capacity_retained_bytes(right)
+  let workspace = Int64::max(
+    @execution.execution_capacity_execution_bytes(left) - left_r,
+    @execution.execution_capacity_execution_bytes(right) - right_r,
+  )
+  if left_r > 9223372036854775807L - right_r {
+    return None
+  }
+  let retained = left_r + right_r
+  if workspace > 9223372036854775807L - retained {
+    return None
+  }
+  @execution.execution_capacity(retained, retained + workspace)
+}
+
+///|
 // The SAME remote Credential owner supplies its actual encoder/decoder and
 // signature domains. No Node copy of its limits or serialized grant schema.
 fn standard_create_grant_capacity() -> @execution.ExecutionCapacity? {
@@ -443,7 +468,11 @@ fn installed_standard_recipe_capacities(
     1
   }
   for _ in 0..<grant_occurrences {
-    guard @execution.add_execution_capacity(controls, grant) is Some(next) else {
+    // The SAME controlConstruction frame completes each synchronous Grant,
+    // Ledger read and projector before the next begins. Keep every returned
+    // Grant and recovery holder; an invalid async/failed prefix stops the
+    // caller with this complete peak still reserved, never a next constructor.
+    guard standard_create_sequence_pair_capacity(controls, grant) is Some(next) else {
       return Err(Unsupported)
     }
     controls = next
@@ -454,10 +483,14 @@ fn installed_standard_recipe_capacities(
   let (capture_fixed, capture_rows) = match capture_original {
     None => (capture_fixed, capture_rows)
     Some(capture) => {
+      // Native receives/returns only DATA; it cannot invoke Host JSON.parse
+      // during its pure codec. Host parsing/stringification completes before
+      // the Native call or starts after its return. Borrow all returned native
+      // and Host forests across both phases, including the failed prefix.
       guard (capture.length() == 2 || capture.length() == 3) &&
-        @execution.add_execution_capacity(capture_fixed, capture[0])
+        standard_create_sequence_pair_capacity(capture_fixed, capture[0])
         is Some(fixed) &&
-        @execution.add_execution_capacity(capture_rows, capture[1])
+        standard_create_sequence_pair_capacity(capture_rows, capture[1])
         is Some(rows) else {
         return Err(Unsupported)
       }

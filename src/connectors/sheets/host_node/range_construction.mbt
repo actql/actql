@@ -1075,7 +1075,16 @@ fn sheets_range_capture_profile(
   let row = if clear {
     guard sheets_clear_recovery_marker_capacity(metadata.limits.max_depth)
       is Some(marker) &&
-      @execution.add_execution_capacity(row, marker) is Some(combined) else {
+      // recover_clear_range_requests keeps its marker vectors, seen-map and
+      // expected recovery material while constructing every row. Keep the
+      // entire old per-marker envelope as retained, including conservative
+      // parser/writer scratch; no part of that history is reused or retired.
+      @execution.execution_capacity(
+        @execution.execution_capacity_execution_bytes(marker),
+        @execution.execution_capacity_execution_bytes(marker),
+      )
+      is Some(marker_history) &&
+      @execution.add_execution_capacity(row, marker_history) is Some(combined) else {
       return None
     }
     combined
@@ -1091,13 +1100,10 @@ fn sheets_range_capture_profile(
   //
   // Reuse is selected ONLY when this explicit same-owner phase (including
   // the fixed returned holders) fits the already selected complete fixed
-  // peak. Otherwise keep the original row quotation unchanged. Clear keeps
-  // its old row rate because its marker-history prefixes coexist across rows.
-  let row = if clear {
-    row
-  } else {
-    sheets_range_cofund_recovery_row(fixed, canonical_peak, row)
-  }
+  // peak. Otherwise keep the original row quotation unchanged. Clear's
+  // complete marker history is now separately retained above for every row;
+  // it cannot disappear into this synchronous constructor-workspace fold.
+  let row = sheets_range_cofund_recovery_row(fixed, canonical_peak, row)
   guard sheets_range_effect_id_capacity() is Some(effect_id) else {
     return None
   }

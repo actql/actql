@@ -177,9 +177,8 @@ fn installed_json_source_reader_capacity_with_decoder(
   // The same reader retains one optional direct sequence reference in its
   // existing frame until original read/binding retirement; no child Owner.
   // RowRun's existing preparation flag now retains its SAME original response
-  // borrow through workspace return and final cleanup. Include that reference
-  // in the full envelope as well as the existing pre-borrow flag word; this is
-  // not another reader, wrapper or resource authority.
+  // borrow through workspace return and final cleanup. The reference replaces
+  // that flag in the SAME resident slot; they never coexist in that frame.
   let common_fields = 38L + 4L + 1L + 3L + 3L + 21L + 6L + 2L + 2L
   let provider_fields = 5L + 5L + 6L + 3L + 18L + 16L + 5L + 6L + 8L + 4L
   let closures = 13L
@@ -199,7 +198,7 @@ fn installed_json_source_reader_capacity_with_decoder(
     9L * originals +
     2L * ids +
     2L * cursors,
-    scalar_words: 20L + 3L * originals + ids + cursors,
+    scalar_words: 19L + 3L * originals + ids + cursors,
     owned_utf16_units: text,
     owned_wire_bytes: raw,
   }
@@ -551,5 +550,10 @@ pub fn installed_preserving_json_source_reader_capacity_with_request(
     is Some(reader) else {
     return None
   }
-  @execution.add_execution_capacity(reader, request)
+  // The fixed standard Reader calls its synchronous request projector before
+  // sending, and invokes the response decoder only after that request returns.
+  // An invalid async/throwing request cannot proceed to receive/decode. Keep
+  // all original response-prefix and returned request data simultaneously;
+  // only their completed constructor workspaces are sequential.
+  standard_create_sequence_pair_capacity(reader, request)
 }
