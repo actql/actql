@@ -70,6 +70,12 @@ fn host_current_checked_operation_original(
     return Err(-5)
   }
   let operation = physical()
+  // A returned physical observation cannot revive an Instance/current that
+  // retired through that callback. This is the same late-fence refusal code.
+  if instance_closed() || record.closing || record.output_closed {
+    record.observed_operation = 0L
+    return Err(-41)
+  }
   if operation < 0L {
     record.observed_operation = 0L
     Err(-41)
