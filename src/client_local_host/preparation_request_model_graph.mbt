@@ -42,7 +42,30 @@ pub fn[I] prepare_request_model_graph(
           occurrence,
         )
         is Some(storage) &&
-        @execution.preparation_representation_cost(storage) is Some(bytes) else {
+        @execution.preparation_representation_cost(storage)
+        is Some(storage_bytes) &&
+        owner.program_data is Some(data) &&
+        program_check_data_extent_cost(data) is Some(variable_data) &&
+        @publication_host.client_infer_occurrence_output_step(occurrence)
+        is Some(terminal) else {
+        return Err(Preparation(Policy))
+      }
+      let step = @publication_host.client_infer_occurrence_coordinates(
+          occurrence,
+        ).2
+      if terminal < step {
+        return Err(Preparation(Policy))
+      }
+      // One real Infer-input preparation and one real prefix/suffix lowering
+      // per selected Fragment. Reuse the SAME compiler/Plan variable-data
+      // envelope already owned by this Request, with the actual call count.
+      // These products coexist until issuance, including a refused current.
+      // No codec maximum, JS estimate, second policy or new tariff is used.
+      let calls = 2L + (terminal - step).to_int64()
+      guard @execution.checked_preparation_add_product(
+          storage_bytes, variable_data, calls,
+        )
+        is Some(bytes) else {
         return Err(Preparation(Policy))
       }
       match
@@ -62,6 +85,13 @@ pub fn[I] prepare_request_model_graph(
         Err(issue) => return Err(ModelGraph(issue))
         Ok(value) => value
       }
+      // The existing four-reference Request slot retains the original lowered
+      // inputs before the next reservation/current/issuer can fail.
+      owner.program_domain_compilation_inputs = Some(
+        RequestModelGraphConstruction(
+          manifests, compilation_limits, contracts, geometry,
+        ),
+      )
       guard model_graph_construction_cost(geometry) is Some(bytes) else {
         return Err(Preparation(Policy))
       }
@@ -69,6 +99,21 @@ pub fn[I] prepare_request_model_graph(
         reserve_request_domain_graph_construction(owner, input, prepared, bytes) {
         Err(issue) => return Err(issue)
         Ok(_) => ()
+      }
+      guard owner.program_domain_compilation_inputs
+        is Some(
+          RequestModelGraphConstruction(
+            original_manifests,
+            original_limits,
+            original_contracts,
+            original
+          )
+        ) &&
+        physical_equal(original_manifests, manifests) &&
+        original_limits == compilation_limits &&
+        physical_equal(original_contracts, contracts) &&
+        physical_equal(original, geometry) else {
+        return Err(Preparation(ForeignOriginal))
       }
       let graph = match
         @publication_host.issue_installed_client_composed_infer_plan_graph(
@@ -78,6 +123,7 @@ pub fn[I] prepare_request_model_graph(
           100000,
           10000,
           100,
+          construction=Some(original),
         ) {
         Err(issue) => return Err(ModelGraph(issue))
         Ok(value) => value

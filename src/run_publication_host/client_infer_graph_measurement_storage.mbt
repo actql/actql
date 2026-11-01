@@ -1,7 +1,10 @@
 ///|
 /// Actual occurrence/suffix/port/Result counts before measurement collections
 /// or role-pointer Strings exist. Shared collection construction accounts for
-/// old/new backing. This is neither codec headroom nor a Resource permission.
+/// old/new backing. Actual mapping/Fragment lowering bodies use the SAME
+/// Request's existing compiler/Plan variable-data envelope, separately grown
+/// before entry for each actual preparation call. This metadata is neither
+/// codec headroom nor a Resource permission.
 pub fn prepared_client_infer_graph_measurement_storage(
   occurrence : ClientInferOccurrence,
 ) -> @execution.PreparationRepresentationUnits? {
@@ -39,10 +42,10 @@ pub fn prepared_client_infer_graph_measurement_storage(
   let tuples = 4L * count + 2L * ports + 8L * results + 5L
   guard @shape.collection_construction_extent({
       records: tuples + 2L * count + results,
-      record_references: 8L * count + 6L * results + 3L * count,
-      record_words: 3L * tuples + count,
-      reference_arrays: 9L + count,
-      reference_items: 4L * count +
+      record_references: 8L * count + 6L * results + 3L * count + 5L,
+      record_words: 3L * tuples + count + 3L,
+      reference_arrays: 10L + count,
+      reference_items: 5L * count +
       2L * ports +
       6L * results +
       2L +
