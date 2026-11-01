@@ -526,8 +526,7 @@ class InstalledLocalHost:
             self._append_sources[output.ticket] = source
             captured: list[dict[str, Any]] = []
             def observe(current: _Output) -> None:
-                self._core.produce_submission_lookup(output, current)
-                captured.append(_object(self._core.read_submission_lookup(output, current), 1048576))
+                captured.append(_object(self._core.produce_and_read_submission_lookup(output, current), 1048576))
             installation.binding.inspect(observe)
             original = captured[0]
             if (set(original) != {'intent', 'admission', 'materials_available'}
@@ -1013,8 +1012,7 @@ class InstalledLocalHost:
             self._append_sources[output.ticket] = source
             captured: list[dict[str, Any]] = []
             def observe(current: _Output) -> None:
-                self._core.produce_submission_lookup(output, current)
-                captured.append(_object(self._core.read_submission_lookup(output, current), 1048576))
+                captured.append(_object(self._core.produce_and_read_submission_lookup(output, current), 1048576))
             installation.binding.inspect(observe)
             original = captured[0]
             if kind == 7:
@@ -1088,8 +1086,7 @@ class InstalledLocalHost:
             self._append_sources[output.ticket] = source
             packets: list[dict[str, Any]] = []
             def inspect(current: _Output) -> None:
-                self._core.produce_submission_lookup(output, current)
-                packets.append(_object(self._core.read_submission_lookup(output, current), 1048576))
+                packets.append(_object(self._core.produce_and_read_submission_lookup(output, current), 1048576))
             installation.binding.inspect(inspect)
             packet = packets[0]
             fields = {'kind', 'resultName', 'runDefinitionCid', 'index', 'manifest',

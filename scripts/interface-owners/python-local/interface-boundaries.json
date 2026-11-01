@@ -1,6 +1,6 @@
 {
   "source": "d5d66cd86ac2e153f31a511e7d37c78e0cc28ae3",
-  "syntaxProjectionSha256": "56bce3b6b404461ef7133530cf01564cc161eec8a7df3bcd7208c699b173e32f",
+  "syntaxProjectionSha256": "63e9869793d03dfae26b05adbbaf7997359e98aa83d2d701f835d522d0e33da0",
   "qualification": "Source-reference coverage only; original Native/FFI/Python executions retain their own source, artifact and target qualifications. No normal funding, VM or installed product admission.",
   "generated": [
     {
@@ -6529,6 +6529,15 @@
         },
         {
           "async": false,
+          "name": "LocalCore/produce_and_read_submission_lookup",
+          "parameters": [
+            "self",
+            "value",
+            "current"
+          ]
+        },
+        {
+          "async": false,
           "name": "LocalCore/produce_bootstrap",
           "parameters": [
             "self",
@@ -7923,7 +7932,7 @@
           ]
         }
       ],
-      "sha256": "e81fad0d9f51cdf4dda7304277b485fbadf2399a0786f4a97e907e32adab5675",
+      "sha256": "0dbf934c2efbaf9bc347ec5431cbfe803d630726b496b16127258d797669c69a",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -13722,6 +13731,7 @@
             "LocalCore/_reserve_original_payload_record",
             "LocalCore/_reserve_publication_read_export",
             "LocalCore/close_submission_lookup",
+            "LocalCore/produce_and_read_submission_lookup",
             "LocalCore/produce_submission_lookup",
             "LocalCore/read_submission_lookup",
             "LocalCore/reserve_saved_payload_record",
@@ -13845,6 +13855,10 @@
               {
                 "path": "src/client_host_wasm/submission_append.mbt",
                 "anchor": "kind: 4 | 5 | 6 | 7 | 8, .."
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_snapshot_transport.py",
+                "anchor": "class SnapshotTransportTests(unittest.TestCase):"
               }
             ]
           }
@@ -29100,6 +29114,13 @@
         },
         {
           "async": false,
+          "name": "_JournalCallbacks/check_frame",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
           "name": "_JournalCallbacks/length",
           "parameters": [
             "self",
@@ -29163,7 +29184,7 @@
           ]
         }
       ],
-      "sha256": "8dfeaa690a4dce4b602689575d8d9a34657a7c4006ca92d360ee76899769b97c",
+      "sha256": "8a0b3604db7380852b597bccf2db9cc7e6ed2337dae3510203bc96480cf50b0e",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -29174,6 +29195,7 @@
             "_JournalCallbacks/begin",
             "_JournalCallbacks/byte",
             "_JournalCallbacks/check_current",
+            "_JournalCallbacks/check_frame",
             "_JournalCallbacks/length",
             "_JournalCallbacks/query",
             "_JournalCallbacks/query/consume",
@@ -29301,6 +29323,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_journal_port.py",
                 "anchor": "class _JournalCallbacks:"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_snapshot_transport.py",
+                "anchor": "class SnapshotTransportTests(unittest.TestCase):"
               }
             ]
           }
@@ -49917,7 +49943,7 @@
           ]
         }
       ],
-      "sha256": "a59c6342ad67d4fb4d0a6665a00f3708a8f804819a2a0629548659901d659158",
+      "sha256": "c7fe8b61df909030640d1a3e43b2f6dafae1b960abb61e1be8a951960e4ff665",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -58009,13 +58035,22 @@
         },
         {
           "async": false,
+          "name": "LocalByteStore/_inspect_namespace_locked/check_frame",
+          "parameters": [
+            "view"
+          ]
+        },
+        {
+          "async": false,
           "name": "LocalByteStore/_inspect_namespace_locked/current_snapshot",
           "parameters": []
         },
         {
           "async": false,
           "name": "LocalByteStore/_inspect_namespace_locked/fence",
-          "parameters": []
+          "parameters": [
+            "required_current"
+          ]
         },
         {
           "async": false,
@@ -58024,7 +58059,20 @@
             "namespace",
             "after",
             "consume",
-            "scan"
+            "scan",
+            "required_current"
+          ]
+        },
+        {
+          "async": false,
+          "name": "LocalByteStore/_inspect_namespace_locked/query_current",
+          "parameters": [
+            "view",
+            "mode",
+            "namespace",
+            "key",
+            "consume",
+            "required_current"
           ]
         },
         {
@@ -58625,7 +58673,7 @@
           "parameters": []
         }
       ],
-      "sha256": "83c856f8753e97d6bf9dfd94a232bc028edb9bfc8c602376e36613c133c1253d",
+      "sha256": "f98dee343d4fc12a8f55bfd7587566d246a8a62437f7ac239c0362bc8b5364ce",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -59183,9 +59231,11 @@
             "LocalByteStore/_inspect_namespace_locked",
             "LocalByteStore/_inspect_namespace_locked/check_fences",
             "LocalByteStore/_inspect_namespace_locked/check_fences_and_current",
+            "LocalByteStore/_inspect_namespace_locked/check_frame",
             "LocalByteStore/_inspect_namespace_locked/current_snapshot",
             "LocalByteStore/_inspect_namespace_locked/fence",
             "LocalByteStore/_inspect_namespace_locked/observe",
+            "LocalByteStore/_inspect_namespace_locked/query_current",
             "LocalByteStore/_inspect_publication_projected",
             "LocalByteStore/_inspect_publication_projected/consume_all",
             "LocalByteStore/_inspect_publication_projected/fence",
@@ -59370,6 +59420,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
                 "anchor": "class LocalByteStore:"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_snapshot_transport.py",
+                "anchor": "class SnapshotTransportTests(unittest.TestCase):"
               }
             ]
           }
