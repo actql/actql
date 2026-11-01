@@ -183,3 +183,112 @@ test "Model Graph retains its already backed original preparation through refuse
   assert_true(parent.program_domain_compilation_inputs is None)
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }
+
+///|
+test "same Request retains Content component before the original serialized Model Graph constructor" {
+  let (parent, input, prepared) = request_model_input_fixture(
+    with_serialization=true,
+  )
+  let holder = borrow_request_model_plan_input(parent, input).unwrap()
+  let contracts = request_program_module_contracts()
+  let manifests = request_program_module_manifests()
+  let compilation_limits = @publication_host.client_standard_pure_compilation_limits()
+  let capacity = parent.program_capacity.unwrap()
+  let component = prepare_request_serialization_graph(
+    parent,
+    input,
+    0,
+    2,
+    request_graph_policy_cid,
+    request_graph_policy_wire,
+    1,
+    128,
+    false,
+    contracts,
+    manifests~,
+    compilation_limits~,
+  ).unwrap()
+  assert_true(parent.phase == ModelPlanReserved)
+  let (occurrence, execution) = request_model_graph_inputs(prepared)
+  let before = @resources.preparation_capacity_working_extents(capacity, input).unwrap()
+  let graph = prepare_request_model_graph(
+    parent,
+    input,
+    occurrence,
+    execution,
+    contracts,
+    manifests~,
+    compilation_limits~,
+    serialization=Some(component),
+  ).unwrap()
+  let after = @resources.preparation_capacity_working_extents(capacity, input).unwrap()
+  assert_true(after.0 > before.0 && after.1 > before.1)
+  assert_true(physical_equal(graph.serialization.unwrap(), component))
+  assert_true(
+    parent.program_domain_compilation_inputs
+    is Some(RequestModelGraph(_, _, _, original)) &&
+    physical_equal(original, graph),
+  )
+  assert_false(@resources.return_preparation_body_borrow(holder).unwrap())
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+test "same Request serialized Model Graph current refusal retains its original Content construction for abort" {
+  let armed = Ref(false)
+  let selected : Ref[ClientRequestPreparation[Array[Int]]?] = Ref(None)
+  let (parent, input, prepared) = request_model_input_fixture(
+    with_serialization=true,
+    current=() => {
+      !armed.val ||
+      !(selected.val is Some(owner) &&
+      owner.program_domain_compilation_inputs
+      is Some(RequestModelGraphConstruction(_, _, _, _)))
+    },
+  )
+  selected.val = Some(parent)
+  let holder = borrow_request_model_plan_input(parent, input).unwrap()
+  let contracts = request_program_module_contracts()
+  let manifests = request_program_module_manifests()
+  let compilation_limits = @publication_host.client_standard_pure_compilation_limits()
+  let component = prepare_request_serialization_graph(
+    parent,
+    input,
+    0,
+    2,
+    request_graph_policy_cid,
+    request_graph_policy_wire,
+    1,
+    128,
+    false,
+    contracts,
+    manifests~,
+    compilation_limits~,
+  ).unwrap()
+  let (occurrence, execution) = request_model_graph_inputs(prepared)
+  armed.val = true
+  assert_true(
+    prepare_request_model_graph(
+      parent,
+      input,
+      occurrence,
+      execution,
+      contracts,
+      manifests~,
+      compilation_limits~,
+      serialization=Some(component),
+    )
+    is Err(Preparation(Capacity(_))),
+  )
+  armed.val = false
+  assert_true(
+    parent.phase == ProgramBodyFailed &&
+    parent.program_domain_compilation_inputs
+    is Some(RequestModelGraphConstruction(_, _, _, _)),
+  )
+  assert_false(@resources.return_preparation_body_borrow(holder).unwrap())
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_true(parent.program_domain_compilation_inputs is None)
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}

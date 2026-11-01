@@ -219,6 +219,37 @@ pub fn client_program_prepare_request_model_graph(
 }
 
 ///|
+#export_name("clientProgramPrepareRequestSerializedModelGraph")
+pub fn client_program_prepare_request_serialized_model_graph(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  occurrence : @publication_host.ClientInferOccurrence,
+  serialization : @publication_host.ClientSerializationPlanGraph,
+  execution : @check_environment.ModelExecutionContract,
+  contracts : @client_local_host.ClientInstalledSequenceContracts,
+) -> Result[
+  @publication_host.ClientInferPlanGraph,
+  ClientRequestProgramModuleBridgeIssue,
+] {
+  let manifests = match client_generated_compilation_manifests() {
+    Ok(value) => value
+    Err(issue) => return Err(Manifests(issue))
+  }
+  @client_local_host.prepare_request_model_graph(
+    parent,
+    input,
+    occurrence,
+    execution,
+    contracts,
+    manifests~,
+    compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+    serialization=Some(serialization),
+  ).map_err(issue => Preparation(issue))
+}
+
+///|
 #export_name("clientProgramPrepareRequestModelCompilation")
 pub fn client_program_prepare_request_model_compilation(
   parent : @client_local_host.ClientRequestPreparation[

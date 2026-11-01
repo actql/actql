@@ -5,6 +5,7 @@
 fn request_model_input_fixture(
   captured? : Bool = false,
   with_query_time? : Bool = false,
+  with_serialization? : Bool = false,
   current? : () -> Bool = () => true,
   declaration? : @row_source_host.RowDeclaration? = None,
 ) -> (
@@ -21,6 +22,25 @@ fn request_model_input_fixture(
     (
       #|{"version":"actql/0.1","id":"request-model-values","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"text":{"type":"string","nullable":true}},"rows":[{"id":1,"text":"hello"}]},"as":"seed"},{"assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"classified"}],"results":{"rows":{"from":"classified","fields":["id","outcome","value"]}}}],"results":{"rows":{"from":{"stage":"main","result":"rows"}}}}
     )
+  }
+  let document = if with_serialization {
+    assert_false(captured)
+    assert_false(with_query_time)
+    document
+    .replace(
+      old="{\"assert_rows\":{\"unique_by\":[\"id\"]}},{\"infer\":",
+      new="{\"assert_rows\":{\"unique_by\":[\"id\"]}},{\"serialize\":{\"format\":\"jsonl\",\"fields\":[\"id\",\"text\"],\"name\":\"out.jsonl\",\"preserve_order\":true,\"bounds\":{\"max_rows\":1,\"max_bytes\":128}},\"as\":\"attachment\"},{\"assert_rows\":{\"unique_by\":[\"name\"]}},{\"infer\":",
+    )
+    .replace(
+      old="\"key\":\"id\",\"input\":{\"text\":{\"field\":\"text\"}}",
+      new="\"key\":\"name\",\"input\":{\"text\":{\"field\":\"name\"}}",
+    )
+    .replace(
+      old="\"fields\":[\"id\",\"outcome\",\"value\"]",
+      new="\"fields\":[\"name\",\"outcome\",\"value\"]",
+    )
+  } else {
+    document
   }
   let document = match declaration {
     Some(original) =>
