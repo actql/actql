@@ -200,7 +200,7 @@ const hostEnd = hostSource.indexOf('    prepareManagedComputeRun(runtime,', host
 const retireStart = hostSource.indexOf('    retireManagedComputeRun(prepared) {');
 const retireEnd = hostSource.indexOf('    isOriginalManagedComputePreparationRefusal(', retireStart);
 assert(hostStart >= 0 && hostEnd > hostStart && retireStart >= 0 && retireEnd > retireStart);
-function hostFixture({refuse, failAfterAdopt = false, retainedSelection = false, missingSelectionRetirement = false} = {}) {
+function hostFixture({refuse, failAfterAdopt = false, retainedSelection = false, missingSelectionRetirement = false, nodeModel = false, onScopeFinish} = {}) {
   const prepared = {}, request = {}, sdkRequest = {}, original = {}, value = {}, parent = {}, input = {}, compilation = {};
   const scope = {}, calls = [], model = {compiled: {}, runDefinition: {}, graph: {}, scope: undefined};
   const record = {mockSourceProfile: {}}, originalInstallation = {releaseRequestDomainAliases() {}}, originals = {};
@@ -219,10 +219,11 @@ function hostFixture({refuse, failAfterAdopt = false, retainedSelection = false,
   const control = {
     finishCheckedClientInferOriginalReadScope(c, d, g, s, complete) {
       assert.deepEqual([c, d, g, s, complete], [model.compiled, model.runDefinition, model.graph, scope, true]);
-      calls.push('scope'); return finish;
+      calls.push('scope'); onScopeFinish?.(); return finish;
     },
   };
   model.control = control;
+  if (nodeModel) model.originalReadInstallation = {};
   model.releaseAliases = function() {
     assert.equal(this, model); calls.push('aliases');
     if (model.scopeFinished !== true || model.read !== undefined) throw new Error('OriginalChildrenPending');
@@ -700,4 +701,35 @@ test('actual installed admission observes saved physical work and preserves fres
   assert.equal(failed.failures.get(failed.submission).requested, failed.request);
   assert.equal(failed.early().model.scope, failed.scope);
   assert.equal(failed.calls.filter(v => v === 'construct').length, 1);
+});
+
+
+test('Host Request Node Model retires an adopted unused Scope once before native Run and consumed borrow cleanup', () => {
+  const f = hostFixture({nodeModel: true}), run = f.begin();
+  f.setFinish(false); assert.throws(f.retire, {code: 'InstalledModelCleanupPending'});
+  assert.equal(run.model, f.model); assert.equal(f.model.scope, f.scope);
+  assert(!f.calls.includes('retire')); assert(!f.calls.includes('aliases'));
+  f.setFinish(true); const primary = new Error('same consumed Request borrower'); f.failSever(primary);
+  assert.throws(f.retire, cause => cause === primary); assert.equal(f.model.scopeFinished, true);
+  assert.equal(run.model, undefined); assert.equal(f.calls.filter(v => v === 'scope').length, 2);
+  const finish = f.retire(); finish();
+  assert.equal(f.calls.filter(v => v === 'scope').length, 2);
+  assert.equal(f.calls.filter(v => v === 'aliases').length, 1); assert.equal(run.closed, true);
+});
+
+test('Host Request Node Model Scope cleanup refuses same-record reentry and foreign post-callback carrier', () => {
+  let f;
+  f = hostFixture({nodeModel: true, onScopeFinish() {
+    assert.throws(f.retire, {code: 'InstalledModelCleanupPending'});
+  }});
+  f.begin(); const finish = f.retire(); finish();
+  assert.equal(f.calls.filter(v => v === 'scope').length, 1);
+  let foreign;
+  foreign = hostFixture({nodeModel: true, onScopeFinish() {
+    foreign.record.computeRuns.get(foreign.prepared).model = {};
+  }});
+  const run = foreign.begin();
+  assert.throws(foreign.retire, {code: 'ForeignInstalledModelPreparation'});
+  assert.equal(foreign.model.scopeFinished, true); assert.equal(run.closed, false);
+  assert(!foreign.calls.includes('retire')); assert(!foreign.calls.includes('aliases'));
 });
