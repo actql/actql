@@ -766,13 +766,14 @@ test "same Request acquired Model prefix retains its reserved child through inpu
   let current = Ref(true)
   let f = request_acquired_model_capture_fixture(current=() => current.val)
   let observed = Ref(false)
+  let callback_facts = Ref(true)
   f.verify_hook.val = Some(() => {
     if f.run.serialization_prefix is Some(prefix) {
       observed.val = true
-      assert_true(prefix.child is None)
-      assert_false(
-        cleanup_installed_managed_serialization_prefix(f.run, f.prefix).unwrap(),
-      )
+      callback_facts.val = callback_facts.val &&
+        prefix.child is None &&
+        cleanup_installed_managed_serialization_prefix(f.run, f.prefix)
+        is Ok(false)
       current.val = false
     }
   })
@@ -786,6 +787,7 @@ test "same Request acquired Model prefix retains its reserved child through inpu
     is Err(_),
   )
   assert_true(observed.val)
+  assert_true(callback_facts.val)
   assert_true(
     f.run.serialization_prefix is Some(prefix) &&
     prefix.child is None &&
