@@ -87,3 +87,30 @@ test "Sheets existing response bounds use sequential active key maps without NFC
     @execution.execution_capacity_retained_bytes(normal),
   )
 }
+
+///|
+test "mutually exclusive container populations leave the actual captured task its unchanged execution allowance" {
+  let before = 450421431L
+  let before_reserved = 495727552L
+  let actual_task = 46987648L
+  let unchanged_policy = 536870912L
+  // Original7132 normal failure observed these values at the SAME failed
+  // reserve comparison. They are a regression fixture, not a new allowance,
+  // measured current heap, generalized task bound or ordinary success proof.
+  let limits = [
+    2000000, 2000000, 200000, 32, 100, 100, 1, 100, 1, 1, 1024, 1, 2000000, 12009902,
+    401, 4,
+  ]
+  let request = @execution.execution_capacity(17L, 23L).unwrap()
+  let after = installed_preserving_json_source_reader_capacity_with_request(
+      limits,
+      3,
+      65536,
+      Some(request),
+    ).unwrap()
+    |> @execution.execution_capacity_execution_bytes
+  assert_true(before_reserved + actual_task > unchanged_policy)
+  assert_true(
+    before_reserved - (before - after) + actual_task <= unchanged_policy,
+  )
+}

@@ -1813,7 +1813,16 @@ maps; parsing and indexed admission are sequential, so one such peak covers
 both. Source/indexed trees, text, decoder controls, ancestry, buffers and
 failed-input backing remain composed independently. This changes neither
 implementation bounds nor the admitted Ledger policy and supplies no cleanup
-or physical-GC acknowledgement. The preserving implementation selection is
+or physical-GC acknowledgement. Indexed object and array populations are
+mutually exclusive per Source node: their sum is bounded by the original node
+limit. The existing structural inventory is affine in those populations. The
+preserving quote therefore uses the componentwise maximum of its all-object
+and all-array endpoints for indexed storage and decoder controls/ancestry,
+rather than summing two impossible full populations. Text, parser/key-map
+peaks and retained inputs remain separate original families. No provider
+reservation is settled early; original pending cleanup and the later Compute
+reservation keep their existing lifetimes.
+The preserving implementation selection is
 immutable; missing native support or switching the selected parser recipe
 refuses rather than falling back to the generic quote.
 All declared cells remain admitted before requested-column projection. Site
