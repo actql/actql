@@ -11055,16 +11055,9 @@
                 "anchor": "finish('failed');"
               }
             ],
-            "cancellation": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "transport"
-              },
-              {
-                "path": "adapters/host-node/http-request-preparation.mjs",
-                "anchor": "transport"
-              }
-            ],
+            "cancellation": {
+              "notApplicable": "Re-exporting the existing synchronous data freeze starts no operation and owns no cancellation or physical-stop duty; the original HTTP Request retains those duties."
+            },
             "resources": [
               {
                 "path": "adapters/host-node/http-request-preparation.mjs",
