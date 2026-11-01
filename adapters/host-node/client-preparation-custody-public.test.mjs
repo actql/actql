@@ -48,3 +48,46 @@ test('demanded scalar failure retires the same Pure preparation without poisonin
     assert.deepEqual(await db.sql('SELECT 9 AS x').all(),[{x:9}]);
   } finally {await db.close();await rm(stateDir,{recursive:true,force:true});}
 });
+
+test('source-free capacity boundaries refuse preparation without accepting a failed Run', {timeout:30000}, async () => {
+  const stateDir=await mkdtemp(join(tmpdir(),'actql-source-free-capacity-'));
+  let db=await open({stateDir});
+  const refused=[];
+  let success=false;
+  try {
+    for(const [aggregate,count,fits] of [[false,4,true],[false,5,false],[true,3,true],[true,4,false]]) {
+      const branches=Array.from({length:count},(_,i)=>`SELECT ${i+1} AS x`).join(' UNION ALL ');
+      const query=`SELECT ${aggregate?'SUM(x) AS v':'x'} FROM (${branches})`;
+      const submissionRef=db.newSubmission({nonce:`capacity-${aggregate?'sum':'select'}-${count}`});
+      if(fits) {
+        const run=await db.startSource(query,{format:'sql',submissionRef});
+        assert.equal((await run.wait({signal:AbortSignal.timeout(10000)})).status,'succeeded');
+        assert.deepEqual(await run.result('main').all(),aggregate?[{v:count*(count+1)/2}]:
+          Array.from({length:count},(_,i)=>({x:i+1})));
+      } else {
+        await assert.rejects(db.startSource(query,{format:'sql',submissionRef}),error=>{
+          assert.notEqual(error.code,'ExecutionUnsuccessful');
+          assert.notEqual(error.code,'SubmissionUnknown');
+          assert.equal(error.outcome?.problem?.code ?? error.problem?.code ?? error.code,'ClientProgramRejected');
+          assert.equal(error.execution,undefined);
+          return true;
+        });
+        const outcome=await db.lookupSubmission(submissionRef);
+        assert.ok(['not_accepted','preparation_failed'].includes(outcome.kind));
+        assert.deepEqual(outcome.problem,{code:'ClientProgramRejected',classification:'operation_failed'});
+        assert.equal(outcome.admission,undefined);
+        refused.push({submissionRef,outcome});
+      }
+    }
+    assert.deepEqual(await db.sql('SELECT 9 AS x').all(),[{x:9}]);
+    await db.close(); db=await open({stateDir});
+    for(const {submissionRef,outcome} of refused) {
+      assert.deepEqual(await db.lookupSubmission(submissionRef),outcome);
+    }
+    success=true;
+  } finally {
+    await db.close();
+    if(success) await rm(stateDir,{recursive:true,force:true});
+    else console.error('preserved capacity refusal state',stateDir);
+  }
+});

@@ -3,7 +3,8 @@ import {matchesPublishedSubmissionSnapshot} from '../../packages/sdk/internal/pr
 import {open} from 'node:fs/promises';
 import {types} from 'node:util';
 import {checked} from '../host-common/runtime-result.mjs';
-import {checkedRequestProgramPreparation} from './client-program-preparation.mjs';
+import {checkedRequestProgramPreparation, requestProgramCapacityRefusal} from './client-program-preparation.mjs';
+import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
 import {runtimeIsError} from '../host-common/compiler-binding.generated.mjs';
 import {withOriginalFile} from './source-profile-json.mjs';
 import resourceRuntime from './ordinary-node-resource-runtime.cjs';
@@ -48,6 +49,11 @@ export async function prepareOrdinaryProjectSourceManagedInstallation(originals,
 }
 
 async function prepareOrdinaryManagedInstallation(originals, callbacks, source, project) {
+  const diagnostic = diagnosticObserver(originals.installation?.authorization?.observe);
+  const reportCapacityRefusal = cause => {
+    const capacity = requestProgramCapacityRefusal(cause);
+    if (capacity !== undefined) diagnostic('preparation_capacity_refused', capacity);
+  };
   let closing = false, closed = false, bundle, flight, checkingBundle = false;
   const receipts = new WeakMap(), producers = new Set(), runs = new WeakMap();
   // Exact Prepared lookup is provenance, not a second strong payload root.
@@ -658,6 +664,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
             }
           } else fail('NodeManagedRunPlanUnavailable');
         } catch (cause) {
+          reportCapacityRefusal(cause);
           state.preparationFailed = true;
           state.preparationFailure = cause;
           throw cause;
@@ -911,6 +918,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         runs.set(prepared,run);liveRuns.add(run);
         return run;
       } catch (cause) {
+        reportCapacityRefusal(cause);
         state.adopting = false;
         if (state.requiresQueryTime) {
           state.preparationFailed = true; state.preparationFailure = cause;

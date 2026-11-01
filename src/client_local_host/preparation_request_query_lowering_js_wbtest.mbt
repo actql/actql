@@ -1,5 +1,7 @@
 ///|
-fn request_query_publication_fixture() -> (
+fn request_query_publication_fixture(
+  numeric_profile_cid? : String? = None,
+) -> (
   @checked.CheckEnvironment,
   @source_publication.PreparedPublishedQueryEnvironment,
 ) {
@@ -9,6 +11,7 @@ fn request_query_publication_fixture() -> (
     "sha256:2217670f3f4f54047e764878501863d4eaf37cf069ab741d7306a9d8985cc94f",
     { text_time: true, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+    numeric_profile_cid~,
   ).unwrap()
   let publication = @source_publication.prepare_published_query_environment(
     environment,
@@ -319,4 +322,134 @@ test "Request lowered SQL keeps its original checker compiler Plan and Run throu
   assert_eq(final_usage.live_reservations, 0)
   assert_eq(final_usage.reserved_retention_bytes, 0L)
   assert_eq(final_usage.reserved_execution_bytes, 0L)
+}
+
+///|
+test "source-free SQL capacity is refused before module completion on its original Request" {
+  // Same installed standard numeric profile selected by the public Node Host.
+  let (environment, publication) = request_query_publication_fixture(
+    numeric_profile_cid=Some(
+      "sha256:d771391b2e4f3e52a3cf48810571a09c6c272df64fbb77c245dfabcf456be5df",
+    ),
+  )
+  // Component fixture with an explicit empty provider port, not public runtime
+  // acceptance. Compare its same complete Plan quote, not a language branch limit;
+  // the untouched-main installed ledger rejects these same over-budget cases.
+  for
+    (aggregate, count, fits) in [
+      (false, 4, true),
+      (false, 5, false),
+      (true, 2, true),
+      (true, 3, false),
+      (true, 4, false),
+    ] {
+    let branches = []
+    for i in 0..<count {
+      branches.push("SELECT " + (i + 1).to_string() + " AS x")
+    }
+    let query = "SELECT " +
+      (if aggregate { "SUM(x) AS v" } else { "x" }) +
+      " FROM (" +
+      branches.join(" UNION ALL ") +
+      ")"
+    let input = [count]
+    let parent = begin_request_preparation(
+      request_parent_fixture(input),
+      input,
+      client_local_resource_policy(),
+    ).unwrap()
+    reserve_request_snapshot(parent, input, 1000L, 1000L).unwrap()
+    parse_request_query_syntax(parent, input, query, @frontend.Sql).unwrap()
+    |> ignore
+    lower_request_published_query(
+      parent,
+      input,
+      publication,
+      environment,
+      None,
+      public_primary=true,
+    ).unwrap()
+    |> ignore
+    let child = prepare_request_program_check_preparation(
+      parent,
+      input,
+      environment,
+      None,
+      [],
+      @publication_host.client_standard_program_preparation_limits().checking,
+    ).unwrap()
+    prepare_program_check_input(child).unwrap()
+    prepare_program_check_prelude(child).unwrap() |> ignore
+    prepare_program_check_registry(child).unwrap() |> ignore
+    prepare_program_check_contents(child).unwrap() |> ignore
+    prepare_program_check_references(child).unwrap() |> ignore
+    prepare_program_check_policies(child).unwrap() |> ignore
+    prepare_program_check_values(child).unwrap() |> ignore
+    prepare_program_check_views(child).unwrap() |> ignore
+    prepare_program_check_carriers(child).unwrap() |> ignore
+    prepare_program_check_requests(child).unwrap() |> ignore
+    reconcile_program_check_requests(child).unwrap()
+    match finish_program_check_preparation(child).unwrap() {
+      @checked.Checked(_) => ()
+      @checked.NeedsInputs(_) => fail("boundary fixture needs inputs: " + query)
+      @checked.Rejected(_) => fail("boundary fixture rejected: " + query)
+    }
+    let prepared = compile_program_check_preparation(
+      child,
+      @publication_host.client_standard_program_preparation_limits(),
+    ).unwrap()
+    continue_request_program_preparation(parent, input).unwrap() |> ignore
+    let result = prepare_request_program_module_body(
+      parent,
+      input,
+      request_program_module_contracts(),
+      manifests=request_program_module_manifests(),
+      compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+      retained_output=true,
+      provider_factory=_ => [],
+    )
+    let plan = parent.program_source_free.unwrap()
+    let available = @resources.node_local_preparation_limits(
+      parent.initial,
+      input,
+    ).unwrap()
+    assert_true(plan.limits.retained_bytes <= available.retained_bytes)
+    if fits {
+      result.unwrap()
+      assert_true(plan.limits.execution_bytes <= available.execution_bytes)
+      assert_true(parent.phase == ProgramBodyReady)
+    } else {
+      guard result is Err(CapacityExceeded(facts)) else {
+        fail("the exact original over-budget Plan must have a typed refusal")
+      }
+      assert_eq(facts.phase, "source_free_plan")
+      assert_eq(facts.dimension, "execution")
+      assert_eq(facts.required_retention, plan.limits.retained_bytes)
+      assert_eq(facts.required_execution, plan.limits.execution_bytes)
+      assert_eq(facts.available_retention, available.retained_bytes)
+      assert_eq(facts.available_execution, available.execution_bytes)
+      assert_true(facts.required_execution > facts.available_execution)
+      assert_false(parent.phase == ProgramBodyReady)
+      assert_true(plan.compilation is None)
+      let request = @publication_host.prepare_source_free_client_request_identity(
+        prepared,
+        "sha256:" + "c".repeat(64),
+        "capacity-refused-original",
+      ).unwrap()
+      assert_true(
+        begin_request_program_managed_run(parent, request)
+        is Err(ForeignOriginal),
+      )
+    }
+    abort_request_preparation_after_cleanup(parent).unwrap()
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+    assert_eq(
+      @resources.ledger_usage(parent.ledger).reserved_retention_bytes,
+      0L,
+    )
+    assert_eq(
+      @resources.ledger_usage(parent.ledger).reserved_execution_bytes,
+      0L,
+    )
+  }
 }

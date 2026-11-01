@@ -52,10 +52,10 @@ function fixture({infers = [], serializations = [], acquisitions = 0, refusal,
   const producer = {receipt: input, request, kind: 'program', body: snapshot, preparation: state};
   const originals = {installation: {sequenceContractOriginal: {moon, admission: {}}}};
   const read = Function('current', 'producerForRequest', 'fail', 'originals', 'checked',
-    'checkedRequestProgramPreparation', 'requestPreparationAvailable',
+    'checkedRequestProgramPreparation', 'requestPreparationAvailable', 'reportCapacityRefusal',
     `const closing=false,closed=false;return ({${method}});`)(() => {},
     actual => {assert.equal(actual, request); return producer;}, fail, originals, value => value,
-    (_moon, value) => value, () => true);
+    (_moon, value) => value, () => true, () => {});
   return {state, calls, inventory, selected, prepared, moon, parent, input, request,
     read: () => read.fundedPreparation(request),
     compile: graph => read.prepareModelCompilation(prepared, request, graph),

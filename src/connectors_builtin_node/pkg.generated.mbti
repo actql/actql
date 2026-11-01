@@ -2970,6 +2970,8 @@ pub fn client_program_request_preparation_control(@client_local_host.ClientLocal
 
 pub fn client_program_request_preparation_issue_code(Result[String, @client_local_host.ClientRequestTerminalIssue]) -> String?
 
+pub fn client_program_request_program_module_capacity_refusal(Result[Unit, ClientRequestProgramModuleBridgeIssue]) -> (String, String, Int64, Int64, Int64, Int64)?
+
 pub fn client_program_request_program_module_issue_code(Result[Unit, ClientRequestProgramModuleBridgeIssue]) -> String?
 
 pub fn client_program_request_submitted_intent_original(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal) -> @run_publication_host.ClientSubmittedIntent?
