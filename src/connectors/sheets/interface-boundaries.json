@@ -2641,7 +2641,7 @@
   {
     "module": "src/connectors/sheets/catalog/pkg.generated.mbti",
     "responsibilityFacet": "primary",
-    "sha256": "6a13078b5b57102a2da28c82485c0b8fe1f5f8eeae2378c8dd7b343467410394",
+    "sha256": "7f666403bde2abe0c562bba795cf6db9ec565a662d44a89592ddfa03d985f3b3",
     "exports": [
       "pub fn admit_clear_range_binding(String, String, String, String, Limits) -> Result[ClearRangeBinding, RangeFailure]",
       "pub fn admit_clear_range_request(ClearRangeBinding, ClearRangeRequest) -> Result[Unit, RangeFailure]",
@@ -2654,6 +2654,7 @@
       "pub fn classify_append(Int, Bytes, String, Limits) -> AppendOutcome",
       "pub fn classify_clear(Int, Bytes, String, GridRange, String, Limits) -> AppendOutcome",
       "pub fn clear_command_json(String, String, String, Limits) -> Result[String, RangeFailure]",
+      "pub fn clear_marker_text_units() -> Int",
       "pub fn clear_range_construction_metadata(ClearRangeBinding) -> RangeConstructionMetadata",
       "pub fn clear_range_recovery_entry(ClearRangeBinding, String, Array[ClearRangeRequest]) -> Result[String, RangeFailure]",
       "pub fn clear_range_request_body(ClearRangeBinding, ClearRangeRequest) -> Result[String, RangeFailure]",
@@ -2684,6 +2685,7 @@
       "pub fn range_request_body_for(RangeBinding, RangeRequest) -> Result[String, RangeFailure]",
       "pub fn range_request_identity(RangeRequest) -> String",
       "pub fn range_request_json(RangeBinding, RangeRequest) -> Result[String, RangeFailure]",
+      "pub fn range_saved_recovery_wire_byte_limit() -> Int",
       "pub fn range_target_matches(RangeBinding, String) -> Bool",
       "pub fn range_write_construction_bounds(RangeConstructionMetadata, Int, Bool) -> RangeWriteConstructionBounds?",
       "pub fn read_request(GridRange, Array[Column], Limits) -> Result[String, Issue]",
@@ -2748,6 +2750,10 @@
       {
         "name": "clear_command_json",
         "declaration": "pub fn clear_command_json(String, String, String, Limits) -> Result[String, RangeFailure]"
+      },
+      {
+        "name": "clear_marker_text_units",
+        "declaration": "pub fn clear_marker_text_units() -> Int"
       },
       {
         "name": "clear_range_construction_metadata",
@@ -2868,6 +2874,10 @@
       {
         "name": "range_request_json",
         "declaration": "pub fn range_request_json(RangeBinding, RangeRequest) -> Result[String, RangeFailure]"
+      },
+      {
+        "name": "range_saved_recovery_wire_byte_limit",
+        "declaration": "pub fn range_saved_recovery_wire_byte_limit() -> Int"
       },
       {
         "name": "range_target_matches",
@@ -3429,6 +3439,78 @@
             }
           ]
         }
+      },
+      {
+        "operations": [
+          "clear_marker_text_units",
+          "range_saved_recovery_wire_byte_limit"
+        ],
+        "exports": [
+          "pub fn clear_marker_text_units() -> Int",
+          "pub fn range_saved_recovery_wire_byte_limit() -> Int"
+        ],
+        "attributes": {
+          "responsibility": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "The original range binding retains its admitted native target"
+            }
+          ],
+          "inputsOutputs": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "The original range binding retains its admitted native target"
+            }
+          ],
+          "identity": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "The original range binding retains its admitted native target"
+            }
+          ],
+          "ownership": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "The original range binding retains its admitted native target"
+            }
+          ],
+          "synchronization": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "The original range binding retains its admitted native target"
+            }
+          ],
+          "failure": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "The original range binding retains its admitted native target"
+            }
+          ],
+          "cancellation": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "The original range binding retains its admitted native target"
+            }
+          ],
+          "resources": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "The original range binding retains its admitted native target"
+            }
+          ],
+          "extension": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "The original range binding retains its admitted native target"
+            }
+          ],
+          "verification": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "The original range binding retains its admitted native target"
+            }
+          ]
+        }
       }
     ]
   },
@@ -3916,7 +3998,7 @@
   {
     "module": "src/connectors/sheets/catalog/range_request.mbt",
     "responsibilityFacet": "primary",
-    "sha256": "ec337b5044453e346e0fe8756fdb7d267a686eee302fc5cbb996b3d302611d9b",
+    "sha256": "3c4e7c347428c6c9fbb042b10c6a5817eb1cfd32ac136a89804df69c7c9e69c3",
     "operations": [
       {
         "name": "admit_range_binding",

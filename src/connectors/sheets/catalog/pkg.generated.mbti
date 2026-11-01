@@ -192,6 +192,7 @@ pub struct RangeBinding {
   binding_cid : String
   target_wire : String
   limits : Limits
+  // private fields
 }
 
 pub(all) struct RangeConstructionMetadata {
@@ -232,6 +233,7 @@ pub struct RangeRequest {
   path : String
   value_wire : String
   cid : String
+  // private fields
 }
 
 pub(all) struct RangeWriteConstructionBounds {

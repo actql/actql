@@ -10,7 +10,7 @@ pub struct RangeBinding {
   command_cid : String
   binding_cid : String
   target_wire : String
-  target : Json
+  priv target : Json
   limits : Limits
 }
 
@@ -20,7 +20,7 @@ pub struct RangeRequest {
   body : String
   path : String
   value_wire : String
-  value : Json
+  priv value : Json
   cid : String
 }
 
