@@ -372,6 +372,38 @@ function captureManagedPlanDefinition(definition, driver) {
   return definition;
 }
 
+// A retained-request Command supplies the SAME constructor metadata and
+// native profile held by its actual driver. The existing standard composer
+// then owns capture/request/HTTP/recovery quantities; this introduces no
+// alternative calculator, row count, reservation, permission or cleanup owner.
+function captureManagedDriverConstruction(construction, definition, driver, provider) {
+  if (construction === undefined) return undefined;
+  const own = (value, names) => {
+    if (!value || typeof value !== 'object' || nodeTypes.isProxy(value) || !Object.isFrozen(value)) {
+      fail('InvalidInstalledEffectDriverConstruction');
+    }
+    const fields = Object.getOwnPropertyDescriptors(value);
+    if (Reflect.ownKeys(fields).length !== names.length || names.some(name =>
+      !Object.hasOwn(fields[name] ?? {}, 'value'))) fail('InvalidInstalledEffectDriverConstruction');
+    return fields;
+  };
+  if (definition?.kind !== 'command' || driver.kinds.length !== 1 || driver.kinds[0] !== 'command' ||
+      Object.getOwnPropertyDescriptor(driver,'managedPlanDefinition')?.value !== definition ||
+      Object.getOwnPropertyDescriptor(driver,'managedPlanConstruction')?.value !== construction ||
+      Object.getOwnPropertyDescriptor(driver,'managedPlanProvider')?.value !== provider) {
+    fail('InvalidInstalledEffectDriverConstruction');
+  }
+  const fields = own(construction,['write','check','metadataTextUnits']);
+  const write = own(fields.write.value,['operation','maxRequestBytes','maxResponseBytes']);
+  if (fields.check.value !== undefined || write.operation.value !== definition.rowOperations[0].operation ||
+      ![write.maxRequestBytes.value,write.maxResponseBytes.value].every(value =>
+        Number.isSafeInteger(value) && value > 0 && value <= 2147483647) ||
+      !Number.isSafeInteger(fields.metadataTextUnits.value) || fields.metadataTextUnits.value < 0) {
+    fail('InvalidInstalledEffectDriverConstruction');
+  }
+  return construction;
+}
+
 function captureEffectResources(receiver) {
   if (receiver === undefined) return undefined;
   const methods = {};
@@ -816,7 +848,7 @@ export async function createInstalledRowEffect({moon, providerMoon, mappings = [
   connectorId, connectorRegistration, connectorRevision,
   connection, site, authorization, runtimeBundleCid, bindingCid, driver, write,
   ledgerRoot, installation, continuationBinding = bindingCid,
-  limits: suppliedLimits, effectResources, issueOriginalCollectionReference, managedPlanDefinition, managedPlanRecipe}) {
+  limits: suppliedLimits, effectResources, issueOriginalCollectionReference, managedPlanDefinition, managedPlanRecipe, managedPlanConstruction}) {
   if (sourceInitialization !== undefined) {
     assertInstalledSourceConstruction(sourceInitialization, declaration, declared, environment, undefined, mappings, commands);
     if (environment?.wire !== environmentWire) fail('ForeignInstalledSourceConstruction');
@@ -828,8 +860,13 @@ export async function createInstalledRowEffect({moon, providerMoon, mappings = [
   const owned = checkDriver(standard === undefined ? driver : standard.driver);
   const planDefinition = captureManagedPlanDefinition(managedPlanDefinition, owned);
   const suppliedRecipe = captureInstalledEffectPlanRecipe(managedPlanRecipe, localContractLimits.maxNodes);
-  const automatic = suppliedRecipe === undefined && standard !== undefined && providerMoon !== undefined &&
-    standard.construction.check !== null;
+  if (managedPlanConstruction !== undefined && (standard !== undefined || suppliedRecipe !== undefined)) {
+    fail('InvalidInstalledEffectDriverConstruction');
+  }
+  const construction = standard?.construction ?? captureManagedDriverConstruction(
+    managedPlanConstruction, planDefinition, owned, providerMoon);
+  const automatic = suppliedRecipe === undefined && construction !== undefined && providerMoon !== undefined &&
+    construction.check !== null;
   // Preserve the existing explicit/legacy refusal order. The new automatic
   // path waits only for its same validated installation resource names.
   const suppliedBeforeSendCheck = automatic ? undefined : captureBeforeSendCheck(owned, suppliedRecipe);
@@ -907,8 +944,10 @@ export async function createInstalledRowEffect({moon, providerMoon, mappings = [
     for (const selected of installedCommands) resourceTextUnits += selected.resource.length;
   }
   const planRecipe = automatic ? prepareInstalledStandardCreatePlanRecipe({moon, providerMoon,
-    construction: standard.construction, credentialSite: installedRowCredentialOperationSite(site.credential),
-    limits: limits.preview, resourceTextUnits}) : suppliedRecipe;
+    construction, credentialSite: installedRowCredentialOperationSite(site.credential),
+    limits: limits.preview, resourceTextUnits,
+    ...(managedPlanConstruction === undefined ? {} : {requestInput:Object.freeze({
+      maxWireBytes:limits.body.maxBytes,maxNodes:limits.body.maxNodes,maxDepth:limits.body.maxDepth})})}) : suppliedRecipe;
   const beforeSendCheck = automatic ? captureBeforeSendCheck(owned, planRecipe) : suppliedBeforeSendCheck;
   await mkdir(ledgerRoot, {recursive: true, mode: 0o700});
   if (sourceInitialization !== undefined) {

@@ -27,6 +27,13 @@ pub fn admit_clear_range_binding(
 }
 
 ///|
+pub fn clear_range_construction_metadata(
+  binding : ClearRangeBinding,
+) -> RangeConstructionMetadata {
+  range_construction_metadata(binding.original)
+}
+
+///|
 pub fn clear_range_target_matches(
   binding : ClearRangeBinding,
   target_wire : String,

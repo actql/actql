@@ -612,3 +612,21 @@ test('invalid async Source target remains refused and retained until SAME origin
   resolve({original:'late invalid reference'});await Promise.resolve();await Promise.resolve();
   assert.equal(f.retire(),true);assert.equal(f.retired(),1);
 });
+
+for(const refuseReserve of [false,true])test(`Effect driver construction retains SAME Source backing and original retirement: refusal ${refuseReserve}`,()=>{
+  const quantity={},f=commandConstructionFixture({role:'effect',additionalNative:[quantity],refuseReserve,reserveAt:4});
+  f.prepare();let projected=0;
+  const original={driver:Object.freeze({original:'driver'}),target:Object.freeze({original:'target'})};
+  const projection=Object.freeze({capacity(){return quantity;},project(){
+    projected++;assert.equal(f.events.at(-1),'reserve');
+    assert.throws(()=>f.context.prepareEffectDriverConstruction(projection),{code:'ForeignInstalledSourceInitialization'});
+    return original;
+  }});
+  assert.throws(()=>f.context.prepareReadTarget(projection),{code:'ForeignInstalledSourceInitialization'});
+  assert.throws(()=>f.context.prepareEffectDriverConstruction.call({},projection),{code:'ForeignInstalledSourceInitialization'});
+  if(refuseReserve)assert.throws(()=>f.context.prepareEffectDriverConstruction(projection),cause=>cause===f.refusal);
+  else assert.equal(f.context.prepareEffectDriverConstruction(projection),original);
+  assert.equal(projected,refuseReserve?0:1);assert.equal(f.quotes.at(-1).selected[1],quantity);
+  assert.throws(()=>f.context.prepareEffectDriverConstruction(projection),{code:'ForeignInstalledSourceInitialization'});
+  f.finish();assert.equal(f.retire(),true);assert.equal(f.retired(),1);
+});

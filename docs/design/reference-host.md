@@ -1860,6 +1860,31 @@ without turning its later result into an admitted construction. Original Site
 close, physical stop, Request admission and managed driver Plan construction
 remain distinct obligations.
 
+Initialized range and clear also construct their original retained binding
+inside that SAME Source initializer, before the Effect adapter is created.
+The initializer reserves the provider's configuration/reference/binding peak
+before the projection callback and retains it through Source retirement,
+including failed construction. Fixed callback/control frames use the existing
+trusted Host baseline; variable configuration/schema/target representations
+are composed explicitly. Provider methods and their original namespace
+receiver are captured before reserve/current can reenter. The Effect adapter
+retains the original Site rather than a copied close facade; reference
+currentness comes from that Site's original current method.
+
+The actual range/clear driver supplies its same immutable Command definition,
+constructor descriptor and original native binding profile to the existing
+standard Effect Plan composer. It does not supply an independently handwritten
+operation table or a second recipe calculator. The existing checked proposal
+input bounds apply to per-row request construction; the complete Preview
+bounds independently apply to capture/recovery. Native profiles return opaque
+typed quantities and parse limits directly through the bridge. The shared Core
+fold adds the original fixed and per-row capture peaks once, alongside its
+existing request/response/credential/HTTP/control quantities. Request building,
+response decoding, saved recovery and failed prefixes remain distinct live
+representations. These quotes admit no Run, permission, physical attempt,
+release, retry or cleanup acknowledgement, and do not change implementation
+limits or original request/marker/identity domains.
+
 An original range/clear request retains its native binding and immutable
 projected target. Subsequent CID, recheck and send boundaries use the existing
 private original-request association and native binding admission, with current

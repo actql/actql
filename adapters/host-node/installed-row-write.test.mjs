@@ -1084,48 +1084,72 @@ for (const selectedClear of [false, true]) {
   });
 }
 
+// Execute the actual loader/constructor body. Core/Site/provider constructors
+// remain explicit ports, so this establishes original forwarding and lifetime,
+// not native quantity sufficiency, transport or ordinary acceptance.
 for (const rangeCommand of [true, 'clear']) {
   test(`initialized Sheets ${rangeCommand === true ? 'range' : 'clear'} load retains original Command Environment through SAME installed Site service`, async () => {
     const source = readFileSync(new URL('../connectors/sheets/host/installed-sheets.mjs', import.meta.url), 'utf8');
     const ast = parse(source, {ecmaVersion:'latest', sourceType:'module'});
-    const bodies = ast.body.filter(node => node.type === 'FunctionDeclaration' && ['load','openSite'].includes(node.id.name) ||
+    const names=new Set(['load','openSite','prepareInitializedSheetsEffectDriver','checkedSourceMethod']);
+    const bodies = ast.body.filter(node => node.type === 'FunctionDeclaration' && names.has(node.id.name) ||
       node.type === 'VariableDeclaration' && node.declarations.some(value => value.id.name === 'bindingFacts'))
       .map(node => source.slice(node.start,node.end)).join('\n');
-    const sourceInitialization = {}, declaration = {}, command = {}, installed = {}, target = {}, adapter = {};
+    const declaration = {}, command = {}, installed = {}, target = {}, adapter = {}, quantity={};
     const commands = Object.freeze([installed]), environment = Object.freeze({wire:'same-original-command-environment'});
     const declared = {}, configurationReader = {}, installation = {}, events = [];
-    const site = {apiOrigin:'https://sheets.invalid',spreadsheetId:'book',gridRange:{sheetId:0,startRow:0,endRow:1,startColumn:0,endColumn:1},
-      columns:[{name:'label',type:'string',nullable:false}],appendSheetId:7,siteKey:'sheet',siteGeneration:1,namespaceId:'sheet',environment:'fixture',
-      credentialAuthorityId:'fixture-authority',credentialKeyId:'fixture-key'};
-    const authorization = {context:{contextCid:providerCid}}, ownedSite = {close(){events.push('close');return true;}};
+    const site = initializedSheetsSite();
+    let closing=false,driverCurrent;
+    const authorization = {context:{contextCid:providerCid}}, ownedSite = {
+      referenceCurrent(){assert.equal(this,ownedSite);return !closing;},close(){assert.equal(this,ownedSite);closing=true;events.push('close');return true;}};
+    const managedPlanDefinition={},managedPlanConstruction={},managedPlanProvider={};
+    const driver=Object.freeze({managedPlanDefinition,managedPlanConstruction,managedPlanProvider});
+    const providerMoon={sheetsRangeInstallationConstructionCapacity(...args){assert.equal(this,providerMoon);
+      assert.deepEqual(args,[441,1,Buffer.byteLength(site.apiOrigin),Buffer.byteLength(site.spreadsheetId)]);
+      events.push('quantity');return quantity;}};
+    const methodNames=['sheetsRangeReferenceJson','sheetsRangeFailureJson',...(rangeCommand==='clear'
+      ?['sheetsClearBinding','sheetsClearPrepare','sheetsClearTargetMatches','sheetsClearRequestJson','sheetsClearRequestBody','sheetsClearRequestCid',
+        'sheetsClearOutcomeJson','sheetsClearRecoveryEntryJson','sheetsClearRecover','sheetsClearConstructionProfile','sheetsClearCaptureConstructionProfile']
+      :['sheetsRangeBinding','sheetsRangePrepare','sheetsRangeTargetMatches','sheetsRangeRequestJson','sheetsRangeRequestBody','sheetsRangeRequestCid',
+        'sheetsAppendOutcomeJson','sheetsRangeRecoveryEntryJson','sheetsRangeRecover','sheetsRangeConstructionProfile','sheetsRangeCaptureConstructionProfile'])];
+    for(const name of methodNames)providerMoon[name]=function(){assert.equal(this,providerMoon);return name;};
+    const originalProfile=rangeCommand==='clear'?'sheetsClearConstructionProfile':'sheetsRangeConstructionProfile';
+    const sourceInitialization=Object.freeze({prepareEffectDriverConstruction(projection){
+      assert.equal(this,sourceInitialization);events.push('effect-reserve');assert.equal(projection.capacity(),quantity);
+      // Original callback capture must survive replacement at reserve/current.
+      providerMoon[originalProfile]=()=>assert.fail('No late mutable provider lookup');
+      return projection.project();}});
     const services = Object.freeze({async openRowSite(input) {
       assert.equal(this,services);assert.equal(input.sourceInitialization,sourceInitialization);
       assert.equal(input.installation,installation);assert.equal(input.accountConfiguration,'original-account');
-      assert.equal(input.connection,'sheets:sheets.invalid/book');events.push('same-site');
-      return {authorization,site:ownedSite};
+      events.push('same-site');return {authorization,site:ownedSite};
     }});
     const forbidden = () => assert.fail('No legacy Environment, Site or Mapping producer for initialized Command');
-    const ports = {registration:'sheets',revision:'sheets/0.1',targetVersion:'actql-sheets-source-target/0.1',
+    const makeDriver=input=>{assert.equal(input.target,target);assert.equal(input.moon[originalProfile](),originalProfile);
+      driverCurrent=input.isCurrent;assert.equal(driverCurrent(),true);events.push(rangeCommand==='clear'?'clear-driver':'range-driver');return driver;};
+    const ports = {registration:'sheets',revision:'sheets/0.1',targetVersion:'actql-sheets-source-target/0.1',nodeTypes,
       fail:code=>{throw Object.assign(new Error(code),{code});},canonicalJson,contentCid,text:()=>true,
       captureConfigurationReaders(value){assert.equal(value,configurationReader);return value;},
       readSite:async()=>site,restore(...args){assert.equal(args[5],sourceInitialization);return {declaration,declared,
         commandDefinition:{command,installed},commands,environment};},
       readPublication:async()=>({catalogCid:providerCid}),rowSourceCheckEnvironment:forbidden,mappingOf:forbidden,
       installRowSourceAuthorization:forbidden,openRowSourceCredentialSite:forbidden,
-      sheetsRangeReference:()=>target,
-      createSheetsRangeDriver(input){assert.equal(input.target,target);events.push('range-driver');return {};},
-      createSheetsClearDriver(input){assert.equal(input.target,target);events.push('clear-driver');return {};},
+      sheetsRangeConfigurationBytes(value){assert.equal(value,site);return 441;},
+      sheetsRangeReference({moon}){assert.equal(moon.sheetsRangeReferenceJson(),'sheetsRangeReferenceJson');events.push('reference');return target;},
+      createSheetsRangeDriver:makeDriver,createSheetsClearDriver:makeDriver,
       async createInstalledRowEffect(input) {
         assert.equal(input.sourceInitialization,sourceInitialization);assert.equal(input.commands,commands);
         assert.equal(input.declaration,declaration);assert.equal(input.declared,declared);assert.equal(input.environment,environment);
         assert.equal(input.environmentWire,environment.wire);assert.equal(input.authorization,authorization);
-        assert.equal(input.site.close(),true);events.push('same-adapter');return adapter;
+        assert.equal(input.site,ownedSite);assert.equal(input.driver,driver);assert.equal(input.providerMoon,managedPlanProvider);
+        assert.equal(input.managedPlanDefinition,managedPlanDefinition);assert.equal(input.managedPlanConstruction,managedPlanConstruction);
+        assert.equal(input.site.close(),true);assert.equal(driverCurrent(),false);events.push('same-adapter');return adapter;
       },retainInstalledHostInitializationFailure:async cause=>{throw cause;}};
     const load = Function(...Object.keys(ports),bodies+'\nreturn load;')(...Object.values(ports));
     assert.equal(await load({rangeCommand,connectorId:'sheet',siteProfilePath:'/unopened/site',publicationPath:'/unopened/publication',
-      accountConfigurationWire:'original-account'}, {moon:{},providerMoon:{},sourceInitialization,configurationReader,installationServices:services,
+      accountConfigurationWire:'original-account'}, {moon:{},providerMoon,sourceInitialization,configurationReader,installationServices:services,
       installation,baseEnvironmentWire:'original-base',principalId:'fixture',root:'/unopened/root',runtimeBundleCid:providerCid},true),adapter);
-    assert.deepEqual(events,['same-site',rangeCommand==='clear'?'clear-driver':'range-driver','close','same-adapter']);
+    assert.deepEqual(events,['same-site','effect-reserve','quantity','reference',rangeCommand==='clear'?'clear-driver':'range-driver','close','same-adapter']);
   });
 }
 
@@ -1181,3 +1205,20 @@ for(const rangeCommand of [true,'clear']){
     assert.equal(issuer.admit('sheet_range',canonicalJson(target)),false);
   });
 }
+
+
+test('Command construction requires SAME driver definition provider and immutable metadata before Plan construction',()=>{
+  const names=new Set(['captureManagedPlanDefinition','captureManagedDriverConstruction']);
+  const bodies=rowTree.body.filter(node=>node.type==='FunctionDeclaration'&&names.has(node.id.name)).map(node=>rowSource.slice(node.start,node.end)).join('\n');
+  const capture=Function('nodeTypes','text','fail',bodies+'\nreturn (definition,driver,provider,construction)=>captureManagedDriverConstruction(construction,captureManagedPlanDefinition(definition,driver),driver,provider);')(
+    nodeTypes,value=>typeof value==='string'&&value.length>0,code=>{throw Object.assign(new Error(code),{code});});
+  const definition=Object.freeze({kind:'command',memberOperations:Object.freeze([]),rowOperations:Object.freeze([Object.freeze({role:'write',operation:'sheets:update'})])});
+  const construction=Object.freeze({write:Object.freeze({operation:'sheets:update',maxRequestBytes:300000,maxResponseBytes:1000000}),check:undefined,metadataTextUnits:117});
+  const provider=Object.freeze({}),driver=Object.freeze({kinds:Object.freeze(['command']),managedPlanDefinition:definition,managedPlanConstruction:construction,managedPlanProvider:provider});
+  assert.equal(capture(definition,driver,provider,construction),construction);
+  assert.throws(()=>capture({...definition},driver,provider,construction),{code:'InvalidInstalledEffectPlanDefinition'});
+  assert.throws(()=>capture(definition,driver,provider,Object.freeze({...construction})),{code:'InvalidInstalledEffectDriverConstruction'});
+  assert.throws(()=>capture(definition,driver,Object.freeze({}),construction),{code:'InvalidInstalledEffectDriverConstruction'});
+  const bad=Object.freeze({...construction,write:Object.freeze({...construction.write,operation:'sheets:clear'})});
+  assert.throws(()=>capture(definition,Object.freeze({...driver,managedPlanConstruction:bad}),provider,bad),{code:'InvalidInstalledEffectDriverConstruction'});
+});

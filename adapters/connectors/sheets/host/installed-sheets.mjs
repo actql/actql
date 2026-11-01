@@ -19,7 +19,7 @@ import {checkSheetsGridConfiguration, checkSheetsTarget, prepareSheetsAppend,
   projectSheetsAppend, prepareSheetsTargetRequest, projectSheetsTarget, readSheetsGrid, SHEETS_APPEND_OPERATION,
   SHEETS_READ_OPERATION, SHEETS_LIMITS, readSheetsRangeTarget} from '../site/sheets-exchange.mjs';
 import {createSheetsRangeDriver, sheetsRangeCommand, sheetsRangeReference,
-  withSheetsRangeCommand} from './sheets-range-command.mjs';
+  withSheetsRangeCommand, sheetsRangeConfigurationBytes} from './sheets-range-command.mjs';
 import {createSheetsClearDriver, sheetsClearCommand} from './sheets-clear-command.mjs';
 import {sheetsOwnedResult} from '../site/sheets-owned-request.mjs';
 
@@ -384,6 +384,35 @@ function prepareInitializedSheetsReadTarget(sourceInitialization, providerMoon, 
   })]);
 }
 
+function prepareInitializedSheetsEffectDriver(sourceInitialization, providerMoon, site, catalogCid, bindingCid, command, clear, isCurrent) {
+  const constructor = checkedSourceMethod(sourceInitialization, 'prepareEffectDriverConstruction');
+  const names = ['sheetsRangeInstallationConstructionCapacity', 'sheetsRangeReferenceJson', 'sheetsRangeFailureJson',
+    ...(clear ? ['sheetsClearBinding', 'sheetsClearPrepare', 'sheetsClearTargetMatches',
+      'sheetsClearRequestJson', 'sheetsClearRequestBody', 'sheetsClearRequestCid', 'sheetsClearOutcomeJson',
+      'sheetsClearRecoveryEntryJson', 'sheetsClearRecover', 'sheetsClearConstructionProfile', 'sheetsClearCaptureConstructionProfile']
+      : ['sheetsRangeBinding', 'sheetsRangePrepare', 'sheetsRangeTargetMatches',
+        'sheetsRangeRequestJson', 'sheetsRangeRequestBody', 'sheetsRangeRequestCid', 'sheetsAppendOutcomeJson',
+        'sheetsRangeRecoveryEntryJson', 'sheetsRangeRecover', 'sheetsRangeConstructionProfile', 'sheetsRangeCaptureConstructionProfile'])];
+  // Capture original provider methods/receivers before reserve/current can
+  // reenter. Both the retained binding and its later Plan use this view.
+  const originals = Object.fromEntries(names.map(name => [name, checkedSourceMethod(providerMoon, name)]));
+  const native = Object.freeze(Object.fromEntries(names.map(name => [name,
+    (...args) => Reflect.apply(originals[name], providerMoon, args)])));
+  const configurationBytes = sheetsRangeConfigurationBytes(site);
+  return Reflect.apply(constructor, sourceInitialization, [Object.freeze({
+    capacity() {
+      return native.sheetsRangeInstallationConstructionCapacity(configurationBytes, site.columns.length,
+        Buffer.byteLength(site.apiOrigin), Buffer.byteLength(site.spreadsheetId));
+    },
+    project() {
+      const target = sheetsRangeReference({site, catalogCid, bindingCid, moon: native});
+      const driver = (clear ? createSheetsClearDriver : createSheetsRangeDriver)({moon: native, site,
+        command, bindingCid, target, isCurrent});
+      return Object.freeze({target, driver});
+    },
+  })]);
+}
+
 async function loadManagedSheetsGridSource(profile, options, site, publication, prepared) {
   const {moon,providerMoon,sourceInitialization,installation,installationServices}=options;
   const services=captureInstalledSourceServices(installationServices,()=>Object.assign(
@@ -481,9 +510,16 @@ async function load(profile, options, effect) {
   const opened = await openSite(profile, site, options, publication,
     options.installationServices);
   let closed = false;
-  const target = rangeCommand === undefined ? undefined : sheetsRangeReference({site,
-    catalogCid: declared.catalog_cid, bindingCid: opened.bindingCid, moon: providerMoon});
   try {
+    const referenceCurrent = rangeCommand === undefined || sourceInitialization === undefined ? undefined
+      : checkedSourceMethod(opened.site, 'referenceCurrent');
+    const isCurrent = () => !closed && (referenceCurrent === undefined ||
+      Reflect.apply(referenceCurrent, opened.site, []) === true);
+    const construction = rangeCommand === undefined || sourceInitialization === undefined ? undefined
+      : prepareInitializedSheetsEffectDriver(sourceInitialization, providerMoon, site, declared.catalog_cid,
+        opened.bindingCid, rangeCommand.installed, profile.rangeCommand === 'clear', isCurrent);
+    const target = construction?.target ?? (rangeCommand === undefined ? undefined : sheetsRangeReference({site,
+      catalogCid: declared.catalog_cid, bindingCid: opened.bindingCid, moon: providerMoon}));
     if (!effect) {
       const adapter = await createInstalledRowSource({moon, declaration, declared,
       environment, sourceInitialization, environmentWire: environment.wire, connectorId: profile.connectorId,
@@ -514,17 +550,21 @@ async function load(profile, options, effect) {
       return rangeCommand === undefined ? adapter : Object.freeze({...adapter,
         close() { closed = true; return adapter.close(); }});
     }
-    if (rangeCommand !== undefined) return await createInstalledRowEffect({moon,
+    if (rangeCommand !== undefined) {
+      const driver = construction?.driver ?? (profile.rangeCommand === 'clear' ? createSheetsClearDriver : createSheetsRangeDriver)({moon: providerMoon, site,
+        command: rangeCommand.installed, bindingCid: opened.bindingCid, target, isCurrent});
+      return await createInstalledRowEffect({moon,
+      ...(construction === undefined ? {} : {providerMoon: driver.managedPlanProvider,
+        managedPlanDefinition: driver.managedPlanDefinition, managedPlanConstruction: driver.managedPlanConstruction}),
       commands: restored.commands ?? [rangeCommand.installed],
       declaration, declared, environment, sourceInitialization, environmentWire: environment.wire,
       connectorId: profile.connectorId, connectorRegistration: registration, connectorRevision: revision,
-      connection: opened.connection, site: {...opened.site,
-        close() { closed = true; return opened.site.close(); }}, authorization: opened.authorization,
+      connection: opened.connection, site: construction === undefined ? {...opened.site,
+        close() { closed = true; return opened.site.close(); }} : opened.site, authorization: opened.authorization,
       runtimeBundleCid: options.runtimeBundleCid, bindingCid: opened.bindingCid,
       ledgerRoot: options.ledgerRoot, installation: options.installation,
-      driver: (profile.rangeCommand === 'clear' ? createSheetsClearDriver : createSheetsRangeDriver)({moon: providerMoon, site,
-        command: rangeCommand.installed, bindingCid: opened.bindingCid, target,
-        isCurrent: () => !closed})});
+      driver});
+    }
     const boundaryCid = contentCid({version: 'actql-sheets-append-boundary/0.1',
       api_origin: site.apiOrigin, spreadsheet_id: site.spreadsheetId, sheet_id: site.appendSheetId});
     return await createInstalledRowEffect({moon,

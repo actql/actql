@@ -49085,7 +49085,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_installed_source_material_bridge.mbt",
-      "sha256": "b49b6c7898cc40bc48d2f819dc97257182a7c10780cac9bf86b7c087d568d832",
+      "sha256": "f2e7d968a8065fe8b39f6592fc243e1f8c84377845cbc1fd9479a3a2fb203718",
       "exports": [],
       "operations": [
         {
@@ -49114,7 +49114,7 @@
         },
         {
           "name": "client_program_compose_installed_source_construction_capacity",
-          "declaration": "client_program_compose_installed_source_construction_capacity ( original : @ execution . ExecutionCapacity , providers : Array [ @ execution . ExecutionCapacity ] , ) - > Result [ @ execution . ExecutionCapacity , @ resources . PreparationCapacityIssue ]"
+          "declaration": "client_program_compose_installed_source_construction_capacity ( original : @ execution . ExecutionCapacity , providers : Array [ @ execution . ExecutionCapacity ? ] , ) - > Result [ @ execution . ExecutionCapacity , @ resources . PreparationCapacityIssue ]"
         },
         {
           "name": "client_program_continue_installed_source_material",
@@ -55460,7 +55460,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_installed_effect_plan_bridge.mbt",
-      "sha256": "dac615f0fb40c0cacdcb801848f9165996ae33abebe94c45ea11fca122bcd3f1",
+      "sha256": "447e38983cd93b309e2b74389bd6bf6f805cf76f4db02e3514e07c348eba4621",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing checked Program, typed sequence and original Request/Plan preparation owners",
@@ -55540,6 +55540,10 @@
           "declaration": "client_program_installed_standard_create_recipe_capacities ( original : Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ? , input_bytes : Int , input_nodes : Int , input_depth : Int , request_bytes : Int , response_bytes : Int , check_request_bytes : Int , check_response_bytes : Int , before_send : Bool , secret_bytes : Int , secret_prefix_units : Int , header_bytes : Int , stored_bytes : Int , stored_nodes : Int , stored_depth : Int , metadata_units : Int64 , ) - > Result [ Array [ @ execution . ExecutionCapacity ] , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
+          "name": "client_program_installed_standard_driver_recipe_capacities",
+          "declaration": "client_program_installed_standard_driver_recipe_capacities ( original : Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ? , capture_original : Array [ @ execution . ExecutionCapacity ] ? , input_bytes : Int , input_nodes : Int , input_depth : Int , request_bytes : Int , response_bytes : Int , check_request_bytes : Int , check_response_bytes : Int , before_send : Bool , secret_bytes : Int , secret_prefix_units : Int , header_bytes : Int , stored_bytes : Int , stored_nodes : Int , stored_depth : Int , metadata_units : Int64 , ) - > Result [ Array [ @ execution . ExecutionCapacity ] , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
           "name": "client_program_node_effect_managed_plan_cleanup",
           "declaration": "client_program_node_effect_managed_plan_cleanup ( admission : @ resources . NodeManagedRunAdmission [ @ client_local_host . ClientInstalledEffectManagedPlan , ] , ) - > Result [ Unit , @ resources . ImportedChildLedgerIssue ]"
         }
@@ -55566,7 +55570,8 @@
             "client_program_installed_effect_operation_extent_from_capacity_prepare",
             "client_program_installed_effect_operation_extent_prepare",
             "client_program_installed_standard_create_recipe_capacities",
-            "client_program_node_effect_managed_plan_cleanup"
+            "client_program_node_effect_managed_plan_cleanup",
+            "client_program_installed_standard_driver_recipe_capacities"
           ],
           "exports": [],
           "attributes": {
@@ -55636,7 +55641,7 @@
     },
     {
       "module": "src/client_local_host/installed_standard_create_recipe.mbt",
-      "sha256": "b7b66d6ab51c60ce0d8f7008f921f03cde53db94d822366504c90fe6114bc31e",
+      "sha256": "5ca5235a2fa5cb45151d1cfa6aada82076b2b6b7705c368b33383119cea27dc5",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
@@ -55646,6 +55651,14 @@
         {
           "name": "installed_standard_create_recipe_capacities",
           "declaration": "installed_standard_create_recipe_capacities ( original : Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ? , input_bytes : Int , input_nodes : Int , input_depth : Int , request_bytes : Int , response_bytes : Int , check_request_bytes : Int , check_response_bytes : Int , before_send : Bool , secret_bytes : Int , secret_prefix_units : Int , header_bytes : Int , stored_bytes : Int , stored_nodes : Int , stored_depth : Int , metadata_units : Int64 , ) - > Result [ Array [ @ execution . ExecutionCapacity ] , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "installed_standard_driver_recipe_capacities",
+          "declaration": "installed_standard_driver_recipe_capacities ( original : Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ? , capture_original : Array [ @ execution . ExecutionCapacity ] ? , input_bytes : Int , input_nodes : Int , input_depth : Int , request_bytes : Int , response_bytes : Int , check_request_bytes : Int , check_response_bytes : Int , before_send : Bool , secret_bytes : Int , secret_prefix_units : Int , header_bytes : Int , stored_bytes : Int , stored_nodes : Int , stored_depth : Int , metadata_units : Int64 , ) - > Result [ Array [ @ execution . ExecutionCapacity ] , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "installed_standard_recipe_capacities",
+          "declaration": "installed_standard_recipe_capacities ( original : Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ? , capture_original : Array [ @ execution . ExecutionCapacity ] ? , input_bytes : Int , input_nodes : Int , input_depth : Int , request_bytes : Int , response_bytes : Int , check_request_bytes : Int , check_response_bytes : Int , before_send : Bool , secret_bytes : Int , secret_prefix_units : Int , header_bytes : Int , stored_bytes : Int , stored_nodes : Int , stored_depth : Int , metadata_units : Int64 , ) - > Result [ Array [ @ execution . ExecutionCapacity ] , ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "standard_create_grant_capacity",
@@ -55672,7 +55685,9 @@
             "standard_create_grant_capacity",
             "standard_create_representation_capacity",
             "standard_create_secret_capacity",
-            "standard_create_sum_capacities"
+            "standard_create_sum_capacities",
+            "installed_standard_driver_recipe_capacities",
+            "installed_standard_recipe_capacities"
           ],
           "exports": [],
           "attributes": {

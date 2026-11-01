@@ -308,14 +308,52 @@ test "Sheets original range input refusal codes and scalar cell reasons are pres
 test "original canonical target facts are reused without restricting equivalent noncanonical input" {
   let binding = owned_binding()
   assert_true(range_target_matches(binding, binding.target_wire))
-  assert_true(range_target_matches(binding, " \n" + binding.target_wire + " \r\n"))
+  assert_true(
+    range_target_matches(binding, " \n" + binding.target_wire + " \r\n"),
+  )
   assert_false(range_target_matches(binding, binding.target_wire + "0"))
   assert_false(range_target_matches(binding, "{}"))
   let foreign = owned_binding(binding_cid="sha256:" + "c".repeat(64))
   assert_false(range_target_matches(binding, foreign.target_wire))
-  let request = prepare_range_request(binding, owned_value(), binding.target_wire).unwrap()
+  let request = prepare_range_request(
+    binding,
+    owned_value(),
+    binding.target_wire,
+  ).unwrap()
   // Same data equality is not an original request/installation admission.
   let equal = owned_binding()
   assert_true(range_target_matches(equal, binding.target_wire))
   assert_true(admit_range_request(equal, request) is Err(_))
+}
+
+///|
+test "range write construction templates bound original update and clear bodies without changing identities" {
+  let binding = owned_binding()
+  let metadata = range_construction_metadata(binding)
+  let request = prepare_range_request(
+    binding,
+    owned_value(),
+    binding.target_wire,
+  ).unwrap()
+  let selected = range_write_construction_bounds(
+    metadata,
+    owned_value().length(),
+    false,
+  ).unwrap()
+  assert_true(request.body.length() <= selected.body_bytes)
+  let parsed = @json.parse(request.body) catch { _ => fail("original body") }
+  assert_true(range_template_nodes(parsed) <= selected.body_nodes)
+  assert_true(range_template_depth(parsed) <= selected.body_depth)
+  let marker = "00000000-0000-4000-8000-000000000000"
+  let original = clear_request(
+    binding.range,
+    binding.columns,
+    marker,
+    binding.limits,
+  ).unwrap()
+  let clear = range_write_construction_bounds(metadata, 2, true).unwrap()
+  assert_true(original.length() <= clear.body_bytes)
+  assert_true(range_write_construction_bounds(metadata, 0, false) is None)
+  assert_eq(metadata.rows, 2)
+  assert_eq(metadata.columns, 2)
 }

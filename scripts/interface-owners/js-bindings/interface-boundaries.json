@@ -66653,7 +66653,7 @@
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "ddee5a7518169fc1c0684d3570eb7913872bd05ab67bee27ee27129e930e1529",
+      "sha256": "101563a66696889883bcd1793e43265274bbc637707adcaf680fa3eca3cb1155",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -66715,6 +66715,38 @@
           "name": "captureEffectResources/captureEffectResources",
           "parameters": [
             "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureManagedDriverConstruction",
+          "parameters": [
+            "construction",
+            "definition",
+            "driver",
+            "provider"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureManagedDriverConstruction/captureManagedDriverConstruction",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureManagedDriverConstruction/own/own",
+          "parameters": [
+            "value",
+            "names"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureManagedDriverConstruction/own/own/own",
+          "parameters": [
+            "name"
           ],
           "async": false
         },
@@ -66951,7 +66983,8 @@
             "effectResources",
             "issueOriginalCollectionReference",
             "managedPlanDefinition",
-            "managedPlanRecipe"
+            "managedPlanRecipe",
+            "managedPlanConstruction"
           ],
           "async": true
         },
@@ -72637,7 +72670,11 @@
             "captureManagedPlanDefinition",
             "captureManagedPlanDefinition/array/array",
             "captureManagedPlanDefinition/fields/fields",
-            "captureManagedPlanDefinition/fields/fields/fields"
+            "captureManagedPlanDefinition/fields/fields/fields",
+            "captureManagedDriverConstruction",
+            "captureManagedDriverConstruction/captureManagedDriverConstruction",
+            "captureManagedDriverConstruction/own/own",
+            "captureManagedDriverConstruction/own/own/own"
           ],
           "exports": [],
           "attributes": {
@@ -74553,7 +74590,7 @@
     {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "d5028a7493822179d7068e75bf7a45117ee4df630768385eaa871eafb5d68ebb",
+      "sha256": "ac206258bfaea1cadf803b0f0d448db11457fcc251f61565377b8c58b4c3c3bc",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -74602,6 +74639,7 @@
           "parameters": [
             "moon",
             "declaration",
+            "commands",
             "declared",
             "environmentWire",
             "environment",

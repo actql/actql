@@ -625,24 +625,7 @@ pub fn update_request(
     }
     encoded_rows.push({ "values": Json::array(cells) })
   }
-  let body = (
-    {
-      "requests": [
-        {
-          "updateCells": {
-            "range": {
-              "sheetId": range.sheet_id.to_json(),
-              "startRowIndex": range.start_row.to_json(),
-              "endRowIndex": range.end_row.to_json(),
-              "startColumnIndex": range.start_column.to_json(),
-              "endColumnIndex": range.end_column.to_json(),
-            },
-            "rows": Json::array(encoded_rows),
-            "fields": "userEnteredValue",
-          },
-        },
-      ],
-    } : Json).stringify()
+  let body = update_request_document(range, encoded_rows).stringify()
   if @utf8.encode(body).length() > limits.max_bytes {
     return Err(BudgetExceeded)
   }
@@ -652,6 +635,32 @@ pub fn update_request(
     Err(issue) => return Err(issue)
   }
   Ok(body)
+}
+
+///|
+/// Exact original literal update document after cell checking. Constructor
+/// geometry borrows this fixed shape and never supplies accepted row data.
+pub fn update_request_document(
+  range : GridRange,
+  encoded_rows : Array[Json],
+) -> Json {
+  {
+    "requests": [
+      {
+        "updateCells": {
+          "range": {
+            "sheetId": range.sheet_id.to_json(),
+            "startRowIndex": range.start_row.to_json(),
+            "endRowIndex": range.end_row.to_json(),
+            "startColumnIndex": range.start_column.to_json(),
+            "endColumnIndex": range.end_column.to_json(),
+          },
+          "rows": Json::array(encoded_rows),
+          "fields": "userEnteredValue",
+        },
+      },
+    ],
+  }
 }
 
 ///|

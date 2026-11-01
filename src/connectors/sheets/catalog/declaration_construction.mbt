@@ -172,9 +172,73 @@ pub fn range_reference_construction_bounds(
   let reference = range_reference_document(cid, cid, cid, cid)
   Some({
     identity_bytes: bytes.to_int(),
-    identity_nodes: range_template_nodes(provider) + range_template_nodes(identity),
-    identity_depth: Int::max(range_template_depth(provider), range_template_depth(identity)),
+    identity_nodes: range_template_nodes(provider) +
+    range_template_nodes(identity),
+    identity_depth: Int::max(
+      range_template_depth(provider),
+      range_template_depth(identity),
+    ),
     reference_bytes: reference.stringify().length(),
     reference_nodes: range_template_nodes(reference),
+  })
+}
+
+///|
+/// Constructor bounds from the SAME literal write documents. No row is
+/// admitted, no request is issued and no identity/marker is generated here.
+pub(all) struct RangeWriteConstructionBounds {
+  body_bytes : Int
+  body_nodes : Int
+  body_depth : Int
+}
+
+///|
+pub fn range_write_construction_bounds(
+  metadata : RangeConstructionMetadata,
+  input_bytes : Int,
+  clear : Bool,
+) -> RangeWriteConstructionBounds? {
+  if input_bytes < 1 || metadata.rows < 0 || metadata.columns < 1 {
+    return None
+  }
+  let range : GridRange = {
+    sheet_id: 2147483647,
+    start_row: 0,
+    end_row: 2147483647,
+    start_column: 0,
+    end_column: 2147483647,
+  }
+  if clear {
+    let marker = clear_marker_value(
+      range, "00000000-0000-4000-8000-000000000000",
+    ).stringify()
+    let original = clear_request_document(range, marker)
+    return Some({
+      body_bytes: original.stringify().length(),
+      body_nodes: range_template_nodes(original),
+      body_depth: range_template_depth(original),
+    })
+  }
+  let empty = update_request_document(range, [])
+  let row = update_request_document(range, [{ "values": [] }])
+  let cell = literal_cell_document(Text, "x".to_json()).unwrap()
+  let one = update_request_document(range, [{ "values": [cell] }])
+  let rows = metadata.rows.to_int64()
+  let cells = rows * metadata.columns.to_int64()
+  let bytes = empty.stringify().length().to_int64() +
+    (row.stringify().length() - empty.stringify().length()).to_int64() * rows +
+    ((one.stringify().length() - row.stringify().length()).to_int64() + 26L) *
+    cells +
+    6L * input_bytes.to_int64()
+  let nodes = range_template_nodes(empty).to_int64() +
+    (range_template_nodes(row) - range_template_nodes(empty)).to_int64() * rows +
+    (range_template_nodes(one) - range_template_nodes(row)).to_int64() * cells
+  if bytes > 2147483647L || nodes > 2147483647L {
+    return None
+  }
+  Some({
+    body_bytes: bytes.to_int(),
+    body_nodes: nodes.to_int(),
+    body_depth: range_template_depth(one),
   })
 }

@@ -411,6 +411,40 @@ export function beginInstalledSourceInitialization(services, installation, conne
     reconcileSource(original, material);
     return prepared;
   }
+  function prepareProviderConstruction(projection, role) {
+    if (this !== context || scope.role !== role || !scope.active || scope.prepared === undefined ||
+        scope.source !== undefined || scope.providerAttempted || material.phase !== 'working') {
+      fail('ForeignInstalledSourceInitialization');
+    }
+    if (material.busy) fail('InstalledSourceInitializationReentry');
+    const {capacity: capacityFor, project} = sourceProjectionMethods(projection);
+    if (typeof material.methods.ComposeInstalledSourceConstructionCapacity !== 'function') fail('InstalledSourceInitializationRuntimeUnavailable');
+    const prepared = scope.prepared;
+    scope.providerAttempted = true;
+    let quantity;
+    material.busy = true;
+    try {quantity = requireSynchronousSourceConstruction(material, Reflect.apply(capacityFor, projection, []));}
+    finally {material.busy = false;}
+    if (!quantity || typeof quantity !== 'object' || nodeTypes.isProxy(quantity)) fail('InstalledSourceCommandConstructionUnavailable');
+    // A Source-issued reference outlives any one Run's Reader. Its complete
+    // original constructor peak therefore belongs to this SAME initializer,
+    // not a borrowed Reader reservation or an inferred spare allowance.
+    material.providers.push(quantity); material.inputs.push(projection);
+    reserveSource(original, material);
+    if (!scope.active || material.phase !== 'working' || scope.prepared !== prepared || scope.source !== undefined) {
+      fail('ForeignInstalledSourceInitialization');
+    }
+    let target;
+    material.busy = true;
+    try {
+      target = requireSynchronousSourceConstruction(material, Reflect.apply(project, projection, []));
+      if (!target || typeof target !== 'object' || nodeTypes.isProxy(target)) fail('InvalidInstalledSourceReadTarget');
+      material.inputs.push(target);
+      freezeSourceProjection(target);
+    } finally {material.busy = false;}
+    reconcileSource(original, material);
+    return target;
+  }
   const context = Object.freeze({
     prepareMappings(writesJson, writes) {
       if (this !== context || !scope.active || scope.prepared === undefined ||
@@ -536,40 +570,8 @@ export function beginInstalledSourceInitialization(services, installation, conne
           return prepared;
         });
     },
-    prepareReadTarget(projection) {
-      if (this !== context || scope.role !== 'source' || !scope.active || scope.prepared === undefined ||
-          scope.source !== undefined || scope.targetAttempted || material.phase !== 'working') {
-        fail('ForeignInstalledSourceInitialization');
-      }
-      if (material.busy) fail('InstalledSourceInitializationReentry');
-      const {capacity: capacityFor, project} = sourceProjectionMethods(projection);
-      if (typeof material.methods.ComposeInstalledSourceConstructionCapacity !== 'function') fail('InstalledSourceInitializationRuntimeUnavailable');
-      const prepared = scope.prepared;
-      scope.targetAttempted = true;
-      let quantity;
-      material.busy = true;
-      try {quantity = requireSynchronousSourceConstruction(material, Reflect.apply(capacityFor, projection, []));}
-      finally {material.busy = false;}
-      if (!quantity || typeof quantity !== 'object' || nodeTypes.isProxy(quantity)) fail('InstalledSourceCommandConstructionUnavailable');
-      // A Source-issued reference outlives any one Run's Reader. Its complete
-      // original constructor peak therefore belongs to this SAME initializer,
-      // not a borrowed Reader reservation or an inferred spare allowance.
-      material.providers.push(quantity); material.inputs.push(projection);
-      reserveSource(original, material);
-      if (!scope.active || material.phase !== 'working' || scope.prepared !== prepared || scope.source !== undefined) {
-        fail('ForeignInstalledSourceInitialization');
-      }
-      let target;
-      material.busy = true;
-      try {
-        target = requireSynchronousSourceConstruction(material, Reflect.apply(project, projection, []));
-        if (!target || typeof target !== 'object' || nodeTypes.isProxy(target)) fail('InvalidInstalledSourceReadTarget');
-        material.inputs.push(target);
-        freezeSourceProjection(target);
-      } finally {material.busy = false;}
-      reconcileSource(original, material);
-      return target;
-    },
+    prepareReadTarget(projection) {return prepareProviderConstruction.call(this, projection, 'source');},
+    prepareEffectDriverConstruction(projection) {return prepareProviderConstruction.call(this, projection, 'effect');},
     prepareAuthoredDeclaration(viewsWire, expectedCatalogCid) {
       if (this !== context || !scope.active || scope.prepared !== undefined || scope.commandAttempted) {
         fail('ForeignInstalledSourceInitialization');

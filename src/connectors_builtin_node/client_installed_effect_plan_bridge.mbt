@@ -93,6 +93,40 @@ pub fn client_program_installed_standard_create_recipe_capacities(
 }
 
 ///|
+#export_name("clientProgramInstalledStandardDriverRecipeCapacities")
+pub fn client_program_installed_standard_driver_recipe_capacities(
+  original : Array[
+    (@execution.ExecutionCapacity, @source.ParseLimits?, @source.ParseLimits?),
+  ]?,
+  capture_original : Array[@execution.ExecutionCapacity]?,
+  input_bytes : Int,
+  input_nodes : Int,
+  input_depth : Int,
+  request_bytes : Int,
+  response_bytes : Int,
+  check_request_bytes : Int,
+  check_response_bytes : Int,
+  before_send : Bool,
+  secret_bytes : Int,
+  secret_prefix_units : Int,
+  header_bytes : Int,
+  stored_bytes : Int,
+  stored_nodes : Int,
+  stored_depth : Int,
+  metadata_units : Int64,
+) -> Result[
+  Array[@execution.ExecutionCapacity],
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.installed_standard_driver_recipe_capacities(
+    original, capture_original, input_bytes, input_nodes, input_depth, request_bytes,
+    response_bytes, check_request_bytes, check_response_bytes, before_send, secret_bytes,
+    secret_prefix_units, header_bytes, stored_bytes, stored_nodes, stored_depth,
+    metadata_units,
+  )
+}
+
+///|
 // Pure same-Plan capture quantity. JavaScript forwards the native capacity
 // unchanged; Core supplies its checked row multiplicity, never an ABI tuple
 // or an independent caller estimate.
