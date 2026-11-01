@@ -181,6 +181,7 @@ class InstalledLocalHost:
         self._runs = LocalRunCustody(core, self._preparation)
         self._configuration: _RunConfiguration | None = None
         self._run_loans: list[_Run] = []
+        self._run_restore_attempts: dict[bytes, _Input] = {}
         self._public_run_references: list[_OriginalRunReference] = []
         self._run_state_custody: dict[int, _RunStateCustody] = {}
         self._state_observing = False
@@ -469,7 +470,9 @@ class InstalledLocalHost:
         for original in self._public_run_references:
             self._core._owned_input(original.source)
             if self._core._inputs[original.source.ticket].payload == captured:
-                return True
+                # A restored typed Run supplies no live publication/Result
+                # custody. Its public reads retain the saved-reader path.
+                return original.run.handle not in self._runs._run_restorations
         return False
 
     def _select_original_run(self, reference: object) -> tuple[_Run, bytes]:
@@ -488,15 +491,76 @@ class InstalledLocalHost:
             held = self._core._inputs[original.source.ticket].payload
             if _object(held, 4096) != requested:
                 continue
-            saved = self._read_original_saved_admission(original.run)
+            saved = (self._attach_original_run(requested)
+                     if original.run.handle in self._runs._run_restorations
+                     else self._read_original_saved_admission(original.run))
             admission = _object(saved, 4096)
             if (not wire.negotiated(admission, 'admission', _LOCAL_SELECTION)  # type: ignore[no-untyped-call]
                     or admission['ref'] != requested):
                 raise ValueError('Original Local Run is unavailable')
             return original.run, saved
-        # No retained routing loan proves neither absence nor permission to
-        # submit again. Fresh-process restoration uses its separate Owner path.
-        raise ValueError('Original Local Run is unavailable')
+        return self._restore_original_run(requested)
+
+    def _restore_original_run(self, reference: object) -> tuple[_Run, bytes]:
+        """Restore an executable original only through its admitted saved material.
+
+        Public reference-only reads do not need this Activation-purpose path.
+        It performs no dispatch, task start, replacement acceptance or write.
+        Every partial child remains on its existing owner for explicit cleanup.
+        """
+        installation = self._active()
+        configuration = self._configuration
+        if configuration is None or not configuration.sdk:
+            raise ValueError('Original SDK restoration is unavailable')
+        raw_reference = wire_bytes(reference)  # type: ignore[no-untyped-call]
+        if not wire.valid(_object(raw_reference, 4096), 'run_ref'):  # type: ignore[no-untyped-call]
+            raise ValueError('Invalid original restoration reference')
+        with self._core._lock:
+            if raw_reference in self._run_restore_attempts:
+                raise LocalStorageError('Original restoration requires lookup; invocation replay is unavailable')
+            source = self._copy(raw_reference)
+            self._run_restore_attempts[raw_reference] = source
+            output = self._reserve(lambda: self._core.reserve_submission_projection(
+                configuration.handle, source, 8, cleanup=lambda: True))
+            self._projections.append(output)
+            self._append_sources[output.ticket] = source
+            captured: list[dict[str, Any]] = []
+            def observe(current: _Output) -> None:
+                self._core.produce_submission_lookup(output, current)
+                captured.append(_object(self._core.read_submission_lookup(output, current), 1048576))
+            installation.binding.inspect(observe)
+            original = captured[0]
+            if (set(original) != {'intent', 'admission', 'materials_available'}
+                    or type(original['intent']) is not str or type(original['admission']) is not str
+                    or type(original['materials_available']) is not bool):
+                raise ValueError('Invalid original restoration input descriptor')
+            if not original['materials_available']:
+                raise LocalCoreError('original_run_materials_unavailable', -42)
+            admission = original['admission'].encode('utf-8')
+            saved = _object(admission, 4096)
+            if (not wire.negotiated(saved, 'admission', _LOCAL_SELECTION)  # type: ignore[no-untyped-call]
+                    or saved['ref'] != _object(raw_reference, 4096)):
+                raise ValueError('Foreign original restoration admission')
+            # Retain before decoding; positive descriptor DATA is no grant.
+            restored = self._runs.reserve_restoration(configuration, source, output)
+            installation.binding.inspect(lambda _: self._runs.restore_materials(restored))
+            if self._environment is None:
+                selected = next(value for value in installation.binding._selected
+                                if value.name == 'environment.json')
+                environment_input = self._copy(installation.binding._source.original_bytes(selected))
+                def install(_: _Output) -> None:
+                    self._environment = self._preparation.install_environment(environment_input, profile='source-free')
+                installation.binding.inspect(install)
+            assert self._environment is not None
+            intent = self._copy(original['intent'].encode('utf-8'))
+            prepared = self._preparation.reserve(self._environment, intent, format='submitted')
+            self._prepared_inputs.append(prepared)
+            installation.binding.inspect(lambda _: self._runs.bind_restored_preparation(restored, prepared))
+            run = self._runs.reserve(configuration, prepared, source)
+            self._run_loans.append(run)
+            installation.binding.inspect(lambda _: self._runs.restore_run(run, restored))
+            self._register_original_run_reference(run, admission)
+            return run, admission
 
     def _original_run_projection(self, run: _Run) -> OriginalCommitProjection:
         self._runs._run(run)
@@ -1221,8 +1285,29 @@ class InstalledLocalHost:
             candidate = captured[0]
             fields = {'run_key', 'submission_key', 'preparing', 'run', 'submitted',
                       'issued_revision', 'issued_body'}
-            if set(candidate) != fields or any(type(candidate[key]) is not str for key in fields):
+            if (set(candidate) not in (fields, fields | {'task_materials'})
+                    or any(type(candidate[key]) is not str for key in fields)):
                 raise ValueError('Invalid original Core Run row projection')
+            material_writes: list[ByteWrite] = []
+            if 'task_materials' in candidate:
+                chunks = candidate['task_materials']
+                if type(chunks) is not list or not 1 <= len(chunks) <= 3:
+                    raise ValueError('Invalid original task material chunks')
+                total = 0
+                for index, chunk in enumerate(chunks):
+                    if (type(chunk) is not dict or set(chunk) != {'key', 'body'}
+                            or chunk['key'] != candidate['run_key'] + ':' + str(index)
+                            or type(chunk['body']) is not str):
+                        raise ValueError('Foreign original task material chunk')
+                    raw_chunk = chunk['body'].encode('utf-8')
+                    if not 0 < len(raw_chunk) <= 131072:
+                        raise ValueError('Invalid bounded original task material chunk')
+                    total += len(raw_chunk)
+                    if total > 262144:
+                        raise ValueError('Original task material capacity exceeded')
+                    material_writes.append(ByteWrite(
+                        store.namespaced_key('client_task_run_materials', chunk['key']),
+                        None, raw_chunk))
             revision = candidate['issued_revision']
             if (not revision.isascii() or not revision.isdecimal() or
                     (len(revision) > 1 and revision.startswith('0')) or
@@ -1237,7 +1322,7 @@ class InstalledLocalHost:
                           None, candidate['run'].encode('utf-8')),
                 ByteWrite(store.namespaced_key('client_submitted_intents', candidate['submission_key']),
                           0, candidate['submitted'].encode('utf-8')),
-            )
+            ) + tuple(material_writes)
             with installation.binding.fenced() as fences:
                 def inspect(reader: Any) -> None:
                     installation.binding.inspect_reader(reader, lambda current:
@@ -3020,6 +3105,9 @@ class InstalledLocalHost:
                 if not self._preparation.close_preparation(prepared):
                     return False
                 self._prepared_inputs.remove(prepared)
+            for restored in tuple(reversed(tuple(self._runs._restorations.values()))):
+                if not self._runs.close_restoration(restored):
+                    return False
             for output in tuple(reversed(self._projections)):
                 if not self._close_projection(output):
                     return False
@@ -3043,4 +3131,5 @@ class InstalledLocalHost:
             if not self._core.close():
                 return False
             self._physical_work.clear()
+            self._run_restore_attempts.clear()
             return True

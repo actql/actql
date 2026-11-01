@@ -22,6 +22,7 @@ fn sdk_state_snapshot(
       publication_binding: None,
       publication_policy_originals: None,
       effect_material_originals: None,
+      task_materials_cid: None,
       checkpoint: None,
     }).unwrap(),
   }
@@ -48,6 +49,7 @@ fn sdk_state_snapshot(
             request: value.request,
             definition: value.definition,
             checkpoint: None,
+            task_materials_cid: value.task_materials_cid,
           })
         Err(_) => Err("invalid original Run")
       }

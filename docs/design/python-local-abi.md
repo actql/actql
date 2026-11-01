@@ -2849,6 +2849,23 @@ A different retained intent returns the existing intent-conflict outcome;
 lookup refusal cannot fall through to fresh preparation. This DATA response
 does not supply the retained prepared input needed for executable restoration.
 
+New ready admissions retain the original bounded task-material codec wire in
+the same transaction as the Run, ready row and issuance counter. An optional
+Run-row CID binds that exact wire. Up to three immutable UTF-8 chunks preserve
+the existing 131072-byte physical row and 262144-byte logical material bounds;
+complete inventory and selected-snapshot checks reject missing, extra, foreign
+or changed chunks. Absent historical material is never regenerated or backfilled.
+
+Executable restoration uses the existing canonical decoder against the saved
+full Definition, invocation and authorization evidence. Its nominal saved
+carrier binds the same retained prepared input, original authored intent and
+document without ordinary submitted preparation or lowering. Original finite
+and publication policies are restored separately. Existing current Activation,
+control flags, Store binding and child-first retirement remain mandatory;
+reference-only status and Result reads do not acquire that executable purpose.
+Private ABI79 adds the two original restoration bindings and rejects older
+installed modules through the existing exact export/ABI contract.
+
 Cold status uses the existing reference-only submission projection and retains
 its original saved snapshot until output cleanup. It returns only a saved SDK
 state whose original observation key and public revision match the same Run.

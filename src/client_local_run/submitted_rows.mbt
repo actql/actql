@@ -22,6 +22,7 @@ pub struct LocalSubmittedRunRows {
   submitted : Bytes
   local_policy_original : String?
   observation_originals : String?
+  task_materials : LocalRunTaskMaterialsOriginal?
 }
 
 ///|
@@ -54,6 +55,7 @@ pub fn prepare_local_submitted_run_rows(
     now,
     local_policy_original,
     None,
+    None,
   )
 }
 
@@ -71,6 +73,7 @@ pub fn prepare_local_sdk_submitted_run_rows(
   context_cid : String,
   now : Double,
   local_policy_original : @host.ClientLocalRunPolicyOriginal,
+  task_materials? : LocalRunTaskMaterialsOriginal? = None,
 ) -> Result[LocalSubmittedRunRows, LocalSubmittedRunRowsIssue] {
   let originals = match
     @host.capture_client_run_observation_originals(
@@ -96,6 +99,7 @@ pub fn prepare_local_sdk_submitted_run_rows(
     now,
     Some(local_policy_original),
     Some(wire),
+    task_materials,
   )
 }
 
@@ -112,11 +116,15 @@ fn prepare_local_submitted_run_rows_original(
   now : Double,
   local_policy_original : @host.ClientLocalRunPolicyOriginal?,
   observation_originals : String?,
+  task_materials : LocalRunTaskMaterialsOriginal?,
 ) -> Result[LocalSubmittedRunRows, LocalSubmittedRunRowsIssue] {
   if !physical_equal(
       plan.input,
       @input.local_submitted_preparation_input(preparation),
     ) {
+    return Err(ForeignPreparation)
+  }
+  if task_materials is Some(original) && !physical_equal(original.plan, plan) {
     return Err(ForeignPreparation)
   }
   match
@@ -183,8 +191,11 @@ fn prepare_local_submitted_run_rows_original(
         physical_start_claimed: false,
         cancellation_requested: false,
         publication_binding: None,
-        publication_policy_originals: None,
+        publication_policy_originals: task_materials.map(value => {
+          value.publication_policy_originals
+        }),
         effect_material_originals: None,
+        task_materials_cid: task_materials.map(value => value.cid),
         checkpoint: None,
       },
       local_run_policy_originals=local_policy_original,
@@ -212,7 +223,23 @@ fn prepare_local_submitted_run_rows_original(
     submitted,
     local_policy_original,
     observation_originals,
+    task_materials,
   })
+}
+
+///|
+/// Exact immutable chunk candidates belonging to these same nominal rows.
+/// All entries must be inserted with the Run/ready/count writes atomically.
+pub fn local_submitted_run_task_materials(
+  value : LocalSubmittedRunRows,
+  plan : LocalRunPlan,
+  preparation : @input.LocalSubmittedPreparation,
+) -> Result[LocalRunTaskMaterialsOriginal?, LocalSubmittedRunRowsIssue] {
+  if !physical_equal(value.plan, plan) ||
+    !physical_equal(value.preparation, preparation) {
+    return Err(ForeignPreparation)
+  }
+  Ok(value.task_materials)
 }
 
 ///|
@@ -300,7 +327,13 @@ fn local_saved_submitted_row_originals(
   // Later Run revisions may change dispatch/publication facts. The original
   // finite Policy packet is immutable, including its initial issued_at.
   if saved_policy != value.local_policy_original ||
-    saved_observation != value.observation_originals {
+    saved_observation != value.observation_originals ||
+    run.task_materials_cid != value.task_materials.map(original => original.cid) {
+    return Err(CustodyLost)
+  }
+  if value.task_materials is Some(original) &&
+    run.publication_policy_originals !=
+    Some(original.publication_policy_originals) {
     return Err(CustodyLost)
   }
   let submitted = match

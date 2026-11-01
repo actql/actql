@@ -14,6 +14,7 @@ pub(all) struct ClientRunJournalInspection {
   request : ClientRequestIdentity
   definition : @publication.PublicationContract
   checkpoint : Array[@effect.EffectLedgerEntry]?
+  task_materials_cid : String?
 }
 
 ///|
@@ -96,6 +97,7 @@ pub fn[E] inspect_client_run_journal_inventory(
   let checkpoint_scopes : Map[String, Bool] = Map([], capacity=max_records)
   let responses : Map[String, Bool] = Map([], capacity=max_records)
   let receipts : Map[String, Bool] = Map([], capacity=max_records)
+  let task_chunks : Map[String, Bool] = Map([], capacity=max_records * 3)
   while true {
     let row = match scan("client_runs", cursor) {
       Ok(Some(value)) => value
@@ -112,6 +114,20 @@ pub fn[E] inspect_client_run_journal_inventory(
     }
     if row.key != client_request_scope_cid(record.request) {
       return Err(custody_lost)
+    }
+    if record.task_materials_cid is Some(cid) {
+      let wire = match
+        read_client_task_material_original(row.key, cid, read, custody_lost) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      let chunks = match client_task_material_original_chunks(row.key, wire) {
+        Ok(value) => value
+        Err(_) => return Err(custody_lost)
+      }
+      for (key, _) in chunks {
+        task_chunks[key] = true
+      }
     }
     if record.checkpoint is Some(checkpoint) {
       checkpoint_scopes[row.key] = true
@@ -150,6 +166,28 @@ pub fn[E] inspect_client_run_journal_inventory(
     cursor = row.key
   }
   if observed != count {
+    return Err(custody_lost)
+  }
+  cursor = ""
+  let mut chunk_count = 0
+  while true {
+    let row = match scan("client_task_run_materials", cursor) {
+      Ok(Some(value)) => value
+      Ok(None) => break
+      Err(issue) => return Err(issue)
+    }
+    chunk_count += 1
+    if chunk_count > task_chunks.length() ||
+      !task_chunks.contains(row.key) ||
+      row.key <= cursor ||
+      row.revision != 0L ||
+      row.body.length() == 0 ||
+      row.body.length() > 131072 {
+      return Err(custody_lost)
+    }
+    cursor = row.key
+  }
+  if chunk_count != task_chunks.length() {
     return Err(custody_lost)
   }
   cursor = ""

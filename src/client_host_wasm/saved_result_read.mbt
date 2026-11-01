@@ -331,7 +331,10 @@ fn validate_saved_result_read(
   }
   match
     observe_submission_lookup(
-      value, record, configuration, original=Some(retained.snapshot),
+      value,
+      record,
+      configuration,
+      original=Some(retained.snapshot),
     ) {
     Ok(Some(_)) => ()
     Ok(None) => return Err(-42)

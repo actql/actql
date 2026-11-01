@@ -14,6 +14,7 @@ priv struct StoredPreparation {
   slot : @buffers.BufferSlot
   environment : Int
   kind : Int
+  mut restoration : Int?
   mut submitted : @preparation.LocalSubmittedPreparation?
   mut started : Bool
   mut outcome : Result[
@@ -214,6 +215,7 @@ pub fn reserve_preparation(
     slot,
     environment,
     kind,
+    restoration: None,
     submitted: None,
     started: false,
     outcome: None,
@@ -231,6 +233,9 @@ pub fn prepare_program(nonce : Int64, handle : Int) -> Int {
   guard value.preparations.get(handle) is Some(record) &&
     value.environments.get(record.environment) is Some(configuration) else {
     return -2
+  }
+  if record.restoration is Some(_) {
+    return -3
   }
   if record.outcome is Some(_) {
     return 0
@@ -292,6 +297,74 @@ pub fn prepare_program(nonce : Int64, handle : Int) -> Int {
     @host.client_standard_program_preparation_limits(),
   )
   record.outcome = Some(outcome)
+  0
+}
+
+///|
+/// Bind the existing input loan to the same original codec input. The supplied
+/// environment and intent must match the saved originals; this entry never
+/// calls the ordinary query lowerer or Checker, even after interruption.
+pub fn bind_restored_preparation(
+  nonce : Int64,
+  handle : Int,
+  restoration_handle : Int,
+) -> Int {
+  guard selected(nonce) is Some(value) &&
+    value.preparations.get(handle) is Some(record) &&
+    record.kind == 3 &&
+    value.environments.get(record.environment) is Some(environment) &&
+    value.restorations.get(restoration_handle) is Some(restoration) &&
+    restoration.saved_original is Some(original) else {
+    return -2
+  }
+  match sdk_restoration_snapshot(value, restoration) {
+    Ok(_) => ()
+    Err(code) => return code
+  }
+  if record.restoration is Some(previous) && previous != restoration_handle {
+    return -3
+  }
+  if record.outcome is Some(_) {
+    return if record.restoration == Some(restoration_handle) { 0 } else { -3 }
+  }
+  if record.started {
+    return -23
+  }
+  record.restoration = Some(restoration_handle)
+  record.started = true
+  let retained = @host.client_saved_task_materials_input(original)
+  if environment.wire !=
+    @host.client_task_run_materials_retained_environment(retained) ||
+    @checked.checking_environment_cid(environment.environment) !=
+    @host.prepared_client_check_environment_cid(
+      @host.client_task_run_materials_retained_program(retained),
+    ) {
+    return -35
+  }
+  guard @buffers.buffer_wire(value.pool, record.slot) is Some(bytes) else {
+    return -5
+  }
+  let wire = @utf8.decode(bytes) catch { _ => return -12 }
+  let intent = match
+    @host.prepare_client_submitted_intent(wire, 65536, 8192, 64) {
+    Ok(value) => value
+    Err(_) => return -31
+  }
+  if @host.client_submitted_intent_wire(intent) !=
+    @host.client_submitted_intent_wire(
+      @host.client_saved_task_materials_intent(original),
+    ) {
+    return -45
+  }
+  record.outcome = Some(
+    match @preparation.restore_local_submitted_input(original) {
+      Ok(submitted) => {
+        record.submitted = Some(submitted)
+        Ok(@preparation.local_submitted_preparation_input(submitted))
+      }
+      Err(issue) => Err(issue)
+    },
+  )
   0
 }
 

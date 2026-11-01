@@ -37,7 +37,10 @@ test "cold saved SDK status preserves the exact original state and observation r
   ).unwrap()
   assert_eq(
     saved_sdk_run_state_observation_wire(
-      original, "saved-manifest-fixture", 4L, observation.key(),
+      original,
+      "saved-manifest-fixture",
+      4L,
+      observation.key(),
     ),
     Ok(@utf8.encode(saved_sdk_status_state)),
   )
@@ -56,14 +59,20 @@ test "cold saved SDK status refuses foreign run counter and observation key" {
   for revision in [0L, 3L, 5L, 9007199254740992L] {
     assert_true(
       saved_sdk_run_state_observation_wire(
-        original, "saved-manifest-fixture", revision, observation.key(),
+        original,
+        "saved-manifest-fixture",
+        revision,
+        observation.key(),
       )
       is Err(-32),
     )
   }
   assert_true(
     saved_sdk_run_state_observation_wire(
-      original, "foreign-run", 4L, observation.key(),
+      original,
+      "foreign-run",
+      4L,
+      observation.key(),
     )
     is Err(-32),
   )
@@ -74,4 +83,3 @@ test "cold saved SDK status refuses foreign run counter and observation key" {
     is Err(-32),
   )
 }
-

@@ -38,7 +38,12 @@ fn saved_sdk_run_state_observation_wire(
 ) -> Result[Bytes, Int] {
   let observation = match
     @publication.prepare_run_state_observation(
-      state.state_wire(), run_id, revision, 65536, 8192, 64,
+      state.state_wire(),
+      run_id,
+      revision,
+      65536,
+      8192,
+      64,
     ) {
     Ok(value) => value
     Err(_) => return Err(-32)
@@ -56,12 +61,18 @@ fn sdk_run_state_snapshot(
   run : Int,
   current_configuration : Int,
 ) -> Result[(@local_run.LocalRunPlan, @host.ClientSavedSubmissionSnapshot), Int] {
-  guard value.runs.get(run)
-    is Some({ outcome: Some(Ok(plan)), sdk_submission: Some(submission), .. }) &&
+  guard value.runs.get(run) is Some(record) &&
+    record.outcome is Some(Ok(plan)) &&
+    record.sdk_submission is Some(submission) &&
     value.submissions.get(submission) is Some(original) &&
     value.run_configurations.get(current_configuration) is Some(current) &&
     current.sdk is Some(_) else {
     return Err(-2)
+  }
+  if record.restoration is Some(_) {
+    return sdk_restored_run_snapshot(value, run, plan).map(snapshot => {
+      (plan, snapshot)
+    })
   }
   // Keep the same checked preparation, saved initial rows and policy original.
   match sdk_saved_original_rows(value, run, plan) {

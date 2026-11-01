@@ -8,7 +8,11 @@ test "task materials retain their actual prepared input and reject a copied owne
   ).unwrap()
   let limits = run_materials_limits()
   let prepared = prepare_effect_free_client_program(
-    run_materials_document, Json, environment, None, limits.preparation,
+    run_materials_document,
+    Json,
+    environment,
+    None,
+    limits.preparation,
   ).unwrap()
   let compilation = issue_prepared_client_task_compilation(
     prepared,
@@ -28,8 +32,7 @@ test "task materials retain their actual prepared input and reject a copied owne
     "2099-01-01T00:00:00.000Z",
   ).unwrap()
   let definition = issue_client_compiled_run_definition(
-    compiled, "retained-scope", "retained-run", "2026-11-01T00:00:00.000Z",
-    "2099-01-01T00:00:00.000Z",
+    compiled, "retained-scope", "retained-run", "2026-11-01T00:00:00.000Z", "2099-01-01T00:00:00.000Z",
   ).unwrap()
   let wire = issue_client_task_run_materials(
     prepared,

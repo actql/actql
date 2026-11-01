@@ -49,6 +49,7 @@ fn sdk_run_append_candidate(
   configuration : StoredRunConfiguration,
   plan : @local_run.LocalRunPlan,
   original : @host.ClientLocalRunPolicyOriginal,
+  task_materials : @local_run.LocalRunTaskMaterialsOriginal?,
 ) -> Result[@host.ClientRunJournalAppend, Int] {
   let scan = (table, key) => {
     sdk_run_journal_port(value, configuration, 0, table, key)
@@ -80,6 +81,12 @@ fn sdk_run_append_candidate(
       -31,
       local_policy_original=Some(original),
       run_observation_originals=Some(observation),
+      task_materials_cid=task_materials.map(
+        @local_run.local_run_task_materials_original_cid,
+      ),
+      publication_policy_originals=task_materials.map(
+        @local_run.local_run_task_materials_original_policy,
+      ),
     ) {
     Ok(Append(candidate)) => Ok(candidate)
     // A saved Run cannot be backfilled into a preparing Submission or replaced

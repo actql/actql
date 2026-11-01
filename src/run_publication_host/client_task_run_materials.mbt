@@ -244,3 +244,84 @@ pub fn client_task_run_materials_compiled_original(
     value
   })
 }
+
+///|
+pub(all) enum ClientSavedTaskMaterialsIssue {
+  MissingOriginal
+  CustodyLost
+  Compilation(ClientCompiledRunIssue)
+  Binding(ClientRunBindingIssue)
+}
+
+///|
+/// The same saved Submission and its exact checked original task input.
+/// This carrier proves no current authority, physical start or Store ACK.
+pub struct ClientSavedTaskMaterials {
+  snapshot : ClientSavedSubmissionSnapshot
+  input : ClientTaskRunMaterialsRetainedInput
+}
+
+///|
+pub fn bind_client_saved_submission_task_materials(
+  snapshot : ClientSavedSubmissionSnapshot,
+  materials : ClientTaskRunMaterials,
+) -> Result[ClientSavedTaskMaterials, ClientSavedTaskMaterialsIssue] {
+  guard snapshot.task_materials is Some(wire) else {
+    return Err(MissingOriginal)
+  }
+  if wire != materials.retained_input.materials_wire {
+    return Err(CustodyLost)
+  }
+  guard snapshot.record.run_admission is Some(admission) &&
+    snapshot.run is Some(row) &&
+    snapshot.inspection is Some(run) else {
+    return Err(CustodyLost)
+  }
+  if @publication.publication_contract_identity(materials.run_definition) !=
+    @publication.publication_contract_identity(run.definition) ||
+    validate_client_submitted_retained_run(
+      snapshot.record.reference,
+      admission,
+      run.request,
+      run.definition,
+      row.revision,
+    )
+    is Err(_) {
+    return Err(CustodyLost)
+  }
+  let compiled = match client_task_run_materials_compiled_original(materials) {
+    Ok(value) => value
+    Err(issue) => return Err(Compilation(issue))
+  }
+  match
+    validate_client_run_binding(
+      run.request,
+      materials.retained_input.prepared,
+      compiled,
+      run.definition,
+    ) {
+    Ok(_) => Ok({ snapshot, input: materials.retained_input, })
+    Err(issue) => Err(Binding(issue))
+  }
+}
+
+///|
+pub fn client_saved_task_materials_snapshot(
+  value : ClientSavedTaskMaterials,
+) -> ClientSavedSubmissionSnapshot {
+  value.snapshot
+}
+
+///|
+pub fn client_saved_task_materials_intent(
+  value : ClientSavedTaskMaterials,
+) -> ClientSubmittedIntent {
+  value.snapshot.record.intent
+}
+
+///|
+pub fn client_saved_task_materials_input(
+  value : ClientSavedTaskMaterials,
+) -> ClientTaskRunMaterialsRetainedInput {
+  value.input
+}

@@ -430,6 +430,7 @@ fn NativeClientRunJournal::retained_submission_with_run(
         request: record.request,
         definition: record.definition,
         checkpoint: record.checkpoint.map(value => value.effect_ledger),
+        task_materials_cid: record.task_materials_cid,
       })
     },
     CustodyLost,
@@ -574,6 +575,7 @@ fn NativeClientRunJournal::record_submitted_intent_locked(
           request: record.request,
           definition: record.definition,
           checkpoint: record.checkpoint.map(value => value.effect_ledger),
+          task_materials_cid: record.task_materials_cid,
         })
       },
       CustodyLost,

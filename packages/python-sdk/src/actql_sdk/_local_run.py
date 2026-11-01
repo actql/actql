@@ -31,6 +31,15 @@ class _Run:
 
 
 @dataclass(frozen=True, slots=True, eq=False)
+class _Restoration:
+    owner: object
+    handle: int
+    configuration: _RunConfiguration
+    input: _Input
+    snapshot: _Output
+
+
+@dataclass(frozen=True, slots=True, eq=False)
 class _PhysicalStart:
     owner: object
     handle: int
@@ -67,6 +76,8 @@ class LocalRunCustody:
         self._identity = object()
         self._configurations: dict[int, _RunConfiguration] = {}
         self._runs: dict[int, _Run] = {}
+        self._restorations: dict[int, _Restoration] = {}
+        self._run_restorations: dict[int, _Restoration] = {}
         self._starts: dict[int, _PhysicalStart] = {}
         self._computes: dict[int, _SourceFreeCompute] = {}
         self._compute_currents: dict[int, _RunConfiguration] = {}
@@ -104,6 +115,92 @@ class LocalRunCustody:
             raise ValueError('Foreign or released Local physical-start loan')
         self._run(value.run)
         self._configuration(value.current)
+
+    def _restoration(self, value: _Restoration) -> None:
+        self._nominal()
+        if (type(value) is not _Restoration or value.owner is not self._identity
+                or self._restorations.get(value.handle) is not value):
+            raise ValueError('Foreign or released original Local restoration')
+        self._configuration(value.configuration)
+        self._core._owned_input(value.input)
+        self._core._owned_output(value.snapshot, 'submission_lookup')
+
+    def reserve_restoration(self, configuration: _RunConfiguration, input: _Input,
+                            snapshot: _Output) -> _Restoration:
+        """Retain the same reference and saved snapshot before cold decoding."""
+        with self._core._lock:
+            self._active()
+            self._configuration(configuration)
+            self._core._owned_input(input)
+            self._core._owned_output(snapshot, 'submission_lookup')
+            if not configuration.sdk or configuration.current is None:
+                raise ValueError('Original SDK restoration configuration is unavailable')
+            handle = self._core._call('material', 'reserve_restoration', input.handle)
+            if handle <= 0:
+                raise LocalCoreError('reserve_restoration', handle)
+            value = _Restoration(self._identity, handle, configuration, input, snapshot)
+            self._restorations[handle] = value
+            return value
+
+    def restore_materials(self, value: _Restoration) -> None:
+        """Use the existing decoder on the exact saved originals, never prepare."""
+        with self._core._lock:
+            self._active()
+            self._restoration(value)
+            current = value.configuration.current
+            assert current is not None
+            self._core._host_current_ready(current)
+            code = self._core._call('material', 'restore_sdk', value.handle,
+                                    value.configuration.handle, value.snapshot.handle)
+            callbacks = self._core._journal_callbacks(current.ticket)
+            if callbacks is not None and callbacks.failure is not None:
+                raise callbacks.failure
+            self._core._check('restore_sdk', code)
+            self._core._check('restored', self._core._call('material', 'restored', value.handle))
+
+    def bind_restored_preparation(self, value: _Restoration, preparation: _Preparation) -> None:
+        """Bind only the codec-retained prepared input to its saved intent loan."""
+        with self._core._lock:
+            self._active()
+            self._restoration(value)
+            self._preparation._preparation(preparation)
+            self._core._check('bind_restored', self._core._call('program', 'bind_restored',
+                preparation.handle, value.handle))
+
+    def restore_run(self, run: _Run, value: _Restoration) -> None:
+        """Restore the same typed Run under current authority without dispatch."""
+        with self._core._lock:
+            self._active()
+            self._run(run)
+            self._restoration(value)
+            if run.configuration is not value.configuration or run.input is not value.input:
+                raise ValueError('Foreign original Run restoration parents')
+            previous = self._run_restorations.get(run.handle)
+            if previous is not None and previous is not value:
+                raise ValueError('Changed original Run restoration')
+            # Keep the original child association before the fallible call.
+            self._run_restorations[run.handle] = value
+            current = value.configuration.current
+            assert current is not None
+            self._core._host_current_ready(current)
+            code = self._core._call('run', 'restore', run.handle, value.handle)
+            callbacks = self._core._journal_callbacks(current.ticket)
+            if callbacks is not None and callbacks.failure is not None:
+                raise callbacks.failure
+            self._core._check('restore', code)
+            self._core._check('prepared', self._core._call('run', 'prepared', run.handle))
+
+    def close_restoration(self, value: _Restoration) -> bool:
+        with self._core._lock:
+            self._restoration(value)
+            if any(original is value for original in self._run_restorations.values()):
+                return False
+            code = self._core._call('material', 'close_restoration', value.handle)
+            if code == -9:
+                return False
+            self._core._check('close_restoration', code)
+            del self._restorations[value.handle]
+            return True
 
     def install_configuration(self, input: _Input) -> _RunConfiguration:
         """Ask the existing Account Owner to admit installed Host configuration."""
@@ -291,6 +388,7 @@ class LocalRunCustody:
                 return False
             self._core._check('close', code)
             del self._runs[value.handle]
+            self._run_restorations.pop(value.handle, None)
             return True
 
     def close_configuration(self, value: _RunConfiguration) -> bool:

@@ -47,6 +47,7 @@ fn inventory_run_original() -> ClientRunJournalInspection {
     request: original.request,
     definition: original.definition,
     checkpoint: None,
+    task_materials_cid: None,
   }
 }
 

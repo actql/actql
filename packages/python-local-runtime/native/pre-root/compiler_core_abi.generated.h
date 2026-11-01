@@ -3,7 +3,7 @@
 #define ACTQL_COMPILER_CORE_ABI_H
 #include <stddef.h>
 typedef struct { const char *name; const char *parameters; const char *result; } actql_compiler_signature;
-#define ACTQL_COMPILER_CORE_ABI 78
+#define ACTQL_COMPILER_CORE_ABI 79
 static const actql_compiler_signature actql_compiler_imports[] = {
     {"execution_child_admit", "i64", "i32"},
     {"execution_child_capacity", "i64 i32", "i64"},
@@ -84,6 +84,7 @@ static const actql_compiler_signature actql_compiler_exports[] = {
     {"actql_material_reserve_restoration", "i64 i32", "i32"},
     {"actql_material_reserve_submitted_rows", "i64 i32 i32 i32 i32 i64", "i32"},
     {"actql_material_restore", "i64 i32", "i32"},
+    {"actql_material_restore_sdk", "i64 i32 i32 i32", "i32"},
     {"actql_material_restored", "i64 i32", "i32"},
     {"actql_material_retire_output", "i64 i32", "i32"},
     {"actql_material_validate_sdk_publication", "i64 i32", "i32"},
@@ -143,6 +144,7 @@ static const actql_compiler_signature actql_compiler_exports[] = {
     {"actql_payload_writing_produce", "i64 i32 i32 i32", "i32"},
     {"actql_payload_writing_reserve", "i64 i32 i32 i32 i64", "i32"},
     {"actql_payload_writing_validate", "i64 i32 i32", "i32"},
+    {"actql_program_bind_restored", "i64 i32 i32", "i32"},
     {"actql_program_close_environment", "i64 i32", "i32"},
     {"actql_program_close_preparation", "i64 i32", "i32"},
     {"actql_program_install_environment", "i64 i32", "i32"},
@@ -300,5 +302,5 @@ static const actql_compiler_signature actql_compiler_exports[] = {
     {"actql_workspace_reserve", "i64 i32 i64", "i32"},
     {"actql_workspace_root_reserved", "i64", "i64"},
 };
-#define ACTQL_COMPILER_EXPORTS_COUNT 267
+#define ACTQL_COMPILER_EXPORTS_COUNT 269
 #endif

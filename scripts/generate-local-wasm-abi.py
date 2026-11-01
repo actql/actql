@@ -53,10 +53,10 @@ def unit(symbol: str, name: str) -> str:
         return 'original physical callback ticket; no authority or wire identity'
     if name in {
         'account_input', 'attempt', 'clock_input', 'compute', 'configuration',
-        'current', 'current_configuration', 'current_handle', 'environment',
+        'current', 'current_configuration', 'current_handle', 'configuration_handle', 'environment',
         'first_handle', 'handle', 'input', 'material', 'materials', 'parent',
         'payload_record', 'preparation', 'publication', 'publisher', 'reader',
-        'request', 'result', 'run', 'source', 'step_handle', 'submission', 'task',
+        'request', 'restoration_handle', 'result', 'run', 'source', 'step_handle', 'submission', 'task',
     }:
         return 'same-instance original handle of ' + symbol + '.' + name
     raise ValueError('Unclassified ABI parameter unit: ' + symbol + '.' + name)

@@ -60,7 +60,13 @@ fn[T] NativeLocalJournalCapture::with_current_adoption_material_in_original_read
         is Some("client_submitted_intents" | "client_submitted_intent_custody") {
         host.journal.invalidate_operation_submission()
       }
-      if table is None || table is Some("client_runs" | "client_effect_custody") {
+      if table is None ||
+        table
+        is Some(
+          "client_runs"
+          | "client_effect_custody"
+          | "client_task_run_materials"
+        ) {
         host.journal.invalidate_operation_run()
       }
     },
