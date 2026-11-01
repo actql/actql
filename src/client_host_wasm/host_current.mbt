@@ -48,14 +48,28 @@ fn host_current_checked_operation(
   value : Instance,
   record : StoredHostCurrent,
 ) -> Result[Int64, Int] {
-  if value.closing ||
-    value.runtime_closing ||
+  host_current_checked_operation_original(
+    record,
+    () => value.closing || value.runtime_closing,
+    () => physical_journal_current_operation(record.physical),
+  )
+}
+
+///|
+// Existing controller with closed production fields exposed to independent
+// component tests. These pure ports are not an author/Host permission API.
+fn host_current_checked_operation_original(
+  record : StoredHostCurrent,
+  instance_closed : () -> Bool,
+  physical : () -> Int64,
+) -> Result[Int64, Int] {
+  if instance_closed() ||
     record.closing ||
     record.output_closed {
     record.observed_operation = 0L
     return Err(-5)
   }
-  let operation = physical_journal_current_operation(record.physical)
+  let operation = physical()
   if operation < 0L {
     record.observed_operation = 0L
     Err(-41)

@@ -238,3 +238,33 @@ test "original operation observation cannot publish ready data across a changed 
   @buffers.close_buffer(pool, record.slot).unwrap()
   @buffers.close_pool(pool).unwrap()
 }
+
+///|
+test "entered physical current callback cannot return a ready operation after retirement" {
+  for changed in [0, 1, 2] {
+    let (record, pool) = operation_current_fixture()
+    let closed = Ref(false)
+    let calls = Ref(0)
+    record.observed_operation = 9L
+    let result = host_current_checked_operation_original(
+      record,
+      () => closed.val,
+      () => {
+        calls.val += 1
+        if changed == 0 {
+          closed.val = true
+        } else if changed == 1 {
+          record.closing = true
+        } else {
+          record.output_closed = true
+        }
+        9L
+      },
+    )
+    assert_true(result is Err(-41))
+    assert_eq(record.observed_operation, 0L)
+    assert_eq(calls.val, 1)
+    @buffers.close_buffer(pool, record.slot).unwrap()
+    @buffers.close_pool(pool).unwrap()
+  }
+}
