@@ -526,6 +526,7 @@ class LocalCore:
                                        ('publisher_finish', self._publisher_finish),
                                        ('journal_current', self._journal_current),
                                        ('journal_current_operation', self._journal_current_operation),
+                                       ('journal_schema', self._journal_schema),
                                        ('journal_begin', self._journal_begin),
                                        ('journal_query', self._journal_query),
                                        ('journal_length', self._journal_length),
@@ -920,6 +921,10 @@ class LocalCore:
     def _journal_current(self, ticket: int) -> int:
         callbacks = self._journal_callbacks(ticket)
         return -41 if callbacks is None else callbacks.check_current()
+
+    def _journal_schema(self, ticket: int) -> int:
+        callbacks = self._journal_callbacks(ticket)
+        return -41 if callbacks is None else callbacks.schema()
 
     def _journal_current_operation(self, ticket: int) -> int:
         """Fresh original current plus this entered Host operation's DATA.

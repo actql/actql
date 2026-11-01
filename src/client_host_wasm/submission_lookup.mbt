@@ -171,6 +171,7 @@ fn submission_run_reference_snapshot(
     @host.ClientRequestIdentity,
     @publication.PublicationContract,
   )? = None,
+  physical_schema? : Int = 0,
 ) -> Result[@host.ClientSavedSubmissionSnapshot?, Int] {
   guard original is Some(before) else {
     return @host.inspect_client_saved_run_reference(

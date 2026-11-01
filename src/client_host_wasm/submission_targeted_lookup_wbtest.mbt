@@ -358,3 +358,57 @@ test "missing selected submission still observes cancellation before absence" {
   assert_eq(reads, 3)
   assert_eq(cancellations, 3)
 }
+
+///|
+test "indexed saved cold lookup selects exact original without unrelated Run audit" {
+  let rows = targeted_snapshot_rows()
+  let ready = @host.decode_client_submitted_journal_row(
+    @utf8.encode(targeted_submission_ready),
+  ).unwrap()
+  let run = submission_append_run_inspection(
+    targeted_row_read(
+      rows,
+      "client_runs",
+      @host.client_request_scope_cid(ready.run_admission.unwrap().0),
+    ).unwrap().unwrap(),
+  ).unwrap()
+  let (key, body) = @host.client_saved_run_reference_locator(
+    ready.reference, run.request, run.definition,
+  ).unwrap()
+  rows.push(("client_run_reference_index", { key, body, revision: 0L, }))
+  // Unrelated integrity inspection is not a selected read of this original.
+  rows.push(("client_runs", { key: "unrelated", body: b"invalid", revision: 0L, }))
+  let reads : Array[String] = []
+  let mut nested = 0
+  let mut cancellation = 0
+  let actual = submission_run_reference_snapshot(
+    "scope",
+    "sha256:" + "b".repeat(64),
+    "sha256:7a12ebea352eee2a7d88bf6df5c5b6d7b56d6383f7e6e5fc9231fef79412fafc",
+    None,
+    (_, _) => Err(-88),
+    (table, selected) => {
+      reads.push(table)
+      targeted_row_read(rows, table, selected)
+    },
+    row => {
+      nested += 1
+      submission_append_run_inspection(row)
+    },
+    () => {
+      cancellation += 1
+      Ok(())
+    },
+    physical_schema=1,
+  )
+  guard actual is Ok(Some(snapshot)) else { fail("selected original refused") }
+  assert_eq(
+    @host.client_submission_reference_record_wire(
+      @host.client_saved_submission_record(snapshot).reference,
+    ),
+    @host.client_submission_reference_record_wire(ready.reference),
+  )
+  assert_eq(reads, ["client_run_reference_index", "client_submitted_intents", "client_runs"])
+  assert_eq(nested, 1)
+  assert_eq(cancellation, 1)
+}
