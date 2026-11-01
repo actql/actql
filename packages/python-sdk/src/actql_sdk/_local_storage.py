@@ -987,9 +987,14 @@ class LocalByteStore:
                 if view is not reader or type(required) is not tuple:
                     raise ValueError('Copied or foreign Local inventory snapshot')
                 current_snapshot()
-                if required:
+                # Only the SAME frozen members, in the SAME admitted order,
+                # reuse their shape/bounds checks. Physical current above is
+                # fresh on every call; copied/subset DATA keeps full admission.
+                same_originals = len(required) == len(fences) and all(
+                    wanted is original for wanted, original in zip(required, fences))
+                if required and not same_originals:
                     self._validate_metadata_fences(required, ())
-                if (any(value not in fences for value in required)
+                if ((not same_originals and any(value not in fences for value in required))
                         or any(write.key == value.key for write in successors for value in required)):
                     raise LocalStorageError('Original Local snapshot is missing required physical fences')
             except BaseException as error:
