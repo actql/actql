@@ -3446,6 +3446,18 @@ function publicationControl(moon) {
         limits.maxRows, limits.maxWork, limits.maxEntries, limits.maxValueBytes,
         limits.maxValueNodes, limits.maxValueDepth, limits.maxFrames, workspace]));
     },
+    prepareCheckedClientRequestModelSerializationPlan(parent, input, request, compiled, definition,
+      limits, workspace, queryTime) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Content preparation');
+      }
+      const prepare = moon.clientProgramPrepareRequestModelSerializationPlan;
+      if (typeof prepare !== 'function') throw new TypeError('Request Content Plan unavailable');
+      return checked(Reflect.apply(prepare, moon, [parent, input, request, value, token(definition),
+        limits.maxRows, limits.maxWork, limits.maxEntries, limits.maxValueBytes,
+        limits.maxValueNodes, limits.maxValueDepth, limits.maxFrames, workspace, queryTime]));
+    },
     prepareCheckedClientEffectModelDemand(prepared, compiled, compilation, definition, occurrence, graph) {
       const value = compiledRunTokens.get(compiled);
       if (value === undefined || compiled.kind !== 'infer') {
@@ -3457,18 +3469,18 @@ function publicationControl(moon) {
       return checked(moon.clientProgramInstalledEffectModelDemandPrepare(
         prepared, value, compilation, token(definition), occurrence, graph));
     },
-    prepareCheckedClientMockModelSourceFreePlan(original, request, compiled, definition,
+    prepareCheckedClientRequestModelSourceFreePlan(parent, input, original, request, compiled, definition,
       occurrence, graph, selected) {
       const value = compiledRunTokens.get(compiled);
       if (value === undefined || compiled.kind !== 'infer') {
         throw new TypeError('Foreign Client compiled Infer preparation');
       }
-      const prepare = moon.clientProgramInstalledMockModelSourceFreePlanPrepare;
+      const prepare = moon.clientProgramPrepareRequestModelSourceFreePlan;
       if (typeof prepare !== 'function') throw new TypeError('Installed Model Plan unavailable');
       // These are the original module, selected Limits and Run tokens. The
       // existing typed constructor checks their complete tuple; this binding
       // issues no Scope/Run and does not select bounds or compile again.
-      return checked(Reflect.apply(prepare, moon, [original, request, value,
+      return checked(Reflect.apply(prepare, moon, [parent, input, original, request, value,
         token(definition), occurrence, graph, selected]));
     },
     bindCheckedClientMockModelCapturePlan(original, compiled, definition,
@@ -6556,6 +6568,13 @@ export function contentGenerationControl(moon, publications) {
       }
       return publications.prepareCheckedClientRequestSerializationPlan(parent, input, request, compiled,
         definition, limits, workspace === undefined ? undefined : workspaces.get(workspace));
+    },
+    prepareModelRequestPrefix(parent, input, request, compiled, definition, limits, workspace, queryTime) {
+      if (workspace !== undefined && !workspaces.has(workspace)) {
+        throw new TypeError('Foreign Content workspace capacity');
+      }
+      return publications.prepareCheckedClientRequestModelSerializationPlan(parent, input, request, compiled,
+        definition, limits, workspace === undefined ? undefined : workspaces.get(workspace), queryTime);
     },
     prepareRequestKeyedPlan(parent, input, request, keyed, directDeclaration, contentDeclaration,
       maxBytes, maxWork, queryContract, evidenceContract, transfers, executions, contracts, task, step,

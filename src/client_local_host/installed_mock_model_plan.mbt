@@ -193,7 +193,7 @@ pub fn prepared_installed_managed_model_requirements(
 }
 
 ///|
-pub fn prepare_installed_mock_model_source_free_plan(
+fn prepare_installed_mock_model_source_free_plan(
   original : ClientInstalledManagedSourceFreePreparation,
   request : @publication_host.ClientRequestIdentity,
   compiled : @publication_host.ClientCompiledRun,

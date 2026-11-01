@@ -9,19 +9,36 @@ const source = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'u
 const node = parse(source, {ecmaVersion: 'latest', sourceType: 'module'}).body
   .find(value => value.type === 'FunctionDeclaration' && value.id.name === 'prepareRequestMockModelPlan');
 assert(node);
-function fixture({count = 0, timed = false, refuseCapture, expire = false, missingModule = false} = {}) {
+function fixture({count = 0, timed = false, refuseCapture, expire = false, missingModule = false,
+  serialized = false, expirePrefix = false, missingPrefix = false} = {}) {
   const parent = {}, input = {}, prepared = {}, request = {}, compilation = {}, module = {}, plan = {};
   const graph = {}, occurrence = {}, bounds = {}, q = {}, admission = {}, initialControl = {};
   const declarations = [{}, {}];
   const calls = [], model = {graph, occurrence, compiled: {}, runDefinition: {}, scope: undefined};
   const run = {prepared, request, model, queryTimePreparation: timed ? q : undefined};
+  const serializationGraph = {}, prefix = {}, prefixLimits = {}, workspace = {};
+  if (serialized) {
+    model.serializationGraph = serializationGraph;
+    const contentControl = {prepareModelRequestPrefix(...args) {
+      assert.equal(this, contentControl);
+      assert.deepEqual(args, [parent, input, request, model.compiled, model.runDefinition,
+        prefixLimits, workspace, timed ? q : undefined]);
+      assert.equal(model.selectedBounds, bounds);
+      calls.push('same Request prefix');
+      if (expirePrefix) current = false;
+      return prefix;
+    }};
+    if (missingPrefix) delete contentControl.prepareModelRequestPrefix;
+    run.contentPreparation = {prepared, managed: run, contentControl, prefixLimits, workspace,
+      plan: {compiled: model.compiled, runDefinition: model.runDefinition, serializationGraph}};
+  }
   let current = true;
   const primary = new Error('original-installation-current');
   const ok = value => ({$tag: 1, _0: value});
   const contracts = {values: 'values', expression: 'fragment', ordered: 'ordered'};
   const control = {
-    prepareCheckedClientMockModelSourceFreePlan(...args) {
-      assert.deepEqual(args, [module, request, model.compiled, model.runDefinition, occurrence, graph, bounds]);
+    prepareCheckedClientRequestModelSourceFreePlan(...args) {
+      assert.deepEqual(args, [parent, input, module, request, model.compiled, model.runDefinition, occurrence, graph, bounds]);
       calls.push('bind-source-free'); return plan;
     },
     bindCheckedClientMockModelCapturePlan(...args) {
@@ -42,6 +59,7 @@ function fixture({count = 0, timed = false, refuseCapture, expire = false, missi
       assert.deepEqual(args, [parent, input, request, model.compiled, model.runDefinition,
         compilation, admission, true, timed ? q : undefined]);
       assert.equal(model.selectedBounds, bounds); assert.equal(model.budget.readRetainedBytes, 13n);
+      if (serialized) assert.equal(run.serialization, prefix, 'Retain original prefix before module constructor');
       calls.push('source-free-module'); if (expire) current = false; return ok(module);
     },
     clientProgramPrepareRequestModelCaptureModule(...args) {
@@ -77,7 +95,7 @@ function fixture({count = 0, timed = false, refuseCapture, expire = false, missi
     return path.endsWith('actql-query-acquisition.json') ? 'query' : 'evidence';
   }};
   const construct = Function(...Object.keys(ports), `return (${source.slice(node.start, node.end)});`)(...Object.values(ports));
-  return {run, model, compilation, module, plan, bounds, calls, primary,
+  return {run, model, compilation, module, plan, bounds, calls, primary, prefix,
     construct: () => construct(originals, run, model, compilation, parent, input)};
 }
 
@@ -113,4 +131,24 @@ test('Request Model refuses absent Request module ports before any legacy constr
     assert.throws(f.construct, {code: count === 0 ? 'NodeManagedRunRuntimeUnavailable' : 'InstalledMockModelOperationalAdmissionUnavailable'});
     assert.deepEqual(f.calls, ['bounds']); assert.equal(f.run.preparedSequences, undefined);
   }
+});
+
+
+test('Request mixed Model constructs the same prefix before module and binds its Plan through original parent and input', () => {
+  const f = fixture({serialized: true, timed: true});
+  assert.equal(f.construct(), f.plan);
+  assert.equal(f.run.serialization, f.prefix);
+  assert.deepEqual(f.calls, ['bounds', 'same Request prefix', 'source-free-module', 'bind-source-free']);
+  const missing = fixture({serialized: true, missingPrefix: true});
+  assert.throws(missing.construct, {code: 'InstalledContentRunPreparationUnavailable'});
+  assert.deepEqual(missing.calls, ['bounds']);
+});
+
+test('Request mixed Model retains returned prefix through current refusal before module or Plan replacement', () => {
+  const f = fixture({serialized: true, expirePrefix: true});
+  assert.throws(f.construct, cause => cause === f.primary);
+  assert.equal(f.run.serialization, f.prefix);
+  assert.equal(f.run.preparedSequences, undefined);
+  assert.equal(f.run.modelPlan, undefined);
+  assert.deepEqual(f.calls, ['bounds', 'same Request prefix']);
 });

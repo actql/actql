@@ -672,12 +672,28 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
     if (typeof moon.clientProgramPrepareRequestModelSourceFreeModule !== 'function') {
       throw clientOperationError('NodeManagedRunRuntimeUnavailable');
     }
+    if (model.serializationGraph !== undefined) {
+      const content = run.contentPreparation;
+      if (content === undefined || content.prepared !== run.prepared || content.managed !== run ||
+          content.plan.compiled !== model.compiled || content.plan.runDefinition !== model.runDefinition ||
+          content.plan.serializationGraph !== model.serializationGraph ||
+          typeof content.contentControl?.prepareModelRequestPrefix !== 'function') {
+        throw clientOperationError('InstalledContentRunPreparationUnavailable');
+      }
+      // Retain the prefix before module/Scope/adoption or another current
+      // callback. This is the same Request compiler and original workspace.
+      run.serialization = content.contentControl.prepareModelRequestPrefix(parent, input,
+        run.request, model.compiled, model.runDefinition, content.prefixLimits,
+        content.workspace, run.queryTimePreparation);
+      current();
+    }
     run.preparedSequences = checked(moon.clientProgramPrepareRequestModelSourceFreeModule(
       parent, input, run.request, model.compiled, model.runDefinition, compilation,
       installed.admission, retainedRelationOutput, run.queryTimePreparation));
     current();
-    run.modelPlan = model.control.prepareCheckedClientMockModelSourceFreePlan(run.preparedSequences,
-      run.request, model.compiled, model.runDefinition, model.occurrence, model.graph, model.selectedBounds);
+    run.modelPlan = model.control.prepareCheckedClientRequestModelSourceFreePlan(parent, input,
+      run.preparedSequences, run.request, model.compiled, model.runDefinition,
+      model.occurrence, model.graph, model.selectedBounds);
   } else {
     const sources = readInstalledMockPreparation(originals).sources;
     if (sources.length !== 2 || typeof moon.clientProgramPrepareRequestModelCaptureModule !== 'function') {
