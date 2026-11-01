@@ -11,11 +11,15 @@ import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {createLocalSigningMetadata} from '../host-common/local-signing-metadata.mjs';
 import {openSqliteCheckpointJournal} from './sqlite-checkpoint-journal.mjs';
-import * as checkpointRuntime from '../../_build/js/release/build/checkpoint_runtime_node/checkpoint_runtime_node.js';
-import * as retainedCredentialRuntime from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+// Focused components may supply their SAME-source canonical debug modules.
+// CI/default consumers retain the original normal release module locations.
+const checkpointRuntime = await import(process.env.ACTQL_CHECKPOINT_RUNTIME_URL ??
+  new URL('../../_build/js/release/build/checkpoint_runtime_node/checkpoint_runtime_node.js', import.meta.url).href);
+const credentialRuntime = await import(process.env.ACTQL_SOURCE_CREDENTIAL_RUNTIME_URL ??
+  new URL('../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url).href);
 
 // Execute the exact new coordinator with explicit Checkpoint/initialization
-// ports, real SQLite/Ed25519 and the retained, unchanged Credential codec.
+// ports, real SQLite/Ed25519 and the actual selected Credential codec.
 // The NEW proof/subject exports below are doubles: this is not a matching new
 // Common runtime, an initialized Host/Account or ordinary installed approval.
 const source = readFileSync(new URL('./local-checkpoint-answer.mjs', import.meta.url), 'utf8');
@@ -31,6 +35,7 @@ const ok = value => ({$tag: 1, _0: value});
 
 async function fixture({loseSignatureOutcome = false, deny = false, delayedKey} = {}) {
   const root = await mkdtemp(join(tmpdir(), 'actql-local-answer-counter-'));
+  console.log('Fresh original signing fixture KEEP: ' + root);
   let transitions = 0, nativeCalls = 0, current = true, clock = T0;
   const pair = generateKeyPairSync('ed25519');
   const summary = {checkpointId: 'original-cp', checkpointCid: cid('1'), kind: 'effect_set',
@@ -48,7 +53,7 @@ async function fixture({loseSignatureOutcome = false, deny = false, delayedKey} 
       },
     }});
   const fence = () => {if (!current) throw Object.assign(new Error('Original revoked'), {code: 'OriginalRevoked'});};
-  const metadata = createLocalSigningMetadata(retainedCredentialRuntime);
+  const metadata = createLocalSigningMetadata(credentialRuntime);
   const originalKey = {policyWire: 'original-policy', policyCid: cid('6'),
     initializationIntentCid: cid('7'), adoptionCid: cid('8'), issuer: 'original-initializer',
     sampledAt: BigInt(T0), expiresAt: BigInt(T0 + 300000), maxUses: 1,
@@ -77,7 +82,7 @@ async function fixture({loseSignatureOutcome = false, deny = false, delayedKey} 
     assert.deepEqual(observed, summary); assert.equal(signingResource, originalKey.signingResource);
     return {wire: 'actual-journal-checkpoint', view: {}, configurationCid: cid('0'), assertCurrent: fence};
   }};
-  const loadRunOriginal = async () => ({materials: ownedMaterials, referenceWire: 'original-submission',
+  const loadRunOriginal = async (_view, _signal, consume) => consume({materials: ownedMaterials, referenceWire: 'original-submission',
     requestIdentity: identity, invocation: {identity: cid('a')}, assertCurrent: fence});
   const tracedSign = (...args) => {
     fence(); nativeCalls++;

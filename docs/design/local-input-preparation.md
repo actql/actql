@@ -5072,3 +5072,25 @@ and current-audience authorization. Explicit Core ports are identified as such;
 the matching compiled-parent case separately exercises actual Request/check and
 report constructors. Neither category establishes packed ordinary Run, Saved or
 physical Host-close acceptance.
+
+## Effect signing consumes the same live recovery
+
+The Local signing loader keeps the original recovered capture, schema/material
+owners and Request resource frame live through its existing asynchronous
+signing consumer. The consumer runs inside that same loader and is awaited
+before recovery cleanup. Returning a borrowed metadata object and closing the
+parent before its consumer runs is not a valid ownership handoff.
+
+The fixed consumer uses the same materials, submitted reference, invocation
+and current checks. Existing Reviewer policy, claim-before-signature, exact
+saved-use binding and Unknown rules remain unchanged. A missing, late or
+repeated consumer call cannot select another signing operation. This is a
+private fixed caller connection, not a public callback, lease or resource owner.
+
+After consumption, its borrowed original alias is cut before the loader
+releases the actual recovery. The loader invalidates its borrowed current view
+and drops its own heavy alias before the existing release continuation may
+return the parent. Failed signing and failed cleanup preserve the original
+primary reason, including null or undefined, together with the same existing
+cleanup retry. No cleanup exception acknowledges physical stop, refunds a
+resource or permits another recovery/signature to replace the original duty.
