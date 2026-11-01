@@ -213,7 +213,7 @@ test "Request original observation bridge returns optional String through the ac
   }
   let loader = request_diagnostic_test_loader(request_diagnostic_test_url())
   assert_true(request_observation_test_read_js(loader, project, true))
-  client_program_abort_request_preparation_after_cleanup(parent).unwrap()
+  client_program_abort_request_preparation(parent).unwrap()
   assert_true(request_observation_test_read_js(loader, project, false))
 }
 
