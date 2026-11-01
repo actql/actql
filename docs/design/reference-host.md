@@ -771,6 +771,16 @@ alias-retirement retry. A pending producer prevents both its lease and a last
 sibling lease from finalizing the Host; Result forwarding supplies no Source
 admission, Result permission or physical close acknowledgement.
 
+Each Host indexes original requests and derived aliases in a private WeakMap
+that points to the same pending handling record. Lookup validates that record's
+Host generation and its continued membership in the original handling Map;
+the index supplies identity routing only. A foreign, rebound or retired alias
+cannot select another request. The strong handling inventory remains responsible
+for drain and shutdown, including failed initialization and cancellation while
+an original call is pending. When that Promise settles, its weak-index tombstone
+cuts request, Promise, Host and generation references without enumerating aliases.
+Promise settlement itself acknowledges neither physical stop nor child cleanup.
+
 Selecting the private Local Source preparation receiver requires its complete
 snapshot, current, publication, request-binding, intent and retirement protocol.
 The SDK captures these own DATA methods and their original receiver once during
