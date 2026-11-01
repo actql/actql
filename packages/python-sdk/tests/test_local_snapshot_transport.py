@@ -39,6 +39,118 @@ class SnapshotTransportTests(unittest.TestCase):
             store.inspect_namespaces((ByteFence('epoch', 0, b'original-epoch'),),
                 inspect=inspect, current=current)
 
+    def test_current_query_keeps_three_currents_and_actual_row_with_same_snapshot_metadata(self):
+        with TemporaryDirectory(prefix='actql-query-immutable-metadata-') as directory:
+            store = LocalByteStore(Path(directory) / 'original.sqlite', max_records=16,
+                max_record_bytes=4096, max_payload_bytes=16384)
+            self.addCleanup(store.close)
+            fences = tuple(ByteFence('epoch:' + str(i), 0, b'original-metadata') for i in range(7))
+            for fence in fences: store.compare_exchange(fence.key, None, fence.payload)
+            store.compare_exchange(store.namespaced_key('original', 'one'), None, b'original-row')
+            currents = []
+            def current(): currents.append(True)
+            def inspect(reader):
+                sql = []
+                observed = []
+                before = len(currents)
+                store._connection.set_trace_callback(sql.append)
+                try:
+                    reader.query_current(reader, 1, 'original', 'one', observed.append, current)
+                finally:
+                    store._connection.set_trace_callback(None)
+                self.assertEqual(len(currents) - before, 3)
+                self.assertEqual(len(observed), 1)
+                self.assertEqual(observed[0][0], 'one')
+                self.assertEqual(observed[0][1].payload, b'original-row')
+                reads = [query for query in sql if query.lstrip().upper().startswith('SELECT')]
+                self.assertEqual(len(reads), 1)  # SAME actual physical row is not cached
+                probes = [query for query in sql if query.startswith('PRAGMA')]
+                self.assertEqual(probes, ['PRAGMA schema_version', 'PRAGMA temp.schema_version'] * 6)
+            store.inspect_namespaces(fences, inspect=inspect, current=current)
+
+    def test_current_query_refuses_metadata_mutation_at_each_current_boundary(self):
+        from actql_sdk._local_storage import LocalStorageError
+        for stop in (1, 2, 3):
+            with self.subTest(stop=stop), TemporaryDirectory(prefix='actql-query-metadata-current-') as directory:
+                store = LocalByteStore(Path(directory) / 'original.sqlite', max_records=8,
+                    max_record_bytes=4096, max_payload_bytes=16384)
+                self.addCleanup(store.close)
+                store.compare_exchange('epoch', None, b'original-epoch')
+                store.compare_exchange(store.namespaced_key('original', 'one'), None, b'original-row')
+                armed, calls, rows = [], [], []
+                def current():
+                    if armed:
+                        calls.append(True)
+                        if len(calls) == stop:
+                            store._connection.execute('UPDATE core_bytes SET generation=1 WHERE key=?', ('epoch',))
+                def inspect(reader):
+                    armed.append(True)
+                    with self.assertRaises(LocalStorageError):
+                        reader.query_current(reader, 1, 'original', 'one', rows.append, current)
+                    armed.clear()
+                    with self.assertRaises(ValueError): reader.current()
+                with self.assertRaises(ValueError):
+                    store.inspect_namespaces((ByteFence('epoch', 0, b'original-epoch'),),
+                        inspect=inspect, current=current)
+                self.assertEqual(len(calls), stop)
+                self.assertEqual(len(rows), int(stop == 3))
+                self.assertFalse(store._physical.in_transaction)
+                self.assertEqual(store.read('epoch').payload, b'original-epoch')
+
+    def test_current_query_refreshes_changed_metadata_and_never_reuses_actual_row(self):
+        with TemporaryDirectory(prefix='actql-query-fresh-row-') as directory:
+            store = LocalByteStore(Path(directory) / 'original.sqlite', max_records=8,
+                max_record_bytes=4096, max_payload_bytes=16384)
+            self.addCleanup(store.close)
+            store.compare_exchange('epoch', None, b'original-epoch')
+            key = store.namespaced_key('original', 'one')
+            store.compare_exchange(key, None, b'original-row')
+            def inspect(reader):
+                observed = []
+                def consume(row):
+                    observed.append(row[1].payload)
+                    store._connection.execute('UPDATE core_bytes SET payload=? WHERE key=?', (b'changed-row', key))
+                with patch.object(store, '_read_bytes_locked', wraps=store._read_bytes_locked) as reads:
+                    reader.query_current(reader, 1, 'original', 'one', consume, current)
+                    self.assertEqual(reads.call_count, 1)  # changed total_changes rechecks exact metadata
+                    reader.query_current(reader, 1, 'original', 'one', lambda row: observed.append(row[1].payload), current)
+                    self.assertEqual(reads.call_count, 1)
+                self.assertEqual(observed, [b'original-row', b'changed-row'])
+            def current(): pass
+            store.inspect_namespaces((ByteFence('epoch', 0, b'original-epoch'),),
+                inspect=inspect, current=current)
+            self.assertEqual(store.read(key).payload, b'original-row')  # same read transaction rolled back
+
+    def test_raw_and_other_physical_queries_keep_complete_metadata_reads(self):
+        for mode in ('raw-read', 'raw-scan', 'other-physical'):
+            with self.subTest(mode=mode), TemporaryDirectory(prefix='actql-query-fallback-') as directory:
+                store = LocalByteStore(Path(directory) / 'original.sqlite', max_records=8,
+                    max_record_bytes=4096, max_payload_bytes=16384)
+                self.addCleanup(store.close)
+                store.compare_exchange('epoch', None, b'original-epoch')
+                store.compare_exchange(store.namespaced_key('original', 'one'), None, b'original-row')
+                if mode == 'other-physical':
+                    original = store._physical
+                    class ExistingPhysicalPort:
+                        def __getattr__(self, name): return getattr(original, name)
+                    store._physical = ExistingPhysicalPort()
+                rows = []
+                def inspect(reader):
+                    sql = []
+                    store._connection.set_trace_callback(sql.append)
+                    try:
+                        if mode == 'raw-read': reader.read('original', 'one', rows.append)
+                        elif mode == 'raw-scan': reader.scan_after('original', '', rows.append)
+                        else: reader.query_current(reader, 1, 'original', 'one', rows.append, current)
+                    finally:
+                        store._connection.set_trace_callback(None)
+                    self.assertEqual(len([q for q in sql if q.lstrip().upper().startswith('SELECT')]), 7)
+                def current(): pass
+                store.inspect_namespaces((ByteFence('epoch', 0, b'original-epoch'),),
+                    inspect=inspect, current=current)
+                self.assertEqual(len(rows), 1)
+                self.assertEqual(rows[0][1].payload, b'original-row')
+
     def test_snapshot_reuse_refuses_mutation_in_current_and_latches_original_failure(self):
         from actql_sdk._local_storage import LocalStorageError
         with TemporaryDirectory(prefix='actql-sql-current-mutation-') as directory:
@@ -129,6 +241,118 @@ class SnapshotTransportTests(unittest.TestCase):
                 store.inspect_namespaces((ByteFence('epoch', 0, b'original-epoch'),),
                     inspect=inspect, current=lambda: None)
 
+    def test_temp_schema_shadow_cannot_reuse_main_metadata_as_current(self):
+        from actql_sdk._local_storage import LocalStorageError
+        with TemporaryDirectory(prefix='actql-sql-temp-schema-shadow-') as directory:
+            store = LocalByteStore(Path(directory) / 'original.sqlite', max_records=8,
+                max_record_bytes=4096, max_payload_bytes=16384)
+            self.addCleanup(store.close)
+            store.compare_exchange('epoch', None, b'original-epoch')
+            def inspect(reader):
+                reader.read('original', 'one', lambda _: None)
+                reader.check_fences(reader, (ByteFence('epoch', 0, b'original-epoch'),))
+                schema = store._connection.execute('PRAGMA schema_version').fetchone()[0]
+                changes = store._connection.total_changes
+                store._connection.execute('CREATE TEMP TABLE core_bytes(key TEXT, generation INTEGER, payload BLOB)')
+                self.assertEqual(store._connection.total_changes, changes)
+                self.assertEqual(store._connection.execute('PRAGMA schema_version').fetchone()[0], schema)
+                with self.assertRaises(LocalStorageError): reader.current()
+            with self.assertRaises(LocalStorageError):
+                store.inspect_namespaces((ByteFence('epoch', 0, b'original-epoch'),),
+                    inspect=inspect, current=lambda: None)
+            self.assertFalse(store._physical.in_transaction)
+            self.assertEqual(store.read('epoch').payload, b'original-epoch')
+
+    def test_schema_probe_cannot_return_a_replaced_original_connection_or_transaction(self):
+        import sqlite3
+        for replace_connection in (False, True):
+            with self.subTest(replace_connection=replace_connection), \
+                    TemporaryDirectory(prefix='actql-schema-original-reentry-') as directory:
+                store = LocalByteStore(Path(directory) / 'original.sqlite', max_records=8,
+                    max_record_bytes=4096, max_payload_bytes=16384)
+                self.addCleanup(store.close)
+                store.compare_exchange('epoch', None, b'original-epoch')
+                foreign = sqlite3.connect(':memory:', isolation_level=None)
+                self.addCleanup(foreign.close)
+                database = store._physical
+                original = store._connection
+                armed = []
+                fired = []
+                def reenter(sql):
+                    if armed and sql == 'PRAGMA temp.schema_version':
+                        armed.clear()
+                        fired.append(True)
+                        if replace_connection:
+                            database._connection = foreign
+                        else:
+                            database.rollback()
+                            database.begin_read()
+                def inspect(reader):
+                    reader.read('original', 'one', lambda _: None)
+                    armed.append(True)
+                    original.set_trace_callback(reenter)
+                    try:
+                        with self.assertRaises(ValueError): reader.current()
+                    finally:
+                        original.set_trace_callback(None)
+                        database._connection = original
+                    with self.assertRaises(ValueError): reader.current()
+                with self.assertRaises(ValueError):
+                    store.inspect_namespaces((ByteFence('epoch', 0, b'original-epoch'),),
+                        inspect=inspect, current=lambda: None)
+                self.assertEqual(fired, [True])
+                self.assertFalse(database.in_transaction)
+                self.assertEqual(store.read('epoch').payload, b'original-epoch')
+
+    def test_temp_shadow_from_query_consumer_refuses_the_original_after_consumer_fence(self):
+        from actql_sdk._local_storage import LocalStorageError
+        with TemporaryDirectory(prefix='actql-query-temp-after-consumer-') as directory:
+            store = LocalByteStore(Path(directory) / 'original.sqlite', max_records=8,
+                max_record_bytes=4096, max_payload_bytes=16384)
+            self.addCleanup(store.close)
+            store.compare_exchange('epoch', None, b'original-epoch')
+            store.compare_exchange(store.namespaced_key('original', 'one'), None, b'original-row')
+            rows = []
+            def consume(row):
+                rows.append(row)
+                store._connection.execute('CREATE TEMP TABLE core_bytes(key TEXT, generation INTEGER, payload BLOB)')
+            def inspect(reader):
+                with self.assertRaises(LocalStorageError):
+                    reader.query_current(reader, 1, 'original', 'one', consume, lambda: None)
+                with self.assertRaises(ValueError): reader.current()
+            # The second attempted use is the existing poisoned-reader refusal.
+            with self.assertRaises(ValueError):
+                store.inspect_namespaces((ByteFence('epoch', 0, b'original-epoch'),),
+                    inspect=inspect, current=lambda: None)
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0][1].payload, b'original-row')
+            self.assertFalse(store._physical.in_transaction)
+
+    def test_temp_schema_probe_refusal_is_not_a_cached_success(self):
+        import sqlite3
+        with TemporaryDirectory(prefix='actql-temp-schema-probe-denied-') as directory:
+            store = LocalByteStore(Path(directory) / 'original.sqlite', max_records=8,
+                max_record_bytes=4096, max_payload_bytes=16384)
+            self.addCleanup(store.close)
+            store.compare_exchange('epoch', None, b'original-epoch')
+            def inspect(reader):
+                reader.read('original', 'one', lambda _: None)
+                def deny(action, name, argument, database, *_):
+                    return (sqlite3.SQLITE_DENY if action == sqlite3.SQLITE_PRAGMA
+                            and name == 'schema_version' and database == 'temp' else sqlite3.SQLITE_OK)
+                store._connection.set_authorizer(deny)
+                try:
+                    with self.assertRaises(sqlite3.DatabaseError): reader.current()
+                finally:
+                    store._connection.set_authorizer(None)
+                with self.assertRaises(ValueError): reader.current()
+            # The second attempted use is the existing poisoned-reader refusal.
+            with self.assertRaises(ValueError):
+                store.inspect_namespaces((ByteFence('epoch', 0, b'original-epoch'),),
+                    inspect=inspect, current=lambda: None)
+            self.assertFalse(store._physical.in_transaction)
+            self.assertEqual(store.read('epoch').payload, b'original-epoch')
+
     def test_snapshot_savepoint_rollback_invalidates_without_reusing_a_mutated_row(self):
         with TemporaryDirectory(prefix='actql-sql-savepoint-') as directory:
             store = LocalByteStore(Path(directory) / 'original.sqlite', max_records=8,
@@ -195,8 +419,8 @@ class SnapshotTransportTests(unittest.TestCase):
                 finally:
                     store._connection.set_trace_callback(None)
                 self.assertEqual(len(currents) - before, 5)
-                self.assertEqual(len(sql), 10)
-                self.assertTrue(all(query == 'PRAGMA schema_version' for query in sql))
+                self.assertEqual(len(sql), 20)
+                self.assertEqual(sql, ['PRAGMA schema_version', 'PRAGMA temp.schema_version'] * 10)
             store.inspect_namespaces(fences, inspect=inspect, current=lambda: currents.append(True))
 
     def test_schema_probe_failure_is_not_cached_success_or_permission(self):

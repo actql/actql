@@ -163,6 +163,46 @@ class InstalledImageTests(unittest.TestCase):
             self.image = replace(self.image, encoded=b'changed')
             with self.assertRaisesRegex(ValueError, 'artifact or capacity'): self.create()
 
+    def test_checked_image_does_not_rehash_the_same_already_verified_immutable_bytes(self):
+        case = distribution_fixture.LocalDistributionTests(); case.setUp(); self.addCleanup(case.doCleanups)
+        components = case.inspect()
+        library = case.directory / 'darwin-aarch64/_libwasmtime.dylib'
+        library.parent.mkdir(); library.write_bytes(b'independent runtime library fixture')
+        distribution = SimpleNamespace(version='38.0.0', locate_file=lambda _: case.directory)
+        with patch('actql_sdk._local_engine.metadata.distribution', return_value=distribution), \
+                patch('actql_sdk._local_engine.hashlib.sha256', wraps=hashlib.sha256) as hashes:
+            original = _checked_installed_image(components)
+        self.assertEqual(original.encoded, IMAGE)
+        self.assertEqual(original.sha256, components.image_sha256)
+        complete_image_rehashes = [call for call in hashes.call_args_list if call.args == (IMAGE,)]
+        self.assertEqual(complete_image_rehashes, [])
+
+    def test_changed_image_descriptor_cannot_self_rebind_before_capture(self):
+        case = distribution_fixture.LocalDistributionTests(); case.setUp(); self.addCleanup(case.doCleanups)
+        components = case.inspect()
+        library = case.directory / 'darwin-aarch64/_libwasmtime.dylib'
+        library.parent.mkdir(); library.write_bytes(b'independent runtime library fixture')
+        changed = IMAGE[:-1] + b'X'
+        components.image.write_bytes(changed)
+        case.body['compiled_image']['sha256'] = hashlib.sha256(changed).hexdigest()
+        case.write_manifest()
+        distribution = SimpleNamespace(version='38.0.0', locate_file=lambda _: case.directory)
+        with patch('actql_sdk._local_engine.metadata.distribution', return_value=distribution), \
+                patch('actql_sdk._local_engine._load_selected_image',
+                      side_effect=AssertionError('capture before original binding')) as capture:
+            with self.assertRaises(LocalInstallationError): _checked_installed_image(components)
+            capture.assert_not_called()
+
+    def test_image_change_after_descriptor_binding_still_fails_actual_full_digest_read(self):
+        case = distribution_fixture.LocalDistributionTests(); case.setUp(); self.addCleanup(case.doCleanups)
+        components = case.inspect()
+        library = case.directory / 'darwin-aarch64/_libwasmtime.dylib'
+        library.parent.mkdir(); library.write_bytes(b'independent runtime library fixture')
+        components.image.write_bytes(IMAGE[:-1] + b'X')
+        distribution = SimpleNamespace(version='38.0.0', locate_file=lambda _: case.directory)
+        with patch('actql_sdk._local_engine.metadata.distribution', return_value=distribution):
+            with self.assertRaises(LocalInstallationError): _checked_installed_image(components)
+
     def test_original_installed_files_and_dependency_digest_rechecked(self):
         case = distribution_fixture.LocalDistributionTests(); case.setUp(); self.addCleanup(case.doCleanups)
         components = case.inspect()

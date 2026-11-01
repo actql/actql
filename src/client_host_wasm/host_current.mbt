@@ -48,14 +48,32 @@ fn host_current_checked_operation(
   value : Instance,
   record : StoredHostCurrent,
 ) -> Result[Int64, Int] {
-  if value.closing ||
-    value.runtime_closing ||
-    record.closing ||
-    record.output_closed {
+  host_current_checked_operation_original(
+    record,
+    () => value.closing || value.runtime_closing,
+    () => physical_journal_current_operation(record.physical),
+  )
+}
+
+///|
+// Existing controller with closed production fields exposed to independent
+// component tests. These pure ports are not an author/Host permission API.
+fn host_current_checked_operation_original(
+  record : StoredHostCurrent,
+  instance_closed : () -> Bool,
+  physical : () -> Int64,
+) -> Result[Int64, Int] {
+  if instance_closed() || record.closing || record.output_closed {
     record.observed_operation = 0L
     return Err(-5)
   }
-  let operation = physical_journal_current_operation(record.physical)
+  let operation = physical()
+  // A returned physical observation cannot revive an Instance/current that
+  // retired through that callback. This is the same late-fence refusal code.
+  if instance_closed() || record.closing || record.output_closed {
+    record.observed_operation = 0L
+    return Err(-41)
+  }
   if operation < 0L {
     record.observed_operation = 0L
     Err(-41)
@@ -101,6 +119,13 @@ fn host_current_observation(
         cursor,
       )
     },
+    post_original=Some(() => {
+      if value.closing || value.runtime_closing {
+        Err(-41)
+      } else {
+        Ok(())
+      }
+    }),
   )
 }
 
@@ -110,6 +135,7 @@ fn host_current_observe_original(
   checked_operation : () -> Result[Int64, Int],
   current : () -> Result[Unit, Int],
   select_row : (String) -> Result[@host.ClientJournalPhysicalRow?, Int],
+  post_original? : (() -> Result[Unit, Int])? = None,
 ) -> Result[@host.ClientLocalAdoptionCurrentObservation[Ref[Int]], Int] {
   guard record.account is Some(account) &&
     record.account_original is Some(original) &&
@@ -117,14 +143,63 @@ fn host_current_observe_original(
     record.generation is Some(generation) else {
     return Err(-33)
   }
+  // Keep the original fields across the physical callback. An equal operation
+  // number cannot replace any retained original or revive a retired holder.
+  let account_before = record.account
+  let original_before = record.account_original
+  let adoption_before = record.adoption_original
+  let generation_before = record.generation
+  let material_before = record.material
+  let row_before = record.original_adoption_row
+  let operation_before = record.observed_operation
+  let store_before = record.store.val
+  let principal_before = record.principal
+  let connection_before = record.connection
+  let invoked_before = record.invoked
+  let produced_before = record.produced
   let operation = match checked_operation() {
     Ok(value) => value
     Err(code) => return Err(code)
+  }
+  if post_original is Some(post) {
+    // Only the closed Guest supplies this same-Instance liveness check. There
+    // is no physical query, callback or await between it and the DATA below.
+    match post() {
+      Err(code) => {
+        record.observed_operation = 0L
+        return Err(code)
+      }
+      Ok(_) => ()
+    }
+    if record.closing ||
+      record.output_closed ||
+      !physical_equal(record.account, account_before) ||
+      !physical_equal(record.account_original, original_before) ||
+      !physical_equal(record.adoption_original, adoption_before) ||
+      record.generation != generation_before ||
+      !physical_equal(record.material, material_before) ||
+      !physical_equal(record.original_adoption_row, row_before) ||
+      record.observed_operation != operation_before ||
+      record.store.val != store_before ||
+      record.principal != principal_before ||
+      record.connection != connection_before ||
+      record.invoked != invoked_before ||
+      record.produced != produced_before {
+      record.observed_operation = 0L
+      return Err(-41)
+    }
   }
   if host_current_observation_reusable(record, operation) &&
     record.original_adoption_row is Some(row) {
     // Common still compares full original row/account/generation and decides
     // each protected operation. Only immutable already-admitted DATA is reused.
+    if post_original is Some(_) {
+      return Ok(
+        @host.Observed(record.store, account, original, row, generation),
+      )
+    }
+    // Raw/test callbacks keep their independent second physical sample. They
+    // may change only on that call and cannot supply the closed Guest liveness check.
     match checked_operation() {
       Ok(after) if after == operation =>
         return Ok(

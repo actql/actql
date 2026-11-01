@@ -169,9 +169,16 @@ def _checked_installed_image(components: LocalComponents) -> _InstalledImageInpu
         # its fields and exact image bytes before the unsafe native loader.
         body = json.loads(_read_file(components.image.parent / 'artifact.json', maximum=65536),
                           object_pairs_hook=_pairs)
-        image = _load_selected_image(components.image.parent, body['compiled_image'], recipe)
-        if hashlib.sha256(image).hexdigest() != components.image_sha256:
+        from ._local_image_recipe import _image_descriptor
+        descriptor = _image_descriptor(body['compiled_image'], recipe)
+        if (descriptor['sha256'] != components.image_sha256
+                or descriptor['bytes'] != components.image_bytes
+                or descriptor['file'] != components.image.name):
             raise LocalInstallationError('Installed image changed after component inspection')
+        # The same local descriptor is checked by the bounded file reader and
+        # its complete digest before it returns immutable bytes. Do not hash
+        # those same bytes again merely to compare the already-bound digest.
+        image = _load_selected_image(components.image.parent, body['compiled_image'], recipe)
         return _InstalledImageInput(image, components.image_sha256, recipe, library)
     except (OSError, KeyError, TypeError, ValueError, UnicodeError, RecursionError,
             metadata.PackageNotFoundError) as original:

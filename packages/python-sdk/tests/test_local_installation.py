@@ -1,6 +1,7 @@
 """Actual original installation IO with neutral scalar Core; not Wasm/public PASS."""
 import hashlib
 import json
+import os
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from threading import RLock
@@ -8,6 +9,7 @@ import unittest
 from unittest.mock import patch
 
 from actql_sdk._local_core import LocalCore
+from actql_sdk._local_files import LocalFileRoot
 from actql_sdk._local_installation import OriginalLocalInstallation, LocalInstallationCleanupPending
 from actql_sdk._local_storage import LocalByteStore, LocalStorageCommitUnknown
 from local_abi_declaration_fixture import original_byte_fixture_port
@@ -88,6 +90,136 @@ class OriginalLocalInstallationTests(unittest.TestCase):
                             if (family, name) == ('bootstrap', 'produce'))
             self.assertTrue(any((family, name, args) == ('bootstrap', 'close', (produced,))
                                 for family, name, args in calls))
+
+    def test_consumed_initial_readers_retire_after_same_original_host_pins_bind(self):
+        # Actual filesystem/Store/pins with the existing explicit scalar Core
+        # port. This is not actual Common/normal installed qualification.
+        with TemporaryDirectory(prefix='actql-install-') as directory:
+            core, calls = self.core()
+            value = self.create(core, Path(directory))
+            pins = {(pin._root, member.name): member
+                    for pin in value._pins for member in pin._files.values()}
+            redundant = [(root, reader) for root, reader in value._readers
+                         if (root, reader.name) in pins]
+            self.assertEqual(redundant, [])
+            self.assertEqual(len(pins), 11)
+            for (root, _), member in pins.items():
+                self.assertIs(root._original_readers[id(member.reader)], member.reader)
+                self.assertEqual(root.observe_original(member.reader), member.snapshot)
+            before = len(calls)
+            value.binding.inspect(lambda _: None)
+            self.assertGreater(len(calls), before)
+            self.assertTrue(value.close())
+
+    def test_unmatched_initial_reader_is_kept_under_the_same_installation(self):
+        with TemporaryDirectory(prefix='actql-install-') as directory:
+            core, _ = self.core()
+            value = self.create(core, Path(directory))
+            path = Path(directory) / 'source/unpaired.json'
+            path.write_bytes(b'{"original":"unpaired"}')
+            path.chmod(0o600)
+            self.assertEqual(value._read(value._source, path.name, 64), path.read_bytes())
+            original = value._readers[0]
+            value._retire_preparation_readers()
+            self.assertEqual(value._readers, [original])
+            self.assertIs(original[0]._original_readers[id(original[1])], original[1])
+            self.assertTrue(value.close())
+            self.assertTrue(path.exists())
+
+    def test_equal_bytes_foreign_file_refuses_before_consumed_reader_retirement(self):
+        with TemporaryDirectory(prefix='actql-install-') as directory:
+            path = Path(directory)
+            core, calls = self.core()
+            retire = OriginalLocalInstallation._retire_preparation_readers
+            selected = []
+            def replace(value):
+                root, reader = value._readers[0]
+                selected.append((root, reader))
+                file = path / 'source' / reader.name
+                raw = file.read_bytes()
+                file.rename(file.with_suffix('.original'))
+                file.write_bytes(raw)
+                file.chmod(0o600)
+                return retire(value)
+            with patch.object(OriginalLocalInstallation, '_retire_preparation_readers', replace):
+                with self.assertRaises(LocalInstallationCleanupPending) as raised:
+                    self.create(core, path)
+            value = raised.exception.cleanup_installation
+            self.assertIn(selected[0], value._readers)
+            self.assertIsNotNone(selected[0][1].descriptor)
+            self.assertTrue(value.close())
+            self.assertEqual(sum((family, name) == ('bootstrap', 'produce')
+                                 for family, name, _ in calls), 1)
+
+    def test_lost_consumed_reader_close_ack_retains_same_cleanup_without_reclose(self):
+        with TemporaryDirectory(prefix='actql-install-') as directory:
+            core, calls = self.core()
+            close = LocalFileRoot.close_original
+            physical_close = os.close
+            stopped = []
+            def lost_ack(root, reader):
+                stopped.append((root, reader, reader.descriptor))
+                def stop(descriptor):
+                    physical_close(descriptor)
+                    raise OSError('Original preparation reader close ack lost')
+                with patch('actql_sdk._local_files.os.close', side_effect=stop):
+                    return close(root, reader)
+            with patch.object(LocalFileRoot, 'close_original', lost_ack):
+                with self.assertRaises(LocalInstallationCleanupPending) as raised:
+                    self.create(core, Path(directory))
+            self.assertEqual(len(stopped), 1)
+            root, reader, descriptor = stopped[0]
+            value = raised.exception.cleanup_installation
+            self.assertIn((root, reader), value._readers)
+            self.assertTrue(reader.close_pending)
+            self.assertIs(root._original_readers[id(reader)], reader)
+            with patch('actql_sdk._local_files.os.close', wraps=physical_close) as closed:
+                self.assertTrue(value.close())
+                self.assertNotIn((descriptor,), [call.args for call in closed.call_args_list])
+            self.assertEqual(sum((family, name) == ('bootstrap', 'produce')
+                                 for family, name, _ in calls), 1)
+
+    def test_changed_pin_after_consumed_reader_close_refuses_with_remaining_owner(self):
+        with TemporaryDirectory(prefix='actql-install-') as directory:
+            path = Path(directory)
+            core, _ = self.core()
+            close = LocalFileRoot.close_original
+            stopped = []
+            def change(root, reader):
+                result = close(root, reader)
+                stopped.append((root, reader))
+                (path / 'source' / reader.name).write_bytes(b'{"changed":true}')
+                return result
+            with patch.object(LocalFileRoot, 'close_original', change):
+                with self.assertRaises(LocalInstallationCleanupPending) as raised:
+                    self.create(core, path)
+            self.assertEqual(len(stopped), 1)
+            value = raised.exception.cleanup_installation
+            self.assertNotIn(stopped[0], value._readers)
+            self.assertTrue(value._pins)
+            self.assertTrue(value.close())
+
+    def test_named_root_change_after_consumed_close_refuses_before_constructor_returns(self):
+        with TemporaryDirectory(prefix='actql-install-') as directory:
+            path = Path(directory)
+            core, _ = self.core()
+            close = LocalFileRoot.close_original
+            stopped = []
+            def change(root, reader):
+                result = close(root, reader)
+                stopped.append((root, reader))
+                if len(stopped) == 1:
+                    source = path / 'source'
+                    source.rename(path / 'source-original')
+                    source.mkdir(mode=0o700)
+                return result
+            with patch.object(LocalFileRoot, 'close_original', change):
+                with self.assertRaises(LocalInstallationCleanupPending) as raised:
+                    self.create(core, path)
+            self.assertEqual(len(stopped), 1)
+            value = raised.exception.cleanup_installation
+            self.assertNotIn(stopped[0], value._readers)
+            self.assertTrue(value.close())
 
     def test_pending_bootstrap_retirement_keeps_same_output_without_rebootstrap(self):
         with TemporaryDirectory(prefix='actql-install-') as directory:
