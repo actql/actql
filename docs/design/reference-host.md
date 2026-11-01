@@ -2609,6 +2609,25 @@ Existing payload severing, failed initialization and physical cleanup duties
 remain on their original records.
 
 
+The range recovery recipe co-counts its two complete native input forests and
+the metadata canonical/writer envelope before entering the synchronous per-row
+request loop. Only when that explicit prefix, the fixed returned holders and
+one current row's private workspace fit its already quoted fixed peak may the
+row rate retain just its returned storage. Every row result remains charged;
+zero-row and the complete fixed failed-prefix peak remain unchanged. Uncovered
+or overflowing correspondence preserves the same original row quantity. Clear
+keeps its existing marker-history rate because those prefixes coexist across
+rows. This is one implementation's phase proof, not spare capacity, a new
+policy amount, a row/attempt refund or a physical cleanup observation.
+
+The Effect Ledger's private Source parse already normalizes its original keys.
+The immediate canonical conversion preserves those keys through the existing
+data-key mode. Its independent node/depth/text budgets, scalar validation,
+duplicate refusal and ordering remain in place. No mutable tree or callback is
+exposed between these two calls. This avoids another NFC/LF construction for
+the same confirmed key while preserving canonical wire, shape and identity
+failure ordering. Other from_source callers keep their existing mode.
+
 The standard Native JSON export returns before the Host parses its original
 String. Its constructor quotation retains every native output and the Host
 returned tree, using the existing Source Owner's tree envelope as a conservative
@@ -2629,8 +2648,12 @@ limit. Both the standard recipe and the necessary pre-borrow backing predicate
 consume that same implementation fact. The conservative one-byte default stays
 on other/unqualified readers. The original read method and receiver are retained
 before any external byte observer, inside the original response error fence;
-their reference is included in the constructor inventory. The full B+1 refusal window, copied/concat/current byte
-peak, header/trailer/secret owners and failed-prefix cleanup remain unchanged.
+their reference is included in the constructor inventory. A read or observer
+throw enters that same completion fence before destroying the response, including
+falsey original throwables for which Node emits close without error. Settlement
+still waits for the original request/socket closure and any borrowed observer
+task. The full B+1 refusal window, copied/concat/current byte peak,
+header/trailer/secret owners and failed-prefix cleanup remain unchanged.
 This geometry is internal implementation metadata, not a new user limit or
 resource grant. The selected Core/Node interfaces and adapters require one matching
 compiled supplier; older binaries do not establish this constructor quotation.

@@ -7752,7 +7752,7 @@
   {
     "module": "src/connectors/sheets/host_node/range_construction.mbt",
     "responsibilityFacet": "primary",
-    "sha256": "1f6d9b13e89c89edb867c1ac3c840979cb0541cfa96ef265895bd2d6bee1b4e3",
+    "sha256": "d1bd3720e8c50ea0e822ebd70774399b82b0324b2cd59a160a4423dc1040074c",
     "operations": [
       {
         "name": "sheets_clear_ack_marker_construction",
@@ -7793,6 +7793,10 @@
       {
         "name": "sheets_range_capture_profile",
         "declaration": "sheets_range_capture_profile ( metadata : @ catalog . RangeConstructionMetadata , capture_bytes : Int , capture_nodes : Int , capture_depth : Int , input_bytes : Int , input_nodes : Int , input_depth : Int , recovery_bytes : Int , recovery_nodes : Int , recovery_depth : Int , clear : Bool , ) - > Array [ @ execution . ExecutionCapacity ] ?"
+      },
+      {
+        "name": "sheets_range_cofund_recovery_row",
+        "declaration": "sheets_range_cofund_recovery_row ( fixed : @ execution . ExecutionCapacity , prefix : @ execution . PreparationRepresentationUnits , row : @ execution . ExecutionCapacity , ) - > @ execution . ExecutionCapacity"
       },
       {
         "name": "sheets_range_construction_profile",
@@ -8127,6 +8131,74 @@
             {
               "path": "docs/design/reference-host.md",
               "anchor": "Clear recovery metadata separates its original binding from request markers."
+            }
+          ]
+        }
+      },
+      {
+        "operations": [
+          "sheets_range_cofund_recovery_row"
+        ],
+        "exports": [],
+        "attributes": {
+          "responsibility": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "The range recovery recipe co-counts its two complete native input forests and"
+            }
+          ],
+          "inputsOutputs": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "The range recovery recipe co-counts its two complete native input forests and"
+            }
+          ],
+          "identity": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "The range recovery recipe co-counts its two complete native input forests and"
+            }
+          ],
+          "ownership": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "The range recovery recipe co-counts its two complete native input forests and"
+            }
+          ],
+          "synchronization": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "The range recovery recipe co-counts its two complete native input forests and"
+            }
+          ],
+          "failure": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "The range recovery recipe co-counts its two complete native input forests and"
+            }
+          ],
+          "cancellation": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "The range recovery recipe co-counts its two complete native input forests and"
+            }
+          ],
+          "resources": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "The range recovery recipe co-counts its two complete native input forests and"
+            }
+          ],
+          "extension": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "The range recovery recipe co-counts its two complete native input forests and"
+            }
+          ],
+          "verification": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "The range recovery recipe co-counts its two complete native input forests and"
             }
           ]
         }

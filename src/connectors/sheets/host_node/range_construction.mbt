@@ -731,6 +731,45 @@ fn sheets_clear_recovery_marker_capacity(
 }
 
 ///|
+// Conditional same-owner phase proof, not a resource admission or allowance.
+// Failed arithmetic or an uncovered phase preserves the SAME old row rate.
+fn sheets_range_cofund_recovery_row(
+  fixed : @execution.ExecutionCapacity,
+  prefix : @execution.PreparationRepresentationUnits,
+  row : @execution.ExecutionCapacity,
+) -> @execution.ExecutionCapacity {
+  let workspace = @execution.execution_capacity_execution_bytes(row) -
+    @execution.execution_capacity_retained_bytes(row)
+  let peak = match @execution.preparation_representation_cost(prefix) {
+    Some(prefix) =>
+      match
+        @execution.execution_capacity_inventory_add(
+          prefix,
+          QuotedBytes,
+          @execution.execution_capacity_retained_bytes(fixed),
+          1,
+        ) {
+        Some(held) =>
+          @execution.execution_capacity_inventory_add(
+            held,
+            QuotedBytes,
+            workspace,
+            1,
+          )
+        None => None
+      }
+    None => None
+  }
+  match peak {
+    Some(peak) if peak <= @execution.execution_capacity_execution_bytes(fixed) => {
+      let retained = @execution.execution_capacity_retained_bytes(row)
+      @execution.execution_capacity(retained, retained).unwrap()
+    }
+    _ => row
+  }
+}
+
+///|
 fn sheets_range_capture_profile(
   metadata : @catalog.RangeConstructionMetadata,
   capture_bytes : Int,
@@ -961,6 +1000,22 @@ fn sheets_range_capture_profile(
     combined
   } else {
     row
+  }
+  // recover_range_requests finishes its input parses and metadata checks
+  // before its synchronous per-change prepare_range_request calls. The two
+  // complete native input forests and even the full metadata canonical/writer
+  // envelope remain co-counted by canonical_peak here. Every returned row
+  // stays charged by row.R; only the current request's private constructor
+  // scratch is additional to that fixed prefix.
+  //
+  // Reuse is selected ONLY when this explicit same-owner phase (including
+  // the fixed returned holders) fits the already selected complete fixed
+  // peak. Otherwise keep the original row quotation unchanged. Clear keeps
+  // its old row rate because its marker-history prefixes coexist across rows.
+  let row = if clear {
+    row
+  } else {
+    sheets_range_cofund_recovery_row(fixed, canonical_peak, row)
   }
   guard sheets_range_effect_id_capacity() is Some(effect_id) else {
     return None

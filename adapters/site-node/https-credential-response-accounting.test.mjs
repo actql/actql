@@ -272,15 +272,18 @@ test('original repeated headers preserve the selected normalized value without a
 
 // Execute the exact private receiver body with explicit original HTTP ports.
 // No provider, Common grant, installed Run or physical cleanup is inferred.
-function originalReceiveComponent({observed = true, concatFailure, readFailure} = {}) {
+function originalReceiveComponent({observed = true, concatFailure, readFailure, nodeResponse = false} = {}) {
   const source = readFileSync(new URL('./https-credential-resource.mjs', import.meta.url), 'utf8');
   const start = source.indexOf('function receive({');
   const end = source.indexOf('\n/// Execute one pre-registered HTTPS operation.', start);
   assert(start >= 0 && end > start);
-  const response = new EventEmitter();
+  const response = nodeResponse ? new Readable({read() {}}) : new EventEmitter();
+  const originalNodeRead = nodeResponse ? response.read : undefined;
   response.statusCode = 200; response.headers = {}; response.rawHeaders = [];
-  response.destroyed = false;
-  response.destroy = error => {response.destroyed = true; response.emit('error', error);};
+  if (!nodeResponse) {
+    response.destroyed = false;
+    response.destroy = error => {response.destroyed = true; response.emit('error', error);};
+  }
   const request = new EventEmitter(); request.end = () => {};
   let callback, copied, copiedAtConcat;
   const originalBytes = [Buffer.from('one'), Buffer.from('two')];
@@ -302,7 +305,16 @@ function originalReceiveComponent({observed = true, concatFailure, readFailure} 
   if (observed) {
     const reads = [...originalBytes, null];
     response.read = () => reads.shift() ?? null;
-    if (readFailure !== undefined) Object.defineProperty(response,'read',{get(){throw readFailure.original;}});
+    if (readFailure !== undefined) {
+      let captured = false;
+      Object.defineProperty(response,'read',{get(){
+        // Fail the original receiver's first getter, then permit Node's own
+        // deferred read(0) housekeeping to use its actual original method.
+        if (nodeResponse && captured) return originalNodeRead;
+        captured = true;
+        throw readFailure.original;
+      }});
+    }
   }
   callback(response);
   if (observed) response.emit('readable');
@@ -399,12 +411,31 @@ test('observed original binary reader coalesces tiny ingress chunks with one EOF
 });
 
 
-for (const original of [undefined, new Error('original read accessor refused')]) {
-  test(`observed reader captures its method inside the existing error fence (${original === undefined ? 'undefined' : 'Error'})`, async () => {
-    let component;
-    assert.doesNotThrow(() => {component=originalReceiveComponent({readFailure:{original}});});
-    await assert.rejects(component.pending, cause => cause === original);
+// Native Readable.destroy(falsy) closes without emitting error. The earlier
+// explicit error-emitting port cannot prove settlement of these originals.
+for (const original of [undefined,null,false,0,'',NaN,0n,new Error('original read accessor refused')]) {
+  test(`observed reader settles original getter failure with actual Readable destroy (${typeof original}:${String(original)})`, async () => {
+    const component=originalReceiveComponent({nodeResponse:true,readFailure:{original}});
+    let outcome={kind:'pending'};
+    component.pending.then(()=>{outcome={kind:'resolved'};},cause=>{outcome={kind:'rejected',cause};});
+    await new Promise(resolve=>component.response.once('close',resolve));
+    await new Promise(setImmediate);
     assert.equal(component.response.destroyed,true);
+    assert.equal(outcome.kind,'rejected');
+    assert(Object.is(outcome.cause,original));
     assert.deepEqual(component.charges,[]);
+  });
+}
+
+
+for (const original of [undefined,null]) {
+  test(`falsey original byte observer failure retains actual request socket cleanup (${String(original)})`, async t => {
+    const f=await fixture(t,(_request,response)=>{response.writeHead(200);response.end('body');});
+    let caught=false;
+    try {await f.call({observeResponseBytes(){throw original;}});}
+    catch(cause){caught=true;assert(Object.is(cause,original));}
+    assert.equal(caught,true);
+    assert.deepEqual(f.outcomes,['unknown']);assert.equal(f.claims(),1);
+    assert.equal(resource.closeHttpsCredentialBinding(f.binding),'closed');
   });
 }

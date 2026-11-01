@@ -831,7 +831,14 @@ function receive({hostname, port, path, method, body, bodyMediaType, requestByte
               if (received > maxResponseBytes) fail('RemoteCredentialResponseLimitExceeded');
               chunks.push(Buffer.from(chunk));
             }
-          } catch (error) { response.destroy(error); }
+          } catch (error) {
+            // Native destroy(undefined/null/other falsey values) can close
+            // without an error event. Enter the SAME completion fence with
+            // the original throwable first; it still waits for this binding's
+            // actual request/socket close and any borrowed observer task.
+            finish(reject, error);
+            response.destroy(error);
+          }
         };
         response.on('readable', readObservedResponse);
         detachReader = () => response.off('readable', readObservedResponse);

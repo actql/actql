@@ -1011,7 +1011,7 @@ test "checked clear marker workspace dominates the displaced cell-count envelope
 }
 
 ///|
-test "range capture keeps its exact original non-marker recipe" {
+test "range capture keeps original non-marker holdings and its covered row phase" {
   let metadata = recovery_guard_test_metadata(300000)
   let before = previous_clear_capture_profile(
     metadata, 1000000, 100000, 64, 100000, 10000, 16, 2000000, 200000, 32, false,
@@ -1026,7 +1026,11 @@ test "range capture keeps its exact original non-marker recipe" {
     )
     assert_eq(
       @execution.execution_capacity_execution_bytes(after[index]),
-      @execution.execution_capacity_execution_bytes(before[index]),
+      if index == 1 {
+        @execution.execution_capacity_retained_bytes(after[index])
+      } else {
+        @execution.execution_capacity_execution_bytes(before[index])
+      },
     )
   }
 }
