@@ -19,6 +19,7 @@ priv enum ClientRequestPreparationPhase {
   EffectModelScopeQuoted
   EffectBodyReady
   EffectBodyFailed
+  EffectCaptureRecovery
   ProgramPlanQuoted
   ProgramPlanReserved
   ModelPlanReserved
@@ -36,6 +37,12 @@ priv enum ClientRequestPreparationPhase {
 // slot. Both selected compiler inputs have the same four original fields;
 // no additional parent, phase, retained controller or parameter cache exists.
 priv enum ClientRequestDomainCompilationInputs {
+  // Read-only recovery retains the existing journal-selected originals. It
+  // never continues into a compiler, Source/Model/Effect Plan or send owner.
+  RequestEffectCaptureRecovery(
+    @publication_host.ClientRequestIdentity,
+    @publication.PublicationContract
+  )
   RequestModelCompilation(
     @publication_host.ClientCompilationManifests,
     @publication_host.ClientPureCompilationLimits,
@@ -299,9 +306,9 @@ pub fn client_request_preparation_control_capacity(
     is Some(retained) else {
     return None
   }
-  // One trusted invocation-control group, including its bounded sizing controls,
-  // native Option carriers and lean Host view. This is installed coarse control
-  // overhead, not a per-closure census or variable wire/body admission.
+  // One trusted private control group: invocation sizing/Option/lean view, or
+  // the exclusive read-only capture-recovery quote/reader controls. This is
+  // installed coarse control overhead, not variable wire/body admission.
   if retained > limits.retained_bytes {
     return None
   }

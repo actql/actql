@@ -752,6 +752,8 @@ fn[I] prepare_request_compilation_owned(
   let limits = compilation_limits
   let domain = owner.program_domain_compilation_inputs
   let continuation_phase = match domain {
+    Some(RequestEffectCaptureRecovery(_, _)) =>
+      return Err(Preparation(WrongPhase))
     Some(RequestModelCompilation(_, _, _, _)) => ModelPlanReserved
     Some(RequestSerializationCompilation(_, _, _, _))
     | Some(RequestKeyedSerializationCompilation(_, _, _, _)) =>
@@ -772,6 +774,8 @@ fn[I] prepare_request_compilation_owned(
           // not codec headroom, fixed call wrappers or its nested helpers.
           let units = match
             (match domain {
+              Some(RequestEffectCaptureRecovery(_, _)) =>
+                return Err(Preparation(WrongPhase))
               Some(RequestModelCompilation(_, _, _, graph)) =>
                 @publication_host.prepared_client_model_measurement_storage(
                   prepared,
@@ -818,6 +822,8 @@ fn[I] prepare_request_compilation_owned(
       }
       match
         (match domain {
+          Some(RequestEffectCaptureRecovery(_, _)) =>
+            return Err(Preparation(WrongPhase))
           Some(RequestModelCompilation(_, _, _, graph)) =>
             @publication_host.measure_prepared_client_model_compilation_construction(
               prepared,
@@ -902,6 +908,7 @@ fn[I] prepare_request_compilation_owned(
     @publication_host.ClientRunCompilation,
     ClientRequestProgramPlanIssue,
   ] = match domain {
+    Some(RequestEffectCaptureRecovery(_, _)) => Err(Preparation(WrongPhase))
     Some(RequestModelCompilation(_, _, _, graph)) =>
       @publication_host.observe_prepared_client_multi_infer_plan_encoding(
         prepared,

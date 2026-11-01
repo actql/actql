@@ -8,6 +8,64 @@
 type ClientLocalPreparationInputOriginal
 
 ///|
+#export_name("clientProgramPrepareInstalledEffectCaptureRecovery")
+pub fn client_program_prepare_installed_effect_capture_recovery(
+  parent : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  definition : @publication.PublicationContract,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @client_local_host.ClientInstalledEffectCaptureRecovery,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.prepare_installed_effect_capture_recovery(
+    parent, prepared, request, definition, max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+#export_name("clientProgramReserveInstalledEffectCaptureRecovery")
+pub fn client_program_reserve_installed_effect_capture_recovery(
+  original : @client_local_host.ClientInstalledEffectCaptureRecovery,
+  encrypted_bytes : Int,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.reserve_installed_effect_capture_recovery(
+    original, encrypted_bytes,
+  )
+}
+
+///|
+#export_name("clientProgramRetireInstalledEffectCaptureRecovery")
+pub fn client_program_retire_installed_effect_capture_recovery(
+  original : @client_local_host.ClientInstalledEffectCaptureRecovery,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.retire_installed_effect_capture_recovery(original)
+}
+
+///|
+#export_name("clientProgramReserveRequestEffectCaptureRecovery")
+pub fn client_program_reserve_request_effect_capture_recovery(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  request : @publication_host.ClientRequestIdentity,
+  definition : @publication.PublicationContract,
+  encrypted_bytes : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue] {
+  @client_local_host.reserve_request_effect_capture_recovery(
+    parent, input, request, definition, encrypted_bytes, max_wire_bytes, max_nodes,
+    max_depth,
+  )
+}
+
+///|
 #export_name("clientProgramBorrowRequestModelPlanInput")
 pub fn client_program_borrow_request_model_plan_input(
   parent : @client_local_host.ClientRequestPreparation[

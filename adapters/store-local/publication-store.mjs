@@ -4063,6 +4063,7 @@ async function openOriginalLocalPublicationStore(
   };
   const readPrivateEvidenceObject = async (
     name, semanticCid, holdingCid, index = 0, objectCount = 1, originalHolding,
+    retainOriginalRead,
   ) => {
     active();
     if (typeof name !== 'string' || !/^[a-z][a-z0-9_]*$/u.test(name)) {
@@ -4095,6 +4096,10 @@ async function openOriginalLocalPublicationStore(
       if (!Number.isSafeInteger(expectedBytes) || expectedBytes < 0 ||
           expectedBytes > configuration.maxObjectBytes) {
         fail('PublicationPrivateEvidenceCorrupt');
+      }
+      if (retainOriginalRead !== undefined) {
+        retainOriginalRead(holding);
+        active();
       }
       // The existing holding owns an exact bounded file. Receive directly
       // into one buffer instead of retaining copied chunks plus their concat.
@@ -4152,8 +4157,9 @@ async function openOriginalLocalPublicationStore(
       key.fill(0);
     }
   };
-  const readPrivateEvidence = async (name, semanticCid, holdingCid, consume) => {
+  const readPrivateEvidence = async (name, semanticCid, holdingCid, consume, beforeRead) => {
     if (consume === undefined) {
+      if (beforeRead !== undefined) fail('InvalidPublicationPrivateEvidence');
       return readPrivateEvidenceObject(name, semanticCid, holdingCid);
     }
     active();
@@ -4164,16 +4170,54 @@ async function openOriginalLocalPublicationStore(
     // It supplies no memory credit or semantic/physical cleanup ACK. The
     // caller's original Request/Run reservation must precede acquisition.
     const release = retainPhysicalHoldingReader(holdingCid);
-    let plaintext;
+    let plaintext, wire, record, reading = true;
+    const releaseBytes = () => {
+      if (!reading) fail('PublicationPrivateEvidenceUnavailable');
+      if (wire === undefined) {
+        wire = plaintext.toString('utf8');
+        plaintext.fill(0);
+        plaintext = undefined;
+      }
+      return wire;
+    };
+    const context = Object.freeze({releaseBytes,
+      confirm(binding) {
+        if (!reading) fail('PublicationPrivateEvidenceUnavailable');
+        if (!exactKeys(binding, ['name', 'semanticCid', 'holdingCid', 'wire']) ||
+            binding.name !== name || binding.semanticCid !== semanticCid ||
+            binding.holdingCid !== holdingCid || binding.wire !== releaseBytes()) {
+          fail('PublicationPrivateEvidenceConflict');
+        }
+        const operation = materialRetentionBusy.then(async () => {
+          active();
+          if (!reading) fail('PublicationPrivateEvidenceUnavailable');
+          // This reader has already consumed/hashed/authenticated the SAME
+          // immutable holding. Its original reader census still excludes
+          // retirement; confirm that record without a second decrypt/parse.
+          await confirmPhysicalHoldingDirectory(record);
+          return record;
+        });
+        materialRetentionBusy = operation.catch(() => {});
+        return operation;
+      }});
     try {
-      plaintext = await readPrivateEvidenceObject(name, semanticCid, holdingCid);
-      return await consume(plaintext);
+      plaintext = await readPrivateEvidenceObject(name, semanticCid, holdingCid, 0, 1,
+        undefined, original => {
+          record = original;
+          if (beforeRead !== undefined) {
+            if (typeof beforeRead !== 'function' || beforeRead(original.objects[0].byte_count) !== undefined) {
+              fail('InvalidPublicationPrivateEvidence');
+            }
+          }
+        });
+      return await consume(plaintext, context);
     } finally {
       // This overload never hands byte custody to its caller. Typed values
       // may retain their own strings; the temporary decrypted backing stops
       // here even when decode or its original child rejects.
       plaintext?.fill(0);
-      plaintext = undefined;
+      reading = false;
+      plaintext = wire = record = undefined;
       release();
     }
   };
@@ -6136,7 +6180,7 @@ async function openOriginalLocalPublicationStore(
         try {
           captureRecord = await readPrivateEvidence(
             'effect_capture', chain.capturedRun.identity, recordCid,
-            plaintext => JSON.parse(plaintext.toString('utf8')),
+            (_plaintext, read) => JSON.parse(read.releaseBytes()),
           );
         } catch (error) {
           fail('InvalidEffectfulCaptureRecord', error);
@@ -6190,7 +6234,7 @@ async function openOriginalLocalPublicationStore(
         try {
           record = captureRecord ?? await readPrivateEvidence(
             'effect_capture', chain.capturedRun.identity, candidate,
-            plaintext => JSON.parse(plaintext.toString('utf8')),
+            (_plaintext, read) => JSON.parse(read.releaseBytes()),
           );
         } catch (error) {
           fail('InvalidEffectfulCaptureRecord', error);
@@ -7609,8 +7653,9 @@ async function openOriginalLocalPublicationStore(
         fail('PublicationPrivateEvidenceUnavailable');
       }
       const release = retainPhysicalHoldingReader(original.holdingCid);
+      let stored;
       try {
-        const stored = await readPrivateEvidenceObject(
+        stored = await readPrivateEvidenceObject(
           original.name, original.semanticCid, original.holdingCid, 0, 1, record,
         );
         if (!exactUtf8WireMatches(stored, original.wire)) fail('PublicationPrivateEvidenceConflict');
@@ -7618,7 +7663,11 @@ async function openOriginalLocalPublicationStore(
         // the real directory ACK, excluding retirement until adoption finishes.
         await confirmPhysicalHoldingDirectory(record);
         return record;
-      } finally {release();}
+      } finally {
+        stored?.fill(0);
+        stored = undefined;
+        release();
+      }
     });
     materialRetentionBusy = operation.catch(() => {});
     return operation;

@@ -53,6 +53,20 @@ import {BOUND_SOURCE_INVENTORY, BOUND_SOURCE_SUBMISSION,
   ordinarySourceDescriptors} from './ordinary-source-binding.mjs';
 import {capturedDuckDBConfiguration} from './captured-duckdb-source.mjs';
 import {recoverAdmittedEffectRun} from './effect-run-recovery.mjs';
+import {prepareEffectCaptureResources} from './effect-capture-resources.mjs';
+
+// Keep this retirement callback outside the construction/current closure.
+// Its binding retains only the existing Host bag and fixed frame; it must
+// not prolong captured Request/Definition or restored material aliases across
+// a consuming resource return after the current callback has been severed.
+function retireEffectCaptureResourceFrame(record, liveRuns, entry, view) {
+  if (record.computeLiveRuns !== liveRuns || !liveRuns.has(entry) ||
+      entry.resources !== view || entry.closed) {
+    throw clientOperationError('ForeignEffectCaptureResources');
+  }
+  entry.resources = undefined; entry.closed = true;
+  liveRuns.delete(entry);
+}
 import {retireCompletedEffectfulCapture, suspendCompletedEffectfulComputation} from
   '../host-common/completed-run-publication.mjs';
 import {installNodeClientProgramPreparation} from
@@ -1273,8 +1287,13 @@ async function openInstalledHost(originalInstallation, preparation) {
     // Recovery acquired real prepared-schema owners. Signing only borrows the
     // authenticated metadata, so relinquish those temporary owners without
     // retiring the original durable capture or requiring current authority.
+    const recoveryResources = recovered.recoveryResources;
     await suspendCompletedEffectfulComputation({store, control, ...recovered.computation});
     localSigningRecoveries.delete(recovered);
+    recovered = undefined;
+    if (recoveryResources !== undefined && await recoveryResources.close() !== true) {
+      throw clientOperationError('EffectCaptureResourceCleanupPending');
+    }
   }
   const installedResultDataPolicy = resultDataPolicy === undefined ? undefined :
     control.admitSourceFreeResultPolicy(resultDataPolicy, localContractLimits);
@@ -3281,7 +3300,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     managedComputeRequired: originalRequestPreparation !== undefined,
     computeConfigurations: {local:localSnapshotConfiguration}});
   const startDispatch = dispatchOwner.start;
-  const recoverEffectCapture = (ref, signal) => {
+  const recoverEffectCapture = (ref, signal, managed, retainRecoveryResources) => {
     const retained = journal.lookupRunDefinition(ref, moon, control);
     if (retained === undefined || typeof retained.requestId !== 'string') {
       throw new Error('EffectRecoveryRequestMismatch');
@@ -3291,6 +3310,15 @@ async function openInstalledHost(originalInstallation, preparation) {
       key: {namespaceId, authorityScopeCid, requestId,
         runDefinitionCid: ref.runDefinitionCid}, principalId,
       contractLimits: localContractLimits, signal,
+      retainRecoveryResources,
+      prepareRecoveryResources: options => {
+        if (typeof preparation?.prepareEffectCaptureRecovery !== 'function') {
+          throw clientOperationError('EffectRecoveryResourcesUnavailable');
+        }
+        return preparation.prepareEffectCaptureRecovery(moon, options.requestIdentity,
+          options.runDefinition, options.contractLimits, managed,
+          options.assertOriginalCurrent, options.retain);
+      },
       restoreOriginal: (saved, requestIdentity) => {
         const original = saved.runAdmissionEvidence?.updateTargetRunOriginal;
         let restored = original === undefined ? {} : updateTargetOriginals.restoreRun(
@@ -3561,8 +3589,8 @@ async function openInstalledHost(originalInstallation, preparation) {
               return runCapturedEffectComputation(setup, {}, signal).then(
                 execution => Object.freeze({execution, checkedHost: setup}));
             },
-            recoverCapture: ({signal: recoverySignal} = {}) =>
-              recoverEffectCapture(facts.ref, recoverySignal),
+            recoverCapture: ({signal: recoverySignal, retainRecoveryResources} = {}) =>
+              recoverEffectCapture(facts.ref, recoverySignal, managedEffect, retainRecoveryResources),
             effectAuthorization: checkpoints === undefined ? undefined : options =>
               checkpoints.effectAuthorization({...options,
                 runDefinition: facts.retained?.runDefinition ?? facts.runDefinition,
@@ -4301,9 +4329,25 @@ async function openInstalledHost(originalInstallation, preparation) {
       if (retained?.runDefinition?.identity !== key) {
         throw new Error('EffectRetirementRunDefinitionMissing');
       }
-      const result = await retireCompletedEffectfulCapture({store, control,
-        runDefinition: retained.runDefinition,
-        contractLimits: localContractLimits});
+      const owned = journal.lookupOwnedDefinition({namespaceId, authorityScopeCid,
+        requestId:retained.requestId, runDefinitionCid:key}, moon, control);
+      if (owned?.runDefinition?.identity !== key ||
+          typeof preparation?.prepareEffectCaptureRecovery !== 'function') {
+        throw clientOperationError('EffectRetirementResourcesUnavailable');
+      }
+      let resources, result;
+      try {
+        const selected = preparation.prepareEffectCaptureRecovery(moon, owned.requestIdentity,
+          owned.runDefinition, localContractLimits, undefined,
+          () => preparation.assertResultPublicationCurrent(), original => {resources = original;});
+        if (selected !== resources) throw clientOperationError('EffectRetirementResourcesUnavailable');
+        result = await retireCompletedEffectfulCapture({store, control,
+          runDefinition: owned.runDefinition, contractLimits: localContractLimits}, resources);
+      } catch (cause) {
+        try {await resources?.close();} catch { /* Same Host bag retains original cleanup. */ }
+        throw cause;
+      }
+      if (await resources.close() !== true) throw clientOperationError('EffectCaptureResourceCleanupPending');
       retiredEffectCaptures.add(key);
       return result;
     })().finally(() => {
@@ -4565,8 +4609,8 @@ async function openInstalledHost(originalInstallation, preparation) {
                 storeAuthorityCid, authorityScopeCid, signal,
                 retainExecution, beginPhysicalWork,
                 observeRun: ({ref}) => observeRun({ref, principalId}),
-                recoverCapture: ({signal: recoverySignal} = {}) =>
-                  recoverEffectCapture(ref, recoverySignal),
+                recoverCapture: ({signal: recoverySignal, retainRecoveryResources} = {}) =>
+                  recoverEffectCapture(ref, recoverySignal, undefined, retainRecoveryResources),
                 checkpointJournal: checkpoints.journal,
                 checkpointBinding: checkpoints.binding,
                 effectAuthorization: checkpoints.effectAuthorization,
@@ -5413,7 +5457,18 @@ export async function connectEmbeddedLocal(options, initialEntry) {
   const initialControl = Object.freeze({async close() {
     if (observedClose !== undefined) return observedClose;
     record.retireUndispatched?.();
+    // Dispatch has stopped its actual computation/Effect children. Capture
+    // decode custody still needs the original Store open for failed schemas
+    // and retained result owners, and SAME live Run capacity before its parent
+    // can retire. Never close Store/Journal first to manufacture their ACK.
     for (const run of record.computeLiveRuns ?? []) {
+      if (run.preparationKind !== 'effect-capture-recovery' || run.closed) continue;
+      if (run.selecting || run.resources === undefined || await run.resources.close() !== true) {
+        throw clientOperationError('EffectCaptureResourceCleanupPending');
+      }
+    }
+    for (const run of record.computeLiveRuns ?? []) {
+      if (run.preparationKind === 'effect-capture-recovery') continue;
       if (run.finishRetirement !== undefined) {run.finishRetirement(); continue;}
       if (run.closed) continue;
       if (run.preparationKind === 'model-plan' || run.preparationKind === 'serialization-plan' ||
@@ -5830,6 +5885,45 @@ export async function connectEmbeddedLocal(options, initialEntry) {
           installedContracts: prepareInstalledSequenceContractOriginal(originals).admission}),
         sourceProfile: inputs.sourceProfile, model, modelSelection,
         publicationControl: runtimeCore(runtime).publicationControl, assertCurrent: current, checked});
+    },
+    prepareEffectCaptureRecovery(runtime, request, definition, limits, managed, originalCurrent, retain) {
+      assertInitialControlHostPreparation(originals);
+      if (runtime !== moon || typeof originalCurrent !== 'function' || typeof retain !== 'function') {
+        throw clientOperationError('EffectRecoveryResourcesUnavailable');
+      }
+      const liveRuns = record.computeLiveRuns ??= new Set();
+      if (liveRuns.size >= 4096) throw clientOperationError('InstalledComputeRunLimit');
+      if (managed !== undefined && (record.computeRuns?.get(managed.prepared) !== managed ||
+          !liveRuns.has(managed) || managed.runtime !== runtime || managed.closed ||
+          runtime.clientRequestRelation(request, managed.request) !== 1 ||
+          runtime.strategyPublicationContractIdentity(managed.definitionOriginal?.definition) !== definition.identity)) {
+        throw clientOperationError('ForeignInstalledEffectManagedRun');
+      }
+      const managedParent = managed?.value, managedPrepared = managed?.prepared;
+      const managedRequest = managed?.request, managedDefinition = managed?.definitionOriginal?.definition;
+      const entry = {preparationKind:'effect-capture-recovery', resources:undefined,
+        selecting:true, closed:false};
+      liveRuns.add(entry);
+      const current = () => {
+        assertInitialControlHostPreparation(originals);
+        originalCurrent();
+        if (record.computeLiveRuns !== liveRuns || !liveRuns.has(entry) || entry.closed) {
+          throw clientOperationError('ForeignEffectCaptureResources');
+        }
+        if (managed !== undefined && (preparation.effectManagedPlanRun(runtime,
+            managedPrepared, managedRequest) !== managed || managed.value !== managedParent ||
+            managed.prepared !== managedPrepared || managed.request !== managedRequest ||
+            managed.definitionOriginal?.definition !== managedDefinition)) {
+          throw clientOperationError('ForeignInstalledEffectManagedRun');
+        }
+      };
+      try {
+        return prepareEffectCaptureResources({moon:runtime,
+          control:runtimeCore(runtime).publicationControl, request, runDefinition:definition,
+          contractLimits:limits, managed, assertCurrent:current,
+          retain(view) {entry.resources = view; retain(view);},
+          retired:retireEffectCaptureResourceFrame.bind(undefined, record, liveRuns, entry)});
+      } finally {entry.selecting = false;}
     },
     effectManagedRun(runtime, prepared, request) {
       return preparation.effectManagedPlanRun(runtime, prepared, request).value;

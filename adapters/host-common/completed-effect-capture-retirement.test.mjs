@@ -62,7 +62,7 @@ test(`terminal capture retirement keeps its record until deletion succeeds (${pu
         captureCustody = false;
       },
       async readPrivateEvidence(_name, _semantic, _holding, consume) {
-        return consume(Buffer.from(JSON.stringify(body)));
+        return consume(undefined, {releaseBytes: () => JSON.stringify(body)});
       },
       async retirePhysicalHolding(key) {
         visits.push(key);

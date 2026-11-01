@@ -201,6 +201,7 @@ function cleanupCustody(physical, requirePhysical = false) {
   let release;
   let released = false;
   let inputsReleased = false;
+  let recoveryResources;
   const releaseAuthorizations = async () => {
     let failure;
     for (const state of authorizations) {
@@ -254,6 +255,12 @@ function cleanupCustody(physical, requirePhysical = false) {
       }
       release = operation;
     },
+    retainRecoveryResources(original) {
+      if (recoveryResources === original) return;
+      if (recoveryResources !== undefined || typeof original?.close !== 'function' ||
+          typeof original?.status !== 'function') fail('InstalledEffectCleanupOwnerAlreadySet');
+      recoveryResources = original;
+    },
     closeAuthorizations: releaseAuthorizations,
     async close() {
       // Effect execution has stopped before dispatch custody closes. Its
@@ -286,6 +293,15 @@ function cleanupCustody(physical, requirePhysical = false) {
         await stage.dispose();
       }
       disposed = true;
+      // Actual inputs/authorizations/physical children and completed payloads
+      // are gone before their capture decode allowance can be returned. Cut
+      // this custody's strong aliases before that consuming return callback.
+      stage = release = physical = undefined;
+      authorizations.length = 0;
+      if (recoveryResources !== undefined) {
+        if (await recoveryResources.close() !== true) return false;
+        recoveryResources = undefined;
+      }
       return true;
     },
     cleanupPending() {
@@ -294,7 +310,7 @@ function cleanupCustody(physical, requirePhysical = false) {
         requirePhysical && physical === undefined ||
         physical !== undefined && !physicalReleased ||
         release !== undefined && !released ||
-        !disposed && stage?.dispose !== undefined;
+        !disposed && stage?.dispose !== undefined || recoveryResources !== undefined;
     },
   });
 }
@@ -523,7 +539,8 @@ export function createInstalledEffectSite({environmentWire,
       const custody = cleanupCustody(undefined);
       facts.retainExecution(custody);
       let recovered;
-      try { recovered = await facts.recoverCapture({signal}); }
+      try { recovered = await facts.recoverCapture({signal,
+        retainRecoveryResources: custody.retainRecoveryResources}); }
       catch (error) {
         if (!observing && isEffectCaptureRecoveryRefusal(error)) {
           checkpointJournal.refuseUnsentEffectResume(view.checkpointCid,
@@ -532,15 +549,20 @@ export function createInstalledEffectSite({environmentWire,
         throw error;
       }
       let releaseMode = 'retain';
-      custody.requireRelease(() => releaseMode === 'retire'
-        ? releaseCompletedRunPreparedPayloads(
-          recovered.computation.storedResults, facts.control)
-        : suspendCompletedEffectfulComputation({execution: null,
-          store: facts.store,
-          storedResults: recovered.computation.storedResults,
-          control: facts.control,
-          computation: recovered.computation.computation,
-          preview: recovered.computation.preview}));
+      if (recovered.recoveryResources !== undefined) {
+        custody.retainRecoveryResources(recovered.recoveryResources);
+      }
+      custody.requireRelease(async () => {
+        if (releaseMode === 'retire') {
+          await releaseCompletedRunPreparedPayloads(recovered.computation.storedResults, facts.control);
+        } else {
+          await suspendCompletedEffectfulComputation({execution: null,
+            store: facts.store, storedResults: recovered.computation.storedResults,
+            control: facts.control, computation: recovered.computation.computation,
+            preview: recovered.computation.preview});
+        }
+        recovered = undefined;
+      });
       checkContinuationBinding(facts, recovered.computation);
       // Installation fencing must precede resumed target-read preparation.
       // prepareRecovered alone is too late: reads may already have occurred.

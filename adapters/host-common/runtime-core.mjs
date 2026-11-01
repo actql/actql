@@ -4103,6 +4103,16 @@ function publicationControl(moon) {
         localEffectSourceToken(localEvidence), storeAuthorityCid,
         limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
     },
+    reserveEffectCaptureRecovery(parent, input, request, runDefinition, encryptedBytes, limits) {
+      issuanceLimits(limits, 'Effect capture recovery');
+      if (!Number.isSafeInteger(encryptedBytes) || encryptedBytes < 0 || encryptedBytes > 2147483647 ||
+          typeof moon.clientProgramReserveRequestEffectCaptureRecovery !== 'function') {
+        throw new TypeError('Invalid Effect capture recovery Resource');
+      }
+      return checked(moon.clientProgramReserveRequestEffectCaptureRecovery(
+        parent, input, request, token(runDefinition), encryptedBytes,
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+    },
     admitCapturedEffectSourceFromCapture(preview, memberIndex, invocation,
       artifact, capturedRun, storeAuthorityCid, limits) {
       issuanceLimits(limits, 'recovered Effect source');
