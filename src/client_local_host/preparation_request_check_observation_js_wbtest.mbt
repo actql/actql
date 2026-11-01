@@ -190,10 +190,8 @@ test "live Request projection backs output before publication decoding and retai
 ///|
 test "live Request projection borrows original collected Source labels under its same parent" {
   let limits = @publication_host.client_standard_program_preparation_limits()
-  let text = request_check_wire.replace(
-    old="\"inputs\":{}",
-    new="\"inputs\":{\"remote\":{\"connector\":\"hidden\",\"resource\":\"private\",\"view\":\"records\"}}",
-  )
+  let text =
+    #|{"version":"actql/0.1","id":"original-source-refusal","stages":[{"id":"main","inputs":{"remote":{"connector":"hidden","resource":"private","view":"records"}},"steps":[{"select":["id"],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id"]}}}],"results":{"rows":{"from":{"stage":"main","result":"rows"}}}}
   let (parent, child, input_source, input) = registration_parent_fixture(
     text~,
     computation_limits=Some(
