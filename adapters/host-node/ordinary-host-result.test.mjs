@@ -241,8 +241,8 @@ test('ordinary command-only Effect preserves finite result, row and contract lim
   const f = await fixture(() => value);
   try {
     const valid = {resultCount: 0, maxRows: 100, maxContractBytes: 1000000};
-    for (const change of [{resultCount: -1}, {resultCount: 0.5}, {resultCount: 11}, {resultCount: NaN},
-      {maxRows: -1}, {maxRows: 10001}, {maxContractBytes: 0}, {maxContractBytes: 2147483648}]) {
+    for (const change of [{resultCount: -1}, {resultCount: 0.5}, {resultCount: Number.MAX_SAFE_INTEGER + 1}, {resultCount: NaN},
+      {maxRows: -1}, {maxRows: 2147483648}, {maxContractBytes: 0}, {maxContractBytes: 2147483648}]) {
       value = {...valid, ...change};
       assert.throws(() => f.view.admitEffectRun(f.prepared), {message: 'HostResultPublicationUnsupported'});
     }
