@@ -196,122 +196,19 @@ pub impl Debug for ClientProgramCheckPreparationIssue with fn to_repr(self) {
 }
 
 ///|
-/// Fixed controls only. No Values shape, source count, compiler body, wire,
-/// parsed tree or provider inventory is included here. Each selected next
-/// phase must reserve its own complete representation before constructing it.
-fn request_preparation_control_units() -> @execution.PreparationRepresentationUnits {
-  let (inventory_headers, inventory_refs, inventory_words) = request_preparation_inventory_slots
-  // JS producer/empty receipt/preparation state; original Resource record and
-  // state; fixed quota6 and weak identity membership; ports and six closures.
-  // The original runtime's fixed validation arrays have lengths4,6,3,7,5,5;
-  // their slots borrow existing names/purpose or contain scalar counters.
-  let js_headers = 3L * 2L +
-    2L +
-    1L +
-    1L +
-    1L +
-    2L +
-    2L +
-    1L +
-    6L +
-    1L +
-    2L * 6L +
-    4L
-  let js_refs = 1L +
-    1L +
-    3L * 3L +
-    8L +
-    6L +
-    6L +
-    1L +
-    1L +
-    4L +
-    12L +
-    2L +
-    6L +
-    4L +
-    6L +
-    1L
-  let js_words = 1L + 1L + 5L + 2L + 6L + 2L * 6L + 3L + 7L + 2L * 5L
-  // Original imported origin/child/admission/initial wrapper and eight fixed
-  // closures. Ledger/limits/reservation/byte wrapper retain the same token;
-  // old/new usage and zero quantity records coexist during initial reserve.
-  let import_headers = 1L + 1L + 1L + 1L + 8L
-  let import_refs = 7L + 8L + 7L + 1L + 9L
-  let import_words = 4L + 3L + 4L + 1L
-  let ledger_headers = 1L + 1L + 2L + 4L + 1L + 1L + 1L
-  let ledger_refs = 7L + 3L + 5L + 1L
-  let ledger_words = 4L + 6L + 20L + 9L + 6L + 3L
-  // Generic JSON entrance allocates before its first domain grow. Fund these
-  // independently in the original bootstrap: debit tuple+Ok2H1R3W; two
-  // checked-add Some2H0R4W; conservative error alternatives6H6R6W
-  // (debit Err/Capacity/Err3, overflow Err1, resize Capacity/Err2).
-  // Sum10H7R13W=320 logical bytes, held until original parent retirement.
-  // This is not the B initial Source packet or a subset subtracted from it.
-  // Original current/resize objects use the same declared scratch below;
-  // fixed nonrecursive VM frames stay installed baseline. Borrowed input,
-  // limits/path and external callback backing still belong to their owners.
-  // Capacity: six reference fields and four scalars. Original parent: six references
-  // and phase. Live Some/Result carriers conservatively cover eight headers,
-  // eight references and eight tags. Original-current/resize scratch has
-  // sixteen headers, thirty-two references and twenty-four scalar slots.
-  // Later same-parent links add two parent reference slots and two live Some
-  // carriers (2H4R2W). The Check return/error alternatives add3H3R3W;
-  // conservative Source-take and both child-clear returned carriers add4H4R4W.
-  // Total9H11R9W=304 is caller control, prepaid here before the Source take or
-  // Check grow callback. It does not include another copy of either domain.
-  {
-    // One resident domain link; its Some(1H1R1W), and conservative sum of
-    // returned Ok plus Err/ProgramJson carriers(3H3R3W). No domain payload
-    // or B initial recipe is represented by these caller-only controls.
-    // Shared compiler caller controls: original input tuple/Some, selected
-    // argument/artifact carriers, component Array/backing and closures.
-    // The closed domain variant replaces its former four-field tuple, adding
-    // one scalar tag. Keep it in this existing common fixed caller allowance,
-    // rather than introduce a per-domain control reservation.
-    // This is 11H21R10W, not recursive measurement or provider backing.
-    record_headers: request_model_scope_quote_controls.record_headers +
-    11L +
-    inventory_headers +
-    js_headers +
-    import_headers +
-    ledger_headers +
-    2L +
-    8L +
-    16L +
-    4L +
-    10L +
-    9L,
-    // Resident Model Plan and Content Plan/Request links. Selected Some and
-    // domain construction are separately funded before their allocation.
-    reference_slots: request_model_scope_quote_controls.reference_slots +
-    21L +
-    inventory_refs +
-    3L +
-    js_refs +
-    import_refs +
-    ledger_refs +
-    12L +
-    8L +
-    32L +
-    5L +
-    7L +
-    11L,
-    scalar_words: request_model_scope_quote_controls.scalar_words +
-    10L +
-    inventory_words +
-    js_words +
-    import_words +
-    ledger_words +
-    5L +
-    8L +
-    24L +
-    4L +
-    13L +
-    9L,
-    owned_utf16_units: 0L,
-    owned_wire_bytes: 0L,
-  }
+// One conservative fixed Host/Request control envelope, expressed through the
+// existing common representation tariff. Preserve the original upper bound:
+// 10,368 logical bytes plus the existing separate 4,096-byte installed group.
+// This is intentionally independent of JS closure, carrier and array spelling.
+// Input/AST/wire/row/operation storage, selected domain construction and live
+// child overlap remain separately charged before their actual constructors.
+// The fixed envelope is immutable DATA, not a reservation, phase or RSS bound.
+let request_preparation_fixed_control_envelope : @execution.PreparationRepresentationUnits = {
+  record_headers: 220L,
+  reference_slots: 401L,
+  scalar_words: 455L,
+  owned_utf16_units: 0L,
+  owned_wire_bytes: 0L,
 }
 
 ///|
@@ -322,7 +219,7 @@ pub fn client_request_preparation_control_capacity(
 ) -> (Int64, Int64)? {
   guard client_local_preparation_initial_limits(policy) is Some(limits) &&
     @execution.preparation_representation_cost(
-      request_preparation_control_units(),
+      request_preparation_fixed_control_envelope,
     )
     is Some(original) &&
     @execution.checked_preparation_add_product(original, 4096L, 1L)
