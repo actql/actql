@@ -406,3 +406,68 @@ test('Model Content generate refuses missing original preparation before writer 
   /InstalledContentRunPreparationUnavailable/);
   assert.deepEqual(f.calls, []);
 });
+
+
+test('Request acquired Model Content borrows its adopted Source Ledger and starts only with the original Row capture', async () => {
+  const preparedProgram = {}, request = {}, selected = {}, compiled = {}, graph = {},
+    ledger = {}, rawCapture = {}, source = {}, sourceCapacity = {};
+  const managed = {value: {}, serialization: selected, closed: false};
+  const plan = {kind: 'infer', compiled, inferGraph: graph, serializationGraph: {task: 1, step: 2},
+    runDefinition: {identity: 'definition', wire: '{"valid_until":"2099-01-01T00:00:00.000Z"}'}};
+  const model = {compiled, runDefinition: plan.runDefinition, graph, serializationGraph: plan.serializationGraph};
+  const primary = new Error('original acquired prefix child failure');
+  let execution, cleanupReady = false, starts = 0, captures = 0, ledgerCalls = 0, cleanups = 0;
+  const control = {workspaceCapacity: () => ({}), requestPrefixCapacity: actual => {
+    assert.equal(actual, selected); return {retainedBytes: 7n, executionBytes: 9n};
+  }, prefixCapacity() {assert.fail('Do not reconstruct the adopted Model prefix');},
+  prefix() {assert.fail('No independent acquired Content prefix');},
+  startRequestPrefix() {assert.fail('An empty prefix cannot substitute the original Row capture');},
+  startRequestAcquiredPrefix(r, p, s, c) {
+    assert.deepEqual([r, p, s, c], [managed.value, preparedProgram, selected, rawCapture]);
+    starts++; throw primary;
+  }, cleanupRequestPrefix(r, s) {
+    assert.deepEqual([r, s], [managed.value, selected]); cleanups++; return cleanupReady;
+  }};
+  const moon = {clientProgramAcquisitionCount: () => 1,
+    clientProgramPrepareSerializationCapturedLedger() {assert.fail('No second Model Ledger');},
+    clientProgramInstalledManagedRunPrepareLedger(...args) {
+      assert.deepEqual(args.slice(0, 6), [managed.value, preparedProgram, request, [sourceCapacity], [512n], [256n]]);
+      ledgerCalls++; return {$tag: 1, _0: ledger};
+    }};
+  const run = installNodeContentRun({moon,
+    core: {contentGenerationControl: control, publicationControl: {checkClientCompiledRunOwner() {},
+      checkedClientSerializationGenerationLimits: () => ({maxRows: 1, maxBytes: 16}),
+      bindCheckedClientSerializationCapture(p, g, c, a) {
+        assert.equal(p, preparedProgram); assert.equal(g, plan.serializationGraph);
+        assert.equal(c, acquiredContent.captured); assert.equal(a, acquiredContent); return {};
+      }}}, preparedRunRequired: true, assertRunCurrent() {},
+    retainPreparation(p, record) {assert.equal(p, preparedProgram); record.inputHolder = {};},
+    prepareModelManagedRun(p, r, m) {assert.deepEqual([p, r, m], [preparedProgram, request, model]); return managed;},
+    ownerPrincipal: 'principal', storeAuthorityCid: 'store', now: () => '2026-11-01T00:00:00.000Z', authorize: () => true});
+  run.prepareModelRun({preparedProgram, plan, request, model});
+  const capacity = {managedRun: managed.value, capacity: sourceCapacity, transferBytes: 512n, executionBytes: 256n};
+  assert.equal(run.prepareAcquiredLedger({preparedProgram, plan, sourceCapacity: capacity}), ledger);
+  const acquiredContent = {ledger, captured: {capture: {source: () => source,
+    originalRowCapture() {assert.equal(this, acquiredContent.captured.capture); captures++; return rawCapture;}}}};
+  const store = {storeAuthorityCid: 'store', status: () => ({closed: false}), confirmCommittedIndex: async () => undefined};
+  await assert.rejects(run.generate({preparedProgram, plan, store, principalId: 'principal', acquiredContent,
+    retainExecution: value => {execution = value;}}), cause => cause === primary);
+  assert.equal(ledgerCalls, 1); assert.equal(captures, 1); assert.equal(starts, 1);
+  assert.equal(await execution.cleanup(), false);
+  cleanupReady = true; assert.equal(await execution.cleanup(), true);
+  assert.equal(await execution.cleanup(), true); assert.equal(cleanups, 2);
+  assert.equal(starts, 1); assert.equal(captures, 1);
+});
+
+test('Request acquired prefix facade forwards same opaque capture and retains only its original returned prefix', () => {
+  const run = {}, program = {}, selected = {}, capture = {}, prefix = {}, prefixes = new WeakSet();
+  const primary = new Error('original typed acquired prefix failure'); let fail = false, calls = 0;
+  const moon = {clientProgramInstalledManagedAcquiredSerializationPrefixStart(...args) {
+    assert.equal(this, moon); assert.deepEqual(args, [run, program, selected, capture]); calls++;
+    if (fail) throw primary; return prefix;
+  }};
+  const start = method('../host-common/runtime-core.mjs', 'startRequestAcquiredPrefix', {moon, prefixes, checked: v => v});
+  assert.equal(start(run, program, selected, capture), prefix); assert(prefixes.has(prefix));
+  fail = true; assert.throws(() => start(run, program, selected, capture), cause => cause === primary);
+  assert.equal(calls, 2);
+});
