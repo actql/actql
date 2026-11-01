@@ -225,14 +225,27 @@ class _SQLiteByteDatabase:
             if used > 8192:
                 raise ValueError('Original physical fence set exceeds its query holding')
         before = self._snapshot_identity()
-        matched = True
-        for key, generation, payload in rows:
-            actual = self.read_row(key, len(payload))
-            if actual != (generation, payload, 'blob', len(payload)):
-                matched = False
+        # Only the bounded row count selects SQL structure. Every actual key,
+        # revision and exact byte body is a bound value, never SQL text.
+        slots = ','.join('(?,?,?)' for _ in rows)
+        parameters = tuple(value for row in rows for value in row)
+        actual = self._connection.execute(
+            'WITH expected(key,generation,payload) AS (VALUES ' + slots + ''')
+            SELECT count(*) FROM core_bytes AS actual
+            JOIN expected ON actual.key = expected.key COLLATE BINARY
+            WHERE typeof(actual.key) = 'text'
+            AND typeof(actual.generation) = 'integer'
+            AND actual.generation = expected.generation
+            AND CASE WHEN typeof(actual.payload) = 'blob'
+                AND length(actual.payload) = length(expected.payload)
+                THEN actual.payload ELSE NULL END = expected.payload''',
+            parameters).fetchone()
         if self._snapshot_identity() != before:
             raise ValueError('Original physical fence snapshot changed')
-        return matched
+        if (type(actual) is not tuple or len(actual) != 1
+                or type(actual[0]) is not int or not 0 <= actual[0] <= len(rows)):
+            raise ValueError('Original physical fence comparison is unavailable')
+        return actual[0] == len(rows)
 
     def read_capacity(self, namespace: str, key: str) -> tuple[int, int] | None:
         return cast(tuple[int, int] | None, self._connection.execute(
