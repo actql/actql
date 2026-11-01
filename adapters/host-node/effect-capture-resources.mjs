@@ -81,7 +81,10 @@ function recoveryView(state) {
       // Only after actual original child cleanup. Clear the variable aliases
       // before returning capacity: the original return may consume then fail.
       state.request = state.runDefinition = state.control = state.reserve = state.limits = state.input = undefined;
-      state.assertCurrent = state.failure = undefined;
+      state.failure = undefined;
+      // The original Request settlement still enters its existing Resource
+      // current callback. Keep that same light control until settlement ACK;
+      // clearing it here would turn a missing method into sticky stopping.
       if (state.live) {
         if (state.value !== undefined) {
           checked(state.context.runtime.clientProgramRetireInstalledEffectCaptureRecovery(state.value));
@@ -91,6 +94,7 @@ function recoveryView(state) {
         cleanupRequestInput(state);
       }
       state.closed = true;
+      state.assertCurrent = undefined;
       state.context = undefined;
       const retired = state.retired;
       state.retired = undefined;

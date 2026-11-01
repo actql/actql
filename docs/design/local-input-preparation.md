@@ -4534,6 +4534,23 @@ retirement phase govern alias release. Failed construction does not fabricate
 a managed Run or a successful physical outcome. The Request retains partial
 records until this fence, spends their alias duty before returning the same
 borrow, and retains the parent if that consumed return or its settlement fails.
+
+### Original Effect capture recovery controls
+
+The existing Host retains recovery custody before opening the selected
+Request or adopted Run resource constructor. The same opened Store extent
+grows that original allowance before ciphertext, temporary plaintext, JSON,
+typed capture and schema construction overlap. Physical read/schema cleanup
+precedes release of the reservation; an unavailable original child stays
+pending rather than being replaced.
+
+After those children acknowledge cleanup, variable capture aliases may retire
+before a consumed parent return. The original current callback remains until
+that same Request's settlement acknowledges completion: the existing imported
+Resource fence still calls it during retirement. Clearing the callback early
+would manufacture a missing-method failure in place of the original current
+observation. No extra current probe, settlement witness or cleanup owner is
+introduced; a consumed-return retry uses the same original parent.
 A declined extent grow before prefix construction retains the same absolute
 quote for a controlled continuation. After the original constructor fails,
 that Request body stays failed through Abort; different workspace or execution
