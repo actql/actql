@@ -86,6 +86,7 @@ export function prepareInstalledStandardCreatePlanRecipe({moon, providerMoon, co
   const capacities = checked(capacitiesFor(profile(requestInput.maxWireBytes, requestInput.maxNodes, requestInput.maxDepth),
     ...(captureProfile === undefined ? [] : [captureProfile(limits.maxWireBytes,limits.maxNodes,limits.maxDepth,
       requestInput.maxWireBytes,requestInput.maxNodes,requestInput.maxDepth)]), limits.maxWireBytes, limits.maxNodes, limits.maxDepth,
+    ...(captureProfile === undefined ? [] : [requestInput.maxWireBytes,requestInput.maxNodes,requestInput.maxDepth]),
     write.maxRequestBytes, write.maxResponseBytes, check?.maxRequestBytes ?? 0, check?.maxResponseBytes ?? 0,
     check?.beforeSend === true, secret.limits.maxSecretBytes, httpsCredentialAuthorizationPrefix.length,
     httpsCredentialResponseHeaderByteLimit, effectLedgerImplementationBounds.maxResponseBytes,

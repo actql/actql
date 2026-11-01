@@ -102,6 +102,9 @@ pub fn client_program_installed_standard_driver_recipe_capacities(
   input_bytes : Int,
   input_nodes : Int,
   input_depth : Int,
+  row_input_bytes : Int,
+  row_input_nodes : Int,
+  row_input_depth : Int,
   request_bytes : Int,
   response_bytes : Int,
   check_request_bytes : Int,
@@ -119,10 +122,10 @@ pub fn client_program_installed_standard_driver_recipe_capacities(
   @client_local_host.ClientInstalledManagedRunIssue,
 ] {
   @client_local_host.installed_standard_driver_recipe_capacities(
-    original, capture_original, input_bytes, input_nodes, input_depth, request_bytes,
-    response_bytes, check_request_bytes, check_response_bytes, before_send, secret_bytes,
-    secret_prefix_units, header_bytes, stored_bytes, stored_nodes, stored_depth,
-    metadata_units,
+    original, capture_original, input_bytes, input_nodes, input_depth, row_input_bytes,
+    row_input_nodes, row_input_depth, request_bytes, response_bytes, check_request_bytes,
+    check_response_bytes, before_send, secret_bytes, secret_prefix_units, header_bytes,
+    stored_bytes, stored_nodes, stored_depth, metadata_units,
   )
 }
 

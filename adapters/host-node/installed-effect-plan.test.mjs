@@ -525,7 +525,7 @@ test('automatic Command recipe forwards opaque native capture originals and sepa
       assert.deepEqual(args,[1024,64,8,128,16,4]);calls.push('capture');return capture;}};
   const construction=Object.freeze({write:Object.freeze({operation:'write',maxRequestBytes:256,maxResponseBytes:64}),check:undefined,metadataTextUnits:0});
   const moon={clientProgramInstalledStandardDriverRecipeCapacities(...args){assert.equal(this,moon);
-    assert.equal(args[0],profile);assert.equal(args[1],capture);assert.deepEqual(args.slice(2,10),[1024,64,8,256,64,0,0,false]);
+    assert.equal(args[0],profile);assert.equal(args[1],capture);assert.deepEqual(args.slice(2,13),[1024,64,8,128,16,4,256,64,0,0,false]);
     calls.push('fold');return {$tag:1,_0:capacities};},
     clientProgramInstalledStandardCreateRecipeCapacities(){assert.fail('No old fold dropping native capture');},
     clientProgramInstalledEffectCaptureRecipeExtentPrepare(operation,original){assert.equal(this,moon);assert.equal(operation,'write');assert.strictEqual(original,capacities);return {$tag:1,_0:{}};},

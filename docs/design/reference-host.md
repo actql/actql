@@ -1993,15 +1993,17 @@ and their original output lifetimes remain co-held. Response decoding keeps
 its own declared recipe; no response, grant, transport or recovery allowance
 is removed by selecting the request's actual decoder.
 
-Range recovery bounds its configuration-normalization input at the original
-callee boundary. Initial entry construction first completes the binding's
-bounded preserving canonical wire. Saved range restoration checks its own
-original wire-byte guard before NFC, including later identity refusals. The
-quantity keeps the larger of those two guarded inputs and all complete
-payload/parser/writer forests separately; it does not normalize the escaped
-whole Preview forest. Clear recovery retains its separate envelope because
-its stored-entry path has no equivalent early wire-byte guard. No refusal
-order, field spelling, identity or installed resource ceiling changes.
+Range recovery compares the supplied saved wire with the canonical document
+reconstructed from the SAME original binding and effect ID, then computes its
+configuration CID from that original document. Exact equality establishes the
+complete supplied document without parsing, canonicalizing and normalizing a
+second supplied tree. The outer effects/recovery forests keep their original
+byte/node/depth admission, and saved range keeps its independent wire-byte
+guard. Clear still parses its supplied marker document before reconstructing
+and comparing the expected metadata. Both paths normalize only their closed
+metadata geometry; input forests, returned text, writers and failed prefixes
+remain separately backed. Request bytes, identities, refusal results and
+installed resource ceilings stay unchanged.
 
 Captured Effect operation multiplicity selects the SAME checked member Result
 endpoints inside the existing work-bounded schema walk. It does not replace
@@ -2020,7 +2022,9 @@ constructor descriptor and original native binding profile to the existing
 standard Effect Plan composer. It does not supply an independently handwritten
 operation table or a second recipe calculator. The existing checked proposal
 input bounds apply to per-row request construction; the complete Preview
-bounds independently apply to capture/recovery. Native profiles return opaque
+bounds independently apply to capture/recovery. The driver forwards both
+original triples to Core: it does not substitute the Preview limits for each
+row body. Generic CREATE retains its existing single input triple. Native profiles return opaque
 typed quantities and parse limits directly through the bridge. The shared Core
 fold adds the original fixed and per-row capture peaks once, alongside its
 existing request/response/credential/HTTP/control quantities. Request building,
@@ -2356,8 +2360,8 @@ maps, reply cursors and failed-prefix paths remain temporary workspace.
 
 Native range capture quotes returned entry/request-array material separately
 from its synchronous parser, NFC and canonical-writer work. The two full
-recovery input trees can coexist; Source parsing, entry parsing, normalization
-and canonical emission use their actual sequential phases. Each phase retains
+recovery input trees can coexist; Source parsing, clear marker-entry parsing,
+normalization and canonical emission use their actual sequential phases. Each phase retains
 all original input Strings/encodings and its failed prefix. Metadata generation
 uses its closed column/target/coordinate/marker construction, not the complete
 Preview forest. Canonical emission checks its original byte bound before

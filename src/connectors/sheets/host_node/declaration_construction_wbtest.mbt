@@ -645,3 +645,20 @@ test "range Source reader keeps native metadata scratch out of its returned mate
   assert_eq(retained, @execution.execution_capacity_retained_bytes(narrow))
   assert_true(execution > @execution.execution_capacity_execution_bytes(narrow))
 }
+
+///|
+test "range retained metadata bounds only its original expected tree before NFC" {
+  let metadata = recovery_guard_test_metadata(300000)
+  let range = sheets_range_capture_profile(
+      metadata, 1000000, 100000, 64, 100000, 10000, 16, 2000000, 200000, 32, false,
+    ).unwrap()[0]
+  let clear = sheets_range_capture_profile(
+      metadata, 1000000, 100000, 64, 100000, 10000, 16, 2000000, 200000, 32, true,
+    ).unwrap()[0]
+  let required = @execution.execution_capacity_execution_bytes(range)
+  let wider = @execution.execution_capacity_execution_bytes(clear)
+  println("ORIGINAL_RANGE_METADATA range=\{required} clear=\{wider}")
+  // Clear retains the additionally supplied marker tree; range retains none.
+  // Both normalize only the same original binding metadata after equality.
+  assert_true(required <= wider)
+}

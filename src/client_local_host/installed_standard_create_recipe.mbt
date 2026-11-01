@@ -160,6 +160,9 @@ pub fn installed_standard_create_recipe_capacities(
     input_bytes,
     input_nodes,
     input_depth,
+    input_bytes,
+    input_nodes,
+    input_depth,
     request_bytes,
     response_bytes,
     check_request_bytes,
@@ -184,6 +187,9 @@ pub fn installed_standard_driver_recipe_capacities(
   input_bytes : Int,
   input_nodes : Int,
   input_depth : Int,
+  row_input_bytes : Int,
+  row_input_nodes : Int,
+  row_input_depth : Int,
   request_bytes : Int,
   response_bytes : Int,
   check_request_bytes : Int,
@@ -210,6 +216,9 @@ pub fn installed_standard_driver_recipe_capacities(
     input_bytes,
     input_nodes,
     input_depth,
+    row_input_bytes,
+    row_input_nodes,
+    row_input_depth,
     request_bytes,
     response_bytes,
     check_request_bytes,
@@ -234,6 +243,9 @@ fn installed_standard_recipe_capacities(
   input_bytes : Int,
   input_nodes : Int,
   input_depth : Int,
+  row_input_bytes : Int,
+  row_input_nodes : Int,
+  row_input_depth : Int,
   request_bytes : Int,
   response_bytes : Int,
   check_request_bytes : Int,
@@ -251,6 +263,9 @@ fn installed_standard_recipe_capacities(
     input_bytes > 0 &&
     input_nodes > 0 &&
     input_depth > 0 &&
+    row_input_bytes > 0 &&
+    row_input_nodes > 0 &&
+    row_input_depth > 0 &&
     request_bytes > 0 &&
     response_bytes > 0 &&
     stored_bytes > 0 &&
@@ -276,7 +291,7 @@ fn installed_standard_recipe_capacities(
   let empty = @execution.execution_capacity(0L, 0L).unwrap()
   let write_output = if entries.length() == 4 { 2 } else { 1 }
   guard installed_json_effect_request_construction_capacity(
-      empty, input_bytes, input_nodes, input_depth,
+      empty, row_input_bytes, row_input_nodes, row_input_depth,
     )
     is Some(capture_rows) &&
     @source.json_literal_construction_extent(

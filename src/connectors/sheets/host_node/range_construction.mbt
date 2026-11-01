@@ -714,11 +714,10 @@ fn sheets_range_capture_profile(
     binding_bytes.to_int64(),
     metadata_text_units,
   ).to_int()
-  let cold_normalization_bytes = if clear {
-    Int64::min(entry_bytes.to_int64(), metadata_text_units).to_int()
-  } else {
-    entry_bytes
-  }
+  let cold_normalization_bytes = Int64::min(
+    entry_bytes.to_int64(),
+    metadata_text_units,
+  ).to_int()
   let entry_nodes = Int::min(n, entry_bytes)
   // Fresh metadata has no Preview values: columns, fixed coordinates, the
   // immutable target and (clear only) the already bounded marker vector.
@@ -741,12 +740,20 @@ fn sheets_range_capture_profile(
   }
   guard sheets_range_parsed_construction(b, n, recovery_depth) is Some(input) &&
     sheets_range_json_inventory(b, n) is Some(native) &&
-    sheets_range_parsed_construction(entry_bytes, entry_nodes, recovery_depth)
+    (if clear {
+      sheets_range_parsed_construction(entry_bytes, entry_nodes, recovery_depth)
+    } else {
+      Some(zero)
+    })
     is Some(entry_input) &&
-    sheets_range_json_inventory(entry_bytes, entry_nodes) is Some(entry) &&
-    sheets_range_canonical_construction(entry_nodes, recovery_depth)
-    is Some(canonical) &&
-    sheets_writer_units(recovery_bytes, n, recovery_depth) is Some(writer) &&
+    (if clear {
+      sheets_range_json_inventory(entry_bytes, entry_nodes)
+    } else {
+      Some(zero)
+    })
+    is Some(entry) &&
+    sheets_writer_units(recovery_bytes, metadata_nodes + 4, recovery_depth)
+    is Some(writer) &&
     sheets_range_normalization_construction(cold_normalization_bytes)
     is Some(normalization) &&
     @canonical.nfc_lf_construction_extent(cold_normalization_bytes)
@@ -804,16 +811,10 @@ fn sheets_range_capture_profile(
     owned_utf16_units: 2L * wire,
     owned_wire_bytes: 2L * wire,
   }
-  // Clear normalizes the reconstructed, original-binding metadata only after
-  // marker validation and canonical equality. Keep the arbitrary parsed entry
-  // alive separately; it is not the tree passed to NFC/from_json.
-  let normalization_input = if clear { metadata_native } else { entry }
-  let normalized = { ..normalization_input, owned_utf16_units: 0L, }
-  let normalization_canonical = if clear {
-    metadata_canonical
-  } else {
-    canonical
-  }
+  // Both paths normalize only reconstructed original-binding metadata after
+  // canonical equality. Clear alone parses the supplied marker document first;
+  // range compares its entire wire directly without another supplied tree.
+  let normalized = { ..metadata_native, owned_utf16_units: 0L, }
   let metadata_normalized = { ..metadata_native, owned_utf16_units: 0L, }
   guard @execution.compose_preparation_representation([
       inputs, input, native, native,
@@ -824,17 +825,7 @@ fn sheets_range_capture_profile(
     ])
     is Some(entry_peak) &&
     @execution.compose_preparation_representation([
-      inputs,
-      native,
-      native,
-      entry,
-      if clear {
-        metadata_native
-      } else {
-        zero
-      },
-      normalized,
-      normalization,
+      inputs, native, native, entry, metadata_native, normalized, normalization,
     ])
     is Some(normalize_peak) &&
     @execution.compose_preparation_representation([
@@ -842,13 +833,9 @@ fn sheets_range_capture_profile(
       native,
       native,
       entry,
-      if clear {
-        metadata_native
-      } else {
-        zero
-      },
+      metadata_native,
       normalized,
-      normalization_canonical,
+      metadata_canonical,
       writer,
       { ..zero, owned_utf16_units: normalized_text.max_output_utf16_units, },
     ])
@@ -875,18 +862,8 @@ fn sheets_range_capture_profile(
     ])
     is Some(metadata_canonical_peak) &&
     sheets_range_capture_phase_capacity(retained, [
-      parse_peak,
-      entry_peak,
-      normalize_peak,
-      canonical_peak,
-      if clear {
-        expected_peak
-      } else {
-        zero
-      },
-      metadata_parse_peak,
-      metadata_normalize_peak,
-      metadata_canonical_peak,
+      parse_peak, entry_peak, normalize_peak, canonical_peak, expected_peak, metadata_parse_peak,
+      metadata_normalize_peak, metadata_canonical_peak,
     ])
     is Some(fixed) &&
     sheets_range_request_capacity(

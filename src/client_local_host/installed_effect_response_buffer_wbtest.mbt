@@ -286,6 +286,9 @@ test "Command recipe adds SAME native capture fixed and row quantities once with
     256,
     16,
     4,
+    256,
+    16,
+    4,
     64,
     32,
     0,
@@ -320,6 +323,9 @@ test "Command recipe adds SAME native capture fixed and row quantities once with
     256,
     16,
     4,
+    256,
+    16,
+    4,
     64,
     32,
     0,
@@ -337,8 +343,58 @@ test "Command recipe adds SAME native capture fixed and row quantities once with
   for invalid in [None, Some([]), Some([fixed]), Some([fixed, row, fixed, row])] {
     assert_true(
       installed_standard_driver_recipe_capacities(
-        original, invalid, 256, 16, 4, 64, 32, 0, 0, false, 16, 7, 32, 256, 64, 4,
-        0L,
+        original, invalid, 256, 16, 4, 256, 16, 4, 64, 32, 0, 0, false, 16, 7, 32,
+        256, 64, 4, 0L,
+      )
+      is Err(Unsupported),
+    )
+  }
+}
+
+///|
+test "driver row input follows its original body while fixed capture keeps the original Preview bound" {
+  let zero = @execution.execution_capacity(0L, 0L).unwrap()
+  let original = Some([(zero, None, None), (zero, None, None)])
+  let capture = Some([zero, zero])
+  let small = installed_standard_driver_recipe_capacities(
+    original, capture, 1024, 64, 8, 128, 8, 2, 64, 32, 0, 0, false, 16, 7, 32, 256,
+    64, 4, 0L,
+  ).unwrap()
+  let large = installed_standard_driver_recipe_capacities(
+    original, capture, 1024, 64, 8, 256, 16, 4, 64, 32, 0, 0, false, 16, 7, 32, 256,
+    64, 4, 0L,
+  ).unwrap()
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(small[0]),
+    @execution.execution_capacity_retained_bytes(large[0]),
+  )
+  assert_eq(
+    @execution.execution_capacity_execution_bytes(small[0]),
+    @execution.execution_capacity_execution_bytes(large[0]),
+  )
+  assert_true(
+    @execution.execution_capacity_retained_bytes(small[1]) <
+    @execution.execution_capacity_retained_bytes(large[1]),
+  )
+  assert_true(
+    @execution.execution_capacity_execution_bytes(small[1]) <
+    @execution.execution_capacity_execution_bytes(large[1]),
+  )
+  for index in 2..<small.length() {
+    assert_eq(
+      @execution.execution_capacity_retained_bytes(small[index]),
+      @execution.execution_capacity_retained_bytes(large[index]),
+    )
+    assert_eq(
+      @execution.execution_capacity_execution_bytes(small[index]),
+      @execution.execution_capacity_execution_bytes(large[index]),
+    )
+  }
+  for (bytes, nodes, depth) in [(0, 8, 2), (128, 0, 2), (128, 8, 0)] {
+    assert_true(
+      installed_standard_driver_recipe_capacities(
+        original, capture, 1024, 64, 8, bytes, nodes, depth, 64, 32, 0, 0, false,
+        16, 7, 32, 256, 64, 4, 0L,
       )
       is Err(Unsupported),
     )

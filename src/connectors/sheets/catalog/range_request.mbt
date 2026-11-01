@@ -448,11 +448,12 @@ pub fn recover_range_requests(
       entry.get("wire") is Some(String(wire)) &&
       @utf8.encode(wire).length() <= range_saved_recovery_wire_byte_limit() &&
       entry.get("observationCid") is Some(String(cid)) &&
-      range_parse(wire, limits, "SheetsRangeRecoveryMismatch") is Ok(value) &&
-      range_canonical(value, limits) == Ok(wire) &&
-      range_content_cid(value, limits) == Ok(cid) &&
+      // Exact equality with the original constructor's canonical metadata
+      // establishes the supplied wire as that SAME complete document. Do not
+      // parse/canonicalize/hash an unrelated supplied tree before rejecting it.
       range_recovery_value(binding, effect_id) is Ok(expected) &&
-      range_canonical(expected, limits) == Ok(wire) else {
+      range_canonical(expected, limits) == Ok(wire) &&
+      range_content_cid(expected, limits) == Ok(cid) else {
       return Err(range_failure("SheetsRangeRecoveryMismatch"))
     }
     let requests = []
