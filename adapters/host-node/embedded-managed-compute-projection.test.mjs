@@ -181,7 +181,7 @@ test('installed managed contract strings are projected once across distinct Host
   f.stop();
   assert.throws(() => read(f.originals, second), /CurrentRefused/);
   assert.equal(f.calls.length, 3, 'Static strings cannot supply current Run admission');
-  assert.deepEqual(f.installationCalls, ['manifests', 'contracts'],
+  assert.deepEqual(f.installationCalls, ['manifests', 'sequence'],
     'Fixed installation admission is retained, not repeated for each Run quote');
 });
 
