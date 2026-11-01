@@ -1278,3 +1278,70 @@ test('Command construction requires SAME driver definition provider and immutabl
   const bad=Object.freeze({...construction,write:Object.freeze({...construction.write,operation:'sheets:clear'})});
   assert.throws(()=>capture(definition,Object.freeze({...driver,managedPlanConstruction:bad}),provider,bad),{code:'InvalidInstalledEffectDriverConstruction'});
 });
+
+
+test('actual member capture caller defers SAME original recovery until Preview and retains failing siblings', async () => {
+  const {prepareInstalledEffectRequestChild} = await import('./installed-effect-plan.mjs');
+  const {retainInstalledRowCaptureChild} = await import('./installed-row-capture-cleanup.mjs');
+  const matches = [];
+  const visit = node => {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'FunctionDeclaration' && node.id.name === 'captureStage') matches.push(node);
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit);
+      else if (value && typeof value === 'object') visit(value);
+    }
+  };
+  visit(rowTree); assert.equal(matches.length, 1);
+  const statements = matches[0].body.body;
+  const slice = node => rowSource.slice(node.start, node.end);
+  const initialize = statements.filter(node => node.type === 'ForOfStatement' &&
+    slice(node).includes('retainInstalledRowCaptureChild('));
+  const recovery = statements.filter(node => node.type === 'ForOfStatement' &&
+    slice(node).includes('await retained.prepare()'));
+  assert.equal(initialize.length, 1); assert.equal(recovery.length, 1);
+  const vector = statements.filter(node => node.type === 'VariableDeclaration' &&
+    node.declarations.some(value=>value.id.name==='memberCaptures'));
+  assert.equal(vector.length,1);
+  const source = 'const requestChildren=[],proposals=[],currents=[]; let entries;' + slice(vector[0]) +
+    slice(initialize[0]) + '\nreturn {requestChildren,proposals,currents,finish:async originalEntries=>{' +
+    'entries=originalEntries; const connectorRecovery=[];' + slice(recovery[0]) + ';return connectorRecovery;}};';
+  const open = Function('members','ownerOf','managedEffect','moon','prepared','identity',
+    'retainInstalledRowCaptureChild','prepareInstalledEffectRequestChild','retireRequestAliases',
+    'assertCurrent','signal','fail',source);
+  for (const failing of [false,true]) {
+    const events=[],members=[{memberIndex:0},{memberIndex:1}],parent={},prepared={},identity={},plan={};
+    const tokens=members.map(()=>({})); let retired=false;
+    const moon={clientProgramInstalledEffectManagedOperationPlan:()=>({$tag:1,_0:plan}),
+      clientProgramInstalledEffectOperationBorrow(p,original,intent,selected,index,perRow) {
+        assert.strictEqual(p,parent);assert.strictEqual(original,prepared);assert.strictEqual(intent,identity);
+        assert.strictEqual(selected,plan);assert.equal(perRow,false);events.push('borrow'+index);
+        return {$tag:1,_0:tokens[index]};
+      },clientProgramInstalledEffectOperationConstructionComplete(token) {
+        events.push('complete'+tokens.indexOf(token));return {$tag:1,_0:undefined};
+      },clientProgramInstalledEffectOperationRetire(token) {assert(retired);return {$tag:1,_0:true};}};
+    const managedEffect={runtime:moon,value:parent,prepared,request:identity,operationPlan:plan,
+      readPlan:moon.clientProgramInstalledEffectManagedOperationPlan};
+    const descriptions=[{},{}],entries=[[{}],[{}]];
+    const owners=members.map((member,index)=>({managedPlanRecipe:{captureConstruction:{operationIndex:0},
+      memberOperations:[{operation:'capture'}]},owned:{recoveryEntry(context) {
+        assert.strictEqual(this,owners[index].owned);assert.strictEqual(context.member,member);
+        assert.strictEqual(context.current,descriptions[index]);assert.strictEqual(context.entries,entries[index]);
+        events.push('recovery'+index);if(failing&&index===1)throw undefined;
+        return {kind:'original',wire:'wire'+index,observationCid:'cid'+index};
+      }}}));
+    const capture=open(members,member=>owners[member.memberIndex],managedEffect,moon,prepared,identity,
+      retainInstalledRowCaptureChild,prepareInstalledEffectRequestChild,()=>retired,undefined,undefined,
+      code=>{throw Object.assign(new Error(code),{code});});
+    assert.deepEqual(events,['borrow0','borrow1']);assert.equal(capture.requestChildren.length,2);
+    assert.deepEqual(capture.proposals,[[],[]]);capture.currents.push(...descriptions);events.push('Preview');
+    if(failing){let caught=false;try{await capture.finish(entries);}catch(error){caught=true;assert.strictEqual(error,undefined);}
+      assert(caught);assert.deepEqual(events,['borrow0','borrow1','Preview','recovery0','complete0','recovery1']);}
+    else assert.deepEqual(await capture.finish(entries),[
+      {memberIndex:0,kind:'original',wire:'wire0',observationCid:'cid0'},
+      {memberIndex:1,kind:'original',wire:'wire1',observationCid:'cid1'}]);
+    assert(capture.requestChildren.every(value=>value.prepared.status().pending));
+    retired=true;for(const child of capture.requestChildren)await child.prepared.release();
+    assert(capture.requestChildren.every(value=>value.prepared.status().pending===false));
+  }
+});

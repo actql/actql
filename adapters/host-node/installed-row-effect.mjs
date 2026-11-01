@@ -122,7 +122,7 @@ import {captureClaimedEffectResponse, snapshotEffectDispatchClaim} from
   './effect-physical-dispatch.mjs';
 import {recoverProjectedEffectResponse} from './effect-response-recovery.mjs';
 import {localContractLimits} from './local-values-plan.mjs';
-import {prepareInstalledRowCaptureChild, releaseInstalledRowCapture} from './installed-row-capture-cleanup.mjs';
+import {prepareInstalledRowCaptureChild, retainInstalledRowCaptureChild, releaseInstalledRowCapture} from './installed-row-capture-cleanup.mjs';
 import {issueUpdateTargetInstallation, assertUpdateTargetSelectionCurrent,
   assertUpdateTargetSelectionMembersCurrent} from './update-target-original-shape.mjs';
 import {assertInstalledSourceConstruction, retainInstalledSourceConstruction,
@@ -1971,6 +1971,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     const contentBorrowers = [];
     const contentArtifacts = [];
     const requestChildren = [];
+    const memberCaptures = new Array(members.length);
     const proposals = [], currents = [], rowsOf = [], observations = [];
     let sourceSet;
     let entries, route, captureOpen = true;
@@ -1981,6 +1982,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       rowsOf.length = 0;
       observations.length = 0;
       proposals.length = 0;
+      memberCaptures.length = 0;
       return true;
     };
     const physicalOperations = facts => {
@@ -2041,12 +2043,24 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       const selected = recipe.captureConstruction;
       if (selected === undefined) fail('InstalledEffectCaptureConstructionUnavailable');
       const operation = recipe.memberOperations[selected.operationIndex]?.operation;
-      proposals.push(await prepareInstalledRowCaptureChild({children: requestChildren,
-        create: () => prepareInstalledEffectRequestChild({run: managedEffect,
-          memberIndex: member.memberIndex, perRow: false, rowIndex: 0,
-          operationIndex: selected.operationIndex, operation,
-          construct: () => [], requestsRetired: retireRequestAliases}),
-        assertCurrent, signal}));
+      const {owned} = ownerOf(member);
+      const recoveryEntry = owned.recoveryEntry;
+      let original;
+      const retained = retainInstalledRowCaptureChild({children: requestChildren,
+        create: () => {
+          original = prepareInstalledEffectRequestChild({run: managedEffect,
+            memberIndex: member.memberIndex, perRow: false, rowIndex: 0,
+            operationIndex: selected.operationIndex, operation,
+            construct: () => recoveryEntry === undefined ? undefined :
+              Reflect.apply(recoveryEntry, owned, [{member, current: currents[member.memberIndex],
+                entries: entries[member.memberIndex]}]), requestsRetired: retireRequestAliases});
+          return original;
+        }, assertCurrent, signal});
+      // Retain before this cheap original-record fence can fail. The actual
+      // constructor is deferred; its original reservation already owns input.
+      original.checkOriginal();
+      proposals.push([]);
+      memberCaptures[member.memberIndex] = retained;
     }
     let proposalCount = 0;
     const sourceLimits = moon.clientProgramEffectInputExportLimits(
@@ -2299,13 +2313,16 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         ...(member.kind === 'command' ? {} : {wire: chunks.join('')}),
         proof: verified.proof});
     }
-    const connectorRecovery = members.flatMap((member, index) => {
+    const connectorRecovery = [];
+    for (const [index, member] of members.entries()) {
       const {owned} = ownerOf(member);
-      if (owned.recoveryEntry === undefined) return [];
-      const entry = owned.recoveryEntry({member, current: currents[index], entries: entries[index]});
-      return [{memberIndex: index, kind: entry?.kind,
-        observationCid: entry?.observationCid, wire: entry?.wire}];
-    });
+      const retained = memberCaptures[index];
+      const entry = retained === undefined
+        ? owned.recoveryEntry?.({member, current: currents[index], entries: entries[index]})
+        : await retained.prepare();
+      if (owned.recoveryEntry !== undefined) connectorRecovery.push({memberIndex: index,
+        kind: entry?.kind, observationCid: entry?.observationCid, wire: entry?.wire});
+    }
     const computation = await issueCompletedEffectfulComputationEvidence({
       execution, store, storedResults, control, admission: plan.admission,
       runDefinition: plan.runDefinition, invocation: plan.invocation,

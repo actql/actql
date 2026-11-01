@@ -4093,7 +4093,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "101563a66696889883bcd1793e43265274bbc637707adcaf680fa3eca3cb1155",
+      "sha256": "ac72928176ab5046d964c7862be309f22c8dbd69ff2c8f43efcf6127f31afbf1",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -4734,18 +4734,13 @@
         },
         {
           "name": "createRowEffectStage/captureStage/captureStage/captureStage",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/captureStage/captureStage/captureStage#2",
           "parameters": [
             "row"
           ],
           "async": false
         },
         {
-          "name": "createRowEffectStage/captureStage/captureStage/captureStage#3",
+          "name": "createRowEffectStage/captureStage/captureStage/captureStage#2",
           "parameters": [
             "change",
             "row"
@@ -4753,7 +4748,7 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage/captureStage/captureStage/captureStage#4",
+          "name": "createRowEffectStage/captureStage/captureStage/captureStage#3",
           "parameters": [
             "claim"
           ],
@@ -4761,42 +4756,30 @@
         },
         {
           "name": "createRowEffectStage/captureStage/captureStage#10",
-          "parameters": [
-            "member"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/captureStage/captureStage#11",
           "parameters": [],
           "async": true
         },
         {
-          "name": "createRowEffectStage/captureStage/captureStage#12",
+          "name": "createRowEffectStage/captureStage/captureStage#11",
           "parameters": [
             "member"
           ],
           "async": false
         },
         {
-          "name": "createRowEffectStage/captureStage/captureStage#13",
+          "name": "createRowEffectStage/captureStage/captureStage#12",
           "parameters": [],
           "async": true
         },
         {
           "name": "createRowEffectStage/captureStage/captureStage#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/captureStage/captureStage#3",
           "parameters": [
             "member"
           ],
           "async": false
         },
         {
-          "name": "createRowEffectStage/captureStage/captureStage#4",
+          "name": "createRowEffectStage/captureStage/captureStage#3",
           "parameters": [
             "member",
             "memberIndex"
@@ -4804,14 +4787,14 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage/captureStage/captureStage#5",
+          "name": "createRowEffectStage/captureStage/captureStage#4",
           "parameters": [
             "entry"
           ],
           "async": false
         },
         {
-          "name": "createRowEffectStage/captureStage/captureStage#6",
+          "name": "createRowEffectStage/captureStage/captureStage#5",
           "parameters": [
             "entry",
             "row"
@@ -4819,24 +4802,31 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage/captureStage/captureStage#7",
+          "name": "createRowEffectStage/captureStage/captureStage#6",
           "parameters": [
             "rows"
           ],
           "async": false
         },
         {
-          "name": "createRowEffectStage/captureStage/captureStage#8",
+          "name": "createRowEffectStage/captureStage/captureStage#7",
           "parameters": [
             "member"
           ],
           "async": false
         },
         {
-          "name": "createRowEffectStage/captureStage/captureStage#9",
+          "name": "createRowEffectStage/captureStage/captureStage#8",
           "parameters": [
             "member",
             "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/captureStage/captureStage#9",
+          "parameters": [
+            "member"
           ],
           "async": false
         },
@@ -4871,14 +4861,6 @@
           "parameters": [
             "name",
             "wire"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/captureStage/connectorRecovery/connectorRecovery",
-          "parameters": [
-            "member",
-            "index"
           ],
           "async": false
         },
@@ -4972,6 +4954,16 @@
           "name": "createRowEffectStage/captureStage/releaseInputs/releaseInputs",
           "parameters": [],
           "async": true
+        },
+        {
+          "name": "createRowEffectStage/captureStage/retained/retained",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/captureStage/retained/retained/retained",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "createRowEffectStage/captureStage/retireRequestAliases/retireRequestAliases",
@@ -6508,13 +6500,11 @@
             "createRowEffectStage/captureStage/captureStage/captureStage",
             "createRowEffectStage/captureStage/captureStage/captureStage#2",
             "createRowEffectStage/captureStage/captureStage/captureStage#3",
-            "createRowEffectStage/captureStage/captureStage/captureStage#4",
             "createRowEffectStage/captureStage/childrenPending/childrenPending",
             "createRowEffectStage/captureStage/childrenPending/childrenPending/childrenPending",
             "createRowEffectStage/captureStage/claims/claims",
             "createRowEffectStage/captureStage/computation/computation",
             "createRowEffectStage/captureStage/computation/computation#2",
-            "createRowEffectStage/captureStage/connectorRecovery/connectorRecovery",
             "createRowEffectStage/captureStage/context/context",
             "createRowEffectStage/captureStage/footprints/footprints",
             "createRowEffectStage/captureStage/holdings/holdings",
@@ -6701,7 +6691,7 @@
               },
               {
                 "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
-                "anchor": "export async function prepareInstalledRowCaptureChild({children, create,"
+                "anchor": "export function retainInstalledRowCaptureChild({children, create,"
               },
               {
                 "path": "adapters/host-node/installed-row-effect.mjs",
@@ -7759,7 +7749,6 @@
         },
         {
           "operations": [
-            "createRowEffectStage/captureStage/captureStage#13",
             "createRowEffectStage/captureStage/targets/targets"
           ],
           "exports": [],
@@ -8454,6 +8443,75 @@
               {
                 "path": "adapters/host-node/installed-effect-plan.test.mjs",
                 "anchor": "test('capture construction selects its original member extent without consuming a per-row slot'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createRowEffectStage/captureStage/retained/retained",
+            "createRowEffectStage/captureStage/retained/retained/retained"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Member capture retains its original constructor before Source and Preview work,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Member capture retains its original constructor before Source and Preview work,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Member capture retains its original constructor before Source and Preview work,"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Member capture retains its original constructor before Source and Preview work,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Member capture retains its original constructor before Source and Preview work,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Member capture retains its original constructor before Source and Preview work,"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Member capture retains its original constructor before Source and Preview work,"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Member capture retains its original constructor before Source and Preview work,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Member capture retains its original constructor before Source and Preview work,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Member capture retains its original constructor before Source and Preview work,"
               }
             ]
           }
@@ -15656,7 +15714,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "459f86ec989e21883b6de233d7395e1a46880a641a1ecb4db71a166b7a8e2258",
+      "sha256": "21b8643d199119a348ebee7fdc580589d155c14b90a3ba428ee9cc976227b6a6",
       "contracts": [
         {
           "operations": [

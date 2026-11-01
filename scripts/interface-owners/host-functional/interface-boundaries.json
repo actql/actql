@@ -70952,67 +70952,21 @@
     {
       "module": "adapters/host-node/installed-row-capture-cleanup.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "aeec5d77edf47004612d84d809f962342a9e25439597a183c39e09d2514205fe",
+      "sha256": "ca7fba3d7bcdc895314bd2cf896e81cf0b12c221b92c732a20161b6871ce1e4a",
       "role": "physical-io",
       "owner": "Existing Content/Reference/completion/publication Owners and physical Store writer",
       "exports": [
         "prepareInstalledRowCaptureChild",
-        "releaseInstalledRowCapture"
+        "releaseInstalledRowCapture",
+        "retainInstalledRowCaptureChild"
       ],
       "operations": [
         {
           "name": "prepareInstalledRowCaptureChild",
           "parameters": [
-            "children",
-            "create",
-            "assertCurrent",
-            "signal"
+            "options"
           ],
           "async": true
-        },
-        {
-          "name": "prepareInstalledRowCaptureChild/drain/drain",
-          "parameters": [
-            "retry"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledRowCaptureChild/drain/drain/drain",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "prepareInstalledRowCaptureChild/drain/drain/drain#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledRowCaptureChild/invalid/invalid",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledRowCaptureChild/prepareInstalledRowCaptureChild",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledRowCaptureChild/prepareInstalledRowCaptureChild#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledRowCaptureChild/prepareInstalledRowCaptureChild#3",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledRowCaptureChild/prepareInstalledRowCaptureChild#4",
-          "parameters": [
-            "method"
-          ],
-          "async": false
         },
         {
           "name": "releaseInstalledRowCapture",
@@ -71103,20 +71057,79 @@
           "name": "releaseInstalledRowCapture/retain/retain/retain",
           "parameters": [],
           "async": false
+        },
+        {
+          "name": "retainInstalledRowCaptureChild",
+          "parameters": [
+            "children",
+            "create",
+            "assertCurrent",
+            "signal"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainInstalledRowCaptureChild/drain/drain",
+          "parameters": [
+            "retry"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainInstalledRowCaptureChild/drain/drain/drain",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "retainInstalledRowCaptureChild/drain/drain/drain#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "retainInstalledRowCaptureChild/init:prepare/init:prepare",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "retainInstalledRowCaptureChild/invalid/invalid",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "retainInstalledRowCaptureChild/retainInstalledRowCaptureChild",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "retainInstalledRowCaptureChild/retainInstalledRowCaptureChild#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "retainInstalledRowCaptureChild/retainInstalledRowCaptureChild#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "retainInstalledRowCaptureChild/retainInstalledRowCaptureChild#4",
+          "parameters": [
+            "method"
+          ],
+          "async": false
         }
       ],
       "contracts": [
         {
           "operations": [
             "prepareInstalledRowCaptureChild",
-            "prepareInstalledRowCaptureChild/drain/drain",
-            "prepareInstalledRowCaptureChild/drain/drain/drain",
-            "prepareInstalledRowCaptureChild/drain/drain/drain#2",
-            "prepareInstalledRowCaptureChild/invalid/invalid",
-            "prepareInstalledRowCaptureChild/prepareInstalledRowCaptureChild",
-            "prepareInstalledRowCaptureChild/prepareInstalledRowCaptureChild#2",
-            "prepareInstalledRowCaptureChild/prepareInstalledRowCaptureChild#3",
-            "prepareInstalledRowCaptureChild/prepareInstalledRowCaptureChild#4",
+            "retainInstalledRowCaptureChild/drain/drain",
+            "retainInstalledRowCaptureChild/drain/drain/drain",
+            "retainInstalledRowCaptureChild/drain/drain/drain#2",
+            "retainInstalledRowCaptureChild/invalid/invalid",
+            "retainInstalledRowCaptureChild/retainInstalledRowCaptureChild",
+            "retainInstalledRowCaptureChild/retainInstalledRowCaptureChild#2",
+            "retainInstalledRowCaptureChild/retainInstalledRowCaptureChild#3",
+            "retainInstalledRowCaptureChild/retainInstalledRowCaptureChild#4",
             "releaseInstalledRowCapture",
             "releaseInstalledRowCapture/childPending/childPending",
             "releaseInstalledRowCapture/dependent/dependent",
@@ -71147,7 +71160,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
-                "anchor": "export async function prepareInstalledRowCaptureChild({children, create,"
+                "anchor": "export function retainInstalledRowCaptureChild({children, create,"
               }
             ],
             "identity": [
@@ -71227,7 +71240,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
-                "anchor": "export async function prepareInstalledRowCaptureChild({children, create,"
+                "anchor": "export function retainInstalledRowCaptureChild({children, create,"
               }
             ],
             "identity": [
@@ -71288,6 +71301,77 @@
               {
                 "path": "adapters/host-node/effect-content-original-borrow.integration.test.mjs",
                 "anchor": "test('actual Content capture keeps the same original parent through an async preparation child'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "retainInstalledRowCaptureChild",
+            "retainInstalledRowCaptureChild/init:prepare/init:prepare"
+          ],
+          "exports": [
+            "retainInstalledRowCaptureChild"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Member capture retains its original constructor before Source and Preview work,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Member capture retains its original constructor before Source and Preview work,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Member capture retains its original constructor before Source and Preview work,"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Member capture retains its original constructor before Source and Preview work,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Member capture retains its original constructor before Source and Preview work,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Member capture retains its original constructor before Source and Preview work,"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Member capture retains its original constructor before Source and Preview work,"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Member capture retains its original constructor before Source and Preview work,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Member capture retains its original constructor before Source and Preview work,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Member capture retains its original constructor before Source and Preview work,"
               }
             ]
           }

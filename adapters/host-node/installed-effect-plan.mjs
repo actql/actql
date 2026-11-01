@@ -352,14 +352,13 @@ export function prepareInstalledEffectRequestChild({run, memberIndex, rowIndex,
           if (typeof value.then === 'function') fail('InstalledEffectConstructorNotSynchronous');
           pendingConstructor = undefined;
         }
-        // Only the real per-row synchronous callback is complete here. The
-        // member placeholder still precedes later capture/recovery work.
-        if (perRow) {
-          originalRecord();
-          if (typeof complete !== 'function') fail('InstalledEffectOperationRuntimeUnavailable');
-          checked(Reflect.apply(complete, runtime, [token]));
-          originalRecord();
-        } else current();
+        // Every call now executes its actual constructor. Member capture is
+        // retained earlier and prepares only at its real recovery-entry work;
+        // no placeholder may return that workspace before Source/Preview.
+        originalRecord();
+        if (typeof complete !== 'function') fail('InstalledEffectOperationRuntimeUnavailable');
+        checked(Reflect.apply(complete, runtime, [token]));
+        originalRecord();
         state = 'prepared';
         preparing = false;
         return value;
@@ -369,6 +368,9 @@ export function prepareInstalledEffectRequestChild({run, memberIndex, rowIndex,
         throw error;
       }
     },
+    // Callback-free original-record fence after this child was retained.
+    // This is not a current observation or an admission proof.
+    checkOriginal: originalRecord,
     release: drain, retry: drain,
     status: () => Object.freeze({pending: state !== 'retired'}),
   });

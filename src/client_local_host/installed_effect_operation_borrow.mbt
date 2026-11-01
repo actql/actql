@@ -46,8 +46,10 @@ fn installed_effect_operation_control_capacity(
       records: 25L * calls,
       record_references: (64L + 3L) * calls,
       record_words: (12L + 2L) * calls,
-      reference_arrays: 3L * calls,
-      reference_items: 14L * calls,
+      // Deferred member construction retains one original preparation-method
+      // vector. Its length is bounded by these same checked child slots.
+      reference_arrays: 3L * calls + 1L,
+      reference_items: 14L * calls + count,
       scalar_arrays: 0L,
       scalar_items: 0L,
       maps: 1L,

@@ -569,7 +569,7 @@ test('successful row constructor returns temporary workspace while original requ
   };
   const enclosing = prepareInstalledEffectRequestChild({...member, perRow: false});
   enclosing.prepare();
-  assert.equal(premature, 0, 'the enclosing capture still has actual later recovery work');
+  assert.equal(premature, 1, 'prepare is now the actual member constructor, not a placeholder');
 });
 
 
@@ -604,4 +604,45 @@ test('constructor completion keeps original post-current reentry fences without 
     assert.equal(child.release(), false);
     f.retireAliases(); assert.equal(child.retry(), true);
   }
+});
+
+
+test('member capture retains its original constructor before Source work and prepares actual recovery exactly once later', async () => {
+  const cleanup = await import('./installed-row-capture-cleanup.mjs');
+  assert.equal(typeof cleanup.retainInstalledRowCaptureChild, 'function');
+  const calls = [], children = [], recovery = {wire: 'original'};
+  const f = constructorControlFixture(() => {calls.push('native recovery'); return recovery;});
+  f.perRow = false;
+  f.run.runtime.clientProgramInstalledEffectOperationConstructionComplete = original => {
+    assert.equal(original, f.originalToken); calls.push('workspace returned');
+    return {$tag: 1, _0: undefined};
+  };
+  const original = prepareInstalledEffectRequestChild(f);
+  const held = cleanup.retainInstalledRowCaptureChild({children, create: () => original});
+  original.checkOriginal();
+  assert.equal(children.length, 1);
+  assert.deepEqual(calls, [], 'no placeholder constructor or premature workspace return');
+  calls.push('Source and Preview');
+  assert.equal(await held.prepare(), recovery);
+  assert.deepEqual(calls, ['Source and Preview', 'native recovery', 'workspace returned']);
+  assert.equal(await original.release(), false);
+  assert.equal(f.settlements(), 0);
+  await assert.rejects(held.prepare(), {code: 'InstalledEffectRequestChildAlreadyPrepared'});
+  f.retireAliases(); await children[0].prepared.release();
+  assert.equal(f.settlements(), 1);
+});
+
+
+test('deferred member constructor keeps the original asynchronous body until settlement and never completes it', async () => {
+  const {retainInstalledRowCaptureChild} = await import('./installed-row-capture-cleanup.mjs');
+  let resolve; const original = new Promise(yes=>{resolve=yes;});
+  const f=constructorControlFixture(()=>original);f.perRow=false;
+  let completes=0;f.run.runtime.clientProgramInstalledEffectOperationConstructionComplete=()=>{completes++;return {$tag:1,_0:undefined};};
+  const children=[],child=prepareInstalledEffectRequestChild(f);
+  const retained=retainInstalledRowCaptureChild({children,create:()=>child});
+  const pending=assert.rejects(retained.prepare(),{code:'InstalledEffectConstructorNotSynchronous'});
+  f.retireAliases();await children[0].prepared.release();
+  assert.equal(f.settlements(),0);assert.equal(children[0].prepared.status().pending,true);
+  resolve({original:true});await pending;
+  assert.equal(completes,0);await children[0].prepared.retry();assert.equal(f.settlements(),1);
 });

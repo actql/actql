@@ -1915,8 +1915,8 @@ normalized tree. Its reconstructed and normalized trees use their own closed
 schema/target/marker geometry, and effect-name growth comes from the original
 Unicode inventory. Returned text, prior input forests, writers and failed
 prefixes remain independently backed. These quantities do not reconcile an
-operation reservation merely because a placeholder preparation returned; the
-actual later constructor and its retained aliases keep their original duties.
+operation reservation after an early array allocation; the actual later
+constructor and its retained aliases keep their original duties.
 
 The native range/clear request profile returns its nominal request quantity
 and the actual closed output geometry separately. Core adds the Host literal
@@ -2380,6 +2380,19 @@ post-fences before shrinking that byte-only reservation. It allocates no new
 reservation and changes no attempts, transfer, retained material or physical
 cleanup status. The private caller then checks its original Run record without
 another callbackful Plan read. Failed or asynchronous constructors retain their
-full original backing until existing cleanup; the enclosing capture placeholder
-also retains its later work allowance. This completion alone does not change
-the Plan's aggregate bound or fund unrelated recovery/control construction.
+full original backing until existing cleanup. This completion alone does not
+change the Plan's aggregate bound or fund unrelated recovery/control construction.
+
+Member capture retains its original constructor before Source and Preview work,
+then prepares that SAME child only when its original recovery inputs exist.
+The constructor captures its original provider method and receiver once; it
+reads the original member/current/request arrays at that later boundary. The
+old empty-array placeholder is removed. Synchronous recovery-entry completion
+returns workspace while its output remains retained. Invalid asynchronous or
+failed construction keeps the same child and backing through settlement and
+original cleanup. Immediate and deferred preparation use the same retainer,
+method captures, cancellation and cleanup; the preparation latch precedes its
+original current callback, including the post-await fence. Retirement severs
+the deferred original-method vector with the other input aliases. That vector
+uses the checked operation-child inventory's existing collection owner, without
+a new resource owner, grant or fixed callback tariff.
