@@ -485,49 +485,86 @@ pub fn sheets_range_declaration_construction_capacity(
     is Some(native_json) else {
     return None
   }
-  sheets_constructor_capacity([
-    schema,
-    range_input,
-    // Outer declaration, embedded Catalog/contracts and parsed native bundle.
-    declared,
-    declared,
-    bundle,
-    sheets_collection_units(native_json),
-    // Original Json, its NFC identity Json and canonical-value projection
-    // overlap. One normalization cursor is enough; retain cumulative output
-    // text separately, never normalize schema/Command meaning here.
-    sheets_collection_units(native_json),
-    sheets_collection_units(native_json),
-    {
-      record_headers: normalization.record_headers,
-      reference_slots: normalization.reference_slots,
-      scalar_words: normalization.scalar_words,
-      owned_utf16_units: normalization.owned_utf16_units + 8L * (d + c),
-      owned_wire_bytes: 0L,
-    },
-    // The six output families stay co-held, but these closed synchronous
-    // calls do not nest or return a Writer/cursor. Only one original writer
-    // workspace is live. Its quantity includes the current output; the other
-    // five complete output families retain their own String backing below.
-    // The per-contract loop contributes multiple Strings whose aggregate is
-    // bounded by the SAME complete declared wire, not one whole wire per
-    // contract. Keep their wrappers/references beside the fixed outputs.
-    writer,
-    {
-      record_headers: native_nodes + 6L,
-      reference_slots: native_nodes + 6L,
-      scalar_words: 0L,
-      owned_utf16_units: 5L * result,
-      owned_wire_bytes: 0L,
-    },
-    {
-      record_headers: host.record_headers,
-      reference_slots: host.reference_slots,
-      scalar_words: host.scalar_words,
-      owned_utf16_units: host.owned_utf16_units + result,
-      owned_wire_bytes: d + c + schema_bytes.to_int64() + range_bytes.to_int64(),
-    },
-  ])
+  guard sheets_constructor_capacity([
+      schema,
+      range_input,
+      // Outer declaration, embedded Catalog/contracts and parsed native bundle.
+      declared,
+      declared,
+      bundle,
+      sheets_collection_units(native_json),
+      // Original Json, its NFC identity Json and canonical-value projection
+      // overlap. One normalization cursor is enough; retain cumulative output
+      // text separately, never normalize schema/Command meaning here.
+      sheets_collection_units(native_json),
+      sheets_collection_units(native_json),
+      {
+        record_headers: normalization.record_headers,
+        reference_slots: normalization.reference_slots,
+        scalar_words: normalization.scalar_words,
+        owned_utf16_units: normalization.owned_utf16_units + 8L * (d + c),
+        owned_wire_bytes: 0L,
+      },
+      // The six output families stay co-held, but these closed synchronous
+      // calls do not nest or return a Writer/cursor. Only one original writer
+      // workspace is live. Its quantity includes the current output; the other
+      // five complete output families retain their own String backing below.
+      // The per-contract loop contributes multiple Strings whose aggregate is
+      // bounded by the SAME complete declared wire, not one whole wire per
+      // contract. Keep their wrappers/references beside the fixed outputs.
+      writer,
+      {
+        record_headers: native_nodes + 6L,
+        reference_slots: native_nodes + 6L,
+        scalar_words: 0L,
+        owned_utf16_units: 5L * result,
+        owned_wire_bytes: 0L,
+      },
+      {
+        record_headers: host.record_headers,
+        reference_slots: host.reference_slots,
+        scalar_words: host.scalar_words,
+        owned_utf16_units: host.owned_utf16_units + result,
+        owned_wire_bytes: d +
+        c +
+        schema_bytes.to_int64() +
+        range_bytes.to_int64(),
+      },
+    ])
+    is Some(peak) &&
+    @execution.execution_capacity_inventory(
+      [
+        // Returned Host definition forest plus the final outer declaration.
+        // Replacing catalog/CID Strings adds no node; two new contract
+        // Strings and command_bodies key/Array/String add five. The shared
+        // commands Array, projected record and prepared record add three.
+        {
+          unit: @execution.ValueNodeSlots,
+          count: native_nodes + 8L,
+          copies: 1,
+        },
+        // Final wire, its parsed declaration text, parsed definition text,
+        // and the original captured columns/range wires remain co-held.
+        {
+          unit: @execution.DecodedTextBytes,
+          count: 2L * result +
+          c +
+          schema_bytes.to_int64() +
+          range_bytes.to_int64(),
+          copies: 1,
+        },
+      ],
+      [],
+      @execution.RetainedAlongsideExecution,
+    )
+    is Some(output) else {
+    return None
+  }
+  let retained = @execution.execution_capacity_retained_bytes(output)
+  @execution.execution_capacity(
+    retained,
+    Int64::max(retained, @execution.execution_capacity_execution_bytes(peak)),
+  )
 }
 
 ///|

@@ -6986,7 +6986,7 @@
   {
     "module": "src/connectors/sheets/host_node/append_construction.mbt",
     "responsibilityFacet": "primary",
-    "sha256": "07c3ca2944d62ffb5e3ba3f53965de08231e46fd383719d9befbe278b6bd1d63",
+    "sha256": "c495af04b8406d6ef13b542a4ac84a7a0044c45c4296574680d99c51d816629f",
     "operations": [
       {
         "name": "sheets_append_construction_profile",

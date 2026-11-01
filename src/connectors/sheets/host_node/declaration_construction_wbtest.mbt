@@ -199,3 +199,29 @@ test "two original Command declarations fit their unchanged observed Source quot
   ).unwrap()
   @resources.settle_capacity(ledger, reservation).unwrap()
 }
+
+///|
+test "closed Command output retains its Host forests separately from native temporary work" {
+  let quantity = sheets_range_declaration_construction_capacity(
+    147, 3, 79, 10, 15870,
+  ).unwrap()
+  let retained = @execution.execution_capacity_retained_bytes(quantity)
+  let peak = @execution.execution_capacity_execution_bytes(quantity)
+  assert_true(retained > 0L)
+  assert_true(retained < peak)
+  let selected = @client_host.retained_installed_source_construction_capacity(
+    quantity,
+  )
+  assert_eq(@execution.execution_capacity_retained_bytes(selected), retained)
+  assert_eq(@execution.execution_capacity_execution_bytes(selected), retained)
+  let before = @client_host.compose_installed_source_construction_capacity(
+    @execution.execution_capacity(11L, 13L).unwrap(),
+    [quantity],
+  ).unwrap()
+  let after = @client_host.compose_installed_source_construction_capacity(
+    @execution.execution_capacity(11L, 13L).unwrap(),
+    [selected],
+  ).unwrap()
+  assert_eq(@execution.execution_capacity_retained_bytes(before), 11L + peak)
+  assert_eq(@execution.execution_capacity_retained_bytes(after), 11L + retained)
+}

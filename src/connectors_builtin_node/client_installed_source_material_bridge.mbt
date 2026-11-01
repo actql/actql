@@ -110,6 +110,29 @@ pub fn client_program_compose_installed_source_construction_capacity(
 }
 
 ///|
+/// Keep the original optional quantity in typed Core. This is DATA only;
+/// selecting its retained part neither proves constructor completion nor
+/// issues or retires a Resource. No Host-side Option layout is constructed.
+#export_name("clientProgramInstalledSourceRetainedConstructionCapacity")
+pub fn client_program_installed_source_retained_construction_capacity(
+  original : @execution.ExecutionCapacity?,
+) -> Result[@execution.ExecutionCapacity?, @resources.PreparationCapacityIssue] {
+  guard original is Some(capacity) else { return Err(@resources.InvalidExtent) }
+  if @execution.execution_capacity_retained_bytes(capacity) ==
+    @execution.execution_capacity_execution_bytes(capacity) {
+    Ok(original)
+  } else {
+    Ok(
+      Some(
+        @client_local_host.retained_installed_source_construction_capacity(
+          capacity,
+        ),
+      ),
+    )
+  }
+}
+
+///|
 #export_name("clientProgramReserveInstalledSourceConstruction")
 pub fn client_program_reserve_installed_source_construction(
   owner : @resources.PreparationCapacity[
