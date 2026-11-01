@@ -52,6 +52,21 @@ fn client_node_layout_test_declaration(
 }
 
 ///|
+test "checked Graph exposes only its original input identities for an installed read recipe" {
+  let (_, _, graph) = client_model_read_test_run("recipe")
+  let original = prepared_client_identity(graph.owner)
+  assert_eq(
+    client_infer_plan_program_cid(graph),
+    original.program_definition_cid,
+  )
+  assert_eq(
+    client_infer_plan_parameters_cid(graph),
+    original.parameter_values_cid,
+  )
+  assert_eq(client_infer_plan_boundary(graph).3, graph.barrier_cid)
+}
+
+///|
 test "checked Node layout rejects missing installation and changed pinned facts before claim" {
   let (compiled, definition, plan) = client_model_read_test_run("layout")
   let layout = client_node_layout_test_declaration(plan)

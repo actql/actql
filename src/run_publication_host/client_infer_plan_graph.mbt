@@ -1049,3 +1049,15 @@ pub fn client_infer_plan_boundary(
 ) -> (Int, Int, Int, String) {
   (value.task, value.stage, 0, value.barrier_cid)
 }
+
+///|
+/// Original checked input identities for a trusted installation's read recipe.
+/// These immutable DATA neither recheck/compile nor issue a Request or Run.
+pub fn client_infer_plan_program_cid(value : ClientInferPlanGraph) -> String {
+  prepared_client_identity(value.owner).program_definition_cid
+}
+
+///|
+pub fn client_infer_plan_parameters_cid(value : ClientInferPlanGraph) -> String {
+  prepared_client_identity(value.owner).parameter_values_cid
+}

@@ -4,7 +4,7 @@
 import {runtimeField, runtimePair} from '../host-common/compiler-binding.generated.mjs';
 import {composeInstalledCheckEnvironment} from './installed-check-environment.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
-import {retainInferOriginalReadInstallation} from './infer-original-installation.mjs';
+import {retainInferOriginalReadInstallation, retainInferOriginalReadRecipe} from './infer-original-installation.mjs';
 import {snapshotModelRawCaptureSelection} from './infer-raw-selection.mjs';
 
 // These are aliases in the existing installation, not another Provider
@@ -296,7 +296,7 @@ export function installModelProviders(moon, register, assertHostRuntime,
         Object.keys(entry).some(key => !['invoke', 'providerId', 'validatePrompt',
           'physicalPreflight', 'quantityCapacity', 'observeEgress',
           'bindingOriginals', 'reconcileResponse', 'entryPersistence',
-          'originalReadInstallation', 'rawCaptureSelection', 'sdkStaticOriginals'].includes(key))) {
+          'originalReadInstallation', 'originalReadRecipe', 'rawCaptureSelection', 'sdkStaticOriginals'].includes(key))) {
       throw new TypeError('InvalidInstalledModelProviderRegistration');
     }
     // Static registration values are read once before retention/Core calls.
@@ -310,7 +310,8 @@ export function installModelProviders(moon, register, assertHostRuntime,
     const invoke = entryPersistence === 'async' ? undefined : entry.invoke;
     const validatePrompt = entry.validatePrompt, reconcileResponse = entry.reconcileResponse;
     const physicalPreflight = entry.physicalPreflight, observeEgress = entry.observeEgress;
-    const originalReadSource = entry.originalReadInstallation, rawSource = entry.rawCaptureSelection;
+    const originalReadSource = entry.originalReadInstallation, originalRecipeSource = entry.originalReadRecipe,
+      rawSource = entry.rawCaptureSelection;
     const bindingSource = entry.bindingOriginals, quantitySource = entry.quantityCapacity;
     const sdkStaticOriginals = entry.sdkStaticOriginals;
     const defaultsCallbacks = modelDefaultsCallbacks(moon);
@@ -333,7 +334,11 @@ export function installModelProviders(moon, register, assertHostRuntime,
     }
     // Installation-time snapshot precedes any provider or original Run start.
     // No default numerical profile is supplied when this declaration is absent.
+    if (originalReadSource !== undefined && originalRecipeSource !== undefined) {
+      throw new TypeError('InvalidInstalledInferOriginalReadInstallation');
+    }
     const originalReadInstallation = retainInferOriginalReadInstallation(originalReadSource);
+    const originalReadRecipe = retainInferOriginalReadRecipe(originalRecipeSource);
     const rawCaptureSelection = snapshotModelRawCaptureSelection(rawSource);
     // This installation profile connects raw custody only to the existing
     // durable asynchronous caller. It grants no raw capture or send authority.
@@ -410,7 +415,7 @@ export function installModelProviders(moon, register, assertHostRuntime,
         }
         return preparedDefaults.resolveTaskDefaults(selectedModel, taskMaxOutputTokens, limits);
       };
-    retained = Object.freeze({provider, originalReadInstallation, rawCaptureSelection,
+    retained = Object.freeze({provider, originalReadInstallation, originalReadRecipe, rawCaptureSelection,
       assertTrustedRuntime, assertNewTrustedRuntime, requireEagerSdkStartup,
       bindingOriginals,
       physicalPreflight,

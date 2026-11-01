@@ -50355,11 +50355,13 @@
     {
       "module": "adapters/host-node/infer-original-installation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f7102253e1ea9ba0024187ddd45c8a9ac91f41d7b1e75cf26b6daa06cc5e2bfb",
+      "sha256": "28a3bd97b9c6291116f046a5c3c15317623551e4ece4276a9e3851f860ef586c",
       "role": "physical-io",
       "owner": "Existing Model/Resource/Checkpoint Owners and original installation/physical custody",
       "exports": [
+        "bindInferOriginalReadRecipe",
         "retainInferOriginalReadInstallation",
+        "retainInferOriginalReadRecipe",
         "selectedInferOriginalCurrentStateCodec",
         "selectedInferOriginalMetadataLimits",
         "selectedInferOriginalPublicationCapacity",
@@ -50367,6 +50369,45 @@
         "snapshotInferOriginalCurrentStateCodec"
       ],
       "operations": [
+        {
+          "name": "bindInferOriginalReadRecipe",
+          "parameters": [
+            "moon",
+            "original",
+            "graph",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindInferOriginalReadRecipe/add/add",
+          "parameters": [
+            "a",
+            "b"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindInferOriginalReadRecipe/bindInferOriginalReadRecipe",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindInferOriginalReadRecipe/bindInferOriginalReadRecipe#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindInferOriginalReadRecipe/bindInferOriginalReadRecipe#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
         {
           "name": "count/count",
           "parameters": [
@@ -50408,20 +50449,10 @@
           "async": false
         },
         {
-          "name": "retainInferOriginalReadInstallation/fail/fail",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "retainInferOriginalReadInstallation/retainInferOriginalReadInstallation",
+          "name": "retainInferOriginalReadRecipe",
           "parameters": [
-            "name"
+            "value"
           ],
-          "async": false
-        },
-        {
-          "name": "retainInferOriginalReadInstallation/storeBootstrap/storeBootstrap",
-          "parameters": [],
           "async": false
         },
         {
@@ -50433,6 +50464,31 @@
         },
         {
           "name": "retainMetadata/fail/fail",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "retainOriginalReadDeclaration",
+          "parameters": [
+            "value",
+            "recipe"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainOriginalReadDeclaration/fail/fail",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "retainOriginalReadDeclaration/retainOriginalReadDeclaration",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainOriginalReadDeclaration/storeBootstrap/storeBootstrap",
           "parameters": [],
           "async": false
         },
@@ -50553,16 +50609,23 @@
       "contracts": [
         {
           "operations": [
+            "bindInferOriginalReadRecipe",
+            "bindInferOriginalReadRecipe/add/add",
+            "bindInferOriginalReadRecipe/bindInferOriginalReadRecipe",
+            "bindInferOriginalReadRecipe/bindInferOriginalReadRecipe#2",
+            "bindInferOriginalReadRecipe/bindInferOriginalReadRecipe#3",
             "count/count",
             "exactData/exactData",
             "int64/int64",
             "keys/keys",
             "retainInferOriginalReadInstallation",
-            "retainInferOriginalReadInstallation/fail/fail",
-            "retainInferOriginalReadInstallation/retainInferOriginalReadInstallation",
-            "retainInferOriginalReadInstallation/storeBootstrap/storeBootstrap",
+            "retainInferOriginalReadRecipe",
             "retainMetadata",
             "retainMetadata/fail/fail",
+            "retainOriginalReadDeclaration",
+            "retainOriginalReadDeclaration/fail/fail",
+            "retainOriginalReadDeclaration/retainOriginalReadDeclaration",
+            "retainOriginalReadDeclaration/storeBootstrap/storeBootstrap",
             "retainPublicationCapacity",
             "retainPublicationCapacity/fail/fail",
             "selectedInferOriginalCurrentStateCodec",
@@ -50581,7 +50644,9 @@
             "unavailable/unavailable"
           ],
           "exports": [
+            "bindInferOriginalReadRecipe",
             "retainInferOriginalReadInstallation",
+            "retainInferOriginalReadRecipe",
             "selectedInferOriginalCurrentStateCodec",
             "selectedInferOriginalMetadataLimits",
             "selectedInferOriginalPublicationCapacity",
@@ -50601,6 +50666,10 @@
               {
                 "path": "src/model_execution/pkg.generated.mbti",
                 "anchor": "pub fn acknowledge_model_call_entry(ModelCallEntry, ModelPreparedCallSet) -> ModelCallEntryAcknowledgement?"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed Model read recipe"
               }
             ],
             "inputsOutputs": [
@@ -50615,6 +50684,10 @@
               {
                 "path": "docs/spec/protocols/artifacts.md",
                 "anchor": "## Private Model raw response custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed Model read recipe"
               }
             ],
             "identity": [
@@ -50629,6 +50702,10 @@
               {
                 "path": "src/model_execution/pkg.generated.mbti",
                 "anchor": "pub fn acknowledge_model_call_entry(ModelCallEntry, ModelPreparedCallSet) -> ModelCallEntryAcknowledgement?"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed Model read recipe"
               }
             ],
             "ownership": [
@@ -50643,6 +50720,10 @@
               {
                 "path": "docs/design/model-original-state-storage.md",
                 "anchor": "# Private storage of original Model state"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed Model read recipe"
               }
             ],
             "synchronization": [
@@ -50657,6 +50738,10 @@
               {
                 "path": "src/model_execution/pkg.generated.mbti",
                 "anchor": "pub fn acknowledge_model_call_entry(ModelCallEntry, ModelPreparedCallSet) -> ModelCallEntryAcknowledgement?"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed Model read recipe"
               }
             ],
             "failure": [
@@ -50671,6 +50756,10 @@
               {
                 "path": "src/model_execution/pkg.generated.mbti",
                 "anchor": "pub fn acknowledge_model_call_entry(ModelCallEntry, ModelPreparedCallSet) -> ModelCallEntryAcknowledgement?"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed Model read recipe"
               }
             ],
             "cancellation": [
@@ -50685,6 +50774,10 @@
               {
                 "path": "docs/spec/protocols/artifacts.md",
                 "anchor": "## Private Model raw response custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed Model read recipe"
               }
             ],
             "resources": [
@@ -50699,6 +50792,10 @@
               {
                 "path": "docs/design/model-original-state-storage.md",
                 "anchor": "# Private storage of original Model state"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed Model read recipe"
               }
             ],
             "extension": [
@@ -50713,6 +50810,10 @@
               {
                 "path": "docs/spec/protocols/artifacts.md",
                 "anchor": "## Private Model raw response custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed Model read recipe"
               }
             ],
             "verification": [
@@ -50723,6 +50824,14 @@
               {
                 "path": "src/model_execution/pkg.generated.mbti",
                 "anchor": "pub fn acknowledge_model_call_entry(ModelCallEntry, ModelPreparedCallSet) -> ModelCallEntryAcknowledgement?"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed Model read recipe"
+              },
+              {
+                "path": "adapters/host-node/installed-model-registration.test.mjs",
+                "anchor": "installed read recipe"
               }
             ]
           }
@@ -50873,7 +50982,9 @@
         }
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
-      "imports": [],
+      "imports": [
+        "../host-common/compiler-binding.generated.mjs"
+      ],
       "compilerFields": [],
       "unresolvedSyntax": []
     },

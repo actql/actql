@@ -10518,6 +10518,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed Model read recipe"
               }
             ],
             "inputsOutputs": [
@@ -10616,6 +10620,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed Model read recipe"
               }
             ],
             "identity": [
@@ -10730,6 +10738,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed Model read recipe"
               }
             ],
             "ownership": [
@@ -10832,6 +10844,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed Model read recipe"
               }
             ],
             "synchronization": [
@@ -10934,6 +10950,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed Model read recipe"
               }
             ],
             "failure": [
@@ -11028,6 +11048,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed Model read recipe"
               }
             ],
             "cancellation": [
@@ -11118,6 +11142,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed Model read recipe"
               }
             ],
             "resources": [
@@ -11228,6 +11256,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed Model read recipe"
               }
             ],
             "extension": [
@@ -11318,6 +11350,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed Model read recipe"
               }
             ],
             "verification": [
@@ -11512,6 +11548,14 @@
               {
                 "path": "adapters/host-node/infer-installed-original-cleanup.test.mjs",
                 "anchor": "Request-owned plain acquired Model"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed Model read recipe"
+              },
+              {
+                "path": "adapters/host-node/installed-model-registration.test.mjs",
+                "anchor": "installed read recipe"
               }
             ]
           }
@@ -15104,6 +15148,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed Model read recipe"
               }
             ],
             "inputsOutputs": [
@@ -15126,6 +15174,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed Model read recipe"
               }
             ],
             "identity": [
@@ -15148,6 +15200,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed Model read recipe"
               }
             ],
             "ownership": [
@@ -15170,6 +15226,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed Model read recipe"
               }
             ],
             "synchronization": [
@@ -15192,6 +15252,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed Model read recipe"
               }
             ],
             "failure": [
@@ -15214,6 +15278,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed Model read recipe"
               }
             ],
             "cancellation": [
@@ -15236,6 +15304,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed Model read recipe"
               }
             ],
             "resources": [
@@ -15258,6 +15330,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed Model read recipe"
               }
             ],
             "extension": [
@@ -15280,6 +15356,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed Model read recipe"
               }
             ],
             "verification": [
@@ -15310,6 +15390,14 @@
               {
                 "path": "adapters/host-node/infer-installed-original-cleanup.test.mjs",
                 "anchor": "Request-owned plain acquired Model"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed Model read recipe"
+              },
+              {
+                "path": "adapters/host-node/installed-model-registration.test.mjs",
+                "anchor": "installed read recipe"
               }
             ]
           }
@@ -15533,6 +15621,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed Model read recipe"
               }
             ],
             "inputsOutputs": [
@@ -15551,6 +15643,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed Model read recipe"
               }
             ],
             "identity": [
@@ -15565,6 +15661,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed Model read recipe"
               }
             ],
             "ownership": [
@@ -15583,6 +15683,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed Model read recipe"
               }
             ],
             "synchronization": [
@@ -15597,6 +15701,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed Model read recipe"
               }
             ],
             "failure": [
@@ -15615,6 +15723,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed Model read recipe"
               }
             ],
             "cancellation": [
@@ -15629,6 +15741,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed Model read recipe"
               }
             ],
             "resources": [
@@ -15647,6 +15763,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed Model read recipe"
               }
             ],
             "extension": [
@@ -15661,6 +15781,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed Model read recipe"
               }
             ],
             "verification": [
@@ -15687,6 +15811,14 @@
               {
                 "path": "adapters/host-node/infer-installed-original-cleanup.test.mjs",
                 "anchor": "Request-owned plain acquired Model"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed Model read recipe"
+              },
+              {
+                "path": "adapters/host-node/installed-model-registration.test.mjs",
+                "anchor": "installed read recipe"
               }
             ]
           }
@@ -16497,6 +16629,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed Model read recipe"
               }
             ],
             "inputsOutputs": [
@@ -16519,6 +16655,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed Model read recipe"
               }
             ],
             "identity": [
@@ -16541,6 +16681,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed Model read recipe"
               }
             ],
             "ownership": [
@@ -16563,6 +16707,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed Model read recipe"
               }
             ],
             "synchronization": [
@@ -16585,6 +16733,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed Model read recipe"
               }
             ],
             "failure": [
@@ -16607,6 +16759,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed Model read recipe"
               }
             ],
             "cancellation": [
@@ -16629,6 +16785,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed Model read recipe"
               }
             ],
             "resources": [
@@ -16651,6 +16811,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed Model read recipe"
               }
             ],
             "extension": [
@@ -16673,6 +16837,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed Model read recipe"
               }
             ],
             "verification": [
@@ -16703,6 +16871,14 @@
               {
                 "path": "adapters/host-node/infer-installed-original-cleanup.test.mjs",
                 "anchor": "Request-owned plain acquired Model"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed Model read recipe"
+              },
+              {
+                "path": "adapters/host-node/installed-model-registration.test.mjs",
+                "anchor": "installed read recipe"
               }
             ]
           }
@@ -18242,6 +18418,7 @@
         "./in-process-client.mjs",
         "./infer-evaluation-evidence.mjs",
         "./infer-operation.mjs",
+        "./infer-original-installation.mjs",
         "./infer-trusted-runtime-view.mjs",
         "./initial-control-host-input.mjs",
         "./installed-calendar.mjs",
@@ -18299,7 +18476,7 @@
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "5221189c9f52bf28e78fe86f8515778fbae6a2304b75df476e948a09c4094a87"
+      "sha256": "f42d463d195794093f7fd2425915009e4228b9d981c7fb714318702dcb87cdc0"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",

@@ -697,6 +697,10 @@ pub fn client_infer_plan_graph_serialization(ClientInferPlanGraph) -> ClientSeri
 
 pub fn client_infer_plan_graph_wire(ClientInferPlanGraph) -> String
 
+pub fn client_infer_plan_parameters_cid(ClientInferPlanGraph) -> String
+
+pub fn client_infer_plan_program_cid(ClientInferPlanGraph) -> String
+
 pub fn client_infer_prefix_owner(PreparedClientProgram, Int, Int) -> @lowering_relation.BoundPrepared?
 
 pub fn client_infer_saved_call_scope_matches_occurrence(ClientInferSavedCallScope, ClientInferOccurrence, ClientInferPlanGraph) -> Bool
