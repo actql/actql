@@ -6275,6 +6275,12 @@ export async function connectEmbeddedLocal(options, initialEntry) {
           return;
         }
         finishInstalledEffectModelScope(run, true, checked);
+        if (run.preparationKind === 'effect-plan' && run.controlConstruction !== undefined) {
+          if (typeof run.retireControlConstruction !== 'function' ||
+              Reflect.apply(run.retireControlConstruction, run.controlConstruction, []) !== true) {
+            throw clientOperationError('InstalledEffectControlConstructionCleanupPending');
+          }
+        }
         if (run.preparationFunded) {
           if (run.preparationKind === 'serialization-plan' && !run.serializationCleaned) {
             if (Reflect.apply(run.cleanupSerialization, run.content, [run.value, run.serialization]) !== true) {

@@ -33755,7 +33755,7 @@
     {
       "module": "src/client_local_host/preparation_request_effect_body.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "be285e26732c29cdfd455bc42c0603d7500f132a897917db09dbdb6b97e651c8",
+      "sha256": "9aa9d339f8707846a62c29128e9d4d06ac6c5f5a81e8ac2a6b6773d29c1758cf",
       "role": "common-semantics",
       "owner": "Existing Request preparation and installed Effect Plan owners",
       "exports": [],
@@ -42222,9 +42222,13 @@
     },
     {
       "module": "src/client_local_host/installed_effect_operation_demand.mbt",
-      "sha256": "98a82aa465912bee8a6b3f6a0b39223b7956a6ca50a676e05210a2e05036f40e",
+      "sha256": "6e8d41e85d895787f85e80ca8a033e3aab31f0b1f617db67829c9e95bcd027a6",
       "exports": [],
       "operations": [
+        {
+          "name": "installed_effect_control_phase_quote_capacity",
+          "declaration": "installed_effect_control_phase_quote_capacity ( ) - > @ execution . ExecutionCapacity"
+        },
         {
           "name": "installed_effect_limits_fit",
           "declaration": "installed_effect_limits_fit ( required : @ resources . LedgerLimits , admitted : @ resources . LedgerLimits , ) - > Bool"
@@ -42539,6 +42543,74 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "A native driver capture recipe retains its fixed and per-row constructor"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installed_effect_control_phase_quote_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Effect control reservation keeps management/index growth"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Effect control reservation keeps management/index growth"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Effect control reservation keeps management/index growth"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Effect control reservation keeps management/index growth"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Effect control reservation keeps management/index growth"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Effect control reservation keeps management/index growth"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Effect control reservation keeps management/index growth"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Effect control reservation keeps management/index growth"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Effect control reservation keeps management/index growth"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Effect control reservation keeps management/index growth"
               }
             ]
           }
@@ -47653,7 +47725,7 @@
     },
     {
       "module": "src/client_local_host/installed_effect_operation_borrow.mbt",
-      "sha256": "1961c3fd8e18da18f08a4ac667246e5c7bc589962d4526fd187ba9fefb0bb77c",
+      "sha256": "457c7199549f3c7a75b332f9ebbc77ec2a1ce189bb124b122cf975ebfd57cc9b",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "D — original installed Effect operation borrow and retained same-Run management controls",
@@ -47665,12 +47737,16 @@
           "declaration": "begin_installed_effect_operation_construction ( value : ClientInstalledEffectOperationBorrow , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
         },
         {
+          "name": "begin_installed_effect_operation_control_construction",
+          "declaration": "begin_installed_effect_operation_control_construction ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : ClientInstalledEffectManagedPlan , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
+        },
+        {
           "name": "begin_installed_effect_operation_controls",
           "declaration": "begin_installed_effect_operation_controls ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , expected_plan : ClientInstalledEffectManagedPlan , ) - > Result [ ClientInstalledEffectManagedPlan , ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "begin_installed_effect_operation_controls_original",
-          "declaration": "begin_installed_effect_operation_controls_original ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , expected_plan : ClientInstalledEffectManagedPlan , ) - > Result [ ClientInstalledEffectManagedPlan , ClientInstalledManagedRunIssue ]"
+          "declaration": "begin_installed_effect_operation_controls_original ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , expected_plan : ClientInstalledEffectManagedPlan , construction_deferred : Bool , ) - > Result [ ClientInstalledEffectManagedPlan , ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "borrow_installed_effect_operation",
@@ -47697,6 +47773,14 @@
           "declaration": "complete_installed_effect_operation_construction ( value : ClientInstalledEffectOperationBorrow , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
         },
         {
+          "name": "complete_installed_effect_operation_control_construction",
+          "declaration": "complete_installed_effect_operation_control_construction ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : ClientInstalledEffectManagedPlan , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "installed_effect_control_execution",
+          "declaration": "installed_effect_control_execution ( control : ClientEffectOperationControls ? , plan : ClientInstalledEffectManagedPlan , ) - > Int64"
+        },
+        {
           "name": "installed_effect_operation_control_capacity",
           "declaration": "installed_effect_operation_control_capacity ( children : Int , ) - > @ execution . ExecutionCapacity ?"
         },
@@ -47721,16 +47805,28 @@
           "declaration": "require_installed_effect_operation ( value : ClientInstalledEffectOperationBorrow , lookup_probes ? : Ref [ Int64 ] ?"
         },
         {
+          "name": "resize_installed_effect_operation_control_construction",
+          "declaration": "resize_installed_effect_operation_control_construction ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , expected_plan : ClientInstalledEffectManagedPlan , active : Bool , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
+        },
+        {
           "name": "retain_installed_effect_operation_construction",
           "declaration": "retain_installed_effect_operation_construction ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , expected_plan : ClientInstalledEffectManagedPlan , member_index : Int , per_row : Bool , operation_index : Int , row_index : Int , operation : String , ) - > Result [ ClientInstalledEffectOperationBorrow , ClientInstalledManagedRunIssue , ]"
         },
         {
           "name": "retain_installed_effect_operation_controls",
-          "declaration": "retain_installed_effect_operation_controls ( owner : ClientInstalledManagedRun , previous : ClientEffectOperationControls ? , reservation : @ resources . CapacityReservation , ) - > ClientEffectOperationControls"
+          "declaration": "retain_installed_effect_operation_controls ( owner : ClientInstalledManagedRun , previous : ClientEffectOperationControls ? , reservation : @ resources . CapacityReservation , construction_deferred ? : Bool"
+        },
+        {
+          "name": "retain_installed_effect_operation_controls_before_construction",
+          "declaration": "retain_installed_effect_operation_controls_before_construction ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , expected_plan : ClientInstalledEffectManagedPlan , ) - > Result [ ClientInstalledEffectManagedPlan , ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "retire_installed_effect_operation",
           "declaration": "retire_installed_effect_operation ( value : ClientInstalledEffectOperationBorrow , original_cleanup_confirmed : Bool , ) - > Result [ Bool , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "select_installed_effect_operation_controls",
+          "declaration": "select_installed_effect_operation_controls ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , expected_plan : ClientInstalledEffectManagedPlan , construction_deferred : Bool , ) - > Result [ ClientInstalledEffectManagedPlan , ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "select_installed_effect_operation_original",
@@ -47964,6 +48060,79 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "A deferred Effect constructor retains the SAME checked occurrence and its"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "begin_installed_effect_operation_control_construction",
+            "complete_installed_effect_operation_control_construction",
+            "installed_effect_control_execution",
+            "resize_installed_effect_operation_control_construction",
+            "retain_installed_effect_operation_controls_before_construction",
+            "select_installed_effect_operation_controls"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Effect control reservation keeps management/index growth"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Effect control reservation keeps management/index growth"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Effect control reservation keeps management/index growth"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Effect control reservation keeps management/index growth"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Effect control reservation keeps management/index growth"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Effect control reservation keeps management/index growth"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Effect control reservation keeps management/index growth"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Effect control reservation keeps management/index growth"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Effect control reservation keeps management/index growth"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Effect control reservation keeps management/index growth"
               }
             ]
           }
@@ -49072,9 +49241,79 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "client_program_installed_effect_operation_control_construction_begin",
+            "client_program_installed_effect_operation_control_construction_complete",
+            "client_program_installed_effect_operation_controls_retain"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Effect control reservation keeps management/index growth"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Effect control reservation keeps management/index growth"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Effect control reservation keeps management/index growth"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Effect control reservation keeps management/index growth"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Effect control reservation keeps management/index growth"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Effect control reservation keeps management/index growth"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Effect control reservation keeps management/index growth"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Effect control reservation keeps management/index growth"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Effect control reservation keeps management/index growth"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Effect control reservation keeps management/index growth"
+              }
+            ]
+          }
         }
       ],
-      "sha256": "37dac12228431d7359a690271f4c3493a36b105f8eb9d195d8bbf9870547985e",
+      "sha256": "e2e6c3c00d6d8d8fc65164bc1afcefd9756cf40750c570afd1694d7a275cdd1a",
       "operations": [
         {
           "name": "client_program_installed_effect_http_response_construction_capacity",
@@ -49101,8 +49340,20 @@
           "declaration": "client_program_installed_effect_operation_construction_retain ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : @ client_local_host . ClientInstalledEffectManagedPlan , member_index : Int , per_row : Bool , operation_index : Int , row_index : Int , operation : String , ) - > Result [ @ client_local_host . ClientInstalledEffectOperationBorrow , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
+          "name": "client_program_installed_effect_operation_control_construction_begin",
+          "declaration": "client_program_installed_effect_operation_control_construction_begin ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : @ client_local_host . ClientInstalledEffectManagedPlan , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "client_program_installed_effect_operation_control_construction_complete",
+          "declaration": "client_program_installed_effect_operation_control_construction_complete ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : @ client_local_host . ClientInstalledEffectManagedPlan , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
+        },
+        {
           "name": "client_program_installed_effect_operation_controls_begin",
           "declaration": "client_program_installed_effect_operation_controls_begin ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : @ client_local_host . ClientInstalledEffectManagedPlan , ) - > Result [ @ client_local_host . ClientInstalledEffectManagedPlan , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_installed_effect_operation_controls_retain",
+          "declaration": "client_program_installed_effect_operation_controls_retain ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : @ client_local_host . ClientInstalledEffectManagedPlan , ) - > Result [ @ client_local_host . ClientInstalledEffectManagedPlan , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
           "name": "client_program_installed_effect_operation_extent_from_capacity",

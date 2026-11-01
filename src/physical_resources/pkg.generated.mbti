@@ -442,6 +442,8 @@ pub fn reserve_shared_workspace_capacity(Ledger, Int64, Int64) -> Result[SharedC
 
 pub fn[I, P] reserve_working_preparation_phase(PreparationCapacity[I, P], I, Int64, Int64) -> Result[Unit, PreparationCapacityIssue]
 
+pub fn[P, E] resize_node_managed_run_operation_control_construction(NodeManagedRunAdmission[P], P, Ledger, () -> Result[Unit, E], CapacityReservation, Int64, Int64) -> Result[Unit, NodeManagedRunOperationIssue[E]]
+
 pub fn[P] restore_node_managed_run_admission(NodeManagedRunAdmission[P], P, LedgerContinuationState) -> Result[Ledger, LedgerContinuationIssue]
 
 pub fn restore_quiescent_ledger_state(Ledger, LedgerContinuationState) -> Result[Unit, LedgerContinuationIssue]

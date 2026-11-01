@@ -1322,7 +1322,7 @@ test('actual member capture caller defers SAME original recovery until Preview a
       },clientProgramInstalledEffectOperationConstructionComplete(token) {
         events.push('complete'+tokens.indexOf(token));return {$tag:1,_0:undefined};
       },clientProgramInstalledEffectOperationRetire(token) {assert(retired);return {$tag:1,_0:true};}};
-    const managedEffect={runtime:moon,value:parent,prepared,request:identity,operationPlan:plan,
+    const managedEffect={controlConstruction:(receiver,method,args)=>Reflect.apply(method,receiver,args),runtime:moon,value:parent,prepared,request:identity,operationPlan:plan,
       readPlan:moon.clientProgramInstalledEffectManagedOperationPlan};
     const descriptions=[{},{}],entries=[[{}],[{}]];
     const owners=members.map((member,index)=>({managedPlanRecipe:{captureConstruction:{operationIndex:0},

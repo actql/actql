@@ -2473,7 +2473,8 @@ The installed Effect Plan composes the actual pure-constructor schedule as all
 retained outputs plus one largest temporary constructor workspace. The original
 row loop awaits each retained child's synchronous prepare/completion before the
 next callback; member recovery constructors use their same serial loop. Earlier
-outputs and all physical operations/control allowances remain fully co-counted.
+outputs and all physical operations remain fully co-counted; control callbacks
+use the separate same-reservation lifetime described below.
 The same Resource reservation grows before the callback and returns scratch only
 after successful completion. Failure or invalid async construction stops that
 loop and retains the original complete backing until its existing cleanup.
@@ -2482,5 +2483,44 @@ This is the selected installed implementation's lifetime inventory. The older
 full-body borrow still reserves its full extent against the same Ledger; it
 cannot fund concurrency outside the admitted inventory. No phase, attempt,
 transfer, spent coordinate, output or physical child is retired by taking a
-workspace peak in the quote. This does not replace the separate Ledger/projector
-control lifetime or prove ordinary package admission/physical cleanup.
+workspace peak in the quote. The separate Ledger/projector control lifetime
+below must also be connected; this alone does not prove ordinary package
+admission or physical cleanup.
+
+
+The same installed Effect control reservation keeps management/index growth
+workspace prepaid before any child inventory is constructed. It also retains
+all checked rows' original grants and returned Ledger/provider material. Only
+the separate synchronous grant, Ledger and provider-projection workspace is
+inactive between calls. Typed control entry grows that SAME reservation before
+the original callback; typed completion returns it to its prepaid idle extent.
+The original full control entrance remains available with its original meaning.
+No amount, new Root, attempt, permission or cleanup acknowledgment is issued by
+these phase transitions.
+
+The actual Node caller captures the original typed entry/completion methods and
+receiver once. One control frame holds the original Run retirement latch before
+entry, rejects reentry and keeps even an undefined primary sticky. Invalid
+native or foreign asynchronous borrowing remains attached to that SAME frame
+through original settlement; an unobservable original keeps retirement pending.
+Failure retains full workspace until cleanup, rather than reporting completion.
+The complete dispatch-retirement caller severs the frame's failed-prefix aliases
+before returning its Core backing; it does not infer a physical stop from this.
+
+Ledger caller methods retain their original private receiver. Internal calls use
+that private Ledger and stay inside one outer frame. The original close path is
+available after failure, without opening another constructor. The existing
+31-method/one-DATA-field view and fixed control frame are part of the same
+control inventory; methods and budget dimensions are not caller configuration.
+Warm capture opens the Ledger after member constructors finish. Recovery with
+an actual managed original uses that same frame; separately funded original
+recovery keeps its existing owner. No cold parent or permission is synthesized
+from a restored row, wire or matching amount.
+
+The Plan retains all outputs and the prepaid management growth, while the
+normal sequential constructor/control callbacks share one largest temporary
+workspace. Every physical operation still keeps its full original peak. The
+fixed additional Plan scalar and quote scratch use one shared layout at the
+Request's pre-construction quote and at the resulting Plan, rather than relying
+on a later allowance. These are implementation lifetime facts, not a cap change,
+new heap service, broader purpose acceptance or ordinary qualification.

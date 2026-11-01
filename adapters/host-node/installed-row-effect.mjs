@@ -1137,10 +1137,15 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     return route.owner;
   };
   const effect = runtimeCore(moon).effectApplicationControl;
-  const openLedger = identity => openEffectLedger({moon, root: ledgerRoot,
-    authorityScopeCid: moon.clientRequestAuthorityScopeCid(identity),
-    callerRequestId: moon.clientRequestCallerId(identity),
-    maxEntryBytes: effectLedgerImplementationBounds.maxEntryBytes});
+  const openLedger = (identity, controlConstruction) => {
+    const options = {moon, root: ledgerRoot,
+      authorityScopeCid: moon.clientRequestAuthorityScopeCid(identity),
+      callerRequestId: moon.clientRequestCallerId(identity),
+      maxEntryBytes: effectLedgerImplementationBounds.maxEntryBytes,
+      ...(controlConstruction === undefined ? {} : {controlConstruction})};
+    return controlConstruction === undefined ? openEffectLedger(options)
+      : controlConstruction(undefined, openEffectLedger, [options]);
+  };
   const scopes = members => Object.freeze(members.map(member =>
     Object.freeze({connection: ownerOf(member).connection, resource: member.resource})));
   const permissionsOf = member => {
@@ -1353,7 +1358,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
 
   // Every create row's provider check, under a current read decision.
   const checkRows = async ({members, entries, runInvocationCid, dispatches,
-    subjectOf, signal, assertCurrent, physicalOperations, operationPhase = 'capture'}) => {
+    subjectOf, signal, assertCurrent, physicalOperations, controlConstruction, operationPhase = 'capture'}) => {
     assertCurrent?.();
     for (const [index, member] of members.entries()) {
       const {owned, site, managedPlanRecipe} = ownerOf(member);
@@ -1367,9 +1372,11 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       for (const [rowIndex, entry] of entries[index].entries()) {
         signal?.throwIfAborted();
         assertCurrent?.();
-        const grant = site.issueReadGrant({operation: owned.check.operation,
+        const grantFacts = {operation: owned.check.operation,
           decision, resource: owned.check.resource, runInvocationCid,
-          dispatchRequestCid: dispatches[index], maxUses: 1});
+          dispatchRequestCid: dispatches[index], maxUses: 1};
+        const grant = controlConstruction === undefined ? site.issueReadGrant(grantFacts)
+          : controlConstruction(site, site.issueReadGrant, [grantFacts]);
         const useId = `${dispatches[index]}-check-${subjectCid}-${rowIndex}`;
         if (managedPlanRecipe?.credentialOperations !== undefined) {
           await physicalOperations({member, rowIndex, phase: `${operationPhase}-check`,
@@ -1393,7 +1400,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
   // Checkpoint (`targetReads`), whose approval the driver admits for exactly
   // this member. A held or denied read reads nothing.
   const decideTargetRead = async ({member, runInvocationCid,
-    dispatchRequestCid, subjectCid, signal, targetReads, assertCurrent}) => {
+    dispatchRequestCid, subjectCid, signal, targetReads, assertCurrent, controlConstruction}) => {
     const {connection, authorization, owned, site} = ownerOf(member);
     const tuple = {connection, resource: member.resource, operation: 'read'};
     assertCurrent?.();
@@ -1417,11 +1424,11 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     return Object.freeze({approval,
       authorizationForRow: async rowIndex => {
         assertCurrent?.();
-        return {...site.issueReadGrant({
-          operation: owned.targetRead.operation, decision: approval ?? decision,
-          resource: member.resource, runInvocationCid, dispatchRequestCid,
-          maxUses: 1}),
-        useId: `${dispatchRequestCid}-check-${subjectCid}-${rowIndex}-${use++}`};
+        const grantFacts = {operation: owned.targetRead.operation, decision: approval ?? decision,
+          resource: member.resource, runInvocationCid, dispatchRequestCid, maxUses: 1};
+        const grant = controlConstruction === undefined ? site.issueReadGrant(grantFacts)
+          : controlConstruction(site, site.issueReadGrant, [grantFacts]);
+        return {...grant, useId: `${dispatchRequestCid}-check-${subjectCid}-${rowIndex}-${use++}`};
       }});
   };
 
@@ -1527,7 +1534,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
   // and `previewRows` are each member's rows in the approved Preview's order.
   const physicalRoute = ({members, entries, previewRows, runInvocationCid,
     dispatches, subjectCid, applyPreview, ledger, targetReads, assertCurrent,
-    dispatchIndexes, physicalOperations, operationPhase = 'apply'}) => {
+    dispatchIndexes, physicalOperations, controlConstruction, operationPhase = 'apply'}) => {
     // A saved route cannot borrow the fresh capture's parent merely from its
     // recipe or CID. The recovery owner must supply its actual retainer first.
     if (typeof physicalOperations !== 'function' && members.some(member =>
@@ -1578,7 +1585,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
           reads.push(!guarded(member.kind) ? undefined :
             await decideTargetRead({member, runInvocationCid,
               dispatchRequestCid: dispatches[index], subjectCid, signal,
-              targetReads, assertCurrent}));
+              targetReads, assertCurrent, controlConstruction}));
           assertCurrent?.();
         }
         const fresh = [];
@@ -1596,7 +1603,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
           fresh.push(description);
         }
         await checkRows({members, entries, runInvocationCid, dispatches,
-          subjectOf: () => subjectCid, signal, assertCurrent, physicalOperations, operationPhase});
+          subjectOf: () => subjectCid, signal, assertCurrent, physicalOperations, controlConstruction, operationPhase});
         assertCurrent?.();
         const currentVersions = new Map();
         for (const [index, member] of members.entries()) {
@@ -1667,11 +1674,11 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
           await owned.recheckRequests?.({member, entries: [entry],
             current: now[memberIndex], ...resourceFields(member)});
           assertCurrent?.();
-          const grant = site.issueEffectGrant({
-            operation: owned.writeOperation(member),
+          const grantFacts = {operation: owned.writeOperation(member),
             decision: commits.get(scopeKey(member)), resource: member.resource,
-            runInvocationCid, dispatchRequestCid: dispatches[memberIndex],
-            subjectCid});
+            runInvocationCid, dispatchRequestCid: dispatches[memberIndex], subjectCid};
+          const grant = controlConstruction === undefined ? site.issueEffectGrant(grantFacts)
+            : controlConstruction(site, site.issueEffectGrant, [grantFacts]);
           const captured = await captureClaimedEffectResponse({ledger,
             claim: ownedClaim, requestCid: entry.requestCid,
             execute: () => {
@@ -1694,9 +1701,11 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
                   const decision = await readDecision(member, beforeSendCheck.resource,
                     subjectCid, signal, assertClaimedCurrent);
                   assertClaimedCurrent();
-                  const originalAuthorization = site.issueReadGrant({operation: beforeSendCheck.operation,
+                  const checkGrantFacts = {operation: beforeSendCheck.operation,
                     decision, resource: beforeSendCheck.resource, runInvocationCid,
-                    dispatchRequestCid: dispatches[memberIndex], maxUses: 1});
+                    dispatchRequestCid: dispatches[memberIndex], maxUses: 1};
+                  const originalAuthorization = controlConstruction === undefined ? site.issueReadGrant(checkGrantFacts)
+                    : controlConstruction(site, site.issueReadGrant, [checkGrantFacts]);
                   await physicalOperations({member, rowIndex: sourceIndex, phase: 'write-check',
                     operation: beforeSendCheck.operation, site, originalAuthorization,
                     useId: `${dispatches[memberIndex]}-write-check-${subjectCid}-${rowIndex}`,
@@ -1717,11 +1726,11 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
             return Object.freeze({claimed: false,
               ownership: Object.freeze({action: captured.ownership.action})});
           }
-          const projected = owned.project({member, memberIndex, rowIndex,
-            preview: applyPreview, request: entry.request,
-            current: now[memberIndex],
-            observation: captured.physical.observation,
-            headers: captured.physical.headers});
+          const projectionFacts = {member, memberIndex, rowIndex,
+            preview: applyPreview, request: entry.request, current: now[memberIndex],
+            observation: captured.physical.observation, headers: captured.physical.headers};
+          const projected = controlConstruction === undefined ? owned.project(projectionFacts)
+            : controlConstruction(owned, owned.project, [projectionFacts]);
           const settled = settle({ledger, claim: ownedClaim, applyPreview,
             memberIndex, rowIndex, projected});
           return Object.freeze({claimed: true, physical: projected,
@@ -1974,6 +1983,8 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     const memberCaptures = new Array(members.length);
     const proposals = [], currents = [], rowsOf = [], observations = [];
     let sourceSet;
+    const controlConstruction = managedEffect?.controlConstruction;
+    if (managedEffect !== undefined && typeof controlConstruction !== 'function') fail('InstalledEffectControlRuntimeUnavailable');
     let entries, route, captureOpen = true;
     const retireRequestAliases = () => {
       if (captureOpen || (route !== undefined && !route.retire())) return false;
@@ -2149,7 +2160,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         await decideTargetRead({member, runInvocationCid,
           dispatchRequestCid: dispatches[index],
           subjectCid: checkSubject(runInvocationCid, member), signal,
-          targetReads, assertCurrent}));
+          targetReads, assertCurrent, controlConstruction}));
       assertCurrent?.();
     }
     for (const [index, member] of members.entries()) {
@@ -2241,7 +2252,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     // Every create row passes the provider check before a Preview.
     await checkRows({members, entries, runInvocationCid, dispatches,
       subjectOf: member => checkSubject(runInvocationCid, member), signal, assertCurrent,
-      physicalOperations, operationPhase: 'capture'});
+      physicalOperations, controlConstruction, operationPhase: 'capture'});
     assertCurrent?.();
     const capabilities = members.map((member, index) => admitCapability(
       member, entries[index], currents[index], runInvocationCid,
@@ -2339,7 +2350,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       if (!childrenPending() && payload.prepared.status().pending) await payload.prepared.release();
       assertCurrent?.();
     }
-    const ledger = openLedger(identity);
+    const ledger = openLedger(identity, controlConstruction);
     try {
       const applyPreview = effect.admitPreviewIdentity(preview.wire,
         body.run_identity_cid, preview.authoringCid, requestScope,
@@ -2355,7 +2366,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         dispatchIndexes: body.effects.map(orderedSourceIndexes),
         runInvocationCid, dispatches,
         subjectCid: moon.clientProgramEffectApplySubjectCid(previewInputs),
-        applyPreview, ledger, targetReads, assertCurrent, physicalOperations});
+        applyPreview, ledger, targetReads, assertCurrent, physicalOperations, controlConstruction});
       const preflight = {proofs: plans.map(item => item.proof),
         ...basePreflight({effects: body.effects, members, requestScope,
           keys: preview.keys})};
@@ -2639,7 +2650,9 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       submitted?.assertCurrent();
       assertCurrent?.();
     };
-    const ledger = openLedger(requestIdentity);
+    const controlConstruction = facts.managedEffect?.controlConstruction;
+    if (facts.managedEffect !== undefined && typeof controlConstruction !== 'function') fail('InstalledEffectControlRuntimeUnavailable');
+    const ledger = openLedger(requestIdentity, controlConstruction);
     // The handle is released exactly once: it is marked released only after
     // its close succeeds, so a failed close stays this owner's pending
     // cleanup and a retry by the same owner closes it.
@@ -2700,7 +2713,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         const route = physicalRoute({members, entries, previewRows, dispatchIndexes,
           runInvocationCid, dispatches,
           subjectCid: control.effectComputationPreviewSemanticCid(preview),
-          applyPreview, ledger, targetReads, assertCurrent, operationPhase: 'resume'});
+          applyPreview, ledger, targetReads, assertCurrent, controlConstruction, operationPhase: 'resume'});
         const reconcileStoredResponses = async ({members: claims,
           preview: ledgerPreview}) => {
           route.assertClaimedCurrent();
@@ -2719,14 +2732,13 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
                 authorizeEvidenceRead: async () => true,
                 projectStored: stored => {
                   route.assertClaimedCurrent();
-                  return ownerOf(members[memberIndex]).owned.project({
-                    member: members[memberIndex], memberIndex, rowIndex,
-                    preview: ledgerPreview, request: entry.request,
-                    current: currents[memberIndex],
+                  const owned = ownerOf(members[memberIndex]).owned;
+                  const projectionFacts = {member: members[memberIndex], memberIndex, rowIndex,
+                    preview: ledgerPreview, request: entry.request, current: currents[memberIndex],
                     observation: Object.freeze({useCid: stored.credentialUseCid,
-                      statusCode: stored.statusCode,
-                      body: stored.responseBytes}),
-                    headers: undefined});
+                      statusCode: stored.statusCode, body: stored.responseBytes}), headers: undefined};
+                  return controlConstruction === undefined ? owned.project(projectionFacts)
+                    : controlConstruction(owned, owned.project, [projectionFacts]);
                 }});
               route.assertClaimedCurrent();
               settle({ledger, claim: ownedClaim, applyPreview: ledgerPreview,

@@ -1119,7 +1119,10 @@ test('actual installed Effect Host forwards original Request input and joins typ
   const prepared = {}, identity = {}, requestInput = {}, plan = {}, parent = {}, original = {}, log = [];
   let retireCalls = 0;
   const runtime = {
-    clientProgramInstalledEffectOperationControlsBegin() {return plan;},
+    clientProgramEffectAcquisitionCount() {return 0;},
+    clientProgramInstalledEffectOperationControlConstructionBegin() {return {$tag:1,_0:undefined};},
+    clientProgramInstalledEffectOperationControlConstructionComplete() {return {$tag:1,_0:undefined};},
+    clientProgramInstalledEffectOperationControlsRetain() {return plan;},
     clientProgramInstalledManagedRunRetire(value) {
       assert.equal(this, runtime); assert.equal(value, parent); log.push('retire');
       if (++retireCalls === 1) throw new Error('OriginalBorrowPending');
@@ -1148,7 +1151,10 @@ test('actual installed Effect Host forwards original Request input and joins typ
   const facts = Object.freeze({prepared, identity, compilation: {}, allowed: {}, definition: {},
     queryTimePreparation: undefined, modelCompiled: undefined}), inputs = {};
   const selection = Object.freeze({prepareManagedPlan(actual, selectedInputs) {
-    assert.equal(actual, facts); assert.equal(selectedInputs, inputs); return plan;
+    assert.equal(actual, facts);
+    assert.deepEqual(selectedInputs, {...inputs, queryContract:undefined, evidenceContract:undefined,
+      installedContracts:f.originals.installation.sequenceContracts});
+    return plan;
   }});
   assert.equal(f.preparation.prepareManagedEffectPlanRun(runtime, facts, selection, inputs), parent);
   await f.initialControl.close();

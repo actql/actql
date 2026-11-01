@@ -564,3 +564,78 @@ export function prepareInstalledEffectCredentialChild({run, memberIndex, rowInde
     release:drain,retry:drain,status:()=>Object.freeze({pending:state!=='retired'}),
   });
 }
+
+
+// The existing Run owns this synchronous control frame, its original methods
+// and any invalid borrowed task. This is not a grant, new owner or caller fee.
+export function prepareInstalledEffectControlConstruction(run) {
+  const {runtime, value: parent, prepared, request, operationPlan: plan, readPlan} = run ?? {};
+  const begin = runtime?.clientProgramInstalledEffectOperationControlConstructionBegin;
+  const complete = runtime?.clientProgramInstalledEffectOperationControlConstructionComplete;
+  if (![begin, complete, readPlan].every(method => typeof method === 'function') || parent === undefined || plan === undefined) {
+    fail('InstalledEffectControlRuntimeUnavailable');
+  }
+  let working = false, failed = false, retired = false, primary, pending, work;
+  const sameRecord = () => !run.closed && run.runtime === runtime && run.value === parent &&
+    run.prepared === prepared && run.request === request && run.operationPlan === plan &&
+    run.readPlan === readPlan && run.controlConstruction === work;
+  const originalRecord = () => {
+    if (Object.hasOwn(run, 'failure')) throw run.failure;
+    if (!sameRecord()) fail('ForeignInstalledEffectManagedRun');
+  };
+  const retainInvalid = value => {
+    if (value === null || !['object', 'function'].includes(typeof value)) return;
+    pending = value;
+    const settled = () => {pending = undefined; run.selecting = false;};
+    if (nodeTypes.isPromise(value)) {
+      // Native original first. A species/join refusal leaves the same task
+      // unobserved and the existing Run retirement latch held, never an ACK.
+      Reflect.apply(nativePromiseThen, value, [settled, settled]);
+      fail('InvalidInstalledEffectControlConstruction');
+    }
+    const then = value.then;
+    if (typeof then !== 'function') {pending = undefined; return;}
+    const joined = new NativePromise((yes, no) => Reflect.apply(then, value, [yes, no]));
+    Reflect.apply(nativePromiseThen, joined, [settled, settled]);
+    fail('InvalidInstalledEffectControlConstruction');
+  };
+  work = (receiver, method, args) => {
+    if (retired) fail('InstalledEffectControlConstructionRetired');
+    if (failed) throw primary;
+    if (working || run.selecting) fail('InstalledEffectControlConstructionPending');
+    if (typeof method !== 'function' || !Array.isArray(args)) fail('InvalidInstalledEffectControlConstruction');
+    working = true;
+    // The existing parent retirement already refuses this latch. Retain it
+    // through native-task settlement if an invalid asynchronous result escapes.
+    run.selecting = true;
+    try {
+      originalRecord();
+      checked(Reflect.apply(begin, runtime, [parent, prepared, request, plan]));
+      originalRecord();
+      const value = Reflect.apply(method, receiver, args);
+      retainInvalid(value);
+      originalRecord();
+      checked(Reflect.apply(complete, runtime, [parent, prepared, request, plan]));
+      originalRecord();
+      return value;
+    } catch (cause) {
+      failed = true; primary = cause;
+      // Failed-prefix workspace remains on the SAME Core control reservation.
+      throw cause;
+    } finally {
+      working = false;
+      if (pending === undefined) run.selecting = false;
+    }
+  };
+  const retire = () => {
+    if (retired) return true;
+    if (!sameRecord() || run.retireControlConstruction !== retire) fail('ForeignInstalledEffectManagedRun');
+    if (working || pending !== undefined || run.selecting) return false;
+    // Actual complete dispatch retirement calls this before returning its
+    // Core control backing. A retained Error may itself keep a heavy prefix.
+    primary = undefined;
+    retired = true;
+    return true;
+  };
+  return Object.freeze(Object.assign(work, {retire}));
+}

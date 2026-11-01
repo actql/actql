@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {readFileSync} from 'node:fs';
+import {parse} from 'acorn';
 import {captureInstalledEffectPlanRecipe, prepareInstalledEffectManagedPlan,
-  captureInstalledStandardCreateLimits, prepareInstalledStandardCreatePlanRecipe, prepareInstalledEffectRequestChild}
+  captureInstalledStandardCreateLimits, prepareInstalledStandardCreatePlanRecipe, prepareInstalledEffectRequestChild,
+  prepareInstalledEffectControlConstruction}
   from './installed-effect-plan.mjs';
 import {effectLedgerImplementationBounds} from './effect-ledger-implementation-bounds.mjs';
 import {httpsCredentialAuthorizationPrefix, httpsCredentialResponseHeaderByteLimit}
@@ -701,4 +704,109 @@ test('constructor entry refusal and reentry retain the same original backing wit
     assert.equal(child.release(),false);f.retireAliases();assert.equal(child.retry(),true);
     assert.equal(f.settlements(),1);
   }
+});
+
+
+function controlWorkFixture() {
+  const parent={},prepared={},request={},plan={},events=[];
+  const runtime={clientProgramInstalledEffectManagedOperationPlan:()=>({$tag:1,_0:plan}),
+    clientProgramInstalledEffectOperationControlConstructionBegin(owner,p,r,selected){
+      assert.deepEqual([owner,p,r,selected],[parent,prepared,request,plan]);events.push('begin');return {$tag:1,_0:undefined};},
+    clientProgramInstalledEffectOperationControlConstructionComplete(owner,p,r,selected){
+      assert.deepEqual([owner,p,r,selected],[parent,prepared,request,plan]);events.push('complete');return {$tag:1,_0:undefined};}};
+  const run={runtime,value:parent,prepared,request,operationPlan:plan,readPlan:runtime.clientProgramInstalledEffectManagedOperationPlan,
+    closed:false,selecting:false};
+  const work=prepareInstalledEffectControlConstruction(run);run.controlConstruction=work;run.retireControlConstruction=work.retire;
+  return {run,work,events,runtime};
+}
+
+test('control construction enters once before the same original callback and keeps its original receiver and returned DATA', () => {
+  const f=controlWorkFixture(),receiver={},input={},output={};
+  const method=function(value){assert.equal(this,receiver);assert.equal(value,input);assert.equal(f.run.selecting,true);f.events.push('work');return output;};
+  assert.equal(f.work(receiver,method,[input]),output);
+  assert.deepEqual(f.events,['begin','work','complete']);assert.equal(f.run.selecting,false);
+  f.work(receiver,()=>{f.events.push('second');},[]);
+  assert.deepEqual(f.events,['begin','work','complete','begin','second','complete']);
+});
+
+test('control construction retains same thrown undefined and performs no completion or later callback', () => {
+  const f=controlWorkFixture();let calls=0;
+  assert.throws(()=>f.work({},()=>{calls++;throw undefined;},[]),cause=>cause===undefined);
+  assert.throws(()=>f.work({},()=>{calls++;},[]),cause=>cause===undefined);
+  assert.equal(calls,1);assert.deepEqual(f.events,['begin']);assert.equal(f.run.selecting,false);
+});
+
+test('control construction rejects local reentry before another native debit and preserves original pending frame', () => {
+  const f=controlWorkFixture();
+  f.work({},()=>{assert.throws(()=>f.work({},()=>assert.fail('reentry'),[]),{code:'InstalledEffectControlConstructionPending'});},[]);
+  assert.deepEqual(f.events,['begin','complete']);
+});
+
+test('control construction refuses replaced original record before invoking provider', () => {
+  const f=controlWorkFixture();
+  f.runtime.clientProgramInstalledEffectOperationControlConstructionBegin=()=>assert.fail('captured original method');
+  f.run.value={};
+  assert.throws(()=>f.work({},()=>assert.fail('foreign'),[]),{code:'ForeignInstalledEffectManagedRun'});
+  assert.equal(f.run.selecting,false);
+});
+
+test('control construction retains an invalid original native task until its actual settlement', async () => {
+  const f=controlWorkFixture();let settle;const original=new Promise(resolve=>{settle=resolve;});
+  Object.defineProperty(original,'then',{get(){throw new Error('public then must not replace native original');}});
+  assert.throws(()=>f.work({},()=>original,[]),{code:'InvalidInstalledEffectControlConstruction'});
+  assert.equal(f.run.selecting,true);assert.deepEqual(f.events,['begin']);
+  settle();await new Promise(setImmediate);assert.equal(f.run.selecting,false);
+});
+
+test('control construction keeps an unobservable original native task under the same retirement latch', async () => {
+  const f=controlWorkFixture();let settle;const original=new Promise(resolve=>{settle=resolve;}),primary=new Error('original species refusal');
+  Object.defineProperty(original,'constructor',{get(){throw primary;}});
+  assert.throws(()=>f.work({},()=>original,[]),cause=>cause===primary);
+  assert.equal(f.run.selecting,true);settle();await new Promise(setImmediate);
+  assert.equal(f.run.selecting,true);assert.deepEqual(f.events,['begin']);
+});
+
+test('control construction retires its same failed-prefix aliases before parent backing returns', () => {
+  const f=controlWorkFixture(),primary=new Error('original prefix');
+  assert.throws(()=>f.work({},()=>{throw primary;},[]),cause=>cause===primary);
+  assert.equal(f.work.retire(),true);assert.equal(f.work.retire(),true);
+  assert.throws(()=>f.work({},()=>assert.fail('retired'),[]),{code:'InstalledEffectControlConstructionRetired'});
+});
+
+
+function originalLedgerControlView(ledger, construction) {
+  const source=readFileSync(new URL('./effect-ledger.mjs',import.meta.url),'utf8');
+  const tree=parse(source,{ecmaVersion:'latest',sourceType:'module'});
+  let open;
+  const walk=node=>{if(!node||typeof node!=='object')return;if(node.type==='FunctionDeclaration'&&node.id?.name==='openEffectLedger')open=node;
+    for(const value of Object.values(node))if(Array.isArray(value))value.forEach(walk);else if(value&&typeof value==='object')walk(value);};walk(tree);
+  const start=open.body.body.find(node=>node.type==='IfStatement'&&source.slice(node.start,node.end).includes('controlConstruction === undefined')&&source.slice(node.start,node.end).includes('return ledger'));
+  assert(start);
+  return Function('ledger','controlConstruction',source.slice(start.start,open.body.end-1))(ledger,construction);
+}
+
+test('original Ledger control view preserves original nested receivers and permits close after the same failure', () => {
+  const f=controlWorkFixture(),events=[],primary=new Error('original ledger failure');
+  const original=Object.freeze({scopeCid:'scope',inner(){assert.equal(this,original);events.push('inner');return 7;},
+    outer(){assert.equal(this,original);events.push('outer');return original.inner();},
+    refuse(){throw primary;},close(){assert.equal(this,original);events.push('close');}});
+  const view=originalLedgerControlView(original,f.work);
+  assert.equal(view.scopeCid,original.scopeCid);assert(Object.isFrozen(view));
+  assert.equal(view.outer(),7);assert.deepEqual(f.events,['begin','complete']);
+  assert.deepEqual(events,['outer','inner']);
+  assert.throws(()=>view.refuse(),cause=>cause===primary);
+  assert.throws(()=>view.outer(),cause=>cause===primary);
+  view.close();assert.deepEqual(events,['outer','inner','close']);
+  assert.equal(f.work.retire(),true);
+});
+
+test('original Ledger control view fixed inventory follows its actual thirty-one methods and one DATA field', () => {
+  const source=readFileSync(new URL('./effect-ledger.mjs',import.meta.url),'utf8');
+  const tree=parse(source,{ecmaVersion:'latest',sourceType:'module'});let ledger;
+  const walk=node=>{if(!node||typeof node!=='object')return;if(node.type==='VariableDeclarator'&&node.id?.name==='ledger')ledger=node.init.arguments[0];
+    for(const value of Object.values(node))if(Array.isArray(value))value.forEach(walk);else if(value&&typeof value==='object')walk(value);};walk(tree);
+  const names=ledger.properties.map(property=>property.key.name);
+  assert.equal(names.length,32);assert.equal(new Set(names).size,32);
+  assert.equal(names.filter(name=>name!=='scopeCid').length,31);
+  assert.equal(names.includes('close'),true);assert.equal(names.includes('append'),true);
 });

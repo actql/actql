@@ -28,6 +28,7 @@ export function openEffectLedger({
   maxOutcomeNodes = effectLedgerImplementationBounds.maxOutcomeNodes,
   maxOutcomeDepth = effectLedgerImplementationBounds.maxOutcomeDepth,
   maxCallerBytes = effectLedgerImplementationBounds.maxCallerBytes,
+  controlConstruction,
 }) {
   if (!Number.isSafeInteger(maxBatchRows) ||
       maxBatchRows < 1 || maxBatchRows > 1000) {
@@ -39,6 +40,7 @@ export function openEffectLedger({
       maxOutcomeDepth < 1 || maxOutcomeDepth > 32) {
     fail('InvalidEffectLedgerOutcomeLimit');
   }
+  if (controlConstruction !== undefined && typeof controlConstruction !== 'function') fail('InvalidEffectLedgerConstruction');
   const control = runtimeCore(moon).effectApplicationControl;
   const scope = control.logicalRequestScope(
     authorityScopeCid, callerRequestId, maxCallerBytes,
@@ -979,5 +981,16 @@ export function openEffectLedger({
     },
     close: () => physical.close(),
   });
-  return ledger;
+  if (controlConstruction === undefined) return ledger;
+  // The original private ledger remains the receiver and internal call target.
+  // One outer caller frame owns nested original work, never recursive debits.
+  // Close remains the original cleanup path even after a constructor failed.
+  const caller = {};
+  for (const name of Object.keys(ledger)) {
+    const method = ledger[name];
+    caller[name] = typeof method !== 'function' ? method : name === 'close'
+      ? (...args) => Reflect.apply(method, ledger, args)
+      : (...args) => controlConstruction(ledger, method, args);
+  }
+  return Object.freeze(caller);
 }

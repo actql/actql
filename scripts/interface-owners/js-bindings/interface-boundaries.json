@@ -41758,7 +41758,7 @@
     {
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "b7ed4d01c201c69d33dccd3ad4cce6868a02e57526ea1fd1611b48cfd78537b9",
+      "sha256": "352df7b395b3c9b784376a5caaca50fbf58ba4efdc667e2a1280a7fed40f4b43",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -67028,7 +67028,7 @@
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "ac72928176ab5046d964c7862be309f22c8dbd69ff2c8f43efcf6127f31afbf1",
+      "sha256": "3eeac6a1fb18ea7d21f991693c4036570114d36369360a383935f264e048d4ca",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -67936,6 +67936,7 @@
             "signal",
             "assertCurrent",
             "physicalOperations",
+            "controlConstruction",
             "operationPhase"
           ],
           "async": true
@@ -68039,7 +68040,8 @@
             "subjectCid",
             "signal",
             "targetReads",
-            "assertCurrent"
+            "assertCurrent",
+            "controlConstruction"
           ],
           "async": true
         },
@@ -68129,7 +68131,8 @@
         {
           "name": "createRowEffectStage/openLedger/openLedger",
           "parameters": [
-            "identity"
+            "identity",
+            "controlConstruction"
           ],
           "async": false
         },
@@ -68191,6 +68194,7 @@
             "assertCurrent",
             "dispatchIndexes",
             "physicalOperations",
+            "controlConstruction",
             "operationPhase"
           ],
           "async": false

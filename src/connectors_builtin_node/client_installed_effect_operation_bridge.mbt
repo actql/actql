@@ -227,3 +227,45 @@ pub fn client_program_installed_effect_operation_construction_begin(
 ) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
   @client_local_host.begin_installed_effect_operation_construction(original)
 }
+
+///|
+#export_name("clientProgramInstalledEffectOperationControlsRetain")
+pub fn client_program_installed_effect_operation_controls_retain(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+) -> Result[
+  @client_local_host.ClientInstalledEffectManagedPlan,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.retain_installed_effect_operation_controls_before_construction(
+    owner, prepared, request, plan,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledEffectOperationControlConstructionBegin")
+pub fn client_program_installed_effect_operation_control_construction_begin(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.begin_installed_effect_operation_control_construction(
+    owner, prepared, request, plan,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledEffectOperationControlConstructionComplete")
+pub fn client_program_installed_effect_operation_control_construction_complete(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.complete_installed_effect_operation_control_construction(
+    owner, prepared, request, plan,
+  )
+}

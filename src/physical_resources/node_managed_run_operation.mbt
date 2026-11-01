@@ -195,3 +195,29 @@ pub fn[P, E] begin_node_managed_run_operation_construction(
     execution_bytes,
   ).map_err(issue => Control(issue))
 }
+
+///|
+/// Resize the SAME existing management-control reservation at its actual
+/// synchronous constructor boundary. The original consumer/current frame
+/// precedes the callback-free resize; no attempt, resource or Root is created.
+pub fn[P, E] resize_node_managed_run_operation_control_construction(
+  value : NodeManagedRunAdmission[P],
+  prepared : P,
+  ledger : Ledger,
+  original : () -> Result[Unit, E],
+  control : CapacityReservation,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> Result[Unit, NodeManagedRunOperationIssue[E]] {
+  if retained_bytes < 0L || execution_bytes < 0L {
+    return Err(Control(InvalidCharge))
+  }
+  match
+    check_node_managed_run_operation_original(value, prepared, ledger, original) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  resize_capacity_reservation_current(
+    ledger, control, retained_bytes, execution_bytes,
+  ).map_err(issue => Control(issue))
+}

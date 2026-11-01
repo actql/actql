@@ -64,12 +64,14 @@ fn effect_plan_fixture_failure(
 ///|
 // Checked authored Effect Program and immutable implementation DATA only.
 // No physical dispatcher, permission, Resource root or ordinary package here.
-fn effect_operation_plan_inputs() -> (
+fn effect_operation_plan_inputs(
+  rows? : String = "[{\"id\":1}]",
+) -> (
   @publication_host.PreparedClientEffectComputation,
   @publication_host.ClientRequestIdentity,
   ClientInstalledSequenceContracts,
 ) {
-  let prepared = installed_effect_managed_fixture()
+  let prepared = installed_effect_managed_fixture(rows~)
   let request = @publication_host.prepare_client_effect_request_identity(
     prepared,
     "sha256:" + "a".repeat(64),
@@ -219,7 +221,9 @@ test "original implementation control material shares the checked row inventory 
   )
   assert_eq(
     selected.limits.execution_bytes - baseline.limits.execution_bytes,
-    rows * 11L + carrier,
+    // Its4-byte control workspace fits the already funded20-byte pure
+    // constructor peak; only all original7-byte outputs/carrier are added.
+    rows * 7L + carrier,
   )
   let huge = @execution.execution_capacity(
     9223372036854775807L, 9223372036854775807L,
@@ -1500,4 +1504,58 @@ test "sequential constructor workspace still refuses overflow against its same C
     )
     is Err(Unsupported),
   )
+}
+
+///|
+test "control callback and pure constructor share only actual sequential workspace while all row outputs remain held" {
+  for rows in ["[]", "[{\"id\":1}]", "[{\"id\":1},{\"id\":2},{\"id\":3}]"] {
+    let (prepared, request, contracts) = effect_operation_plan_inputs(rows~)
+    let original = effect_operation_plan_fixture(prepared, request, contracts)
+    let without = effect_operation_plan_with_control_fixture(
+      prepared,
+      request,
+      contracts,
+      original,
+      @execution.execution_capacity(7L, 7L).unwrap(),
+    ).unwrap()
+    let actual = effect_operation_plan_with_control_fixture(
+      prepared,
+      request,
+      contracts,
+      original,
+      @execution.execution_capacity(7L, 47L).unwrap(),
+    ).unwrap()
+    let count = actual.rows
+    assert_eq(actual.limits.retained_bytes, without.limits.retained_bytes)
+    assert_eq(actual.limits.attempts, without.limits.attempts)
+    assert_eq(actual.limits.transfer_bytes, without.limits.transfer_bytes)
+    assert_eq(
+      actual.operation_control_idle_execution,
+      without.operation_control_idle_execution,
+    )
+    // The original row constructor has20 workspace; each actual control
+    // callback needs40. All checked rows' outputs stay held, but callbacks
+    // are synchronous and serial. max(20,40)-20 =20, independently of count.
+    assert_eq(
+      actual.limits.execution_bytes - without.limits.execution_bytes,
+      if count == 0 {
+        0L
+      } else {
+        20L
+      },
+    )
+    assert_eq(
+      @execution.execution_capacity_execution_bytes(
+        actual.operation_control_capacity,
+      ) -
+      @execution.execution_capacity_execution_bytes(
+        without.operation_control_capacity,
+      ),
+      if count == 0 {
+        0L
+      } else {
+        40L
+      },
+    )
+  }
 }

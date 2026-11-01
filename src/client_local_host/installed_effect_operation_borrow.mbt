@@ -64,19 +64,38 @@ fn installed_effect_operation_control_capacity(
   }
   // The existing fixed setup plus one control/index record and the bounded
   // transient lookup/result carriers. Charge this once, never per wrapper.
+  // The actual Effect Ledger exposes31 methods and one DATA field. Its
+  // caller view retains31 original-method/context pairs (2H,7R each), one
+  // 32-field view and the same Run's control-work closure/context (6H,18R,3W).
+  // Internal original calls keep the original ledger, not nested wrappers.
+  // These are fixed existing implementation holders, not another owner or
+  // per-method fee. Source tests pin this inventory to the real declaration.
   let retained : @execution.PreparationRepresentationUnits = {
-    record_headers: 9L + shared.record_headers + 11L * count,
-    reference_slots: 11L + slots + shared.reference_slots + 17L * count,
-    scalar_words: 19L + shared.scalar_words + 29L * count,
+    record_headers: 9L + shared.record_headers + 11L * count + 69L,
+    reference_slots: 11L + slots + shared.reference_slots + 17L * count + 267L,
+    scalar_words: 24L + shared.scalar_words + 29L * count,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
   // A growing backing overlaps its old backing. Price that constructor peak
   // through the same pinned append capacity, not an arbitrary byte margin.
+  // Object.keys and its one loop iterator exist only while the original
+  // 32-field caller view is constructed. Use the same collection owner.
+  let keys = @shape.collection_construction_extent({
+    records: 1L,
+    record_references: 2L,
+    record_words: 1L,
+    reference_arrays: 1L,
+    reference_items: 32L,
+    scalar_arrays: 0L,
+    scalar_items: 0L,
+    maps: 0L,
+    map_entries: 0L,
+  }).unwrap()
   let workspace : @execution.PreparationRepresentationUnits = {
-    record_headers: 1L,
-    reference_slots: slots,
-    scalar_words: 0L,
+    record_headers: 1L + keys.record_headers,
+    reference_slots: slots + keys.reference_slots,
+    scalar_words: keys.scalar_words,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
@@ -284,7 +303,7 @@ fn borrow_installed_effect_operation_original(
     },
     previous_control.map(value => value.reservation),
     @execution.execution_capacity_retained_bytes(control_capacity),
-    @execution.execution_capacity_execution_bytes(control_capacity),
+    installed_effect_control_execution(previous_control, plan),
     extent.physical_attempt,
     extent.transfer_bytes,
     retained,
@@ -545,6 +564,7 @@ fn retain_installed_effect_operation_controls(
   owner : ClientInstalledManagedRun,
   previous : ClientEffectOperationControls?,
   reservation : @resources.CapacityReservation,
+  construction_deferred? : Bool = false,
 ) -> ClientEffectOperationControls {
   match previous {
     Some(control) => control
@@ -552,6 +572,8 @@ fn retain_installed_effect_operation_controls(
       let control : ClientEffectOperationControls = {
         reservation,
         coordinates: Map([]),
+        construction_deferred,
+        construction_active: false,
       }
       owner.effect_operation_controls = Some(control)
       control
@@ -570,6 +592,33 @@ pub fn begin_installed_effect_operation_controls(
   request : @publication_host.ClientRequestIdentity,
   expected_plan : ClientInstalledEffectManagedPlan,
 ) -> Result[ClientInstalledEffectManagedPlan, ClientInstalledManagedRunIssue] {
+  select_installed_effect_operation_controls(
+    owner, prepared, request, expected_plan, false,
+  )
+}
+
+///|
+/// Retain all original management/grant/output controls before Source/Preview;
+/// the actual synchronous control callback acquires its workspace separately.
+pub fn retain_installed_effect_operation_controls_before_construction(
+  owner : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  expected_plan : ClientInstalledEffectManagedPlan,
+) -> Result[ClientInstalledEffectManagedPlan, ClientInstalledManagedRunIssue] {
+  select_installed_effect_operation_controls(
+    owner, prepared, request, expected_plan, true,
+  )
+}
+
+///|
+fn select_installed_effect_operation_controls(
+  owner : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  expected_plan : ClientInstalledEffectManagedPlan,
+  construction_deferred : Bool,
+) -> Result[ClientInstalledEffectManagedPlan, ClientInstalledManagedRunIssue] {
   guard owner.original is Some(original) && physical_equal(original, owner) else {
     return Err(ForeignOriginal)
   }
@@ -581,7 +630,7 @@ pub fn begin_installed_effect_operation_controls(
   }
   owner.effect_operation_opening = true
   let result = begin_installed_effect_operation_controls_original(
-    owner, prepared, request, expected_plan,
+    owner, prepared, request, expected_plan, construction_deferred,
   )
   owner.effect_operation_opening = false
   result
@@ -593,6 +642,7 @@ fn begin_installed_effect_operation_controls_original(
   prepared : @publication_host.PreparedClientEffectComputation,
   request : @publication_host.ClientRequestIdentity,
   expected_plan : ClientInstalledEffectManagedPlan,
+  construction_deferred : Bool,
 ) -> Result[ClientInstalledEffectManagedPlan, ClientInstalledManagedRunIssue] {
   guard owner.preparation is Some(preparation) &&
     preparation is PlannedEffectManaged(admission, plan) else {
@@ -612,6 +662,14 @@ fn begin_installed_effect_operation_controls_original(
     }
   }
   let previous = owner.effect_operation_controls
+  if previous is Some(original) &&
+    original.construction_deferred != construction_deferred {
+    return match
+      require_installed_effect_operation_plan(owner, prepared, request) {
+      Err(issue) => Err(issue)
+      Ok(_) => Err(ForeignOriginal)
+    }
+  }
   let capacity = plan.operation_control_capacity
   let reservation = match
     @resources.reserve_node_managed_run_operation_controls(
@@ -625,14 +683,25 @@ fn begin_installed_effect_operation_controls_original(
       },
       previous.map(value => value.reservation),
       @execution.execution_capacity_retained_bytes(capacity),
-      @execution.execution_capacity_execution_bytes(capacity),
+      if previous is Some(_) {
+        installed_effect_control_execution(previous, plan)
+      } else if construction_deferred {
+        plan.operation_control_idle_execution
+      } else {
+        @execution.execution_capacity_execution_bytes(capacity)
+      },
     ) {
     Err(issue) =>
       return Err(installed_effect_operation_reservation_issue(issue))
     Ok(original) => original
   }
   ignore(
-    retain_installed_effect_operation_controls(owner, previous, reservation),
+    retain_installed_effect_operation_controls(
+      owner,
+      previous,
+      reservation,
+      construction_deferred~,
+    ),
   )
   // Return this same immutable original, never a current proof or new Plan.
   Ok(plan)
@@ -767,4 +836,119 @@ fn check_installed_effect_construction_original(
     return Err(Retired)
   }
   Ok(())
+}
+
+///|
+// One live control reservation. Original non-deferred borrowers retain their
+// complete allowance; only the new synchronous caller has an inactive phase.
+fn installed_effect_control_execution(
+  control : ClientEffectOperationControls?,
+  plan : ClientInstalledEffectManagedPlan,
+) -> Int64 {
+  if control is Some(original) &&
+    original.construction_deferred &&
+    !original.construction_active {
+    plan.operation_control_idle_execution
+  } else {
+    @execution.execution_capacity_execution_bytes(
+      plan.operation_control_capacity,
+    )
+  }
+}
+
+///|
+pub fn begin_installed_effect_operation_control_construction(
+  owner : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : ClientInstalledEffectManagedPlan,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  resize_installed_effect_operation_control_construction(
+    owner, prepared, request, plan, true,
+  )
+}
+
+///|
+pub fn complete_installed_effect_operation_control_construction(
+  owner : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : ClientInstalledEffectManagedPlan,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  resize_installed_effect_operation_control_construction(
+    owner, prepared, request, plan, false,
+  )
+}
+
+///|
+fn resize_installed_effect_operation_control_construction(
+  owner : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  expected_plan : ClientInstalledEffectManagedPlan,
+  active : Bool,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  guard owner.original is Some(original) && physical_equal(original, owner) else {
+    return Err(ForeignOriginal)
+  }
+  if owner.effect_operation_closing {
+    return Err(Retired)
+  }
+  if owner.effect_operation_opening {
+    return Err(AlreadyBound)
+  }
+  match check_installed_effect_managed_run_binding(owner, prepared, request) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  guard owner.preparation is Some(preparation) &&
+    preparation is PlannedEffectManaged(admission, plan) &&
+    owner.ledger is Some(ledger) &&
+    owner.effect_operation_controls is Some(control) else {
+    return Err(Retired)
+  }
+  if !physical_equal(plan, expected_plan) {
+    return match
+      require_installed_effect_operation_plan(owner, prepared, request) {
+      Err(issue) => Err(issue)
+      Ok(_) => Err(ForeignOriginal)
+    }
+  }
+  if !control.construction_deferred {
+    return Err(Unsupported)
+  }
+  if control.construction_active == active {
+    return Err(AlreadyBound)
+  }
+  owner.effect_operation_opening = true
+  let capacity = plan.operation_control_capacity
+  let retained = @execution.execution_capacity_retained_bytes(capacity)
+  let result = @resources.resize_node_managed_run_operation_control_construction(
+    admission,
+    plan,
+    ledger,
+    () => {
+      check_installed_effect_operation_original(
+        owner,
+        ledger,
+        preparation,
+        Some(control),
+      )
+    },
+    control.reservation,
+    retained,
+    if active {
+      @execution.execution_capacity_execution_bytes(capacity)
+    } else {
+      plan.operation_control_idle_execution
+    },
+  ).map_err(installed_effect_operation_reservation_issue)
+  owner.effect_operation_opening = false
+  match result {
+    Err(issue) => Err(issue)
+    Ok(_) => {
+      control.construction_active = active
+      Ok(())
+    }
+  }
 }

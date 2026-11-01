@@ -7,7 +7,7 @@ import {parse} from 'acorn';
 import {runtimeField, runtimeTupleFromFields} from '../host-common/compiler-binding.generated.mjs';
 import {prepareInstalledRowCaptureChild, retainInstalledRowCaptureChild, releaseInstalledRowCapture} from './installed-row-capture-cleanup.mjs';
 import {captureClaimedEffectResponse} from './effect-physical-dispatch.mjs';
-import {prepareInstalledEffectRequestChild, prepareInstalledEffectCredentialChild, captureInstalledEffectPlanRecipe} from './installed-effect-plan.mjs';
+import {prepareInstalledEffectRequestChild, prepareInstalledEffectCredentialChild, captureInstalledEffectPlanRecipe, prepareInstalledEffectControlConstruction} from './installed-effect-plan.mjs';
 
 // Actual enclosing row-stage loop/callees. Core inventory, checked Preview,
 // driver request/claim, Resource and physical ports are explicit here.
@@ -111,7 +111,7 @@ function fixture({child=false,inventoryError,managed=false,constructorFailureAt}
       const token={rowIndex};debits.push(token);events.push('debit');return {$tag:1,_0:token};
     },clientProgramInstalledEffectOperationRetire(token,ack){assert(aliasesRetired);assert.equal(ack,true);settlements.push(token);return {$tag:1,_0:true};}};
   Object.assign(moon,runtime);
-  const managedEffect={runtime:moon,value:parent,prepared,request:identity,operationPlan:nativePlan,
+  const managedEffect={controlConstruction:(receiver,method,args)=>Reflect.apply(method,receiver,args),runtime:moon,value:parent,prepared,request:identity,operationPlan:nativePlan,
     readPlan:runtime.clientProgramInstalledEffectManagedOperationPlan};
   const ownerOf=value=>{assert.strictEqual(value,member);return {owned,managedPlanRecipe:managedRecipe};};
   const limits={preview:{maxWireBytes:10000,maxNodes:100,maxDepth:10},maxRows:3};
@@ -310,7 +310,7 @@ test('actual capture operation retains the original bound child before invoking 
     clientProgramInstalledEffectOperationStart:()=>({$tag:1,_0:undefined}),
     clientProgramInstalledEffectOperationCharge:()=>({$tag:1,_0:undefined}),
     clientProgramInstalledEffectOperationRetire:()=>({$tag:1,_0:true})};
-  const managedEffect={runtime:moon,value:parent,prepared,request:identity,operationPlan:plan,
+  const managedEffect={controlConstruction:(receiver,method,args)=>Reflect.apply(method,receiver,args),runtime:moon,value:parent,prepared,request:identity,operationPlan:plan,
     readPlan:moon.clientProgramInstalledEffectManagedOperationPlan};
   const originalSite=Object.freeze({runtimeBundleCid:'runtime',connectorRegistration:'connector',connectorRevision:'revision',
     referenceCurrent:()=>true,authorizationPurpose(original){assert.equal(original,raw);return {kind:'read',resource:'rows'};},
@@ -483,7 +483,7 @@ function prefixFixture({failBorrowAt, exportFailure}={}) {
     rowOperations:Object.freeze([]),captureConstruction:Object.freeze({operationIndex:0})});
   const owned=Object.freeze({managedPlanRecipe:recipe,profile:{source:'fixture-source'},
     owned:Object.freeze({recoveryEntry(){assert.fail('No recovery work before Source finishes');}})});
-  const managedEffect={runtime:moon,value:parent,prepared,request:identity,operationPlan:nativePlan,
+  const managedEffect={controlConstruction:(receiver,method,args)=>Reflect.apply(method,receiver,args),runtime:moon,value:parent,prepared,request:identity,operationPlan:nativePlan,
     readPlan:moon.clientProgramInstalledEffectManagedOperationPlan};
   const control={publicationPreparedReleaseAction(index,_count,checked,pending,attempted){
     return index<0?'finished':!checked?'inspect':pending&&!attempted?'release':'advance';},
@@ -601,4 +601,54 @@ test('actual managed row loop stops on the same failed constructor and retains i
   assert.equal(f.settlements.length,0,'failed original is still owned by original cleanup');
   for(const retained of f.requestChildren)await retained.prepared.release();
   assert.deepEqual(f.settlements,f.debits);
+});
+
+
+function sameControlFrame() {
+  const events=[],parent={},prepared={},request={},plan={};let active=false;
+  const runtime={clientProgramInstalledEffectManagedOperationPlan:()=>({$tag:1,_0:plan}),
+    clientProgramInstalledEffectOperationControlConstructionBegin(p,v,r,selected){assert.deepEqual([p,v,r,selected],[parent,prepared,request,plan]);assert(!active);active=true;events.push('begin');return {$tag:1,_0:undefined};},
+    clientProgramInstalledEffectOperationControlConstructionComplete(){assert(active);active=false;events.push('complete');return {$tag:1,_0:undefined};}};
+  const run={runtime,value:parent,prepared,request,operationPlan:plan,readPlan:runtime.clientProgramInstalledEffectManagedOperationPlan,closed:false,selecting:false};
+  const work=prepareInstalledEffectControlConstruction(run);run.controlConstruction=work;run.retireControlConstruction=work.retire;
+  return {work,events,active:()=>active};
+}
+
+test('actual CREATE read grant uses its original control frame and returns workspace before physical dispatch', async () => {
+  const f=sameControlFrame(),selected={kind:'create',resource:'rows'},entry={request:{}},decision={},grant={grant:{},scope:{}};
+  const site={issueReadGrant(facts){assert.equal(this,site);assert(f.active());assert.equal(facts.decision,decision);f.events.push('grant');return grant;}};
+  const owned={check:{operation:'read',resource:'form'},checkRequest(context){assert.equal(context.authorization,grant);f.events.push('physical');}};
+  const check=expression('checkRows',{ownerOf:()=>({owned,site,managedPlanRecipe:{credentialOperations:[]}}),
+    readDecision:async()=>decision,fail});
+  await check({members:[selected],entries:[[entry]],runInvocationCid:'run',dispatches:['dispatch'],subjectOf:()=> 'subject',
+    controlConstruction:f.work,physicalOperations(facts){assert.equal(f.active(),false);assert.equal(facts.originalAuthorization,grant);return facts.invoke({authorization:grant});}});
+  assert.deepEqual(f.events,['begin','grant','complete','physical']);assert.equal(f.work.retire(),true);
+});
+
+test('actual target authorization retains same original grant receiver in its selected control frame', async () => {
+  const f=sameControlFrame(),member={resource:'rows'},decision={action:'dispatch'},grant={grant:{},scope:{}};
+  const site={issueReadGrant(facts){assert.equal(this,site);assert(f.active());assert.equal(facts.decision,decision);f.events.push('grant');return grant;}};
+  const decide=expression('decideTargetRead',{ownerOf:()=>({connection:'connection',authorization:{authorize:async()=>decision},owned:{targetRead:{operation:'read'}},site}),fail});
+  const read=await decide({member,runInvocationCid:'run',dispatchRequestCid:'dispatch',subjectCid:'subject',controlConstruction:f.work});
+  const result=await read.authorizationForRow(0);assert.equal(result.grant,grant.grant);
+  assert.deepEqual(f.events,['begin','grant','complete']);assert.equal(f.work.retire(),true);
+});
+
+test('actual claimed write and projection use their original control frame around the existing durable dispatch', async () => {
+  const f=sameControlFrame(),selected={kind:'create',resource:'rows',memberIndex:0},request={},raw={grant:{},scope:{}};
+  const claim=Object.fromEntries(['scope','locator','key','basis','intentFingerprintCid'].map(name=>[name,name]));claim.canonicalRequestCid=cid('e');
+  const entry={request,requestCid:claim.canonicalRequestCid},description={},dispatching={},bytes=Buffer.from('{}');
+  const owned={describe:()=>description,writeOperation:()=> 'create',send(){assert(!f.active());f.events.push('send');return {observation:{useCid:'use',statusCode:200,body:bytes}};},
+    project(context){assert.equal(this,owned);assert(f.active());assert.equal(context.request,request);f.events.push('project');return {kind:'provider-response'};}};
+  const site={issueEffectGrant(){assert.equal(this,site);assert(f.active());f.events.push('grant');return raw;}};
+  const owner={installed:[{}],owned,site,managedPlanRecipe:{credentialOperations:[{phase:'write'}]}};selected.mapping=owner.installed[0];
+  const ledger={claimDispatch(){f.events.push('claim');return {claimed:true,dispatching};},beginPhysicalFlight(){return ()=>{};},recordResponse(){f.events.push('store');return {response:{}};}};
+  const route=expression('physicalRoute',{ownerOf:()=>owner,fail,guarded:()=>false,checkRows:async()=>{},resourceFields:()=>({}),
+    admitCapability:()=>({identity:'capability'}),routeOf:()=>({}),commitDecisions:()=>new Map(),requireApproval:()=>{},scopeKey:()=> 'scope',admitRow:()=>claim,captureClaimedEffectResponse,settle:()=>undefined})({
+      members:[selected],entries:[[entry]],previewRows:[[]],dispatches:['dispatch'],dispatchIndexes:[[0]],subjectCid:'subject',applyPreview:{},ledger,runInvocationCid:'run',assertCurrent(){},controlConstruction:f.work,
+      physicalOperations(facts){assert(!f.active());return facts.invoke({authorization:raw,credential:{},callResource(){}});}});
+  const current=await route.current({preflight:{observedRows:[]}}),dispatch=route.bindDispatch({members:[{claims:[claim]}],subjectCid:'subject'});
+  await dispatch({memberIndex:0,rowIndex:0,claim,currentPreflight:current});
+  assert.deepEqual(f.events,['begin','grant','complete','claim','send','store','begin','project','complete']);
+  assert.equal(route.retire(),true);assert.equal(f.work.retire(),true);
 });

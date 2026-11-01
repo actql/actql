@@ -38055,7 +38055,7 @@
     {
       "module": "adapters/host-node/effect-ledger.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a3acde47c5b64a82f18e6b06fabc2003ef42ca449ec038d69081011566deaa07",
+      "sha256": "ec0a0c1744a25dd08e5bcbaf5ad15528aa64c1d6c23927e1d9044bdf8c10e4dc",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
       "exports": [
@@ -38085,7 +38085,8 @@
             "maxDepth",
             "maxOutcomeNodes",
             "maxOutcomeDepth",
-            "maxCallerBytes"
+            "maxCallerBytes",
+            "controlConstruction"
           ],
           "async": false
         },
@@ -38605,6 +38606,20 @@
           "async": false
         },
         {
+          "name": "openEffectLedger/openEffectLedger",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "openEffectLedger/openEffectLedger#2",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
           "name": "openEffectLedger/validateStored/validateStored",
           "parameters": [
             "row"
@@ -38966,6 +38981,75 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "openEffectLedger/openEffectLedger",
+            "openEffectLedger/openEffectLedger#2"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Effect control reservation keeps management/index growth"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Effect control reservation keeps management/index growth"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Effect control reservation keeps management/index growth"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Effect control reservation keeps management/index growth"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Effect control reservation keeps management/index growth"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Effect control reservation keeps management/index growth"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Effect control reservation keeps management/index growth"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Effect control reservation keeps management/index growth"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Effect control reservation keeps management/index growth"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Effect control reservation keeps management/index growth"
               }
             ]
           }
@@ -119430,7 +119514,7 @@
     },
     {
       "module": "adapters/host-node/installed-effect-managed-run.mjs",
-      "sha256": "b316bbda6a28ab1c3feea0dadc964e01612d9085a0095f6a8a21abbc17ae5cc9",
+      "sha256": "6ee0dca1bfff30124c1efc9ef84ca4b6e287786ed6a69737d31137905a565e59",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C \u2014 existing standard Host Source/Effect service originals",

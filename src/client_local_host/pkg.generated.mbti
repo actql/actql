@@ -86,6 +86,8 @@ pub fn begin_installed_effect_mock_model_managed_run(@physical_resources.NodeMan
 
 pub fn begin_installed_effect_operation_construction(ClientInstalledEffectOperationBorrow) -> Result[Unit, ClientInstalledManagedRunIssue]
 
+pub fn begin_installed_effect_operation_control_construction(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, ClientInstalledEffectManagedPlan) -> Result[Unit, ClientInstalledManagedRunIssue]
+
 pub fn begin_installed_effect_operation_controls(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, ClientInstalledEffectManagedPlan) -> Result[ClientInstalledEffectManagedPlan, ClientInstalledManagedRunIssue]
 
 pub fn begin_installed_managed_capture_read(ClientInstalledManagedRun, Int) -> Result[ClientInstalledSourceRead, ClientInstalledManagedRunIssue]
@@ -319,6 +321,8 @@ pub fn complete_client_broad_residual(ClientBroadResidual) -> Result[@acquisitio
 pub fn complete_client_local_content_step(ClientLocalContentStep, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientSerializationInputEvidence, @run_publication.GeneratedContentReference, @value_admission.CheckedValue, () -> Bool, @execution_relation.ValueLimits, Int) -> Result[@run_publication_host.ClientSerializationGeneration, @run_publication_host.ClientSerializationGenerationIssue]
 
 pub fn complete_installed_effect_operation_construction(ClientInstalledEffectOperationBorrow) -> Result[Unit, ClientInstalledManagedRunIssue]
+
+pub fn complete_installed_effect_operation_control_construction(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, ClientInstalledEffectManagedPlan) -> Result[Unit, ClientInstalledManagedRunIssue]
 
 pub fn[I, S] complete_installed_source_material(@physical_resources.PreparationCapacity[I, (S, @client_source_publication.PreparedPublishedQueryEnvironment)], I, S, @client_source_publication.PreparedPublishedQueryEnvironment, @execution_relation.ExecutionCapacity) -> Result[Unit, @physical_resources.PreparationCapacityIssue]
 
@@ -889,6 +893,8 @@ pub fn restore_client_source_capture(@query_planning.QueryRequirement, String, S
 pub fn retain_accounted_client_source_capture_task(ClientAccountedSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Result[Unit, ClientSourceCaptureIssue]
 
 pub fn retain_installed_effect_operation_construction(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, ClientInstalledEffectManagedPlan, Int, Bool, Int, Int, String) -> Result[ClientInstalledEffectOperationBorrow, ClientInstalledManagedRunIssue]
+
+pub fn retain_installed_effect_operation_controls_before_construction(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, ClientInstalledEffectManagedPlan) -> Result[ClientInstalledEffectManagedPlan, ClientInstalledManagedRunIssue]
 
 pub fn retained_installed_source_construction_capacity(@execution_relation.ExecutionCapacity) -> @execution_relation.ExecutionCapacity
 

@@ -4093,7 +4093,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "ac72928176ab5046d964c7862be309f22c8dbd69ff2c8f43efcf6127f31afbf1",
+      "sha256": "3eeac6a1fb18ea7d21f991693c4036570114d36369360a383935f264e048d4ca",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -5002,6 +5002,7 @@
             "signal",
             "assertCurrent",
             "physicalOperations",
+            "controlConstruction",
             "operationPhase"
           ],
           "async": true
@@ -5105,7 +5106,8 @@
             "subjectCid",
             "signal",
             "targetReads",
-            "assertCurrent"
+            "assertCurrent",
+            "controlConstruction"
           ],
           "async": true
         },
@@ -5195,7 +5197,8 @@
         {
           "name": "createRowEffectStage/openLedger/openLedger",
           "parameters": [
-            "identity"
+            "identity",
+            "controlConstruction"
           ],
           "async": false
         },
@@ -5257,6 +5260,7 @@
             "assertCurrent",
             "dispatchIndexes",
             "physicalOperations",
+            "controlConstruction",
             "operationPhase"
           ],
           "async": false
@@ -15277,6 +15281,7 @@
       "exports": [
         "captureInstalledEffectPlanRecipe",
         "captureInstalledStandardCreateLimits",
+        "prepareInstalledEffectControlConstruction",
         "prepareInstalledEffectCredentialChild",
         "prepareInstalledEffectManagedPlan",
         "prepareInstalledEffectRequestChild",
@@ -15364,6 +15369,64 @@
           "parameters": [
             "code"
           ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectControlConstruction",
+          "parameters": [
+            "run"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectControlConstruction/originalRecord/originalRecord",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectControlConstruction/prepareInstalledEffectControlConstruction",
+          "parameters": [
+            "method"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectControlConstruction/prepareInstalledEffectControlConstruction#2",
+          "parameters": [
+            "receiver",
+            "method",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectControlConstruction/retainInvalid/retainInvalid",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectControlConstruction/retainInvalid/retainInvalid/joined/joined",
+          "parameters": [
+            "yes",
+            "no"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectControlConstruction/retainInvalid/retainInvalid/settled/settled",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectControlConstruction/retire/retire",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectControlConstruction/sameRecord/sameRecord",
+          "parameters": [],
           "async": false
         },
         {
@@ -15709,7 +15772,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "cb687bb4472196308af00d78b751f10535caf4d3d9f743143442e2e19567a2cf",
+      "sha256": "ad2e00e6410a636e02c7672a4571829222b372660bc6315ca72bc2b347fd9a64",
       "contracts": [
         {
           "operations": [
@@ -15859,6 +15922,84 @@
               {
                 "path": "adapters/site-node/https-credential-response-accounting.test.mjs",
                 "anchor": "test('original HTTP overflow in either header block stays Unknown without another claim'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "prepareInstalledEffectControlConstruction",
+            "prepareInstalledEffectControlConstruction/originalRecord/originalRecord",
+            "prepareInstalledEffectControlConstruction/prepareInstalledEffectControlConstruction",
+            "prepareInstalledEffectControlConstruction/prepareInstalledEffectControlConstruction#2",
+            "prepareInstalledEffectControlConstruction/retainInvalid/retainInvalid",
+            "prepareInstalledEffectControlConstruction/retainInvalid/retainInvalid/joined/joined",
+            "prepareInstalledEffectControlConstruction/retainInvalid/retainInvalid/settled/settled",
+            "prepareInstalledEffectControlConstruction/retire/retire",
+            "prepareInstalledEffectControlConstruction/sameRecord/sameRecord"
+          ],
+          "exports": [
+            "prepareInstalledEffectControlConstruction"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Effect control reservation keeps management/index growth"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Effect control reservation keeps management/index growth"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Effect control reservation keeps management/index growth"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Effect control reservation keeps management/index growth"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Effect control reservation keeps management/index growth"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Effect control reservation keeps management/index growth"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Effect control reservation keeps management/index growth"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Effect control reservation keeps management/index growth"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Effect control reservation keeps management/index growth"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Effect control reservation keeps management/index growth"
               }
             ]
           }

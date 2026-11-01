@@ -267,6 +267,7 @@ struct ClientInstalledEffectManagedPlan {
   rows : Int
   held_children : Int
   operation_control_capacity : @execution.ExecutionCapacity
+  operation_control_idle_execution : Int64
   _observed_compute_limits : @resources.LedgerLimits
   limits : @resources.LedgerLimits
 }
@@ -306,6 +307,34 @@ fn installed_effect_limits_fit(
   required.transfer_bytes <= admitted.transfer_bytes &&
   required.retained_bytes <= admitted.retained_bytes &&
   required.execution_bytes <= admitted.execution_bytes
+}
+
+///|
+// Fixed additional material of the control phase quote: one retained Plan
+// scalar, two checked-add carriers and two new workspace projection/results.
+// The SAME layout is backed by Request BEFORE Plan construction and recorded
+// in the resulting Plan; it is not a later spare allowance or another Root.
+fn installed_effect_control_phase_quote_capacity() -> @execution.ExecutionCapacity {
+  @execution.preparation_execution_capacity({
+    retained: {
+      record_headers: 0L,
+      reference_slots: 0L,
+      scalar_words: 1L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    },
+    workspace: {
+      record_headers: 2L,
+      reference_slots: 0L,
+      scalar_words: 6L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    },
+    retained_nodes: 0L,
+    workspace_nodes: 0L,
+    retained_bytes: 0L,
+    workspace_bytes: 0L,
+  }).unwrap()
 }
 
 ///|
@@ -545,7 +574,7 @@ pub fn prepare_installed_effect_managed_plan(
   let mut extent_count = 0L
   let mut controlled_members = 0L
   let mut implementation_control_retained = 0L
-  let mut implementation_control_execution = 0L
+  let mut implementation_control_workspace = 0L
   let mut remaining = @publication_host.client_standard_program_preparation_limits().max_graph_work
   for demand in resolved_operations {
     if demand.controls_per_row is Some(original) {
@@ -556,18 +585,24 @@ pub fn prepare_installed_effect_managed_plan(
           @execution.execution_capacity_retained_bytes(original),
           rows,
         )
-        is Some(next_retained) &&
-        @execution.execution_capacity_inventory_add(
-          implementation_control_execution,
-          QuotedBytes,
-          @execution.execution_capacity_execution_bytes(original),
-          rows,
-        )
-        is Some(next_execution) else {
+        is Some(next_retained) else {
         return Err(Unsupported)
       }
       implementation_control_retained = next_retained
-      implementation_control_execution = next_execution
+      if rows > 0 {
+        // Actual grant/Ledger/projector callbacks use one same-Run control
+        // frame, complete synchronously and retain their outputs separately.
+        let control_workspace = @execution.execution_capacity_execution_bytes(
+            original,
+          ) -
+          @execution.execution_capacity_retained_bytes(original)
+        implementation_control_workspace = Int64::max(
+          implementation_control_workspace, control_workspace,
+        )
+        constructor_workspace = Int64::max(
+          constructor_workspace, control_workspace,
+        )
+      }
     }
     for
       (extents, multiplicity) in [
@@ -743,6 +778,7 @@ pub fn prepare_installed_effect_managed_plan(
       // base capacity coexist with their combined result during this quote.
       // One sequential-constructor scratch accumulator and its selected
       // held-execution scalar are live in that same existing traversal.
+      // Additional control phase material uses its one shared layout below.
       scalar_words: 42L +
       6L +
       input_slots +
@@ -754,6 +790,20 @@ pub fn prepare_installed_effect_managed_plan(
       owned_wire_bytes: 0L,
     }).unwrap() +
     source_result_scratch
+  let control_phase = installed_effect_control_phase_quote_capacity()
+  let phase_retained = @execution.execution_capacity_retained_bytes(
+    control_phase,
+  )
+  let phase_workspace = @execution.execution_capacity_execution_bytes(
+      control_phase,
+    ) -
+    phase_retained
+  if controls > 9223372036854775807L - phase_retained ||
+    temporary > 9223372036854775807L - phase_workspace {
+    return Err(Unsupported)
+  }
+  let controls = controls + phase_retained
+  let temporary = temporary + phase_workspace
   if retained > 9223372036854775807L - controls ||
     execution > 9223372036854775807L - controls - temporary {
     return Err(Unsupported)
@@ -762,6 +812,26 @@ pub fn prepare_installed_effect_managed_plan(
     installed_effect_operation_control_capacity(held_children.to_int()) {
     Some(value) => value
     None => return Err(Unsupported)
+  }
+  // The existing mutable child/index inventory can grow before any control
+  // callback. Keep that original base workspace prepaid in the same token.
+  guard @execution.execution_capacity_inventory_add(
+      @execution.execution_capacity_execution_bytes(operation_control_capacity),
+      QuotedBytes,
+      implementation_control_retained,
+      1,
+    )
+    is Some(operation_control_idle_execution) else {
+    return Err(Unsupported)
+  }
+  guard @execution.execution_capacity_inventory_add(
+      implementation_control_retained,
+      QuotedBytes,
+      implementation_control_workspace,
+      1,
+    )
+    is Some(implementation_control_execution) else {
+    return Err(Unsupported)
   }
   guard @execution.execution_capacity(
       implementation_control_retained, implementation_control_execution,
@@ -776,11 +846,9 @@ pub fn prepare_installed_effect_managed_plan(
   let control_retained = @execution.execution_capacity_retained_bytes(
     operation_control_capacity,
   )
-  let control_execution = @execution.execution_capacity_execution_bytes(
-    operation_control_capacity,
-  )
   if retained + controls > 9223372036854775807L - control_retained ||
-    execution + controls + temporary > 9223372036854775807L - control_execution {
+    execution + controls + temporary >
+    9223372036854775807L - operation_control_idle_execution {
     return Err(Unsupported)
   }
   let limits = {
@@ -788,7 +856,10 @@ pub fn prepare_installed_effect_managed_plan(
     attempts: attempts.to_int(),
     transfer_bytes: transfer,
     retained_bytes: retained + controls + control_retained,
-    execution_bytes: execution + controls + temporary + control_execution,
+    execution_bytes: execution +
+    controls +
+    temporary +
+    operation_control_idle_execution,
   }
   Ok({
     prepared,
@@ -813,6 +884,7 @@ pub fn prepare_installed_effect_managed_plan(
     rows,
     held_children: held_children.to_int(),
     operation_control_capacity,
+    operation_control_idle_execution,
     _observed_compute_limits: original_compute_limits,
     limits,
   })

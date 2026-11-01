@@ -64,7 +64,9 @@ function fixture() {
   let current = true, checkCallback = () => {}, selected = plan;
   const failure = new Error('original-current');
   const runtime = {
-    clientProgramInstalledEffectOperationControlsBegin() {return ok(plan);},
+    clientProgramInstalledEffectOperationControlConstructionBegin() {return {$tag:1,_0:undefined};},
+    clientProgramInstalledEffectOperationControlConstructionComplete() {return {$tag:1,_0:undefined};},
+    clientProgramInstalledEffectOperationControlsRetain() {return ok(plan);},
     clientProgramInstalledManagedRunRetire() {}, clientProgramNodeEffectManagedPlanCleanup() {},
     clientProgramInstalledEffectManagedRunCheck(value, p, r) {
       assert.strictEqual(this, runtime); assert.strictEqual(value, parent);
@@ -228,7 +230,8 @@ const makeAcquire = new Function('ports', `
     randomUUID,cid,maxTransferBytes,limits,startInstalledRowRun,operationBindings,
     readPages,grantBeforeBegin,fail,checked}=ports;
   const directReadIdentity=undefined,prepareRead=undefined,listingReportCapacity=undefined;
-  const pageLimits=undefined,referenceIssuer=undefined;
+  const pageLimits=undefined,referenceIssuer=undefined,managedPageLimits=undefined;
+  const preparingSourceReads=new Set(),closeSourceRead=undefined,readerDemand=undefined,originalOperationScope=undefined;
   const text=value=>typeof value==='string'&&value.length>0;
   ${rowSource.slice(acquireNode.start, acquireNode.end)}
   return acquire;
