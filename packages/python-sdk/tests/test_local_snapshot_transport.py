@@ -68,6 +68,89 @@ class SnapshotTransportTests(unittest.TestCase):
                 self.assertEqual(probes, ['PRAGMA schema_version', 'PRAGMA temp.schema_version'] * 6)
             store.inspect_namespaces(fences, inspect=inspect, current=current)
 
+    def test_current_query_refuses_metadata_mutation_at_each_current_boundary(self):
+        from actql_sdk._local_storage import LocalStorageError
+        for stop in (1, 2, 3):
+            with self.subTest(stop=stop), TemporaryDirectory(prefix='actql-query-metadata-current-') as directory:
+                store = LocalByteStore(Path(directory) / 'original.sqlite', max_records=8,
+                    max_record_bytes=4096, max_payload_bytes=16384)
+                self.addCleanup(store.close)
+                store.compare_exchange('epoch', None, b'original-epoch')
+                store.compare_exchange(store.namespaced_key('original', 'one'), None, b'original-row')
+                armed, calls, rows = [], [], []
+                def current():
+                    if armed:
+                        calls.append(True)
+                        if len(calls) == stop:
+                            store._connection.execute('UPDATE core_bytes SET generation=1 WHERE key=?', ('epoch',))
+                def inspect(reader):
+                    armed.append(True)
+                    with self.assertRaises(LocalStorageError):
+                        reader.query_current(reader, 1, 'original', 'one', rows.append, current)
+                    armed.clear()
+                    with self.assertRaises(ValueError): reader.current()
+                with self.assertRaises(ValueError):
+                    store.inspect_namespaces((ByteFence('epoch', 0, b'original-epoch'),),
+                        inspect=inspect, current=current)
+                self.assertEqual(len(calls), stop)
+                self.assertEqual(len(rows), int(stop == 3))
+                self.assertFalse(store._physical.in_transaction)
+                self.assertEqual(store.read('epoch').payload, b'original-epoch')
+
+    def test_current_query_refreshes_changed_metadata_and_never_reuses_actual_row(self):
+        with TemporaryDirectory(prefix='actql-query-fresh-row-') as directory:
+            store = LocalByteStore(Path(directory) / 'original.sqlite', max_records=8,
+                max_record_bytes=4096, max_payload_bytes=16384)
+            self.addCleanup(store.close)
+            store.compare_exchange('epoch', None, b'original-epoch')
+            key = store.namespaced_key('original', 'one')
+            store.compare_exchange(key, None, b'original-row')
+            def inspect(reader):
+                observed = []
+                def consume(row):
+                    observed.append(row[1].payload)
+                    store._connection.execute('UPDATE core_bytes SET payload=? WHERE key=?', (b'changed-row', key))
+                with patch.object(store, '_read_bytes_locked', wraps=store._read_bytes_locked) as reads:
+                    reader.query_current(reader, 1, 'original', 'one', consume, current)
+                    self.assertEqual(reads.call_count, 1)  # changed total_changes rechecks exact metadata
+                    reader.query_current(reader, 1, 'original', 'one', lambda row: observed.append(row[1].payload), current)
+                    self.assertEqual(reads.call_count, 1)
+                self.assertEqual(observed, [b'original-row', b'changed-row'])
+            def current(): pass
+            store.inspect_namespaces((ByteFence('epoch', 0, b'original-epoch'),),
+                inspect=inspect, current=current)
+            self.assertEqual(store.read(key).payload, b'original-row')  # same read transaction rolled back
+
+    def test_raw_and_other_physical_queries_keep_complete_metadata_reads(self):
+        for mode in ('raw-read', 'raw-scan', 'other-physical'):
+            with self.subTest(mode=mode), TemporaryDirectory(prefix='actql-query-fallback-') as directory:
+                store = LocalByteStore(Path(directory) / 'original.sqlite', max_records=8,
+                    max_record_bytes=4096, max_payload_bytes=16384)
+                self.addCleanup(store.close)
+                store.compare_exchange('epoch', None, b'original-epoch')
+                store.compare_exchange(store.namespaced_key('original', 'one'), None, b'original-row')
+                if mode == 'other-physical':
+                    original = store._physical
+                    class ExistingPhysicalPort:
+                        def __getattr__(self, name): return getattr(original, name)
+                    store._physical = ExistingPhysicalPort()
+                rows = []
+                def inspect(reader):
+                    sql = []
+                    store._connection.set_trace_callback(sql.append)
+                    try:
+                        if mode == 'raw-read': reader.read('original', 'one', rows.append)
+                        elif mode == 'raw-scan': reader.scan_after('original', '', rows.append)
+                        else: reader.query_current(reader, 1, 'original', 'one', rows.append, current)
+                    finally:
+                        store._connection.set_trace_callback(None)
+                    self.assertEqual(len([q for q in sql if q.lstrip().upper().startswith('SELECT')]), 7)
+                def current(): pass
+                store.inspect_namespaces((ByteFence('epoch', 0, b'original-epoch'),),
+                    inspect=inspect, current=current)
+                self.assertEqual(len(rows), 1)
+                self.assertEqual(rows[0][1].payload, b'original-row')
+
     def test_snapshot_reuse_refuses_mutation_in_current_and_latches_original_failure(self):
         from actql_sdk._local_storage import LocalStorageError
         with TemporaryDirectory(prefix='actql-sql-current-mutation-') as directory:
