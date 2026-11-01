@@ -3157,6 +3157,13 @@ modules must match the existing exact generated ABI contract.
 
 ### Saved Run observations and Result reads
 
+The private saved-Result acquisition returns its already bounded and checked
+metadata together with the same retained Core output. Its immediate caller
+uses that original parsed DATA instead of reparsing the output inside another
+current observation. This adds no cache, permission or lifetime token. Later
+payload acquisition, physical reads, callbacks and delivery keep their existing
+current checks and original failure/cleanup ownership.
+
 A repeated submit first observes the authenticated original submission under
 the same current Store snapshot. A ready record with the same intent returns
 its existing admission without preparation, dispatch or a new executable Run.
