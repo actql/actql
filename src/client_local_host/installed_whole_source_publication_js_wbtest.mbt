@@ -107,6 +107,8 @@ test "whole input publication binds the same RowRun originals and one adopted in
       | ModelBinding(_)
       | ModelQuery(_)
       | ModelSource(_)
+      | ContentQuery(_)
+      | ContentSource(_)
     ) => fail("whole module: unexpected domain constructor")
     Err(Installed(_)) => fail("whole module: Installed")
     Err(Construction(issue)) => {

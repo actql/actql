@@ -6043,7 +6043,10 @@ export async function connectEmbeddedLocal(options, initialEntry) {
         checked(Reflect.apply(prior.check, runtime, [prior.value, prepared, request])); return prior;
       }
       if (liveRuns.size === 4096) throw clientOperationError('InstalledComputeRunLimit');
-      const content = runtimeCore(runtime).contentGenerationControl;
+      // The actual Content record retains the facade that issued this
+      // workspace. A new facade has a different private original registry.
+      const content = Object.getOwnPropertyDescriptor(contentPreparation, 'contentControl')?.value;
+      if (content === undefined) throw clientOperationError('InstalledContentRunPreparationUnavailable');
       const run = {runtime, prepared, request, manager, content, contentPlan: plan,
         contentLimits: limits, contentWorkspace: workspace, preparationKind: 'serialization-plan',
         original: undefined, value: undefined, serialization: undefined, serializationCleaned: false,

@@ -95,6 +95,7 @@ options(
     "preparation_request_capture_body_js_wbtest.mbt": [ "js" ],
     "preparation_request_model_js_wbtest.mbt": [ "js" ],
     "preparation_request_content_body_js_wbtest.mbt": [ "js" ],
+    "preparation_request_keyed_content_js_wbtest.mbt": [ "js" ],
     "preparation_request_serialization_compilation_js_wbtest.mbt": [ "js" ],
     "installed_keyed_content_originals_js_wbtest.mbt": [ "js" ],
     "installed_capture_original_row_js_wbtest.mbt": [ "js" ],

@@ -398,6 +398,52 @@ pub fn client_program_prepare_request_serialization_plan(
 }
 
 ///|
+#export_name("clientProgramPrepareRequestKeyedContentPlan")
+pub fn client_program_prepare_request_keyed_content_plan(
+  parent : @client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal],
+  input : ClientLocalPreparationInputOriginal,
+  request : @publication_host.ClientRequestIdentity,
+  keyed : @publication_host.ClientKeyedAcquisition,
+  direct_declaration : @client_row_source_host.RowDeclaration,
+  content_declaration : @client_row_source_host.RowDeclaration,
+  max_page_bytes : Int,
+  max_text_bytes : Int,
+  row_work : Int,
+  query_contract_body : String,
+  evidence_contract_body : String,
+  transport_bytes : Array[Int64],
+  transport_execution_bytes : Array[Int64],
+  max_bytes : Int,
+  max_work : Int,
+  contracts : @client_local_host.ClientInstalledSequenceContracts,
+  task : Int,
+  step : Int,
+  prefix_max_rows : Int,
+  prefix_max_work : Int,
+  max_entries : Int,
+  max_value_bytes : Int,
+  max_value_nodes : Int,
+  max_value_depth : Int,
+  max_frames : Int,
+  workspace : @execution.ExecutionCapacity?,
+) -> Result[
+  @client_local_host.ClientInstalledManagedKeyedPreparation,
+  ClientRequestProgramModuleBridgeIssue,
+] {
+  let (execution, measurement) = serialization_prefix_limits(
+    prefix_max_rows, prefix_max_work, max_entries, max_value_bytes,
+    max_value_nodes, max_value_depth, max_frames,
+  )
+  @client_local_host.prepare_request_keyed_content_plan(
+    parent, input, request, keyed, direct_declaration, content_declaration,
+    @client_local_host.installed_keyed_row_limits(max_page_bytes, max_text_bytes, row_work),
+    query_contract_body, evidence_contract_body, transport_bytes,
+    transport_execution_bytes, max_bytes, max_work, contracts, task, step,
+    execution, measurement, workspace,
+  ).map_err(issue => Preparation(issue))
+}
+
+///|
 #export_name("clientProgramPreparedInstalledSerializationPrefixRequirements")
 pub fn client_program_prepared_installed_serialization_prefix_requirements(
   selected : @client_local_host.ClientInstalledManagedSerializationPreparation,

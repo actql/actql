@@ -20,6 +20,18 @@ struct ClientInstalledManagedKeyedPreparation {
   ordered_selected : Bool
   serialization_task : Int
   serialization_step : Int
+  prefix : ClientInstalledKeyedPrefixPreparation?
+}
+
+///|
+// Original generated prefix and bounded provider retained by this existing
+// Content Plan. These are constructor outputs, not another Run/cleanup owner.
+priv struct ClientInstalledKeyedPrefixPreparation {
+  sequence : @execution.GeneratedSequence
+  provider : @local.ManagedProvider
+  capacity : @execution.ExecutionCapacity
+  execution : @execution.SequenceExecutionLimits
+  measurement : @execution.FixedInputGuardMeasureLimits
 }
 
 ///|
@@ -41,6 +53,39 @@ pub fn prepare_installed_managed_keyed_content(
   step : Int,
   prefix_retained_bytes : Int64,
   prefix_execution_bytes : Int64,
+) -> Result[
+  ClientInstalledManagedKeyedPreparation,
+  ClientInstalledManagedRunIssue,
+] {
+  prepare_installed_managed_keyed_content_owned(
+    prepared, direct, keyed, declaration, row_limits, transport_bytes,
+    transport_execution_bytes, max_bytes, max_work, installed_contracts,
+    values_body, fragment_body, ordered_body, task, step,
+    prefix_retained_bytes, prefix_execution_bytes, None, None,
+  )
+}
+
+///|
+fn prepare_installed_managed_keyed_content_owned(
+  prepared : @publication_host.PreparedClientProgram,
+  direct : ClientInstalledCaptureCapacity,
+  keyed : @publication_host.ClientKeyedAcquisition,
+  declaration : @row_source_host.RowDeclaration,
+  row_limits : @row_source_host.RowKeyedLimits,
+  transport_bytes : Array[Int64],
+  transport_execution_bytes : Array[Int64],
+  max_bytes : Int,
+  max_work : Int,
+  installed_contracts : ClientInstalledSequenceContracts,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+  task : Int,
+  step : Int,
+  prefix_retained_bytes : Int64,
+  prefix_execution_bytes : Int64,
+  prefix : ClientInstalledKeyedPrefixPreparation?,
+  original_requirement : @planning.QueryRequirement?,
 ) -> Result[
   ClientInstalledManagedKeyedPreparation,
   ClientInstalledManagedRunIssue,
@@ -82,6 +127,7 @@ pub fn prepare_installed_managed_keyed_content(
         (task, step, prefix_retained_bytes, prefix_execution_bytes),
       ),
       captured_content=true,
+      original_requirement~,
     )
     is Some((limits, direct_stage, direct_input, requests)) &&
     requests >= 0L &&
@@ -105,6 +151,7 @@ pub fn prepare_installed_managed_keyed_content(
     ordered_selected: ordered_body is Some(_),
     serialization_task: task,
     serialization_step: step,
+    prefix,
   })
 }
 

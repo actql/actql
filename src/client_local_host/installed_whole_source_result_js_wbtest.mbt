@@ -123,6 +123,8 @@ fn whole_source_result_publication_fixture(
       | ModelBinding(_)
       | ModelQuery(_)
       | ModelSource(_)
+      | ContentQuery(_)
+      | ContentSource(_)
     ) => fail("whole module: unexpected domain constructor")
     Err(Installed(_)) => fail("whole module: Installed")
     Err(Construction(issue)) => {

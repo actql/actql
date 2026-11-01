@@ -98,6 +98,7 @@ fn keyed_captured_local_installed_requirements(
   serialization? : (Int, Int, Int64, Int64)? = None,
   infer? : (Int, Int, Int64, Int64)? = None,
   captured_content? : Bool = false,
+  original_requirement? : @planning.QueryRequirement? = None,
 ) -> (@resources.LedgerLimits, Int, Int, Int64)? {
   guard @publication_host.client_keyed_acquisition_matches_program(
       keyed, prepared,
@@ -111,10 +112,25 @@ fn keyed_captured_local_installed_requirements(
       @publication_host.client_keyed_acquisition_owner(keyed),
       @publication_host.client_keyed_acquisition_facts(keyed),
     ) &&
-    prepare_local_query_requirement(
-      prepared, stage, input, installed_contracts, values_body, fragment_body, ordered_body,
-    )
-    is Ok(requirement) &&
+    (match original_requirement {
+      None =>
+        prepare_local_query_requirement(
+          prepared, stage, input, installed_contracts, values_body, fragment_body, ordered_body,
+        ).to_option()
+      Some(requirement) =>
+        if physical_equal(requirement, direct.requirement) &&
+          @publication_host.client_query_requirement_matches_program(
+            prepared, stage, input, requirement,
+          ) &&
+          values_body == installed_contracts.original.values_body &&
+          fragment_body == installed_contracts.original.fragment_body &&
+          ordered_body == installed_contracts.original.ordered_body {
+          Some(requirement)
+        } else {
+          None
+        }
+    })
+    is Some(requirement) &&
     @planning.query_requirement_cid(requirement) ==
     @planning.query_requirement_cid(direct.requirement) &&
     @publication_host.client_keyed_lookup_capacity(keyed, max_bytes, max_work)

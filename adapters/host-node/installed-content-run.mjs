@@ -310,7 +310,8 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
     if (preparedRunCount === 4096) throw new TypeError('InstalledContentRunLimit');
     preparedRunCount++;
     const original = {prepared: preparedProgram, plan, request, attempted: false, capacity: undefined, managed: undefined,
-      inputHolder: undefined, localPreparation: undefined, releaseSelection: undefined, retired: false, failed: false, failure: undefined};
+      inputHolder: undefined, localPreparation: undefined, releaseSelection: undefined, contentControl: control,
+      retired: false, failed: false, failure: undefined};
     preparedRuns.set(preparedProgram, original);
     try {
       retainOriginalPreparation(preparedProgram, original);
@@ -350,7 +351,8 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
     if (preparedRunCount === 4096) throw new TypeError('InstalledContentRunLimit');
     preparedRunCount++;
     const original = {prepared: preparedProgram, serializationGraph, plan: undefined, request, keyedAcquisition,
-      recipe: undefined, managed: undefined, inputHolder: undefined, localPreparation: undefined, releaseSelection: undefined, retired: false, failed: false, failure: undefined};
+      recipe: undefined, managed: undefined, inputHolder: undefined, localPreparation: undefined, releaseSelection: undefined,
+      contentControl: control, retired: false, failed: false, failure: undefined};
     preparedKeyedRuns.set(preparedProgram, original);
     try {
       retainOriginalPreparation(preparedProgram, original);

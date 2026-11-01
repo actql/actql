@@ -6,6 +6,21 @@ pub(all) enum ClientLocalQueryIssue {
 }
 
 ///|
+// The same installed single-Query controls used by the real material/requirement
+// issuers. Request construction uses their existing writer/collection inventory
+// before entry; this is not another query policy or a Provider read allowance.
+fn installed_local_query_material_limits() -> @planning.QueryMaterialLimits {
+  {
+    max_work: 1000000,
+    max_fields: 100,
+    max_parameters: 100,
+    max_bytes: 1000000,
+    max_nodes: 100000,
+    max_depth: 100,
+  }
+}
+
+///|
 /// The installed Local Host uses the same generated sequence for acquisition
 /// checking and the later captured computation. This issues no provider grant.
 pub fn prepare_local_query_requirement(
@@ -129,14 +144,7 @@ fn prepare_local_query_requirement_owned(
     is Some(sequence) else {
     return Err(Sequences)
   }
-  let limits : @planning.QueryMaterialLimits = {
-    max_work: 1000000,
-    max_fields: 100,
-    max_parameters: 100,
-    max_bytes: 1000000,
-    max_nodes: 100000,
-    max_depth: 100,
-  }
+  let limits = installed_local_query_material_limits()
   let guards : @planning.QueryLogicalGuards = {
     max_rows: 100,
     max_value_bytes: 10000,

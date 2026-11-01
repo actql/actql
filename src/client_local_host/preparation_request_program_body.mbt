@@ -357,6 +357,8 @@ pub suberror ClientRequestProgramPlanIssue {
   ModelBinding(@publication.RunEvidenceValueIssue)
   ModelQuery(ClientLocalQueryIssue)
   ModelSource(@row_source_host.RowHostIssue)
+  ContentQuery(ClientLocalQueryIssue)
+  ContentSource(@row_source_host.RowHostIssue)
 }
 
 ///|

@@ -692,6 +692,8 @@ pub fn[I] prepare_request_effect_check_preparation(ClientRequestPreparation[I], 
 
 pub fn[I] prepare_request_effect_model_read_scope(ClientRequestPreparation[I], I, ClientInstalledEffectManagedPlan) -> Result[@run_publication_host.ClientModelReadScope, ClientInstalledManagedRunIssue]
 
+pub fn[I] prepare_request_keyed_content_plan(ClientRequestPreparation[I], I, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientKeyedAcquisition, @client_row_source_host.RowDeclaration, @client_row_source_host.RowDeclaration, @client_row_source_host.RowKeyedLimits, String, String, Array[Int64], Array[Int64], Int, Int, ClientInstalledSequenceContracts, Int, Int, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, @execution_relation.ExecutionCapacity?) -> Result[ClientInstalledManagedKeyedPreparation, ClientRequestProgramPlanIssue]
+
 pub fn[I] prepare_request_keyed_serialization_compilation(ClientRequestPreparation[I], I, ClientInstalledManagedKeyedPreparation, @run_publication_host.ClientSerializationPlanGraph, manifests~ : @run_publication_host.ClientCompilationManifests, compilation_limits~ : @run_publication_host.ClientPureCompilationLimits) -> Result[@run_publication_host.ClientTaskCompilation, ClientRequestProgramPlanIssue]
 
 pub fn[I] prepare_request_model_capture_module(ClientRequestPreparation[I], I, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientTaskCompilation, Array[@client_row_source_host.RowDeclaration], String, String, Array[Int64], Array[Int64], ClientInstalledSequenceContracts, Bool, Int, (@execution_relation.ExecutionCapacity) -> Array[@local.ManagedProvider], query_time? : @run_publication_host.ClientQueryTimePreparation?) -> Result[ClientInstalledManagedCapturePlan, ClientRequestProgramPlanIssue]
@@ -1013,6 +1015,8 @@ pub suberror ClientRequestProgramPlanIssue {
   ModelBinding(@run_publication.RunEvidenceValueIssue)
   ModelQuery(ClientLocalQueryIssue)
   ModelSource(@client_row_source_host.RowHostIssue)
+  ContentQuery(ClientLocalQueryIssue)
+  ContentSource(@client_row_source_host.RowHostIssue)
 }
 
 pub suberror ClientRequestQueryLoweringIssue {

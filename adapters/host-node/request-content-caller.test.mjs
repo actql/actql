@@ -4,6 +4,8 @@ import test from 'node:test';
 import {parse} from 'acorn';
 import {installNodeContentRun} from './installed-content-run.mjs';
 import {finishInstalledEffectModelScope} from './installed-effect-managed-run.mjs';
+import {contentGenerationControl} from '../host-common/runtime-core.mjs';
+import {localOutputLimits, localContractLimits} from './local-values-plan.mjs';
 
 // Actual methods with explicit Core/current ports. These are not a compiled
 // Common ABI, a physical capacity admission or an ordinary Content receipt.
@@ -18,6 +20,42 @@ function method(file, name, ports) {
   return Function(...Object.keys(ports),`return ({${source.slice(found.start,found.end)}}).${name};`)(...Object.values(ports));
 }
 const fail=code=>{throw Object.assign(new Error(code),{code});};
+
+test('Content Host uses the same original content control that owns its workspace before the Request prefix constructor',()=>{
+  const prepared={},request={},sdkRequest={},parent={},input={},selected={},rawWorkspace={},compiled={},definition={};
+  const limits={maxRows:1,maxWork:100,maxEntries:100,maxValueBytes:100,maxValueNodes:100,maxValueDepth:10,maxFrames:10};
+  let nativeConstructors=0;const moon={
+    clientProgramEffectInputExportLimits:()=>({}),
+    clientProgramSerializationWorkspaceCapacity:()=>rawWorkspace,
+    clientProgramSerializationCapacityBytes:w=>{assert.equal(w,rawWorkspace);return{_0:7n,_1:9n};},
+    clientProgramInstalledManagedRunCheck(){},clientProgramInstalledManagedRunRetire(){},
+  };
+  const publications={prepareCheckedClientRequestSerializationPlan(p,i,r,c,d,l,w){
+    assert.deepEqual([p,i,r,c,d,l,w],[parent,input,request,compiled,definition,limits,rawWorkspace]);
+    nativeConstructors++;return selected;}};
+  const control=contentGenerationControl(moon,publications);
+  const workspace=control.workspaceCapacity({generation:{maxBytes:100,maxValueNodes:100,maxValueDepth:10,maxFrames:10},
+    reference:{maxBytes:100,maxNodes:100,maxDepth:10},contract:localContractLimits,
+    output:localOutputLimits,identitySlots:100});
+  const plan={kind:'serialization',compiled,runDefinition:definition},original={},value={};
+  const contentPreparation={prepared,inputHolder:{},contentControl:control,releaseAliases(){}};
+  const record={},manager={prepareSerializationRun(p,r,identity,construct){
+    assert.deepEqual([p,r,identity],[prepared,sdkRequest,request]);assert.equal(construct(parent,input),selected);
+    return{original,value};}};
+  const prepare=method('./embedded-local.mjs','prepareManagedSerializationRun',{
+    sourceManaged:manager,computeManaged:undefined,moon,record,originalInstallation:{},originals:{},checked:v=>v,
+    // This mirrors the actual factory: each new facade has its own workspace
+    // registry. Rebuilding a facade cannot accept another facade's original.
+    runtimeCore:()=>({contentGenerationControl:contentGenerationControl(moon,publications)}),
+    clientOperationError:code=>Object.assign(new Error(code),{code}),
+    assertSourceManagedInstallationCurrent(){},originalSourceManagedHostRequest:()=>sdkRequest});
+  const run=prepare(moon,prepared,request,plan,limits,workspace,contentPreparation);
+  assert.equal(nativeConstructors,1);assert.equal(run.content,control);assert.equal(run.serialization,selected);
+  assert.throws(()=>contentGenerationControl(moon,publications).prepareRequestPrefix(
+    parent,input,request,compiled,definition,limits,workspace),/Foreign Content workspace capacity/);
+  assert.equal(nativeConstructors,1);
+});
+
 function managerFixture({compileFailure,completeFailure}={}) {
   const prepared={},request={},identity={},parent={},input={},graph={},artifact={},selected={},value={},original={};
   const holder={},admission={},calls=[],runs=new WeakMap(),liveRuns=new Set(),view={};
@@ -75,6 +113,7 @@ function hostFixture({constructFailure}={}) {
     assert.equal(record.computeRuns.get(prepared).selecting,true);calls.push('prefix-plan');return selected;
   },cleanupRequestPrefix(v,s){assert.equal(this,content);assert.deepEqual([v,s],[value,selected]);
     calls.push('prefix-cleanup');if(cleanup instanceof Error)throw cleanup;return cleanup;}};
+  contentPreparation.contentControl=content;
   const moon={clientProgramInstalledManagedRunCheck(v,p,r){assert.equal(this,moon);assert.deepEqual([v,p,r],[value,prepared,request]);},
     clientProgramInstalledManagedRunRetire(v){assert.equal(this,moon);assert.equal(v,value);calls.push('parent-retire');},
     clientProgramInstalledPreparationPayloadSevered:()=>true};
@@ -129,7 +168,9 @@ test('terminal Content failed start retries only the same retained managed prefi
       checkedClientSerializationGenerationLimits:()=>({maxRows:1,maxBytes:16})}},
     preparedRunRequired:true,assertRunCurrent:()=>{},retainPreparation(p,original){assert.equal(p,preparedProgram);original.inputHolder={};},ownerPrincipal:'principal',storeAuthorityCid:'store',
     now:()=> '2026-10-31T00:00:00.000Z',authorize:()=>true,
-    prepareSerializationManagedRun(p,r,actual){assert.deepEqual([p,r,actual],[preparedProgram,request,plan]);prepares++;return managed;}});
+    prepareSerializationManagedRun(p,r,actual,_limits,_workspace,original){
+      assert.deepEqual([p,r,actual],[preparedProgram,request,plan]);assert.equal(original.contentControl,control);
+      prepares++;return managed;}});
   run.prepareRun({preparedProgram,request,plan});run.prepareRun({preparedProgram,request,plan});assert.equal(prepares,1);
   const store={storeAuthorityCid:'store',status:()=>({closed:false}),confirmCommittedIndex:async()=>undefined};
   await assert.rejects(run({preparedProgram,plan,store,principalId:'principal',retainExecution:owner=>{execution=owner;}}),e=>e===primary);
