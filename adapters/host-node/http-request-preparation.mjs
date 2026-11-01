@@ -14,6 +14,11 @@ export function installHttpRequestPreparation(preparation, registry, originals) 
     let receipt, body = request, finished = false;
     const finish = terminal => {
       if (finished) return;
+      let currentFailed = false, currentFailure;
+      if (terminal === 'returned' && operation !== 'connect') {
+        try {preparation.assertResultPublicationCurrent();}
+        catch (cause) {currentFailed = true; currentFailure = cause; terminal = 'failed';}
+      }
       try {
         if (receipt !== undefined) manager.finishSourceProducer(receipt, terminal);
         finished = true;
@@ -23,8 +28,10 @@ export function installHttpRequestPreparation(preparation, registry, originals) 
         // cleanup's error, or treating either failure as an acknowledgement.
         if (terminal !== 'failed') throw cause;
       } finally {settled();}
+      if (currentFailed) throw currentFailure;
     };
     try {
+      if (operation !== 'connect') preparation.beforeResultPublicationOperation(operation);
       if (['plan', 'submit', 'submit-intent', 'submit-named-intent', 'restart-intent'].includes(operation)) {
         receipt = manager.beforeSourceSnapshot(request.kind, request.input, request, request.connection);
         body = manager.captureSourceSnapshot(receipt, request, snapshotClientRequest);

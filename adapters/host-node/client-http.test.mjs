@@ -906,7 +906,10 @@ test('HTTP funded snapshot and typed intent retain the same Request and failed c
       active = false;
     },
   };
-  const prepare = installHttpRequestPreparation({requestPreparation: () => manager}, registry, originals);
+  const prepare = installHttpRequestPreparation({requestPreparation: () => manager,
+    beforeResultPublicationOperation(operation) {assert.equal(operation, 'submit-intent'); events.push('operation');},
+    assertResultPublicationCurrent() {assert.fail('Failed dispatch keeps its original primary');},
+  }, registry, originals);
   const lifetime = prepare('submit-intent', request);
   const derived = {...lifetime.body};
   lifetime.bindRequest(derived);
@@ -923,7 +926,7 @@ test('HTTP funded snapshot and typed intent retain the same Request and failed c
   failure = undefined;
   lifetime.finish('failed');
   assert.equal(active, false);
-  assert.deepEqual(events, ['before', 'snapshot', 'current', 'body', 'request', 'intent', 'failed', 'failed']);
+  assert.deepEqual(events, ['operation', 'before', 'snapshot', 'current', 'body', 'request', 'intent', 'failed', 'failed']);
 });
 
 
@@ -943,4 +946,31 @@ test('selected HTTP Request preparation cannot fall back after an absent carrier
     assert.deepEqual(await response.json(), {code: 'ClientHostFailure'});
   });
   assert.equal(dispatches, 0);
+});
+
+
+test('HTTP publication current refusal keeps its primary and still finishes the original producer', () => {
+  const registry = createEmbeddedHostRegistry(() => true);
+  const host = {}, installation = {}, originals = {host, installation, generation: host};
+  registry.registerPreparation(host, installation, host);
+  const request = Object.freeze({kind: 'aql', input: {text: 'SELECT 1 AS n', format: 'sql'},
+    parameters: null, connection: Object.freeze({mode: 'remote', owner: 'remote',
+      consentRefs: Object.freeze([]), runners: Object.freeze([])})});
+  const primary = new Error('OriginalPublicationCurrentRefused');
+  const receipt = {}, finishes = [], events = [];
+  const preparation = {requestPreparation: () => ({
+    beforeSourceSnapshot() {events.push('snapshot'); return receipt;},
+    captureSourceSnapshot(original, value, capture) {assert.strictEqual(original, receipt); return capture(value);},
+    assertSourceSnapshotCurrent() {}, bindSourceSnapshot() {}, bindSourceRequest() {}, intentCid() {},
+    finishSourceProducer(original, terminal) {assert.strictEqual(original, receipt); finishes.push(terminal);},
+  }), beforeResultPublicationOperation(operation) {assert.equal(operation, 'submit-intent'); events.push('operation');},
+  assertResultPublicationCurrent() {throw primary;}};
+  const prepare = installHttpRequestPreparation(preparation, registry, originals);
+  const original = prepare('submit-intent', request);
+  assert.throws(() => original.finish('returned'), error => error === primary);
+  assert.deepEqual(events, ['operation', 'snapshot']);
+  assert.deepEqual(finishes, ['failed']);
+  preparation.beforeResultPublicationOperation = () => {throw primary;};
+  assert.throws(() => prepare('submit-intent', request), error => error === primary);
+  assert.deepEqual(events, ['operation', 'snapshot']);
 });
