@@ -109,7 +109,7 @@ class _SQLiteByteDatabase:
         # At most four bounded catalog rows distinguish the complete two/three
         # object formats from any extra/colliding schema without a payload scan.
         rows = self._connection.execute("""SELECT
-            CASE WHEN length(name) <= 33 THEN name ELSE NULL END,
+            CASE WHEN length(name) <= 34 THEN name ELSE NULL END,
             type, CASE WHEN length(tbl_name) <= 16 THEN tbl_name ELSE NULL END,
             CASE WHEN length(sql) <= ? THEN sql ELSE NULL END
             FROM main.sqlite_schema WHERE name NOT LIKE 'sqlite_%'
