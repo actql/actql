@@ -1897,6 +1897,27 @@ receiver are captured before reserve/current can reenter. The Effect adapter
 retains the original Site rather than a copied close facade; reference
 currentness comes from that Site's original current method.
 
+A native driver capture recipe retains its fixed and per-row constructor
+quantities together with an optional effect-name term. The standard recipe
+composer forwards the opaque quantities unchanged. After matching the SAME
+checked member descriptor, the original Effect demand resolves that term once
+from its actual effect ID length; row multiplicity is applied separately from
+the original checked Result. No caller supplies a name-length allowance, and
+neither term grants attempts, transfers or permission. Generic CREATE recipes
+keep their original fixed/per-row form; old native driver profiles receive a
+zero effect-name term.
+
+Clear recovery parses the full incoming forests with the original byte/node/
+depth guards. It validates marker grammar and reconstructs metadata from the
+original binding, then requires canonical equality before normalizing that
+metadata. The arbitrary parsed entry remains live, but is not a second
+normalized tree. Its reconstructed and normalized trees use their own closed
+schema/target/marker geometry, and effect-name growth comes from the original
+Unicode inventory. Returned text, prior input forests, writers and failed
+prefixes remain independently backed. These quantities do not reconcile an
+operation reservation merely because a placeholder preparation returned; the
+actual later constructor and its retained aliases keep their original duties.
+
 A completed installation retains its immutable Environment on the SAME
 initial Source material while its original Source is held. A paired Command
 Effect can retain that exact Environment only with the same original

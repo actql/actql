@@ -198,7 +198,7 @@ pub fn installed_standard_driver_recipe_capacities(
   metadata_units : Int64,
 ) -> Result[Array[@execution.ExecutionCapacity], ClientInstalledManagedRunIssue] {
   guard capture_original is Some(capture) &&
-    capture.length() == 2 &&
+    (capture.length() == 2 || capture.length() == 3) &&
     check_request_bytes == 0 &&
     check_response_bytes == 0 &&
     !before_send else {
@@ -375,7 +375,7 @@ fn installed_standard_recipe_capacities(
   let (capture_fixed, capture_rows) = match capture_original {
     None => (capture_fixed, capture_rows)
     Some(capture) => {
-      guard capture.length() == 2 &&
+      guard (capture.length() == 2 || capture.length() == 3) &&
         @execution.add_execution_capacity(capture_fixed, capture[0])
         is Some(fixed) &&
         @execution.add_execution_capacity(capture_rows, capture[1])
@@ -407,6 +407,9 @@ fn installed_standard_recipe_capacities(
       return Err(Unsupported)
     }
     capacities.push(read_body)
+  }
+  if capture_original is Some(capture) {
+    capacities.push(if capture.length() == 3 { capture[2] } else { empty })
   }
   Ok(capacities)
 }

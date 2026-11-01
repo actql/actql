@@ -3844,7 +3844,7 @@
   {
     "module": "src/connectors/sheets/catalog/range_request.mbt",
     "responsibilityFacet": "primary",
-    "sha256": "c63984e7ec62654630e8e1522ed6e1f62250dc5252821e933415b85198d745ad",
+    "sha256": "188b42fed214959f1a1576862f2029892f4c1e4d65d61ce7ca29f5ab41651871",
     "operations": [
       {
         "name": "admit_range_binding",
@@ -5945,7 +5945,7 @@
   },
   {
     "module": "src/connectors/sheets/catalog/clear.mbt",
-    "sha256": "01692a46dee453d00ccebc892af306e927b927e2f5418c7771fd98742ee1df92",
+    "sha256": "7df46195d9818665cd71667316fb3e6fd64d408a098dcc23e8824b9b9f8a0415",
     "exports": [],
     "operations": [
       {
@@ -5955,6 +5955,10 @@
       {
         "name": "classify_clear",
         "declaration": "classify_clear ( status : Int , body : Bytes , spreadsheet_id : String , range : GridRange , marker : String , limits : Limits , ) - > AppendOutcome"
+      },
+      {
+        "name": "clear_marker_text_units",
+        "declaration": "clear_marker_text_units ( ) - > Int"
       },
       {
         "name": "clear_marker_value",
@@ -6078,6 +6082,74 @@
             {
               "path": "adapters/connectors/sheets/test/sheets-public-acceptance.fixture.mjs",
               "anchor": "Sheets clear Command retains original requests"
+            }
+          ]
+        }
+      },
+      {
+        "operations": [
+          "clear_marker_text_units"
+        ],
+        "exports": [],
+        "attributes": {
+          "responsibility": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "A native driver capture recipe retains its fixed and per-row constructor"
+            }
+          ],
+          "inputsOutputs": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "A native driver capture recipe retains its fixed and per-row constructor"
+            }
+          ],
+          "identity": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "A native driver capture recipe retains its fixed and per-row constructor"
+            }
+          ],
+          "ownership": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "A native driver capture recipe retains its fixed and per-row constructor"
+            }
+          ],
+          "synchronization": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "A native driver capture recipe retains its fixed and per-row constructor"
+            }
+          ],
+          "failure": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "A native driver capture recipe retains its fixed and per-row constructor"
+            }
+          ],
+          "cancellation": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "A native driver capture recipe retains its fixed and per-row constructor"
+            }
+          ],
+          "resources": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "A native driver capture recipe retains its fixed and per-row constructor"
+            }
+          ],
+          "extension": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "A native driver capture recipe retains its fixed and per-row constructor"
+            }
+          ],
+          "verification": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "A native driver capture recipe retains its fixed and per-row constructor"
             }
           ]
         }
@@ -7429,7 +7501,7 @@
   {
     "module": "src/connectors/sheets/host_node/range_construction.mbt",
     "responsibilityFacet": "primary",
-    "sha256": "2c7aad2d0a921357cc15dc13eb0ee6401dac2af017b553d048b695717a6e6200",
+    "sha256": "2b698f3e3f88d590e918119d936f87d0c1ecf51ee26e3f3a577571788993a48e",
     "operations": [
       {
         "name": "sheets_clear_ack_marker_construction",
@@ -7472,6 +7544,10 @@
         "declaration": "sheets_range_construction_profile ( binding : @ catalog . RangeBinding , input_bytes : Int , input_nodes : Int , input_depth : Int , response_bytes : Int , response_nodes : Int , response_depth : Int , ) - > Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ?"
       },
       {
+        "name": "sheets_range_effect_id_capacity",
+        "declaration": "sheets_range_effect_id_capacity ( ) - > @ execution . ExecutionCapacity ?"
+      },
+      {
         "name": "sheets_range_installation_construction_capacity",
         "declaration": "sheets_range_installation_construction_capacity ( configuration_bytes : Int , columns : Int , origin_bytes : Int , spreadsheet_bytes : Int , ) - > @ execution . ExecutionCapacity ?"
       },
@@ -7486,6 +7562,10 @@
       {
         "name": "sheets_range_parsed_construction",
         "declaration": "sheets_range_parsed_construction ( bytes : Int , nodes : Int , depth : Int , ) - > @ execution . PreparationRepresentationUnits ?"
+      },
+      {
+        "name": "sheets_range_recovery_metadata_text_units",
+        "declaration": "sheets_range_recovery_metadata_text_units ( metadata : @ catalog . RangeConstructionMetadata , clear : Bool , ) - > Int64 ?"
       },
       {
         "name": "sheets_range_request_capacity",
@@ -7583,6 +7663,75 @@
             {
               "path": "src/connectors/sheets/host_node/declaration_construction_wbtest.mbt",
               "anchor": "test \"range and clear driver profiles retain original binding constructor and independent capture peaks\""
+            }
+          ]
+        }
+      },
+      {
+        "operations": [
+          "sheets_range_effect_id_capacity",
+          "sheets_range_recovery_metadata_text_units"
+        ],
+        "exports": [],
+        "attributes": {
+          "responsibility": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "A native driver capture recipe retains its fixed and per-row constructor"
+            }
+          ],
+          "inputsOutputs": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "A native driver capture recipe retains its fixed and per-row constructor"
+            }
+          ],
+          "identity": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "A native driver capture recipe retains its fixed and per-row constructor"
+            }
+          ],
+          "ownership": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "A native driver capture recipe retains its fixed and per-row constructor"
+            }
+          ],
+          "synchronization": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "A native driver capture recipe retains its fixed and per-row constructor"
+            }
+          ],
+          "failure": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "A native driver capture recipe retains its fixed and per-row constructor"
+            }
+          ],
+          "cancellation": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "A native driver capture recipe retains its fixed and per-row constructor"
+            }
+          ],
+          "resources": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "A native driver capture recipe retains its fixed and per-row constructor"
+            }
+          ],
+          "extension": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "A native driver capture recipe retains its fixed and per-row constructor"
+            }
+          ],
+          "verification": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "A native driver capture recipe retains its fixed and per-row constructor"
             }
           ]
         }

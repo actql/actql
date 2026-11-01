@@ -11,6 +11,8 @@ struct ClientInstalledEffectOperationExtent {
   // Pure capture templates are resolved once from the SAME completed Plan.
   // This multiplicity is storage DATA, never an occurrence/authority flag.
   checked_row_capacity : @execution.ExecutionCapacity?
+  // Resolved once from the SAME checked effect_id, never a caller name amount.
+  checked_effect_id_capacity : @execution.ExecutionCapacity?
 }
 
 ///|
@@ -34,6 +36,7 @@ pub fn prepare_installed_effect_operation_extent(
     transfer_bytes,
     physical_attempt,
     checked_row_capacity: None,
+    checked_effect_id_capacity: None,
   })
 }
 
@@ -59,7 +62,59 @@ pub fn prepare_installed_effect_capture_extent(
     transfer_bytes: 0L,
     physical_attempt: false,
     checked_row_capacity: Some(capacity_per_checked_row),
+    checked_effect_id_capacity: None,
   })
+}
+
+///|
+// The recipe Owner returns fixed/per-row/.../effect-id quantities together.
+// This is immutable constructor DATA; no resource, row, attempt or transfer
+// grant is issued. The original checked descriptor resolves the final term.
+pub fn prepare_installed_effect_capture_recipe_extent(
+  operation : String,
+  recipe : Array[@execution.ExecutionCapacity],
+) -> Result[
+  ClientInstalledEffectOperationExtent,
+  ClientInstalledManagedRunIssue,
+] {
+  if recipe.length() != 6 {
+    return Err(Unsupported)
+  }
+  prepare_installed_effect_capture_extent(operation, recipe[0], recipe[1]).map(original => {
+    ..original,
+    checked_effect_id_capacity: Some(recipe[5]),
+  })
+}
+
+///|
+fn resolve_installed_effect_id_extent(
+  original : ClientInstalledEffectOperationExtent,
+  effect_id : String,
+) -> ClientInstalledEffectOperationExtent? {
+  guard original.checked_effect_id_capacity is Some(rate) else {
+    return Some(original)
+  }
+  if original.physical_attempt || original.transfer_bytes != 0L {
+    return None
+  }
+  guard @execution.execution_capacity_inventory_add(
+      @execution.execution_capacity_retained_bytes(original.capacity),
+      QuotedBytes,
+      @execution.execution_capacity_retained_bytes(rate),
+      effect_id.length(),
+    )
+    is Some(retained) &&
+    @execution.execution_capacity_inventory_add(
+      @execution.execution_capacity_execution_bytes(original.capacity),
+      QuotedBytes,
+      @execution.execution_capacity_execution_bytes(rate),
+      effect_id.length(),
+    )
+    is Some(execution) &&
+    @execution.execution_capacity(retained, execution) is Some(capacity) else {
+    return None
+  }
+  Some({ ..original, capacity, checked_effect_id_capacity: None, })
 }
 
 ///|
@@ -130,7 +185,10 @@ pub fn prepare_installed_effect_operation_demand(
   }
   // A capture template co-funds one enclosing member. A row slot would apply
   // checked multiplicity twice, and cannot carry this member-only recipe.
-  if row_extents.any(extent => extent.checked_row_capacity is Some(_)) {
+  if row_extents.any(extent => {
+      extent.checked_row_capacity is Some(_) ||
+      extent.checked_effect_id_capacity is Some(_)
+    }) {
     return Err(Unsupported)
   }
   let descriptor = match
@@ -140,12 +198,20 @@ pub fn prepare_installed_effect_operation_demand(
     Err(_) => return Err(ForeignOriginal)
     Ok(value) => value
   }
+  let resolved_members = []
+  for original in member_extents {
+    guard resolve_installed_effect_id_extent(original, effect_id)
+      is Some(resolved) else {
+      return Err(Unsupported)
+    }
+    resolved_members.push(resolved)
+  }
   Ok({
     prepared,
     member_index: descriptor.0,
     stage_index,
     effect_id,
-    member_extents: member_extents.copy(),
+    member_extents: resolved_members,
     row_extents: row_extents.copy(),
     controls_per_row: None,
   })

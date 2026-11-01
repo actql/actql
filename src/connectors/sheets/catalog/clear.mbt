@@ -1,8 +1,14 @@
 // Clear is an explicit operation, never a partial overwrite or inferred NULL.
 
 ///|
+// Original UUID spelling bound, shared by validation and construction DATA.
+pub fn clear_marker_text_units() -> Int {
+  36
+}
+
+///|
 fn check_clear_marker(marker : String) -> Bool {
-  if marker.length() != 36 {
+  if marker.length() != clear_marker_text_units() {
     return false
   }
   for index = 0; index < marker.length(); index = index + 1 {

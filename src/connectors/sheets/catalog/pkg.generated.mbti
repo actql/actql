@@ -28,6 +28,8 @@ pub fn classify_clear(Int, Bytes, String, GridRange, String, Limits) -> AppendOu
 
 pub fn clear_command_json(String, String, String, Limits) -> Result[String, RangeFailure]
 
+pub fn clear_marker_text_units() -> Int
+
 pub fn clear_range_construction_metadata(ClearRangeBinding) -> RangeConstructionMetadata
 
 pub fn clear_range_recovery_entry(ClearRangeBinding, String, Array[ClearRangeRequest]) -> Result[String, RangeFailure]
@@ -197,6 +199,7 @@ pub(all) struct RangeConstructionMetadata {
   rows : Int
   name_units : Int64
   schema_bytes : Int64
+  identity_units : Int64
   origin_units : Int
   spreadsheet_units : Int
   target_units : Int

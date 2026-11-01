@@ -475,6 +475,93 @@ fn sheets_range_capture_normalization_inputs(
 }
 
 ///|
+// Metadata text already admitted by this SAME binding. Clear validates all
+// 36-ASCII markers and canonical(expected)==wire BEFORE normalizing expected;
+// unrelated fields in a supplied recovery tree never reach that NFC call.
+// effect_id alone is supplied later by the SAME checked member template.
+fn sheets_range_recovery_metadata_text_units(
+  metadata : @catalog.RangeConstructionMetadata,
+  clear : Bool,
+) -> Int64? {
+  guard @execution.checked_preparation_add_product(
+      1024L,
+      metadata.schema_bytes,
+      1L,
+    )
+    is Some(total) &&
+    @execution.checked_preparation_add_product(
+      total,
+      metadata.identity_units,
+      1L,
+    )
+    is Some(total) &&
+    @execution.checked_preparation_add_product(
+      total,
+      metadata.target_units.to_int64(),
+      3L,
+    )
+    is Some(total) &&
+    @execution.checked_preparation_add_product(
+      total,
+      metadata.origin_units.to_int64(),
+      1L,
+    )
+    is Some(total) &&
+    @execution.checked_preparation_add_product(
+      total,
+      metadata.spreadsheet_units.to_int64(),
+      1L,
+    )
+    is Some(total) else {
+    return None
+  }
+  if clear {
+    @execution.checked_preparation_add_product(
+      total,
+      metadata.limits.max_cells.to_int64(),
+      @catalog.clear_marker_text_units().to_int64(),
+    )
+  } else {
+    Some(total)
+  }
+}
+
+///|
+// Affine growth from the SAME Unicode Owner, not another byte tariff or cap.
+// Header/ref/fixed controls cancel; the maximum per-unit coordinate bounds
+// both normalization scratch and the separately retained normalized text.
+fn sheets_range_effect_id_capacity() -> @execution.ExecutionCapacity? {
+  guard @canonical.nfc_lf_construction_extent(0) is Some(zero) &&
+    @canonical.nfc_lf_construction_extent(1) is Some(one) else {
+    return None
+  }
+  let none : @execution.PreparationRepresentationUnits = {
+    record_headers: 0L,
+    reference_slots: 0L,
+    scalar_words: 0L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }
+  @execution.preparation_execution_capacity({
+    retained: none,
+    workspace: {
+      record_headers: one.record_headers - zero.record_headers,
+      reference_slots: one.reference_slots - zero.reference_slots,
+      scalar_words: one.scalar_words - zero.scalar_words,
+      owned_utf16_units: Int64::max(
+        one.owned_utf16_units - zero.owned_utf16_units,
+        one.max_output_utf16_units - zero.max_output_utf16_units,
+      ),
+      owned_wire_bytes: 0L,
+    },
+    retained_nodes: 0L,
+    workspace_nodes: 0L,
+    retained_bytes: 0L,
+    workspace_bytes: 0L,
+  })
+}
+
+///|
 fn sheets_range_capture_profile(
   metadata : @catalog.RangeConstructionMetadata,
   capture_bytes : Int,
@@ -513,9 +600,22 @@ fn sheets_range_capture_profile(
   let b = Int::min(wire.to_int(), recovery_bytes)
   let n = Int::min(nodes.to_int(), recovery_nodes)
   let binding_bytes = Int::min(wire.to_int(), metadata.limits.max_bytes)
-  let (fresh_normalization_bytes, entry_bytes) = sheets_range_capture_normalization_inputs(
+  let (_, entry_bytes) = sheets_range_capture_normalization_inputs(
     binding_bytes, b, clear,
   )
+  guard sheets_range_recovery_metadata_text_units(metadata, clear)
+    is Some(metadata_text_units) else {
+    return None
+  }
+  let fresh_normalization_bytes = Int64::min(
+    binding_bytes.to_int64(),
+    metadata_text_units,
+  ).to_int()
+  let cold_normalization_bytes = if clear {
+    Int64::min(entry_bytes.to_int64(), metadata_text_units).to_int()
+  } else {
+    entry_bytes
+  }
   let entry_nodes = Int::min(n, entry_bytes)
   // Fresh metadata has no Preview values: columns, fixed coordinates, the
   // immutable target and (clear only) the already bounded marker vector.
@@ -544,8 +644,10 @@ fn sheets_range_capture_profile(
     sheets_range_canonical_construction(entry_nodes, recovery_depth)
     is Some(canonical) &&
     sheets_writer_units(recovery_bytes, n, recovery_depth) is Some(writer) &&
-    sheets_range_normalization_construction(entry_bytes) is Some(normalization) &&
-    @canonical.nfc_lf_construction_extent(entry_bytes) is Some(normalized_text) &&
+    sheets_range_normalization_construction(cold_normalization_bytes)
+    is Some(normalization) &&
+    @canonical.nfc_lf_construction_extent(cold_normalization_bytes)
+    is Some(normalized_text) &&
     sheets_range_parsed_construction(
       binding_bytes,
       metadata_nodes,
@@ -599,7 +701,16 @@ fn sheets_range_capture_profile(
     owned_utf16_units: 2L * wire,
     owned_wire_bytes: 2L * wire,
   }
-  let normalized = { ..entry, owned_utf16_units: 0L, }
+  // Clear normalizes the reconstructed, original-binding metadata only after
+  // marker validation and canonical equality. Keep the arbitrary parsed entry
+  // alive separately; it is not the tree passed to NFC/from_json.
+  let normalization_input = if clear { metadata_native } else { entry }
+  let normalized = { ..normalization_input, owned_utf16_units: 0L, }
+  let normalization_canonical = if clear {
+    metadata_canonical
+  } else {
+    canonical
+  }
   let metadata_normalized = { ..metadata_native, owned_utf16_units: 0L, }
   guard @execution.compose_preparation_representation([
       inputs, input, native, native,
@@ -610,7 +721,17 @@ fn sheets_range_capture_profile(
     ])
     is Some(entry_peak) &&
     @execution.compose_preparation_representation([
-      inputs, native, native, entry, normalized, normalization,
+      inputs,
+      native,
+      native,
+      entry,
+      if clear {
+        metadata_native
+      } else {
+        zero
+      },
+      normalized,
+      normalization,
     ])
     is Some(normalize_peak) &&
     @execution.compose_preparation_representation([
@@ -618,12 +739,21 @@ fn sheets_range_capture_profile(
       native,
       native,
       entry,
+      if clear {
+        metadata_native
+      } else {
+        zero
+      },
       normalized,
-      canonical,
+      normalization_canonical,
       writer,
       { ..zero, owned_utf16_units: normalized_text.max_output_utf16_units, },
     ])
     is Some(canonical_peak) &&
+    @execution.compose_preparation_representation([
+      inputs, native, native, entry, metadata_input, metadata_native,
+    ])
+    is Some(expected_peak) &&
     @execution.compose_preparation_representation([
       inputs, metadata_input, metadata_native,
     ])
@@ -642,8 +772,18 @@ fn sheets_range_capture_profile(
     ])
     is Some(metadata_canonical_peak) &&
     sheets_range_capture_phase_capacity(retained, [
-      parse_peak, entry_peak, normalize_peak, canonical_peak, metadata_parse_peak,
-      metadata_normalize_peak, metadata_canonical_peak,
+      parse_peak,
+      entry_peak,
+      normalize_peak,
+      canonical_peak,
+      if clear {
+        expected_peak
+      } else {
+        zero
+      },
+      metadata_parse_peak,
+      metadata_normalize_peak,
+      metadata_canonical_peak,
     ])
     is Some(fixed) &&
     sheets_range_request_capacity(
@@ -667,7 +807,10 @@ fn sheets_range_capture_profile(
     @execution.add_execution_capacity(row, row_slots) is Some(row) else {
     return None
   }
-  Some([fixed, row])
+  guard sheets_range_effect_id_capacity() is Some(effect_id) else {
+    return None
+  }
+  Some([fixed, row, effect_id])
 }
 
 ///|

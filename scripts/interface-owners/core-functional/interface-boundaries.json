@@ -42222,7 +42222,7 @@
     },
     {
       "module": "src/client_local_host/installed_effect_operation_demand.mbt",
-      "sha256": "7eb26218477dbfde074eab09aa6d9175f3e603b6219bc1af9903a734e70c6b74",
+      "sha256": "f248cc01e2b292d3d96f2d7eb4e3cc111b201fc3871c6991a4e809d4d8dff06c",
       "exports": [],
       "operations": [
         {
@@ -42256,6 +42256,10 @@
         {
           "name": "prepare_installed_effect_capture_extent",
           "declaration": "prepare_installed_effect_capture_extent ( operation : String , fixed_capacity : @ execution . ExecutionCapacity , capacity_per_checked_row : @ execution . ExecutionCapacity , ) - > Result [ ClientInstalledEffectOperationExtent , ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "prepare_installed_effect_capture_recipe_extent",
+          "declaration": "prepare_installed_effect_capture_recipe_extent ( operation : String , recipe : Array [ @ execution . ExecutionCapacity ] , ) - > Result [ ClientInstalledEffectOperationExtent , ClientInstalledManagedRunIssue , ]"
         },
         {
           "name": "prepare_installed_effect_managed_plan",
@@ -42296,6 +42300,10 @@
         {
           "name": "resolve_installed_effect_capture_extent",
           "declaration": "resolve_installed_effect_capture_extent ( original : ClientInstalledEffectOperationExtent , rows : Int , ) - > ClientInstalledEffectOperationExtent ?"
+        },
+        {
+          "name": "resolve_installed_effect_id_extent",
+          "declaration": "resolve_installed_effect_id_extent ( original : ClientInstalledEffectOperationExtent , effect_id : String , ) - > ClientInstalledEffectOperationExtent ?"
         }
       ],
       "responsibilityFacet": "primary",
@@ -42462,6 +42470,75 @@
               {
                 "path": "src/lowering_relation/cross_join_test.mbt",
                 "anchor": "test \"cross join independent bound comes only from its original literal guard\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "prepare_installed_effect_capture_recipe_extent",
+            "resolve_installed_effect_id_extent"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A native driver capture recipe retains its fixed and per-row constructor"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A native driver capture recipe retains its fixed and per-row constructor"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A native driver capture recipe retains its fixed and per-row constructor"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A native driver capture recipe retains its fixed and per-row constructor"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A native driver capture recipe retains its fixed and per-row constructor"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A native driver capture recipe retains its fixed and per-row constructor"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A native driver capture recipe retains its fixed and per-row constructor"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A native driver capture recipe retains its fixed and per-row constructor"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A native driver capture recipe retains its fixed and per-row constructor"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A native driver capture recipe retains its fixed and per-row constructor"
               }
             ]
           }
@@ -55917,7 +55994,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_installed_effect_plan_bridge.mbt",
-      "sha256": "447e38983cd93b309e2b74389bd6bf6f805cf76f4db02e3514e07c348eba4621",
+      "sha256": "538ba6d163f501e28063efc416a4b915afb5b3bee0f39e67c60f7f4a2b347aab",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing checked Program, typed sequence and original Request/Plan preparation owners",
@@ -55927,6 +56004,10 @@
         {
           "name": "client_program_installed_effect_capture_extent_prepare",
           "declaration": "client_program_installed_effect_capture_extent_prepare ( operation : String , fixed_capacity : @ execution . ExecutionCapacity , capacity_per_checked_row : @ execution . ExecutionCapacity , ) - > Result [ @ client_local_host . ClientInstalledEffectOperationExtent , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_installed_effect_capture_recipe_extent_prepare",
+          "declaration": "client_program_installed_effect_capture_recipe_extent_prepare ( operation : String , recipe : Array [ @ execution . ExecutionCapacity ] , ) - > Result [ @ client_local_host . ClientInstalledEffectOperationExtent , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
           "name": "client_program_installed_effect_managed_host_open",
@@ -56065,7 +56146,7 @@
             "failure": [
               {
                 "path": "src/client_local_host/installed_effect_operation_demand.mbt",
-                "anchor": "if row_extents.any(extent => extent.checked_row_capacity is Some(_)) {"
+                "anchor": "// A capture template co-funds one enclosing member."
               }
             ],
             "cancellation": [
@@ -56093,12 +56174,80 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "client_program_installed_effect_capture_recipe_extent_prepare"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A native driver capture recipe retains its fixed and per-row constructor"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A native driver capture recipe retains its fixed and per-row constructor"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A native driver capture recipe retains its fixed and per-row constructor"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A native driver capture recipe retains its fixed and per-row constructor"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A native driver capture recipe retains its fixed and per-row constructor"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A native driver capture recipe retains its fixed and per-row constructor"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A native driver capture recipe retains its fixed and per-row constructor"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A native driver capture recipe retains its fixed and per-row constructor"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A native driver capture recipe retains its fixed and per-row constructor"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A native driver capture recipe retains its fixed and per-row constructor"
+              }
+            ]
+          }
         }
       ]
     },
     {
       "module": "src/client_local_host/installed_standard_create_recipe.mbt",
-      "sha256": "5ca5235a2fa5cb45151d1cfa6aada82076b2b6b7705c368b33383119cea27dc5",
+      "sha256": "a8bc0a837a03ef76a3e28b8e19c299fbd46c8eaacb189f5aca36009958c58f8f",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "D — original Kintone native protocol constructors and same Request Effect composition",

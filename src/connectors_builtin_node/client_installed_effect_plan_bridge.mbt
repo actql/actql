@@ -145,6 +145,20 @@ pub fn client_program_installed_effect_capture_extent_prepare(
 }
 
 ///|
+#export_name("clientProgramInstalledEffectCaptureRecipeExtentPrepare")
+pub fn client_program_installed_effect_capture_recipe_extent_prepare(
+  operation : String,
+  recipe : Array[@execution.ExecutionCapacity],
+) -> Result[
+  @client_local_host.ClientInstalledEffectOperationExtent,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.prepare_installed_effect_capture_recipe_extent(
+    operation, recipe,
+  )
+}
+
+///|
 #export_name("clientProgramInstalledEffectOperationDemandPrepare")
 pub fn client_program_installed_effect_operation_demand_prepare(
   prepared : @publication_host.PreparedClientEffectComputation,

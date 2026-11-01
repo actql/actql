@@ -1319,3 +1319,60 @@ test "preserving Effect request keeps the exact original native capacity and inv
     )
   }
 }
+
+///|
+test "capture name capacity resolves once from the same checked effect member before row multiplicity" {
+  let (prepared, _, _) = effect_operation_plan_inputs()
+  let zero = @execution.execution_capacity(0L, 0L).unwrap()
+  let fixed = @execution.execution_capacity(50L, 70L).unwrap()
+  let row = @execution.execution_capacity(7L, 11L).unwrap()
+  let rate = @execution.execution_capacity(3L, 5L).unwrap()
+  let template = prepare_installed_effect_capture_recipe_extent("operation", [
+    fixed, row, zero, zero, zero, rate,
+  ]).unwrap()
+  let demand = prepare_installed_effect_operation_demand(
+    prepared,
+    0,
+    "save",
+    [template],
+    [],
+  ).unwrap()
+  let resolved = demand.member_extents[0]
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(resolved.capacity),
+    62L,
+  )
+  assert_eq(
+    @execution.execution_capacity_execution_bytes(resolved.capacity),
+    90L,
+  )
+  assert_true(resolved.checked_effect_id_capacity is None)
+  assert_true(resolved.checked_row_capacity is Some(_))
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(template.capacity),
+    50L,
+  )
+  assert_true(template.checked_effect_id_capacity is Some(_))
+  let twice = resolve_installed_effect_capture_extent(resolved, 2).unwrap()
+  assert_eq(@execution.execution_capacity_retained_bytes(twice.capacity), 76L)
+  assert_eq(@execution.execution_capacity_execution_bytes(twice.capacity), 112L)
+  assert_true(
+    prepare_installed_effect_operation_demand(prepared, 0, "xxxx", [template], [])
+    is Err(ForeignOriginal),
+  )
+  let name_only = { ..template, checked_row_capacity: None, }
+  assert_true(
+    prepare_installed_effect_operation_demand(prepared, 0, "save", [], [
+      name_only,
+    ])
+    is Err(Unsupported),
+  )
+  let enormous = @execution.execution_capacity(0L, 9223372036854775807L).unwrap()
+  let overflow = prepare_installed_effect_capture_recipe_extent("operation", [
+    fixed, row, zero, zero, zero, enormous,
+  ]).unwrap()
+  assert_true(
+    prepare_installed_effect_operation_demand(prepared, 0, "save", [overflow], [])
+    is Err(Unsupported),
+  )
+}

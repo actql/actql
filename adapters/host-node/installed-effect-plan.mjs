@@ -67,7 +67,8 @@ export function prepareInstalledStandardCreatePlanRecipe({moon, providerMoon, co
   const capacitiesFor = originalMethod(moon, captureProfile === undefined
     ? 'clientProgramInstalledStandardCreateRecipeCapacities' : 'clientProgramInstalledStandardDriverRecipeCapacities');
   const extentFor = originalMethod(moon, 'clientProgramInstalledEffectOperationExtentFromCapacityPrepare');
-  const captureFor = originalMethod(moon, 'clientProgramInstalledEffectCaptureExtentPrepare');
+  const captureFor = originalMethod(moon, captureProfile === undefined
+    ? 'clientProgramInstalledEffectCaptureExtentPrepare' : 'clientProgramInstalledEffectCaptureRecipeExtentPrepare');
   const {write, check} = construction;
   const secret = credentialSite.construction;
   if (![write.maxRequestBytes,write.maxResponseBytes,limits.maxWireBytes,limits.maxNodes,limits.maxDepth,
@@ -89,11 +90,12 @@ export function prepareInstalledStandardCreatePlanRecipe({moon, providerMoon, co
     check?.beforeSend === true, secret.limits.maxSecretBytes, httpsCredentialAuthorizationPrefix.length,
     httpsCredentialResponseHeaderByteLimit, effectLedgerImplementationBounds.maxResponseBytes,
     effectLedgerImplementationBounds.maxNodes, effectLedgerImplementationBounds.maxDepth, units));
-  if (!Array.isArray(capacities) || capacities.length !== (check === undefined ? 5 : 6)) {
+  if (!Array.isArray(capacities) || capacities.length !== (check === undefined ? 5 : 6) + (captureProfile === undefined ? 0 : 1)) {
     fail('InstalledStandardCreateConstructionUnavailable');
   }
   const memberOperations = [Object.freeze({operation:write.operation,
-    extent:checked(captureFor(write.operation,capacities[0],capacities[1]))})];
+    extent:checked(captureProfile === undefined ? captureFor(write.operation,capacities[0],capacities[1])
+      : captureFor(write.operation,capacities))})];
   const rowOperations = [Object.freeze({operation:write.operation,
     extent:checked(extentFor(write.operation,capacities[2],0n,false))})];
   const credentialOperations = [];

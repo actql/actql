@@ -168,6 +168,7 @@ pub(all) struct RangeConstructionMetadata {
   rows : Int
   name_units : Int64
   schema_bytes : Int64
+  identity_units : Int64
   origin_units : Int
   spreadsheet_units : Int
   target_units : Int
@@ -199,6 +200,8 @@ pub fn range_construction_metadata(
       1L
     ) +
     6L * name_units,
+    identity_units: binding.command_cid.length().to_int64() +
+    binding.binding_cid.length().to_int64(),
     origin_units: binding.origin.length(),
     spreadsheet_units: binding.spreadsheet_id.length(),
     target_units: binding.target_wire.length(),

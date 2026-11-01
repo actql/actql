@@ -98,7 +98,7 @@ test "range and clear driver profiles retain original binding constructor and in
   ]
   for index in 0..<2 {
     assert_eq(profiles[index].length(), 2)
-    assert_eq(captures[index].length(), 2)
+    assert_eq(captures[index].length(), 3)
     assert_true(profiles[index][0].1 is None)
     assert_true(profiles[index][0].2 is Some(_))
     assert_true(
@@ -236,6 +236,7 @@ test "two original range request constructors do not reserve a nonexistent paylo
     rows: 2,
     name_units: 14L,
     schema_bytes: 147L,
+    identity_units: 142L,
     origin_units: 32,
     spreadsheet_units: 4,
     target_units: 500,
@@ -279,6 +280,7 @@ test "range recovery does not normalize the whole encoded Preview forest" {
     rows: 2,
     name_units: 14L,
     schema_bytes: 147L,
+    identity_units: 142L,
     origin_units: 32,
     spreadsheet_units: 4,
     target_units: 500,
@@ -328,6 +330,7 @@ fn recovery_guard_test_metadata(
     rows: 2,
     name_units: 14L,
     schema_bytes: 147L,
+    identity_units: 142L,
     origin_units: 32,
     spreadsheet_units: 4,
     target_units: 500,
@@ -484,5 +487,29 @@ test "range capture keeps sequential parser and writer peaks out of its returned
     @client_host.client_local_resource_policy(),
   ).unwrap()
   // A necessary native member slice, not the complete Compute/HTTP/Store Plan.
+  assert_true(execution <= original.execution_bytes, msg=execution.to_string())
+}
+
+///|
+test "clear capture normalization follows closed original metadata rather than unrelated incoming values" {
+  let selected = sheets_range_capture_profile(
+      recovery_guard_test_metadata(300000),
+      1000000,
+      100000,
+      64,
+      100000,
+      10000,
+      16,
+      2000000,
+      200000,
+      32,
+      true,
+    ).unwrap()[0]
+  let original = @client_host.client_local_preparation_initial_limits(
+    @client_host.client_local_resource_policy(),
+  ).unwrap()
+  let execution = @execution.execution_capacity_execution_bytes(selected)
+  println("CLEAR_CAPTURE_BASE execution=\{execution}")
+  // Necessary native member slice; no full Plan/ordinary acceptance implied.
   assert_true(execution <= original.execution_bytes, msg=execution.to_string())
 }

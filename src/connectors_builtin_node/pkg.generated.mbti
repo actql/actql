@@ -1524,6 +1524,8 @@ pub fn client_program_installed_duckdb_capture_capacity(@actql/actql/connectors/
 
 pub fn client_program_installed_effect_capture_extent_prepare(String, @execution_relation.ExecutionCapacity, @execution_relation.ExecutionCapacity) -> Result[@client_local_host.ClientInstalledEffectOperationExtent, @client_local_host.ClientInstalledManagedRunIssue]
 
+pub fn client_program_installed_effect_capture_recipe_extent_prepare(String, Array[@execution_relation.ExecutionCapacity]) -> Result[@client_local_host.ClientInstalledEffectOperationExtent, @client_local_host.ClientInstalledManagedRunIssue]
+
 pub fn client_program_installed_effect_http_response_construction_capacity(Int, Int) -> @execution_relation.ExecutionCapacity?
 
 pub fn client_program_installed_effect_managed_host_open(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectRun, Array[@execution_query.CapturedInputSource]) -> Result[ClientLocalEffectHost?, @client_local_host.ClientInstalledManagedRunIssue]

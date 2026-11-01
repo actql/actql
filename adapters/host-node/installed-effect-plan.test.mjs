@@ -518,7 +518,7 @@ test('atomic borrow reentry keeps the returned original child before the constru
 
 
 test('automatic Command recipe forwards opaque native capture originals and separate checked input bounds once',()=>{
-  const profile={},capture={},capacities=Array.from({length:5},()=>Object.freeze({})),calls=[];
+  const profile={},capture={},capacities=Array.from({length:6},()=>Object.freeze({})),calls=[];
   const providerMoon={installedStandardCreateConstructionProfile(...args){assert.equal(this,providerMoon);
     assert.deepEqual(args,[128,16,4]);calls.push('request');return profile;},
     installedStandardDriverCaptureConstructionCapacity(...args){assert.equal(this,providerMoon);
@@ -528,7 +528,8 @@ test('automatic Command recipe forwards opaque native capture originals and sepa
     assert.equal(args[0],profile);assert.equal(args[1],capture);assert.deepEqual(args.slice(2,10),[1024,64,8,256,64,0,0,false]);
     calls.push('fold');return {$tag:1,_0:capacities};},
     clientProgramInstalledStandardCreateRecipeCapacities(){assert.fail('No old fold dropping native capture');},
-    clientProgramInstalledEffectCaptureExtentPrepare(operation,fixed,row){assert.deepEqual([operation,fixed,row],['write',capacities[0],capacities[1]]);return {$tag:1,_0:{}};},
+    clientProgramInstalledEffectCaptureRecipeExtentPrepare(operation,original){assert.equal(this,moon);assert.equal(operation,'write');assert.strictEqual(original,capacities);return {$tag:1,_0:{}};},
+    clientProgramInstalledEffectCaptureExtentPrepare(){assert.fail('Do not drop original checked-name term');},
     clientProgramInstalledEffectOperationExtentFromCapacityPrepare(operation,capacity,transfer,physical){return {$tag:1,_0:{operation,capacity,transfer,physical}};}};
   const recipe=prepareInstalledStandardCreatePlanRecipe({moon,providerMoon,construction,
     credentialSite:{construction:{scope:{},issuer:{},limits:{maxSecretBytes:17}}},

@@ -299,7 +299,7 @@ test "Command recipe adds SAME native capture fixed and row quantities once with
     4,
     0L,
   ).unwrap()
-  for index in 0..<selected.length() {
+  for index in 0..<base.length() {
     let extra = if index == 0 { fixed } else if index == 1 { row } else { zero }
     assert_eq(
       @execution.execution_capacity_retained_bytes(selected[index]),
@@ -312,7 +312,29 @@ test "Command recipe adds SAME native capture fixed and row quantities once with
       @execution.execution_capacity_execution_bytes(extra),
     )
   }
-  for invalid in [None, Some([]), Some([fixed]), Some([fixed, row, fixed])] {
+  assert_eq(selected.length(), base.length() + 1)
+  assert_eq(@execution.execution_capacity_execution_bytes(selected[5]), 0L)
+  let with_name = installed_standard_driver_recipe_capacities(
+    original,
+    Some([fixed, row, fixed]),
+    256,
+    16,
+    4,
+    64,
+    32,
+    0,
+    0,
+    false,
+    16,
+    7,
+    32,
+    256,
+    64,
+    4,
+    0L,
+  ).unwrap()
+  assert_true(physical_equal(with_name[5], fixed))
+  for invalid in [None, Some([]), Some([fixed]), Some([fixed, row, fixed, row])] {
     assert_true(
       installed_standard_driver_recipe_capacities(
         original, invalid, 256, 16, 4, 64, 32, 0, 0, false, 16, 7, 32, 256, 64, 4,
