@@ -1981,29 +1981,11 @@ remain with their existing owners.
 
 ## Original saved-journal physical port
 
-Private ABI85 adds one exact-publication-fence query mode to the existing
-Journal request transport. It carries at most 32 original key/revision/body
-triples in the existing 4096-byte field and 8192-byte total request bounds.
-Only the closed `publication_contract` namespace is selected. The stdlib
-adapter binds every value into one fixed-shape SQLite statement and compares
-all actual keys, integer revisions and exact BLOB bytes in the same original
-read transaction. It returns equality DATA only; no row equality, Account
-Allow or successful current check is retained for another use.
-
-The same reader checks current, metadata and main/TEMP schema before I/O and
-before returning that DATA. Work and copy ceilings count every selected row
-and byte, not SQL statement count. The packet uses the already reserved query
-and row-transfer holding; it returns no row BLOB and adds no capacity or Owner.
-The arbitrary-consumer path and all write/CAS/precommit paths remain separate.
-Unknown, malformed, failed or mismatched observations cannot become success.
-
-An independent physical adapter can report its absent batch primitive before
-any row I/O; the same invocation then uses its original scalar queries. Large
-or binary fences select those queries during bounded packet construction,
-before any query is issued. A query error never selects fallback or retry.
-Original issuance/admission inventories, current authorization, cancellation,
-physical cleanup and Unknown semantics are unchanged. ABI84 modules cannot
-be relabeled as matching this private mode or its generated declarations.
+The selected private image uses the original scalar Journal scan and exact-row
+requests. A Saved read compares every retained key, revision and complete byte
+body in its original Store snapshot. Original typed current checks enclose
+each physical query and transfer; no encoded equality packet or retained
+comparison result supplies later currentness or permission.
 
 Within one borrowed SQL reader, request blocks and copies of its already-read
 immutable row use the Store's private frame check. It checks the exact reader,
@@ -2027,6 +2009,15 @@ same fence; a different observer runs separately at every boundary. A private
 reader without the direct port keeps the original outer before/after checks.
 Neither shape returns bytes after a latched failure, changes query/copy bounds
 or turns a physical miss into a semantic absence fact.
+
+The installed Host's own adoption/settings inventories use that same direct
+row port for their fixed raw membership comparisons. Their local list-append
+consumers are removed; no arbitrary caller runs between the query and those
+comparisons. Both full inventories still run before and after protected Core
+work, including each trailing absence query and every original byte/revision.
+The exact Local Store always supplies this port; an incomplete Local reader
+refuses rather than selecting a compatibility path. Independent physical
+adapters retain their complete metadata checks through the same Store reader.
 
 Within that same live reader, the exact stdlib SQLite adapter can retain a
 completed immutable metadata-fence observation. Reuse requires the same

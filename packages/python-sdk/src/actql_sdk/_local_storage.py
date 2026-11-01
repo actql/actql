@@ -47,10 +47,6 @@ class _NamespaceReader:
     # Actual same-transaction catalog observation, not an indexed-custody proof.
     # Absence keeps existing private suppliers on their full legacy route.
     journal_schema: Callable[['_NamespaceReader', Callable[[], object]], int] | None = None
-    # Exact bounded row DATA comparison in this original read transaction.
-    # Other existing physical adapters keep their individual scalar reads.
-    match_rows_current: Callable[['_NamespaceReader', str,
-        tuple[tuple[str, int, bytes], ...], Callable[[], object]], bool] | None = None
 
 
 _InventoryInspection = Callable[[_NamespaceReader], object]
@@ -1120,55 +1116,6 @@ class LocalByteStore:
                 if entered:
                     reading = False
 
-        def match_rows_current(view: _NamespaceReader, namespace: str,
-                               rows: tuple[tuple[str, int, bytes], ...],
-                               required_current: Callable[[], object]) -> bool:
-            nonlocal failure, reading, reads, copied
-            entered = False
-            try:
-                check_frame(view)
-                if (type(database) is not _SQLiteByteDatabase
-                        or namespace != 'publication_contract'
-                        or type(rows) is not tuple or not 1 <= len(rows) <= 32
-                        or not callable(required_current)):
-                    raise ValueError('Invalid original publication fence query')
-                physical = []
-                names: set[str] = set()
-                byte_count = 0
-                for item in rows:
-                    if (type(item) is not tuple or len(item) != 3
-                            or type(item[0]) is not str or item[0] in names
-                            or type(item[1]) is not int or not 0 <= item[1] < 2**63
-                            or type(item[2]) is not bytes):
-                        raise ValueError('Invalid original publication fence row')
-                    key, revision, body = item
-                    names.add(key)
-                    address = self.namespaced_key(namespace, key)
-                    if len(body) > self._max_record_bytes:
-                        raise LocalStorageError('Original publication fence row exceeds its holding')
-                    byte_count += len(body)
-                    physical.append((address, revision, body))
-                # Work and byte limits still count every selected row, not the
-                # number of SQLite statements used to observe those rows.
-                if len(rows) > self._max_inspection_queries - reads:
-                    raise LocalStorageError('Local inventory inspection capacity exceeded')
-                if byte_count > self._max_payload_bytes - copied:
-                    raise LocalStorageError('Local inventory payload capacity exceeded')
-                reading = entered = True
-                fence(required_current, reuse_snapshot=True)
-                matched = database._match_rows(tuple(physical))
-                reads += len(rows)
-                copied += byte_count
-                fence(required_current, reuse_snapshot=True)
-                return matched
-            except BaseException as error:
-                if failure is None:
-                    failure = error
-                raise failure
-            finally:
-                if entered:
-                    reading = False
-
         def scan_after(namespace: str, after: str, consume: _NamespaceConsumer) -> None:
             observe(namespace, after, consume, scan=True)
 
@@ -1182,9 +1129,7 @@ class LocalByteStore:
                 owner=self, current=current_snapshot, check_fences=check_fences,
                 check_fences_and_current=check_fences_and_current,
                 check_frame=check_frame, query_current=query_current,
-                journal_schema=journal_schema,
-                match_rows_current=(match_rows_current
-                    if type(database) is _SQLiteByteDatabase else None))
+                journal_schema=journal_schema)
             result = inspect(reader)
             if failure is not None:
                 raise failure

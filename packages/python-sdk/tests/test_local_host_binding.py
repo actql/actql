@@ -16,6 +16,122 @@ from actql_sdk._local_submission import LocalSubmissionAuthority, LocalSubmissio
 
 
 class OriginalHostBindingTests(unittest.TestCase):
+    def test_owned_inventory_uses_direct_rows_without_arbitrary_consumer_callbacks(self):
+        _, store, core, _, _, _, _, calls, _, _, binding = self.fixture()
+        original = LocalByteStore._inspect_namespace_locked
+        counts = {'direct': 0, 'consumer': 0}
+        readers = []
+        def inspect_frame(owner, inspect, fences, current, **kwargs):
+            def inspect_reader(reader):
+                readers.append(reader)
+                query, scan = reader.query_current, reader.scan_after
+                def direct(view, mode, namespace, key, observer):
+                    result = query(view, mode, namespace, key, observer)
+                    counts['direct'] += 1
+                    return result
+                def callback(namespace, cursor, consume):
+                    counts['consumer'] += 1
+                    return scan(namespace, cursor, consume)
+                # Retain the actual same reader/closure identities. A copied
+                # reader must not substitute for the enclosing Store frame.
+                object.__setattr__(reader, 'query_current', direct)
+                object.__setattr__(reader, 'scan_after', callback)
+                return inspect(reader)
+            return original(owner, inspect_reader, fences, current, **kwargs)
+        changes = store._connection.total_changes
+        with patch.object(LocalByteStore, '_inspect_namespace_locked', inspect_frame):
+            binding.inspect(lambda current: self.assertIs(current, binding._current))
+        self.assertEqual(counts['consumer'], 0)
+        # Two complete singleton/settings inventories, including each trailing
+        # absence: adoption2 + settings3 before and after the Core consumer.
+        self.assertEqual(counts['direct'], 10)
+        self.assertEqual(store._connection.total_changes, changes)
+        self.assertFalse(store._connection.in_transaction)
+        self.assertEqual([name for family, name, _ in calls if family == 'current'][-2:],
+                         ['bind', 'validate'])
+        with self.assertRaises(ValueError):
+            readers[0].query_current(readers[0], 0, 'client_local_adoption', '',
+                                     binding._current_observer)
+        self.assertEqual(counts['direct'], 10)
+        self.assertIsNone(core._journal_callbacks(binding._current.ticket).reader)
+        self.assertTrue(binding.close())
+
+    def test_owned_inventory_return_observes_changed_file_and_temp_schema(self):
+        for mutation in ('file', 'temp-schema'):
+            with self.subTest(mutation=mutation):
+                path, store, core, _, _, _, _, calls, _, _, binding = self.fixture()
+                raw = type(store._physical).scan_range
+                queries = []
+                def changed(database, *args, **kwargs):
+                    result = raw(database, *args, **kwargs)
+                    queries.append(True)
+                    if mutation == 'file':
+                        (path / 'source' / 'account.json').write_bytes(b'changed-original')
+                    else:
+                        store._connection.execute('CREATE TEMP TABLE core_bytes(key, generation, payload)')
+                    return result
+                before = len(calls)
+                error = LocalFileError if mutation == 'file' else LocalStorageError
+                original = binding._current
+                with patch.object(type(store._physical), 'scan_range', changed):
+                    with self.assertRaises(error):
+                        binding.inspect(lambda _: self.fail('Changed original inventory reached Core'))
+                self.assertEqual(len(queries), 1)
+                self.assertEqual(len(calls), before)
+                self.assertIs(core._loans[original.ticket], original)
+                self.assertIsNone(core._journal_callbacks(original.ticket).reader)
+                self.assertFalse(store._connection.in_transaction)
+                self.assertTrue(binding.close())
+
+    def test_owned_inventory_sql_failure_keeps_original_cause_without_fallback(self):
+        import sqlite3
+        _, store, core, _, _, _, _, calls, _, _, binding = self.fixture()
+        failure = sqlite3.OperationalError('original owned inventory read failure')
+        original = binding._current
+        before = len(calls)
+        with patch.object(type(store._physical), 'scan_range', side_effect=failure) as read:
+            with self.assertRaises(sqlite3.OperationalError) as caught:
+                binding.inspect(lambda _: self.fail('Failed inventory reached Core'))
+        self.assertIs(caught.exception, failure)
+        self.assertEqual(read.call_count, 1)
+        self.assertEqual(len(calls), before)
+        self.assertIs(core._loans[original.ticket], original)
+        self.assertIsNone(core._journal_callbacks(original.ticket).reader)
+        self.assertFalse(store._connection.in_transaction)
+        self.assertTrue(binding.close())
+
+    def test_owned_inventory_direct_rows_keep_independent_physical_adapter_checks(self):
+        _, store, _, _, _, _, _, _, _, _, binding = self.fixture()
+        database = store._physical
+        class ExistingPhysicalPort:
+            def __getattr__(self, name):
+                return getattr(database, name)
+        store._physical = ExistingPhysicalPort()
+        seen = []
+        binding.inspect(lambda current: seen.append(current))
+        self.assertEqual(seen, [binding._current])
+        self.assertFalse(store._connection.in_transaction)
+        self.assertTrue(binding.close())
+
+    def test_incomplete_owned_inventory_port_refuses_before_core_binding(self):
+        _, store, core, _, _, _, _, calls, _, _, binding = self.fixture()
+        raw = LocalByteStore._inspect_namespace_locked
+        def incomplete(owner, inspect, fences, current, **kwargs):
+            def inspect_reader(reader):
+                object.__setattr__(reader, 'query_current', None)
+                return inspect(reader)
+            return raw(owner, inspect_reader, fences, current, **kwargs)
+        before = len(calls)
+        original = binding._current
+        with patch.object(LocalByteStore, '_inspect_namespace_locked', incomplete):
+            with self.assertRaisesRegex(ValueError, 'owned inventory query is unavailable'):
+                binding.inspect(lambda _: self.fail('Incomplete Local reader reached Core'))
+        self.assertEqual(len(calls), before)
+        self.assertIs(core._loans[original.ticket], original)
+        self.assertIsNone(core._journal_callbacks(original.ticket).reader)
+        self.assertFalse(store._connection.in_transaction)
+        self.assertTrue(binding.close())
+
     def fixture(self, *, create=True):
         directory = TemporaryDirectory(prefix='actql-original-host-binding-')
         self.addCleanup(directory.cleanup)
