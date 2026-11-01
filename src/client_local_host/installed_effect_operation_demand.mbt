@@ -326,9 +326,11 @@ fn installed_effect_source_result_bound_scratch_bytes() -> Int64 {
 
 ///|
 /// Quote the original selected implementation and checked row inventory before
-/// importing the existing managed parent. All still-retained operation bodies
-/// overlap the Compute/Source inventory; no phase is discarded based on a
-/// Promise, a consumed response or an assumed early physical retirement.
+/// importing the existing managed parent. All retained operation bodies overlap
+/// Compute/Source. The normal pure-constructor loop retains each output but
+/// returns its original workspace before its next callback. Physical and
+/// implementation-control peaks remain fully simultaneous; neither a Promise
+/// nor a received response implies early physical retirement.
 pub fn prepare_installed_effect_managed_plan(
   prepared : @publication_host.PreparedClientEffectComputation,
   request : @publication_host.ClientRequestIdentity,
@@ -539,6 +541,7 @@ pub fn prepare_installed_effect_managed_plan(
   let mut transfer = compute_limits.transfer_bytes
   let mut retained = compute_limits.retained_bytes
   let mut execution = compute_limits.execution_bytes
+  let mut constructor_workspace = 0L
   let mut extent_count = 0L
   let mut controlled_members = 0L
   let mut implementation_control_retained = 0L
@@ -610,10 +613,20 @@ pub fn prepare_installed_effect_managed_plan(
           return Err(Unsupported)
         }
         retained = next
+        // Normal pure children retain R before Source/Preview and enter E
+        // only for their synchronous callback. The actual row/member loops
+        // await completion before the next callback. Keep every returned R;
+        // reuse only that completed scratch. A failed/async child stops the
+        // enclosing loop and keeps E under its SAME original reservation.
+        // Physical bodies and control allowances do not use this reuse law.
+        let held_execution = if extent.physical_attempt { e } else { r }
+        if !extent.physical_attempt && multiplicity > 0 {
+          constructor_workspace = Int64::max(constructor_workspace, e - r)
+        }
         guard @execution.execution_capacity_inventory_add(
             execution,
             QuotedBytes,
-            e,
+            held_execution,
             multiplicity,
           )
           is Some(next) else {
@@ -623,6 +636,16 @@ pub fn prepare_installed_effect_managed_plan(
       }
     }
   }
+  guard @execution.execution_capacity_inventory_add(
+      execution,
+      QuotedBytes,
+      constructor_workspace,
+      1,
+    )
+    is Some(with_constructor_workspace) else {
+    return Err(Unsupported)
+  }
+  execution = with_constructor_workspace
   // Own only new plan/demand/container controls. Borrow installed immutable
   // extents, contract/Program bodies and generated originals once at their
   // actual owners. Array spare capacity uses the existing pinned builtin rule.
@@ -718,7 +741,9 @@ pub fn prepare_installed_effect_managed_plan(
       model_holder,
       // Empty/selected implementation control accumulator and the original
       // base capacity coexist with their combined result during this quote.
-      scalar_words: 40L +
+      // One sequential-constructor scratch accumulator and its selected
+      // held-execution scalar are live in that same existing traversal.
+      scalar_words: 42L +
       6L +
       input_slots +
       2L * workspace.row_bounds.to_int64() +

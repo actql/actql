@@ -2467,3 +2467,20 @@ and spent coordinate unchanged. Copied, retired, mismatched and reentered
 originals cannot revive a body. Failed or invalid asynchronous constructors keep
 their original backing and existing cleanup; input/output alias retirement and
 physical cleanup remain independent duties.
+
+
+The installed Effect Plan composes the actual pure-constructor schedule as all
+retained outputs plus one largest temporary constructor workspace. The original
+row loop awaits each retained child's synchronous prepare/completion before the
+next callback; member recovery constructors use their same serial loop. Earlier
+outputs and all physical operations/control allowances remain fully co-counted.
+The same Resource reservation grows before the callback and returns scratch only
+after successful completion. Failure or invalid async construction stops that
+loop and retains the original complete backing until its existing cleanup.
+
+This is the selected installed implementation's lifetime inventory. The older
+full-body borrow still reserves its full extent against the same Ledger; it
+cannot fund concurrency outside the admitted inventory. No phase, attempt,
+transfer, spent coordinate, output or physical child is retired by taking a
+workspace peak in the quote. This does not replace the separate Ledger/projector
+control lifetime or prove ordinary package admission/physical cleanup.

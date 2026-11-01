@@ -63,8 +63,9 @@ test('actual capture failure input callback retires only its pins after the shar
 const member=Object.freeze({kind:'create',effectId:'create',memberIndex:0});
 const input=[{label:'b'},{label:'a'},{label:'a'}];
 const issued=[{content_cid:cid('a'),occurrence:0},{content_cid:cid('a'),occurrence:1},{content_cid:cid('b'),occurrence:0}];
-function fixture({child=false,inventoryError,managed=false}={}){
-  const events=[],contexts=[],requests=[],requestChildren=[],runOriginal=Object.freeze({}),description=Object.freeze({original:true});
+function fixture({child=false,inventoryError,managed=false,constructorFailureAt}={}){
+  const events=[],contexts=[],requests=[],requestChildren=[],workspaceEvents=[],runOriginal=Object.freeze({}),description=Object.freeze({original:true});
+  let activeConstructor;
   let inventoryCalls=0;
   const moon={clientProgramEffectCreateRowInventory(wires,count,bytes,nodes,depth){
     inventoryCalls++;events.push('inventory');
@@ -79,7 +80,9 @@ function fixture({child=false,inventoryError,managed=false}={}){
     assert.strictEqual(context.current,description);
     assert.deepEqual(context.createRowIdentity,issued[contexts.length]);
     assert(Object.isFrozen(context.createRowIdentity));
+    if(managed)assert.equal(activeConstructor?.rowIndex,contexts.length,'the same original workspace precedes provider allocation');
     contexts.push(context);events.push('prepare');
+    if(contexts.length===constructorFailureAt)throw undefined;
     const request=Object.freeze({value:context.value}),requestCid=cid(String(contexts.length));
     requests.push(request);return {request,requestCid};
   };
@@ -99,8 +102,8 @@ function fixture({child=false,inventoryError,managed=false}={}){
     requestConstruction:Object.freeze({operationIndex:1})}),2):undefined;
   const nativePlan={},parent={},prepared={},identity={};
   const runtime={clientProgramInstalledEffectManagedOperationPlan:()=>({$tag:1,_0:nativePlan}),
-    clientProgramInstalledEffectOperationConstructionBegin(){return {$tag:1,_0:undefined};},
-    clientProgramInstalledEffectOperationConstructionComplete(){return {$tag:1,_0:undefined};},
+    clientProgramInstalledEffectOperationConstructionBegin(token){assert.equal(activeConstructor,undefined);activeConstructor=token;workspaceEvents.push(['begin',token.rowIndex]);return {$tag:1,_0:undefined};},
+    clientProgramInstalledEffectOperationConstructionComplete(token){assert.equal(activeConstructor,token);workspaceEvents.push(['complete',token.rowIndex]);activeConstructor=undefined;return {$tag:1,_0:undefined};},
     clientProgramInstalledEffectOperationConstructionRetain(owner,p,r,plan,memberIndex,perRow,operationIndex,rowIndex,operation){
       assert.equal(owner,parent);assert.equal(p,prepared);assert.equal(r,identity);assert.equal(plan,nativePlan);
       assert.deepEqual([memberIndex,perRow,operationIndex,operation],[0,true,1,'construct']);
@@ -130,7 +133,7 @@ function fixture({child=false,inventoryError,managed=false}={}){
     requestChildren,prepareInstalledRowCaptureChild,commandContentRow,requestEntry,requestsOf,prepareInstalledCreateRows,fail,
     managedEffect,prepareInstalledEffectRequestChild,retireRequestAliases(){aliasesRetired=true;ports.rowsOf.length=0;ports.currents.length=0;return true;}};
   const run=()=>Function(...Object.keys(ports),`return (async()=>{${source.slice(loop.start,loop.end)};return {rowsOf,observations,currents};})();`)(...Object.values(ports));
-  return {run,contexts,events,requestChildren,inventoryCalls:()=>inventoryCalls,entryOf,ownerOf,owned,runOriginal,debits,settlements,managedEffect};
+  return {run,contexts,events,requestChildren,workspaceEvents,activeConstructor:()=>activeConstructor,inventoryCalls:()=>inventoryCalls,entryOf,ownerOf,owned,runOriginal,debits,settlements,managedEffect};
 }
 
 test('create original occurrence reaches synchronous provider before request and stays in canonical Preview frame',async()=>{
@@ -574,4 +577,28 @@ test('CREATE inventory consumes the original checked proposal wire before any lo
   const result=canonicalRows([row]);
   assert.equal(result[0].entry,row);
   assert.deepEqual(result[0].identity,originalIdentity);
+});
+
+test('actual managed row loop completes each original workspace before the next constructor while retaining all outputs', async () => {
+  const f=fixture({managed:true});
+  const result=await f.run();
+  assert.deepEqual(f.workspaceEvents,[['begin',0],['complete',0],['begin',1],['complete',1],['begin',2],['complete',2]]);
+  assert.equal(f.activeConstructor(),undefined);
+  assert.equal(result.rowsOf[0].length,3);
+  assert.equal(f.requestChildren.length,3);
+  assert.equal(f.settlements.length,0,'workspace completion is not output/child retirement');
+  for(const retained of f.requestChildren)await retained.prepared.release();
+  assert.deepEqual(f.settlements,f.debits);
+});
+
+test('actual managed row loop stops on the same failed constructor and retains its unfinished workspace', async () => {
+  const f=fixture({managed:true,constructorFailureAt:2});
+  await assert.rejects(f.run(),cause=>cause===undefined);
+  assert.deepEqual(f.workspaceEvents,[['begin',0],['complete',0],['begin',1]]);
+  assert.equal(f.activeConstructor(),f.debits[1]);
+  assert.equal(f.contexts.length,2,'the third constructor must not start after failure');
+  assert.equal(f.requestChildren.length,2);
+  assert.equal(f.settlements.length,0,'failed original is still owned by original cleanup');
+  for(const retained of f.requestChildren)await retained.prepared.release();
+  assert.deepEqual(f.settlements,f.debits);
 });

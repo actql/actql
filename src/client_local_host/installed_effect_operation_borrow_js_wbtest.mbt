@@ -1167,3 +1167,56 @@ test "retained constructor entry keeps original reentry retirement and physical 
   assert_true(retire_installed_effect_operation(physical, true).unwrap())
   retire_installed_managed_run(owner).unwrap()
 }
+
+///|
+test "actual same Plan constructors keep all original outputs while sequential entry returns only scratch" {
+  let (prepared, request, contracts) = effect_operation_plan_inputs()
+  let plan = effect_constructor_peak_fixture(prepared, request, contracts, true)
+  let (input, initial, _, admitted) = effect_parent_test_preparation(
+    plan,
+    prepared_installed_effect_managed_requirements(plan),
+  )
+  let owner = begin_preparation_owned_installed_effect_managed_run(
+    initial, input, admitted, prepared, request, plan,
+  ).unwrap()
+  let ledger = owner.ledger.unwrap()
+  begin_installed_effect_operation_controls(owner, prepared, request, plan).unwrap()
+  |> ignore
+  let before = @resources.ledger_usage(ledger)
+  let member = retain_installed_effect_operation_construction(
+    owner, prepared, request, plan, 0, false, 0, 0, "capture",
+  ).unwrap()
+  let row = retain_installed_effect_operation_construction(
+    owner, prepared, request, plan, 0, true, 0, 0, "request",
+  ).unwrap()
+  let held = @resources.ledger_usage(ledger)
+  assert_eq(
+    held.reserved_retention_bytes - before.reserved_retention_bytes,
+    140L,
+  )
+  assert_eq(
+    held.reserved_execution_bytes - before.reserved_execution_bytes,
+    140L,
+  )
+  begin_installed_effect_operation_construction(member).unwrap()
+  assert_eq(
+    @resources.ledger_usage(ledger).reserved_execution_bytes,
+    held.reserved_execution_bytes + 20L,
+  )
+  complete_installed_effect_operation_construction(member).unwrap()
+  assert_eq(@resources.ledger_usage(ledger), held)
+  begin_installed_effect_operation_construction(row).unwrap()
+  assert_eq(
+    @resources.ledger_usage(ledger).reserved_execution_bytes,
+    held.reserved_execution_bytes + 40L,
+  )
+  complete_installed_effect_operation_construction(row).unwrap()
+  assert_eq(@resources.ledger_usage(ledger), held)
+  // Completion did not return either output, coordinate or reservation slot.
+  assert_true(!member.retired && !row.retired)
+  assert_true(retire_installed_managed_run(owner) is Err(CleanupPending))
+  assert_true(retire_installed_effect_operation(member, true).unwrap())
+  assert_true(retire_installed_managed_run(owner) is Err(CleanupPending))
+  assert_true(retire_installed_effect_operation(row, true).unwrap())
+  retire_installed_managed_run(owner).unwrap()
+}

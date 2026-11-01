@@ -1376,3 +1376,128 @@ test "capture name capacity resolves once from the same checked effect member be
     is Err(Unsupported),
   )
 }
+
+///|
+// Compare identical checked Program, extent/slot structure and retained
+// quantities. Only two original pure-constructor temporary workspaces differ.
+// No timing, physical authority, Root or normal acceptance is inferred.
+fn effect_constructor_peak_fixture(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  contracts : ClientInstalledSequenceContracts,
+  workspace : Bool,
+) -> ClientInstalledEffectManagedPlan {
+  let capture = prepare_installed_effect_operation_extent(
+    "capture",
+    @execution.execution_capacity(50L, if workspace { 70L } else { 50L }).unwrap(),
+    0L,
+    false,
+  ).unwrap()
+  let request_body = prepare_installed_effect_operation_extent(
+    "request",
+    @execution.execution_capacity(90L, if workspace { 130L } else { 90L }).unwrap(),
+    0L,
+    false,
+  ).unwrap()
+  let physical = prepare_installed_effect_operation_extent(
+    "send",
+    @execution.execution_capacity(200L, 300L).unwrap(),
+    17L,
+    true,
+  ).unwrap()
+  let demand = prepare_installed_effect_operation_demand(
+    prepared,
+    0,
+    "save",
+    [capture],
+    [request_body, physical],
+  ).unwrap()
+  prepare_installed_effect_managed_plan(
+    prepared,
+    request,
+    [],
+    "",
+    "",
+    [],
+    [],
+    contracts,
+    source_query_original_values,
+    Some(source_query_original_fragment),
+    None,
+    [demand],
+    provider_factory=_ => [],
+  ).unwrap()
+}
+
+///|
+test "installed Effect Plan sums retained pure outputs and takes one sequential constructor workspace peak" {
+  let (prepared, request, contracts) = effect_operation_plan_inputs()
+  let retained_only = effect_constructor_peak_fixture(
+    prepared, request, contracts, false,
+  )
+  let original = effect_constructor_peak_fixture(
+    prepared, request, contracts, true,
+  )
+  assert_eq(original.rows, 1)
+  assert_eq(original.limits.retained_bytes, retained_only.limits.retained_bytes)
+  assert_eq(original.limits.attempts, retained_only.limits.attempts)
+  assert_eq(original.limits.transfer_bytes, retained_only.limits.transfer_bytes)
+  // All returned material remains held; one callback owns max(20,40) scratch.
+  // The physical 300-byte body and every control keep their complete old E.
+  assert_eq(
+    original.limits.execution_bytes - retained_only.limits.execution_bytes,
+    40L,
+  )
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(
+      original.operation_control_capacity,
+    ),
+    @execution.execution_capacity_retained_bytes(
+      retained_only.operation_control_capacity,
+    ),
+  )
+  assert_eq(
+    @execution.execution_capacity_execution_bytes(
+      original.operation_control_capacity,
+    ),
+    @execution.execution_capacity_execution_bytes(
+      retained_only.operation_control_capacity,
+    ),
+  )
+}
+
+///|
+test "sequential constructor workspace still refuses overflow against its same Compute and control inventory" {
+  let (prepared, request, contracts) = effect_operation_plan_inputs()
+  let extent = prepare_installed_effect_operation_extent(
+    "constructor",
+    @execution.execution_capacity(1L, 9223372036854775807L).unwrap(),
+    0L,
+    false,
+  ).unwrap()
+  let demand = prepare_installed_effect_operation_demand(
+    prepared,
+    0,
+    "save",
+    [],
+    [extent],
+  ).unwrap()
+  assert_true(
+    prepare_installed_effect_managed_plan(
+      prepared,
+      request,
+      [],
+      "",
+      "",
+      [],
+      [],
+      contracts,
+      source_query_original_values,
+      Some(source_query_original_fragment),
+      None,
+      [demand],
+      provider_factory=_ => [],
+    )
+    is Err(Unsupported),
+  )
+}
