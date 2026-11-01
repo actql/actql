@@ -42214,7 +42214,7 @@
     {
       "module": "adapters/host-node/embedded-local-lifecycle.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5afacb92729be5bbec4739b51e93b5f91d43d9c15817c7091830e34ce06136ce",
+      "sha256": "e204335504e5f69947a3e1d6cbbd2f75eac1bbe7f7b0126bc57745997129aab1",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
@@ -42231,6 +42231,14 @@
           "name": "createEmbeddedHostRegistry",
           "parameters": [
             "sameInstallation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEmbeddedHostRegistry/assertUnboundRequest",
+          "parameters": [
+            "entry",
+            "request"
           ],
           "async": false
         },
@@ -42590,6 +42598,14 @@
           "async": false
         },
         {
+          "name": "createEmbeddedHostRegistry/originalRequestRecord",
+          "parameters": [
+            "entry",
+            "request"
+          ],
+          "async": false
+        },
+        {
           "name": "createEmbeddedHostRegistry/originalSourceRequest",
           "parameters": [
             "host",
@@ -42610,6 +42626,24 @@
             "host",
             "installation",
             "generation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEmbeddedHostRegistry/retainRequestRecord",
+          "parameters": [
+            "entry",
+            "request",
+            "pending"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEmbeddedHostRegistry/retireRequestRecord",
+          "parameters": [
+            "entry",
+            "pending",
+            "original"
           ],
           "async": false
         },
@@ -43370,7 +43404,11 @@
             "createEmbeddedHostRegistry/init:retirePreparation/init:retirePreparation",
             "createEmbeddedHostRegistry/originalSourceRequest",
             "createEmbeddedHostRegistry/preparationChanged/preparationChanged",
-            "createEmbeddedHostRegistry/preparationFor"
+            "createEmbeddedHostRegistry/preparationFor",
+            "createEmbeddedHostRegistry/assertUnboundRequest",
+            "createEmbeddedHostRegistry/originalRequestRecord",
+            "createEmbeddedHostRegistry/retainRequestRecord",
+            "createEmbeddedHostRegistry/retireRequestRecord"
           ],
           "exports": [],
           "attributes": {
@@ -43382,6 +43420,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "export function assertInitialControlHostPreparation(originals) {"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Each Host indexes original requests and derived aliases in a private WeakMap"
               }
             ],
             "inputsOutputs": [
@@ -43392,6 +43434,10 @@
               {
                 "path": "adapters/host-node/installed-project-configuration.mjs",
                 "anchor": "export function retireInstalledProjectConfiguration(project, moon) {"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Each Host indexes original requests and derived aliases in a private WeakMap"
               }
             ],
             "identity": [
@@ -43405,7 +43451,11 @@
               },
               {
                 "path": "adapters/host-node/embedded-local-lifecycle.mjs",
-                "anchor": "original.request === request ||"
+                "anchor": "entry.handling.get(original.pending) !== original) preparationChanged();"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Each Host indexes original requests and derived aliases in a private WeakMap"
               }
             ],
             "ownership": [
@@ -43424,6 +43474,10 @@
               {
                 "path": "adapters/host-node/embedded-local-lifecycle.mjs",
                 "anchor": "entry.mockPreparation = view;"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Each Host indexes original requests and derived aliases in a private WeakMap"
               }
             ],
             "synchronization": [
@@ -43434,6 +43488,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Synchronization snapshots each selected method and receiver"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Each Host indexes original requests and derived aliases in a private WeakMap"
               }
             ],
             "failure": [
@@ -43444,6 +43502,10 @@
               {
                 "path": "adapters/host-node/initial-control-shutdown.test.mjs",
                 "anchor": "test('throwing initialization cleanup getters retain the already acquired control holding'"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Each Host indexes original requests and derived aliases in a private WeakMap"
               }
             ],
             "cancellation": [
@@ -43454,6 +43516,10 @@
               {
                 "path": "adapters/host-node/embedded-local-lifecycle.test.mjs",
                 "anchor": "test('final close waits in-flight ingress and dispatch without cancelling a Run'"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Each Host indexes original requests and derived aliases in a private WeakMap"
               }
             ],
             "resources": [
@@ -43468,6 +43534,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Each Host indexes original requests and derived aliases in a private WeakMap"
               }
             ],
             "extension": [
@@ -43478,6 +43548,10 @@
               {
                 "path": "adapters/host-node/installed-project-configuration.mjs",
                 "anchor": "// do not acquire an operational admission by omitting these private inputs."
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Each Host indexes original requests and derived aliases in a private WeakMap"
               }
             ],
             "verification": [
@@ -43496,6 +43570,26 @@
               {
                 "path": "adapters/host-node/host-journal-preparation.test.mjs",
                 "anchor": "fixed Host Journal projection retains one original pair and refuses copies and replacement"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Each Host indexes original requests and derived aliases in a private WeakMap"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.test.mjs",
+                "anchor": "test('prepared Request identity lookup and binding use linear counted index work at N and 2N'"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.test.mjs",
+                "anchor": "test('prepared Request aliases refuse cross-request foreign generation and retired rebinding'"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.test.mjs",
+                "anchor": "test('prepared Request cancellation does not retire pending work and settled index records cut heavy references'"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.test.mjs",
+                "anchor": "test('prepared Client pending request index preserves original close drain and retirement order'"
               }
             ]
           }
