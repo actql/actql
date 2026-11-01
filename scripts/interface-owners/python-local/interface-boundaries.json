@@ -1,6 +1,6 @@
 {
   "source": "d5d66cd86ac2e153f31a511e7d37c78e0cc28ae3",
-  "syntaxProjectionSha256": "63e9869793d03dfae26b05adbbaf7997359e98aa83d2d701f835d522d0e33da0",
+  "syntaxProjectionSha256": "4959cddab7a61cad58ab73ee5af9eb761445fc6a09adff2e76f7ceb4129fd37d",
   "qualification": "Source-reference coverage only; original Native/FFI/Python executions retain their own source, artifact and target qualifications. No normal funding, VM or installed product admission.",
   "generated": [
     {
@@ -5156,12 +5156,11 @@
       "responsibilityFacet": "primary",
       "operations": [
         {
-          "async": false,
           "name": "LocalCore",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/__init__",
           "parameters": [
             "self",
@@ -5176,61 +5175,61 @@
             "_physical_holding",
             "_child_control",
             "_ordinary_host"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_bulk_memory",
           "parameters": [
             "self",
             "caller",
             "offset",
             "length"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_bulk_memory_current",
           "parameters": [
             "self",
             "memory"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_call",
           "parameters": [
             "self",
             "family",
             "name",
             "*arguments"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_check",
           "parameters": [
             "operation",
             "code"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_cleanup",
           "parameters": [
             "self",
             "ticket"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_close_core",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_close_output",
           "parameters": [
             "self",
@@ -5238,17 +5237,17 @@
             "family",
             "operation",
             "abi_family"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_dispose",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_from_installed_image",
           "parameters": [
             "cls",
@@ -5260,42 +5259,42 @@
             "_physical_holding",
             "_child_control",
             "_ordinary_host"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_host_cleanup",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_host_current_call",
           "parameters": [
             "self",
             "value",
             "operation"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_host_current_ready",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_host_operation",
           "parameters": [
             "self",
             "initial"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_input_copy",
           "parameters": [
             "self",
@@ -5304,18 +5303,18 @@
             "start",
             "offset",
             "length"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_input_copy_bytes",
           "parameters": [
             "self",
             "payload"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_journal_begin",
           "parameters": [
             "self",
@@ -5323,28 +5322,28 @@
             "mode",
             "namespace_bytes",
             "key_bytes"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_journal_byte",
           "parameters": [
             "self",
             "ticket",
             "field",
             "index"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_journal_callbacks",
           "parameters": [
             "self",
             "ticket"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_journal_copy",
           "parameters": [
             "self",
@@ -5354,53 +5353,53 @@
             "index",
             "offset",
             "length"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_journal_current",
           "parameters": [
             "self",
             "ticket"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_journal_current_operation",
           "parameters": [
             "self",
             "ticket"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_journal_length",
           "parameters": [
             "self",
             "ticket",
             "field"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_journal_query",
           "parameters": [
             "self",
             "ticket"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_journal_query_byte",
           "parameters": [
             "self",
             "ticket",
             "index",
             "byte"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_journal_query_copy",
           "parameters": [
             "self",
@@ -5409,157 +5408,157 @@
             "index",
             "offset",
             "length"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_journal_release",
           "parameters": [
             "self",
             "ticket"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_journal_revision",
           "parameters": [
             "self",
             "ticket"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_native_cleaned",
           "parameters": [
             "self",
             "handle"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_native_fact",
           "parameters": [
             "self",
             "handle",
             "fact"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_native_scope",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_native_settled",
           "parameters": [
             "self",
             "handle"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_native_stopped",
           "parameters": [
             "self",
             "handle"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_observe_original_vm_span",
           "parameters": [
             "self",
             "wasmtime"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_output_copy_bytes",
           "parameters": [
             "self",
             "limit"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_owned",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_owned_compute",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_owned_input",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_owned_invocation_output",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_owned_native",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_owned_output",
           "parameters": [
             "self",
             "value",
             "family"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_owned_result",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_owned_task",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_produce_output",
           "parameters": [
             "self",
             "value",
             "family",
             "operation"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_produce_publication_sdk_read_entry",
           "parameters": [
             "self",
@@ -5569,56 +5568,56 @@
             "current_configuration",
             "field",
             "operation"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_publication_configuration",
           "parameters": [
             "self",
             "value",
             "current_configuration"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_publication_sdk_run_state_step",
           "parameters": [
             "self",
             "value",
             "current_configuration",
             "operation"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_publisher_begin",
           "parameters": [
             "self",
             "ticket",
             "length"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_publisher_byte",
           "parameters": [
             "self",
             "ticket",
             "index",
             "byte"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_publisher_callbacks",
           "parameters": [
             "self",
             "ticket"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_publisher_copy",
           "parameters": [
             "self",
@@ -5627,35 +5626,35 @@
             "index",
             "offset",
             "length"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_publisher_current",
           "parameters": [
             "self",
             "ticket"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_publisher_finish",
           "parameters": [
             "self",
             "ticket"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_read",
           "parameters": [
             "self",
             "ticket",
             "index"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_read_output",
           "parameters": [
             "self",
@@ -5663,30 +5662,30 @@
             "family",
             "operation",
             "abi_family"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_read_output_block",
           "parameters": [
             "self",
             "value",
             "start",
             "length"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_reserve_bootstrap",
           "parameters": [
             "self",
             "source",
             "cleanup",
             "sdk"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_reserve_invocation_output",
           "parameters": [
             "self",
@@ -5695,20 +5694,20 @@
             "cleanup",
             "family",
             "operation"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_reserve_original_payload_record",
           "parameters": [
             "self",
             "request",
             "family",
             "cleanup"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_reserve_publication_read_export",
           "parameters": [
             "self",
@@ -5716,135 +5715,135 @@
             "family",
             "cleanup",
             "maximum"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_result_operation",
           "parameters": [
             "self",
             "result",
             "operation",
             "*arguments"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_sdk_start_material_current",
           "parameters": [
             "self",
             "value",
             "current",
             "operation"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_stopped",
           "parameters": [
             "self",
             "ticket",
             "reader"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_task_operation",
           "parameters": [
             "self",
             "value",
             "operation",
             "*arguments"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_unavailable_execution_child",
           "parameters": [
             "self",
             "caller",
             "nonce",
             "*arguments"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/_validate_original_native_projection",
           "parameters": [
             "self",
             "host_capacity_bytes"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/accept_native_event",
           "parameters": [
             "self",
             "value",
             "kind",
             "input"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/advance_publication",
           "parameters": [
             "self",
             "value",
             "current_configuration",
             "quantum"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/advance_publication_commit",
           "parameters": [
             "self",
             "value",
             "current_configuration",
             "quantum"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/advance_publication_observation",
           "parameters": [
             "self",
             "value",
             "current_configuration",
             "quantum"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/advance_result_export",
           "parameters": [
             "self",
             "result",
             "quantum"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/advance_source_publication",
           "parameters": [
             "self",
             "value",
             "quantum"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/advance_task",
           "parameters": [
             "self",
             "value",
             "quantum",
             "finalization"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/authorize_publisher",
           "parameters": [
             "self",
@@ -5852,62 +5851,62 @@
             "current_configuration",
             "stage",
             "publication"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/begin_payload_allocation",
           "parameters": [
             "self",
             "value",
             "current_configuration"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/begin_payload_record",
           "parameters": [
             "self",
             "value",
             "current_configuration"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/begin_payload_reservation",
           "parameters": [
             "self",
             "value",
             "current_configuration"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/begin_payload_writing",
           "parameters": [
             "self",
             "value",
             "current_configuration"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/begin_saved_read_cleanup",
           "parameters": [
             "self",
             "original"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/bind_host_current",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/bind_publication_sdk_payload_record",
           "parameters": [
             "self",
@@ -5916,542 +5915,542 @@
             "current_configuration",
             "result",
             "binding_index"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/close",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/close_bootstrap",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/close_client_check",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/close_host_current",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/close_input",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/close_journal_observation",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/close_material",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/close_native_attempt",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/close_native_command",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/close_native_compute",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/close_native_event",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/close_original_metadata",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/close_payload_allocation",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/close_payload_binding",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/close_payload_chunk",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/close_payload_names",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/close_payload_record",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/close_payload_request",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/close_payload_reservation",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/close_payload_writing",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/close_publication",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/close_publication_commit_export",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/close_publication_preflight",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/close_publisher",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/close_result_binding",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/close_result_chunk",
           "parameters": [
             "self",
             "chunk"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/close_result_export",
           "parameters": [
             "self",
             "result"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/close_sdk_bootstrap",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/close_source_free_invocation",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/close_source_publication",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/close_submission_append",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/close_submission_lookup",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/close_submission_projection",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/close_task",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/close_workspace",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/complete_task",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/configure_native_compute",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/confirm_payload_allocation",
           "parameters": [
             "self",
             "value",
             "observation",
             "current_configuration"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/confirm_payload_record",
           "parameters": [
             "self",
             "value",
             "observation",
             "current_configuration"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/confirm_payload_reservation",
           "parameters": [
             "self",
             "value",
             "observation",
             "current_configuration"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/confirm_payload_writing",
           "parameters": [
             "self",
             "value",
             "observation",
             "current_configuration"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/confirm_publication_sdk_payload_chunk",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/confirm_publication_sdk_run_state",
           "parameters": [
             "self",
             "value",
             "current_configuration"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/confirm_sdk_publication_binding",
           "parameters": [
             "self",
             "value",
             "current"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/confirm_sdk_start_step",
           "parameters": [
             "self",
             "value",
             "current"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/dispatch_action",
           "parameters": [
             "self",
             "run",
             "current_configuration",
             "facts"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/feed_result_export",
           "parameters": [
             "self",
             "result",
             "quantum"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/feed_task",
           "parameters": [
             "self",
             "value",
             "quantum"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/fill_input",
           "parameters": [
             "self",
             "value",
             "start",
             "count"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/finish_publication",
           "parameters": [
             "self",
             "value",
             "current_configuration"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/finish_publication_commit",
           "parameters": [
             "self",
             "value",
             "current_configuration"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/finish_publication_observation",
           "parameters": [
             "self",
             "value",
             "current_configuration"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/finish_result_export_preparation",
           "parameters": [
             "self",
             "result"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/finish_source_publication",
           "parameters": [
             "self",
             "value",
             "current_configuration"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/host_current_frame",
           "parameters": [
             "self",
             "value",
             "reader"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/inspect_journal_observation",
           "parameters": [
             "self",
             "value",
             "reader"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/install_publisher",
           "parameters": [
             "self",
             "value",
             "current_configuration"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/journal_observation_revisions",
           "parameters": [
             "self",
             "value",
             "reader"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/native_configuration_capacity",
           "parameters": [
             "self",
             "configuration"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/native_source_completed",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/observe_publication_sdk_terminal",
           "parameters": [
             "self",
             "first",
             "current_configuration"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/prepare_publication",
           "parameters": [
             "self",
             "value",
             "current_configuration"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/prepare_publication_commit",
           "parameters": [
             "self",
             "value",
             "request",
             "current_configuration"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/prepare_publication_lookup",
           "parameters": [
             "self",
@@ -6459,10 +6458,10 @@
             "response",
             "publisher",
             "current_configuration"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/prepare_publication_observation",
           "parameters": [
             "self",
@@ -6470,216 +6469,216 @@
             "response",
             "publisher",
             "current_configuration"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/prepare_publication_preflight",
           "parameters": [
             "self",
             "value",
             "current_configuration"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/prepare_publication_sdk_payload_codecs",
           "parameters": [
             "self",
             "value",
             "clock",
             "current_configuration"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/prepare_publication_sdk_payload_input",
           "parameters": [
             "self",
             "first",
             "clock",
             "current_configuration"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/prepare_source_free_invocation",
           "parameters": [
             "self",
             "value",
             "current_configuration"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/prepare_source_publication",
           "parameters": [
             "self",
             "value",
             "current_configuration"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/prepare_task_finalization",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/produce_and_read_submission_lookup",
           "parameters": [
             "self",
             "value",
             "current"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/produce_bootstrap",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/produce_client_check",
           "parameters": [
             "self",
             "value",
             "current"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/produce_host_current",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/produce_material",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/produce_native_command",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/produce_original_metadata",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/produce_payload_allocation",
           "parameters": [
             "self",
             "value",
             "observation",
             "current_configuration"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/produce_payload_binding",
           "parameters": [
             "self",
             "value",
             "current_configuration"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/produce_payload_chunk",
           "parameters": [
             "self",
             "value",
             "current_configuration"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/produce_payload_names",
           "parameters": [
             "self",
             "value",
             "current_configuration"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/produce_payload_record",
           "parameters": [
             "self",
             "value",
             "current_configuration"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/produce_payload_request",
           "parameters": [
             "self",
             "value",
             "current_configuration"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/produce_payload_reservation",
           "parameters": [
             "self",
             "value",
             "observation",
             "current_configuration"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/produce_payload_writing",
           "parameters": [
             "self",
             "value",
             "observation",
             "current_configuration"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/produce_publication_commit_export",
           "parameters": [
             "self",
             "value",
             "current_configuration"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/produce_publication_commit_index_key",
           "parameters": [
             "self",
             "value",
             "current_configuration"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/produce_publication_commit_material",
           "parameters": [
             "self",
@@ -6687,10 +6686,10 @@
             "current_configuration",
             "ordinal",
             "field"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/produce_publication_commit_schema",
           "parameters": [
             "self",
@@ -6698,40 +6697,40 @@
             "current_configuration",
             "result",
             "field"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/produce_publication_lookup_reference",
           "parameters": [
             "self",
             "value",
             "current_configuration",
             "field"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/produce_publication_observed_index",
           "parameters": [
             "self",
             "value",
             "current_configuration",
             "field"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/produce_publication_observed_run_state",
           "parameters": [
             "self",
             "value",
             "observed_at",
             "current_configuration"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/produce_publication_sdk_delivery_lookup",
           "parameters": [
             "self",
@@ -6739,10 +6738,10 @@
             "request",
             "original_run",
             "current_configuration"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/produce_publication_sdk_payload_chunk",
           "parameters": [
             "self",
@@ -6752,10 +6751,10 @@
             "clock",
             "current_configuration",
             "eof"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/produce_publication_sdk_payload_receipt",
           "parameters": [
             "self",
@@ -6763,10 +6762,10 @@
             "first",
             "clock",
             "current_configuration"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/produce_publication_sdk_read_delivery_storage",
           "parameters": [
             "self",
@@ -6774,10 +6773,10 @@
             "request",
             "original_run",
             "current_configuration"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/produce_publication_sdk_read_evidence",
           "parameters": [
             "self",
@@ -6786,10 +6785,10 @@
             "original_run",
             "current_configuration",
             "field"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/produce_publication_sdk_read_evidence_decision",
           "parameters": [
             "self",
@@ -6797,10 +6796,10 @@
             "request",
             "original_run",
             "current_configuration"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/produce_publication_sdk_read_grant",
           "parameters": [
             "self",
@@ -6809,10 +6808,10 @@
             "original_run",
             "current_configuration",
             "field"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/produce_publication_sdk_read_original",
           "parameters": [
             "self",
@@ -6822,10 +6821,10 @@
             "current_configuration",
             "ordinal",
             "field"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/produce_publication_sdk_run_state",
           "parameters": [
             "self",
@@ -6833,10 +6832,10 @@
             "original_run",
             "source",
             "current_configuration"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/produce_publication_sdk_terminal_storage",
           "parameters": [
             "self",
@@ -6844,369 +6843,369 @@
             "first",
             "clock",
             "current_configuration"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/produce_result_binding",
           "parameters": [
             "self",
             "value",
             "current_configuration"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/produce_result_chunk",
           "parameters": [
             "self",
             "chunk"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/produce_sdk_bootstrap",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/produce_submission_append",
           "parameters": [
             "self",
             "value",
             "current"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/produce_submission_lookup",
           "parameters": [
             "self",
             "value",
             "current"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/produce_submission_projection",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/publication_commit_material_count",
           "parameters": [
             "self",
             "publication",
             "current_configuration"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/publication_commit_result_count",
           "parameters": [
             "self",
             "publication",
             "current_configuration"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/publication_preflight_result_count",
           "parameters": [
             "self",
             "value",
             "current_configuration"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/publication_sdk_payload_ordinal",
           "parameters": [
             "self",
             "first",
             "current_configuration",
             "field"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/publication_work",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/read_bootstrap",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/read_client_check",
           "parameters": [
             "self",
             "value",
             "current"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/read_host_current",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/read_journal_admission",
           "parameters": [
             "self",
             "value",
             "reader"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/read_material",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/read_native_command",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/read_original_metadata",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/read_payload_allocation",
           "parameters": [
             "self",
             "value",
             "current_configuration"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/read_payload_binding",
           "parameters": [
             "self",
             "value",
             "current_configuration"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/read_payload_chunk",
           "parameters": [
             "self",
             "value",
             "current_configuration"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/read_payload_names",
           "parameters": [
             "self",
             "value",
             "current_configuration"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/read_payload_record",
           "parameters": [
             "self",
             "value",
             "current_configuration"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/read_payload_request",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/read_payload_reservation",
           "parameters": [
             "self",
             "value",
             "current_configuration"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/read_payload_writing",
           "parameters": [
             "self",
             "value",
             "current_configuration"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/read_publication",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/read_publication_commit_export",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/read_publication_commit_material",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/read_publication_preflight",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/read_result_binding",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/read_result_chunk",
           "parameters": [
             "self",
             "chunk"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/read_sdk_bootstrap",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/read_sdk_publication_binding",
           "parameters": [
             "self",
             "value",
             "current"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/read_sdk_start_step",
           "parameters": [
             "self",
             "value",
             "current"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/read_source_free_invocation",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/read_source_publication",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/read_submission_append",
           "parameters": [
             "self",
             "value",
             "current"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/read_submission_lookup",
           "parameters": [
             "self",
             "value",
             "current"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/read_submission_projection",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/read_submitted_run_rows",
           "parameters": [
             "self",
             "value",
             "current"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/reserve_bootstrap",
           "parameters": [
             "self",
             "source",
             "cleanup"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/reserve_client_check",
           "parameters": [
             "self",
@@ -7215,10 +7214,10 @@
             "source",
             "kind",
             "cleanup"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/reserve_host_current",
           "parameters": [
             "self",
@@ -7226,25 +7225,25 @@
             "store",
             "current",
             "cleanup"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/reserve_host_current/retire",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/reserve_input",
           "parameters": [
             "self",
             "payload",
             "cleanup",
             "stopped"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/reserve_journal_observation",
           "parameters": [
             "self",
@@ -7253,25 +7252,25 @@
             "store",
             "current",
             "cleanup"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/reserve_journal_observation/retire",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/reserve_material",
           "parameters": [
             "self",
             "run",
             "kind",
             "cleanup"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/reserve_native_attempt",
           "parameters": [
             "self",
@@ -7281,10 +7280,10 @@
             "settled",
             "stopped",
             "cleaned"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/reserve_native_command",
           "parameters": [
             "self",
@@ -7292,84 +7291,84 @@
             "kind",
             "account",
             "cleanup"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/reserve_native_compute",
           "parameters": [
             "self",
             "attempt",
             "input"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/reserve_next_sdk_task",
           "parameters": [
             "self",
             "compute",
             "current_configuration"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/reserve_original_metadata",
           "parameters": [
             "self",
             "source",
             "kind",
             "cleanup"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/reserve_payload_allocation",
           "parameters": [
             "self",
             "request",
             "kind",
             "cleanup"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/reserve_payload_binding",
           "parameters": [
             "self",
             "record",
             "cleanup"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/reserve_payload_chunk",
           "parameters": [
             "self",
             "request",
             "cleanup"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/reserve_payload_names",
           "parameters": [
             "self",
             "record",
             "cleanup"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/reserve_payload_record",
           "parameters": [
             "self",
             "request",
             "cleanup"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/reserve_payload_request",
           "parameters": [
             "self",
@@ -7377,59 +7376,59 @@
             "index",
             "request",
             "cleanup"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/reserve_payload_reservation",
           "parameters": [
             "self",
             "request",
             "cleanup"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/reserve_payload_writing",
           "parameters": [
             "self",
             "request",
             "kind",
             "cleanup"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/reserve_publication",
           "parameters": [
             "self",
             "source",
             "request",
             "cleanup"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/reserve_publication_commit_export",
           "parameters": [
             "self",
             "publication",
             "cleanup",
             "maximum"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/reserve_publication_preflight",
           "parameters": [
             "self",
             "source",
             "request",
             "cleanup"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/reserve_publisher",
           "parameters": [
             "self",
@@ -7438,10 +7437,10 @@
             "current",
             "authorize",
             "cleanup"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/reserve_result_binding",
           "parameters": [
             "self",
@@ -7449,86 +7448,86 @@
             "index",
             "observations",
             "cleanup"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/reserve_result_chunk",
           "parameters": [
             "self",
             "result",
             "cleanup"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/reserve_result_export",
           "parameters": [
             "self",
             "task",
             "index"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/reserve_result_from_compute",
           "parameters": [
             "self",
             "compute",
             "index",
             "current_configuration"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/reserve_saved_payload_record",
           "parameters": [
             "self",
             "original",
             "cleanup"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/reserve_saved_result_export",
           "parameters": [
             "self",
             "original",
             "cleanup",
             "maximum"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/reserve_sdk_bootstrap",
           "parameters": [
             "self",
             "source",
             "cleanup"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/reserve_source_free_invocation",
           "parameters": [
             "self",
             "compute",
             "source",
             "cleanup"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/reserve_source_publication",
           "parameters": [
             "self",
             "compute",
             "source",
             "cleanup"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/reserve_submission_projection",
           "parameters": [
             "self",
@@ -7536,10 +7535,10 @@
             "source",
             "kind",
             "cleanup"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/reserve_submitted_run_rows",
           "parameters": [
             "self",
@@ -7547,160 +7546,160 @@
             "current",
             "source",
             "cleanup"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/reserve_task",
           "parameters": [
             "self",
             "compute",
             "current_configuration"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/reserve_workspace",
           "parameters": [
             "self",
             "bytes",
             "stopped",
             "cleanup"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/result_chunk_finished",
           "parameters": [
             "self",
             "chunk"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/retire_material_output",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/retire_publication_lookup",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/retire_publication_observation",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/retire_publication_output",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/retire_publication_preflight_output",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/retire_publication_sdk_delivery_output",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/retire_submission_append_output",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/seal_input",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/source_publication_work",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/start_native_attempt",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/start_payload_replay",
           "parameters": [
             "self",
             "value",
             "current_configuration"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/start_result_export",
           "parameters": [
             "self",
             "result"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/start_task",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/validate_host_current",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/validate_payload_snapshot",
           "parameters": [
             "self",
             "value",
             "observation",
             "current_configuration"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/validate_publication_commit_payload_binding",
           "parameters": [
             "self",
@@ -7709,29 +7708,29 @@
             "current_configuration",
             "result",
             "binding_index"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/validate_publication_run",
           "parameters": [
             "self",
             "value",
             "original_run",
             "current_configuration"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/validate_publication_sdk_run_state",
           "parameters": [
             "self",
             "value",
             "current_configuration"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/validate_saved_payload_binding",
           "parameters": [
             "self",
@@ -7740,180 +7739,180 @@
             "current_configuration",
             "result",
             "binding_index"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/validate_sdk_publication_binding",
           "parameters": [
             "self",
             "value",
             "current"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/validate_sdk_start_step",
           "parameters": [
             "self",
             "value",
             "current"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/validate_submission_append",
           "parameters": [
             "self",
             "value",
             "current"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/validate_submission_lookup",
           "parameters": [
             "self",
             "value",
             "current"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCore/validate_submitted_run_rows",
           "parameters": [
             "self",
             "value",
             "current"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCoreError",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCoreError/__init__",
           "parameters": [
             "self",
             "operation",
             "code"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCoreInitializationError",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCoreInitializationError/__init__",
           "parameters": [
             "self",
             "cleanup_core"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCoreResources",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalCoreResources/valid",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalNativeCapacity",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalResultProgress",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalTaskProgress",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "_Compute",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "_Input",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "_NativeAttempt",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "_Output",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "_PhysicalInput",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "_PublisherCallbacks",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "_PublisherFact",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "_ResultExport",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "_Task",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "_Workspace",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "_publisher_fact",
           "parameters": [
             "payload"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_publisher_fact/closed_pairs",
           "parameters": [
             "pairs"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_signature",
           "parameters": [
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_valid_core_limits",
           "parameters": [
             "transfer_capacity",
@@ -7921,18 +7920,19 @@
             "fuel",
             "resources",
             "host_capacity_bytes"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_validate_core_module",
           "parameters": [
             "wasmtime",
             "module"
-          ]
+          ],
+          "async": false
         }
       ],
-      "sha256": "0dbf934c2efbaf9bc347ec5431cbfe803d630726b496b16127258d797669c69a",
+      "sha256": "ae440913b5efbcea07a8ef222abad68d3bc5687fc211332d0b9e1e2f44be9985",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -15197,73 +15197,135 @@
       "responsibilityFacet": "primary",
       "operations": [
         {
-          "async": false,
           "name": "LocalComponentReadCleanupPending",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalComponentReadCleanupPending/__init__",
           "parameters": [
             "self",
             "descriptor"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalComponents",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalInstallationError",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
+          "name": "_OriginalComponentFile",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "_OriginalComponentFile/__exit__",
+          "parameters": [
+            "self",
+            "kind",
+            "primary",
+            "trace"
+          ],
+          "async": false
+        },
+        {
+          "name": "_OriginalComponentFile/__init__",
+          "parameters": [
+            "self",
+            "path",
+            "expected",
+            "digest"
+          ],
+          "async": false
+        },
+        {
+          "name": "_OriginalComponentFile/_retain",
+          "parameters": [
+            "self",
+            "source",
+            "before",
+            "digest"
+          ],
+          "async": false
+        },
+        {
+          "name": "_OriginalComponentFile/_snapshot",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "_OriginalComponentFile/close",
+          "parameters": [
+            "self"
+          ],
+          "async": false
+        },
+        {
+          "name": "_OriginalComponentFile/observe",
+          "parameters": [
+            "self"
+          ],
+          "async": false
+        },
+        {
+          "name": "_OriginalComponentFile/read",
+          "parameters": [
+            "self"
+          ],
+          "async": false
+        },
+        {
           "name": "_closed",
           "parameters": [
             "value",
             "fields"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_component",
           "parameters": [
             "root",
             "value",
             "filename",
             "maximum"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_hex",
           "parameters": [
             "value",
             "length"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_inspect_local_components_for_packaging",
           "parameters": [
             "root",
             "target_platform",
             "package_version",
             "artifact_sha256"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_pairs",
           "parameters": [
             "pairs"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_read_file",
           "parameters": [
             "path",
@@ -15271,40 +15333,42 @@
             "expected",
             "digest",
             "capture",
-            "prefix"
-          ]
+            "prefix",
+            "_original"
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_valid_image_header",
           "parameters": [
             "header",
             "size"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "inspect_local_components",
           "parameters": [
             "root",
             "package_version",
             "artifact_sha256"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "installed_local_components",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "load_local_module",
           "parameters": [
             "components"
-          ]
+          ],
+          "async": false
         }
       ],
-      "sha256": "d22b730553bef0148c6cd26a41039b8f9fc77927520180e3da2d1fe0f465480d",
+      "sha256": "087aaf3780bb5bacd082ff241da304ff081bfae1e5a36e7b10fe8b321c2ff394",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -17210,6 +17274,133 @@
               {
                 "path": "packages/python-sdk/tests/test_release_packaging_target.py",
                 "anchor": "def test_packaging_keeps_original_producer_library_target_and_abi_refusal("
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "_OriginalComponentFile",
+            "_OriginalComponentFile/__exit__",
+            "_OriginalComponentFile/__init__",
+            "_OriginalComponentFile/_retain",
+            "_OriginalComponentFile/_snapshot",
+            "_OriginalComponentFile/close",
+            "_OriginalComponentFile/observe",
+            "_OriginalComponentFile/read"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
+                "anchor": "class _OriginalComponentFile:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Initialization component observation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
+                "anchor": "class _OriginalComponentFile:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Initialization component observation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
+                "anchor": "class _OriginalComponentFile:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Initialization component observation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
+                "anchor": "class _OriginalComponentFile:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Initialization component observation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
+                "anchor": "class _OriginalComponentFile:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Initialization component observation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
+                "anchor": "class _OriginalComponentFile:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Initialization component observation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
+                "anchor": "class _OriginalComponentFile:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Initialization component observation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
+                "anchor": "class _OriginalComponentFile:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Initialization component observation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
+                "anchor": "class _OriginalComponentFile:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Initialization component observation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
+                "anchor": "class _OriginalComponentFile:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Initialization component observation"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_provider_link.py",
+                "anchor": "def test_same_loader_and_holding_link_keep_one_hash_and_close_both_original_fds("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_provider_link.py",
+                "anchor": "def test_mutation_or_replacement_during_address_casts_refuses_and_closes_originals("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_provider_link.py",
+                "anchor": "def test_linkage_error_and_unconfirmed_file_close_keep_both_causes_and_other_fd_closes("
               }
             ]
           }
@@ -20750,6 +20941,7 @@
         "._local_distribution",
         "._local_image_recipe",
         "__future__",
+        "contextlib",
         "ctypes",
         "dataclasses",
         "hashlib",
@@ -20762,31 +20954,88 @@
       "responsibilityFacet": "primary",
       "operations": [
         {
-          "async": false,
+          "name": "_InitializationLibraryFiles",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "_InitializationLibraryFiles/__enter__",
+          "parameters": [
+            "self"
+          ],
+          "async": false
+        },
+        {
+          "name": "_InitializationLibraryFiles/__exit__",
+          "parameters": [
+            "self",
+            "*failure"
+          ],
+          "async": false
+        },
+        {
+          "name": "_InitializationLibraryFiles/__init__",
+          "parameters": [
+            "self",
+            "recipe",
+            "runtime_library"
+          ],
+          "async": false
+        },
+        {
+          "name": "_InitializationLibraryFiles/_read",
+          "parameters": [
+            "self",
+            "path",
+            "size",
+            "digest"
+          ],
+          "async": false
+        },
+        {
+          "name": "_InitializationLibraryFiles/_require",
+          "parameters": [
+            "self",
+            "recipe",
+            "runtime_library"
+          ],
+          "async": false
+        },
+        {
+          "name": "_InitializationLibraryFiles/observe",
+          "parameters": [
+            "self",
+            "recipe",
+            "runtime_library",
+            "provider"
+          ],
+          "async": false
+        },
+        {
           "name": "_InstalledImageFileInput",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "_InstalledImageInput",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "_checked_installed_image",
           "parameters": [
             "components"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_checked_installed_image_file",
           "parameters": [
             "components"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_configure_selected_engine",
           "parameters": [
             "config",
@@ -20794,67 +21043,71 @@
             "ffi",
             "wasmtime",
             "recipe"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_installed_runtime_library",
           "parameters": [
             "components",
             "native"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_platform_runtime_library",
           "parameters": [
             "recipe"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_selected_engine_settings",
           "parameters": [
             "recipe"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_verify_loaded_runtime",
           "parameters": [
             "image",
-            "ffi"
-          ]
+            "ffi",
+            "_initialization_files"
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_verify_original_provider",
           "parameters": [
             "library",
             "recipe"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_verify_original_provider_link",
           "parameters": [
             "image",
             "runtime",
-            "provider"
-          ]
+            "provider",
+            "_initialization_files"
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_verify_selected_provider_link",
           "parameters": [
             "recipe",
             "runtime_library",
             "runtime",
-            "provider"
-          ]
+            "provider",
+            "_initialization_files"
+          ],
+          "async": false
         }
       ],
-      "sha256": "9e7d5eee280d393dbd02be53f2d877af64af232c82f498b3cb52402c5b289c6b",
+      "sha256": "9748e31e86c721b6cf22c033e253efb58bd11578e243b458ada72890fbee5445",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -22453,6 +22706,132 @@
               {
                 "path": "packages/python-sdk/tests/test_local_installed_image.py",
                 "anchor": "def test_exact_config_and_unused_pools_without_new_limits("
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "_InitializationLibraryFiles",
+            "_InitializationLibraryFiles/__enter__",
+            "_InitializationLibraryFiles/__exit__",
+            "_InitializationLibraryFiles/__init__",
+            "_InitializationLibraryFiles/_read",
+            "_InitializationLibraryFiles/_require",
+            "_InitializationLibraryFiles/observe"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_engine.py",
+                "anchor": "class _InitializationLibraryFiles:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Initialization component observation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_engine.py",
+                "anchor": "class _InitializationLibraryFiles:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Initialization component observation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_engine.py",
+                "anchor": "class _InitializationLibraryFiles:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Initialization component observation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_engine.py",
+                "anchor": "class _InitializationLibraryFiles:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Initialization component observation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_engine.py",
+                "anchor": "class _InitializationLibraryFiles:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Initialization component observation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_engine.py",
+                "anchor": "class _InitializationLibraryFiles:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Initialization component observation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_engine.py",
+                "anchor": "class _InitializationLibraryFiles:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Initialization component observation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_engine.py",
+                "anchor": "class _InitializationLibraryFiles:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Initialization component observation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_engine.py",
+                "anchor": "class _InitializationLibraryFiles:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Initialization component observation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_engine.py",
+                "anchor": "class _InitializationLibraryFiles:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Initialization component observation"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_provider_link.py",
+                "anchor": "def test_same_loader_and_holding_link_keep_one_hash_and_close_both_original_fds("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_provider_link.py",
+                "anchor": "def test_mutation_or_replacement_during_address_casts_refuses_and_closes_originals("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_provider_link.py",
+                "anchor": "def test_linkage_error_and_unconfirmed_file_close_keep_both_causes_and_other_fd_closes("
               }
             ]
           }
@@ -34502,94 +34881,93 @@
       "responsibilityFacet": "primary",
       "operations": [
         {
-          "async": false,
           "name": "NativeHoldingInitializationError",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "NativeHoldingInitializationError/__init__",
           "parameters": [
             "self",
             "holding"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "NativeHoldingObservationError",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "NativeHoldingObservationError/__init__",
           "parameters": [
             "self",
             "operation",
             "code"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "NativeHoldingRetirementError",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "NativeHoldingRetirementError/__init__",
           "parameters": [
             "self",
             "code"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "NativeHoldingScopeError",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "NativeHoldingScopeError/__init__",
           "parameters": [
             "self",
             "operation",
             "code"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "NativeHoldingTransferError",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "NativeHoldingTransferError/__init__",
           "parameters": [
             "self",
             "code"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_NativeHoldingLease",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "_NativeHoldingLease/__copy__",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_NativeHoldingLease/__deepcopy__",
           "parameters": [
             "self",
             "memo"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_NativeHoldingLease/__init__",
           "parameters": [
             "self",
@@ -34597,33 +34975,33 @@
             "library",
             "generation",
             "recipe"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_NativeHoldingLease/_bind_core",
           "parameters": [
             "self",
             "identity"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_NativeHoldingLease/_capacity_bytes",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_NativeHoldingLease/_close_borrowed_slot",
           "parameters": [
             "self",
             "slot"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_NativeHoldingLease/_from_native_provider",
           "parameters": [
             "cls",
@@ -34631,18 +35009,18 @@
             "library",
             "generation",
             "recipe"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_NativeHoldingLease/_from_original_borrow",
           "parameters": [
             "cls",
             "borrow"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_NativeHoldingLease/_initialize_original",
           "parameters": [
             "self",
@@ -34651,66 +35029,68 @@
             "generation",
             "recipe",
             "prefix"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_NativeHoldingLease/_original_span_offset",
           "parameters": [
             "self",
             "address",
             "length"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_NativeHoldingLease/_require_confirmed_retirement_state",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_NativeHoldingLease/_require_live_span",
           "parameters": [
             "self",
             "address",
             "length"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_NativeHoldingLease/_scope",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_NativeHoldingLease/_transfer_to_core",
           "parameters": [
             "self",
             "identity"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_NativeHoldingLease/_verify_library",
           "parameters": [
             "self",
             "library",
-            "_installed_image"
-          ]
+            "_installed_image",
+            "_initialization_files"
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_NativeHoldingLease/close",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         }
       ],
-      "sha256": "da8dcd74603860ba2b837c8a3b47742f53868026b368a9870a81c8913c542aad",
+      "sha256": "d38114467bb712122be2758e97e356f4abf7e9c760c9456f2579c4f05214dcb8",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [

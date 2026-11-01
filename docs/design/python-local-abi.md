@@ -1988,6 +1988,34 @@ inspection returns. A changed file or failed ordinal therefore rolls back the
 whole group. A failed COMMIT still retains the same Unknown attempt and child
 cleanup responsibility. No fact observation is reused by another transaction.
 
+### Initialization component observation
+
+The synchronous initializer performs its complete selected runtime/provider
+byte and digest observation after native loading and before Config/Engine
+construction. It retains at most those two original read-only descriptors
+through the immediate loaded-symbol comparison, then closes them through the
+existing one-shot descriptor carrier. There is no intervening native call,
+callback, await or new authority. A standalone linkage check owns its own
+identical bounded observation; later initializers never reuse it.
+
+The scope binds the same original recipe and exact runtime path. Before and
+after the thirteen address comparisons it checks the retained FD and named
+regular file against the original device, inode, size, nanosecond modification
+and change times, mode and owner. Replacement, symlinked provider directories,
+mutation, foreign/copy/retired scope, or mismatched imported addresses refuse.
+The full load-boundary digest, selected library names and ABI/symbol checks
+remain independent. File identity does not issue current permission or prove
+that code has loaded, linked, executed or retired successfully.
+
+The original initialization scope closes both selected descriptors on success
+or failure. An unconfirmed close keeps that same descriptor carrier plus the
+original validation and cleanup causes; no descriptor number is retried or
+reopened. Initialization failure retains the existing Core/holding cleanup
+owner. There is no cancellation permit, persistent path/mtime cache, global
+memoization, image cache, new capacity allowance or successful grant retained
+past this read-only sequence. Per-file open/hash-byte counters are diagnostic
+components and remain separate from uninstrumented Run/Result/Saved timing.
+
 Private ABI 48 connects the original complete journal inspection to a trusted
 same-Store physical port. The Core sends a bounded namespace/key request for
 `scan_after` or exact `read`; the Host returns the actual raw key, Int64 revision

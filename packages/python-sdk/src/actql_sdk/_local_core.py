@@ -468,11 +468,15 @@ class LocalCore:
                     raise RuntimeError('Python Local requires the optional Wasmtime runtime') from error
                 if _compiled_image is not None:
                     _compiled_image.recipe.validate()
-                    from ._local_engine import _configure_selected_engine, _verify_loaded_runtime
+                    from ._local_engine import (_configure_selected_engine, _verify_loaded_runtime,
+                                                _InitializationLibraryFiles)
                     ffi = import_module(runtime_name + '._ffi')
-                    _verify_loaded_runtime(_compiled_image, ffi)
-                    if self._physical_holding is not None:
-                        self._physical_holding._verify_library(ffi.dll, _installed_image=_compiled_image)
+                    with _InitializationLibraryFiles(_compiled_image.recipe,
+                                                     _compiled_image.runtime_library) as originals:
+                        _verify_loaded_runtime(_compiled_image, ffi, _initialization_files=originals)
+                        if self._physical_holding is not None:
+                            self._physical_holding._verify_library(ffi.dll, _installed_image=_compiled_image,
+                                                                  _initialization_files=originals)
                 self._engine_configuration = wasmtime.Config()
                 if _compiled_image is None:
                     # Original raw-Wasm physical diagnostics remain separately

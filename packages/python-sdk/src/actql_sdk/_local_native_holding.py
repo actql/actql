@@ -167,7 +167,8 @@ class _NativeHoldingLease:
             raise NativeHoldingTransferError(code if type(code) is int else None)
 
     def _verify_library(self, library: Any, *,
-                        _installed_image: _InstalledImageFileInput | _InstalledImageInput | None = None) -> None:
+                        _installed_image: _InstalledImageFileInput | _InstalledImageInput | None = None,
+                        _initialization_files: Any = None) -> None:
         self._require_confirmed_retirement_state()
         if library is self._library:
             return
@@ -180,7 +181,11 @@ class _NativeHoldingLease:
         if self._pointer.value is None:
             raise ValueError('Original native holding is retired')
         original = self._library
-        _verify_original_provider_link(_installed_image, library, original)
+        if _initialization_files is None:
+            _verify_original_provider_link(_installed_image, library, original)
+        else:
+            _verify_original_provider_link(_installed_image, library, original,
+                                           _initialization_files=_initialization_files)
         self._require_confirmed_retirement_state()
         if self._library is not original or self._pointer.value is None:
             raise ValueError('Original native holding changed during provider verification')
