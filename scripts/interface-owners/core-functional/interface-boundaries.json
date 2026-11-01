@@ -281,7 +281,7 @@
     },
     {
       "module": "adapters/host-common/runtime-core.mjs",
-      "sha256": "175c6c0aae154207b2929cdb76e93bd85c795b859ccc3b3583e0100c8fff69e9",
+      "sha256": "ffbee89697b621f9ea79e897b9cc7b5f8af28cd99c2a68132eaaffdf6a3649b3",
       "role": "physical-io",
       "exports": [
         "contentCaptureControl",
@@ -813,6 +813,20 @@
             "task",
             "step",
             "maxWork"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:prepareModelRequestPrefix/init:prepareModelRequestPrefix",
+          "parameters": [
+            "parent",
+            "input",
+            "request",
+            "compiled",
+            "definition",
+            "limits",
+            "workspace",
+            "queryTime"
           ],
           "async": false
         },
@@ -4290,19 +4304,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:prepareCheckedClientMockModelSourceFreePlan/init:prepareCheckedClientMockModelSourceFreePlan",
-          "parameters": [
-            "original",
-            "request",
-            "compiled",
-            "definition",
-            "occurrence",
-            "graph",
-            "selected"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:prepareCheckedClientRequestAcquiredSerializationGraph/init:prepareCheckedClientRequestAcquiredSerializationGraph",
           "parameters": [
             "parent",
@@ -4321,6 +4322,51 @@
             "input",
             "selected",
             "graph"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareCheckedClientRequestModelSerializationPlan/init:prepareCheckedClientRequestModelSerializationPlan",
+          "parameters": [
+            "parent",
+            "input",
+            "request",
+            "compiled",
+            "definition",
+            "limits",
+            "workspace",
+            "queryTime"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareCheckedClientRequestModelSourceFreePlan/init:prepareCheckedClientRequestModelSourceFreePlan",
+          "parameters": [
+            "parent",
+            "input",
+            "original",
+            "request",
+            "compiled",
+            "definition",
+            "occurrence",
+            "graph",
+            "selected"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareCheckedClientRequestNodeModelSourceFreePlan/init:prepareCheckedClientRequestNodeModelSourceFreePlan",
+          "parameters": [
+            "parent",
+            "input",
+            "original",
+            "request",
+            "compiled",
+            "definition",
+            "occurrence",
+            "graph",
+            "selected",
+            "installation"
           ],
           "async": false
         },
@@ -11081,104 +11127,149 @@
         {
           "operations": [
             "publicationControl/init:bindCheckedClientMockModelCapturePlan/init:bindCheckedClientMockModelCapturePlan",
-            "publicationControl/init:prepareCheckedClientMockModelSourceFreePlan/init:prepareCheckedClientMockModelSourceFreePlan"
+            "publicationControl/init:prepareCheckedClientRequestModelSourceFreePlan/init:prepareCheckedClientRequestModelSourceFreePlan",
+            "publicationControl/init:prepareCheckedClientRequestNodeModelSourceFreePlan/init:prepareCheckedClientRequestNodeModelSourceFreePlan"
           ],
           "exports": [],
           "attributes": {
             "responsibility": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "    prepareCheckedClientMockModelSourceFreePlan("
+                "anchor": "    prepareCheckedClientRequestModelSourceFreePlan("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "    prepareCheckedClientMockModelSourceFreePlan("
+                "anchor": "    prepareCheckedClientRequestModelSourceFreePlan("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "identity": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "    prepareCheckedClientMockModelSourceFreePlan("
+                "anchor": "    prepareCheckedClientRequestModelSourceFreePlan("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "    prepareCheckedClientMockModelSourceFreePlan("
+                "anchor": "    prepareCheckedClientRequestModelSourceFreePlan("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "    prepareCheckedClientMockModelSourceFreePlan("
+                "anchor": "    prepareCheckedClientRequestModelSourceFreePlan("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "failure": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "    prepareCheckedClientMockModelSourceFreePlan("
+                "anchor": "    prepareCheckedClientRequestModelSourceFreePlan("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "    prepareCheckedClientMockModelSourceFreePlan("
+                "anchor": "    prepareCheckedClientRequestModelSourceFreePlan("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "resources": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "    prepareCheckedClientMockModelSourceFreePlan("
+                "anchor": "    prepareCheckedClientRequestModelSourceFreePlan("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "extension": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "    prepareCheckedClientMockModelSourceFreePlan("
+                "anchor": "    prepareCheckedClientRequestModelSourceFreePlan("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "verification": [
               {
                 "path": "adapters/host-node/client-compilation-original.test.mjs",
                 "anchor": "actual Model Plan bindings retain module"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
+                "anchor": "installed Model caller cuts"
               }
             ]
           }
@@ -11186,10 +11277,12 @@
         {
           "operations": [
             "contentGenerationControl/init:cleanupRequestPrefix/init:cleanupRequestPrefix",
+            "contentGenerationControl/init:prepareModelRequestPrefix/init:prepareModelRequestPrefix",
             "contentGenerationControl/init:prepareRequestPrefix/init:prepareRequestPrefix",
             "contentGenerationControl/init:requestPrefixCapacity/init:requestPrefixCapacity",
             "contentGenerationControl/init:requestPrefixCapacity/init:requestPrefixCapacity/init:requestPrefixCapacity",
             "contentGenerationControl/init:startRequestPrefix/init:startRequestPrefix",
+            "publicationControl/init:prepareCheckedClientRequestModelSerializationPlan/init:prepareCheckedClientRequestModelSerializationPlan",
             "publicationControl/init:prepareCheckedClientRequestSerializationCompilation/init:prepareCheckedClientRequestSerializationCompilation",
             "publicationControl/init:prepareCheckedClientRequestSerializationPlan/init:prepareCheckedClientRequestSerializationPlan"
           ],
@@ -15371,7 +15464,7 @@
     },
     {
       "module": "adapters/host-node/installed-infer-run.mjs",
-      "sha256": "f033485fd23383b134fd004eff3fab9afc8ebdc6dd2416682b1d82df757f975e",
+      "sha256": "ed408ada8ecc4480440a598a28361c147972b886bb23b37a6a144598ef035f23",
       "role": "physical-io",
       "exports": [
         "installNodeInferRun"
@@ -15400,6 +15493,7 @@
             "runContent",
             "prepareKeyedRecovery",
             "prepareOriginalMockRun",
+            "prepareOriginalModelRun",
             "computeConfigurations"
           ],
           "async": false
@@ -15503,6 +15597,11 @@
           "parameters": [
             "value"
           ],
+          "async": false
+        },
+        {
+          "name": "installNodeInferRun/run/run/prepareRead/prepareRead",
+          "parameters": [],
           "async": false
         },
         {
@@ -15621,6 +15720,7 @@
             "installNodeInferRun/run/run/generated/init:retainExecution/init:retainExecution",
             "installNodeInferRun/run/run/init:retainCopy/init:retainCopy",
             "installNodeInferRun/run/run/init:retainOperation/init:retainOperation",
+            "installNodeInferRun/run/run/prepareRead/prepareRead",
             "installNodeInferRun/run/run/run",
             "installNodeInferRun/run/run/run#10",
             "installNodeInferRun/run/run/run#11",
@@ -15653,6 +15753,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "inputsOutputs": [
@@ -15663,6 +15767,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "identity": [
@@ -15673,6 +15781,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "ownership": [
@@ -15683,6 +15795,10 @@
               {
                 "path": "docs/design/infer-async-response-custody.md",
                 "anchor": "# Retained asynchronous Model response custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "synchronization": [
@@ -15693,6 +15809,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "failure": [
@@ -15703,6 +15823,10 @@
               {
                 "path": "docs/design/infer-async-response-custody.md",
                 "anchor": "# Retained asynchronous Model response custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "cancellation": [
@@ -15713,6 +15837,10 @@
               {
                 "path": "docs/design/infer-async-response-custody.md",
                 "anchor": "# Retained asynchronous Model response custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "resources": [
@@ -15723,6 +15851,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "extension": [
@@ -15733,6 +15865,10 @@
               {
                 "path": "docs/design/infer-async-response-custody.md",
                 "anchor": "# Retained asynchronous Model response custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "verification": [
@@ -15743,6 +15879,14 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
+                "anchor": "installed Model caller cuts"
               }
             ]
           }
@@ -34680,7 +34824,7 @@
     },
     {
       "module": "src/run_publication_host/client_pure_compilation_construction.mbt",
-      "sha256": "632cf5596842da0a638a37c75d392c7b5e62c2d61578df68557ae3fb5a83aa49",
+      "sha256": "cf2382bd27315655635615d9a6638aac97e7890f19ec0edf7b2a3b5ef9397638",
       "exports": [],
       "operations": [
         {
@@ -34696,8 +34840,20 @@
           "declaration": "measure_client_compilation_array ( values : Array [ ( Int , Int , Int ) ] , ) - > ( Int , Int , Int ) raise @ encode . EncodeFailure"
         },
         {
+          "name": "measure_client_compilation_final_construction",
+          "declaration": "measure_client_compilation_final_construction ( value : PreparedClientProgram , manifests : ClientCompilationManifests , max_facts : Int , max_witnesses : Int , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , tasks : Bool , fragments : Array [ ClientTaskFragmentConstruction ] , borrowed_inputs : Array [ ( Int , Int , Int ) ] , results : Array [ ( Int , Int , Int ) ] , projections : Array [ ClientResultGraphConstruction ] , names : Array [ String ] , result_cids : Array [ Unit ] , graph_nodes : Array [ ( Int , Int , Int ) ] , graph_edges : Array [ ( Int , Int , Int ) ] , graph_roots : Array [ ( Int , Int , Int ) ] , required_profiles : Array [ ( String , Unit ) ] , ) - > Result [ ClientPureCompilationConstruction , ClientValuesExecutablePlanIssue ]"
+        },
+        {
           "name": "measure_client_values_fragment_construction",
           "declaration": "measure_client_values_fragment_construction ( value : PreparedClientProgram , limits : @ lower . SequenceLimits , bytes : Int , nodes : Int , depth : Int , ) - > Result [ ClientTaskFragmentConstruction , ClientValuesFragmentIssue ]"
+        },
+        {
+          "name": "measure_prepared_client_compilation_construction_owned",
+          "declaration": "measure_prepared_client_compilation_construction_owned ( value : PreparedClientProgram , manifests : ClientCompilationManifests , sequence_limits : @ lower . SequenceLimits , max_facts : Int , max_witnesses : Int , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , components : Array [ ClientInferPlanGraph ] , ) - > Result [ ClientPureCompilationConstruction , ClientValuesExecutablePlanIssue ]"
+        },
+        {
+          "name": "measure_prepared_client_model_compilation_construction",
+          "declaration": "measure_prepared_client_model_compilation_construction ( value : PreparedClientProgram , components : Array [ ClientInferPlanGraph ] , manifests : ClientCompilationManifests , sequence_limits : @ lower . SequenceLimits , max_facts : Int , max_witnesses : Int , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ClientPureCompilationConstruction , ClientValuesExecutablePlanIssue ]"
         },
         {
           "name": "measure_prepared_client_pure_compilation_construction",
@@ -34714,7 +34870,10 @@
             "client_compilation_successful_geometry",
             "client_standard_pure_compilation_limits",
             "measure_client_compilation_array",
+            "measure_client_compilation_final_construction",
             "measure_client_values_fragment_construction",
+            "measure_prepared_client_compilation_construction_owned",
+            "measure_prepared_client_model_compilation_construction",
             "measure_prepared_client_pure_compilation_construction"
           ],
           "exports": [],
@@ -39945,7 +40104,7 @@
     {
       "module": "src/connectors_builtin_node/client_preparation_root_bridge.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "8018518b5eccfd2b3b33c06f973ea5b93b61ca5afdb7276fbdffae6ef656199d",
+      "sha256": "10ec20ad17a4042c725b7e73ecf21bfb37946e00cc4e979ff73868e74c1087f2",
       "role": "common-semantics",
       "owner": "Existing Request preparation and Resource body owners; Node projection only",
       "exports": [],
@@ -40035,6 +40194,10 @@
           "declaration": "client_program_complete_request_model_preparation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , plan : @ client_local_host . ClientInstalledManagedModelPlan , ) - > Result [ Unit , @ client_local_host . ClientRequestPreparationIssue ]"
         },
         {
+          "name": "client_program_complete_request_serialization_preparation",
+          "declaration": "client_program_complete_request_serialization_preparation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , selected : @ client_local_host . ClientInstalledManagedSerializationPreparation , ) - > Result [ Unit , @ client_local_host . ClientRequestPreparationIssue ]"
+        },
+        {
           "name": "client_program_construct_program_json_preparation",
           "declaration": "client_program_construct_program_json_preparation ( owner : @ client_local_host . ClientProgramJsonPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , ) - > Result [ Unit , @ client_local_host . ClientProgramJsonPreparationIssue ]"
         },
@@ -40091,6 +40254,10 @@
           "declaration": "client_program_preparation_capacity_refusal ( issue : @ client_local_host . ClientClosedValuesPreparationIssue , ) - > ( String , String , Int64 , Int64 , Int64 , Int64 ) ?"
         },
         {
+          "name": "client_program_prepare_installed_effect_capture_recovery",
+          "declaration": "client_program_prepare_installed_effect_capture_recovery ( parent : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , definition : @ publication . PublicationContract , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ @ client_local_host . ClientInstalledEffectCaptureRecovery , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
           "name": "client_program_prepare_local_preparation_admission",
           "declaration": "client_program_prepare_local_preparation_admission ( original : @ resources . OriginalNodeManagedRunReference , input : ClientLocalPreparationInputOriginal , ) - > Result [ @ resources . NodePreparationAdmission [ ClientLocalPreparationInputOriginal ] , @ resources . ImportedChildLedgerIssue , ]"
         },
@@ -40135,6 +40302,10 @@
           "declaration": "client_program_prepare_program_check_views ( owner : @ client_local_host . ClientProgramCheckPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , ) - > Result [ @ program_check . ParsedCheckRegistry , @ client_local_host . ClientProgramCheckPreparationIssue , ]"
         },
         {
+          "name": "client_program_prepare_request_acquired_serialization_graph",
+          "declaration": "client_program_prepare_request_acquired_serialization_graph ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , task : Int , step : Int , max_rows : Int , max_bytes : Int , include_results : Bool , contracts : @ client_local_host . ClientInstalledSequenceContracts , ) - > Result [ @ publication_host . ClientSerializationPlanGraph , ClientRequestProgramModuleBridgeIssue , ]"
+        },
+        {
           "name": "client_program_prepare_request_computation_check",
           "declaration": "client_program_prepare_request_computation_check ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , environment : @ program_check . CheckEnvironment , supplied : @ decode . Cursor ? , evidence : Array [ @ context . StageCapacityInput ] , program_limits : @ publication_host . ClientProgramPreparationLimits , effect_limits : @ publication_host . ClientEffectComputationLimits , source_catalog : @ program_check . PreparedSourceCatalog ? , source_preparation : @ stage_parameters . Source ? , ) - > Result [ @ client_local_host . ClientProgramCheckPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , @ client_local_host . ClientRequestPreparationIssue , ]"
         },
@@ -40143,12 +40314,36 @@
           "declaration": "client_program_prepare_request_effect_model_read_scope ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , plan : @ client_local_host . ClientInstalledEffectManagedPlan , ) - > Result [ @ publication_host . ClientModelReadScope , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
+          "name": "client_program_prepare_request_keyed_serialization_compilation",
+          "declaration": "client_program_prepare_request_keyed_serialization_compilation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , selected : @ client_local_host . ClientInstalledManagedKeyedPreparation , component : @ publication_host . ClientSerializationPlanGraph , ) - > Result [ @ publication_host . ClientTaskCompilation , ClientRequestProgramModuleBridgeIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_request_model_capture_module",
+          "declaration": "client_program_prepare_request_model_capture_module ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , compilation : @ publication_host . ClientTaskCompilation , declarations : Array [ @ client_row_source_host . RowDeclaration ] , query_contract_body : String , evidence_contract_body : String , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , contracts : @ client_local_host . ClientInstalledSequenceContracts , retained_output : Bool , query_time : @ publication_host . ClientQueryTimePreparation ? , ) - > Result [ @ client_local_host . ClientInstalledManagedCapturePlan , ClientRequestProgramModuleBridgeIssue , ]"
+        },
+        {
           "name": "client_program_prepare_request_model_compilation",
           "declaration": "client_program_prepare_request_model_compilation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , graph : @ publication_host . ClientInferPlanGraph , contracts : @ client_local_host . ClientInstalledSequenceContracts , ) - > Result [ @ publication_host . ClientTaskCompilation , ClientRequestProgramModuleBridgeIssue , ]"
         },
         {
+          "name": "client_program_prepare_request_model_contract_materials",
+          "declaration": "client_program_prepare_request_model_contract_materials ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , count : Int , wire_at : ( Int ) - > String , container_count : Int , ) - > Result [ Unit , ClientRequestProgramModuleBridgeIssue ]"
+        },
+        {
+          "name": "client_program_prepare_request_model_graph",
+          "declaration": "client_program_prepare_request_model_graph ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , occurrence : @ publication_host . ClientInferOccurrence , execution : @ check_environment . ModelExecutionContract , contracts : @ client_local_host . ClientInstalledSequenceContracts , ) - > Result [ @ publication_host . ClientInferPlanGraph , ClientRequestProgramModuleBridgeIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_request_model_provider_binding",
+          "declaration": "client_program_prepare_request_model_provider_binding ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , provider_id : String , installation : String , contract : String , configuration : String , ) - > Result [ @ publication . RunEvidenceValue , ClientRequestProgramModuleBridgeIssue , ]"
+        },
+        {
           "name": "client_program_prepare_request_model_read_scope",
           "declaration": "client_program_prepare_request_model_read_scope ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , plan : @ client_local_host . ClientInstalledManagedModelPlan , ) - > Result [ @ publication_host . ClientModelReadScope , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_request_model_source_free_module",
+          "declaration": "client_program_prepare_request_model_source_free_module ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , compilation : @ publication_host . ClientTaskCompilation , contracts : @ client_local_host . ClientInstalledSequenceContracts , retained_output : Bool , query_time : @ publication_host . ClientQueryTimePreparation ? , ) - > Result [ @ client_local_host . ClientInstalledManagedSourceFreePreparation , ClientRequestProgramModuleBridgeIssue , ]"
         },
         {
           "name": "client_program_prepare_request_native_computation",
@@ -40177,6 +40372,18 @@
         {
           "name": "client_program_prepare_request_program_module_body",
           "declaration": "client_program_prepare_request_program_module_body ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , contracts : @ client_local_host . ClientInstalledSequenceContracts , retained_output : Bool , invocation : ( @ publication_host . ClientQueryTimePreparation , @ publication_host . ClientRequestIdentity , @ publication_host . ClientCompiledRun , @ publication . PublicationContract , ) ? , ) - > Result [ Unit , ClientRequestProgramModuleBridgeIssue ]"
+        },
+        {
+          "name": "client_program_prepare_request_serialization_compilation",
+          "declaration": "client_program_prepare_request_serialization_compilation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , component : @ publication_host . ClientSerializationPlanGraph , contracts : @ client_local_host . ClientInstalledSequenceContracts , ) - > Result [ @ publication_host . ClientTaskCompilation , ClientRequestProgramModuleBridgeIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_request_serialization_graph",
+          "declaration": "client_program_prepare_request_serialization_graph ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , task : Int , step : Int , policy_cid : String , policy_wire : String , max_rows : Int , max_bytes : Int , include_results : Bool , contracts : @ client_local_host . ClientInstalledSequenceContracts , ) - > Result [ @ publication_host . ClientSerializationPlanGraph , ClientRequestProgramModuleBridgeIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_request_serialized_model_graph",
+          "declaration": "client_program_prepare_request_serialized_model_graph ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , occurrence : @ publication_host . ClientInferOccurrence , serialization : @ publication_host . ClientSerializationPlanGraph , execution : @ check_environment . ModelExecutionContract , contracts : @ client_local_host . ClientInstalledSequenceContracts , ) - > Result [ @ publication_host . ClientInferPlanGraph , ClientRequestProgramModuleBridgeIssue , ]"
         },
         {
           "name": "client_program_prepare_request_source_computation",
@@ -40255,12 +40462,24 @@
           "declaration": "client_program_request_submitted_intent_original ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , ) - > @ publication_host . ClientSubmittedIntent ?"
         },
         {
+          "name": "client_program_reserve_installed_effect_capture_recovery",
+          "declaration": "client_program_reserve_installed_effect_capture_recovery ( original : @ client_local_host . ClientInstalledEffectCaptureRecovery , encrypted_bytes : Int , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "client_program_reserve_request_effect_capture_recovery",
+          "declaration": "client_program_reserve_request_effect_capture_recovery ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , request : @ publication_host . ClientRequestIdentity , definition : @ publication . PublicationContract , encrypted_bytes : Int , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ Unit , @ client_local_host . ClientRequestPreparationIssue ]"
+        },
+        {
           "name": "client_program_reserve_request_query_time_invocation",
           "declaration": "client_program_reserve_request_query_time_invocation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , compilation : @ publication_host . ClientRunCompilation , ) - > Result [ Unit , ClientRequestProgramModuleBridgeIssue ]"
         },
         {
           "name": "client_program_reserve_request_snapshot",
           "declaration": "client_program_reserve_request_snapshot ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , units : Int64 , values : Int64 , ) - > Result [ Unit , @ client_local_host . ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "client_program_retire_installed_effect_capture_recovery",
+          "declaration": "client_program_retire_installed_effect_capture_recovery ( original : @ client_local_host . ClientInstalledEffectCaptureRecovery , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "strategy_begin_original_effect_free_captured_run",
@@ -40301,6 +40520,7 @@
             "client_program_lower_request_published_query",
             "client_program_parse_request_query_syntax",
             "client_program_preparation_capacity_refusal",
+            "client_program_prepare_installed_effect_capture_recovery",
             "client_program_prepare_local_preparation_admission",
             "client_program_prepare_program_check_carriers",
             "client_program_prepare_program_check_contents",
@@ -40336,7 +40556,10 @@
             "client_program_request_preparation_accounting",
             "client_program_request_preparation_control",
             "client_program_request_submitted_intent_original",
+            "client_program_reserve_installed_effect_capture_recovery",
+            "client_program_reserve_request_effect_capture_recovery",
             "client_program_reserve_request_snapshot",
+            "client_program_retire_installed_effect_capture_recovery",
             "strategy_begin_original_effect_free_captured_run",
             "strategy_captured_run_preparation_limits"
           ],
@@ -40621,6 +40844,141 @@
               {
                 "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
                 "anchor": "timed invocation backing retains its original compiler"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_adopt_request_content_preparation",
+            "client_program_adopt_request_effect_model_preparation",
+            "client_program_adopt_request_model_preparation",
+            "client_program_borrow_request_content_plan_input",
+            "client_program_borrow_request_model_plan_input",
+            "client_program_complete_request_content_preparation",
+            "client_program_complete_request_model_preparation",
+            "client_program_complete_request_serialization_preparation",
+            "client_program_installed_managed_keyed_content_prepare",
+            "client_program_prepare_request_acquired_serialization_graph",
+            "client_program_prepare_request_effect_model_read_scope",
+            "client_program_prepare_request_keyed_serialization_compilation",
+            "client_program_prepare_request_model_capture_module",
+            "client_program_prepare_request_model_compilation",
+            "client_program_prepare_request_model_contract_materials",
+            "client_program_prepare_request_model_graph",
+            "client_program_prepare_request_model_provider_binding",
+            "client_program_prepare_request_model_read_scope",
+            "client_program_prepare_request_model_source_free_module",
+            "client_program_prepare_request_program_compilation",
+            "client_program_prepare_request_serialization_compilation",
+            "client_program_prepare_request_serialization_graph",
+            "client_program_prepare_request_serialized_model_graph",
+            "client_program_prepared_installed_managed_model_requirements"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned terminal serialization compilation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned terminal serialization compilation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned terminal serialization compilation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned terminal serialization compilation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned terminal serialization compilation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned terminal serialization compilation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned terminal serialization compilation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned terminal serialization compilation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned terminal serialization compilation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned terminal serialization compilation"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
+                "anchor": "Request Node Model Plan"
               }
             ]
           }
@@ -42058,7 +42416,7 @@
     },
     {
       "module": "src/client_local_host/client_sequence.mbt",
-      "sha256": "9566531524089ae30e11c9a98ccedee7acce8157e6991ab99f8fab9c18298f20",
+      "sha256": "832083def82600d96f16fa8927b2787aec26c1009a8f0ec2598891f3ffce625e",
       "exports": [],
       "operations": [
         {
@@ -42127,11 +42485,11 @@
         },
         {
           "name": "prepare_client_serialization_prefix",
-          "declaration": "prepare_client_serialization_prefix ( prepared : @ publication_host . PreparedClientProgram , task : Int , step : Int , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , ) - > @ execution . GeneratedSequence ?"
+          "declaration": "prepare_client_serialization_prefix ( prepared : @ publication_host . PreparedClientProgram , task : Int , step : Int , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , query_time ? : ( @ publication_host . ClientQueryTimePreparation , @ publication_host . ClientRequestIdentity , ) ?"
         },
         {
           "name": "prepare_client_serialization_prefix_owned",
-          "declaration": "prepare_client_serialization_prefix_owned ( prepared : ClientLocalSequenceOwner , task : Int , step : Int , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , ) - > @ execution . GeneratedSequence ?"
+          "declaration": "prepare_client_serialization_prefix_owned ( prepared : ClientLocalSequenceOwner , task : Int , step : Int , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , query_time ? : ( @ publication_host . ClientQueryTimePreparation , @ publication_host . ClientRequestIdentity , ) ?"
         },
         {
           "name": "prepare_owned_infer_segment",
@@ -42623,7 +42981,7 @@
     },
     {
       "module": "src/client_local_host/installed_managed_run.mbt",
-      "sha256": "b3cacaf468c173db1969082126b62e69d2c1f5cf01c293583d5b67bad7ef878e",
+      "sha256": "c1505518f7080d6a803ea4aa0b15920441b3bd9ec35b6de10b2eb9062b25dce6",
       "exports": [],
       "operations": [
         {
@@ -42651,6 +43009,14 @@
           "declaration": "check_installed_managed_run_binding ( value : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
         },
         {
+          "name": "check_installed_managed_run_original",
+          "declaration": "check_installed_managed_run_original ( value : ClientInstalledManagedRun , ledger : @ resources . Ledger , preparation : ClientInstalledManagedRunOriginal , ) - > Result [ @ resources . Ledger , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "configure_installed_source_free_preparation",
+          "declaration": "configure_installed_source_free_preparation ( prepared : @ publication_host . PreparedClientProgram , original : ClientInstalledManagedSourceFreePreparation , retained_output : Bool , provider_factory : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , ) - > Result [ ClientInstalledManagedSourceFreePreparation , ClientInstalledManagedRunIssue , ]"
+        },
+        {
           "name": "installed_managed_capture_run_requirements",
           "declaration": "installed_managed_capture_run_requirements ( prepared : @ publication_host . PreparedClientProgram , capacities : Array [ ClientInstalledCaptureCapacity ] , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , ) - > Result [ Array [ Int64 ] , ClientInstalledManagedRunIssue ]"
         },
@@ -42660,7 +43026,7 @@
         },
         {
           "name": "installed_managed_owner_shape_supported",
-          "declaration": "installed_managed_owner_shape_supported ( owner : ClientLocalSequenceOwner , mock_model : Bool , ) - > Bool"
+          "declaration": "installed_managed_owner_shape_supported ( owner : ClientLocalSequenceOwner , mock_model : Bool , model ? : @ publication_host . ClientInferPlanGraph ?"
         },
         {
           "name": "installed_managed_publication_dag",
@@ -42764,7 +43130,7 @@
         },
         {
           "name": "source_free_installed_managed_preparation_owned",
-          "declaration": "source_free_installed_managed_preparation_owned ( owner : ClientLocalSequenceOwner , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , mock_model : Bool , query_time ? : ( @ publication_host . ClientQueryTimePreparation , @ publication_host . ClientRequestIdentity , ) ?"
+          "declaration": "source_free_installed_managed_preparation_owned ( owner : ClientLocalSequenceOwner , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , mock_model : Bool , model ? : @ publication_host . ClientInferPlanGraph ?"
         }
       ],
       "responsibilityFacet": "primary",
@@ -42781,6 +43147,8 @@
             "begin_prepared_installed_managed_source_free_run",
             "check_installed_managed_run",
             "check_installed_managed_run_binding",
+            "check_installed_managed_run_original",
+            "configure_installed_source_free_preparation",
             "installed_managed_capture_run_requirements",
             "installed_managed_owner_graph",
             "installed_managed_owner_shape_supported",
@@ -49065,7 +49433,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
-      "sha256": "1c25b30a97a3975769a3ef19dc2850fb19dc04cc66751d102c7901c8d6b2d566",
+      "sha256": "05aa6f99c4cccc6357956283ca8bb9d622db3603d045d007a14be523f551291d",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "D — original installed Effect Plan and Model demand correspondence",
@@ -49096,8 +49464,16 @@
           "declaration": "client_program_installed_mock_model_capture_plan_bind ( original : @ client_local_host . ClientInstalledManagedCapturePlan , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , occurrence : @ publication_host . ClientInferOccurrence , graph : @ publication_host . ClientInferPlanGraph , selected : @ infer_host . Limits , ) - > Result [ @ client_local_host . ClientInstalledManagedModelPlan , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
-          "name": "client_program_installed_mock_model_source_free_plan_prepare",
-          "declaration": "client_program_installed_mock_model_source_free_plan_prepare ( original : @ client_local_host . ClientInstalledManagedSourceFreePreparation , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , occurrence : @ publication_host . ClientInferOccurrence , graph : @ publication_host . ClientInferPlanGraph , selected : @ infer_host . Limits , ) - > Result [ @ client_local_host . ClientInstalledManagedModelPlan , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+          "name": "client_program_prepare_request_model_source_free_plan",
+          "declaration": "client_program_prepare_request_model_source_free_plan ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , original : @ client_local_host . ClientInstalledManagedSourceFreePreparation , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , occurrence : @ publication_host . ClientInferOccurrence , graph : @ publication_host . ClientInferPlanGraph , selected : @ infer_host . Limits , ) - > Result [ @ client_local_host . ClientInstalledManagedModelPlan , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_request_node_model_source_free_plan",
+          "declaration": "client_program_prepare_request_node_model_source_free_plan ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , original : @ client_local_host . ClientInstalledManagedSourceFreePreparation , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , occurrence : @ publication_host . ClientInferOccurrence , graph : @ publication_host . ClientInferPlanGraph , selected : @ infer_host . Limits , layout : @ publication_host . ClientNodeModelPreparationLayout ? , installation : @ check_environment . ModelResponseProfileInstallation , runtime_artifact_cid : String , layout_artifact_cid : String , probability : @ check_environment . DecisionProbabilityProfile ? , model_retained_bytes : Int64 , model_execution_bytes : Int64 , max_reservations : Int , max_holdings : Int , max_delegations : Int , ) - > Result [ @ client_local_host . ClientInstalledManagedModelPlan , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "installed_effect_model_plan_from_original_sources",
+          "declaration": "installed_effect_model_plan_from_original_sources ( prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , declarations : Array [ @ client_row_source_host . RowDeclaration ] , source_providers : Array [ @ execution . ExecutionCapacity ] ? , query_contract_body : String , evidence_contract_body : String , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : @ client_local_host . ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , selected_operations : Array [ @ client_local_host . ClientInstalledEffectOperationDemand , ] , model : @ client_local_host . ClientInstalledEffectModelDemand , components : Array [ @ local . ManagedProvider ] , query_time : @ publication_host . ClientQueryTimePreparation ? , ) - > Result [ @ client_local_host . ClientInstalledEffectManagedPlan , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         }
       ],
       "contracts": [
@@ -49110,7 +49486,9 @@
             "client_program_installed_effect_model_read_window",
             "client_program_installed_effect_plan_matches_model_demand",
             "client_program_installed_mock_model_capture_plan_bind",
-            "client_program_installed_mock_model_source_free_plan_prepare"
+            "client_program_prepare_request_model_source_free_plan",
+            "client_program_prepare_request_node_model_source_free_plan",
+            "installed_effect_model_plan_from_original_sources"
           ],
           "exports": [],
           "attributes": {
@@ -49126,6 +49504,10 @@
               {
                 "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
                 "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "inputsOutputs": [
@@ -49140,6 +49522,10 @@
               {
                 "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
                 "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "identity": [
@@ -49154,6 +49540,10 @@
               {
                 "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
                 "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "ownership": [
@@ -49168,6 +49558,10 @@
               {
                 "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
                 "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "synchronization": [
@@ -49182,6 +49576,10 @@
               {
                 "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
                 "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "failure": [
@@ -49196,6 +49594,10 @@
               {
                 "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
                 "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "cancellation": [
@@ -49210,6 +49612,10 @@
               {
                 "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
                 "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "resources": [
@@ -49224,6 +49630,10 @@
               {
                 "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
                 "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "extension": [
@@ -49238,6 +49648,10 @@
               {
                 "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
                 "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "verification": [
@@ -49252,6 +49666,14 @@
               {
                 "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
                 "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
+                "anchor": "installed Model caller cuts"
               }
             ]
           }
@@ -55267,14 +55689,45 @@
       "exports": [],
       "operations": [
         {
+          "name": "[I]begin_request_model_managed_run",
+          "declaration": "[ I ] begin_request_model_managed_run ( owner : ClientRequestPreparation [ I ] , request : @ publication_host . ClientRequestIdentity , scope : @ publication_host . ClientModelReadScope , ) - > Result [ ClientInstalledManagedRun , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "[I]borrow_request_model_plan_input",
+          "declaration": "[ I ] borrow_request_model_plan_input ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ @ resources . PreparationBodyBorrow [ @ publication_host . PreparedClientProgram ] , ClientRequestPreparationIssue , ]"
+        },
+        {
+          "name": "[I]complete_request_model_preparation",
+          "declaration": "[ I ] complete_request_model_preparation ( owner : ClientRequestPreparation [ I ] , input : I , plan : ClientInstalledManagedModelPlan , ) - > Result [ Unit , ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "[I]prepare_request_model_compilation",
+          "declaration": "[ I ] prepare_request_model_compilation ( owner : ClientRequestPreparation [ I ] , input : I , graph : @ publication_host . ClientInferPlanGraph , contracts : ClientInstalledSequenceContracts , manifests ~ : @ publication_host . ClientCompilationManifests , compilation_limits ~ : @ publication_host . ClientPureCompilationLimits , ) - > Result [ @ publication_host . ClientTaskCompilation , ClientRequestProgramPlanIssue , ]"
+        },
+        {
           "name": "[I]prepare_request_model_read_scope",
           "declaration": "[ I ] prepare_request_model_read_scope ( owner : ClientRequestPreparation [ I ] , input : I , plan : ClientInstalledManagedModelPlan , ) - > Result [ @ publication_host . ClientModelReadScope , ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "[I]prepare_request_model_source_free_plan",
+          "declaration": "[ I ] prepare_request_model_source_free_plan ( owner : ClientRequestPreparation [ I ] , input : I , original : ClientInstalledManagedSourceFreePreparation , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , occurrence : @ publication_host . ClientInferOccurrence , graph : @ publication_host . ClientInferPlanGraph , model_limits : @ resources . LedgerLimits , read_retained_bytes : Int64 , read_execution_bytes : Int64 , max_reservations : Int , max_holdings : Int , max_delegations : Int , ) - > Result [ ClientInstalledManagedModelPlan , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "[I]prepare_request_node_model_source_free_plan",
+          "declaration": "[ I ] prepare_request_node_model_source_free_plan ( owner : ClientRequestPreparation [ I ] , input : I , original : ClientInstalledManagedSourceFreePreparation , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , occurrence : @ publication_host . ClientInferOccurrence , graph : @ publication_host . ClientInferPlanGraph , model_limits : @ resources . LedgerLimits , layout : @ publication_host . ClientNodeModelPreparationLayout ? , installation : @ environment . ModelResponseProfileInstallation , runtime_artifact_cid : String , layout_artifact_cid : String , probability : @ environment . DecisionProbabilityProfile ? , max_reservations : Int , max_holdings : Int , max_delegations : Int , ) - > Result [ ClientInstalledManagedModelPlan , ClientInstalledManagedRunIssue ]"
         }
       ],
       "contracts": [
         {
           "operations": [
-            "[I]prepare_request_model_read_scope"
+            "<module>",
+            "[I]begin_request_model_managed_run",
+            "[I]borrow_request_model_plan_input",
+            "[I]complete_request_model_preparation",
+            "[I]prepare_request_model_compilation",
+            "[I]prepare_request_model_read_scope",
+            "[I]prepare_request_model_source_free_plan",
+            "[I]prepare_request_node_model_source_free_plan"
           ],
           "exports": [],
           "attributes": {
@@ -55282,54 +55735,90 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "verification": [
@@ -55340,13 +55829,21 @@
               {
                 "path": "src/client_local_host/preparation_request_effect_model_js_wbtest.mbt",
                 "anchor": "test \"Effect Scope one-short growth retains one absolute quote"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
+                "anchor": "installed Model caller cuts"
               }
             ]
           }
         }
       ],
       "referenceQualification": "Original Scope/census construction and same-parent continuation only; not full Host/provider/runtime backing or ordinary acceptance.",
-      "sha256": "aba5365f8a57018e55b9a9df31698d0195ed7bfd584f95aaf74d95418366a059"
+      "sha256": "98ab61dd79cc04aacf5151fe73b60d5cf6a67d16c16ea57a8ffdd69ad4c59fe0"
     },
     {
       "module": "src/client_local_host/preparation_request_model_scope.mbt",

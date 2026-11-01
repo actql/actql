@@ -58748,7 +58748,7 @@
     {
       "module": "adapters/host-node/installed-content-run.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "38faf28234332e1bc0c8c17bdaa4959827c1fcb322dc6a954966fe6b080a99de",
+      "sha256": "91ca31a0a34e6089063d5756f64ec0f11e16259a8f34edb70daf8d27ce5e210b",
       "role": "physical-io",
       "owner": "Existing Content/Reference/completion/publication Owners and physical Store writer",
       "exports": [
@@ -58776,6 +58776,7 @@
             "prepareKeyedManagedRun",
             "borrowKeyedManagedLedger",
             "prepareSerializationManagedRun",
+            "prepareModelManagedRun",
             "retainPreparation"
           ],
           "async": false
@@ -58789,7 +58790,8 @@
             "principalId",
             "signal",
             "retainExecution",
-            "acquiredContent"
+            "acquiredContent",
+            "intermediate"
           ],
           "async": true
         },
@@ -58840,6 +58842,13 @@
         {
           "name": "installNodeContentRun/execute/execute/execute#3",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installNodeContentRun/execute/execute/execute#4",
+          "parameters": [
+            "value"
+          ],
           "async": false
         },
         {
@@ -58999,6 +59008,27 @@
           "name": "installNodeContentRun/installNodeContentRun#10",
           "parameters": [
             "preparedProgram",
+            "plan",
+            "sourceCapacity"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeContentRun/installNodeContentRun#11",
+          "parameters": [
+            "preparedProgram",
+            "plan",
+            "direct",
+            "acquisition",
+            "capacity",
+            "capturedContent"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeContentRun/installNodeContentRun#12",
+          "parameters": [
+            "preparedProgram",
             "preparedEffect",
             "plan",
             "store",
@@ -59013,6 +59043,23 @@
           "name": "installNodeContentRun/installNodeContentRun#2",
           "parameters": [
             "preparedProgram",
+            "plan",
+            "request",
+            "model"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeContentRun/installNodeContentRun#3",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeContentRun/installNodeContentRun#4",
+          "parameters": [
+            "preparedProgram",
             "serializationGraph",
             "request",
             "keyedAcquisition"
@@ -59020,7 +59067,7 @@
           "async": false
         },
         {
-          "name": "installNodeContentRun/installNodeContentRun#3",
+          "name": "installNodeContentRun/installNodeContentRun#5",
           "parameters": [
             "preparedProgram",
             "plan",
@@ -59030,14 +59077,14 @@
           "async": false
         },
         {
-          "name": "installNodeContentRun/installNodeContentRun#4",
+          "name": "installNodeContentRun/installNodeContentRun#6",
           "parameters": [
             "options"
           ],
           "async": false
         },
         {
-          "name": "installNodeContentRun/installNodeContentRun#5",
+          "name": "installNodeContentRun/installNodeContentRun#7",
           "parameters": [
             "preparedProgram",
             "plan",
@@ -59053,7 +59100,7 @@
           "async": true
         },
         {
-          "name": "installNodeContentRun/installNodeContentRun#6",
+          "name": "installNodeContentRun/installNodeContentRun#8",
           "parameters": [
             "prepared",
             "plan",
@@ -59066,30 +59113,9 @@
           "async": false
         },
         {
-          "name": "installNodeContentRun/installNodeContentRun#7",
-          "parameters": [
-            "options"
-          ],
-          "async": false
-        },
-        {
-          "name": "installNodeContentRun/installNodeContentRun#8",
-          "parameters": [
-            "preparedProgram",
-            "plan",
-            "sourceCapacity"
-          ],
-          "async": false
-        },
-        {
           "name": "installNodeContentRun/installNodeContentRun#9",
           "parameters": [
-            "preparedProgram",
-            "plan",
-            "direct",
-            "acquisition",
-            "capacity",
-            "capturedContent"
+            "options"
           ],
           "async": false
         },
@@ -59131,6 +59157,7 @@
             "installNodeContentRun/execute/execute/execute",
             "installNodeContentRun/execute/execute/execute#2",
             "installNodeContentRun/execute/execute/execute#3",
+            "installNodeContentRun/execute/execute/execute#4",
             "installNodeContentRun/execute/execute/init:retainHoldings/init:retainHoldings",
             "installNodeContentRun/execute/execute/live/live",
             "installNodeContentRun/execute/execute/remainingWork/remainingWork",
@@ -59156,13 +59183,14 @@
             "installNodeContentRun/installNodeContentRun/recheck/recheck",
             "installNodeContentRun/installNodeContentRun/recheckBinding/recheckBinding",
             "installNodeContentRun/installNodeContentRun/verifyRead/verifyRead",
+            "installNodeContentRun/installNodeContentRun#10",
             "installNodeContentRun/installNodeContentRun#2",
             "installNodeContentRun/installNodeContentRun#3",
-            "installNodeContentRun/installNodeContentRun#4",
             "installNodeContentRun/installNodeContentRun#5",
             "installNodeContentRun/installNodeContentRun#6",
             "installNodeContentRun/installNodeContentRun#7",
             "installNodeContentRun/installNodeContentRun#8",
+            "installNodeContentRun/installNodeContentRun#9",
             "installNodeContentRun/run/run"
           ],
           "exports": [
@@ -59609,7 +59637,7 @@
         },
         {
           "operations": [
-            "installNodeContentRun/installNodeContentRun#9"
+            "installNodeContentRun/installNodeContentRun#11"
           ],
           "exports": [],
           "attributes": {
@@ -59769,7 +59797,7 @@
         },
         {
           "operations": [
-            "installNodeContentRun/installNodeContentRun#10"
+            "installNodeContentRun/installNodeContentRun#12"
           ],
           "exports": [],
           "attributes": {
@@ -59952,7 +59980,9 @@
           }
         },
         {
-          "operations": [],
+          "operations": [
+            "installNodeContentRun/installNodeContentRun#4"
+          ],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -106876,7 +106906,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-source-managed.mjs",
-      "sha256": "59edd09cb3752778aade2438c8c0ca494f4cad2912839b3a8ca1b3fb58b1a0ea",
+      "sha256": "77c6c4391a9d1ee96306f1065a761a77c075be81b547d2cbb32a29b3ac25bd6b",
       "exports": [
         "assertOrdinarySourcePreparationCurrent",
         "prepareOrdinaryProjectSourceManagedInstallation",

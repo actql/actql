@@ -15852,7 +15852,7 @@
     {
       "module": "adapters/host-common/runtime-core.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "175c6c0aae154207b2929cdb76e93bd85c795b859ccc3b3583e0100c8fff69e9",
+      "sha256": "ffbee89697b621f9ea79e897b9cc7b5f8af28cd99c2a68132eaaffdf6a3649b3",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -16385,6 +16385,20 @@
             "task",
             "step",
             "maxWork"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:prepareModelRequestPrefix/init:prepareModelRequestPrefix",
+          "parameters": [
+            "parent",
+            "input",
+            "request",
+            "compiled",
+            "definition",
+            "limits",
+            "workspace",
+            "queryTime"
           ],
           "async": false
         },
@@ -19862,19 +19876,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:prepareCheckedClientMockModelSourceFreePlan/init:prepareCheckedClientMockModelSourceFreePlan",
-          "parameters": [
-            "original",
-            "request",
-            "compiled",
-            "definition",
-            "occurrence",
-            "graph",
-            "selected"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:prepareCheckedClientRequestAcquiredSerializationGraph/init:prepareCheckedClientRequestAcquiredSerializationGraph",
           "parameters": [
             "parent",
@@ -19893,6 +19894,51 @@
             "input",
             "selected",
             "graph"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareCheckedClientRequestModelSerializationPlan/init:prepareCheckedClientRequestModelSerializationPlan",
+          "parameters": [
+            "parent",
+            "input",
+            "request",
+            "compiled",
+            "definition",
+            "limits",
+            "workspace",
+            "queryTime"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareCheckedClientRequestModelSourceFreePlan/init:prepareCheckedClientRequestModelSourceFreePlan",
+          "parameters": [
+            "parent",
+            "input",
+            "original",
+            "request",
+            "compiled",
+            "definition",
+            "occurrence",
+            "graph",
+            "selected"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareCheckedClientRequestNodeModelSourceFreePlan/init:prepareCheckedClientRequestNodeModelSourceFreePlan",
+          "parameters": [
+            "parent",
+            "input",
+            "original",
+            "request",
+            "compiled",
+            "definition",
+            "occurrence",
+            "graph",
+            "selected",
+            "installation"
           ],
           "async": false
         },
@@ -28347,104 +28393,149 @@
         {
           "operations": [
             "publicationControl/init:bindCheckedClientMockModelCapturePlan/init:bindCheckedClientMockModelCapturePlan",
-            "publicationControl/init:prepareCheckedClientMockModelSourceFreePlan/init:prepareCheckedClientMockModelSourceFreePlan"
+            "publicationControl/init:prepareCheckedClientRequestModelSourceFreePlan/init:prepareCheckedClientRequestModelSourceFreePlan",
+            "publicationControl/init:prepareCheckedClientRequestNodeModelSourceFreePlan/init:prepareCheckedClientRequestNodeModelSourceFreePlan"
           ],
           "exports": [],
           "attributes": {
             "responsibility": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "    prepareCheckedClientMockModelSourceFreePlan("
+                "anchor": "    prepareCheckedClientRequestModelSourceFreePlan("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "    prepareCheckedClientMockModelSourceFreePlan("
+                "anchor": "    prepareCheckedClientRequestModelSourceFreePlan("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "identity": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "    prepareCheckedClientMockModelSourceFreePlan("
+                "anchor": "    prepareCheckedClientRequestModelSourceFreePlan("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "    prepareCheckedClientMockModelSourceFreePlan("
+                "anchor": "    prepareCheckedClientRequestModelSourceFreePlan("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "    prepareCheckedClientMockModelSourceFreePlan("
+                "anchor": "    prepareCheckedClientRequestModelSourceFreePlan("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "failure": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "    prepareCheckedClientMockModelSourceFreePlan("
+                "anchor": "    prepareCheckedClientRequestModelSourceFreePlan("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "    prepareCheckedClientMockModelSourceFreePlan("
+                "anchor": "    prepareCheckedClientRequestModelSourceFreePlan("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "resources": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "    prepareCheckedClientMockModelSourceFreePlan("
+                "anchor": "    prepareCheckedClientRequestModelSourceFreePlan("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "extension": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "    prepareCheckedClientMockModelSourceFreePlan("
+                "anchor": "    prepareCheckedClientRequestModelSourceFreePlan("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "verification": [
               {
                 "path": "adapters/host-node/client-compilation-original.test.mjs",
                 "anchor": "actual Model Plan bindings retain module"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
+                "anchor": "installed Model caller cuts"
               }
             ]
           }
@@ -28452,10 +28543,12 @@
         {
           "operations": [
             "contentGenerationControl/init:cleanupRequestPrefix/init:cleanupRequestPrefix",
+            "contentGenerationControl/init:prepareModelRequestPrefix/init:prepareModelRequestPrefix",
             "contentGenerationControl/init:prepareRequestPrefix/init:prepareRequestPrefix",
             "contentGenerationControl/init:requestPrefixCapacity/init:requestPrefixCapacity",
             "contentGenerationControl/init:requestPrefixCapacity/init:requestPrefixCapacity/init:requestPrefixCapacity",
             "contentGenerationControl/init:startRequestPrefix/init:startRequestPrefix",
+            "publicationControl/init:prepareCheckedClientRequestModelSerializationPlan/init:prepareCheckedClientRequestModelSerializationPlan",
             "publicationControl/init:prepareCheckedClientRequestSerializationCompilation/init:prepareCheckedClientRequestSerializationCompilation",
             "publicationControl/init:prepareCheckedClientRequestSerializationPlan/init:prepareCheckedClientRequestSerializationPlan"
           ],
@@ -41752,7 +41845,7 @@
     {
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "2912454ae033c2af4462b4b52c3da5f4fd0e77fbd631c2880c2542a4b929c709",
+      "sha256": "255370b2e9df6fc080675af4e20fc13280fb2763c6b65d1a37f84720951c1a30",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -42506,7 +42599,8 @@
             "runtime",
             "prepared",
             "occurrence",
-            "execution"
+            "execution",
+            "serializationGraph"
           ],
           "async": false
         },
@@ -43717,7 +43811,8 @@
             "requestId",
             "retainedDefinitionWire",
             "requestIdentity",
-            "keyedOriginal"
+            "keyedOriginal",
+            "constructingModel"
           ],
           "async": false
         },
@@ -43809,6 +43904,16 @@
           "async": false
         },
         {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/providerBinding/providerBinding#2",
+          "parameters": [
+            "id",
+            "installation",
+            "contract",
+            "configuration"
+          ],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/requestModelMaterials/requestModelMaterials",
           "parameters": [
             "count",
@@ -43879,6 +43984,20 @@
             "options",
             "intermediate"
           ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInstalledRequestModelRun",
+          "parameters": [
+            "submission",
+            "requested",
+            "selection"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInstalledRequestModelRun/model/init:releaseAliases/init:releaseAliases",
+          "parameters": [],
           "async": false
         },
         {
@@ -44140,6 +44259,15 @@
           "parameters": [
             "prepared",
             "request",
+            "model"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runContent/runContent#4",
+          "parameters": [
+            "prepared",
+            "request",
             "plan",
             "limits",
             "workspace",
@@ -44148,7 +44276,7 @@
           "async": false
         },
         {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runContent/runContent#4",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runContent/runContent#5",
           "parameters": [
             "prepared",
             "request",
@@ -44159,7 +44287,7 @@
           "async": false
         },
         {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runContent/runContent#5",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runContent/runContent#6",
           "parameters": [
             "prepared",
             "request",
@@ -44182,6 +44310,15 @@
           "parameters": [
             "prepared",
             "plan"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runInfer/init:prepareOriginalModelRun/init:prepareOriginalModelRun",
+          "parameters": [
+            "prepared",
+            "plan",
+            "selection"
           ],
           "async": false
         },
@@ -50432,6 +50569,7 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/observeAccount/observeAccount",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/providerBinding/providerBinding",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/providerBinding/providerBinding#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/requestModelMaterials/requestModelMaterials",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/selection/init:assertNewTrustedRuntime/init:assertNewTrustedRuntime",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/selection/init:assertTrustedRuntimeScope/init:assertTrustedRuntimeScope",
@@ -52225,6 +52363,7 @@
           "operations": [
             "openInstalledHost/initializePublicationServices/initializePublicationServices/runContent/runContent#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/runContent/runContent#3",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/runContent/runContent#4",
             "readLocalContentRunRequirements",
             "readLocalContentRunRequirements/readLocalContentRunRequirements",
             "readLocalContentRunRequirements/readLocalContentRunRequirements#2"
@@ -52377,7 +52516,8 @@
         },
         {
           "operations": [
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/runInfer/init:prepareOriginalMockRun/init:prepareOriginalMockRun"
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/runInfer/init:prepareOriginalMockRun/init:prepareOriginalMockRun",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/runInfer/init:prepareOriginalModelRun/init:prepareOriginalModelRun"
           ],
           "exports": [],
           "attributes": {
@@ -52385,6 +52525,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "For a checked source-free Program, the same connection has no Source children"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "inputsOutputs": [
@@ -52399,6 +52543,10 @@
               {
                 "path": "src/connectors_builtin_node/client_composed_infer_bridge.mbt",
                 "anchor": "pub fn client_program_open_installed_managed_source_free_composed_infer_host("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "identity": [
@@ -52409,6 +52557,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "prepareOriginalMockRun(prepared, plan) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "ownership": [
@@ -52419,12 +52571,20 @@
               {
                 "path": "adapters/host-node/installed-composed-infer-run.mjs",
                 "anchor": "if (originalPreparation !== undefined && await originalPreparation.retire() !== true) return false;"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "model.hostAttempted = true;"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "failure": [
@@ -52435,12 +52595,20 @@
               {
                 "path": "adapters/host-node/source-free-mock-run-custody.test.mjs",
                 "anchor": "test('source-free Mock keeps the same driver and Scope until their separate retirement completes'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/host-node/installed-composed-infer-run.mjs",
                 "anchor": "if (originalPreparation !== undefined && await originalPreparation.retire() !== true) return false;"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "resources": [
@@ -52455,6 +52623,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "For a checked source-free Program, the same connection has no Source children"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "extension": [
@@ -52465,6 +52637,10 @@
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "if (run.effectful || run.retired || model.closed || !model.taken || model.hostAttempted ||"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "verification": [
@@ -52479,6 +52655,14 @@
               {
                 "path": "adapters/host-node/source-free-mock-run-custody.test.mjs",
                 "anchor": "test('source-free Mock cannot manufacture a Scope when its original Host preparation is absent'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
+                "anchor": "installed Model caller cuts"
               }
             ]
           }
@@ -54211,6 +54395,8 @@
             "connectEmbeddedLocal/preparation/init:prepareManagedModelRun/init:prepareManagedModelRun",
             "connectEmbeddedLocal/preparation/init:prepareManagedModelRun/init:prepareManagedModelRun/adopted/adopted",
             "connectEmbeddedLocal/preparation/init:prepareManagedModelRun/init:prepareManagedModelRun/init:prepareManagedModelRun",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInstalledRequestModelRun",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInstalledRequestModelRun/model/init:releaseAliases/init:releaseAliases",
             "prepareRequestMockModelPlan",
             "prepareRequestMockModelPlan/current/current",
             "prepareRequestMockModelPlan/prepareRequestMockModelPlan",
@@ -54227,6 +54413,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "inputsOutputs": [
@@ -54237,6 +54427,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "identity": [
@@ -54247,6 +54441,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "ownership": [
@@ -54257,6 +54455,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "synchronization": [
@@ -54267,6 +54469,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "failure": [
@@ -54277,6 +54483,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "cancellation": [
@@ -54287,6 +54497,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "resources": [
@@ -54297,6 +54511,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "extension": [
@@ -54307,12 +54525,24 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "verification": [
               {
                 "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
                 "anchor": "Host Model failed construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
+                "anchor": "installed Model caller cuts"
               }
             ]
           }
@@ -54324,7 +54554,7 @@
             "connectEmbeddedLocal/preparation/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun",
             "connectEmbeddedLocal/preparation/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun/adopted/adopted",
             "connectEmbeddedLocal/preparation/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/runContent/runContent#4"
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/runContent/runContent#5"
           ],
           "exports": [],
           "attributes": {
@@ -54657,7 +54887,7 @@
         {
           "operations": [
             "connectEmbeddedLocal/preparation/init:retainManagedContentPreparation/init:retainManagedContentPreparation",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/runContent/runContent#5"
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/runContent/runContent#6"
           ],
           "exports": [],
           "attributes": {
@@ -61906,7 +62136,7 @@
     {
       "module": "adapters/host-node/installed-infer-run.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "f033485fd23383b134fd004eff3fab9afc8ebdc6dd2416682b1d82df757f975e",
+      "sha256": "ed408ada8ecc4480440a598a28361c147972b886bb23b37a6a144598ef035f23",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -61936,6 +62166,7 @@
             "runContent",
             "prepareKeyedRecovery",
             "prepareOriginalMockRun",
+            "prepareOriginalModelRun",
             "computeConfigurations"
           ],
           "async": false
@@ -62039,6 +62270,11 @@
           "parameters": [
             "value"
           ],
+          "async": false
+        },
+        {
+          "name": "installNodeInferRun/run/run/prepareRead/prepareRead",
+          "parameters": [],
           "async": false
         },
         {
@@ -62155,6 +62391,7 @@
             "installNodeInferRun/run/run/generated/init:retainExecution/init:retainExecution",
             "installNodeInferRun/run/run/init:retainCopy/init:retainCopy",
             "installNodeInferRun/run/run/init:retainOperation/init:retainOperation",
+            "installNodeInferRun/run/run/prepareRead/prepareRead",
             "installNodeInferRun/run/run/run",
             "installNodeInferRun/run/run/run#10",
             "installNodeInferRun/run/run/run#11",
@@ -62183,6 +62420,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "inputsOutputs": [
@@ -62193,6 +62434,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "identity": [
@@ -62203,6 +62448,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "ownership": [
@@ -62213,6 +62462,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "synchronization": [
@@ -62223,6 +62476,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "failure": [
@@ -62233,6 +62490,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "cancellation": [
@@ -62243,6 +62504,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "resources": [
@@ -62253,6 +62518,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "extension": [
@@ -62263,6 +62532,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
               }
             ],
             "verification": [
@@ -62277,6 +62550,14 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
+                "anchor": "installed Model caller cuts"
               }
             ]
           }
