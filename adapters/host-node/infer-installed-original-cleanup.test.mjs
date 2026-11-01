@@ -3,13 +3,14 @@
 // Common/compiled Node tests; these fixture sizes are not a numerical profile.
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {openNodeComposedInferProvider} from './infer-operation.mjs';
 import {retainInferOriginalReadInstallation} from './infer-original-installation.mjs';
 const {installNodeInferRun} = await import(process.env.ACTQL_ORIGINAL_CLEANUP_MODULE ??
   './installed-infer-run.mjs');
 
 function fixture({startIssue, stopComplete = true, modelCleanupComplete = true,
   installation = false, readIssue, scopeIssue, waiting=false,
-  authorization='dispatch',cutIssue,afterAuthorize,scopeBindingIssue,requestModel=false,serialized=false,prefixWaiting=false,acquired=false} = {}) {
+  authorization='dispatch',cutIssue,afterAuthorize,scopeBindingIssue,requestModel=false,serialized=false,prefixWaiting=false,acquired=false,composed=false} = {}) {
   const calls = [], active = {}, read = {}, scope = {}, compiled = {}, consumer = {};
   const preparedProgram = {}, graph = {};
   const runDefinition = {wire: '{"run_id":"original-cleanup"}'};
@@ -173,6 +174,41 @@ function fixture({startIssue, stopComplete = true, modelCleanupComplete = true,
     control.startCheckedClientGeneratedInferExecution = () => assert.fail('No unowned generated Model execution');
     control.startCheckedClientOriginalGeneratedInferExecution = () => assertChecked(moon.clientProgramStartOriginalInferExecution());
   }
+  let sourceLive = composed;
+  const composedStartIssue = new Error('OriginalBeforeComposedDriverEntry');
+  const nativeParent = {}, originalRequest = {}, sourceLedger = {}, source = {}, setup = {}, dag = {};
+  const acquiredInfer = composed ? {ledger: sourceLedger, managedRun: nativeParent,
+    captured: {capture: {source: () => source, retainTask(actual, index) {
+      assert.strictEqual(actual, dag); assert.equal(index, 0); calls.push('source-borrow');
+    }}}, sourceEvidence: {}, preparedSource: {}} : undefined;
+  if (composed) {
+    selected.occurrence = {};
+    moon.clientProgramAcquisitionCount = () => 1;
+    moon.clientProgramComposedInferLocalProvider = (_occurrence, _open, _issue, _retain, _cleanup, _prefix) => {
+      calls.push('component-construct'); return {};
+    };
+    moon.clientProgramOpenInstalledManagedCaptureHost = (parent, actual, request, sources) => {
+      assert.strictEqual(parent, nativeParent); assert.strictEqual(actual, preparedProgram);
+      assert.strictEqual(request, originalRequest); assert.deepEqual(sources, [source]);
+      calls.push('original-capture-host'); return {$tag: 1, _0: setup};
+    };
+    moon.strategyHostRun = actual => {assert.strictEqual(actual, setup); return dag;};
+    moon.strategyHostStop = actual => {assert.strictEqual(actual, setup); calls.push('dag-stop');};
+    moon.strategyHostCloseOutputs = actual => {assert.strictEqual(actual, setup); calls.push('dag-outputs');};
+    moon.strategyHostUsage = actual => {
+      assert.strictEqual(actual, setup); const usage = Array(13).fill(0n);
+      if (sourceLive) usage[3] = 1n; return usage;
+    };
+    control.admitComposedInferSources = (_occurrence, captures, evidence) => {
+      assert.deepEqual(captures, [acquiredInfer.captured]);
+      assert.deepEqual(evidence, [acquiredInfer.sourceEvidence]); return {};
+    };
+    control.finishCheckedClientInferOriginalReadScope = (...args) => {
+      exact(...args); assert.strictEqual(args[3], scope); assert.equal(args[4], true);
+      assert.equal(requestCarrier.readAttempted, false); calls.push('scopeFinish');
+      if (sourceLive) return false; scopeLive = false; return true;
+    };
+  }
   let discovered = [];
   const modelController = {discover: () => discovered,
     prime() { assert.fail('fresh original preparation cannot prime restored input'); },
@@ -191,6 +227,11 @@ function fixture({startIssue, stopComplete = true, modelCleanupComplete = true,
     serializationGraph: selected.serializationGraph,
     contentPreparation: serialized ? {managed: {}} : undefined,
     budget: {readRetainedBytes: 7n, readExecutionBytes: 5n, modelRetainedBytes: 100n, modelExecutionBytes: 5n}};
+  if (composed) {
+    requestCarrier.managed = {value: nativeParent, request: originalRequest, closed: false};
+    requestCarrier.sourceLedger = sourceLedger;
+    requestCarrier.component = openNodeComposedInferProvider({moon, selected, inputPrefix: {}, deferred: true});
+  }
   const runInfer = installNodeInferRun({moon, core: {publicationControl: control},
     selections: new Map([[preparedProgram, selected]]), modelController,
     runContent: !serialized ? undefined : {async generate({retainExecution, acquiredContent}) {
@@ -204,12 +245,13 @@ function fixture({startIssue, stopComplete = true, modelCleanupComplete = true,
       assert.equal(p, preparedProgram); assert.equal(originalPlan, plan); assert.equal(originalSelected, selected);
       return requestCarrier;
     }});
-  const input = {preparedProgram, plan, originalPreparation, acquiredContent: acquiredOriginal,
+  const input = {preparedProgram, plan, originalPreparation, acquiredContent: acquiredOriginal, acquiredInfer,
     signal: new AbortController().signal,
     retainExecution(value) { assert.equal(custody, undefined); custody = value; },
-    beginPhysicalWork() { if(!waiting)assert.fail('refused execution cannot begin physical work');calls.push('physicalBegin'); }};
+    beginPhysicalWork() { if (composed) {calls.push('physicalBegin'); throw composedStartIssue;} if(!waiting)assert.fail('refused execution cannot begin physical work');calls.push('physicalBegin'); }};
   if (installation) delete input.originalPreparation;
-  return {run: () => runInfer(input), input, issue, nextIssue, calls, originalPreparation, selected, control, requestCarrier,
+  return {run: () => runInfer(input), input, issue, nextIssue, calls, originalPreparation, selected, control, requestCarrier, composedStartIssue,
+    releaseOriginalSource() {sourceLive = false; calls.push('source-close');},
     custody: () => custody,
     physical(complete, pending = !complete) { physicalComplete = complete; physicalPending = pending; },
     failPhysical(error) { physicalFailure = error; },
@@ -623,4 +665,25 @@ test('Request-owned acquired serialized Model forwards same captured Content bef
   assert.equal(f.requestCarrier.readAttempted, true);
   assert.equal(await f.custody().cleanup(), true);
   assert(f.calls.indexOf('prefix-cleanup') < f.calls.indexOf('scopeFinish'));
+});
+
+
+test('Request-owned plain acquired Model reuses its prepared component and adopted capture Host and waits for original Source before Scope finish', async () => {
+  const f = fixture({installation: true, requestModel: true, composed: true});
+  await assert.rejects(f.run(), error => error === f.composedStartIssue);
+  assert.deepEqual(f.calls.filter(value => value === 'component-construct'), ['component-construct']);
+  assert.equal(f.calls.includes('scopeBegin'), false);
+  assert.equal(f.requestCarrier.taken, true);
+  assert.equal(f.requestCarrier.readAttempted, false);
+  assert(f.calls.indexOf('original-capture-host') < f.calls.indexOf('source-borrow'));
+  assert(f.calls.indexOf('source-borrow') < f.calls.indexOf('physicalBegin'));
+  assert.equal(await f.custody().close(), false);
+  assert.equal(f.requestCarrier.scopeFinished, false);
+  assert.equal(f.custody().cleanupPending(), true);
+  f.releaseOriginalSource();
+  assert.equal(await f.custody().cleanup(), true);
+  assert.equal(f.requestCarrier.scopeFinished, true);
+  assert.equal(f.calls.includes('readPrepare'), false);
+  assert.equal(f.calls.includes('originalStart'), false);
+  assert.equal(f.calls.includes('unownedStart'), false);
 });
