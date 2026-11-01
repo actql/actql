@@ -9,7 +9,11 @@ fn sdk_payload_record_binding_current(
   result : Int,
   binding_index : Int,
   current_configuration : Int,
+  selection? : OriginalSDKReadContext? = None,
 ) -> Int {
+  if selection is Some(original) && !physical_equal(original, context) {
+    return -32
+  }
   if value.payload_records.get(payload_record) is Some(payload) {
     if payload.source is SavedResult(parent, saved) {
       guard saved_result_export_parent(value, first.publication)
@@ -33,7 +37,10 @@ fn sdk_payload_record_binding_current(
       if ordinals != (result, binding_index) {
         return -32
       }
-      match saved_payload_binding(value, payload, current_configuration) {
+      match
+        saved_payload_binding(
+          value, payload, current_configuration, selection~,
+        ) {
         Ok(binding) => {
           let selected = match
             context.owner.view_binding(context.view, binding_index) {
@@ -89,12 +96,14 @@ fn sdk_payload_record_current(
   first : StoredPublicationCommitExport,
   context : OriginalSDKReadContext,
   current_configuration : Int,
+  selection? : OriginalSDKReadContext? = None,
 ) -> Int {
   guard first.sdk_payload_record is Some((record, result, binding)) else {
     return -33
   }
   sdk_payload_record_binding_current(
     value, first, context, record, result, binding, current_configuration,
+    selection~,
   )
 }
 
@@ -109,7 +118,12 @@ fn sdk_payload_finish_current(
     Err(code) => return code
     Ok(_) => ()
   }
-  sdk_payload_record_current(value, first, context, current_configuration)
+  // No physical callback separates this completed Source check from the
+  // nominal selection handoff. Every payload/allocation row and its current
+  // callbacks below still run; other callers retain complete Source checks.
+  sdk_payload_record_current(
+    value, first, context, current_configuration, selection=Some(context),
+  )
 }
 
 ///|

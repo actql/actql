@@ -3,7 +3,7 @@ fn saved_payload_record_context(
   value : Instance,
   record : StoredPayloadRecord,
   configuration : Int,
-  original? : OriginalSDKReadContext? = None,
+  selection? : OriginalSDKReadContext? = None,
 ) -> Result[
   (StoredSubmissionProjection, StoredSavedResultRead, StoredRunConfiguration),
   Int,
@@ -20,7 +20,7 @@ fn saved_payload_record_context(
   if value.closing || value.runtime_closing || record.closing {
     return Err(-5)
   }
-  match original {
+  match selection {
     Some(context) => {
       // Only the closed finish caller supplies its SAME context immediately
       // after check_current. Reuse immutable selection, never an Allow or a
@@ -60,10 +60,10 @@ fn observe_saved_payload_record(
   value : Instance,
   record : StoredPayloadRecord,
   configuration : Int,
-  original? : OriginalSDKReadContext? = None,
+  selection? : OriginalSDKReadContext? = None,
 ) -> Result[@publication.PublicationContract?, Int] {
   let (_, saved, current) = match
-    saved_payload_record_context(value, record, configuration, original~) {
+    saved_payload_record_context(value, record, configuration, selection~) {
     Ok(value) => value
     Err(code) => return Err(code)
   }
@@ -267,14 +267,14 @@ fn saved_payload_binding(
   value : Instance,
   record : StoredPayloadRecord,
   configuration : Int,
-  original? : OriginalSDKReadContext? = None,
+  selection? : OriginalSDKReadContext? = None,
 ) -> Result[@publication.PublicationContract, Int] {
   if !record.confirmed || record.pending || record.closing {
     return Err(-32)
   }
   record.pending = true
   let result = observe_saved_payload_record(
-    value, record, configuration, original~,
+    value, record, configuration, selection~,
   )
   record.pending = false
   if record.closing {
