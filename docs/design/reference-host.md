@@ -2534,3 +2534,13 @@ other requests or calling current again. The weak original association survives
 finish and retirement so a stale Request cannot be attached to another producer.
 Existing payload severing, failed initialization and physical cleanup duties
 remain on their original records.
+
+
+The stored-response standard recipe retains every original Ledger/native/output
+holder and both saved response buffers. The original Ledger evidence admission
+returns before its provider projector; only the Unicode Owner's nonescaping
+synchronous scratch is shared across those calls. The same original control
+frame still retains a failed complete prefix until existing cleanup. Physical
+response work and other simultaneous constructor compositions keep their full
+allowances; this rule is neither a wider recovery grant nor a capacity-policy
+change. Checked retained and combined execution overflow still refuses.

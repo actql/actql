@@ -810,3 +810,40 @@ test('original Ledger control view fixed inventory follows its actual thirty-one
   assert.equal(names.filter(name=>name!=='scopeCid').length,31);
   assert.equal(names.includes('close'),true);assert.equal(names.includes('append'),true);
 });
+
+
+function originalStoredProjection(read) {
+  const source = readFileSync(new URL('./effect-response-recovery.mjs', import.meta.url), 'utf8');
+  const tree = parse(source, {ecmaVersion:'latest', sourceType:'module'});
+  const declaration = tree.body.find(node => node.type === 'ExportNamedDeclaration' &&
+    node.declaration?.id?.name === 'recoverProjectedEffectResponse')?.declaration;
+  assert(declaration);
+  return Function('readAuthorizedEffectResponse', 'fail', 'return ' + source.slice(declaration.start, declaration.end))(
+    read, code => {throw Object.assign(new Error(code), {code});});
+}
+
+// Exact original recovery caller and actual Run control frame, with explicit
+// read/Core ports. This proves call order and alias/failure behavior only; no
+// actual Ledger, response admission, Resource, permission or cold Run is issued.
+test('original stored caller completes Ledger control scratch before the same provider projector', async () => {
+  const f = controlWorkFixture(), stored = Object.freeze({original:true}), ledger = {}, provider = {};
+  const outputs = [], calls = [];
+  const readMethod = function() {assert.equal(this, ledger);calls.push('read');outputs.push(stored);return stored;};
+  const projectMethod = function(value) {assert.equal(this, provider);assert.equal(value, stored);calls.push('project');
+    assert.deepEqual(f.events, ['begin','complete','begin']);assert.deepEqual(outputs, [stored]);return 19;};
+  const recover = originalStoredProjection(async () => ({stored:f.work(ledger,readMethod,[])}));
+  assert.deepEqual(await recover({projectStored:value => f.work(provider,projectMethod,[value])}), {recovered:19});
+  assert.deepEqual(calls, ['read','project']);assert.deepEqual(f.events, ['begin','complete','begin','complete']);
+  assert.deepEqual(outputs, [stored]);assert.equal(f.work.retire(), true);
+});
+
+test('original stored projector failure keeps its same unfinished control prefix without another read', async () => {
+  const f = controlWorkFixture(), stored = {}, outputs = [];let reads = 0, threw = false;
+  const recover = originalStoredProjection(async () => ({stored:f.work(undefined,() => {reads++;outputs.push(stored);return stored;},[])}));
+  try {await recover({projectStored:value => f.work(undefined,() => {assert.equal(value,stored);throw undefined;},[])});}
+  catch (cause) {threw = true;assert.equal(cause,undefined);}
+  assert.equal(threw,true);assert.equal(reads,1);assert.deepEqual(outputs,[stored]);
+  assert.deepEqual(f.events,['begin','complete','begin']);
+  assert.throws(() => f.work(undefined,() => 1,[]),cause => cause === undefined);
+  assert.equal(f.work.retire(),true);
+});

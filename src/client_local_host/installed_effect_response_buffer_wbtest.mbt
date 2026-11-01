@@ -507,3 +507,69 @@ test "successful binary receiver retains only its returned body with the complet
     )
   }
 }
+
+///|
+test "stored Ledger admission and original projector keep all outputs without summing returned synchronous scratch" {
+  let empty = @execution.execution_capacity(0L, 0L).unwrap()
+  let selected = []
+  for execution in [17L, 37L] {
+    let projector = @execution.execution_capacity(7L, execution).unwrap()
+    selected.push(
+      installed_standard_create_recipe_capacities(
+        Some([(empty, None, None), (projector, None, None)]),
+        256,
+        16,
+        4,
+        64,
+        32,
+        0,
+        0,
+        false,
+        16,
+        7,
+        32,
+        4096,
+        64,
+        4,
+        0L,
+      ).unwrap(),
+    )
+  }
+  // The unchanged stored input owns more scratch than either small projector.
+  // Their original callbacks are serial. The whole physical body still keeps
+  // its original complete allowance; this counter issues no Run or permission.
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(selected[1][4]),
+    @execution.execution_capacity_retained_bytes(selected[0][4]),
+  )
+  assert_eq(
+    @execution.execution_capacity_execution_bytes(selected[1][4]) -
+    @execution.execution_capacity_execution_bytes(selected[0][4]),
+    0L,
+  )
+  assert_eq(
+    @execution.execution_capacity_execution_bytes(selected[1][3]) -
+    @execution.execution_capacity_execution_bytes(selected[0][3]),
+    20L,
+  )
+}
+
+///|
+test "stored control sequential scratch keeps retained and execution overflow closed" {
+  let maximum = @execution.execution_capacity(
+    9223372036854775807L, 9223372036854775807L,
+  ).unwrap()
+  let byte = @execution.execution_capacity(1L, 1L).unwrap()
+  assert_true(
+    standard_create_sum_capacities([maximum, byte], sequential_workspace=true)
+    is None,
+  )
+  let scratch = @execution.execution_capacity(0L, 1L).unwrap()
+  assert_true(
+    standard_create_sum_capacities(
+      [maximum, scratch],
+      sequential_workspace=true,
+    )
+    is None,
+  )
+}

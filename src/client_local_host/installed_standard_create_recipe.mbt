@@ -18,7 +18,39 @@ fn standard_create_representation_capacity(
 ///|
 fn standard_create_sum_capacities(
   values : Array[@execution.ExecutionCapacity],
+  sequential_workspace? : Bool = false,
 ) -> @execution.ExecutionCapacity? {
+  if sequential_workspace {
+    let mut retained = 0L
+    let mut workspace = 0L
+    for value in values {
+      guard @execution.execution_capacity_inventory_add(
+          retained,
+          QuotedBytes,
+          @execution.execution_capacity_retained_bytes(value),
+          1,
+        )
+        is Some(next) else {
+        return None
+      }
+      retained = next
+      workspace = Int64::max(
+        workspace,
+        @execution.execution_capacity_execution_bytes(value) -
+        @execution.execution_capacity_retained_bytes(value),
+      )
+    }
+    guard @execution.execution_capacity_inventory_add(
+        retained,
+        QuotedBytes,
+        workspace,
+        1,
+      )
+      is Some(execution) else {
+      return None
+    }
+    return @execution.execution_capacity(retained, execution)
+  }
   let mut total = @execution.execution_capacity(0L, 0L).unwrap()
   for value in values {
     guard @execution.add_execution_capacity(total, value) is Some(next) else {
@@ -357,11 +389,15 @@ fn installed_standard_recipe_capacities(
     // A stored response read/project need not borrow the write occurrence.
     // Keep its actual Ledger-bound input and native projector on pre-body
     // controls rather than inventing another physical write or cleanup ACK.
-    standard_create_sum_capacities([
-      stored,
-      stored_buffers,
-      constructors[write_output],
-    ])
+    // The original Ledger admit/read returns before the original provider
+    // projector is called. Their Unicode Owner scratch cannot escape either
+    // synchronous call; all Source/index/native/output holders remain summed.
+    // The same control reservation grows before each call and retains its full
+    // failed prefix until existing cleanup. Physical work keeps its old sum.
+    standard_create_sum_capacities(
+      [stored, stored_buffers, constructors[write_output]],
+      sequential_workspace=true,
+    )
     is Some(recovery) else {
     return Err(Unsupported)
   }

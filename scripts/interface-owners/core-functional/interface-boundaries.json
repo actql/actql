@@ -56836,7 +56836,7 @@
     },
     {
       "module": "src/client_local_host/installed_standard_create_recipe.mbt",
-      "sha256": "4238f36bbc675d4a7420ac57540c57f6a38476720be71274b1cd86c7e8e87897",
+      "sha256": "6e88ba3b62fddb6239db31208521a4816a9818ca73995b85854fcd8ac7f822ba",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
@@ -56869,7 +56869,7 @@
         },
         {
           "name": "standard_create_sum_capacities",
-          "declaration": "standard_create_sum_capacities ( values : Array [ @ execution . ExecutionCapacity ] , ) - > @ execution . ExecutionCapacity ?"
+          "declaration": "standard_create_sum_capacities ( values : Array [ @ execution . ExecutionCapacity ] , sequential_workspace ? : Bool"
         }
       ],
       "contracts": [
