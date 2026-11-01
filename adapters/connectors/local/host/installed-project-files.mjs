@@ -281,7 +281,7 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
     if(typeof prepareManagedContentRun!=='function')fail('ForeignLocalFilesContentPreparation');
     const prior=sharedRuns.get(prepared);
     if(prior!==undefined){
-      if(prior.retired||prior.recipe!==recipe||prior.graph!==graph)fail('ForeignLocalFilesContentPreparation');
+      if(request===undefined||prior.retired||prior.recipe!==recipe||prior.graph!==graph)fail('ForeignLocalFilesContentPreparation');
       const hostRun=prior.hostRun;
       if(sameRun(prepared,request)!==prior||prior.recipe!==recipe||prior.graph!==graph||prior.hostRun!==hostRun)
         fail('ForeignLocalFilesContentPreparation');

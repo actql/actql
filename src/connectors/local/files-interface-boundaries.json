@@ -496,7 +496,7 @@
     {
       "module": "adapters/connectors/local/host/installed-project-files.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f18b04ee2d6fe531e80365ea7931f48535974d4723a45edc5f1353ba1d358695",
+      "sha256": "09d8a7d512bf9c356be1e1f7831fb13d3decb2687b1ceaee63e84aee5cbd18d0",
       "exports": [
         "LOCAL_FILES_DEFAULT_LIMITS",
         "installPreparedProjectLocalFiles",
