@@ -134,11 +134,12 @@ fn host_current_observation(
 ///|
 fn host_current_observe_original(
   record : StoredHostCurrent,
-  checked_operation : (  post_original? : (() -> Result[Unit, Int])? = None,
-) -> Result[Int64, Int],
+  checked_operation : () -> Result[Int64, Int],
   current : () -> Result[Unit, Int],
   select_row : (String) -> Result[@host.ClientJournalPhysicalRow?, Int],
+  post_original? : (() -> Result[Unit, Int])? = None,
 ) -> Result[@host.ClientLocalAdoptionCurrentObservation[Ref[Int]], Int] {
+  post_original |> ignore
   guard record.account is Some(account) &&
     record.account_original is Some(original) &&
     record.adoption_original is Some(expected) &&
