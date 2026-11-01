@@ -9227,6 +9227,14 @@
               },
               {
                 "path": "src/client_host_wasm/buffers.mbt",
+                "anchor": "pub fn read_packed("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"read_packed:actql_buffer_read_packed\""
+              },
+              {
+                "path": "src/client_host_wasm/buffers.mbt",
                 "anchor": "pub fn open_live("
               },
               {
@@ -10401,6 +10409,14 @@
               },
               {
                 "path": "src/client_host_wasm/buffers.mbt",
+                "anchor": "pub fn read_packed("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"read_packed:actql_buffer_read_packed\""
+              },
+              {
+                "path": "src/client_host_wasm/buffers.mbt",
                 "anchor": "pub fn open_live("
               },
               {
@@ -10638,6 +10654,14 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_output_scalar_transfer.py",
+                "anchor": "def test_same_original_bytes_use_bounded_seven_byte_scalars_and_keep_original_output("
+              },
+              {
+                "path": "src/client_host_wasm/packed_output_transport_wbtest.mbt",
+                "anchor": "test \"packed output transport retains original buffer guards and exact scalar byte order\""
               }
             ]
           }
