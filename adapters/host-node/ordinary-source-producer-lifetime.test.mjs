@@ -110,6 +110,25 @@ test('producer request index keeps current and synchronous retirement fences', a
   } finally {onCurrent = undefined; await f.close();}
 });
 
+test('producer request index refuses synchronous Host close during the current callback', async () => {
+  let onCurrent, closing;
+  const f = await producerIndexFixture(() => onCurrent?.());
+  try {
+    const record = f.begin(); f.bind(record);
+    onCurrent = () => {
+      onCurrent = undefined;
+      closing = f.view.close();
+    };
+    assert.throws(() => f.view.submittedIntentOriginal(record.request),
+      {code: 'ForeignInstalledSourceProducer'});
+    assert.deepEqual(await closing, {pending: true}, 'Request stop is not completed cleanup');
+  } finally {
+    onCurrent = undefined;
+    if (closing !== undefined) await closing;
+    await f.close();
+  }
+});
+
 test('producer request index performs direct membership lookups at N and 2N live requests', async t => {
   const measurements = [];
   for (const count of [16, 32]) {
