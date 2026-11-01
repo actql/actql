@@ -8,7 +8,7 @@ from threading import Thread
 
 from actql_sdk._local_journal_port import _JournalCallbacks
 from actql_sdk._local_core import LocalCoreError
-from actql_sdk._local_storage import ByteFence, LocalByteStore
+from actql_sdk._local_storage import ByteFence, LocalByteStore, LocalStorageError
 import test_local_original_operation_current as operation_fixture
 import test_local_submission_lookup as lookup_fixture
 
@@ -486,6 +486,76 @@ class SnapshotTransportTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 retained[0].check_fences(retained[0], fences)
             self.assertEqual(store.read(fences[0].key).payload, b'original-metadata')
+
+    def test_copied_partial_and_reordered_fences_keep_full_shape_admission(self):
+        for selection in ('copy', 'subset', 'reordered', 'foreign', 'oversized'):
+            with self.subTest(selection=selection), TemporaryDirectory(prefix='actql-fence-data-boundary-') as directory:
+                store = LocalByteStore(Path(directory) / 'original.sqlite', max_records=8,
+                    max_record_bytes=128, max_payload_bytes=512)
+                self.addCleanup(store.close)
+                fences = (ByteFence('first', 0, b'first-body'), ByteFence('second', 0, b'second-body'))
+                for fence in fences: store.compare_exchange(fence.key, None, fence.payload)
+                def inspect(reader):
+                    reader.read('original', 'absent', lambda row: self.assertIsNone(row))
+                    required = {
+                        'copy': tuple(replace(fence) for fence in fences),
+                        'subset': fences[:1], 'reordered': fences[::-1],
+                        'foreign': (ByteFence('foreign', 0, b'foreign-body'),),
+                        'oversized': (ByteFence('first', 0, b'x' * 129),),
+                    }[selection]
+                    reader.check_fences(reader, required)
+                with patch.object(store, '_validate_metadata_fences',
+                                  wraps=store._validate_metadata_fences) as validate:
+                    if selection in ('foreign', 'oversized'):
+                        with self.assertRaises((ValueError, LocalStorageError)):
+                            store.inspect_namespaces(fences, inspect=inspect, current=lambda: None)
+                    else:
+                        store.inspect_namespaces(fences, inspect=inspect, current=lambda: None)
+                    self.assertEqual(validate.call_count, 2)
+                self.assertFalse(store._physical.in_transaction)
+
+    def test_same_original_fences_still_refuse_current_metadata_mutation(self):
+        with TemporaryDirectory(prefix='actql-original-fence-current-') as directory:
+            store = LocalByteStore(Path(directory) / 'original.sqlite', max_records=8,
+                max_record_bytes=128, max_payload_bytes=512)
+            self.addCleanup(store.close)
+            fences = (ByteFence('epoch', 0, b'original-epoch'),)
+            store.compare_exchange('epoch', None, b'original-epoch')
+            armed = []
+            def current():
+                if armed:
+                    store._connection.execute('UPDATE core_bytes SET generation=1 WHERE key=?', ('epoch',))
+            def inspect(reader):
+                reader.read('original', 'absent', lambda row: self.assertIsNone(row))
+                armed.append(True)
+                reader.check_fences(reader, fences)
+            with self.assertRaises(LocalStorageError):
+                store.inspect_namespaces(fences, inspect=inspect, current=current)
+            self.assertFalse(store._physical.in_transaction)
+            self.assertEqual(store.read('epoch').generation, 0)
+
+    def test_same_original_fences_cannot_select_prewrite_facts_in_successor_read(self):
+        from actql_sdk._local_storage import ByteWrite
+        with TemporaryDirectory(prefix='actql-original-fence-successor-') as directory:
+            store = LocalByteStore(Path(directory) / 'original.sqlite', max_records=8,
+                max_record_bytes=128, max_payload_bytes=512)
+            self.addCleanup(store.close)
+            fences = (ByteFence('epoch', 0, b'original-epoch'),)
+            writes = (ByteWrite('epoch', 0, b'next-epoch'),)
+            store.compare_exchange('epoch', None, b'original-epoch')
+            self.assertEqual(store.compare_exchange_many_fenced(
+                writes, fences, current=lambda: None), (1,))
+            calls = []
+            def inspect(reader):
+                calls.append(True)
+                reader.read('original', 'absent', lambda row: self.assertIsNone(row))
+                reader.check_fences(reader, fences)
+            with self.assertRaises(LocalStorageError):
+                store.read_exchange_many_inspected(writes, fences,
+                    inspect=inspect, current=lambda: None)
+            self.assertEqual(calls, [True])
+            self.assertFalse(store._physical.in_transaction)
+            self.assertEqual(store.read('epoch').payload, b'next-epoch')
 
     def test_schema_probe_failure_is_not_cached_success_or_permission(self):
         import sqlite3
