@@ -274,7 +274,10 @@ fn saved_payload_binding(
   }
   record.pending = true
   let result = observe_saved_payload_record(
-    value, record, configuration, selection~,
+    value,
+    record,
+    configuration,
+    selection~,
   )
   record.pending = false
   if record.closing {

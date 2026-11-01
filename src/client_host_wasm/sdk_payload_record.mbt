@@ -38,9 +38,7 @@ fn sdk_payload_record_binding_current(
         return -32
       }
       match
-        saved_payload_binding(
-          value, payload, current_configuration, selection~,
-        ) {
+        saved_payload_binding(value, payload, current_configuration, selection~) {
         Ok(binding) => {
           let selected = match
             context.owner.view_binding(context.view, binding_index) {
@@ -102,7 +100,13 @@ fn sdk_payload_record_current(
     return -33
   }
   sdk_payload_record_binding_current(
-    value, first, context, record, result, binding, current_configuration,
+    value,
+    first,
+    context,
+    record,
+    result,
+    binding,
+    current_configuration,
     selection~,
   )
 }
@@ -122,7 +126,11 @@ fn sdk_payload_finish_current(
   // nominal selection handoff. Every payload/allocation row and its current
   // callbacks below still run; other callers retain complete Source checks.
   sdk_payload_record_current(
-    value, first, context, current_configuration, selection=Some(context),
+    value,
+    first,
+    context,
+    current_configuration,
+    selection=Some(context),
   )
 }
 

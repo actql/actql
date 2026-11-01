@@ -3182,6 +3182,23 @@ state admission. Cancellation still runs before confirmed absence is returned,
 and all current, publication-row and physical Reader fences remain independent.
 Initial, incomplete and cold holders cannot select original-data reobservation.
 
+The closed SDK payload finish path has just completed the original context's
+full Source/current check. Its immediately following record selector can use
+that same ephemeral context's original Source, finite policy, current
+configuration, publication Owner/view and Result name. The private callee checks
+those exact aliases and original view/observed-child liveness again. It does not
+repeat the adjacent completed Source row scan. Actual payload and allocation
+rows, their physical/current callbacks and the original semantic binding checks
+remain. No context is retained as a currentness or permission cache.
+
+This handoff is confined to that finish call. Input preparation, byte production,
+terminal entry, raw record methods and cached-return paths retain full Source
+checks: a previous clock return may execute a physical stop callback before
+their next record selection. The shared context constructor's initial current
+check is mandatory for those paths and is unchanged. Source or record retirement,
+foreign originals, changed rows and failed current checks remain refusals under
+the same child-first cleanup Owner; no metadata value can authorize another read.
+
 The Host registers its operation carrier before acquiring children. It restores
 the saved allocation directory and opens the committed generation in the
 installation's Result Root with no-follow, identity, size and digest checks. It
