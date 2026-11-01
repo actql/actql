@@ -7,7 +7,7 @@ callback loans and failure custody. These observations issue none of those.
 from __future__ import annotations
 
 import sqlite3
-from collections.abc import Generator
+from collections.abc import Generator as _Generator
 from typing import Protocol, cast
 
 
@@ -118,7 +118,7 @@ class _SQLiteByteDatabase:
         return cast(tuple[object, object, object, object] | None, raw)
 
     def read_fence_rows(self, keys: tuple[str, ...], max_bytes: int
-                        ) -> Generator[tuple[object, object, object, object, object, object], None, None]:
+                        ) -> _Generator[tuple[object, object, object, object, object, object], None, None]:
         """Fresh complete observations, one bounded row at a time in this TX.
 
         The key values plus SQL text fit the existing 4096-byte key-input
@@ -135,7 +135,7 @@ class _SQLiteByteDatabase:
             FROM requested LEFT JOIN core_bytes AS actual ON actual.key = requested.key'''
 
         def read_group(start: int, group: list[str]
-                       ) -> Generator[tuple[object, object, object, object, object, object], None, None]:
+                       ) -> _Generator[tuple[object, object, object, object, object, object], None, None]:
             values = ','.join('(' + str(start + index) + ',?)' for index in range(len(group)))
             query = prefix + values + suffix
             if len(query.encode()) + sum(len(key.encode()) for key in group) > 4096:
