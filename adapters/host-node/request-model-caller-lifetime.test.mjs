@@ -673,7 +673,9 @@ test('installed Model caller cuts its same managed aliases only after original r
   assert.throws(() => Reflect.apply(release, model, []), {code: 'InstalledModelCleanupPending'});
   model.scopeFinished = true; model.read = {};
   assert.throws(() => Reflect.apply(release, model, []), {code: 'InstalledModelCleanupPending'});
-  model.read = undefined; Reflect.apply(release, model, []);
+  model.read = undefined; f.early().failure = {retainedOriginal: f.plan};
+  Reflect.apply(release, model, []);
+  assert.equal(f.early().failure, undefined); assert.equal(f.early().requestId, undefined);
   assert.equal(model.compiled, undefined); assert.equal(model.originalReadInstallation, undefined);
   assert.equal(f.early().plan, undefined); assert.equal(f.early().managed, undefined);
   assert.equal(f.early().requested, undefined); assert.equal(f.early().prepared, undefined); assert.equal(model.closed, true);

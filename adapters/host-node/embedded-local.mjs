@@ -3356,7 +3356,7 @@ async function openInstalledHost(originalInstallation, preparation) {
         // Request cleanup. No physical child or Scope is released by this cut.
         for (const key of Object.keys(model)) model[key] = undefined;
         model.closed = true;
-        early.prepared = early.requested = early.plan = early.managed = undefined;
+        early.prepared = early.requestId = early.requested = early.plan = early.managed = early.failure = undefined;
         early.aliasesReleased = true;
       }};
     early.model = model;
