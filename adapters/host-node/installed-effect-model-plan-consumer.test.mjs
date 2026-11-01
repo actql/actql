@@ -315,3 +315,12 @@ test('Effect Host retirement retains originals on one failed sever observation o
   assert.equal(g.counts.observations, 0); assert.equal(g.counts.returns, 0);
   assert.equal(g.run.operationPlan, g.plan); assert.equal(g.run.prepared, g.prepared);
 });
+
+
+test('Effect fallback observes only the same original parent after a throwing retirement callback', () => {
+  const f = effectRetirementFixture(), primary = new Error('retire changed original');
+  f.setBefore(() => {f.run.value = {}; f.run.request = {}; throw primary;});
+  assert.throws(f.retire, {code: 'ForeignInstalledEffectManagedRun'});
+  assert.equal(f.counts.observations, 1); assert.equal(f.counts.returns, 0);
+  assert.equal(f.run.operationPlan, f.plan); assert.equal(f.run.prepared, f.prepared);
+});
