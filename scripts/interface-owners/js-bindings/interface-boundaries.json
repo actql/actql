@@ -41758,7 +41758,7 @@
     {
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "034130ec078715a06d0c058f5b012b0062ce2bfd7b162b95a7bf111411c77399",
+      "sha256": "2890fc5c98109afe07023af2b19eabd8e449bcc33d4a733c09b9b3f2d23d8124",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -50689,6 +50689,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Environment composer retains its same-call body, exact wire and evidence"
               }
             ],
             "identity": [
@@ -50775,6 +50779,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Environment composer retains its same-call body, exact wire and evidence"
               }
             ],
             "ownership": [
@@ -50857,6 +50865,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Environment composer retains its same-call body, exact wire and evidence"
               }
             ],
             "synchronization": [
@@ -51005,6 +51017,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "graph/text/Calendar checker remains mandatory with its actual flags and law"
               }
             ],
             "cancellation": [
@@ -51075,6 +51091,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "graph/text/Calendar checker remains mandatory with its actual flags and law"
               }
             ],
             "resources": [
@@ -51161,6 +51181,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "graph/text/Calendar checker remains mandatory with its actual flags and law"
               }
             ],
             "extension": [
@@ -51377,6 +51401,14 @@
               {
                 "path": "adapters/host-node/embedded-managed-compute-projection.test.mjs",
                 "anchor": "test('open borrows the one installed AoA projection through the same sequence original'"
+              },
+              {
+                "path": "adapters/host-node/installed-check-environment-original.test.mjs",
+                "anchor": "test('actual Host handoff keeps final flags/checking and avoids reparsing its unchanged composer input'"
+              },
+              {
+                "path": "adapters/host-node/installed-check-environment-original.test.mjs",
+                "anchor": "test('actual Host Task handoff preserves binding failure before parsing its new document'"
               }
             ]
           }
