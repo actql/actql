@@ -15,6 +15,16 @@ const refuse = cause => {
     {cause}), {code: 'InstalledCheckEnvironmentConflict'});
 };
 
+// One same-call construction record, not a path/CID cache or an execution
+// permission. External wires are checked before this shared admission; an
+// internally composed body already owns its exact encoding and evidence CID.
+function admitEnvironment(moon, wire, evidenceCid, body) {
+  const admitted = moon.clientProgramCheckEnvironment(wire, evidenceCid,
+    false, false, true, false, false, false, false);
+  if (admitted === undefined) refuse('EnvironmentAdmission');
+  return Object.freeze({runtime: moon, body, wire, evidenceCid, admitted});
+}
+
 function admittedDocument(moon, wire) {
   if (typeof wire !== 'string' ||
       Buffer.byteLength(wire, 'utf8') > maxEnvironmentBytes) {
@@ -28,12 +38,8 @@ function admittedDocument(moon, wire) {
     refuse('EnvironmentEncoding');
   }
   const {evidence_bundle_cid: evidenceCid, ...body} = document;
-  if (evidenceCid !== contentCid(body) ||
-      moon.clientProgramCheckEnvironment(wire, evidenceCid,
-        false, false, true, false, false, false, false) === undefined) {
-    refuse('EnvironmentAdmission');
-  }
-  return body;
+  if (evidenceCid !== contentCid(body)) refuse('EnvironmentAdmission');
+  return admitEnvironment(moon, wire, evidenceCid, body);
 }
 
 function mergeMembers(left, right) {
@@ -45,11 +51,11 @@ function mergeMembers(left, right) {
     const body = canonicalJson(member);
     members.set(body, member);
   }
-  return [...members.values()].sort((a, b) => {
-    const first = contentCid(a);
-    const second = contentCid(b);
-    return first < second ? -1 : first > second ? 1 : 0;
-  });
+  const retained = [...members.values()];
+  if (retained.length < 2) return retained;
+  return retained.map(member => ({member, cid: contentCid(member)}))
+    .sort((a, b) => a.cid < b.cid ? -1 : a.cid > b.cid ? 1 : 0)
+    .map(({member}) => member);
 }
 
 function rejectConflictingSelectors(members, selector) {
@@ -92,10 +98,19 @@ export function installedCheckEnvironmentInputs(baseWire, sourceWire, effectWire
 // Checkpoint owner. This is not a union of read and commit permissions.
 export function composeInstalledCheckEnvironment(moon, baseWire,
   sourceWire, effectWire) {
+  return composeInstalledCheckEnvironmentOriginal(moon, baseWire, sourceWire, effectWire).wire;
+}
+
+// The normal Host retains this SAME constructor's original metadata. Wire
+// consumers above keep their existing interface without another admission.
+// A later checker with different policy/flags still checks the final input.
+export function composeInstalledCheckEnvironmentOriginal(moon, baseWire,
+  sourceWire, effectWire) {
   const [baseInput, sourceInput, effectInput] = installedCheckEnvironmentInputs(baseWire, sourceWire, effectWire);
-  const base = admittedDocument(moon, baseInput);
-  const source = sourceInput === undefined ? undefined : admittedDocument(moon, sourceInput);
-  const effect = effectInput === undefined ? undefined : admittedDocument(moon, effectInput);
+  const baseOriginal = admittedDocument(moon, baseInput);
+  const sourceOriginal = sourceInput === undefined ? undefined : admittedDocument(moon, sourceInput);
+  const effectOriginal = effectInput === undefined ? undefined : admittedDocument(moon, effectInput);
+  const base = baseOriginal.body, source = sourceOriginal?.body, effect = effectOriginal?.body;
   const allowedKeys = new Set([...Object.keys(base),
     'connector_manifest']);
   // Adapter publications extend this Host's base facts. Their number never
@@ -110,9 +125,9 @@ export function composeInstalledCheckEnvironment(moon, baseWire,
       refuse('EnvironmentBase');
     }
   }
-  if (source === undefined && effect === undefined) return baseWire;
-  if (source === undefined) return effectWire;
-  if (effect === undefined) return sourceWire;
+  if (source === undefined && effect === undefined) return baseOriginal;
+  if (source === undefined) return effectOriginal;
+  if (effect === undefined) return sourceOriginal;
   rejectConflictingSelectors([...source.connector_catalogs,
     ...effect.connector_catalogs], value => value.connector_id);
   rejectConflictingSelectors([...source.source_views,
@@ -133,10 +148,10 @@ export function composeInstalledCheckEnvironment(moon, baseWire,
   const manifest = mergeManifest(source.connector_manifest,
     effect.connector_manifest);
   if (manifest !== undefined) body.connector_manifest = manifest;
-  const wire = canonicalJson({...body, evidence_bundle_cid:
-    contentCid(body)});
-  admittedDocument(moon, wire);
-  return wire;
+  const evidenceCid = contentCid(body);
+  const wire = canonicalJson({...body, evidence_bundle_cid: evidenceCid});
+  if (Buffer.byteLength(wire, 'utf8') > maxEnvironmentBytes) refuse('EnvironmentSize');
+  return admitEnvironment(moon, wire, evidenceCid, body);
 }
 
 // A matching static declaration does not establish that two installed roles
