@@ -307,3 +307,45 @@ test('actual Request Model prefix binding unwraps only registered compiler and D
   assert.throws(invoke, cause => cause.cause === primary);
   assert.equal(calls, 2);
 });
+
+test('actual Request Node Model Plan binding forwards original layout and physical demand without replacing opaque bounds', async () => {
+  const {runtimeCore} = await import('../host-common/runtime-core.mjs');
+  const opaque = label => new Proxy({}, {get() {assert.fail(label + ' must remain opaque');}});
+  const prepared = {}, artifact = {}, native = {}, definitionToken = {}, graph = opaque('Graph'), occurrence = {};
+  const parent = opaque('parent'), input = opaque('input'), request = opaque('request'), module = opaque('module'), bounds = opaque('bounds');
+  const layout = opaque('layout'), profile = opaque('response profile'), probability = opaque('probability'), selected = {};
+  const original = Object.freeze({nodeInstallation: Object.freeze({layout, installation: profile,
+    runtimeArtifactCid: 'runtime-original', layoutArtifactCid: 'layout-original', probability}),
+    modelRetainedBytes: 123n, modelExecutionBytes: 456n,
+    bootstrap: Object.freeze({maxReservations: 7, maxHoldings: 8, maxDelegations: 9})});
+  let calls = 0, primary;
+  const ok = value => ({$tag: 1, _0: value});
+  const moon = {strategyRemoteManagedOutputEvidenceKind: () => 'fixture',
+    clientProgramIssueTaskCompiledRun(p, value) {assert.equal(p, prepared); assert.equal(value, artifact); return ok(native);},
+    clientProgramBindCompiledInferResultPolicy: value => ok(value),
+    clientProgramIssueCompiledRunDefinition: value => {assert.equal(value, native); return ok(definitionToken);},
+    strategyRunEvidenceName: () => 'evidence', strategyRunEvidenceIdentity: () => 'identity', strategyRunEvidenceJson: () => '{}',
+    strategyPublicationContractName: () => 'run_definition', strategyPublicationContractIdentityField: () => 'run_id',
+    strategyPublicationContractIdentity: () => 'definition', strategyPublicationContractJson: () => '{}',
+    clientProgramPrepareRequestNodeModelSourceFreePlan(...args) {
+      assert.equal(this, moon);
+      assert.deepEqual(args, [parent, input, module, request, native, definitionToken, occurrence, graph, bounds,
+        layout, profile, 'runtime-original', 'layout-original', probability, 123n, 456n, 7, 8, 9]);
+      calls++; return primary === undefined ? ok(selected) : {$tag: 0, _0: primary};
+    },
+    clientProgramPrepareRequestModelSourceFreePlan() {assert.fail('No physical Node fallback to generic Model Plan');},
+  };
+  for (const name of ['Template', 'Plan', 'Prepared', 'Authorization', 'Admission']) moon['clientProgramCompiledRun' + name] = () => ({});
+  const control = runtimeCore(moon).publicationControl;
+  const compiled = control.prepareCheckedClientCompiledRun(prepared, 'infer', {
+    resultDataPolicy: {kind: 'data_policy', cid: 'policy', wire: '{}'}}, [graph], artifact);
+  const definition = control.defineCheckedClientCompiledRun(compiled, {});
+  const invoke = (c = compiled, d = definition) => control.prepareCheckedClientRequestNodeModelSourceFreePlan(
+    parent, input, module, request, c, d, occurrence, graph, bounds, original);
+  assert.equal(invoke(), selected);
+  assert.throws(() => invoke({...compiled}), /Foreign Client compiled Infer preparation/);
+  assert.throws(() => invoke(compiled, {...definition}), /Foreign publication contract/); assert.equal(calls, 1);
+  primary = {original: 'typed layout refusal'}; assert.throws(invoke, cause => cause.cause === primary); assert.equal(calls, 2);
+  delete moon.clientProgramPrepareRequestNodeModelSourceFreePlan;
+  assert.throws(invoke, /Installed Node Model Plan unavailable/); assert.equal(calls, 2);
+});
