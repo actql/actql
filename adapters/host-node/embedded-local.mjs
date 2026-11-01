@@ -243,6 +243,17 @@ export function assertInitialControlHostPreparation(originals) {
   profiles.assertPreparation(originals.host, originals.installation, originals.generation);
 }
 
+// Retained Run Resource currentness is distinct from new preparation. The
+// manager must establish its exact adopted Run before using this identity
+// projection; closing ingress does not retire that original Host generation.
+export function assertRetainedSourceManagedHost(originals) {
+  if (originals?.supplier !== openPreparedInstalledHost ||
+      originals?.moduleLifetime !== import.meta) {
+    throw clientOperationError('InstalledHostPreparationChanged');
+  }
+  profiles.assertRetainedPreparation(originals.host, originals.installation, originals.generation);
+}
+
 // The actual selected startup captures this fixed operation, not a caller
 // predicate. Its installation phase may check the original Host before a
 // request exists. A request phase additionally requires that SAME pending
