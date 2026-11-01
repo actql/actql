@@ -640,10 +640,8 @@ fn request_acquired_model_capture_fixture(
       2048L,
     ) {
     Ok(value) => value
-    Err(issue) => {
-      let original : Error = issue
-      fail("same Request managed Source read: " + @debug.to_string(original))
-    }
+    Err(issue) =>
+      fail("same Request managed Source read: " + @debug.to_string(issue))
   }
   @row_source_host.begin_row_run(source, 128, 1, 1).unwrap()
   assert_eq(
