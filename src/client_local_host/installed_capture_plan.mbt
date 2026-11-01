@@ -20,6 +20,8 @@ struct ClientInstalledManagedCapturePlan {
   compute_sequences : Array[@execution.GeneratedSequence]
   capacity_plan : ClientLocalCapacityPlan
   configuration : ClientPreparedLocalConfiguration
+  mut model_input_prefix : @execution.GeneratedSequence?
+  mut model_input_suffix : @execution.GeneratedSequence?
   mut compilation : @publication_host.ClientRunCompilation?
   limits : @resources.LedgerLimits
 }
@@ -171,6 +173,8 @@ fn prepare_installed_managed_capture_plan_owned(
     compute_sequences: compute.sequences,
     capacity_plan: compute.capacity_plan,
     configuration: compute.configuration,
+    model_input_prefix: None,
+    model_input_suffix: None,
     compilation: None,
     limits: compute.limits,
   })

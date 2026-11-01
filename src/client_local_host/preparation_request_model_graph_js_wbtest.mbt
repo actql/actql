@@ -338,6 +338,7 @@ fn request_serialized_model_fixture(
   current? : () -> Bool = () => true,
   single_capture? : Bool = false,
   serialized? : Bool = true,
+  nonterminal? : Bool = false,
 ) -> RequestSerializedModelFixture raise {
   let declaration = if single_capture {
     Some(request_model_module_declaration())
@@ -347,6 +348,7 @@ fn request_serialized_model_fixture(
   let (parent, input, prepared) = request_model_input_fixture(
     with_serialization=serialized,
     single_capture~,
+    nonterminal~,
     current~,
     declaration~,
   )
@@ -1728,4 +1730,200 @@ test "plain Node Model input lowering is backed on the same Request before modul
   abort_request_preparation_after_cleanup(f.parent).unwrap()
   assert_eq(@resources.ledger_usage(f.parent.ledger).live_reservations, 0)
   assert_true(observed.val)
+}
+
+///|
+test "plain Model module retains its original input segments without getters preparing again" {
+  for nonterminal in [false, true] {
+    let ticks = Ref(0)
+    let f = request_serialized_model_fixture(
+      single_capture=true,
+      serialized=false,
+      nonterminal~,
+      current=() => {
+        ticks.val += 1
+        true
+      },
+    )
+    let provider = @execution.execution_capacity(7L, 9L).unwrap()
+    let original = prepare_request_model_capture_module(
+      f.parent,
+      f.input,
+      f.request,
+      f.compiled,
+      f.definition,
+      f.compilation,
+      [f.declaration.unwrap()],
+      original_row_query_contract_fixture,
+      original_row_evidence_contract_fixture,
+      [4096L],
+      [2048L],
+      f.contracts,
+      true,
+      0,
+      _ => [],
+      providers=Some([Some(provider)]),
+    ).unwrap()
+    let before = @resources.preparation_capacity_working_extents(
+      f.parent.program_capacity.unwrap(),
+      f.input,
+    ).unwrap()
+    let calls = ticks.val
+    let prefix = prepared_request_model_input_prefix(original).unwrap()
+    assert_true(
+      original.model_input_prefix is Some(same) && physical_equal(prefix, same),
+    )
+    assert_true(
+      physical_equal(
+        prefix,
+        prepared_request_model_input_prefix(original).unwrap(),
+      ),
+    )
+    let suffix = prepared_request_model_input_suffix(original).unwrap()
+    assert_eq(suffix is Some(_), nonterminal)
+    assert_true(
+      match (suffix, original.model_input_suffix) {
+        (None, None) => true
+        (Some(a), Some(b)) => physical_equal(a, b)
+        _ => false
+      },
+    )
+    assert_eq(ticks.val, calls)
+    assert_eq(
+      @resources.preparation_capacity_working_extents(
+        f.parent.program_capacity.unwrap(),
+        f.input,
+      ).unwrap(),
+      before,
+    )
+    assert_false(@resources.return_preparation_body_borrow(f.holder).unwrap())
+    abort_request_preparation_after_cleanup(f.parent).unwrap()
+    assert_eq(@resources.ledger_usage(f.parent.ledger).live_reservations, 0)
+  }
+}
+
+///|
+test "plain Model refused input construction keeps the same parent and enters no provider factory" {
+  let armed = Ref(false)
+  let selected : Ref[ClientRequestPreparation[Array[Int]]?] = Ref(None)
+  let threshold = Ref(0L)
+  let observed = Ref(false)
+  let f = request_serialized_model_fixture(
+    single_capture=true,
+    serialized=false,
+    current=() => {
+      if armed.val &&
+        selected.val is Some(owner) &&
+        owner.program_domain_quote is Some((r, _)) &&
+        r >= threshold.val {
+        observed.val = true
+        false
+      } else {
+        true
+      }
+    },
+  )
+  selected.val = Some(f.parent)
+  let before = @resources.preparation_capacity_working_extents(
+    f.parent.program_capacity.unwrap(),
+    f.input,
+  ).unwrap()
+  let variable = program_check_data_extent_cost(f.parent.program_data.unwrap()).unwrap()
+  let controls = request_model_module_container_bytes(
+    @strategy.graph_task_count(
+      @publication_host.prepared_client_graph(f.prepared),
+    ),
+    1,
+    0,
+    provider_captures=1,
+    input_segments=1,
+  ).unwrap()
+  threshold.val = before.0 + controls + variable
+  let factories = Ref(0)
+  armed.val = true
+  assert_true(
+    prepare_request_model_capture_module(
+      f.parent,
+      f.input,
+      f.request,
+      f.compiled,
+      f.definition,
+      f.compilation,
+      [f.declaration.unwrap()],
+      original_row_query_contract_fixture,
+      original_row_evidence_contract_fixture,
+      [4096L],
+      [2048L],
+      f.contracts,
+      true,
+      0,
+      _ => {
+        factories.val += 1
+        []
+      },
+      providers=Some([Some(@execution.execution_capacity(7L, 9L).unwrap())]),
+    )
+    is Err(Preparation(Capacity(_))),
+  )
+  armed.val = false
+  assert_true(observed.val)
+  assert_eq(factories.val, 0)
+  assert_true(f.parent.program_captured is None)
+  assert_true(f.parent.phase == ProgramBodyFailed)
+  assert_false(@resources.return_preparation_body_borrow(f.holder).unwrap())
+  abort_request_preparation_after_cleanup(f.parent).unwrap()
+  assert_eq(@resources.ledger_usage(f.parent.ledger).live_reservations, 0)
+}
+
+///|
+// The component is an explicit pure constructor port, not a physical Model
+// supplier or egress grant. The actual parent debit and prefix are native.
+test "plain Model component factory receives the already backed original input before module configuration" {
+  let f = request_serialized_model_fixture(
+    single_capture=true,
+    serialized=false,
+  )
+  let calls = Ref(0)
+  let captured : Ref[@execution.GeneratedSequence?] = Ref(None)
+  let original = prepare_request_model_capture_module(
+    f.parent,
+    f.input,
+    f.request,
+    f.compiled,
+    f.definition,
+    f.compilation,
+    [f.declaration.unwrap()],
+    original_row_query_contract_fixture,
+    original_row_evidence_contract_fixture,
+    [4096L],
+    [2048L],
+    f.contracts,
+    true,
+    1,
+    _ => [],
+    providers=Some([Some(@execution.execution_capacity(7L, 9L).unwrap())]),
+    component_factory=Some((capacity, prefix, suffix) => {
+      calls.val += 1
+      captured.val = Some(prefix)
+      // No physical execution can be started by this fixture component.
+      @local.managed_provider(_ => suffix is None, _ => Some(capacity), (
+        _,
+        _,
+        _,
+        _,
+        _,
+      ) => Err(@connector.ComputeUnsupported))
+    }),
+  ).unwrap()
+  assert_eq(calls.val, 1)
+  assert_true(
+    captured.val is Some(prefix) &&
+    physical_equal(
+      prefix,
+      prepared_request_model_input_prefix(original).unwrap(),
+    ),
+  )
+  assert_false(@resources.return_preparation_body_borrow(f.holder).unwrap())
+  abort_request_preparation_after_cleanup(f.parent).unwrap()
+  assert_eq(@resources.ledger_usage(f.parent.ledger).live_reservations, 0)
 }

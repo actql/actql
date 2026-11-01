@@ -2789,11 +2789,18 @@ async function openInstalledHost(originalInstallation, preparation) {
             prepareSerializationGraph: preparation === undefined ? undefined :
               (options, intermediate) => preparation.prepareManagedContentGraph(
                 moon, preparedProgram, options, intermediate)}, true) : undefined;
-        const segments = occurrence === undefined || serializationGraph !== undefined ? undefined : checked(
+        // This original installed Model's module now owns its actual input
+        // lowering after the same Request debit. Do not allocate an early
+        // standalone prefix/suffix before that backed constructor.
+        const deferredModelInput = preparation !== undefined && physical.originalReadInstallation !== undefined &&
+          occurrence !== undefined && serializationGraph === undefined &&
+          prepareSubmit.kindOf(preparedProgram) === 'effect_free' &&
+          moon.clientProgramAcquisitionCount(preparedProgram) === 1;
+        const segments = deferredModelInput || occurrence === undefined || serializationGraph !== undefined ? undefined : checked(
           (prepareSubmit.kindOf(preparedProgram) === 'effectful'
             ? moon.clientProgramPrepareEffectInferSegments : moon.clientProgramPrepareComposedInferSegments)(preparedProgram, occurrence,
             registry, values, fragment, ordered));
-        const computeSuffix = effectGraph !== undefined ? undefined : serializationGraph !== undefined
+        const computeSuffix = deferredModelInput || effectGraph !== undefined ? undefined : serializationGraph !== undefined
           ? checked(moon.clientProgramPrepareComposedInferComputeSuffix(preparedProgram,
             occurrence, registry, values, fragment, ordered))
           : occurrence === undefined

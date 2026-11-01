@@ -9,12 +9,15 @@ fn request_model_module_container_bytes(
   captures : Int,
   installed_providers : Int,
   provider_captures? : Int = 0,
+  input_segments? : Int = 0,
 ) -> Int64? {
   guard tasks > captures &&
     captures >= 0 &&
     installed_providers >= 0 &&
     provider_captures >= 0 &&
     provider_captures <= captures &&
+    input_segments >= 0 &&
+    input_segments <= 2 &&
     @local.local_module_container_inventory(
       tasks - captures,
       installed_providers,
@@ -22,6 +25,15 @@ fn request_model_module_container_bytes(
     is Some(containers) &&
     @execution.compose_preparation_representation([
       containers,
+      // The two actual optional module fields and each retained Some carrier.
+      {
+        record_headers: input_segments.to_int64(),
+        reference_slots: (if captures == 0 { 0L } else { 2L }) +
+        input_segments.to_int64(),
+        scalar_words: 0L,
+        owned_utf16_units: 0L,
+        owned_wire_bytes: 0L,
+      },
       closed_values_program_arrays(6L, 6L * tasks.to_int64(), true),
       closed_values_program_arrays(
         if captures == 0 {
@@ -121,6 +133,15 @@ fn[I] begin_request_model_module(
       captures,
       installed_providers,
       provider_captures~,
+      input_segments=if captures == 1 && graph.serialization is None {
+        if @publication_host.client_infer_occurrence_terminal(graph.occurrence) {
+          1
+        } else {
+          2
+        }
+      } else {
+        0
+      },
     )
     is Some(bytes) else {
     return Err(Installed(Unsupported))
@@ -231,6 +252,11 @@ pub fn[I] prepare_request_model_capture_module(
   ],
   query_time? : @publication_host.ClientQueryTimePreparation? = None,
   providers? : Array[@execution.ExecutionCapacity?]? = None,
+  component_factory? : ((
+    @execution.ExecutionCapacity,
+    @execution.GeneratedSequence,
+    @execution.GeneratedSequence?,
+  ) -> @local.ManagedProvider)? = None,
 ) -> Result[ClientInstalledManagedCapturePlan, ClientRequestProgramPlanIssue] {
   let count = declarations.length()
   if (count != 1 && count != 2) ||
@@ -278,10 +304,84 @@ pub fn[I] prepare_request_model_capture_module(
         is Some(bytes) else {
         return Err(Preparation(Policy))
       }
+      let model = compilation.infers[0]
+      let input_calls = if count == 1 && model.serialization is None {
+        if @publication_host.client_infer_occurrence_terminal(model.occurrence) {
+          1L
+        } else {
+          2L
+        }
+      } else {
+        0L
+      }
+      let bytes = if input_calls == 0L {
+        bytes
+      } else {
+        guard owner.program_data is Some(data) &&
+          program_check_data_extent_cost(data) is Some(variable) &&
+          @execution.checked_preparation_add_product(
+            bytes, variable, input_calls,
+          )
+          is Some(complete) else {
+          return Err(Preparation(Policy))
+        }
+        complete
+      }
       match
         reserve_request_domain_graph_construction(owner, input, prepared, bytes) {
         Err(issue) => return Err(issue)
         Ok(_) => ()
+      }
+      // Lower the actual Model input once before its provider factory. This
+      // pure output coexists with module/configuration and remains on that
+      // same original. Pass the bound invocation, never sample another clock.
+      let mut input_prefix = None
+      let mut input_suffix = None
+      if input_calls > 0L {
+        let (task, _, step) = @publication_host.client_infer_occurrence_coordinates(
+          model.occurrence,
+        )
+        let prefix = match
+          prepare_client_local_sequences_owned(
+            Pure(prepared),
+            contracts,
+            contracts.original.values_body,
+            contracts.original.fragment_body,
+            contracts.original.ordered_body,
+            selected_task=Some(task),
+            infer_prefix=Some((task, step - 1)),
+            query_time=query_time.map(original => (original, request)),
+          ) {
+          Err(issue) => return Err(Installed(issue))
+          Ok(value) => value
+        }
+        guard prefix.get(0) is Some(original_prefix) else {
+          return Err(Installed(Unsupported))
+        }
+        input_prefix = Some(original_prefix)
+        if input_calls == 2L {
+          let suffix = match
+            prepare_client_local_sequences_owned(
+              Pure(prepared),
+              contracts,
+              contracts.original.values_body,
+              contracts.original.fragment_body,
+              contracts.original.ordered_body,
+              selected_task=Some(task),
+              infer_suffix=Some((task, step)),
+              query_time=query_time.map(original => (original, request)),
+            ) {
+            Err(issue) => return Err(Installed(issue))
+            Ok(value) => value
+          }
+          guard suffix.get(0) is Some(original_suffix) else {
+            return Err(Installed(Unsupported))
+          }
+          input_suffix = Some(original_suffix)
+        }
+      }
+      if component_factory is Some(_) && input_prefix is None {
+        return Err(Installed(Unsupported))
       }
       // The actual Query/material constructors and their protocol overlap
       // are backed before the first parse/Query call on this SAME Request.
@@ -365,12 +465,21 @@ pub fn[I] prepare_request_model_capture_module(
           contracts.original.fragment_body,
           contracts.original.ordered_body,
           retained_output~,
-          provider_factory~,
+          provider_factory=capacity => {
+            let providers = provider_factory(capacity)
+            if component_factory is Some(construct) &&
+              input_prefix is Some(prefix) {
+              providers.push(construct(capacity, prefix, input_suffix))
+            }
+            providers
+          },
           query_time~,
         ) {
         Err(issue) => return Err(Installed(issue))
         Ok(value) => value
       }
+      original.model_input_prefix = input_prefix
+      original.model_input_suffix = input_suffix
       owner.program_captured = Some(original)
       guard owner.phase == Selecting &&
         owner.input is Some(same_input) &&
@@ -385,4 +494,30 @@ pub fn[I] prepare_request_model_capture_module(
     },
     () => if owner.phase == Selecting { owner.phase = ProgramBodyFailed },
   )
+}
+
+///|
+/// Pure reads of this exact Request module's retained input. They issue no
+/// Scope, read, execution or reconstruction from an equal Graph/sequence.
+pub fn prepared_request_model_input_prefix(
+  original : ClientInstalledManagedCapturePlan,
+) -> Result[@execution.GeneratedSequence, ClientInstalledManagedRunIssue] {
+  guard original.compilation is Some(@publication_host.Tasks(compilation)) &&
+    installed_mock_model_compilation_matches(original.prepared, compilation) &&
+    compilation.infers[0].serialization is None &&
+    original.model_input_prefix is Some(prefix) else {
+    return Err(ForeignOriginal)
+  }
+  Ok(prefix)
+}
+
+///|
+pub fn prepared_request_model_input_suffix(
+  original : ClientInstalledManagedCapturePlan,
+) -> Result[@execution.GeneratedSequence?, ClientInstalledManagedRunIssue] {
+  match prepared_request_model_input_prefix(original) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  Ok(original.model_input_suffix)
 }

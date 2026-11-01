@@ -4821,3 +4821,33 @@ This construction does not select a Node execution driver. The physical caller
 must carry the original input prefix and read consumer through its actual
 adoption and cleanup path; an independent single-stage or unowned composed start
 cannot substitute for that connection.
+
+### Original Model input before its component factory
+
+A plain one-Source Model lowers its actual pre-INFER input on the original
+Request after the Graph/compiler debit and before invoking any installed
+provider factory. A nonterminal Model also lowers its actual post-INFER suffix
+there. Each lowering retains the existing complete Program variable frame;
+the existing checked representation cost is multiplied by the actual one or
+two constructor calls. Protocol/Query construction and the module's retained
+input references coexist with these outputs in the same parent debit. Fixed
+installed Host controls remain trusted; these DATA costs issue no authority.
+
+The module retains the exact generated prefix and optional suffix. Its pure
+accessors return those originals without preparing, growing, observing current,
+or sampling QueryTime again. The one-component construction callback receives
+the same original prefix before constructing its native ManagedProvider, so
+that provider's input-dependent capacity is selected from the actual sequence.
+The callback is transient, and the parent retains the constructed module before
+any later callback/current failure. The same original QueryTime, if present,
+remains bound to the original Request and compiler.
+
+Input construction refusal enters no provider factory and leaves the original
+Request's failure/abort cleanup in charge. Generated input DATA has no physical
+read or cleanup ACK. A module, component or Source that has entered its physical
+owner still requires that owner's original cleanup before Scope and parent
+retirement. A pending child cannot be replaced by an empty sequence or a new
+Model Run. The Node selection defers its previous direct prefix/suffix lowering
+for this installed Request route; unmanaged, source-free and serialized paths
+retain their existing construction contracts. The physical driver must still
+bind the module's same component, Source read and adopted Run before entry.

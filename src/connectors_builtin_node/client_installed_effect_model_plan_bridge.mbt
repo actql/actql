@@ -443,3 +443,78 @@ pub fn client_program_prepare_request_model_provider_capture_module(
     providers=Some([provider]),
   ).map_err(issue => Preparation(issue))
 }
+
+///|
+#export_name("clientProgramPreparedRequestModelInputPrefix")
+pub fn client_program_prepared_request_model_input_prefix(
+  original : @client_local_host.ClientInstalledManagedCapturePlan,
+) -> Result[
+  @execution.GeneratedSequence,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.prepared_request_model_input_prefix(original)
+}
+
+///|
+#export_name("clientProgramPreparedRequestModelInputSuffix")
+pub fn client_program_prepared_request_model_input_suffix(
+  original : @client_local_host.ClientInstalledManagedCapturePlan,
+) -> Result[
+  @execution.GeneratedSequence?,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.prepared_request_model_input_suffix(original)
+}
+
+///|
+/// The original installed reader capacity is an opaque Option from this same
+/// runtime. Construct the fixed vector here; JS neither unwraps nor reissues it.
+#export_name("clientProgramPrepareRequestModelProviderComponentCaptureModule")
+pub fn client_program_prepare_request_model_provider_component_capture_module(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  request : @publication_host.ClientRequestIdentity,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  compilation : @publication_host.ClientTaskCompilation,
+  declaration : @client_row_source_host.RowDeclaration,
+  provider : @execution.ExecutionCapacity?,
+  query_contract_body : String,
+  evidence_contract_body : String,
+  transport_bytes : Int64,
+  transport_execution_bytes : Int64,
+  contracts : @client_local_host.ClientInstalledSequenceContracts,
+  retained_output : Bool,
+  query_time : @publication_host.ClientQueryTimePreparation?,
+  construct : (
+    @execution.ExecutionCapacity,
+    @execution.GeneratedSequence,
+    @execution.GeneratedSequence?,
+  ) -> @local.ManagedProvider,
+) -> Result[
+  @client_local_host.ClientInstalledManagedCapturePlan,
+  ClientRequestProgramModuleBridgeIssue,
+] {
+  @client_local_host.prepare_request_model_capture_module(
+    parent,
+    input,
+    request,
+    compiled,
+    definition,
+    compilation,
+    [declaration],
+    query_contract_body,
+    evidence_contract_body,
+    [transport_bytes],
+    [transport_execution_bytes],
+    contracts,
+    retained_output,
+    installed_client_family_provider_count() + 1,
+    installed_client_family_providers,
+    query_time~,
+    providers=Some([provider]),
+    component_factory=Some(construct),
+  ).map_err(issue => Preparation(issue))
+}

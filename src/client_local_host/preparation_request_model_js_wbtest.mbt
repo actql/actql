@@ -7,6 +7,7 @@ fn request_model_input_fixture(
   single_capture? : Bool = false,
   with_query_time? : Bool = false,
   with_serialization? : Bool = false,
+  nonterminal? : Bool = false,
   current? : () -> Bool = () => true,
   declaration? : @row_source_host.RowDeclaration? = None,
 ) -> (
@@ -44,6 +45,20 @@ fn request_model_input_fixture(
     .replace(
       old="\"fields\":[\"id\",\"outcome\",\"value\"]",
       new="\"fields\":[\"name\",\"outcome\",\"value\"]",
+    )
+  } else {
+    document
+  }
+  let document = if nonterminal {
+    assert_false(with_serialization)
+    document
+    .replace(
+      old="\"as\":\"classified\"}],\"results\"",
+      new="\"as\":\"classified\"},{\"filter\":\"id >= 0\",\"as\":\"kept\"}],\"results\"",
+    )
+    .replace(
+      old="\"from\":\"classified\",\"fields\"",
+      new="\"from\":\"kept\",\"fields\"",
     )
   } else {
     document
