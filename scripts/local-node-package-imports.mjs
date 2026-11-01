@@ -1,6 +1,6 @@
 // Adapter nesting varies. Every checkout-only package import must resolve to
 // its existing public export before the adapter is copied into a tarball.
-// The two fixed native filesystem assets instead retain their package-local
+// The fixed native filesystem assets instead retain their package-local
 // paths; they are not public exports or interchangeable native modules.
 const exports = new Map([
   ['client-wire/index.mjs', '@actql/client-wire'],
@@ -12,6 +12,7 @@ const exports = new Map([
 const nativeAssets = new Set([
   'local-node/_build/native/directory-darwin-arm64.node',
   'local-node/_build/native/directory-darwin-x64.node',
+  'local-node/_build/native/local-files-linux-x64.node',
 ]);
 export function rewriteLocalNodePackageImports(code, path) {
   return code.replace(/(['"])((?:\.\.\/)+)packages\/([^'"]+)\1/gu,

@@ -4,6 +4,9 @@
 #include <stdio.h>
 #include <sys/file.h>
 
+#include "root-filesystem-platform.inc"
+
+#define LOCAL_MAX_ENTRIES 100000
 #define LOCAL_NAME_BYTES 1024
 #define LOCAL_ROOT_BYTES 4096
 #define LOCAL_READ_BYTES 65536
@@ -163,7 +166,7 @@ static napi_value local_fs_open_child(napi_env env, napi_callback_info info, boo
   if (napi_get_cb_info(env, info, &count, args, NULL, &data) != napi_ok ||
       count != (directory ? 3u : 2u) || !data ||
       !local_fs_text(env, args[1], name, LOCAL_NAME_BYTES, false, directory) ||
-      (directory && !bound(env, args[2], DIRECTORY_MAX_ENTRIES, &entries)))
+      (directory && !bound(env, args[2], LOCAL_MAX_ENTRIES, &entries)))
     return unavailable(env, "InvalidLocalFileChild");
   local_fs_original *parent = local_fs_argument(env, args[0], data);
   if (!parent || !parent->directory || parent->depth >= LOCAL_DEPTH ||
@@ -195,13 +198,8 @@ static napi_value local_fs_stat(napi_env env, napi_callback_info info) {
   local_fs_original *original = local_fs_one(env, info); struct stat value; napi_value result;
   if (!local_fs_current(original) || fstat(original->descriptor, &value) != 0)
     return unavailable(env, "LocalFileOriginalChanged");
-#if defined(__APPLE__)
-  int64_t modified_seconds = value.st_mtimespec.tv_sec, modified_nanos = value.st_mtimespec.tv_nsec;
-  int64_t changed_seconds = value.st_ctimespec.tv_sec, changed_nanos = value.st_ctimespec.tv_nsec;
-#else
-  int64_t modified_seconds = value.st_mtim.tv_sec, modified_nanos = value.st_mtim.tv_nsec;
-  int64_t changed_seconds = value.st_ctim.tv_sec, changed_nanos = value.st_ctim.tv_nsec;
-#endif
+  int64_t modified_seconds, modified_nanos, changed_seconds, changed_nanos;
+  local_fs_times(&value, &modified_seconds, &modified_nanos, &changed_seconds, &changed_nanos);
   /* Keep the native seconds/nanos pair exact; no binary64 timestamp/size path. */
   if (napi_create_object(env, &result) != napi_ok ||
       !local_fs_bigint(env, result, "dev", value.st_dev) ||

@@ -41758,7 +41758,7 @@
     {
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "034130ec078715a06d0c058f5b012b0062ce2bfd7b162b95a7bf111411c77399",
+      "sha256": "219a7d216460d00bbff76a0f17446b5ad9eb2e8bf12aa479624e16d432fc2f87",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -55069,9 +55069,11 @@
         "../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js",
         "../../_build/native/directory-darwin-arm64.node",
         "../../_build/native/directory-darwin-x64.node",
+        "../../_build/native/local-files-linux-x64.node",
         "../../packages/client-wire/index.mjs",
         "../../packages/local-node/_build/native/directory-darwin-arm64.node",
         "../../packages/local-node/_build/native/directory-darwin-x64.node",
+        "../../packages/local-node/_build/native/local-files-linux-x64.node",
         "../../packages/sdk/host-port.mjs",
         "../../packages/sdk/internal/private-source-preparation.mjs",
         "../connectors/local/host/installed-project-file-effects.mjs",
