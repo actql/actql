@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import {createServer} from 'node:http';
 import {createClientHttpHandler} from './client-http.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
+import {installHttpRequestPreparation} from './http-request-preparation.mjs';
+import {createEmbeddedHostRegistry} from './embedded-local-lifecycle.mjs';
 import {ClientError, connect} from '../../packages/sdk/index.mjs';
 import {connectInProcess} from '../../packages/sdk/host-port.mjs';
 import {createDiagnosticObserver, diagnosticObserver} from
@@ -804,3 +806,172 @@ test('wait disconnect ends only its observation and releases its listener',
       assert.equal(cancelCalls, 0);
     });
   });
+
+
+test('HTTP Request preparation retains the original through aliases and finishes after dispatch', async () => {
+  const events = [];
+  let original, derived;
+  const handler = createClientHttpHandler({
+    authenticate() {events.push('authenticate'); return 'original-principal';},
+    authorizeConnection() {events.push('authorize'); return true;},
+    async prepareRequest(operation, request) {
+      assert.equal(operation, 'status');
+      assert.ok(Object.isFrozen(request));
+      original = request;
+      events.push('prepare');
+      await Promise.resolve();
+      return {body: request, beforeReply() {events.push('before-reply');},
+        bindRequest(value) {derived = value; events.push('bind');},
+        finish(terminal) {assert.equal(terminal, 'returned'); events.push('finish');}};
+    },
+    async observeRun(request) {
+      assert.strictEqual(request, derived);
+      assert.equal(request.principalId, original.principalId);
+      assert.strictEqual(request.connection, original.connection);
+      events.push('dispatch');
+      await Promise.resolve();
+      return state;
+    },
+  });
+  await withServer(handler, async base => {
+    const response = await fetch(`${base}/actql/client/0.1/status`, {
+      method: 'POST', headers: {'content-type': 'application/json'},
+      body: JSON.stringify({connection: {mode: 'remote', owner: 'remote',
+        consentRefs: [], runners: []}, ref}), signal: AbortSignal.timeout(2000),
+    });
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), state);
+  });
+  assert.deepEqual(events, ['authenticate', 'authorize', 'prepare', 'bind', 'dispatch', 'before-reply', 'finish']);
+});
+
+test('HTTP Request preparation failure cannot dispatch or become a known refusal', async () => {
+  let dispatches = 0;
+  const handler = createClientHttpHandler({authenticate: () => 'principal',
+    authorizeConnection: () => true,
+    prepareRequest() {throw new TypeError('OriginalPreparationFailure');},
+    observeRun() {dispatches++; return state;},
+  });
+  await withServer(handler, async base => {
+    const response = await fetch(`${base}/actql/client/0.1/status`, {
+      method: 'POST', headers: {'content-type': 'application/json'},
+      body: JSON.stringify({connection: {mode: 'remote', owner: 'remote',
+        consentRefs: [], runners: []}, ref}), signal: AbortSignal.timeout(2000),
+    });
+    assert.equal(response.status, 500);
+    assert.deepEqual(await response.json(), {code: 'ClientHostFailure'});
+  });
+  assert.equal(dispatches, 0);
+});
+
+
+test('HTTP funded snapshot and typed intent retain the same Request and failed cleanup owner', async () => {
+  // Explicit manager/compiler ports isolate ingress correspondence. This does
+  // not claim Resource admission, a real Host or durable Run acceptance.
+  const registry = createEmbeddedHostRegistry(() => true);
+  const host = {}, installation = {}, originals = {host, installation, generation: host};
+  registry.registerPreparation(host, installation, host);
+  const receipt = {}, input = {text: 'SELECT 1 AS n', format: 'sql'};
+  const connection = Object.freeze({mode: 'remote', owner: 'remote',
+    consentRefs: Object.freeze([]), runners: Object.freeze([])});
+  const request = Object.freeze({principalId: 'principal', connection,
+    kind: 'aql', input, parameters: null});
+  let body, active = false, failure;
+  const events = [];
+  const manager = {
+    beforeSourceSnapshot(kind, supplied, options, originalConnection) {
+      assert.equal(kind, 'aql'); assert.strictEqual(supplied, input);
+      assert.strictEqual(options, request); assert.strictEqual(originalConnection, connection);
+      active = true; events.push('before'); return receipt;
+    },
+    captureSourceSnapshot(original, value, capture) {
+      assert.strictEqual(original, receipt); assert.strictEqual(value, request);
+      events.push('snapshot'); return capture(value, () => assert.ok(active));
+    },
+    assertSourceSnapshotCurrent(original) {assert.strictEqual(original, receipt); events.push('current');},
+    bindSourceSnapshot(original, captured) {
+      assert.strictEqual(original, receipt); assert.ok(Object.isFrozen(captured.input));
+      body = captured; events.push('body');
+    },
+    bindSourceRequest(original, captured, supplied) {
+      assert.strictEqual(original, receipt); assert.strictEqual(captured, body);
+      assert.strictEqual(supplied, request); events.push('request');
+    },
+    intentCid(original, captured) {
+      assert.strictEqual(original, receipt); assert.strictEqual(captured, body); events.push('intent');
+    },
+    finishSourceProducer(original, terminal) {
+      assert.strictEqual(original, receipt); events.push(terminal);
+      if (failure !== undefined) throw failure;
+      active = false;
+    },
+  };
+  const prepare = installHttpRequestPreparation({requestPreparation: () => manager,
+    beforeResultPublicationOperation(operation) {assert.equal(operation, 'submit-intent'); events.push('operation');},
+    assertResultPublicationCurrent() {assert.fail('Failed dispatch keeps its original primary');},
+  }, registry, originals);
+  const lifetime = prepare('submit-intent', request);
+  const derived = {...lifetime.body};
+  lifetime.bindRequest(derived);
+  assert.strictEqual(registry.originalSourceRequest(host, installation, host, derived), request);
+  assert.notStrictEqual(body.input, input);
+  input.text = 'caller changed after capture';
+  assert.equal(body.input.text, 'SELECT 1 AS n');
+  failure = new Error('OriginalProducerCleanupPending');
+  assert.doesNotThrow(() => lifetime.finish('failed'));
+  assert.equal(active, true); // This explicit manager still owns failed cleanup.
+  await Promise.resolve();
+  assert.throws(() => registry.originalSourceRequest(host, installation, host, derived),
+    /InstalledHostPreparationChanged/);
+  failure = undefined;
+  lifetime.finish('failed');
+  assert.equal(active, false);
+  assert.deepEqual(events, ['operation', 'before', 'snapshot', 'current', 'body', 'request', 'intent', 'failed', 'failed']);
+});
+
+
+test('selected HTTP Request preparation cannot fall back after an absent carrier', async () => {
+  let dispatches = 0;
+  const handler = createClientHttpHandler({authenticate: () => 'principal',
+    authorizeConnection: () => true, prepareRequest() {},
+    observeRun() {dispatches++; return state;},
+  });
+  await withServer(handler, async base => {
+    const response = await fetch(`${base}/actql/client/0.1/status`, {
+      method: 'POST', headers: {'content-type': 'application/json'},
+      body: JSON.stringify({connection: {mode: 'remote', owner: 'remote',
+        consentRefs: [], runners: []}, ref}), signal: AbortSignal.timeout(2000),
+    });
+    assert.equal(response.status, 500);
+    assert.deepEqual(await response.json(), {code: 'ClientHostFailure'});
+  });
+  assert.equal(dispatches, 0);
+});
+
+
+test('HTTP publication current refusal keeps its primary and still finishes the original producer', () => {
+  const registry = createEmbeddedHostRegistry(() => true);
+  const host = {}, installation = {}, originals = {host, installation, generation: host};
+  registry.registerPreparation(host, installation, host);
+  const request = Object.freeze({kind: 'aql', input: {text: 'SELECT 1 AS n', format: 'sql'},
+    parameters: null, connection: Object.freeze({mode: 'remote', owner: 'remote',
+      consentRefs: Object.freeze([]), runners: Object.freeze([])})});
+  const primary = new Error('OriginalPublicationCurrentRefused');
+  const receipt = {}, finishes = [], events = [];
+  const preparation = {requestPreparation: () => ({
+    beforeSourceSnapshot() {events.push('snapshot'); return receipt;},
+    captureSourceSnapshot(original, value, capture) {assert.strictEqual(original, receipt); return capture(value);},
+    assertSourceSnapshotCurrent() {}, bindSourceSnapshot() {}, bindSourceRequest() {}, intentCid() {},
+    finishSourceProducer(original, terminal) {assert.strictEqual(original, receipt); finishes.push(terminal);},
+  }), beforeResultPublicationOperation(operation) {assert.equal(operation, 'submit-intent'); events.push('operation');},
+  assertResultPublicationCurrent() {throw primary;}};
+  const prepare = installHttpRequestPreparation(preparation, registry, originals);
+  const original = prepare('submit-intent', request);
+  assert.throws(() => original.beforeReply(), error => error === primary);
+  original.finish('failed');
+  assert.deepEqual(events, ['operation', 'snapshot']);
+  assert.deepEqual(finishes, ['failed']);
+  preparation.beforeResultPublicationOperation = () => {throw primary;};
+  assert.throws(() => prepare('submit-intent', request), error => error === primary);
+  assert.deepEqual(events, ['operation', 'snapshot']);
+});

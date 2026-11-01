@@ -308,6 +308,16 @@ Provider registration alone supplies no Model I/O admission, quantity budget,
 current authorization or permission to send. Model preparation and dispatch
 retain their original Common Scope, same-Run limits and physical child cleanup.
 
+Local and Remote HTTP opening retain the same original Host preparation and
+ordinary initialization control. Remote keeps its Remote connection scope and
+never discovers a Local Project. After HTTP authentication and connection
+admission, the existing Request producer covers its immutable input snapshot,
+checked compilation and typed submitted intent. Derived handler inputs remain
+aliases of that original pending Request in the same Host registry; transport
+completion neither retires a live Run nor acknowledges physical cleanup.
+An absent selected preparation refuses before dispatch. Initialization failure
+and first close retain the original child cleanup and ordinary control duty.
+
 Each Host owns its active/closing/closed lifecycle. Independent Hosts and reopen
 are supported within the same process, subject to actual directory locks and
 resource limits. A shared module/runtime cache does not become a Host child

@@ -166,15 +166,19 @@ export function createClientHttpHandler({
   reconcile, deliveryAttempt, prepareSubmit, checkpoints, checkpointReview,
   resolve, cancelRequest, resources, inspectResource, peekResource,
   check, plan, inspectRun, runPlan, maxRequestBytes = 65536, observe, loopbackHttp = false,
+  prepareRequest,
 }) {
   if (typeof authenticate !== 'function' ||
       typeof authorizeConnection !== 'function' ||
       typeof loopbackHttp !== 'boolean' ||
+      prepareRequest !== undefined && typeof prepareRequest !== 'function' ||
       !Number.isSafeInteger(maxRequestBytes) || maxRequestBytes <= 0) {
     throw new TypeError('InvalidClientHostInstallation');
   }
   return async (request, response) => {
+    let requestLifetime, terminal = 'failed';
     try {
+      try {
       if (loopbackHttp && !isLoopbackHttpRequest(request)) {
         invalid('ClientConnectionDenied');
       }
@@ -229,6 +233,7 @@ export function createClientHttpHandler({
         authorized = false;
       }
       const sendJson = value => {
+        requestLifetime?.beforeReply();
         response.writeHead(200, {'content-type': 'application/json'});
         response.end(JSON.stringify(value));
       };
@@ -239,17 +244,27 @@ export function createClientHttpHandler({
         }
         invalid('ClientConnectionDenied');
       }
+      const originalRequest = Object.freeze({principalId: principal, connection,
+        ...Object.fromEntries(Object.entries(body)
+          .filter(([key]) => key !== 'connection' && key !== 'ref')),
+        ...(ref === undefined ? {} : {ref})});
+      requestLifetime = prepareRequest === undefined ? undefined
+        : await prepareRequest(operation, originalRequest);
+      if (prepareRequest !== undefined && (requestLifetime === undefined || requestLifetime === null ||
+          typeof requestLifetime !== 'object' || requestLifetime.body === null ||
+          typeof requestLifetime.body !== 'object' ||
+          typeof requestLifetime.beforeReply !== 'function' ||
+          typeof requestLifetime.bindRequest !== 'function' ||
+          typeof requestLifetime.finish !== 'function')) invalid('InvalidClientHostPreparation');
+      const admittedRequest = prepareRequest === undefined ? originalRequest : requestLifetime.body;
       const invoke = async (handler, signal, preparedProgram) => {
         if (typeof handler !== 'function') invalid('ClientOperationUnavailable');
-        return handler(Object.freeze({
-          principalId: principal,
-          connection,
-          ...Object.fromEntries(Object.entries(body)
-            .filter(([key]) => key !== 'connection' && key !== 'ref')),
-          ...(ref === undefined ? {} : {ref}),
+        const original = Object.freeze({...admittedRequest,
           ...(signal === undefined ? {} : {signal}),
           ...(preparedProgram === undefined ? {} : {preparedProgram}),
-        }));
+        });
+        requestLifetime?.bindRequest(original);
+        return handler(original);
       };
       if (operation === 'connect') {
         const profile = await invoke(negotiate);
@@ -453,6 +468,7 @@ export function createClientHttpHandler({
           csv: 'text/csv',
         }[body.format];
         const begin = () => {
+          requestLifetime?.beforeReply();
           if (!response.headersSent) {
             response.writeHead(200, {'content-type': contentType});
           }
@@ -473,11 +489,16 @@ export function createClientHttpHandler({
           // The shared owner confirms sink completion before issuing and
           // persisting its receipt and succeeded record. Only their successful
           // return authorizes HTTP EOF; failure destroys the partial response.
+          requestLifetime?.beforeReply();
           await new Promise((resolve, reject) => {
             if (response.destroyed) { reject(new Error('ClientDisconnected')); return; }
             response.end(error => error ? reject(error) : resolve());
           });
         } finally { observer.release(); }
+      }
+      terminal = 'returned';
+      } finally {
+        if (typeof requestLifetime?.finish === 'function') await requestLifetime.finish(terminal);
       }
     } catch (error) {
       sendError(response, error);

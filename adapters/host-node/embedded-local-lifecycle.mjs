@@ -149,6 +149,17 @@ export function createEmbeddedHostRegistry(sameInstallation) {
   // Map backing before installing its consumer. This is not an issuer, grant,
   // request parser or evidence that the call's physical work has stopped.
   originalSourceRequest,
+  // Both ingresses retain their actual pending operation in this SAME Host
+  // registry. This association neither prepares a Program nor admits capacity.
+  retainRequest(host, installation, generation, request, pending) {
+    const entry = preparationFor(host, installation, generation);
+    if (entry.closing || entry.failure !== undefined || request === null ||
+        typeof request !== 'object' || !(pending instanceof Promise) || entry.handling.has(pending)) {
+      preparationChanged();
+    }
+    entry.handling.set(pending, {request, aliases: new WeakSet()});
+    pending.finally(() => entry.handling.delete(pending)).catch(() => {});
+  },
   assertSourceRequest(host, installation, generation, request) {
     originalSourceRequest(host, installation, generation, request);
   },
