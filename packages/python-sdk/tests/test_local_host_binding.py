@@ -151,10 +151,12 @@ class OriginalHostBindingTests(unittest.TestCase):
 
     def test_each_current_callback_observes_every_original_file_once_without_caching(self):
         path, _, _, _, source, state, _, _, _, _, binding = self.fixture()
-        with patch.object(source._root, 'observe_original',
-                          wraps=source._root.observe_original) as source_observe, \
-                patch.object(state._root, 'observe_original',
-                             wraps=state._root.observe_original) as state_observe:
+        # Grouped observation still validates every original file descriptor
+        # and name. Observe that actual member check, not the single-file API.
+        with patch.object(source._root, '_validate_original_member',
+                          wraps=source._root._validate_original_member) as source_observe, \
+                patch.object(state._root, '_validate_original_member',
+                             wraps=state._root._validate_original_member) as state_observe:
             binding._physical_current()
             self.assertEqual((source_observe.call_count, state_observe.call_count), (2, 4))
             binding._physical_current()
