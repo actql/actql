@@ -306,7 +306,10 @@ export function createSubmissionOperations(selected, confirmed, transport, execu
     const context = {requestId, submissionRef: body.submissionRef, attemptRef: body.attemptRef,
       ...(requestName === undefined ? {} : {requestName}),
       lookupContext: Object.freeze({endpoint: selected.endpoint, scopeRef: confirmed.scopeRef})};
-    const snapshot = freezeInput({...body, requestId, connection: selected.wire,
+    // The body is already SDK-deep-frozen. The connection owner freezes its
+    // captured wire and arrays; lookupContext is frozen above. Share those
+    // originals without walking the submitted input and Parameters again.
+    const snapshot = Object.freeze({...body, requestId, connection: selected.wire,
       lookupContext: context.lookupContext});
     submissionContexts.set(context, snapshot);
     const pending = (async () => {
