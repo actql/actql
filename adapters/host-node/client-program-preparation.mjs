@@ -157,7 +157,7 @@ export function installNodeClientProgramPreparation({moon, environment,
     throw new TypeError('InvalidClientProgramPreparationInstallation');
   }
   if (valuesMaxRows !== undefined && (!Number.isSafeInteger(valuesMaxRows) ||
-      valuesMaxRows < 1 || valuesMaxRows > 10000 ||
+      valuesMaxRows < 1 || valuesMaxRows > 2147483647 ||
       (funded ? typeof moon.clientProgramValuesMaxRows !== 'function'
         : typeof moon.clientProgramWithValuesRowLimit !== 'function') || allowEffects)) {
     throw new TypeError('InvalidLocalValuesRowLimit');

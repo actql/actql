@@ -3,7 +3,7 @@ import {createHash} from 'node:crypto';
 const digest = wire => `sha256:${createHash('sha256').update(wire).digest('hex')}`;
 
 export function valuesHostPolicyOriginal(maxRows) {
-  if (!Number.isSafeInteger(maxRows) || maxRows < 1 || maxRows > 10000) {
+  if (!Number.isSafeInteger(maxRows) || maxRows < 1 || maxRows > 2147483647) {
     throw new TypeError('InvalidLocalValuesRowLimit');
   }
   if (maxRows === 100) return undefined;
