@@ -269,6 +269,8 @@ export async function openContentCommandHost({scratch, generated, keys, entrance
       };
       visit(error);
       console.error(JSON.stringify({fixture: 'independent-source-command', failures}));
+      // This endpoint is a fixture child, not the rejected Host's cleanup ACK.
+      await managedSource.close();
       throw error;
     }
   } else {

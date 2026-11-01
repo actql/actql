@@ -53,7 +53,7 @@ export async function openManagedContentSourceFixture({scratch, keys, account,
     async load(_profile, options, referenceIssuer) {
       const {moon, installation, sourceInitialization} = options;
       const service = captureInstalledSourceServices(options.installationServices,
-        ['sourceReaderImplementationProfile', 'sourceReaderImplementation', 'openRowSite', 'createSourceReader']);
+        () => {throw new Error('ContentFixtureInstallationServicesUnavailable');});
       const {declaration, declared, environment} = sourceInitialization.prepareDeclaration(fixture.declarationViewsWire);
       assert.equal(declared.catalog_cid, fixture.declared.catalog_cid);
       const policy = service('sourceReaderImplementationProfile', {installation,
