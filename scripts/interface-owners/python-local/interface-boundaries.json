@@ -72862,7 +72862,7 @@
             ],
             "ownership": [
               {
-                "path": "src/client_host_wasm/publication_commit_exports.mbt",
+                "path": "src/client_host_wasm/publication_commit_export.mbt",
                 "anchor": "pub fn close_publication_commit_export("
               },
               {
@@ -73011,7 +73011,7 @@
             ],
             "ownership": [
               {
-                "path": "src/client_host_wasm/publication_commit_exports.mbt",
+                "path": "src/client_host_wasm/publication_commit_export.mbt",
                 "anchor": "pub fn close_publication_commit_export("
               },
               {
@@ -73032,7 +73032,7 @@
             "failure": [
               {
                 "path": "src/client_host_wasm/sdk_payload_record.mbt",
-                "anchor": "return Err(-32)"
+                "anchor": "return -32"
               },
               {
                 "path": "docs/design/python-local-abi.md",
