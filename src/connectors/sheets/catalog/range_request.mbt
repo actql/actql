@@ -23,6 +23,13 @@ pub struct RangeRequest {
 }
 
 ///|
+/// The existing saved range-entry rejection bound. Constructor quotation
+/// borrows this same guard; it is not a Run allowance or caller setting.
+pub fn range_saved_recovery_wire_byte_limit() -> Int {
+  100000
+}
+
+///|
 fn range_integer(value : Json?) -> Int? {
   match value {
     Some(Number(value, ..)) if value >= 0 &&
@@ -436,7 +443,7 @@ pub fn recover_range_requests(
     guard entries.length() == 1 &&
       entries[0] is Object(entry) &&
       entry.get("wire") is Some(String(wire)) &&
-      @utf8.encode(wire).length() <= 100000 &&
+      @utf8.encode(wire).length() <= range_saved_recovery_wire_byte_limit() &&
       entry.get("observationCid") is Some(String(cid)) &&
       range_parse(wire, limits, "SheetsRangeRecoveryMismatch") is Ok(value) &&
       range_canonical(value, limits) == Ok(wire) &&

@@ -3844,7 +3844,7 @@
   {
     "module": "src/connectors/sheets/catalog/range_request.mbt",
     "responsibilityFacet": "primary",
-    "sha256": "45e6fc5fc8b02c7ffc7163296c1432d58d2be2e42e1136854a2e1b6125c52b86",
+    "sha256": "c63984e7ec62654630e8e1522ed6e1f62250dc5252821e933415b85198d745ad",
     "operations": [
       {
         "name": "admit_range_binding",
@@ -3903,6 +3903,10 @@
         "declaration": "range_request_json ( binding : RangeBinding , request : RangeRequest , ) - > Result [ String , RangeFailure ]"
       },
       {
+        "name": "range_saved_recovery_wire_byte_limit",
+        "declaration": "range_saved_recovery_wire_byte_limit ( ) - > Int"
+      },
+      {
         "name": "range_target_matches",
         "declaration": "range_target_matches ( binding : RangeBinding , target_wire : String , ) - > Bool"
       },
@@ -3934,7 +3938,8 @@
           "range_request_json",
           "range_target_matches",
           "recover_range_requests",
-          "range_construction_metadata"
+          "range_construction_metadata",
+          "range_saved_recovery_wire_byte_limit"
         ],
         "exports": [],
         "attributes": {
@@ -7424,7 +7429,7 @@
   {
     "module": "src/connectors/sheets/host_node/range_construction.mbt",
     "responsibilityFacet": "primary",
-    "sha256": "0c417f0b84e00e145f5dbbfeb8fae1ab313fd120985d67718742de0f40b587af",
+    "sha256": "ee697fce6cd776c4bc2afd8fc36ef0acbebae31e11f900ebce715e81f3f30603",
     "operations": [
       {
         "name": "sheets_clear_capture_construction_profile",

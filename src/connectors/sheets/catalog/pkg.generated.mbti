@@ -88,6 +88,8 @@ pub fn range_request_identity(RangeRequest) -> String
 
 pub fn range_request_json(RangeBinding, RangeRequest) -> Result[String, RangeFailure]
 
+pub fn range_saved_recovery_wire_byte_limit() -> Int
+
 pub fn range_target_matches(RangeBinding, String) -> Bool
 
 pub fn range_write_construction_bounds(RangeConstructionMetadata, Int, Bool) -> RangeWriteConstructionBounds?

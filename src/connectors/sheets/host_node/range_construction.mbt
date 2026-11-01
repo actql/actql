@@ -257,10 +257,25 @@ fn sheets_range_capture_profile(
   }
   let b = Int::min(wire.to_int(), metadata.limits.max_bytes)
   let n = Int::min(nodes.to_int(), metadata.limits.max_nodes)
+  // range_recovery_entry first canonicalizes within the original binding's
+  // byte guard, before configuration NFC. Saved range recovery checks its
+  // independent wire-byte guard before parsing/normalizing a supplied entry,
+  // including a later identity refusal. Neither path normalizes the complete
+  // Preview payload/escaped forest. Keep clear's distinct old envelope: its
+  // recovery path has no equivalent early stored-wire guard.
+  let normalization_bytes = if clear {
+    wire.to_int()
+  } else {
+    Int::max(
+      b,
+      Int::min(wire.to_int(), @catalog.range_saved_recovery_wire_byte_limit()),
+    )
+  }
   guard sheets_decoded_construction(b, n, metadata.limits.max_depth)
     is Some(input) &&
     sheets_range_json_inventory(wire.to_int(), nodes.to_int()) is Some(native) &&
-    @canonical.nfc_lf_construction_extent(wire.to_int()) is Some(normalization) &&
+    @canonical.nfc_lf_construction_extent(normalization_bytes)
+    is Some(normalization) &&
     sheets_writer_units(wire.to_int(), nodes.to_int(), capture_depth)
     is Some(writer) &&
     @source.json_literal_construction_extent(

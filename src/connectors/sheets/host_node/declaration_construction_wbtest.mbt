@@ -271,3 +271,161 @@ test "two original range request constructors do not reserve a nonexistent paylo
     )
   }
 }
+
+///|
+test "range recovery does not normalize the whole encoded Preview forest" {
+  let metadata : @catalog.RangeConstructionMetadata = {
+    columns: 3,
+    rows: 2,
+    name_units: 14L,
+    schema_bytes: 147L,
+    origin_units: 32,
+    spreadsheet_units: 4,
+    target_units: 500,
+    range: {
+      sheet_id: 7,
+      start_row: 2,
+      end_row: 4,
+      start_column: 0,
+      end_column: 3,
+    },
+    limits: {
+      max_bytes: 100000,
+      max_nodes: 200000,
+      max_depth: 32,
+      max_cells: 6400,
+    },
+  }
+  let capture = sheets_range_capture_profile(
+      metadata, 1000000, 100000, 64, 100000, 10000, 16, false,
+    ).unwrap()[0]
+  // The whole encoded forest includes payload and JSON String escaping.
+  // The original recovery entry is bounded before configuration NFC; only
+  // that material enters normalization. Keep every other forest inventory.
+  let forest = @canonical.nfc_lf_construction_extent(7004171).unwrap()
+  let unrelated = sheets_constructor_capacity([
+    {
+      record_headers: forest.record_headers,
+      reference_slots: forest.reference_slots,
+      scalar_words: forest.scalar_words,
+      owned_utf16_units: forest.owned_utf16_units,
+      owned_wire_bytes: 0L,
+    },
+  ]).unwrap()
+  assert_true(
+    @execution.execution_capacity_retained_bytes(capture) <
+    @execution.execution_capacity_retained_bytes(unrelated),
+    msg=@execution.execution_capacity_retained_bytes(capture).to_string(),
+  )
+}
+
+///|
+fn recovery_guard_test_metadata(
+  bytes : Int,
+) -> @catalog.RangeConstructionMetadata {
+  {
+    columns: 3,
+    rows: 2,
+    name_units: 14L,
+    schema_bytes: 147L,
+    origin_units: 32,
+    spreadsheet_units: 4,
+    target_units: 500,
+    range: {
+      sheet_id: 7,
+      start_row: 2,
+      end_row: 4,
+      start_column: 0,
+      end_column: 3,
+    },
+    limits: {
+      max_bytes: bytes,
+      max_nodes: 200000,
+      max_depth: 32,
+      max_cells: 6400,
+    },
+  }
+}
+
+///|
+fn recovery_guard_test_fixed(
+  bytes : Int,
+  clear : Bool,
+) -> @execution.ExecutionCapacity {
+  sheets_range_capture_profile(
+    recovery_guard_test_metadata(bytes),
+    1000000,
+    100000,
+    64,
+    100000,
+    10000,
+    16,
+    clear,
+  ).unwrap()[0]
+}
+
+///|
+fn recovery_guard_test_decoder_pair(
+  bytes : Int,
+) -> @execution.ExecutionCapacity {
+  // The original complete forest's node envelope is100000+4*3+32.
+  let input = sheets_decoded_construction(bytes, 100044, 32).unwrap()
+  sheets_constructor_capacity([input, input]).unwrap()
+}
+
+///|
+fn recovery_guard_test_nfc(bytes : Int) -> @execution.ExecutionCapacity {
+  let original = @canonical.nfc_lf_construction_extent(bytes).unwrap()
+  sheets_constructor_capacity([
+    {
+      record_headers: original.record_headers,
+      reference_slots: original.reference_slots,
+      scalar_words: original.scalar_words,
+      owned_utf16_units: original.owned_utf16_units,
+      owned_wire_bytes: 0L,
+    },
+  ]).unwrap()
+}
+
+///|
+test "range recovery retains the independent saved-entry normalization floor" {
+  let regular = recovery_guard_test_fixed(100000, false)
+  let smaller = recovery_guard_test_fixed(50000, false)
+  let regular_decode = recovery_guard_test_decoder_pair(100000)
+  let smaller_decode = recovery_guard_test_decoder_pair(50000)
+  // A foreign saved entry may reach NFC before its later identity refusal.
+  // Reducing only the binding bound cannot reduce that original saved guard.
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(regular) -
+    @execution.execution_capacity_retained_bytes(regular_decode),
+    @execution.execution_capacity_retained_bytes(smaller) -
+    @execution.execution_capacity_retained_bytes(smaller_decode),
+  )
+}
+
+///|
+test "range recovery keeps the larger original binding normalization guard" {
+  let regular = recovery_guard_test_fixed(100000, false)
+  let larger = recovery_guard_test_fixed(300000, false)
+  let regular_decode = recovery_guard_test_decoder_pair(100000)
+  let larger_decode = recovery_guard_test_decoder_pair(300000)
+  let regular_nfc = recovery_guard_test_nfc(100000)
+  let larger_nfc = recovery_guard_test_nfc(300000)
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(larger) -
+    @execution.execution_capacity_retained_bytes(regular),
+    @execution.execution_capacity_retained_bytes(larger_decode) -
+    @execution.execution_capacity_retained_bytes(regular_decode) +
+    @execution.execution_capacity_retained_bytes(larger_nfc) -
+    @execution.execution_capacity_retained_bytes(regular_nfc),
+  )
+}
+
+///|
+test "clear recovery keeps its distinct original normalization envelope" {
+  // Original fixed quantity from the unchanged before-body: clear shares
+  // this forest but has no equivalent early saved range-entry byte guard.
+  let clear = recovery_guard_test_fixed(100000, true)
+  assert_eq(@execution.execution_capacity_retained_bytes(clear), 3592137642L)
+  assert_eq(@execution.execution_capacity_execution_bytes(clear), 3592137642L)
+}

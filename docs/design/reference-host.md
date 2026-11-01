@@ -1948,6 +1948,16 @@ and their original output lifetimes remain co-held. Response decoding keeps
 its own declared recipe; no response, grant, transport or recovery allowance
 is removed by selecting the request's actual decoder.
 
+Range recovery bounds its configuration-normalization input at the original
+callee boundary. Initial entry construction first completes the binding's
+bounded preserving canonical wire. Saved range restoration checks its own
+original wire-byte guard before NFC, including later identity refusals. The
+quantity keeps the larger of those two guarded inputs and all complete
+payload/parser/writer forests separately; it does not normalize the escaped
+whole Preview forest. Clear recovery retains its separate envelope because
+its stored-entry path has no equivalent early wire-byte guard. No refusal
+order, field spelling, identity or installed resource ceiling changes.
+
 Captured Effect operation multiplicity selects the SAME checked member Result
 endpoints inside the existing work-bounded schema walk. It does not replace
 Source/Compute input demand with an output count or re-lower another Program.
