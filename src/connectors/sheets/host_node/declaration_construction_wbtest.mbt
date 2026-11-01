@@ -101,17 +101,67 @@ test "range and clear driver profiles retain original binding constructor and in
     assert_eq(captures[index].length(), 3)
     assert_true(profiles[index][0].1 is None)
     assert_true(profiles[index][0].2 is Some(_))
+    // This native output is the original closed request facts, not an
+    // arbitrary forest at the unrelated incoming parser's node ceiling.
+    assert_true(profiles[index][0].2.unwrap().max_nodes < limits.max_nodes)
     assert_true(
       @execution.execution_capacity_execution_bytes(profiles[index][0].0) > 0L,
     )
     assert_true(
       @execution.execution_capacity_execution_bytes(captures[index][0]) > 0L,
     )
-    // SAME request constructor is also needed by stored-response recovery;
-    // it is a per-row capture holding, never an aliased physical send grant.
+    // The actual Core composer adds Host projection once to the fresh row.
+    // Direct recovery must cover that SAME complete constructor, plus its
+    // retained outer/inner request array slots; never a physical send grant.
+    let complete = @client_host.installed_standard_create_constructor_capacities(
+        Some(profiles[index]),
+      ).unwrap()[0]
     assert_eq(
       @execution.execution_capacity_execution_bytes(captures[index][1]),
-      @execution.execution_capacity_execution_bytes(profiles[index][0].0) + 96L,
+      @execution.execution_capacity_execution_bytes(complete) + 96L,
+    )
+    assert_eq(
+      @execution.execution_capacity_retained_bytes(captures[index][1]),
+      @execution.execution_capacity_retained_bytes(complete) + 96L,
+    )
+  }
+  // Validate actual native emitted bytes, including escaped/Unicode cells,
+  // with the SAME output geometry supplied to the real Core Host composer.
+  let value : Json = {
+    "rows": [
+      { "text": "é\n\"", "flag": true },
+      { "text": "😀", "flag": false },
+    ],
+  }
+  let rejected : Json = {
+    "rows": [
+      { "text": "original", "flag": true },
+      { "text": "original", "flag": Json::null() },
+    ],
+  }
+  assert_true(
+    @catalog.prepare_range_request(binding, rejected.stringify(), target)
+    is Err(_),
+  )
+  let request = @catalog.prepare_range_request(
+    binding,
+    value.stringify(),
+    target,
+  ).unwrap()
+  let clear_request = @catalog.prepare_clear_range_request(
+    clear, "{}", target, "00000000-0000-4000-8000-000000000000",
+  ).unwrap()
+  let wires = [
+    @catalog.range_request_json(binding, request).unwrap(),
+    @catalog.clear_range_request_json(clear, clear_request).unwrap(),
+  ]
+  for index, wire in wires {
+    assert_true(
+      @source.parse_json_bytes_preserving(
+        @utf8.encode(wire),
+        profiles[index][0].2.unwrap(),
+      )
+      is Ok(_),
     )
   }
   assert_true(
@@ -548,9 +598,34 @@ test "range returned holding follows the original closed rectangle while arbitra
       @execution.execution_capacity_execution_bytes(narrow),
     )
     let text = sheets_range_request_capacity(metadata, 200000, 10000, 16, clear).unwrap()
+    if clear {
+      // Only the empty value is admitted; arbitrary text grows failed-input
+      // construction, not successful clear output or its retained request.
+      assert_eq(
+        @execution.execution_capacity_retained_bytes(text),
+        @execution.execution_capacity_retained_bytes(narrow),
+      )
+    } else {
+      // Both large inputs already meet the unchanged outgoing byte ceiling.
+      // Successful output stays capped while failed-input construction grows.
+      assert_eq(
+        @execution.execution_capacity_retained_bytes(text),
+        @execution.execution_capacity_retained_bytes(narrow),
+      )
+      let short = sheets_range_request_capacity(
+        metadata, 1000, 10000, 16, false,
+      ).unwrap()
+      let longer = sheets_range_request_capacity(
+        metadata, 2000, 10000, 16, false,
+      ).unwrap()
+      assert_true(
+        @execution.execution_capacity_retained_bytes(longer) >
+        @execution.execution_capacity_retained_bytes(short),
+      )
+    }
     assert_true(
-      @execution.execution_capacity_retained_bytes(text) >
-      @execution.execution_capacity_retained_bytes(narrow),
+      @execution.execution_capacity_execution_bytes(text) >
+      @execution.execution_capacity_execution_bytes(narrow),
     )
   }
 }

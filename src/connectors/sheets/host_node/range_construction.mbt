@@ -129,13 +129,13 @@ pub fn sheets_range_installation_construction_capacity(
 }
 
 ///|
-fn sheets_range_request_capacity(
+fn sheets_range_request_profile(
   metadata : @catalog.RangeConstructionMetadata,
   input_bytes : Int,
   input_nodes : Int,
   input_depth : Int,
   clear : Bool,
-) -> @execution.ExecutionCapacity? {
+) -> (@execution.ExecutionCapacity, @source.ParseLimits)? {
   if input_bytes < 1 ||
     input_nodes < 1 ||
     input_depth < 1 ||
@@ -179,11 +179,6 @@ fn sheets_range_request_capacity(
   let returned_nodes = Int64::min(n.to_int64(), output.body_nodes.to_int64()) +
     metadata.target_units.to_int64() +
     16L
-  let returned_text = b.to_int64() +
-    metadata.target_units.to_int64() +
-    metadata.origin_units.to_int64() +
-    metadata.spreadsheet_units.to_int64() +
-    1024L
   let request_controls : @execution.PreparationRepresentationUnits = {
     record_headers: 3L,
     reference_slots: 14L,
@@ -207,8 +202,6 @@ fn sheets_range_request_capacity(
     sheets_range_json_inventory(b, n) is Some(native_input) &&
     sheets_range_json_inventory(facts_bytes.to_int(), facts_nodes.to_int())
     is Some(native_output) &&
-    sheets_range_json_inventory(returned_text.to_int(), returned_nodes.to_int())
-    is Some(returned_facts) &&
     sheets_writer_units(output.body_bytes, output.body_nodes, output.body_depth)
     is Some(body_writer) &&
     sheets_writer_units(
@@ -218,6 +211,29 @@ fn sheets_range_request_capacity(
     )
     is Some(facts_writer) else {
     return None
+  }
+  // Clear's successful input is exactly {}; its returned fields contain only
+  // the original binding and one validated UUID. The full arbitrary input
+  // bound above still backs every pre-refusal parser and failed constructor.
+  let output_bytes = if clear {
+    6L *
+    (
+      metadata.target_units.to_int64() +
+      metadata.origin_units.to_int64() +
+      metadata.spreadsheet_units.to_int64() +
+      @catalog.clear_marker_text_units().to_int64()
+    ) +
+    1024L
+  } else {
+    facts_bytes
+  }
+  let output_limits : @source.ParseLimits = {
+    max_input_bytes: Int64::min(
+      output_bytes,
+      metadata.limits.max_bytes.to_int64(),
+    ).to_int(),
+    max_nodes: Int64::min(returned_nodes, metadata.limits.max_nodes.to_int64()).to_int(),
+    max_depth: metadata.limits.max_depth,
   }
   guard sheets_constructor_capacity([
       // Original value, selector and facts can overlap through projection. The
@@ -229,7 +245,6 @@ fn sheets_range_request_capacity(
       validation,
       native_input,
       native_input,
-      native_output,
       native_output,
       {
         // Payload/target facts use range_canonical(data_keys=true), preserving
@@ -255,11 +270,9 @@ fn sheets_range_request_capacity(
     ])
     is Some(peak) &&
     sheets_constructor_capacity([
-      // The Host projection owns its returned facts tree. Native parser,
-      // original input Json, canonical frames and Writer locals do not escape.
-      // The existing fixed request envelope also retains the original handle;
-      // its immutable binding remains borrowed from the installation.
-      returned_facts,
+      // The nominal request and returned native JSON String cross this
+      // boundary. The Host facts tree has its own SAME literal constructor
+      // below, not a second native Json tree retained here.
       {
         ..request_controls,
         owned_utf16_units: Int64::min(
@@ -272,19 +285,58 @@ fn sheets_range_request_capacity(
           Int64::min(facts_bytes, metadata.limits.max_bytes.to_int64())
         }) +
         metadata.spreadsheet_units.to_int64() +
-        128L,
+        128L +
+        output_limits.max_input_bytes.to_int64(),
         owned_wire_bytes: 0L,
       },
     ])
     is Some(returned) else {
     return None
   }
-  // Reuse exactly the existing constructor peak. This quantity alone does not
-  // dispose a live child or reconcile its original operation reservation.
-  @execution.execution_capacity(
-    @execution.execution_capacity_retained_bytes(returned),
-    @execution.execution_capacity_execution_bytes(peak),
-  )
+  guard @execution.execution_capacity(
+      @execution.execution_capacity_retained_bytes(returned),
+      @execution.execution_capacity_execution_bytes(peak),
+    )
+    is Some(native) else {
+    return None
+  }
+  Some((native, output_limits))
+}
+
+///|
+fn sheets_range_request_capacity(
+  metadata : @catalog.RangeConstructionMetadata,
+  input_bytes : Int,
+  input_nodes : Int,
+  input_depth : Int,
+  clear : Bool,
+) -> @execution.ExecutionCapacity? {
+  guard sheets_range_request_profile(
+      metadata, input_bytes, input_nodes, input_depth, clear,
+    )
+    is Some((native, output)) &&
+    @source.json_literal_construction_extent(
+      output.max_input_bytes,
+      output.max_nodes,
+      output.max_depth,
+    )
+    is Some(literal) &&
+    sheets_constructor_capacity([
+      {
+        record_headers: literal.record_headers,
+        reference_slots: literal.reference_slots,
+        scalar_words: literal.scalar_words,
+        owned_utf16_units: literal.owned_utf16_units,
+        owned_wire_bytes: 0L,
+      },
+    ])
+    is Some(host) else {
+    return None
+  }
+  // Fresh rows get this Host constructor from the existing Core composer.
+  // Direct recovery instead needs the complete native+Host quantity here.
+  // Neither route constructs or prices the Host projection twice.
+  @execution.add_execution_capacity(native, host)
 }
 
 ///|
@@ -878,10 +930,10 @@ pub fn sheets_range_construction_profile(
   (@execution.ExecutionCapacity, @source.ParseLimits?, @source.ParseLimits?),
 ]? {
   let metadata = @catalog.range_construction_metadata(binding)
-  guard sheets_range_request_capacity(
+  guard sheets_range_request_profile(
       metadata, input_bytes, input_nodes, input_depth, false,
     )
-    is Some(request) &&
+    is Some((request, output)) &&
     sheets_range_response_capacity(
       response_bytes, response_nodes, response_depth,
     )
@@ -889,15 +941,7 @@ pub fn sheets_range_construction_profile(
     return None
   }
   Some([
-    (
-      request,
-      None,
-      Some({
-        max_input_bytes: metadata.limits.max_bytes,
-        max_nodes: metadata.limits.max_nodes,
-        max_depth: metadata.limits.max_depth,
-      }),
-    ),
+    (request, None, Some(output)),
     (response, None, Some({ max_input_bytes: 64, max_nodes: 3, max_depth: 1, })),
   ])
 }
@@ -916,10 +960,10 @@ pub fn sheets_clear_construction_profile(
   (@execution.ExecutionCapacity, @source.ParseLimits?, @source.ParseLimits?),
 ]? {
   let metadata = @catalog.clear_range_construction_metadata(binding)
-  guard sheets_range_request_capacity(
+  guard sheets_range_request_profile(
       metadata, input_bytes, input_nodes, input_depth, true,
     )
-    is Some(request) &&
+    is Some((request, output)) &&
     sheets_range_response_capacity(
       response_bytes, response_nodes, response_depth,
     )
@@ -927,15 +971,7 @@ pub fn sheets_clear_construction_profile(
     return None
   }
   Some([
-    (
-      request,
-      None,
-      Some({
-        max_input_bytes: metadata.limits.max_bytes,
-        max_nodes: metadata.limits.max_nodes,
-        max_depth: metadata.limits.max_depth,
-      }),
-    ),
+    (request, None, Some(output)),
     (response, None, Some({ max_input_bytes: 64, max_nodes: 3, max_depth: 1, })),
   ])
 }

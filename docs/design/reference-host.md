@@ -1918,17 +1918,18 @@ prefixes remain independently backed. These quantities do not reconcile an
 operation reservation merely because a placeholder preparation returned; the
 actual later constructor and its retained aliases keep their original duties.
 
-A native range/clear request retains its original nominal request, successful
-body/value wires and the Host's projected facts. Its parser/index, temporary
-native Json trees, canonical frames and Writer backing remain construction
-workspace. The returned value has the original checked rectangle and scalar
-cell shape; the immutable target contributes its original spelling/geometry.
-An arbitrary invalid input still uses the full input-node/parser/Writer peak,
-including failed prefixes. The original fixed request envelope is shared by
-both projections; it is not another JS closure/field tariff. Reducing this
-returned-material quantity never settles a live operation token or signals
-physical disposal. Its existing enclosing caller must separately reconcile the
-actual constructor lifetime and every still-retained alias.
+The native range/clear request profile returns its nominal request quantity
+and the actual closed output geometry separately. Core adds the Host literal
+projection once, borrowing the native result String. Direct cold recovery uses
+the same native quantity plus the same shared literal constructor inventory;
+it does not omit that Host projection or retain it twice. Successful output
+has the original checked rectangle/scalar cells and immutable target. Clear
+accepts only its existing empty value and validated marker, so its successful
+output is independent of arbitrary invalid input size. The original input
+parser, canonical/Writer and failed-prefix peak remains fully bounded. Output
+geometry describes emitted data; it does not replace a product guard, grant
+resources or signal physical cleanup. Fixed request controls keep their
+existing common envelope, with no new JS closure tariff or work-phase token.
 
 A completed installation retains its immutable Environment on the SAME
 initial Source material while its original Source is held. A paired Command

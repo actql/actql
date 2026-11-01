@@ -7501,7 +7501,7 @@
   {
     "module": "src/connectors/sheets/host_node/range_construction.mbt",
     "responsibilityFacet": "primary",
-    "sha256": "9367afa32edd39e763bb484210a844c2a006d479b8281074483fb3691d741778",
+    "sha256": "6d111af1ae926ad0e72dba5abe3c944004989a1b78fa979b80c4a2f5c7461737",
     "operations": [
       {
         "name": "sheets_clear_ack_marker_construction",
@@ -7570,6 +7570,10 @@
       {
         "name": "sheets_range_request_capacity",
         "declaration": "sheets_range_request_capacity ( metadata : @ catalog . RangeConstructionMetadata , input_bytes : Int , input_nodes : Int , input_depth : Int , clear : Bool , ) - > @ execution . ExecutionCapacity ?"
+      },
+      {
+        "name": "sheets_range_request_profile",
+        "declaration": "sheets_range_request_profile ( metadata : @ catalog . RangeConstructionMetadata , input_bytes : Int , input_nodes : Int , input_depth : Int , clear : Bool , ) - > ( @ execution . ExecutionCapacity , @ source . ParseLimits ) ?"
       },
       {
         "name": "sheets_range_response_capacity",
@@ -7732,6 +7736,74 @@
             {
               "path": "docs/design/reference-host.md",
               "anchor": "A native driver capture recipe retains its fixed and per-row constructor"
+            }
+          ]
+        }
+      },
+      {
+        "operations": [
+          "sheets_range_request_profile"
+        ],
+        "exports": [],
+        "attributes": {
+          "responsibility": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "The native range/clear request profile returns its nominal request quantity"
+            }
+          ],
+          "inputsOutputs": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "The native range/clear request profile returns its nominal request quantity"
+            }
+          ],
+          "identity": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "The native range/clear request profile returns its nominal request quantity"
+            }
+          ],
+          "ownership": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "The native range/clear request profile returns its nominal request quantity"
+            }
+          ],
+          "synchronization": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "The native range/clear request profile returns its nominal request quantity"
+            }
+          ],
+          "failure": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "The native range/clear request profile returns its nominal request quantity"
+            }
+          ],
+          "cancellation": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "The native range/clear request profile returns its nominal request quantity"
+            }
+          ],
+          "resources": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "The native range/clear request profile returns its nominal request quantity"
+            }
+          ],
+          "extension": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "The native range/clear request profile returns its nominal request quantity"
+            }
+          ],
+          "verification": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "The native range/clear request profile returns its nominal request quantity"
             }
           ]
         }
