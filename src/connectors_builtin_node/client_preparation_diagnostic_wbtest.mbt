@@ -156,6 +156,68 @@ fn request_diagnostic_checked_issue_code(
 }
 
 ///|
+// Exercise the actual existing JS Result reader across this concrete bridge
+// callback. No new Option/tuple decoding or result shape is manufactured.
+extern "js" fn request_observation_test_read_js(
+  loader : RequestDiagnosticTestLoader,
+  project : () -> Result[
+    String?,
+    @client_local_host.ClientRequestPreparationIssue,
+  ],
+  present : Bool,
+) -> Bool =
+  #|(loader,project,present) => { const value=loader('../../../../../adapters/host-common/runtime-result.mjs').checked(project()); return present ? typeof value==='string' && value.includes('"verdict":"invalid"') : value===undefined; }
+
+///|
+test "Request original observation bridge returns optional String through the actual JS Result reader without rechecking" {
+  let environment = original_lookup_diagnostic_environment(false)
+  let wire = "{\"environmentCid\":\"" +
+    @program_check.checking_environment_cid(environment) +
+    "\",\"aliases\":[]}"
+  let publication = @source_publication.prepare_published_query_environment(
+    environment, wire,
+  ).unwrap()
+  let document =
+    #|{"version":"actql/0.1","id":"original-observation","stages":[{"id":"s","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[]},"as":"v"},{"take":-1,"as":"bad"}],"results":{"rows":{"from":"bad","fields":["id"]}}}],"results":{"rows":{"from":{"stage":"s","result":"rows"}}}}
+  let (parent, input) = request_diagnostic_test_parent()
+  let terminal = match
+    client_program_prepare_request_native_computation(
+      parent,
+      input,
+      request_diagnostic_test_json(document),
+      request_diagnostic_test_json("null"),
+      environment,
+      publication,
+      None,
+    ) {
+    Err(issue) => issue
+    Ok(_) => fail("the original negative Take must reject")
+  }
+  let project = () => {
+    client_program_project_request_check_outcome(
+      parent,
+      input,
+      terminal,
+      wire,
+      "ctx:" + "a".repeat(64),
+      "program",
+      "rev:" + "b".repeat(64),
+      document.length(),
+      None,
+      0,
+      None,
+      0,
+      "corr:" + "c".repeat(32),
+      None,
+    )
+  }
+  let loader = request_diagnostic_test_loader(request_diagnostic_test_url())
+  assert_true(request_observation_test_read_js(loader, project, true))
+  client_program_abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_true(request_observation_test_read_js(loader, project, false))
+}
+
+///|
 test "Request failure projection uses the original semantic issue without another check" {
   let environment = original_lookup_diagnostic_environment(false)
   let publication = @source_publication.prepare_published_query_environment(
