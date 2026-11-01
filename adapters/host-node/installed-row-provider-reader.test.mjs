@@ -58,7 +58,7 @@ function fixture({read = () => 'rows', stop = () => {}, observe,
   const start = overrides => startInstalledRowRun({moon, acquisition,
     nonce: 'original-nonce', ledger, capacity: {provider: capacity,
       transferBytes: 17n, executionBytes: 23n}, ...overrides});
-  return {moon, start, calls, reader, supplier, options, capacity, acquisition,
+  return {moon, start, calls, reader, supplier, options, capacity, acquisition, run, ledger, borrow,
     readBegan: began.promise,
     read: session => session.readProvider({prepare: supplier.prepare,
       receiver: supplier, options}),
@@ -221,4 +221,42 @@ test('truthy, missing or throwing reader cleanup observations never acknowledge 
     catch (error) {assert.match(error.message, /original observation unavailable/u);}
     assert.equal(f.counts().settles, 0);
   }
+});
+
+
+function installCompletedProviderCapture(f) {
+  const capture = {}, source = {}, checkedOwner = {}, requirement = {};
+  Object.assign(f.moon, {
+    clientProgramRowSourceFinish: actual => {assert.equal(actual,f.run);return ok(undefined);},
+    clientProgramRowSourceAttempt: actual => {assert.equal(actual,f.run);return {};},
+    clientProgramRowSourceCaptureBegin: () => ok(undefined),
+    clientProgramRowSourceCaptureAdvance: () => ok({_0:true,_1:1n}),
+    clientProgramRowSourceCapture: () => ok(capture),
+    clientProgramRowSourceCaptureSource: actual => {assert.equal(actual,capture);return ok(source);},
+    clientProgramEffectCapturedSourceMatches: () => true,
+    clientProgramIdentifyCapturedEffectSourceRelation: () => ok({}),
+    clientProgramEffectIssueCapturedSourceLogical: () => ok({}),
+    clientProgramRowSourceRetireResponseWorkspace(actualBorrow) {
+      assert.equal(actualBorrow,f.borrow);
+      assert.equal(f.cleanup(),true);
+      f.calls.push('retire-workspace'); return ok(undefined);
+    },
+  });
+  return {capture,source,options:{owner:{checkedOwner,effectful:true,
+    requirement,occurrence:{task:0}},prepared:{checkedSource:{}},
+    registry:'registry',values:'values',currentRead:async()=>{}}};
+}
+
+test('completed provider capture retires SAME reader workspace before returning live Source', async () => {
+  let f;
+  f=fixture({stop(){f.retire();}});
+  const selected=installCompletedProviderCapture(f),session=f.start();
+  await f.read(session);
+  const result=await session.complete(selected.options);
+  assert.deepEqual(f.calls.filter(name=>['stop','retire-workspace','close'].includes(name)),
+    ['stop','retire-workspace']);
+  assert.equal(result.capture.source(),selected.source);
+  assert.equal(f.counts().closes,0);
+  result.close();
+  assert.equal(f.counts().settles,1);
 });
