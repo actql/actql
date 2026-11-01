@@ -82,44 +82,51 @@ class LocalHostFilePinsTests(unittest.TestCase):
         self.assertTrue(pins.close())
         self.assertTrue(root.close())
 
-    def test_distinct_snapshot_keeps_full_value_comparison_and_original_error(self):
+    def _assert_distinct_snapshot(self, outcome):
         from dataclasses import replace
         from actql_sdk._local_files import PhysicalFileSnapshot
-        for outcome in ('equal', 'changed', 'error'):
-            with self.subTest(outcome=outcome):
-                _, root, _, pins = self.fixture()
-                pins.read_original('account.json', max_bytes=11)
-                pins.read_original('policy.json', max_bytes=16)
-                observe = root._observe_originals
-                equal = PhysicalFileSnapshot.__eq__
-                comparisons = []
-                original_error = OSError('original snapshot comparison refused')
-                def distinct(readers):
-                    snapshots = tuple(replace(value) for value in observe(readers))
-                    if outcome == 'changed':
-                        return (replace(snapshots[0], physical_digest='sha256:' + '0' * 64),
-                                snapshots[1])
-                    return snapshots
-                def compare(left, right):
-                    comparisons.append(left is right)
-                    if outcome == 'error': raise original_error
-                    return equal(left, right)
-                with patch.object(root, '_observe_originals', side_effect=distinct), \
-                        patch.object(PhysicalFileSnapshot, '__eq__', compare), \
-                        patch.object(root, '_validate_original_member',
-                                     wraps=root._validate_original_member) as members:
-                    if outcome == 'equal':
-                        self.assertIsNone(pins.current())
-                    elif outcome == 'changed':
-                        with self.assertRaises(LocalFileError): pins.current()
-                    else:
-                        with self.assertRaises(OSError) as failed: pins.current()
-                        self.assertIs(failed.exception, original_error)
-                self.assertEqual(members.call_count, 2)
-                self.assertEqual(comparisons, [False, False] if outcome == 'equal' else [False])
-                self.assertFalse(root.close())
-                self.assertTrue(pins.close())
-                self.assertTrue(root.close())
+        _, root, _, pins = self.fixture()
+        pins.read_original('account.json', max_bytes=11)
+        pins.read_original('policy.json', max_bytes=16)
+        observe = root._observe_originals
+        equal = PhysicalFileSnapshot.__eq__
+        comparisons = []
+        original_error = OSError('original snapshot comparison refused')
+        def distinct(readers):
+            snapshots = tuple(replace(value) for value in observe(readers))
+            if outcome == 'changed':
+                return (replace(snapshots[0], physical_digest='sha256:' + '0' * 64),
+                        snapshots[1])
+            return snapshots
+        def compare(left, right):
+            comparisons.append(left is right)
+            if outcome == 'error': raise original_error
+            return equal(left, right)
+        with patch.object(root, '_observe_originals', side_effect=distinct), \
+                patch.object(PhysicalFileSnapshot, '__eq__', compare), \
+                patch.object(root, '_validate_original_member',
+                             wraps=root._validate_original_member) as members:
+            if outcome == 'equal':
+                self.assertIsNone(pins.current())
+            elif outcome == 'changed':
+                with self.assertRaises(ValueError): pins.current()
+            else:
+                with self.assertRaises(OSError) as failed: pins.current()
+                self.assertIs(failed.exception, original_error)
+        self.assertEqual(members.call_count, 2)
+        self.assertEqual(comparisons, [False, False] if outcome == 'equal' else [False])
+        self.assertFalse(root.close())
+        self.assertTrue(pins.close())
+        self.assertTrue(root.close())
+
+    def test_equal_distinct_snapshot_keeps_full_value_comparison(self):
+        self._assert_distinct_snapshot('equal')
+
+    def test_changed_distinct_snapshot_keeps_original_value_error(self):
+        self._assert_distinct_snapshot('changed')
+
+    def test_distinct_snapshot_propagates_original_comparison_error(self):
+        self._assert_distinct_snapshot('error')
 
     def test_same_snapshot_alias_does_not_hide_actual_file_generation_change(self):
         from actql_sdk._local_files import PhysicalFileSnapshot
