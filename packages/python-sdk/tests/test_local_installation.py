@@ -89,6 +89,26 @@ class OriginalLocalInstallationTests(unittest.TestCase):
             self.assertTrue(any((family, name, args) == ('bootstrap', 'close', (produced,))
                                 for family, name, args in calls))
 
+    def test_consumed_initial_readers_retire_after_same_original_host_pins_bind(self):
+        # Actual filesystem/Store/pins with the existing explicit scalar Core
+        # port. This is not actual Common/normal installed qualification.
+        with TemporaryDirectory(prefix='actql-install-') as directory:
+            core, calls = self.core()
+            value = self.create(core, Path(directory))
+            pins = {(pin._root, member.name): member
+                    for pin in value._pins for member in pin._files.values()}
+            redundant = [(root, reader) for root, reader in value._readers
+                         if (root, reader.name) in pins]
+            self.assertEqual(redundant, [])
+            self.assertEqual(len(pins), 11)
+            for (root, _), member in pins.items():
+                self.assertIs(root._original_readers[id(member.reader)], member.reader)
+                self.assertEqual(root.observe_original(member.reader), member.snapshot)
+            before = len(calls)
+            value.binding.inspect(lambda _: None)
+            self.assertGreater(len(calls), before)
+            self.assertTrue(value.close())
+
     def test_pending_bootstrap_retirement_keeps_same_output_without_rebootstrap(self):
         with TemporaryDirectory(prefix='actql-install-') as directory:
             core, calls = self.core()
