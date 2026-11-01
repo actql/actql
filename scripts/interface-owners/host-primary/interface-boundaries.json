@@ -14975,7 +14975,7 @@
               },
               {
                 "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Effect signing consumes the same live recovery"
+                "anchor": "## Effect signing consumes the same live recovery"
               }
             ],
             "inputsOutputs": [
@@ -14985,7 +14985,7 @@
               },
               {
                 "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Effect signing consumes the same live recovery"
+                "anchor": "## Effect signing consumes the same live recovery"
               }
             ],
             "identity": [
@@ -14995,7 +14995,7 @@
               },
               {
                 "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Effect signing consumes the same live recovery"
+                "anchor": "## Effect signing consumes the same live recovery"
               }
             ],
             "ownership": [
@@ -15005,7 +15005,7 @@
               },
               {
                 "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Effect signing consumes the same live recovery"
+                "anchor": "## Effect signing consumes the same live recovery"
               }
             ],
             "synchronization": [
@@ -15015,7 +15015,7 @@
               },
               {
                 "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Effect signing consumes the same live recovery"
+                "anchor": "## Effect signing consumes the same live recovery"
               }
             ],
             "failure": [
@@ -15025,7 +15025,7 @@
               },
               {
                 "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Effect signing consumes the same live recovery"
+                "anchor": "## Effect signing consumes the same live recovery"
               }
             ],
             "cancellation": [
@@ -15035,7 +15035,7 @@
               },
               {
                 "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Effect signing consumes the same live recovery"
+                "anchor": "## Effect signing consumes the same live recovery"
               }
             ],
             "resources": [
@@ -15045,7 +15045,7 @@
               },
               {
                 "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Effect signing consumes the same live recovery"
+                "anchor": "## Effect signing consumes the same live recovery"
               }
             ],
             "extension": [
@@ -15055,7 +15055,7 @@
               },
               {
                 "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Effect signing consumes the same live recovery"
+                "anchor": "## Effect signing consumes the same live recovery"
               }
             ],
             "verification": [
@@ -15069,7 +15069,7 @@
               },
               {
                 "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Effect signing consumes the same live recovery"
+                "anchor": "## Effect signing consumes the same live recovery"
               },
               {
                 "path": "adapters/host-node/local-checkpoint-recovery-custody.test.mjs",
@@ -16217,7 +16217,7 @@
               },
               {
                 "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Effect signing consumes the same live recovery"
+                "anchor": "## Effect signing consumes the same live recovery"
               }
             ],
             "inputsOutputs": [
@@ -16235,7 +16235,7 @@
               },
               {
                 "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Effect signing consumes the same live recovery"
+                "anchor": "## Effect signing consumes the same live recovery"
               }
             ],
             "identity": [
@@ -16249,7 +16249,7 @@
               },
               {
                 "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Effect signing consumes the same live recovery"
+                "anchor": "## Effect signing consumes the same live recovery"
               }
             ],
             "ownership": [
@@ -16267,7 +16267,7 @@
               },
               {
                 "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Effect signing consumes the same live recovery"
+                "anchor": "## Effect signing consumes the same live recovery"
               }
             ],
             "synchronization": [
@@ -16281,7 +16281,7 @@
               },
               {
                 "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Effect signing consumes the same live recovery"
+                "anchor": "## Effect signing consumes the same live recovery"
               }
             ],
             "failure": [
@@ -16295,7 +16295,7 @@
               },
               {
                 "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Effect signing consumes the same live recovery"
+                "anchor": "## Effect signing consumes the same live recovery"
               }
             ],
             "cancellation": [
@@ -16313,7 +16313,7 @@
               },
               {
                 "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Effect signing consumes the same live recovery"
+                "anchor": "## Effect signing consumes the same live recovery"
               }
             ],
             "resources": [
@@ -16331,7 +16331,7 @@
               },
               {
                 "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Effect signing consumes the same live recovery"
+                "anchor": "## Effect signing consumes the same live recovery"
               }
             ],
             "extension": [
@@ -16345,7 +16345,7 @@
               },
               {
                 "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Effect signing consumes the same live recovery"
+                "anchor": "## Effect signing consumes the same live recovery"
               }
             ],
             "verification": [
@@ -16367,7 +16367,7 @@
               },
               {
                 "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Effect signing consumes the same live recovery"
+                "anchor": "## Effect signing consumes the same live recovery"
               },
               {
                 "path": "adapters/host-node/local-checkpoint-recovery-custody.test.mjs",
