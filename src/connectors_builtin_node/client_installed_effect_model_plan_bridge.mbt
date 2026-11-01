@@ -82,6 +82,69 @@ pub fn client_program_prepare_request_model_source_free_plan(
 }
 
 ///|
+/// Keep the original checked bounds' non-byte dimensions. The installed Node
+/// declaration must cover those SAME Model extents; it cannot shrink them.
+/// The fixed Request/Plan/Scope owns admission, never these numeric inputs.
+#export_name("clientProgramPrepareRequestNodeModelSourceFreePlan")
+pub fn client_program_prepare_request_node_model_source_free_plan(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  original : @client_local_host.ClientInstalledManagedSourceFreePreparation,
+  request : @publication_host.ClientRequestIdentity,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  occurrence : @publication_host.ClientInferOccurrence,
+  graph : @publication_host.ClientInferPlanGraph,
+  selected : @infer_host.Limits,
+  layout : @publication_host.ClientNodeModelPreparationLayout?,
+  installation : @check_environment.ModelResponseProfileInstallation,
+  runtime_artifact_cid : String,
+  layout_artifact_cid : String,
+  probability : @check_environment.DecisionProbabilityProfile?,
+  model_retained_bytes : Int64,
+  model_execution_bytes : Int64,
+  max_reservations : Int,
+  max_holdings : Int,
+  max_delegations : Int,
+) -> Result[
+  @client_local_host.ClientInstalledManagedModelPlan,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  guard model_retained_bytes >= selected.model.ledger.retained_bytes &&
+    model_execution_bytes >= selected.model.ledger.execution_bytes &&
+    max_reservations >= 0 &&
+    max_holdings >= 0 &&
+    max_delegations >= 0 else {
+    return Err(InsufficientCapacity)
+  }
+  @client_local_host.prepare_request_node_model_source_free_plan(
+    parent,
+    input,
+    original,
+    request,
+    compiled,
+    definition,
+    occurrence,
+    graph,
+    {
+      ..selected.model.ledger,
+      retained_bytes: model_retained_bytes,
+      execution_bytes: model_execution_bytes,
+    },
+    layout,
+    installation,
+    runtime_artifact_cid,
+    layout_artifact_cid,
+    probability,
+    Int::max(selected.input.rows.operation_entries, max_reservations),
+    Int::max(selected.input.rows.retained_entries, max_holdings),
+    Int::max(selected.input.rows.metadata_entries, max_delegations),
+  )
+}
+
+///|
 #export_name("clientProgramInstalledMockModelCapturePlanBind")
 pub fn client_program_installed_mock_model_capture_plan_bind(
   original : @client_local_host.ClientInstalledManagedCapturePlan,

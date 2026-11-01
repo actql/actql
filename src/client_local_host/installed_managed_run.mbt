@@ -168,6 +168,7 @@ pub(all) enum ClientInstalledManagedRunIssue {
   Preparation(@resources.PreparationCapacityIssue)
   Ledger(@resources.LedgerIssue)
   ModelRead(@publication_host.ClientModelReadPreparationIssue)
+  ModelLayout(@publication_host.ClientModelPreparationLayoutIssue)
   Sequence(@lower.SequenceIssue)
   SerializationPrefix(ClientSerializationPrefixIssue)
 }

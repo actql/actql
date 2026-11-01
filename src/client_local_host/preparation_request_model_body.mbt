@@ -237,6 +237,58 @@ pub fn[I] prepare_request_model_source_free_plan(
 }
 
 ///|
+/// Bind the existing installed Node read envelope to this SAME Request Plan.
+/// Layout correspondence and declared extents are DATA; the existing Plan and
+/// Scope constructors still reserve their complete overlap on the parent.
+/// No read, Scope, claim, permission or provider is issued by this binding.
+pub fn[I] prepare_request_node_model_source_free_plan(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  original : ClientInstalledManagedSourceFreePreparation,
+  request : @publication_host.ClientRequestIdentity,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  occurrence : @publication_host.ClientInferOccurrence,
+  graph : @publication_host.ClientInferPlanGraph,
+  model_limits : @resources.LedgerLimits,
+  layout : @publication_host.ClientNodeModelPreparationLayout?,
+  installation : @environment.ModelResponseProfileInstallation,
+  runtime_artifact_cid : String,
+  layout_artifact_cid : String,
+  probability : @environment.DecisionProbabilityProfile?,
+  max_reservations : Int,
+  max_holdings : Int,
+  max_delegations : Int,
+) -> Result[ClientInstalledManagedModelPlan, ClientInstalledManagedRunIssue] {
+  match
+    @publication_host.check_client_node_model_preparation_layout(
+      layout, graph, installation, runtime_artifact_cid, layout_artifact_cid, probability,
+    ) {
+    Err(issue) => return Err(ModelLayout(issue))
+    Ok(_) => ()
+  }
+  guard layout is Some(layout) else {
+    return Err(ModelLayout(@publication_host.Unavailable))
+  }
+  prepare_request_model_source_free_plan(
+    owner,
+    input,
+    original,
+    request,
+    compiled,
+    definition,
+    occurrence,
+    graph,
+    model_limits,
+    layout.retained_bytes,
+    layout.execution_bytes,
+    max_reservations,
+    max_holdings,
+    max_delegations,
+  )
+}
+
+///|
 /// Bind this actual Model Plan before completing the original Prepared body.
 /// Fund the actual Scope records and the original census-slot growth before
 /// binding. Complete selected Model/read/module/physical constructor overlap
