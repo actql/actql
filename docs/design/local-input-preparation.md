@@ -184,8 +184,9 @@ holders. No serialized receipt recreates that authority.
 The installed manager indexes each original Request with a weak reference to
 its producer. Its existing live producer inventory remains the cleanup owner.
 Lookup checks that inventory membership, the same Request and the producer's
-unfinished state after the normal Host current boundary; it does not scan the
-other live Requests or create a new current observation.
+unfinished state after the normal Host current boundary. It also compares the
+same Host's closing flags after callback reentry; it does not scan the other
+live Requests or create a new current observation.
 
 A bound Request cannot be rebound to another producer, including after its
 original producer has finished. The weak-key association may retain that

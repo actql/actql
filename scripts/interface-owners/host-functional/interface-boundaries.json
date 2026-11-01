@@ -109056,6 +109056,10 @@
               {
                 "path": "adapters/host-node/ordinary-source-producer-lifetime.test.mjs",
                 "anchor": "test('producer request index performs direct membership lookups at N and 2N live requests'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-producer-lifetime.test.mjs",
+                "anchor": "test('producer request index refuses synchronous Host close during the current callback'"
               }
             ]
           }
@@ -110133,6 +110137,10 @@
               {
                 "path": "adapters/host-node/ordinary-source-producer-lifetime.test.mjs",
                 "anchor": "test('producer request index performs direct membership lookups at N and 2N live requests'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-producer-lifetime.test.mjs",
+                "anchor": "test('producer request index refuses synchronous Host close during the current callback'"
               }
             ]
           }
@@ -112207,7 +112215,7 @@
         }
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "f6e75a827ea56ef6f0f5fa9ffe2c43df575ac899ef34230fa042c03a271e4566"
+      "sha256": "4dfe1e7d4b4c966966f8463ef9a35f5e7086ba491ee15adba826e7d57808f4cc"
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",
