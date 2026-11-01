@@ -1023,10 +1023,10 @@ class InstalledLocalHost:
                 # neither refreshes availability nor reconstructs a Run.
                 if not wire.valid(original, 'run_state'):  # type: ignore[no-untyped-call]
                     raise ValueError('Invalid original saved Local RunState')
-                raw = wire_bytes(original)  # type: ignore[no-untyped-call]
+                state_raw: bytes = wire_bytes(original)  # type: ignore[no-untyped-call]
                 if not self._close_projection(output):
                     raise LocalProductCleanupPending(self)
-                return raw
+                return state_raw
             observed_kind = original.get('kind')
             fields = ({'kind'} if observed_kind == 'missing' else {'kind', 'intentCid'}
                       if observed_kind == 'preparing' else {'kind', 'intentCid', 'admission'}

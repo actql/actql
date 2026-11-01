@@ -17,7 +17,7 @@ fn publication_binding_saved_snapshot(
       } else if table == "client_submitted_intents" && key == submitted.key {
         Ok(Some(submitted))
       } else if table == "client_task_run_materials" {
-        let mut found = None
+        let mut found : @host.ClientJournalPhysicalRow? = None
         for (chunk_key, body) in chunks {
           if key == chunk_key {
             found = Some({ key, revision: 0L, body: @utf8.encode(body), })
@@ -42,6 +42,7 @@ fn publication_binding_saved_snapshot(
         request: encoding.request,
         definition: encoding.definition,
         checkpoint: None,
+        task_materials_cid: encoding.task_materials_cid,
       })
     },
     "missing saved custody",
@@ -62,9 +63,14 @@ test "saved snapshot publication binding uses original restored material without
     None,
   ).unwrap()
   let cid = @host.client_task_material_original_cid(wire).unwrap()
-  let (encoding, finite, observation) = @host.decode_client_run_journal_row_with_observation_originals(
+  let (encoding, finite, _) = @host.decode_client_run_journal_row_with_observation_originals(
     run.body,
   ).unwrap()
+  let observation = Some(
+    @host.capture_client_run_observation_originals(
+      plan.compiled, plan.definition,
+    ).unwrap().wire().unwrap(),
+  )
   let run = {
     ..run,
     body: @host.client_run_journal_row_body(
@@ -106,6 +112,9 @@ test "saved snapshot publication binding uses original restored material without
     tuple(),
     context_cid(),
     "sha256:" + "c".repeat(64),
+  ).unwrap()
+  let restored = restore_source_free_local_run_policy_original(
+    restored, retained,
   ).unwrap()
   assert_false(physical_equal(restored, plan))
   assert_true(

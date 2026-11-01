@@ -191,6 +191,7 @@ test "assembled material fields cannot substitute an equivalent checked Owner" {
     compilation: owned.compilation,
     admission: owned.admission,
     run_definition: owned.run_definition,
+    retained_input: @host.client_task_run_materials_retained_input(owned),
   }
   assert_true(
     restore_source_free_local_run_from_materials(
