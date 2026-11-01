@@ -6383,7 +6383,8 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       return typeof (computeManaged ?? sourceManaged)?.retireRun === 'function';
     },
     retireManagedComputeRun(prepared) {
-      const run = record.computeRuns?.get(prepared);
+      const runs = record.computeRuns, liveRuns = record.computeLiveRuns;
+      const run = runs?.get(prepared);
       if (run === undefined) return;
       if (run.prepared !== prepared || run.runtime !== moon) {
         throw clientOperationError('ForeignInstalledComputeRun');
@@ -6418,18 +6419,37 @@ export async function connectEmbeddedLocal(options, initialEntry) {
         if (run.preparationKind === 'model-plan' && run.value === undefined) {
           // Construction unwound; a Scope can predate a refused completion.
           // This failed preparation has entered neither dispatch nor a read.
-          const model = run.model;
+          const model = modelOriginal;
+          if (model === undefined) throw clientOperationError('ForeignInstalledModelPreparation');
+          const scope = model.scope, compiled = model.compiled,
+            definition = model.runDefinition, graph = model.graph;
+          const releaseAliases = run.releaseModelAliases, releaseSelection = run.releaseModelSelection;
           if (model.taken || model.read !== undefined) throw clientOperationError('InstalledMockModelCleanupPending');
-          if (model.scope !== undefined && model.scopeFinished !== true) {
-            if (model.control.finishCheckedClientInferOriginalReadScope(model.compiled,
-              model.runDefinition, model.graph, model.scope, true) !== true) {
+          if (scope !== undefined && model.scopeFinished !== true) {
+            if (model.control.finishCheckedClientInferOriginalReadScope(compiled,
+              definition, graph, scope, true) !== true) {
               throw clientOperationError('InstalledMockModelCleanupPending');
+            }
+            if (model.scope !== scope || model.compiled !== compiled ||
+                model.runDefinition !== definition || model.graph !== graph) {
+              throw clientOperationError('ForeignInstalledModelPreparation');
             }
             model.scopeFinished = true;
           }
-          Reflect.apply(run.releaseModelAliases, model, []);
-          run.releaseModelSelection(prepared);
-          record.computeRuns.delete(prepared); record.computeLiveRuns.delete(run);
+          // Scope finish crosses its original reservation/current callback.
+          // A successful old Scope finish cannot retire a replaced Host bag,
+          // Model carrier, request or cleanup method from that callback.
+          if (record.computeRuns !== runs || record.computeLiveRuns !== liveRuns ||
+              runs.get(prepared) !== run || liveRuns?.has(run) !== true ||
+              run.prepared !== prepared || run.runtime !== moon || run.closed ||
+              run.model !== model || run.preparationKind !== 'model-plan' ||
+              run.value !== effectValue || run.request !== effectRequest || run.original !== effectOriginal ||
+              run.releaseModelAliases !== releaseAliases || run.releaseModelSelection !== releaseSelection) {
+            throw clientOperationError('ForeignInstalledModelPreparation');
+          }
+          Reflect.apply(releaseAliases, model, []);
+          Reflect.apply(releaseSelection, run, [prepared]);
+          runs.delete(prepared); liveRuns.delete(run);
           for (const key of Object.keys(run)) run[key] = undefined;
           run.closed = true;
           return;
