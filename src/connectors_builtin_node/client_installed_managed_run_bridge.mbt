@@ -14,51 +14,6 @@ pub fn client_program_node_managed_run_prepare(
 }
 
 ///|
-/// A separate fixed Root operation must supply the local no-I/O Mock purpose.
-/// Source/Compute admission and numerical requirements cannot issue it.
-#export_name("clientProgramNodeLocalMockModelRunPrepare")
-pub fn client_program_node_local_mock_model_run_prepare(
-  original : @resources.OriginalNodeManagedRunReference,
-  prepared : @publication_host.PreparedClientProgram,
-) -> Result[
-  @resources.NodeManagedRunAdmission[@publication_host.PreparedClientProgram],
-  @resources.ImportedChildLedgerIssue,
-] {
-  @resources.prepare_node_local_mock_model_run_admission(original, prepared)
-}
-
-///|
-/// Install the compiler/Run Scope on that exact parent before Source children.
-/// The Host retains the admission before calling, including failed begin.
-#export_name("clientProgramInstalledMockModelManagedRunBegin")
-pub fn client_program_installed_mock_model_managed_run_begin(
-  admission : @resources.NodeManagedRunAdmission[
-    @publication_host.PreparedClientProgram,
-  ],
-  prepared : @publication_host.PreparedClientProgram,
-  request : @publication_host.ClientRequestIdentity,
-  compiled : @publication_host.ClientCompiledRun,
-  definition : @publication.PublicationContract,
-  plan : @publication_host.ClientInferPlanGraph,
-  bootstrap_retained_bytes : Int64,
-  bootstrap_execution_bytes : Int64,
-  max_reservations : Int,
-  max_holdings : Int,
-  max_delegations : Int,
-) -> Result[
-  (
-    @client_local_host.ClientInstalledManagedRun,
-    @publication_host.ClientModelReadScope,
-  ),
-  @client_local_host.ClientInstalledManagedRunIssue,
-] {
-  @client_local_host.begin_installed_mock_model_managed_run(
-    admission, prepared, request, compiled, definition, plan, bootstrap_retained_bytes,
-    bootstrap_execution_bytes, max_reservations, max_holdings, max_delegations,
-  )
-}
-
-///|
 /// The ordinary same-Run Scope issues its original read before the input
 /// component starts. No physical-layout factory or second Ledger is involved.
 #export_name("clientProgramPrepareInferOriginalRead")

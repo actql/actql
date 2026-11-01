@@ -3492,16 +3492,6 @@ function publicationControl(moon) {
         prepared, value, token(definition), occurrence, graph, declarations,
         query, evidence, transport, scratch, registry, values, fragment, ordered));
     },
-    beginCheckedClientMockModelManagedRun(admission, prepared, request, compiled, definition, graph, budget) {
-      const value = compiledRunTokens.get(compiled);
-      if (value === undefined || compiled.kind !== 'infer') {
-        throw new TypeError('Foreign Client compiled Infer preparation');
-      }
-      return checked(moon.clientProgramInstalledMockModelManagedRunBegin(admission,
-        prepared, request, value, token(definition), graph,
-        budget.bootstrapRetainedBytes, budget.bootstrapExecutionBytes,
-        budget.maxReservations, budget.maxHoldings, budget.maxDelegations));
-    },
     prepareCheckedClientInferOriginalRead(compiled, definition, graph, scope, budget) {
       const value = compiledRunTokens.get(compiled);
       if (value === undefined || compiled.kind !== 'infer') {
