@@ -4783,9 +4783,10 @@ source-free and two-Query Mock routes keep their original constructors.
 The Request constructs its serialization prefix before the module, then binds
 that same module, compiler, Definition, occurrence, Graph, prefix and installed
 physical read layout into its Model Plan. The Scope and adoption retain these
-originals together. A plain acquired Model without this prefix connection remains
-refused. The read snapshot follows prefix Ledger mutations; it cannot refresh an
-older snapshot or create another Scope.
+originals together. A plain acquired Model instead uses the module's original
+input prefix through its retained composed component; an absent component factory
+refuses before any legacy constructor. The read snapshot follows prefix Ledger
+mutations; it cannot refresh an older snapshot or create another Scope.
 
 Source preparation consumes the adopted Plan's existing acquisition. Content
 borrows that same Run's Ledger and passes the same retained Row capture to the
@@ -4817,10 +4818,11 @@ Definition, Request and parent. The Source read borrows the module's original
 Query/acquisition and that parent's existing Ledger, and refuses an equal copied
 capacity. Its retirement remains separate from the Model Scope and parent.
 
-This construction does not select a Node execution driver. The physical caller
-must carry the original input prefix and read consumer through its actual
-adoption and cleanup path; an independent single-stage or unowned composed start
-cannot substitute for that connection.
+The installed Node caller carries the original input prefix and read consumer
+through this module's actual adoption and composed driver. Its fixed component
+is constructed inside the funded module factory and bound once to the same
+selection, Source and execution context. An independent single-stage or unowned
+composed start cannot substitute for that connection.
 
 ### Original Model input before its component factory
 
@@ -4868,3 +4870,55 @@ claim, or fall back to an unowned composed start. Existing no-layout composed
 callers and single-stage installed layout callers retain their own entrances.
 The same original read cleanup observation remains tied to actual Core execution
 cleanup; a layout claim, constructor refusal or provider return is not that ACK.
+
+### Adopted Node Model Source and failed setup custody
+
+The ordinary installed one-Source Model retains its component in the existing
+Host Model carrier while constructing the Request module. That carrier already
+holds the selected Graph, compiler, Definition and physical installation, and
+stays in the same Host Run inventory before the first fallible constructor.
+The prefix is an original opaque sequence; its optional suffix stays inside a
+typed binder closure. JavaScript forwards that binder without interpreting or
+reboxing the Option. Local calls it only after retaining the actual execution.
+
+Before Source acquisition, dispatch retains the existing Core preparation borrow
+and obtains the original adopted Run's Ledger with its same original capacity.
+The Model carrier records the single getter attempt and exact failure, including
+null or undefined. A foreign capacity or a callback-retired carrier cannot
+attach a new Ledger alias. The native Plan and Source acquisition remain those
+already bound to the same Request; no second compiler, Source requirement,
+Model Scope, Ledger or Root is issued. Dispatch passes the nominal Run value,
+not the private JavaScript record that retains it.
+
+The composed driver binds the module's existing component and opens that same
+adopted capture Host. It retains the captured Source on the original DAG before
+entry. Its original read is prepared only when Local supplies the actual input,
+after earlier Source/Compute Ledger changes. The same installed layout claim
+supplies its one read consumer, and runtime current uses the retained Scope.
+The previous direct segment preparation and independent composed Host are not
+used on this installed Request route.
+
+Source, Model read, Site installation, Store/output and Scope cleanup stay
+separate. The driver first stops/closes its actual child outputs; dispatch closes
+the borrowed Source before retrying the same pending cleanup. Scope finishing
+checks the whole original child inventory. The existing preparation-usage
+isolation operation can then distinguish only that original parent's remaining
+debit; it does not replace stop, output-close or child cleanup acknowledgements.
+A changed Model carrier after any cleanup callback remains pending. An already
+successful native finish is not repeated just because its alias duty refused.
+
+The fixed Node entry forwards the installed cleanup envelope separately from
+Program options. An entry-refused setup transfers its exact existing partial
+Site/preflight owner into the same driver slot before that owner stops it.
+Retry invokes that original owner and retains its failure; no replacement
+cleanup engine, empty custody or process-exit acknowledgement is created.
+The original first nullable component or physical-cleanup failure remains first,
+independent of a later execution projection or another child's failure.
+
+The carrier's selection, component, managed record, one Ledger attempt/failure
+and returned Ledger are fixed Host controls under the named common Request
+envelope. Input/AST/row/operation storage, native module sequences, installed
+provider buffers and all simultaneous/failed-child output remain separate
+construction demand. The envelope is not recomputed from each new JavaScript
+closure or carrier spelling. Existing Host retirement cuts these aliases only
+after its checked native retirement; returning a borrow is a separate duty.
