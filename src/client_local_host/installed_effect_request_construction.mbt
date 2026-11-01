@@ -112,6 +112,103 @@ pub fn installed_json_effect_response_construction_capacity(
 }
 
 ///|
+// Project only a proven span-free Host JSON/semantic capture result. The
+// complete old parser/index/key peak stays on failure and construction. Some
+// capture callers also retain semantic wire/String projections; preserve the
+// old complete text envelope there instead of assuming those aliases retire.
+fn installed_host_json_retained_roles(
+  peak : @execution.PreparationRepresentationUnits,
+  bytes : Int,
+  nodes : Int,
+  keep_full_text~ : Bool,
+) -> (
+  @execution.PreparationRepresentationUnits,
+  @execution.PreparationRepresentationUnits,
+)? {
+  guard @source.json_tree_retained_construction_extent(
+      nodes,
+      nodes - 1,
+      nodes,
+      0,
+      bytes.to_int64(),
+      keep_spans=false,
+    )
+    is Some(tree) &&
+    peak.record_headers >= tree.record_headers &&
+    peak.reference_slots >= tree.reference_slots &&
+    peak.scalar_words >= tree.scalar_words &&
+    peak.owned_utf16_units >= tree.owned_utf16_units else {
+    return None
+  }
+  let text = if keep_full_text {
+    peak.owned_utf16_units
+  } else {
+    tree.owned_utf16_units
+  }
+  Some(
+    (
+      {
+        record_headers: tree.record_headers,
+        reference_slots: tree.reference_slots,
+        scalar_words: tree.scalar_words,
+        owned_utf16_units: text,
+        owned_wire_bytes: peak.owned_wire_bytes,
+      },
+      {
+        record_headers: peak.record_headers - tree.record_headers,
+        reference_slots: peak.reference_slots - tree.reference_slots,
+        scalar_words: peak.scalar_words - tree.scalar_words,
+        owned_utf16_units: peak.owned_utf16_units - text,
+        owned_wire_bytes: 0L,
+      },
+    ),
+  )
+}
+
+///|
+// Proposal/selector JSON is exported by the original checked Core before the
+// Host parses it. The returned Host rows and retained semantic wire aliases
+// have no Source spans, parser stack or decoder-key maps. Preserve the whole
+// original input String/Bytes and full text envelope; move only those proven
+// nonescaping structural families from retained to constructor workspace.
+fn installed_standard_host_capture_row_capacity(
+  bytes : Int,
+  nodes : Int,
+  depth : Int,
+) -> @execution.ExecutionCapacity? {
+  guard installed_source_response_preserving_workspace(bytes, nodes, depth)
+    is Some(original) &&
+    installed_host_json_retained_roles(
+      original,
+      bytes,
+      nodes,
+      keep_full_text=true,
+    )
+    is Some((retained, workspace)) &&
+    @execution.compose_preparation_representation([
+      retained,
+      {
+        record_headers: 2L,
+        reference_slots: 0L,
+        scalar_words: 0L,
+        owned_utf16_units: bytes.to_int64(),
+        owned_wire_bytes: bytes.to_int64(),
+      },
+    ])
+    is Some(retained) else {
+    return None
+  }
+  @execution.preparation_execution_capacity({
+    retained,
+    workspace,
+    retained_nodes: 0L,
+    workspace_nodes: 0L,
+    retained_bytes: 0L,
+    workspace_bytes: 0L,
+  })
+}
+
+///|
 // The Host parses the SAME native-produced valid JSON String, not an input
 // document or a second Source parser. Keep the existing complete literal
 // constructor peak as a conservative envelope. Only its returned tree can
@@ -133,6 +230,7 @@ fn installed_standard_host_json_output_capacity(
       limits.max_nodes,
       0,
       limits.max_input_bytes.to_int64(),
+      keep_spans=false,
     )
     is Some(tree) &&
     peak.record_headers >= tree.record_headers &&

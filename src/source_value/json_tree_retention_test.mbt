@@ -67,3 +67,34 @@ test "parsed tree and decoder borrows keep String and Span ownership separate" {
     is None,
   )
 }
+
+///|
+test "span-free Host projection omits only original coordinate records" {
+  assert_eq(
+    @source_value.json_tree_retained_construction_extent(
+      3,
+      2,
+      1,
+      0,
+      11L,
+      keep_spans=false,
+    ),
+    Some({
+      record_headers: 16L,
+      reference_slots: 34L,
+      scalar_words: 8L,
+      owned_utf16_units: 11L,
+    }),
+  )
+  assert_true(
+    @source_value.json_tree_retained_construction_extent(
+      3,
+      2,
+      2,
+      2,
+      11L,
+      keep_spans=false,
+    )
+    is None,
+  )
+}

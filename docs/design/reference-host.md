@@ -2758,3 +2758,32 @@ original input/output value envelope; private accumulator storage does not
 borrow that smaller envelope. The checked row/value inventory bounds returned
 value nodes only. It never prices an unbounded accumulator as a Number or removes
 configured per-task imports/exports that can remain live with borrowers.
+
+
+Completed Host capture JSON owns its returned rows and semantic text, not the
+Source parser's Span/index/ancestry storage. The installed capture quote keeps
+all original text and the complete constructor/refusal peak, while classifying
+only those nonescaping structural families as temporary workspace. The Source
+retained-tree owner exposes a span-free projection for this proven Host value;
+ordinary Source trees keep their original spans by default. Native MoonBit Json
+still uses the richer spanned envelope to dominate its current linked Map,
+Array, String and numeric-representation holders. Its parser constructor and
+returned tree are distinct lifetimes, not V8 object-layout measurements.
+
+The fixed preserving Sheets page bridge returns only rows/scalars from its
+raw-response Source codec. That completed call precedes stringify, Host
+JSON.parse and the original RowAcquisition page-admission call. Its reader
+quote keeps received bodies and projected rows/text in both complete phases;
+raw Source/index construction and later page construction have distinct peaks.
+A raw response that is never parsed as Host JSON does not acquire a second
+value-node holding in addition to the same already-counted Source tree. The
+normalizing reader's original generic node inventory remains independent.
+Failures retain their original constructor backing until actual cleanup.
+This local split does not establish mutual exclusion between the whole Compute
+and Effect domains or settle any original reservation.
+
+Range capture composes complete priced constructor phases. A high header count
+from one phase and high wire count from another are not one simultaneously live
+constructor. Retained original inputs remain additive to the largest whole
+phase, including every original failed-prefix alternative. This does not alter
+rejection limits, the common tariff, grants, attempts or physical retirement.

@@ -17,4 +17,8 @@ import {
 import {
   "actql/actql/client_local_host" @client_host,
   "actql/actql/physical_resources" @resources,
+  "actql/actql/client_row_source_host" @row_source_host,
+  "actql/actql/run_publication_host" @publication_host,
+  "actql/actql/canonical_json" @identity,
+  "actql/actql/sha256" @sha,
 } for "wbtest"

@@ -1358,3 +1358,56 @@ test "control constructor refused growth keeps same retained inventory and origi
   @resources.settle_capacity(ledger, pressure).unwrap()
   retire_installed_managed_run(owner).unwrap()
 }
+
+///|
+// Real same-parent Resource reservations, not Source I/O or a physical ACK.
+// An unresolved input holding must not be treated as reusable workspace.
+test "unsettled input workspace refuses same original Effect entry until actual reservation settlement" {
+  let (prepared, request, contracts) = effect_operation_plan_inputs()
+  let plan = effect_constructor_peak_fixture(prepared, request, contracts, true)
+  let (input, initial, _, admitted) = effect_parent_test_preparation(
+    plan,
+    prepared_installed_effect_managed_requirements(plan),
+  )
+  let owner = begin_preparation_owned_installed_effect_managed_run(
+    initial, input, admitted, prepared, request, plan,
+  ).unwrap()
+  let ledger = owner.ledger.unwrap()
+  let child = retain_installed_effect_operation_construction(
+    owner, prepared, request, plan, 0, true, 0, 0, "request",
+  ).unwrap()
+  let held = @resources.ledger_usage(ledger)
+  // This original request constructor has90 retained +40 scratch bytes.
+  // Leave39 available while the SAME input reservation is unresolved.
+  let free = @resources.ledger_limits(ledger).execution_bytes -
+    held.reserved_execution_bytes
+  let input_reservation = @resources.reserve_capacity(ledger, 0L, free - 39L).unwrap()
+  let unresolved = @resources.ledger_usage(ledger)
+  for _ in 0..<2 {
+    assert_true(
+      begin_installed_effect_operation_construction(child)
+      is Err(Ledger(@resources.LedgerIssue::ExecutionLimit)),
+    )
+    assert_eq(@resources.ledger_usage(ledger), unresolved)
+    assert_false(child.started)
+    assert_false(child.retired)
+  }
+  // Only the existing actual settlement returns this input reservation.
+  // No absence/terminal observation, synthetic ACK or new child is involved.
+  @resources.settle_capacity(ledger, input_reservation).unwrap()
+  begin_installed_effect_operation_construction(child).unwrap()
+  assert_eq(
+    @resources.ledger_usage(ledger).reserved_execution_bytes,
+    held.reserved_execution_bytes + 40L,
+  )
+  complete_installed_effect_operation_construction(child).unwrap()
+  assert_eq(
+    @resources.ledger_usage(ledger).reserved_execution_bytes,
+    held.reserved_execution_bytes,
+  )
+  assert_true(
+    begin_installed_effect_operation_construction(child) is Err(AlreadyBound),
+  )
+  assert_true(retire_installed_effect_operation(child, true).unwrap())
+  retire_installed_managed_run(owner).unwrap()
+}

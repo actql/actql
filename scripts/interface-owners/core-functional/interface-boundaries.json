@@ -48182,13 +48182,17 @@
     },
     {
       "module": "src/client_local_host/installed_effect_request_construction.mbt",
-      "sha256": "be46a10f41d5d088158fc06ec8c568833004610fb063fb0a41048d84fd0e51fe",
+      "sha256": "58424cacddfb9aca44f19b9c15d3a346826c9a9358dc4c7f922792f674ac0179",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "D \u2014 original Kintone native protocol constructors and same Request Effect composition",
       "referenceQualification": "Source and stated native constructor components only; not complete normal recipe, authority, runtime ABI or physical acceptance",
       "exports": [],
       "operations": [
+        {
+          "name": "installed_host_json_retained_roles",
+          "declaration": "installed_host_json_retained_roles ( peak : @ execution . PreparationRepresentationUnits , bytes : Int , nodes : Int , keep_full_text ~ : Bool , ) - > ( @ execution . PreparationRepresentationUnits , @ execution . PreparationRepresentationUnits , ) ?"
+        },
         {
           "name": "installed_json_effect_request_construction_capacity",
           "declaration": "installed_json_effect_request_construction_capacity ( provider : @ execution . ExecutionCapacity , max_input_bytes : Int , max_nodes : Int , max_depth : Int , ) - > @ execution . ExecutionCapacity ?"
@@ -48200,6 +48204,10 @@
         {
           "name": "installed_standard_create_constructor_capacities",
           "declaration": "installed_standard_create_constructor_capacities ( original : Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ? , ) - > Result [ Array [ @ execution . ExecutionCapacity ] , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "installed_standard_host_capture_row_capacity",
+          "declaration": "installed_standard_host_capture_row_capacity ( bytes : Int , nodes : Int , depth : Int , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "installed_standard_host_json_output_capacity",
@@ -48355,6 +48363,75 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The standard Native JSON export returns before the Host parses its original"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installed_host_json_retained_roles",
+            "installed_standard_host_capture_row_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Completed Host capture JSON owns its returned rows and semantic text"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Completed Host capture JSON owns its returned rows and semantic text"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Completed Host capture JSON owns its returned rows and semantic text"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Completed Host capture JSON owns its returned rows and semantic text"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Completed Host capture JSON owns its returned rows and semantic text"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Completed Host capture JSON owns its returned rows and semantic text"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Completed Host capture JSON owns its returned rows and semantic text"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Completed Host capture JSON owns its returned rows and semantic text"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Completed Host capture JSON owns its returned rows and semantic text"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Completed Host capture JSON owns its returned rows and semantic text"
               }
             ]
           }
@@ -59130,7 +59207,7 @@
     },
     {
       "module": "src/client_local_host/installed_standard_create_recipe.mbt",
-      "sha256": "5c2d8a2f147b4cd0473370315804f92be6ce7b916563b283b3c4c8370143f1cb",
+      "sha256": "d741d5f791a4a32b4c1d3e5f9f10c4c596b71ef3968b51704e5009293fd09b65",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "D \u2014 original Kintone native protocol constructors and same Request Effect composition",
@@ -59243,7 +59320,7 @@
     },
     {
       "module": "src/client_local_host/installed_source_reader_capacity.mbt",
-      "sha256": "d941831ee0aa000c4056cf3d1312fc18105e5abd8f8346c4eb914223bbe2ac3b",
+      "sha256": "5921c9f256fe5db1de2cab6b75f0c7153ee964eafcadf7a4090316d9fe54ed61",
       "operations": [
         {
           "name": "installed_gmail_thread_reader_capacity",
@@ -59255,7 +59332,7 @@
         },
         {
           "name": "installed_json_source_reader_capacity_with_decoder",
-          "declaration": "installed_json_source_reader_capacity_with_decoder ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , response_workspace : ( Int , Int , Int ) - > @ execution . PreparationRepresentationUnits ? , ) - > @ execution . ExecutionCapacity ?"
+          "declaration": "installed_json_source_reader_capacity_with_decoder ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , response_workspace : ( Int , Int , Int ) - > @ execution . PreparationRepresentationUnits ? , sequential_preserving ? : Bool"
         },
         {
           "name": "installed_json_source_reader_capacity_with_request",

@@ -327,32 +327,52 @@ fn installed_standard_recipe_capacities(
   }
   let empty = @execution.execution_capacity(0L, 0L).unwrap()
   let write_output = if entries.length() == 4 { 2 } else { 1 }
-  guard installed_json_effect_request_construction_capacity(
-      empty, row_input_bytes, row_input_nodes, row_input_depth,
+  guard installed_standard_host_capture_row_capacity(
+      row_input_bytes, row_input_nodes, row_input_depth,
     )
     is Some(capture_rows) &&
     @source.json_literal_construction_extent(
       input_bytes, input_nodes, input_depth,
     )
     is Some(tree) &&
-    standard_create_representation_capacity(
+    installed_host_json_retained_roles(
       {
         record_headers: tree.record_headers,
         reference_slots: tree.reference_slots,
         scalar_words: tree.scalar_words,
-        owned_utf16_units: tree.owned_utf16_units + metadata_units,
+        owned_utf16_units: tree.owned_utf16_units,
         owned_wire_bytes: 0L,
       },
+      input_bytes,
+      input_nodes,
+      keep_full_text=true,
+    )
+    is Some((host_retained, host_workspace)) &&
+    @execution.compose_preparation_representation([
+      host_retained,
       {
         record_headers: 0L,
         reference_slots: 0L,
         scalar_words: 0L,
-        // Recovery serializes binding, individual rows, joined rows and the
-        // final member wire. Their SAME original total-byte guard bounds each.
+        owned_utf16_units: metadata_units,
+        owned_wire_bytes: 0L,
+      },
+    ])
+    is Some(host_retained) &&
+    @execution.compose_preparation_representation([
+      host_workspace,
+      {
+        record_headers: 0L,
+        reference_slots: 0L,
+        scalar_words: 0L,
+        // Recovery serializes binding, individual rows, joined rows and final
+        // member wire. All old text/encoding peaks and metadata remain charged.
         owned_utf16_units: 4L * input_bytes.to_int64() + 2L * metadata_units,
         owned_wire_bytes: input_bytes.to_int64(),
       },
-    )
+    ])
+    is Some(host_workspace) &&
+    standard_create_representation_capacity(host_retained, host_workspace)
     is Some(capture_fixed) &&
     installed_effect_http_response_construction_capacity(
       response_bytes,

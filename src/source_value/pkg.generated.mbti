@@ -30,7 +30,7 @@ pub fn json_source_grammar_construction_extent(Int, Int, Int) -> JsonLiteralCons
 
 pub fn json_source_preflight_control_extent() -> JsonSourcePreflightControlExtent
 
-pub fn json_tree_retained_construction_extent(Int, Int, Int, Int, Int64) -> JsonLiteralConstructionExtent?
+pub fn json_tree_retained_construction_extent(Int, Int, Int, Int, Int64, keep_spans? : Bool) -> JsonLiteralConstructionExtent?
 
 pub fn parse_json(String, ParseLimits, source_path? : String) -> Result[Node, ParseError]
 

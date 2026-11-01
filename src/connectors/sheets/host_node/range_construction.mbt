@@ -57,6 +57,63 @@ fn sheets_range_json_inventory(
 }
 
 ///|
+// A completed native Json owns current Array/Map storage, not every retired
+// growth buffer. The existing richer Source-tree envelope also includes key
+// Strings, Spans, field/value records and container construction slack. Under
+// the pinned builtin Array/linked-Map rules it dominates the native returned
+// tree component by component (including Number repr/Some and key headers).
+// Use that SAME owned bound; this is not a native parser/engine heap estimate.
+fn sheets_range_json_retained_inventory(
+  bytes : Int,
+  nodes : Int,
+) -> @execution.PreparationRepresentationUnits? {
+  if bytes < 0 || nodes < 1 {
+    return None
+  }
+  guard @source.json_tree_retained_construction_extent(
+      nodes,
+      nodes - 1,
+      nodes,
+      0,
+      bytes.to_int64(),
+    )
+    is Some(tree) else {
+    return None
+  }
+  Some({
+    record_headers: tree.record_headers,
+    reference_slots: tree.reference_slots,
+    scalar_words: tree.scalar_words,
+    owned_utf16_units: tree.owned_utf16_units,
+    owned_wire_bytes: 0L,
+  })
+}
+
+///|
+// The pinned core/json parser uses the SAME builtin String builder and
+// retains numeric repr text. Keep the Source literal owner's complete text
+// envelope additionally to the original native tree constructor. Its other
+// allocated context/token controls fit that constructor's all-node envelope;
+// recursive engine stack is the existing backend baseline, not a new grant.
+fn sheets_range_native_parse_text(
+  bytes : Int,
+  nodes : Int,
+  depth : Int,
+) -> @execution.PreparationRepresentationUnits? {
+  guard @source.json_literal_construction_extent(bytes, nodes, depth)
+    is Some(literal) else {
+    return None
+  }
+  Some({
+    record_headers: 0L,
+    reference_slots: 0L,
+    scalar_words: 0L,
+    owned_utf16_units: literal.owned_utf16_units,
+    owned_wire_bytes: 0L,
+  })
+}
+
+///|
 // The Source keeps this original binding beyond every individual Run. Back
 // the reference, configuration String/bytes, native parse/canonical copies,
 // checked Column vector and the actual retained binding before construction.
@@ -541,19 +598,18 @@ fn sheets_range_capture_phase_capacity(
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
+  let mut peak_bytes = 0L
   for phase in phases {
-    peak = {
-      record_headers: Int64::max(peak.record_headers, phase.record_headers),
-      reference_slots: Int64::max(peak.reference_slots, phase.reference_slots),
-      scalar_words: Int64::max(peak.scalar_words, phase.scalar_words),
-      owned_utf16_units: Int64::max(
-        peak.owned_utf16_units,
-        phase.owned_utf16_units,
-      ),
-      owned_wire_bytes: Int64::max(
-        peak.owned_wire_bytes,
-        phase.owned_wire_bytes,
-      ),
+    // These are complete sequential phases under the SAME original owner.
+    // Compare their full shared-tariff costs, preserving every phase's input,
+    // output, builder and refusal inventory. Component-wise maxima would
+    // combine unrelated lifetimes into a fictitious simultaneous phase.
+    guard @execution.preparation_representation_cost(phase) is Some(bytes) else {
+      return None
+    }
+    if bytes > peak_bytes {
+      peak = phase
+      peak_bytes = bytes
     }
   }
   @execution.preparation_execution_capacity({
@@ -843,7 +899,9 @@ fn sheets_range_capture_profile(
     owned_wire_bytes: 0L,
   }
   guard sheets_range_parsed_construction(b, n, recovery_depth) is Some(input) &&
-    sheets_range_json_inventory(b, n) is Some(native) &&
+    sheets_range_json_inventory(b, n) is Some(native_build) &&
+    sheets_range_json_retained_inventory(b, n) is Some(native) &&
+    sheets_range_native_parse_text(b, n, recovery_depth) is Some(native_text) &&
     (if clear {
       sheets_range_parsed_construction(entry_bytes, entry_nodes, recovery_depth)
     } else {
@@ -855,7 +913,19 @@ fn sheets_range_capture_profile(
     } else {
       Some(zero)
     })
+    is Some(entry_build) &&
+    (if clear {
+      sheets_range_json_retained_inventory(entry_bytes, entry_nodes)
+    } else {
+      Some(zero)
+    })
     is Some(entry) &&
+    (if clear {
+      sheets_range_native_parse_text(entry_bytes, entry_nodes, recovery_depth)
+    } else {
+      Some(zero)
+    })
+    is Some(entry_text) &&
     sheets_writer_units(recovery_bytes, metadata_nodes + 4, recovery_depth)
     is Some(writer) &&
     sheets_range_normalization_construction(cold_normalization_bytes)
@@ -920,14 +990,24 @@ fn sheets_range_capture_profile(
   // range compares its entire wire directly without another supplied tree.
   let normalized = { ..metadata_native, owned_utf16_units: 0L, }
   let metadata_normalized = { ..metadata_native, owned_utf16_units: 0L, }
-  guard @execution.compose_preparation_representation([
-      inputs, input, native, native,
-    ])
+  // The first range_parse has returned before the second starts. The
+  // completed first native tree survives; the second Source check and native
+  // constructor are sequential. Both input Strings/encodings and every
+  // complete failed-prefix constructor keep their original bounds.
+  guard @execution.compose_preparation_representation([inputs, input, native])
     is Some(parse_peak) &&
     @execution.compose_preparation_representation([
-      inputs, native, native, entry_input, entry,
+      inputs, native, native_build, native_text,
+    ])
+    is Some(native_parse_peak) &&
+    @execution.compose_preparation_representation([
+      inputs, native, native, entry_input,
     ])
     is Some(entry_peak) &&
+    @execution.compose_preparation_representation([
+      inputs, native, native, entry_build, entry_text,
+    ])
+    is Some(entry_native_peak) &&
     @execution.compose_preparation_representation([
       inputs, native, native, entry, metadata_native, normalized, normalization,
     ])
@@ -966,8 +1046,9 @@ fn sheets_range_capture_profile(
     ])
     is Some(metadata_canonical_peak) &&
     sheets_range_capture_phase_capacity(retained, [
-      parse_peak, entry_peak, normalize_peak, canonical_peak, expected_peak, metadata_parse_peak,
-      metadata_normalize_peak, metadata_canonical_peak,
+      parse_peak, native_parse_peak, entry_peak, entry_native_peak, normalize_peak,
+      canonical_peak, expected_peak, metadata_parse_peak, metadata_normalize_peak,
+      metadata_canonical_peak,
     ])
     is Some(fixed) &&
     sheets_range_request_capacity(

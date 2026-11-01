@@ -112,6 +112,7 @@ fn installed_json_source_reader_capacity_with_decoder(
   columns : Int,
   secret_bytes : Int,
   response_workspace : (Int, Int, Int) -> @execution.PreparationRepresentationUnits?,
+  sequential_preserving? : Bool = false,
 ) -> @execution.ExecutionCapacity? {
   // Same field order as the installed JSON reader's immutable limits view.
   // response/total/nodes/depth/rows/totalRows/pages/pageSize/cursor/identity/
@@ -202,8 +203,18 @@ fn installed_json_source_reader_capacity_with_decoder(
   // coexist with the Source/indexed workspace below. JSON-node pricing comes
   // from B's shared
   // fold, not another provider-specific byte tariff.
+  // The fixed preserving Sheets codecs parse the response with Source and
+  // return only projected rows/scalars. They never JSON.parse the raw body in
+  // Host JS. Its complete Source tree is already owned by response_workspace;
+  // do not price that SAME raw tree again as generic Host value-node slots.
+  // Returned row/value nodes, Strings, output wire and failure peaks stay.
+  let response_value_nodes = if sequential_preserving {
+    0L
+  } else {
+    limits[2].to_int64()
+  }
   guard @execution.checked_preparation_add_product(
-      limits[2].to_int64(),
+      response_value_nodes,
       limits[14].to_int64(),
       1L,
     )
@@ -246,9 +257,61 @@ fn installed_json_source_reader_capacity_with_decoder(
     owned_wire_bytes: response + limits[13].to_int64(),
   }
   guard response_workspace(limits[0], limits[2], limits[3])
-    is Some(response_workspace) &&
-    @execution.compose_preparation_representation([
-      workspace, response_workspace,
+    is Some(response_parse) else {
+    return None
+  }
+  if sequential_preserving {
+    // The fixed Sheets bridge returns only Json rows/scalars (or a scalar
+    // refusal) from project_grid/check_target. Its raw Source Cursor/index
+    // cannot escape into the later stringify/Host JSON.parse/acceptPage call.
+    // Keep all received bodies and the returned row/value envelope. Only the
+    // two complete parser peaks are sequential; neither is omitted, including
+    // a failed response or a failed output-page admission.
+    let response_buffers = {
+      ..workspace,
+      owned_utf16_units: response +
+      limits[10].to_int64() +
+      limits[12].to_int64(),
+      owned_wire_bytes: response,
+    }
+    guard response_workspace(limits[13], limits[14], limits[15])
+      is Some(row_parse) &&
+      @execution.compose_preparation_representation([
+        response_buffers, response_parse,
+      ])
+      is Some(response_peak) &&
+      @execution.compose_preparation_representation([workspace, row_parse])
+      is Some(row_peak) &&
+      @execution.preparation_execution_capacity({
+        retained,
+        workspace: response_peak,
+        retained_nodes: 0L,
+        workspace_nodes: nodes,
+        retained_bytes: 0L,
+        workspace_bytes: 0L,
+      })
+      is Some(response_capacity) &&
+      @execution.preparation_execution_capacity({
+        retained,
+        workspace: row_peak,
+        retained_nodes: 0L,
+        workspace_nodes: nodes,
+        retained_bytes: 0L,
+        workspace_bytes: 0L,
+      })
+      is Some(row_capacity) else {
+      return None
+    }
+    return @execution.execution_capacity(
+      @execution.execution_capacity_retained_bytes(response_capacity),
+      Int64::max(
+        @execution.execution_capacity_execution_bytes(response_capacity),
+        @execution.execution_capacity_execution_bytes(row_capacity),
+      ),
+    )
+  }
+  guard @execution.compose_preparation_representation([
+      workspace, response_parse,
     ])
     is Some(workspace) else {
     return None
@@ -475,7 +538,11 @@ pub fn installed_preserving_json_source_reader_capacity_with_request(
 ) -> @execution.ExecutionCapacity? {
   guard request is Some(request) &&
     installed_json_source_reader_capacity_with_decoder(
-      limits, columns, secret_bytes, installed_source_response_preserving_workspace,
+      limits,
+      columns,
+      secret_bytes,
+      installed_source_response_preserving_workspace,
+      sequential_preserving=true,
     )
     is Some(reader) else {
     return None
