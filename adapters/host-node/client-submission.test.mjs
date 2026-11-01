@@ -7,6 +7,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
 import {DatabaseSync} from 'node:sqlite';
+import {connectInProcess} from '../../packages/sdk/host-port.mjs';
 const moon = await import(process.env.ACTQL_TEST_COMMON_RUNTIME ?? new URL(
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url));
 import {openClientRequestJournal} from './client-request-journal.mjs';
@@ -96,6 +97,175 @@ function admitOriginal(f, value) {
     submission: value.submission}, moon, control);
   return {ref: accepted.ref, durability: accepted.durability, revision: accepted.revision};
 }
+
+async function lookupClient(t, f, observe = value => f.service.lookupSubmission(value), ingress = {}) {
+  const profile = {version: 'actql-client-host/0.1', mode: 'local', owner: 'local',
+    durability: 'durable', scopeRef: 'submission-test', capabilities: [],
+    submissionEpoch: f.ref.epoch, limits: {maxReadWireBytes: 4096,
+      maxRowWireBytes: 1024, maxRowRetainedValueBytes: 1024,
+      maxRetainedValueBytes: 4096, maxRows: 10, maxBatchRows: 10,
+      maxBatchRetainedValueBytes: 2048}};
+  const client = await connectInProcess({mode: 'local', owner: 'local'},
+    createNodeInProcessClientHost({authenticate: () => principalId,
+      authorizeConnection: () => true, negotiate: () => profile,
+      lookupSubmission: observe, maxRowBytes: 65536, ...ingress}));
+  t.after(() => client.close());
+  return client;
+}
+
+async function acceptedLookupFixture(t) {
+  let f;
+  f = await fixture(t, {submit: value => admitOriginal(f, value), lookup(value) {
+    const saved = f.journal.lookup({...fields, requestId: value.requestId}, moon);
+    return saved === undefined ? {kind: 'not_found'} : {kind: 'found', ref: saved.ref};
+  }});
+  const original = await f.service.submitIntent(f.body());
+  assert.equal(original.kind, 'ready');
+  return {f, original};
+}
+
+test('public submission lookup keeps live signals outside the canonical request and original identity', async t => {
+  const {f, original} = await acceptedLookupFixture(t);
+  const snapshots = [];
+  const client = await lookupClient(t, f, value => {
+    assert.equal(Object.hasOwn(value, 'signal'), false);
+    assert.ok(Object.isFrozen(value));
+    snapshots.push(value);
+    return f.service.lookupSubmission(value);
+  });
+  for (const kind of ['omitted-before', 'plain', 'timeout', 'omitted-after']) {
+    const signal = kind === 'plain' ? new AbortController().signal :
+      kind === 'timeout' ? AbortSignal.timeout(15000) : undefined;
+    const started = performance.now();
+    const found = await client.lookupSubmission(f.ref, signal === undefined ? undefined : {signal});
+    t.diagnostic(JSON.stringify({kind, durationMs: performance.now() - started}));
+    assert.equal(signal?.aborted ?? false, false);
+    assert.deepEqual(found, original);
+    assert.deepEqual(found.admission.ref, original.admission.ref);
+  }
+  assert.equal(snapshots.length, 4);
+  assert.deepEqual(f.counts, {prepare: 1, submit: 1}, 'lookup never resubmits the original');
+  // No arbitrary non-data property is silently stripped by the durable owner.
+  await assert.rejects(f.service.lookupSubmission({principalId, connection,
+    submissionRef: f.ref, extra: new AbortController().signal}), /InvalidCanonicalValue/);
+  assert.deepEqual(await client.lookupSubmission(f.ref), original);
+});
+
+test('public submission lookup rejects pre-abort without entering its handler', async t => {
+  const {f, original} = await acceptedLookupFixture(t);
+  let calls = 0;
+  const client = await lookupClient(t, f, value => {calls++; return f.service.lookupSubmission(value);});
+  const started = performance.now();
+  await assert.rejects(client.lookupSubmission(f.ref, {signal: AbortSignal.abort()}),
+    {code: 'ClientHostFailure'});
+  t.diagnostic(JSON.stringify({kind: 'already-aborted', durationMs: performance.now() - started}));
+  assert.equal(calls, 0);
+  assert.deepEqual(await client.lookupSubmission(f.ref), original);
+  assert.deepEqual(f.counts, {prepare: 1, submit: 1});
+});
+
+test('public submission lookup observes later abort after handler settlement without cancelling the original', async t => {
+  const {f, original} = await acceptedLookupFixture(t);
+  let enter, release, settled = false, returned = false;
+  const entered = new Promise(resolve => {enter = resolve;});
+  const gate = new Promise(resolve => {release = resolve;});
+  const client = await lookupClient(t, f, async value => {
+    enter();
+    await gate;
+    const found = await f.service.lookupSubmission(value);
+    assert.deepEqual(found, original);
+    settled = true;
+    return found;
+  });
+  const controller = new AbortController();
+  const reference = structuredClone(f.ref);
+  const started = performance.now();
+  const pending = client.lookupSubmission(reference, {signal: controller.signal});
+  const rejected = assert.rejects(pending, error => {
+    assert.equal(settled, true, 'the original handler retains custody until it settles');
+    returned = true;
+    return error.code === 'ClientHostFailure';
+  });
+  try {
+    await entered;
+    reference.nonce = 'caller-mutation-after-intake';
+    controller.abort();
+    await Promise.resolve();
+    assert.equal(returned, false, 'this is not an interruptible service or early custody release');
+  } finally {release();}
+  await rejected;
+  t.diagnostic(JSON.stringify({kind: 'later-aborted-after-settlement', durationMs: performance.now() - started}));
+  assert.deepEqual(await client.lookupSubmission(f.ref), original);
+  assert.deepEqual(f.counts, {prepare: 1, submit: 1});
+});
+
+for (const stage of ['authenticate', 'authorizeConnection']) {
+  test(`public submission lookup abort during awaited ${stage} never enters the handler`,
+    {timeout: 5000}, async t => {
+      const {f, original} = await acceptedLookupFixture(t);
+      let enter, release, paused = false, calls = 0;
+      const entered = new Promise(resolve => {enter = resolve;});
+      const gate = new Promise(resolve => {release = resolve;});
+      const client = await lookupClient(t, f, value => {
+        calls++;
+        return f.service.lookupSubmission(value);
+      }, {[stage]: async () => {
+        if (paused) {enter(); await gate;}
+        return stage === 'authenticate' ? principalId : true;
+      }});
+      paused = true;
+      const controller = new AbortController();
+      const started = performance.now();
+      // Ordinary abort reasons keep the existing sanitized error taxonomy;
+      // this does not introduce a cancellation wire code or interrupt the gate.
+      const rejected = assert.rejects(client.lookupSubmission(f.ref,
+        {signal: controller.signal}), {code: 'ClientHostFailure'});
+      try {await entered; controller.abort();}
+      finally {release();}
+      await rejected;
+      t.diagnostic(JSON.stringify({kind: `abort-during-${stage}`, durationMs: performance.now() - started}));
+      assert.equal(calls, 0);
+      paused = false;
+      assert.deepEqual(await client.lookupSubmission(f.ref), original);
+      assert.deepEqual(f.counts, {prepare: 1, submit: 1});
+    });
+}
+
+test('public submission lookup preserves sanitized handler rejection when its signal also aborts',
+  {timeout: 5000}, async t => {
+    const {f, original} = await acceptedLookupFixture(t);
+    let enter, release, rejectHandler = true, calls = 0;
+    const entered = new Promise(resolve => {enter = resolve;});
+    const gate = new Promise(resolve => {release = resolve;});
+    const privateFailure = Object.assign(new Error('private lookup details'),
+      {code: 'ClientRequestLookupDenied', cause: new Error('private cause'), stack: 'private handler stack'});
+    const client = await lookupClient(t, f, async value => {
+      calls++;
+      if (!rejectHandler) return f.service.lookupSubmission(value);
+      enter();
+      await gate;
+      throw privateFailure;
+    });
+    const controller = new AbortController();
+    const started = performance.now();
+    const rejected = assert.rejects(client.lookupSubmission(f.ref, {signal: controller.signal}), error => {
+      assert.notStrictEqual(error, privateFailure);
+      assert.equal(error.code, 'ClientRequestLookupDenied');
+      assert.equal(error.status, 403);
+      assert.equal(error.cause, undefined);
+      assert.doesNotMatch(error.stack ?? '', /private handler stack/);
+      assert.doesNotMatch(error.message, /private/);
+      return true;
+    });
+    try {await entered; controller.abort();}
+    finally {release();}
+    await rejected;
+    t.diagnostic(JSON.stringify({kind: 'handler-rejection-and-abort', durationMs: performance.now() - started}));
+    assert.equal(calls, 1);
+    rejectHandler = false;
+    assert.deepEqual(await client.lookupSubmission(f.ref), original);
+    assert.deepEqual(f.counts, {prepare: 1, submit: 1});
+  });
 
 test('named submission observes the same original Run after reopening without replaying preparation', async t => {
   let f;
