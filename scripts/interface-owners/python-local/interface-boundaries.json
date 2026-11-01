@@ -72031,11 +72031,6 @@
         },
         {
           "async": false,
-          "name": "OriginalSavedResultRead/_prepare/project_record",
-          "parameters": []
-        },
-        {
-          "async": false,
           "name": "OriginalSavedResultRead/_prepare/take_capacity",
           "parameters": [
             "capacity"
@@ -72085,7 +72080,7 @@
           ]
         }
       ],
-      "sha256": "46ac1feaa20c9e000cba33d0bce2236922d66a1ebace4f4ef9a09cbd5fd6518d",
+      "sha256": "3192b86a0d199dc94b8e10359d307427852b730b991ef331f89d64b1728bfbcc",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing Python Local Host, Core read, File and Store Owners",
@@ -72103,7 +72098,6 @@
             "OriginalSavedResultRead/_prepare/open_area",
             "OriginalSavedResultRead/_prepare/open_reader",
             "OriginalSavedResultRead/_prepare/project_names",
-            "OriginalSavedResultRead/_prepare/project_record",
             "OriginalSavedResultRead/_prepare/take_capacity",
             "OriginalSavedResultRead/_prepare/take_row",
             "OriginalSavedResultRead/close",
@@ -72150,10 +72144,6 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_saved_read.py",
                 "anchor": "class OriginalSavedResultRead:"
-              },
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "The synchronous saved-record producer and its immediately following validated"
               }
             ],
             "inputsOutputs": [
@@ -72164,10 +72154,6 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_saved_read.py",
                 "anchor": "class OriginalSavedResultRead:"
-              },
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "The synchronous saved-record producer and its immediately following validated"
               }
             ],
             "identity": [
@@ -72178,10 +72164,6 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_saved_read.py",
                 "anchor": "class OriginalSavedResultRead:"
-              },
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "The synchronous saved-record producer and its immediately following validated"
               }
             ],
             "ownership": [
@@ -72192,10 +72174,6 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_saved_read.py",
                 "anchor": "class OriginalSavedResultRead:"
-              },
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "The synchronous saved-record producer and its immediately following validated"
               }
             ],
             "synchronization": [
@@ -72206,10 +72184,6 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_saved_read.py",
                 "anchor": "class OriginalSavedResultRead:"
-              },
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "The synchronous saved-record producer and its immediately following validated"
               }
             ],
             "failure": [
@@ -72220,10 +72194,6 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_saved_read.py",
                 "anchor": "class OriginalSavedResultRead:"
-              },
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "The synchronous saved-record producer and its immediately following validated"
               }
             ],
             "cancellation": [
@@ -72234,10 +72204,6 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_saved_read.py",
                 "anchor": "class OriginalSavedResultRead:"
-              },
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "The synchronous saved-record producer and its immediately following validated"
               }
             ],
             "resources": [
@@ -72248,10 +72214,6 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_saved_read.py",
                 "anchor": "class OriginalSavedResultRead:"
-              },
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "The synchronous saved-record producer and its immediately following validated"
               }
             ],
             "extension": [
@@ -72262,10 +72224,6 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_saved_read.py",
                 "anchor": "class OriginalSavedResultRead:"
-              },
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "The synchronous saved-record producer and its immediately following validated"
               }
             ],
             "verification": [
@@ -72284,22 +72242,6 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
-              },
-              {
-                "path": "packages/python-sdk/tests/test_local_saved_read_ports.py",
-                "anchor": "def test_saved_record_produce_and_validated_copy_share_one_original_current_frame("
-              },
-              {
-                "path": "packages/python-sdk/tests/test_local_saved_read_ports.py",
-                "anchor": "def test_saved_record_frame_current_refusal_keeps_same_acquired_originals("
-              },
-              {
-                "path": "packages/python-sdk/tests/test_local_saved_read_ports.py",
-                "anchor": "def test_saved_record_producer_failure_cannot_copy_or_repeat_and_keeps_custody("
-              },
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "The synchronous saved-record producer and its immediately following validated"
               }
             ]
           }

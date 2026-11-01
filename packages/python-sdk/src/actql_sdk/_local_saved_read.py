@@ -159,10 +159,8 @@ class OriginalSavedResultRead:
         record = host._reserve(lambda: core.reserve_saved_payload_record(source,
             cleanup=lambda: True))
         self._record = record
-        def project_record() -> bytes:
-            core.produce_payload_record(record, configuration.handle)
-            return core.read_payload_record(record, configuration.handle)
-        raw = self._current(project_record)
+        self._current(lambda: core.produce_payload_record(record, configuration.handle))
+        raw = self._current(lambda: core.read_payload_record(record, configuration.handle))
         saved = _object(raw, 65536)
         expected = PhysicalFileSnapshot(PhysicalFileObservation(PhysicalFileIdentity(
             _original_decimal(saved['device'], 2**64 - 1),
