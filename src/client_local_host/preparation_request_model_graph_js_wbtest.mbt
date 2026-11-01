@@ -330,15 +330,24 @@ priv struct RequestSerializedModelFixture {
   compiled : @publication_host.ClientCompiledRun
   definition : @publication.PublicationContract
   request : @publication_host.ClientRequestIdentity
+  declaration : @row_source_host.RowDeclaration?
 }
 
 ///|
 fn request_serialized_model_fixture(
   current? : () -> Bool = () => true,
+  single_capture? : Bool = false,
 ) -> RequestSerializedModelFixture raise {
+  let declaration = if single_capture {
+    Some(request_model_module_declaration())
+  } else {
+    None
+  }
   let (parent, input, prepared) = request_model_input_fixture(
     with_serialization=true,
+    single_capture~,
     current~,
+    declaration~,
   )
   let holder = borrow_request_model_plan_input(parent, input).unwrap()
   @resources.configure_quantities(parent.ledger, {
@@ -349,20 +358,35 @@ fn request_serialized_model_fixture(
   let contracts = request_program_module_contracts()
   let manifests = request_program_module_manifests()
   let compilation_limits = @publication_host.client_standard_pure_compilation_limits()
-  let component = prepare_request_serialization_graph(
-    parent,
-    input,
-    0,
-    2,
-    request_graph_policy_cid,
-    request_graph_policy_wire,
-    1,
-    128,
-    false,
-    contracts,
-    manifests~,
-    compilation_limits~,
-  ).unwrap()
+  let component = if single_capture {
+    prepare_request_acquired_serialization_graph(
+      parent,
+      input,
+      1,
+      2,
+      1,
+      128,
+      false,
+      contracts,
+      manifests~,
+      compilation_limits~,
+    ).unwrap()
+  } else {
+    prepare_request_serialization_graph(
+      parent,
+      input,
+      0,
+      2,
+      request_graph_policy_cid,
+      request_graph_policy_wire,
+      1,
+      128,
+      false,
+      contracts,
+      manifests~,
+      compilation_limits~,
+    ).unwrap()
+  }
   let (occurrence, execution) = request_model_graph_inputs(prepared)
   let graph = prepare_request_model_graph(
     parent,
@@ -409,7 +433,106 @@ fn request_serialized_model_fixture(
     compiled,
     definition,
     request,
+    declaration,
   }
+}
+
+///|
+test "one acquired serialized Model retains its original Query module and prefix before same Request Scope" {
+  let f = request_serialized_model_fixture(single_capture=true)
+  assert_eq(@publication_host.prepared_client_acquisition_count(f.prepared), 1)
+  assert_eq(
+    @strategy.graph_captured_prefix(
+      @publication_host.prepared_client_graph(f.prepared),
+    ),
+    1,
+  )
+  let (_, execution, measurement) = client_local_execution_limits(max_rows=1)
+  let prefix = prepare_request_model_serialization_plan(
+    f.parent,
+    f.input,
+    f.request,
+    f.compiled,
+    f.definition,
+    execution,
+    measurement,
+    None,
+    None,
+  ).unwrap()
+  let calls = Ref(0)
+  let original = prepare_request_model_capture_module(
+    f.parent,
+    f.input,
+    f.request,
+    f.compiled,
+    f.definition,
+    f.compilation,
+    [f.declaration.unwrap()],
+    original_row_query_contract_fixture,
+    original_row_evidence_contract_fixture,
+    [4096L],
+    [2048L],
+    f.contracts,
+    true,
+    0,
+    _ => {
+      calls.val += 1
+      []
+    },
+  ).unwrap()
+  assert_eq(calls.val, 1)
+  assert_eq(original.captures.length(), 1)
+  let capture = original.captures[0]
+  let acquisition = capture.acquisition.unwrap()
+  assert_true(
+    physical_equal(
+      capture.requirement,
+      @row_source_host.row_acquisition_requirement(acquisition),
+    ),
+  )
+  assert_true(
+    @publication_host.client_query_requirement_matches_program(
+      f.prepared,
+      0,
+      0,
+      capture.requirement,
+    ),
+  )
+  let plan = prepare_installed_mock_model_capture_plan_binding(
+    original,
+    f.compiled,
+    f.definition,
+    f.occurrence,
+    f.graph,
+    effect_model_plan_limits,
+    500L,
+    700L,
+    20,
+    20,
+    20,
+    content_prefix=Some(prefix),
+  ).unwrap()
+  let scope = prepare_request_model_read_scope(f.parent, f.input, plan).unwrap()
+  complete_request_model_preparation(f.parent, f.input, plan).unwrap()
+  assert_false(@resources.return_preparation_body_borrow(f.holder).unwrap())
+  let run = begin_request_model_managed_run(f.parent, f.request, scope).unwrap()
+  assert_true(
+    run.captured_preparation is Some(same) && physical_equal(same, original),
+  )
+  assert_true(
+    @publication_host.finish_client_model_read_scope(
+      scope,
+      f.compiled,
+      f.definition,
+      f.graph,
+      true,
+    ).unwrap(),
+  )
+  assert_true(
+    cleanup_installed_managed_serialization_prefix(run, prefix).unwrap(),
+  )
+  retire_installed_managed_run(run).unwrap()
+  assert_eq(@resources.ledger_usage(f.parent.ledger).live_reservations, 0)
 }
 
 ///|

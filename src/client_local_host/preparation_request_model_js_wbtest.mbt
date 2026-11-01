@@ -4,6 +4,7 @@
 // recipe, Source/Model IO or a public acceptance/performance claim.
 fn request_model_input_fixture(
   captured? : Bool = false,
+  single_capture? : Bool = false,
   with_query_time? : Bool = false,
   with_serialization? : Bool = false,
   current? : () -> Bool = () => true,
@@ -14,7 +15,12 @@ fn request_model_input_fixture(
   @publication_host.PreparedClientProgram,
 ) raise {
   let (environment, _) = effect_model_plan_source(declaration~)
-  let document = if captured {
+  let document = if single_capture {
+    assert_false(captured)
+    (
+      #|{"version":"actql/0.1","id":"request-model-one-capture","stages":[{"id":"source","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id >= 0"},{"select":["id","amount"],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id","amount"]}}},{"id":"classify","inputs":{"rows":{"result":{"stage":"source","result":"rows"}}},"steps":[{"from":"rows","derive":{"text":{"literal":"hello"}}},{"assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"classified"}],"results":{"rows":{"from":"classified","fields":["id","outcome","value"]}}}],"results":{"rows":{"from":{"stage":"classify","result":"rows"}}}}
+    )
+  } else if captured {
     (
       #|{"version":"actql/0.1","id":"request-model-captures","stages":[{"id":"left","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id >= 0"},{"select":["id","amount"],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id","amount"]}}},{"id":"right","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id >= 0"},{"select":["id","amount"],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id","amount"]}}},{"id":"classify","inputs":{"left":{"result":{"stage":"left","result":"rows"}},"right":{"result":{"stage":"right","result":"rows"}}},"steps":[{"from":"left","join":{"with":"right","kind":"inner","on":[{"left":"id","right":"id"}],"select":{"id":"left.id"}}},{"derive":{"text":{"literal":"hello"}}},{"assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"classified"}],"results":{"rows":{"from":"classified","fields":["id","outcome","value"]}}}],"results":{"rows":{"from":{"stage":"classify","result":"rows"}}}}
     )
