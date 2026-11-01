@@ -514,14 +514,11 @@ class LocalCore:
                                        ('native_cleaned', self._native_cleaned),
                                        ('publisher_current', self._publisher_current),
                                        ('publisher_begin', self._publisher_begin),
-                                       ('publisher_byte', self._publisher_byte),
                                        ('publisher_finish', self._publisher_finish),
                                        ('journal_current', self._journal_current),
                                        ('journal_begin', self._journal_begin),
-                                       ('journal_query_byte', self._journal_query_byte),
                                        ('journal_query', self._journal_query),
                                        ('journal_length', self._journal_length),
-                                       ('journal_byte', self._journal_byte),
                                        ('journal_revision', self._journal_revision),
                                        ('journal_release', self._journal_release)]:
                     params = [wasmtime.ValType.i32()
@@ -529,6 +526,15 @@ class LocalCore:
                     self._linker.define_func('actql_host', name,
                         wasmtime.FuncType(params, [wasmtime.ValType.i64() if
                             _IMPORT_SIGNATURES[name][1] == 'i64' else wasmtime.ValType.i32()]), callback)
+                for name, callback in [('input_copy', self._input_copy),
+                                       ('publisher_copy', self._publisher_copy),
+                                       ('journal_query_copy', self._journal_query_copy),
+                                       ('journal_copy', self._journal_copy)]:
+                    params = [wasmtime.ValType.i32()
+                              for _ in _IMPORT_SIGNATURES[name][0].split()]
+                    self._linker.define_func('actql_host', name,
+                        wasmtime.FuncType(params, [wasmtime.ValType.i32()]),
+                        callback, access_caller=True)
                 for name in ('execution_child_admit', 'execution_child_current',
                              'execution_child_limit', 'execution_child_capacity',
                              'execution_child_report', 'execution_child_stop'):
@@ -746,6 +752,128 @@ class LocalCore:
             return 0 if observers[fact]() is True else 1
         except BaseException:
             return 1
+
+    def _bulk_memory_current(self, memory: Any) -> None:
+        # This is the same entered instance's fixed linear memory. No address
+        # or view escapes the synchronous copy or replaces its original loan.
+        if (self._closing or self._closed or self._retired
+                or self._exports.get('memory') is not memory):
+            raise ValueError('Foreign or retired original Local transfer memory')
+        observation = getattr(self, '_physical_vm_observation', None)
+        if observation is not None:
+            observation._require_core_current()
+
+    def _bulk_memory(self, caller: Any, offset: int, length: int) -> Any:
+        memory = self._exports.get('memory')
+        self._bulk_memory_current(memory)
+        actual = caller.get('memory')
+        if (memory is None or actual is None
+                or type(offset) is not int or offset < 0
+                or type(length) is not int or not 0 < length <= 16384
+                or cast(actual.data_ptr(caller), c_void_p).value !=
+                   cast(memory.data_ptr(self._store), c_void_p).value):
+            raise ValueError('Foreign or invalid original Local transfer memory')
+        size = actual.data_len(caller)
+        if size > _MEMORY_LIMIT or offset > size or length > size - offset:
+            raise ValueError('Original Local transfer exceeds its memory')
+        return memory
+
+    def _input_copy(self, caller: Any, ticket: int, start: int,
+                    offset: int, length: int) -> int:
+        physical = self._inputs.get(ticket)
+        if physical is None:
+            return -5
+        try:
+            original = physical.payload
+            memory = self._bulk_memory(caller, offset, length)
+            if (type(start) is not int or start < 0 or start > len(original)
+                    or length > len(original) - start):
+                return -5
+            copied = memory.write(caller, original[start:start + length], offset)
+            self._bulk_memory_current(memory)
+            if (self._inputs.get(ticket) is not physical or physical.payload is not original
+                    or copied != length):
+                return -5
+            return length
+        except BaseException:
+            return -5
+
+    def _read_output_block(self, value: _Output, start: int, length: int) -> bytes:
+        with self._native_scope():
+            self._owned_output(value, value.family)
+            physical = self._inputs.get(value.ticket)
+            memory = self._exports.get('memory')
+            self._bulk_memory_current(memory)
+            if (physical is None or type(start) is not int or start < 0
+                    or type(length) is not int or not 0 < length <= 16384):
+                raise ValueError('Invalid original Local output block')
+            offset = self._call('buffer', 'read_block', value.handle, start, length)
+            size = memory.data_len(self._store)
+            if (size > _MEMORY_LIMIT or offset < 0 or offset > size
+                    or length > size - offset):
+                raise LocalCoreError('projection_block', offset)
+            raw = bytes(memory.read(self._store, offset, offset + length))
+            self._bulk_memory_current(memory)
+            self._owned_output(value, value.family)
+            if self._inputs.get(value.ticket) is not physical or len(raw) != length:
+                raise LocalCoreError('projection_block', -5)
+            return raw
+
+    def _journal_query_copy(self, caller: Any, ticket: int, index: int,
+                            offset: int, length: int) -> int:
+        callbacks = self._journal_callbacks(ticket)
+        if callbacks is None:
+            return -41
+        try:
+            memory = self._bulk_memory(caller, offset, length)
+            raw = bytes(memory.read(caller, offset, offset + length))
+            self._bulk_memory_current(memory)
+            if self._journal_callbacks(ticket) is not callbacks or len(raw) != length:
+                raise ValueError('Original Local query transfer changed')
+            return callbacks.query_copy(index, raw)
+        except BaseException as error:
+            return callbacks._fail(error)
+
+    def _journal_copy(self, caller: Any, ticket: int, field: int, index: int,
+                      offset: int, length: int) -> int:
+        callbacks = self._journal_callbacks(ticket)
+        if callbacks is None:
+            return -41
+        try:
+            memory = self._bulk_memory(caller, offset, length)
+            original = callbacks.row
+            raw = callbacks.row_copy(field, index, length)
+            copied = memory.write(caller, raw, offset)
+            self._bulk_memory_current(memory)
+            if (self._journal_callbacks(ticket) is not callbacks or callbacks.row is not original
+                    or len(raw) != length or copied != length):
+                raise ValueError('Original Local row transfer changed')
+            return length
+        except BaseException as error:
+            return callbacks._fail(error)
+
+    def _publisher_copy(self, caller: Any, ticket: int, index: int,
+                        offset: int, length: int) -> int:
+        callbacks = self._publisher_callbacks(ticket)
+        if callbacks is None or callbacks.buffer is None:
+            return -2
+        try:
+            original = callbacks.buffer
+            memory = self._bulk_memory(caller, offset, length)
+            if (type(index) is not int or index != callbacks.received or index < 0
+                    or index > len(original) or length > len(original) - index):
+                return -2
+            raw = bytes(memory.read(caller, offset, offset + length))
+            self._bulk_memory_current(memory)
+            if (self._publisher_callbacks(ticket) is not callbacks
+                    or callbacks.buffer is not original or callbacks.received != index
+                    or len(raw) != length):
+                return -2
+            original[index:index + length] = raw
+            callbacks.received += length
+            return length
+        except BaseException:
+            return -2
 
     def _journal_callbacks(self, ticket: int) -> _JournalCallbacks | None:
         value = self._inputs.get(ticket)
@@ -3668,17 +3796,21 @@ class LocalCore:
             if not 0 <= length <= value.limit:
                 raise LocalCoreError(operation, length)
             destination = bytearray(length)
-            for start in range(0, length, 7):
-                count = min(7, length - start)
-                packed = self._call('buffer', 'read_packed', value.handle, start, count)
-                if not 0 <= packed < 1 << (8 * count):
-                    raise LocalCoreError('projection_bytes', packed)
-                # The same destination/copy reservation stays live throughout.
-                # No raw pointer/view, unbounded temporary buffer or fallback
-                # to another module/owner is introduced by scalar transport.
-                for offset in range(count):
-                    destination[start + offset] = packed & 255
-                    packed >>= 8
+            if getattr(self, '_ordinary_host', False):
+                for start in range(0, length, 16384):
+                    count = min(16384, length - start)
+                    destination[start:start + count] = self._read_output_block(value, start, count)
+            else:
+                # The explicit raw diagnostic facade retains its scalar ABI.
+                # An ordinary block refusal never selects this separate route.
+                for start in range(0, length, 7):
+                    count = min(7, length - start)
+                    packed = self._call('buffer', 'read_packed', value.handle, start, count)
+                    if not 0 <= packed < 1 << (8 * count):
+                        raise LocalCoreError('projection_bytes', packed)
+                    for offset in range(count):
+                        destination[start + offset] = packed & 255
+                        packed >>= 8
             physical.payload = bytes(destination)
             return physical.payload
 
@@ -3704,7 +3836,8 @@ class LocalCore:
             self._owned_input(value)
             if self._closing:
                 raise RuntimeError('Local Core is closing')
-            self._check('fill', self._call('buffer', 'fill', value.handle, start, count))
+            operation = 'fill_block' if getattr(self, '_ordinary_host', False) else 'fill'
+            self._check('fill', self._call('buffer', operation, value.handle, start, count))
 
     def seal_input(self, value: _Input) -> None:
         with self._lock:

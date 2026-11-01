@@ -2,6 +2,14 @@
 fn physical_input_byte(input : Int, index : Int) -> Int = "actql_host" "input_byte"
 
 ///|
+fn physical_input_copy(
+  input : Int,
+  start : Int,
+  offset : Int,
+  length : Int,
+) -> Int = "actql_host" "input_copy"
+
+///|
 fn physical_input_cleanup(input : Int) -> Int = "actql_host" "input_cleanup"
 
 ///|
@@ -444,6 +452,71 @@ pub fn fill(nonce : Int64, handle : Int, start : Int, count : Int) -> Int {
       }
     }),
   )
+}
+
+///|
+/// The ordinary Host copies only after the same Buffer Owner admits this
+/// position. Staging lives in the already bounded VM; it never becomes a
+/// second input/owner or escapes the synchronous original input loan.
+pub fn fill_block(nonce : Int64, handle : Int, start : Int, count : Int) -> Int {
+  guard selected(nonce) is Some(value) else { return -1 }
+  guard value.copies.get(handle) is Some((slot, physical_input)) else {
+    return -2
+  }
+  if value.closing || value.runtime_closing || count < 1 || count > 16384 {
+    return -5
+  }
+  let mut block : Bytes? = None
+  status(
+    @buffers.fill_buffer(value.pool, slot, start, count, index => {
+      let bytes = match block {
+        Some(bytes) => bytes
+        None => {
+          let staging : FixedArray[Byte] = FixedArray::make(count, 0)
+          let bytes = staging.unsafe_reinterpret_as_bytes()
+          if physical_input_copy(
+              physical_input,
+              start,
+              journal_bytes_offset(bytes),
+              count,
+            ) !=
+            count {
+            return None
+          }
+          block = Some(bytes)
+          bytes
+        }
+      }
+      bytes.get(index - start)
+    }),
+  )
+}
+
+///|
+/// Private wasm32 borrow of the same completed immutable Buffer. The Host
+/// copies immediately under its original loan/VM scope, without another Core
+/// call or retaining this offset as an identity, grant or cleanup handle.
+pub fn read_block(
+  nonce : Int64,
+  handle : Int,
+  start : Int,
+  length : Int,
+) -> Int {
+  guard selected(nonce) is Some(value) else { return -1 }
+  guard value.copies.get(handle) is Some((slot, _)) else { return -2 }
+  if value.closing ||
+    value.runtime_closing ||
+    start < 0 ||
+    length < 1 ||
+    length > 16384 {
+    return -5
+  }
+  guard @buffers.buffer_wire(value.pool, slot) is Some(bytes) &&
+    start <= bytes.length() &&
+    length <= bytes.length() - start else {
+    return -5
+  }
+  journal_bytes_offset(bytes) + start
 }
 
 ///|
