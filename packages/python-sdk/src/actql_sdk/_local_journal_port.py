@@ -1,6 +1,7 @@
 """Bounded physical query transport; original Core Owners decide inventory facts."""
 from dataclasses import dataclass
 from collections.abc import Callable
+import json
 from ._local_storage import _NamespaceReader, StoredBytes, LocalByteStore
 
 _QUERY_BYTES = 8192
@@ -84,10 +85,10 @@ class _JournalCallbacks:
     def begin(self, mode: int, namespace_length: int, key_length: int) -> int:
         try:
             if (self.request is not None or self.queried or self.row is not None
-                    or type(mode) is not int or mode not in (0, 1)
+                    or type(mode) is not int or mode not in (0, 1, 2)
                     or type(namespace_length) is not int or not 0 < namespace_length <= _KEY_BYTES
                     or type(key_length) is not int or not 0 <= key_length <= _KEY_BYTES
-                    or (mode == 1 and key_length == 0)
+                    or (mode in (1, 2) and key_length == 0)
                     or namespace_length + key_length > _QUERY_BYTES):
                 raise ValueError('Invalid original Local journal physical query')
             if self.check_frame() != 0:
@@ -166,6 +167,38 @@ class _JournalCallbacks:
             self.request = None
             if self.reader is not reader:
                 raise ValueError('Original Local journal transaction loan expired')
+
+            if self.mode == 2:
+                # This mode compares only immutable stored publication fences.
+                # It returns DATA equality, never an Allow or current token.
+                if namespace != 'publication_contract':
+                    raise ValueError('Invalid original publication fence namespace')
+                match_rows = getattr(reader, 'match_rows_current', None)
+                if match_rows is None:
+                    # No row I/O occurred. An independent physical adapter's
+                    # absent batch primitive selects its existing scalar path.
+                    return 2
+                packet = json.loads(key)
+                if type(packet) is not list or not 1 <= len(packet) <= 32:
+                    raise ValueError('Invalid original publication fence packet')
+                rows = []
+                for item in packet:
+                    if (type(item) is not list or len(item) != 3
+                            or any(type(value) is not str for value in item)):
+                        raise ValueError('Invalid original publication fence fields')
+                    name, revision, body = item
+                    if (not revision or len(revision) > 19
+                            or any(c < '0' or c > '9' for c in revision)
+                            or len(revision) > 1 and revision[0] == '0'
+                            or int(revision) >= 2**63):
+                        raise ValueError('Invalid original publication fence revision')
+                    rows.append((name, int(revision), body.encode('utf-8')))
+                matched = match_rows(reader, namespace, tuple(rows), self.current)
+                if self.reader is not reader or type(matched) is not bool:
+                    raise ValueError('Original publication fence observation changed')
+                if self.check_frame() != 0:
+                    return -41
+                return 0 if matched else 1
 
             def consume(row: tuple[str, StoredBytes] | None) -> None:
                 if row is None:
