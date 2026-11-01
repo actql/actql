@@ -325,3 +325,13 @@ test('clipped Result clocks and work deferred past the first close cannot qualif
   assert.equal(assessLatency(row).status, 'incomplete');
   assert.equal(assessPublicLatencySamples(row.samples, 30, row.operation).missing.length, 1);
 });
+
+
+test('separate parent first-Result clock cannot replace mandatory process-through-first-close',()=>{
+  const rows=evidence('cold-existing',5).samples;
+  for(const row of rows)row.publicTiming={kind:'process-first-result',startNs:0,observedNs:row.wallNs,endNs:row.wallNs};
+  assert.equal(assessPublicLatencySamples(rows,30,'cold-existing-state-process-first-result').failures.length,0);
+  assert(assessPublicLatencySamples(rows,30,'cold-existing').failures.length>0);
+  rows.at(-1).wallNs=201e6;rows.at(-1).publicTiming.endNs=201e6;rows.at(-1).publicTiming.observedNs=201e6;
+  assert(assessPublicLatencySamples(rows,30,'cold-existing-state-process-first-result').failures.includes('public E2E observed max exceeds 200ms'));
+});
