@@ -1095,6 +1095,10 @@ export function effectfulFinalRunOutcome(finalReceipt: PublicationContract): Rea
  * current permission, resubmission or physical acknowledgement. */
 export function effectfulFinalRunReconciliationState(finalReceipt: PublicationContract,
   updatedAt: string, limits: PublicationLimits): string;
+/** Same admitted known-failed partition, original Run and manifest. No raw
+ * re-admission, current grant, publication, resend or cleanup acknowledgement. */
+export function effectfulFinalRunFailedState(finalReceipt: PublicationContract,
+  updatedAt: string, limits: PublicationLimits): string;
 /** Validate saved originals against actual independently observed output facts,
  * preserving the original derivation/ordering/scope/issuer contracts. */
 export function admitOriginalResultOccurrenceEvidence(definition: PublicationContract,

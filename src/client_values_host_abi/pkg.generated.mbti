@@ -186,6 +186,8 @@ pub fn client_values_host_effect_template_wire(@run_publication_host.ClientEffec
 
 pub fn client_values_host_effectful_final_run_all_unattempted(@run_publication.EffectfulFinalRunEvidence) -> Bool
 
+pub fn client_values_host_effectful_final_run_failed_state(@run_publication.EffectfulFinalRunEvidence, String, Int, Int, Int) -> Result[String, @run_publication.RunStateIssue]
+
 pub fn client_values_host_effectful_final_run_receipt(@run_publication.EffectfulFinalRunEvidence) -> @run_publication.PublicationContract
 
 pub fn client_values_host_effectful_final_run_reconciliation_state(@run_publication.EffectfulFinalRunEvidence, String, Int, Int, Int) -> Result[String, @run_publication.RunStateIssue]

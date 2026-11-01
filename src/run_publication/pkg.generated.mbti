@@ -450,6 +450,8 @@ pub fn effect_source_artifact_preview_binding(PublicationContract, String, Strin
 
 pub fn effect_table_input_artifact_preview_binding(PublicationContract, String, String, String) -> Result[(String, String), EffectSourceArtifactIssue]
 
+pub fn effectful_final_run_evidence_failed_state(EffectfulFinalRunEvidence, String, Int, Int, Int) -> Result[String, RunStateIssue]
+
 pub fn effectful_final_run_evidence_matches_definition(EffectfulFinalRunEvidence, PublicationContract) -> Bool
 
 pub fn effectful_final_run_evidence_outcomes(EffectfulFinalRunEvidence) -> EffectSetApplyReceiptEvidence
@@ -499,6 +501,8 @@ pub fn installation_publication_storage_binding_cid(InstallationPublicationStora
 pub fn installation_publication_storage_binding_fields(InstallationPublicationStorageBinding) -> (String, String)
 
 pub fn installation_publication_storage_binding_wire(InstallationPublicationStorageBinding) -> String
+
+pub fn issue_admitted_effect_failed_run_state_wire(EffectSetApplyReceiptEvidence, String, String, Array[String], Int, Int, Int) -> Result[String, RunStateIssue]
 
 pub fn issue_admitted_effect_reconciliation_run_state_wire(EffectSetApplyReceiptEvidence, String, String, Array[String], Int, Int, Int) -> Result[String, RunStateIssue]
 

@@ -98031,7 +98031,7 @@
     {
       "module": "packages/run-host-core/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "2530c7bacd2340348f7a16c8764a1e4bd62acf5a375c186da0797fbe3c438dca",
+      "sha256": "d4d92568384b1b2ec72f12425dba736b5f1582cf6b34187f28045533962fb6c8",
       "role": "common-semantics",
       "owner": "Existing client_values_host_abi/Run Publication Owners; public same-process type projection",
       "exports": [
@@ -98143,6 +98143,7 @@
         "effectSourceEvidenceFacts",
         "effectSourceInputBinding",
         "effectTaskKeys",
+        "effectfulFinalRunFailedState",
         "effectfulFinalRunOutcome",
         "effectfulFinalRunReconciliationState",
         "executionShape",
@@ -98579,6 +98580,15 @@
             "compilation: EffectCompilation"
           ],
           "result": "Readonly<{taskCount: number; acquisitionCount: number; effectCount: number}>"
+        },
+        {
+          "name": "effectfulFinalRunFailedState",
+          "parameters": [
+            "finalReceipt: PublicationContract",
+            "updatedAt: string",
+            "limits: PublicationLimits"
+          ],
+          "result": "string"
         },
         {
           "name": "effectfulFinalRunOutcome",
@@ -100584,7 +100594,8 @@
             "admitOriginalResultOccurrenceEvidence",
             "effectfulFinalRunOutcome",
             "effectfulFinalRunReconciliationState",
-            "issueSucceededRunStateWire#2"
+            "issueSucceededRunStateWire#2",
+            "effectfulFinalRunFailedState"
           ],
           "exports": [
             "AllowedEffectRun",
@@ -100811,7 +100822,8 @@
             "admitEffectfulFinalRunEvidence",
             "admitOriginalResultOccurrenceEvidence",
             "effectfulFinalRunOutcome",
-            "effectfulFinalRunReconciliationState"
+            "effectfulFinalRunReconciliationState",
+            "effectfulFinalRunFailedState"
           ],
           "attributes": {
             "responsibility": [
