@@ -1302,6 +1302,12 @@ async function openInstalledHost(originalInstallation, preparation) {
     inferSelections.delete(prepared);
     earlyMockInferPlans.delete(prepared);
   }
+  function releaseRequestDomainAliases(prepared) {
+    releaseRequestModelAliases(prepared);
+    // Content calls this only from its same-record alias retirement, after
+    // checked Run retirement or the original Request's abort/holder fence.
+    earlyContentPlans.delete(prepared);
+  }
   const effectSubmissions = new WeakMap();
   const effectSelections = new WeakMap();
   // A prepared Local Host borrows the selected startup's original fixed image;
@@ -2175,7 +2181,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     runtime: moon, borrow: (prepared, request) => preparation?.borrowManagedPreparation?.(prepared, request),
   });
   preparation?.retainUndispatchedRetirement(localPreparationCustody.retireQuiescentUndispatched,
-    localPreparationCustody.retireRetiringOriginal, releaseRequestModelAliases);
+    localPreparationCustody.retireRetiringOriginal, releaseRequestDomainAliases);
   clientProgramPreparationReferences = Object.freeze({owner: prepareSubmit,
     retire: prepareSubmit.retireReferences});
   const prepareCapturedSubmission = async (submission, ref) => {
@@ -5950,8 +5956,16 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       if (runtime !== moon || typeof manager?.retainContentPreparation !== 'function') {
         throw clientOperationError('InstalledContentRunPreparationUnavailable');
       }
+      const releaseSelection = Object.getOwnPropertyDescriptor(originalInstallation,
+        'releaseRequestDomainAliases')?.value;
+      const field = Object.getOwnPropertyDescriptor(contentPreparation, 'releaseSelection');
+      if (typeof releaseSelection !== 'function' || field?.writable !== true ||
+          !Object.hasOwn(field, 'value') || field.value !== undefined) {
+        throw clientOperationError('NodeManagedRunRuntimeUnavailable');
+      }
       (sourceManaged === undefined ? assertManagedComputeInstallationCurrent
         : assertSourceManagedInstallationCurrent)(manager, originals);
+      contentPreparation.releaseSelection = releaseSelection;
       return manager.retainContentPreparation(prepared,
         originalSourceManagedHostRequest(originals, prepared), contentPreparation);
     },

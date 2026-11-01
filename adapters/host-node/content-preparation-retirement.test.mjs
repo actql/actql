@@ -15,15 +15,20 @@ let selected;const walk=n=>{if(!n||typeof n!=='object')return;
   if(n.type==='Property'&&n.key?.name==='retireManagedComputeRun')selected=n;
   for(const v of Object.values(n)){if(Array.isArray(v))v.forEach(walk);else if(v&&typeof v==='object')walk(v);}};
 walk(parse(host,{ecmaVersion:'latest',sourceType:'module'}));assert(selected);
-function fixture({prefixFailure,constructFailure,retainFailure}={}) {
+function fixture({prefixFailure,constructFailure,retainFailure,retainEarlyPlan=false}={}) {
   const record={computeRuns:new WeakMap(),computeLiveRuns:new Set()},origins=new WeakMap(),held=[],captured=[],retained=[];
+  const earlyPlans=new WeakMap();let selectionCuts=0;
   const moon={clientProgramAcquisitionCount:p=>p.keyed?2:0,
     clientProgramKeyedAcquisitionMatchesProgram:(k,p)=>k===p.key,
     clientProgramInstalledPreparationPayloadSevered:(v,r)=>{const o=origins.get(v);o.observations=(o.observations??0)+1;
       if(o.observe)return o.observe();return o.request===r&&o.severed===true;},
     clientProgramPreparationBorrowRead:h=>h.prepared,
     clientProgramPreparationBorrowRetirementStarted:h=>h.retiring===true};
-  const keep=(p,preparation)=>{if(retainFailure)throw retainFailure;preparation.inputHolder={prepared:p,retiring:false};retained.push(preparation);};
+  const keep=(p,preparation)=>{if(retainFailure)throw retainFailure;
+    preparation.releaseSelection=original=>{assert.equal(original,p);if(retainEarlyPlan){
+      assert(earlyPlans.has(p));earlyPlans.delete(p);selectionCuts++;}};
+    if(retainEarlyPlan)earlyPlans.set(p,{graph:{},compiled:{},definition:{}});
+    preparation.inputHolder={prepared:p,retiring:false};retained.push(preparation);};
   function prepare(p,r,graph,recipe,preparation,keyed) {
     const value={},origin={request:r,severed:false,allowed:true};origins.set(value,origin);
     const run={runtime:moon,prepared:p,request:r,value,preparationFunded:true,preparationKind:keyed?'keyed-content-plan':'serialization-plan',
@@ -50,8 +55,62 @@ function fixture({prefixFailure,constructFailure,retainFailure}={}) {
     if(keyed)content.prepareManagedKeyedCompilation({preparedProgram:p,serializationGraph:graph,request,keyedAcquisition:p.key});
     else content.prepareRun({preparedProgram:p,plan,request});
     return{p,request,graph,plan,run:record.computeRuns.get(p),retire(){const finish=retire(p);finish?.();}};};
-  return{open,content,record,captured,origins,held,retained,moon};
+  return{open,content,record,captured,origins,held,retained,moon,earlyPlans,selectionCuts:()=>selectionCuts};
 }
+
+test('Content cuts the same early Plan before consumed parent return and keeps it while retirement is pending',()=>{
+  for(const keyed of [false,true]){
+    const f=fixture({retainEarlyPlan:true}),current=f.open(keyed),run=current.run,origin=f.origins.get(run.value);
+    origin.allowed=false;assert.throws(current.retire,e=>e.code==='MoonBitHostFailure');
+    assert(f.earlyPlans.has(current.p));assert.equal(f.selectionCuts(),0);
+    const primary=new Error('same consumed parent return');let returns=0;
+    run.manager.severPreparation=()=>{assert.equal(f.earlyPlans.has(current.p),false);
+      if(++returns===1)throw primary;};
+    origin.allowed=true;assert.throws(current.retire,e=>e===primary);
+    assert.equal(f.earlyPlans.has(current.p),false);assert.equal(f.selectionCuts(),1);
+    current.retire();assert.equal(returns,2);assert.equal(f.selectionCuts(),1);
+    assert.equal(f.held[0],current.p,'The original Prepared remains strongly held');
+  }
+});
+
+test('Host captures its original Content selection cut before callbacks and retains it on the same Request record',()=>{
+  let retainer;const visit=n=>{if(!n||typeof n!=='object')return;
+    if(n.type==='Property'&&n.key?.name==='retainManagedContentPreparation')retainer=n;
+    for(const v of Object.values(n)){if(Array.isArray(v))v.forEach(visit);else if(v&&typeof v==='object')visit(v);}};
+  visit(parse(host,{ecmaVersion:'latest',sourceType:'module'}));assert(retainer);
+  const moon={},prepared={},request={},holder={},contentPreparation={prepared,releaseSelection:undefined},calls=[];
+  const original=()=>calls.push('original-cut'),originalInstallation={releaseRequestDomainAliases:original};
+  const manager={retainContentPreparation(p,r,record){assert.deepEqual([p,r,record],[prepared,request,contentPreparation]);
+    assert.equal(record.releaseSelection,original);record.inputHolder=holder;calls.push('retained');}};
+  const ports={sourceManaged:manager,computeManaged:undefined,moon,originalInstallation,originals:{},
+    assertSourceManagedInstallationCurrent(){originalInstallation.releaseRequestDomainAliases=()=>assert.fail('Changed callback');},
+    originalSourceManagedHostRequest:()=>request,clientOperationError:code=>Object.assign(new Error(code),{code})};
+  const retain=Function(...Object.keys(ports),`return ({${host.slice(retainer.start,retainer.end)}}).retainManagedContentPreparation;`)(...Object.values(ports));
+  retain(moon,prepared,contentPreparation);assert.equal(contentPreparation.inputHolder,holder);
+  contentPreparation.releaseSelection(prepared);assert.deepEqual(calls,['retained','original-cut']);
+  delete originalInstallation.releaseRequestDomainAliases;
+  assert.throws(()=>retain(moon,prepared,{prepared,releaseSelection:undefined}),{code:'NodeManagedRunRuntimeUnavailable'});
+  assert.equal(calls.length,2);
+});
+
+test('fixed Request domain cut removes only its original Content and Mock aliases while preserving other owners',()=>{
+  const declarations=[];const visit=n=>{if(!n||typeof n!=='object')return;
+    if(n.type==='FunctionDeclaration'&&['releaseRequestModelAliases','releaseRequestDomainAliases'].includes(n.id?.name))declarations.push(n);
+    for(const v of Object.values(n)){if(Array.isArray(v))v.forEach(visit);else if(v&&typeof v==='object')visit(v);}};
+  visit(parse(host,{ecmaVersion:'latest',sourceType:'module'}));assert.equal(declarations.length,2);
+  const inferSelections=new WeakMap(),earlyMockInferPlans=new WeakMap(),earlyContentPlans=new WeakMap();
+  const content={},mock={},other={},physical={};
+  earlyContentPlans.set(content,{plan:{compiled:{},runDefinition:{}}});earlyContentPlans.set(other,{plan:{}});
+  for(const p of [mock,other]){inferSelections.set(p,{localMock:true,graph:{},providerBinding:{}});earlyMockInferPlans.set(p,{plan:{}});}
+  inferSelections.set(physical,{localMock:false,provider:{}});
+  const release=Function('inferSelections','earlyMockInferPlans','earlyContentPlans',
+    declarations.map(n=>host.slice(n.start,n.end)).join('\n')+'\nreturn releaseRequestDomainAliases;')(
+    inferSelections,earlyMockInferPlans,earlyContentPlans);
+  release(content);release(content);assert.equal(earlyContentPlans.has(content),false);
+  release(mock);assert.equal(inferSelections.has(mock),false);assert.equal(earlyMockInferPlans.has(mock),false);
+  assert(earlyContentPlans.has(other));assert(inferSelections.has(other));assert(earlyMockInferPlans.has(other));
+  release(physical);assert(inferSelections.has(physical));
+});
 
 test('retired keyed Content does not exhaust the unchanged 4096 live-preparation limit',()=>{
   const f=fixture();for(let i=0;i<4097;i++){const current=f.open();current.retire();}
@@ -96,7 +155,7 @@ test('Content uses one callbackful fallback observation and refuses retirement r
 
 test('failed Content construction keeps its aliases until the same Request abort and consumes its borrow once',()=>{
   for(const phase of ['quote','constructor']){
-    const failure=new Error('same '+phase),f=fixture(phase==='quote'?{prefixFailure:failure}:{constructFailure:failure});
+    const failure=new Error('same '+phase),f=fixture(phase==='quote'?{prefixFailure:failure,retainEarlyPlan:true}:{constructFailure:failure,retainEarlyPlan:true});
     assert.throws(()=>f.open(),e=>e===failure);const original=f.retained[0],holder=original.inputHolder,parent={};
     let ready=false,returns=0,aborts=0,initialRetirements=0,returned=false;
     const returnFailure=new Error('same consumed return');
@@ -114,9 +173,11 @@ test('failed Content construction keeps its aliases until the same Request abort
       }};
     assert.throws(()=>cleanupRequestInput(state,retire),e=>e.code==='MoonBitHostFailure'&&e.cause===failure);
     assert.equal(original.retired,false);assert.equal(initialRetirements,0);assert.equal(returns,0);
+    assert(f.earlyPlans.has(holder.prepared));assert.equal(f.selectionCuts(),0);
     ready=true;assert.throws(()=>cleanupRequestInput(state,retire),e=>e===returnFailure);
     assert.equal(original.retired,true);assert.equal(state.contentPreparation,undefined);assert.equal(state.holder,undefined);
     assert.equal(returns,1);cleanupRequestInput(state,retire);assert.equal(returns,1);assert.equal(state.parent,undefined);assert(aborts>=3);
+    assert.equal(f.earlyPlans.has(holder.prepared),false);assert.equal(f.selectionCuts(),1);
   }
 });
 

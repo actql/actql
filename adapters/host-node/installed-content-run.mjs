@@ -61,6 +61,11 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
       Reflect.apply(original.localPreparation.releaseAliases, original.localPreparation, [managed, inputHolder]);
     }
     if (preparedRunCount <= 0) throw new TypeError('InvalidInstalledContentPreparationCount');
+    // The original Host captured this pure cut before retaining the record.
+    // Spend it before a consumed parent return can fail; partial construction
+    // reaches this point only through the SAME Request abort/holder fence.
+    if (typeof original.releaseSelection !== 'function') throw new TypeError('ForeignInstalledContentRun');
+    Reflect.apply(original.releaseSelection, undefined, [prepared]);
     for (const key of Object.keys(original)) original[key] = undefined;
     original.retired = true;
     preparedRunCount--;
@@ -305,7 +310,7 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
     if (preparedRunCount === 4096) throw new TypeError('InstalledContentRunLimit');
     preparedRunCount++;
     const original = {prepared: preparedProgram, plan, request, attempted: false, capacity: undefined, managed: undefined,
-      inputHolder: undefined, localPreparation: undefined, retired: false, failed: false, failure: undefined};
+      inputHolder: undefined, localPreparation: undefined, releaseSelection: undefined, retired: false, failed: false, failure: undefined};
     preparedRuns.set(preparedProgram, original);
     try {
       retainOriginalPreparation(preparedProgram, original);
@@ -345,7 +350,7 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
     if (preparedRunCount === 4096) throw new TypeError('InstalledContentRunLimit');
     preparedRunCount++;
     const original = {prepared: preparedProgram, serializationGraph, plan: undefined, request, keyedAcquisition,
-      recipe: undefined, managed: undefined, inputHolder: undefined, localPreparation: undefined, retired: false, failed: false, failure: undefined};
+      recipe: undefined, managed: undefined, inputHolder: undefined, localPreparation: undefined, releaseSelection: undefined, retired: false, failed: false, failure: undefined};
     preparedKeyedRuns.set(preparedProgram, original);
     try {
       retainOriginalPreparation(preparedProgram, original);

@@ -27,7 +27,7 @@ async function fixture({failurePhase,failure,failKeyedRead,hostRetirement=false}
   const prepared={},request={},sdkRequest={},parent={},input={},holder={},original={},value={},selected={},compilation={};
   const graph=Object.freeze({task:0,step:1}),rawGraph={},keyed={},declaration={},calls=[];
   const plan={kind:'serialization',serializationGraph:graph,compiled:{},runDefinition:{}};
-  const record={},originalInstallation={},originals={},runs=new WeakMap(),liveRuns=new Set(),view={};
+  const record={},originalInstallation={releaseRequestDomainAliases(){}},originals={},runs=new WeakMap(),liveRuns=new Set(),view={};
   let profile,localOptions,currentFailure;
   const state={parent,prepared,holder,compilationFamily:'content',context:undefined,original};
   const producer={receipt:input,preparation:state,liveRuns:0};
@@ -83,6 +83,10 @@ async function fixture({failurePhase,failure,failKeyedRead,hostRetirement=false}
     sourceManaged:view,moon,record,originalInstallation,originals,checked,
     clientOperationError:code=>Object.assign(new Error(code),{code}),assertSourceManagedInstallationCurrent(){},
     originalSourceManagedHostRequest:()=>sdkRequest,runtimeCore:()=>({publicationControl:control})});
+  const retainContent=method('./embedded-local.mjs','retainManagedContentPreparation',{
+    sourceManaged:view,computeManaged:undefined,moon,originalInstallation,originals,
+    assertSourceManagedInstallationCurrent(){},originalSourceManagedHostRequest:()=>sdkRequest,
+    clientOperationError:code=>Object.assign(new Error(code),{code})});
   const path=new URL('../connectors/local/host/installed-project-files.mjs',import.meta.url),s=readFileSync(path,'utf8');
   const names=new Set(['fail','canonical','cid','positive','text','acknowledged','physicalReadChild','installPreparedProjectLocalFiles']);
   const parts=parse(s,{ecmaVersion:'latest',sourceType:'module'}).body.flatMap(n=>{
@@ -107,7 +111,7 @@ async function fixture({failurePhase,failure,failKeyedRead,hostRetirement=false}
     prefixCapacity(p,t,s){assert.deepEqual([p,t,s],[prepared,0,1]);calls.push('prefix');return{retainedBytes:5n,executionBytes:7n};}},
     publicationControl:{checkClientCompiledRunOwner(c,p){assert.equal(c,plan.compiled);assert.equal(p,prepared);}}},
     preparedRunRequired:true,assertRunCurrent(){},registry:'{}',values:'{}',ownerPrincipal:'fixture',
-    retainPreparation:(p,original)=>view.retainContentPreparation(p,sdkRequest,original),
+    retainPreparation:(p,original)=>retainContent(moon,p,original),
     prepareKeyedManagedRun:(p,r,g,recipe,original)=>profile.prepareManagedContentRun(p,r,recipe,g,original),borrowKeyedManagedLedger:()=>assert.fail('No physical Ledger borrowed')});
   return{calls,content,profile,prepared,request,plan,graph,keyed,compilation,record,state,control,selected,localOptions,declaration,moon,view,original,
     child:(r={})=>view.prepareKeyedRead(prepared,declaration,original,r),failCurrent:e=>{currentFailure=e;},
