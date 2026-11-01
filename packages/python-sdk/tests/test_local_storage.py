@@ -90,26 +90,29 @@ class LocalPhysicalStorageTests(unittest.TestCase):
                 store._connection.set_trace_callback(None)
 
     def test_original_fence_set_keeps_transaction_change_refusal_and_original_error(self) -> None:
+        class ChangedRead(sqlite3.Connection):
+            change = False
+            def execute(self, sql, *args, **kwargs):
+                if sql.startswith('WITH expected') and self.change:
+                    self.change = False
+                    super().execute('CREATE TEMP TABLE changed(value)')
+                return super().execute(sql, *args, **kwargs)
+        connect = sqlite3.connect
         with TemporaryDirectory(prefix='actql-exact-fence-current-') as directory:
-            with self.store(Path(directory) / 'core.sqlite') as store:
-                store.compare_exchange('one', None, b'original')
-                changed = False
-                def mutate(sql):
-                    nonlocal changed
-                    if sql.startswith('WITH expected') and not changed:
-                        changed = True
-                        store._connection.execute('CREATE TEMP TABLE changed(value)')
-                database = store._physical
-                database.begin_read()
-                store._connection.set_trace_callback(mutate)
-                try:
-                    with self.assertRaisesRegex(ValueError, 'snapshot changed'):
-                        database._match_rows((('one', 0, b'original'),))
-                    self.assertTrue(changed)
-                    self.assertTrue(database.in_transaction)
-                finally:
-                    store._connection.set_trace_callback(None)
-                    database.finish_read()
+            with patch('actql_sdk._local_storage.sqlite3.connect',
+                       side_effect=lambda *a, **k: connect(*a, **k, factory=ChangedRead)):
+                with self.store(Path(directory) / 'core.sqlite') as store:
+                    store.compare_exchange('one', None, b'original')
+                    database = store._physical
+                    database.begin_read()
+                    store._connection.change = True
+                    try:
+                        with self.assertRaisesRegex(ValueError, 'snapshot changed'):
+                            database._match_rows((('one', 0, b'original'),))
+                        self.assertFalse(store._connection.change)
+                        self.assertTrue(database.in_transaction)
+                    finally:
+                        database.finish_read()
         failure = sqlite3.OperationalError('original fixed-read failure')
         class FailedRead(sqlite3.Connection):
             attempts = 0
