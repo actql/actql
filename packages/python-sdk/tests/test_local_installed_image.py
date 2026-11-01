@@ -163,6 +163,20 @@ class InstalledImageTests(unittest.TestCase):
             self.image = replace(self.image, encoded=b'changed')
             with self.assertRaisesRegex(ValueError, 'artifact or capacity'): self.create()
 
+    def test_checked_image_does_not_rehash_the_same_already_verified_immutable_bytes(self):
+        case = distribution_fixture.LocalDistributionTests(); case.setUp(); self.addCleanup(case.doCleanups)
+        components = case.inspect()
+        library = case.directory / 'darwin-aarch64/_libwasmtime.dylib'
+        library.parent.mkdir(); library.write_bytes(b'independent runtime library fixture')
+        distribution = SimpleNamespace(version='38.0.0', locate_file=lambda _: case.directory)
+        with patch('actql_sdk._local_engine.metadata.distribution', return_value=distribution), \
+                patch('actql_sdk._local_engine.hashlib.sha256', wraps=hashlib.sha256) as hashes:
+            original = _checked_installed_image(components)
+        self.assertEqual(original.encoded, IMAGE)
+        self.assertEqual(original.sha256, components.image_sha256)
+        complete_image_rehashes = [call for call in hashes.call_args_list if call.args == (IMAGE,)]
+        self.assertEqual(complete_image_rehashes, [])
+
     def test_original_installed_files_and_dependency_digest_rechecked(self):
         case = distribution_fixture.LocalDistributionTests(); case.setUp(); self.addCleanup(case.doCleanups)
         components = case.inspect()
