@@ -4,6 +4,9 @@ import json
 import os
 from pathlib import Path
 import sqlite3
+import subprocess
+import sys
+from tempfile import mkdtemp
 from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import patch
@@ -15,6 +18,55 @@ from actql_sdk._local_submission import LocalSubmissionAuthority, LocalSubmissio
 
 
 class LocalOwnedStoreInitializationTests(unittest.TestCase):
+    def test_owned_indexed_journal_reopens_in_fresh_process_with_original_rows(self):
+        # A new synthetic physical fixture only. Keep it and child diagnostics
+        # even on failure; no original public Run or failed state is reopened.
+        parent = Path('_build/python-indexed-reopen-fixtures').absolute()
+        parent.mkdir(parents=True, exist_ok=True)
+        directory = Path(mkdtemp(prefix='original-index-', dir=parent))
+        script = '''
+import json, sys
+from pathlib import Path
+from actql_sdk._local_files import LocalFileRoot
+from actql_sdk._local_storage import LocalByteStore
+directory = Path(sys.argv[1])
+filename = directory / 'client.sqlite3'
+options = dict(max_records=8, max_record_bytes=4096, max_payload_bytes=32768)
+body = json.dumps({'run_definition': json.dumps({'run_definition_cid': 'sha256:' + 'a' * 64})}).encode()
+key = LocalByteStore.namespaced_key('client_runs', 'original')
+if sys.argv[2] == 'create':
+    root = LocalFileRoot(directory, max_files=4, max_chunk_bytes=16)
+    original = root.create_writer('client.sqlite3', 0)
+    store = LocalByteStore.initialize_owned_file(filename, root, original, **options)
+    try:
+        assert store.compare_exchange(key, None, body) == 0
+    finally:
+        store.close()
+        root.close_writer(original)
+        root.close()
+else:
+    print('fresh original physical reopen', flush=True)
+    store = LocalByteStore(filename, **options)
+    try:
+        assert store.read(key).payload == body
+        store._physical.begin_read()
+        try:
+            assert store._physical._journal_schema() == 1
+        finally:
+            store._physical.finish_read()
+    finally:
+        store.close()
+print('original physical phase complete', flush=True)
+'''
+        for phase in ('create', 'reopen'):
+            child = subprocess.run([sys.executable, '-B', '-X', 'faulthandler', '-c',
+                                    script, str(directory), phase],
+                                   capture_output=True, text=True, timeout=30)
+            (directory / (phase + '-stdout.txt')).write_text(child.stdout)
+            (directory / (phase + '-stderr.txt')).write_text(child.stderr)
+            self.assertEqual(child.returncode, 0,
+                             f'{phase} failed; retained fixture: {directory}\n{child.stderr}')
+
     def fixture(self):
         directory = TemporaryDirectory(prefix='actql-owned-store-')
         self.addCleanup(directory.cleanup)
