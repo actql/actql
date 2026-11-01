@@ -6381,7 +6381,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "d0eac0de4181535d51ea4a2372e9f0cd9c0b2103f92b72b4dc8229ff754b3143",
+      "sha256": "b7ed4d01c201c69d33dccd3ad4cce6868a02e57526ea1fd1611b48cfd78537b9",
       "exports": [
         "admitOriginalHostRootFormat",
         "assertInitialControlHostPreparation",
@@ -6931,6 +6931,31 @@
           "async": false
         },
         {
+          "name": "connectEmbeddedLocal/preparation/init:prepareEffectCaptureRecovery/init:prepareEffectCaptureRecovery",
+          "parameters": [
+            "runtime",
+            "request",
+            "definition",
+            "limits",
+            "managed",
+            "originalCurrent",
+            "retain"
+          ],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:prepareEffectCaptureRecovery/init:prepareEffectCaptureRecovery/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:prepareEffectCaptureRecovery/init:prepareEffectCaptureRecovery/init:retain/init:retain",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
+        {
           "name": "connectEmbeddedLocal/preparation/init:prepareHostJournal/init:prepareHostJournal",
           "parameters": [],
           "async": false
@@ -7009,6 +7034,25 @@
           "async": false
         },
         {
+          "name": "connectEmbeddedLocal/preparation/init:prepareManagedContentGraph/init:prepareManagedContentGraph",
+          "parameters": [
+            "runtime",
+            "prepared",
+            "options",
+            "intermediate"
+          ],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:prepareManagedContentGraph/init:prepareManagedContentGraph/init:prepareManagedContentGraph",
+          "parameters": [
+            "parent",
+            "input",
+            "contracts"
+          ],
+          "async": false
+        },
+        {
           "name": "connectEmbeddedLocal/preparation/init:prepareManagedEffectPlanRun/init:prepareManagedEffectPlanRun",
           "parameters": [
             "runtime",
@@ -7063,11 +7107,44 @@
           "async": false
         },
         {
+          "name": "connectEmbeddedLocal/preparation/init:prepareManagedModelBinding/init:prepareManagedModelBinding",
+          "parameters": [
+            "runtime",
+            "prepared",
+            "providerId",
+            "installation",
+            "contract",
+            "configuration"
+          ],
+          "async": false
+        },
+        {
           "name": "connectEmbeddedLocal/preparation/init:prepareManagedModelCompilation/init:prepareManagedModelCompilation",
           "parameters": [
             "runtime",
             "prepared",
             "graph"
+          ],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:prepareManagedModelGraph/init:prepareManagedModelGraph",
+          "parameters": [
+            "runtime",
+            "prepared",
+            "occurrence",
+            "execution"
+          ],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:prepareManagedModelMaterials/init:prepareManagedModelMaterials",
+          "parameters": [
+            "runtime",
+            "prepared",
+            "count",
+            "wireAt",
+            "containers"
           ],
           "async": false
         },
@@ -7216,7 +7293,8 @@
           "name": "connectEmbeddedLocal/preparation/init:retainUndispatchedRetirement/init:retainUndispatchedRetirement",
           "parameters": [
             "original",
-            "initial"
+            "initial",
+            "releaseModelSelection"
           ],
           "async": false
         },
@@ -7941,7 +8019,8 @@
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#3",
           "parameters": [
-            "recoverySignal"
+            "recoverySignal",
+            "retainRecoveryResources"
           ],
           "async": false
         },
@@ -8259,6 +8338,14 @@
           "async": false
         },
         {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/planFor/planFor/serializationGraph/serializationGraph",
+          "parameters": [
+            "options",
+            "intermediate"
+          ],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/port/port",
           "parameters": [
             "operation",
@@ -8328,6 +8415,25 @@
           "async": false
         },
         {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/providerBinding/providerBinding",
+          "parameters": [
+            "providerId",
+            "installation",
+            "contract",
+            "configuration"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/requestModelMaterials/requestModelMaterials",
+          "parameters": [
+            "count",
+            "wireAt",
+            "containers"
+          ],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/selection/init:assertNewTrustedRuntime/init:assertNewTrustedRuntime",
           "parameters": [],
           "async": false
@@ -8380,6 +8486,14 @@
             "request",
             "ioNotification",
             "rawCaptureBinder"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/serializationGraph/serializationGraph",
+          "parameters": [
+            "options",
+            "intermediate"
           ],
           "async": false
         },
@@ -8445,12 +8559,21 @@
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/recoverEffectCapture/recoverEffectCapture",
           "parameters": [
             "ref",
-            "signal"
+            "signal",
+            "managed",
+            "retainRecoveryResources"
           ],
           "async": false
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/recoverEffectCapture/recoverEffectCapture/recoverEffectCapture",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/recoverEffectCapture/recoverEffectCapture/recoverEffectCapture#2",
           "parameters": [
             "saved",
             "requestIdentity"
@@ -8458,14 +8581,14 @@
           "async": false
         },
         {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/recoverEffectCapture/recoverEffectCapture/recoverEffectCapture#2",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/recoverEffectCapture/recoverEffectCapture/recoverEffectCapture#3",
           "parameters": [
             "binding"
           ],
           "async": false
         },
         {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/recoverEffectCapture/recoverEffectCapture/recoverEffectCapture#3",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/recoverEffectCapture/recoverEffectCapture/recoverEffectCapture#4",
           "parameters": [],
           "async": true
         },
@@ -8585,6 +8708,18 @@
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/retireEffectCapture/retireEffectCapture/flight/flight",
           "parameters": [],
           "async": true
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/retireEffectCapture/retireEffectCapture/flight/flight/selected/selected",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/retireEffectCapture/retireEffectCapture/flight/flight/selected/selected#2",
+          "parameters": [
+            "original"
+          ],
+          "async": false
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/retireEffectCapture/retireEffectCapture/flight/flight#2",
@@ -8872,7 +9007,8 @@
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight#2",
           "parameters": [
-            "recoverySignal"
+            "recoverySignal",
+            "retainRecoveryResources"
           ],
           "async": false
         },
@@ -9243,6 +9379,20 @@
             "recovered"
           ],
           "async": true
+        },
+        {
+          "name": "openInstalledHost/releaseRequestDomainAliases",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/releaseRequestModelAliases",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
         },
         {
           "name": "openInstalledHost/requireModelSdkEagerStartup",
@@ -9755,6 +9905,16 @@
           "async": false
         },
         {
+          "name": "retireEffectCaptureResourceFrame",
+          "parameters": [
+            "record",
+            "liveRuns",
+            "entry",
+            "view"
+          ],
+          "async": false
+        },
+        {
           "name": "retireSourceManagedInitialPreparation",
           "parameters": [
             "originals",
@@ -9857,11 +10017,11 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/captureSubmission/captureSubmission",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/captureSubmission/captureSubmission/captureSubmission",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/check/check",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/checkSource/checkSource",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/checkpointConnection/checkpointConnection",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/checkpointOperations/checkpointOperations",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/checkpointOperations/checkpointOperations#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/checkpointOperations/init:resolve/init:resolve",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/checkSource/checkSource",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/continueAcceptedCancellation/continueAcceptedCancellation",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/definitionOf/definitionOf",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun",
@@ -9873,12 +10033,7 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/init:validateInstallation/init:validateInstallation",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#2",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#3",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#4",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#5",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#4",
@@ -9886,6 +10041,11 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/records/records",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/sourceContinuation/sourceContinuation",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/sourceContinuation/sourceContinuation#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#3",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#4",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#5",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/nextJournal/nextJournal",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/nextJournal/nextJournal#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/sourceCheckpoints/sourceCheckpoints",
@@ -9896,11 +10056,11 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/ingress/ingress",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/init:stopModelRuntime/init:stopModelRuntime",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices/initializePublicationServices",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices#3",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices#4",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices#5",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices/initializePublicationServices",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/inspectAcquisition/inspectAcquisition",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/inspectAcquisition/inspectAcquisition/inspectAcquisition",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/inspectHeld/inspectHeld",
@@ -9916,24 +10076,29 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/openEffectTargetReads/openEffectTargetReads",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/originalSourceFreeRequest/originalSourceFreeRequest",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/planFor/planFor",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/planFor/planFor/serializationGraph/serializationGraph",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/port/port",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/port/port/port",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareAcquisition/prepareAcquisition",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareAcquisitions/prepareAcquisitions",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/observeAccount/observeAccount",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/providerBinding/providerBinding",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/requestModelMaterials/requestModelMaterials",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/selection/init:assertNewTrustedRuntime/init:assertNewTrustedRuntime",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/selection/init:assertTrustedRuntimeScope/init:assertTrustedRuntimeScope",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/selection/init:bindTrustedRuntimeScope/init:bindTrustedRuntimeScope",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/selection/init:finishTrustedRuntimeScope/init:finishTrustedRuntimeScope",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/selection/selection",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/selection/selection#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/serializationGraph/serializationGraph",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareKeyedSources/prepareKeyedSources",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/projectRunObservation/projectRunObservation",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/reconcile/reconcile",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/recoverEffectCapture/recoverEffectCapture",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/recoverEffectCapture/recoverEffectCapture/recoverEffectCapture",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/recoverEffectCapture/recoverEffectCapture/recoverEffectCapture#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/recoverEffectCapture/recoverEffectCapture/recoverEffectCapture#4",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/requestOf/requestOf",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/requestOf/requestOf/components/components",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/requestOf/requestOf/requestOf",
@@ -9951,6 +10116,8 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/settlement/settlement#4",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/retireEffectCapture/retireEffectCapture",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/retireEffectCapture/retireEffectCapture/flight/flight",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/retireEffectCapture/retireEffectCapture/flight/flight/selected/selected",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/retireEffectCapture/retireEffectCapture/flight/flight/selected/selected#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/retireEffectCapture/retireEffectCapture/flight/flight#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/retireIncompleteEffects/retireIncompleteEffects",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/retireTerminalEffects/retireTerminalEffects",
@@ -9982,15 +10149,15 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/subscribeWaitWork/subscribeWaitWork/subscribeWaitWork#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight#2",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight#3",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight/reads/init:assertCurrent/init:assertCurrent",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight#3",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight#4",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight/reads/init:assertCurrent/init:assertCurrent",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/init:assertCurrent/init:assertCurrent",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/renewal/renewal",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight#3",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/settlement/settlement",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/settlement/settlement#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/settlement/settlement#3",
@@ -9998,9 +10165,9 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/assertCurrent/assertCurrent",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/flight/flight",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/flight/flight/flight",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/flight/flight#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/flight/flight#3",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/flight/flight/flight",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/renewal/renewal",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/restorationReclaimed/restorationReclaimed",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/retainStoppedModelReconciliation/retainStoppedModelReconciliation",
@@ -10028,6 +10195,8 @@
             "openInstalledHost/openInstalledHost#7",
             "openInstalledHost/recoveredInstalledEffect",
             "openInstalledHost/recoveredInstalledEffect/descriptors/descriptors",
+            "openInstalledHost/releaseRequestDomainAliases",
+            "openInstalledHost/releaseRequestModelAliases",
             "openInstalledHost/requireModelSdkEagerStartup",
             "openInstalledHost/retireModelRuntime",
             "openInstalledHost/runtimeOriginals/runtimeOriginals",
@@ -11060,6 +11229,7 @@
             "readHostJournalPreparation",
             "readInstalledMockPreparation",
             "readSourceManagedRunRequirements",
+            "retireEffectCaptureResourceFrame",
             "sourceManagedSubmittedIntentCid"
           ],
           "exports": [
@@ -11559,6 +11729,14 @@
             "connectEmbeddedLocal/preparation/init:admitEffectResultPublicationRun/init:admitEffectResultPublicationRun",
             "connectEmbeddedLocal/preparation/init:installMockEffects/init:installMockEffects",
             "connectEmbeddedLocal/preparation/init:installMockEffects/init:installMockEffects/init:installMockEffects",
+            "connectEmbeddedLocal/preparation/init:prepareEffectCaptureRecovery/init:prepareEffectCaptureRecovery",
+            "connectEmbeddedLocal/preparation/init:prepareEffectCaptureRecovery/init:prepareEffectCaptureRecovery/current/current",
+            "connectEmbeddedLocal/preparation/init:prepareEffectCaptureRecovery/init:prepareEffectCaptureRecovery/init:retain/init:retain",
+            "connectEmbeddedLocal/preparation/init:prepareManagedContentGraph/init:prepareManagedContentGraph",
+            "connectEmbeddedLocal/preparation/init:prepareManagedContentGraph/init:prepareManagedContentGraph/init:prepareManagedContentGraph",
+            "connectEmbeddedLocal/preparation/init:prepareManagedModelBinding/init:prepareManagedModelBinding",
+            "connectEmbeddedLocal/preparation/init:prepareManagedModelGraph/init:prepareManagedModelGraph",
+            "connectEmbeddedLocal/preparation/init:prepareManagedModelMaterials/init:prepareManagedModelMaterials",
             "openInstalledHost/assertMockEffectRunOriginal",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#6",
             "openInstalledHost/mockEffectResources/init:assertCurrent/init:assertCurrent",
@@ -18288,7 +18466,7 @@
     },
     {
       "module": "adapters/host-node/local-values-plan.mjs",
-      "sha256": "7bf26a25ed7436009277c3fce30007912d782c17bf944148dff083cdf6ac04af",
+      "sha256": "b6ba3ec489486bac76ff079f5ce0030fc4c9bb0433ece8e088b638bcff0ecdde",
       "exports": [
         "acquiredEffectPublicationAdmission",
         "acquiredEffectPublicationPlan",
