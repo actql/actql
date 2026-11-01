@@ -69,7 +69,9 @@ fn sdk_payload_saved_read_current(
   }
   match
     @local_run.validate_local_sdk_read_source_current(
-      source, current.account, saved.result_name,
+      source,
+      current.account,
+      saved.result_name,
     ) {
     Err(Preflight(_)) => return Err(-35)
     Err(_) => return Err(-32)
@@ -133,7 +135,9 @@ fn sdk_payload_access_current(
       attempt_id,
       at,
       8,
-      (table, key) => sdk_run_journal_port(value, context.current, 1, table, key),
+      (table, key) => {
+        sdk_run_journal_port(value, context.current, 1, table, key)
+      },
       current,
     ).map_err(sdk_payload_codec_issue)
   }

@@ -67,7 +67,11 @@ test "saved payload access frame retains current revocation and stops further re
     },
     () => {
       checks.val += 1
-      if checks.val == 2 { Err(-35) } else { Ok(()) }
+      if checks.val == 2 {
+        Err(-35)
+      } else {
+        Ok(())
+      }
     },
     check => {
       for _ in 0..<3 {
@@ -93,7 +97,11 @@ test "saved payload access frame preserves the original read failure without rep
   let result = sdk_payload_read_current_frame(
     () => {
       full.val += 1
-      if full.val > 1 { Err(-9) } else { Ok(()) }
+      if full.val > 1 {
+        Err(-9)
+      } else {
+        Ok(())
+      }
     },
     () => Ok(()),
     _ => {
@@ -115,7 +123,11 @@ test "saved payload access frame rejects changed final originals before encoder 
   let result = sdk_payload_read_current_frame(
     () => {
       full.val += 1
-      if unchanged.val { Ok(()) } else { Err(-32) }
+      if unchanged.val {
+        Ok(())
+      } else {
+        Err(-32)
+      }
     },
     () => {
       checks.val += 1

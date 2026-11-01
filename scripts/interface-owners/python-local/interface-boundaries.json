@@ -72781,7 +72781,7 @@
     },
     {
       "module": "src/client_host_wasm/sdk_payload_bytes.mbt",
-      "sha256": "56d21fbd53950eacf05c3c630b4704eea0205b2189288fac17c79baf1cc81198",
+      "sha256": "3b2fb06732cf6e6aa7e338877a0da965942ad684da9faaf389224e053a467105",
       "exports": [],
       "operations": [
         {
