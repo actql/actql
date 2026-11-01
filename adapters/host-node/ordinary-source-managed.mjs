@@ -1091,7 +1091,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
     retainContentPreparation(prepared, request, contentPreparation) {
       current();
       const producer = producerForRequest(request), state = producer?.preparation;
-      if (state === undefined || state.prepared !== prepared || state.compilationFamily !== 'content' ||
+      if (state === undefined || state.prepared !== prepared || !['model', 'content'].includes(state.compilationFamily) ||
           state.holder === undefined || state.adopting || state.preparing ||
           contentPreparation?.prepared !== prepared || contentPreparation.retired ||
           typeof Object.getOwnPropertyDescriptor(contentPreparation, 'releaseAliases')?.value !== 'function' ||

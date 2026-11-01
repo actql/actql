@@ -3279,6 +3279,8 @@ async function openInstalledHost(originalInstallation, preparation) {
       : preparation.assertContentRunCurrent.bind(preparation),
     retainPreparation: preparation === undefined ? undefined
       : (prepared, original) => preparation.retainManagedContentPreparation(moon, prepared, original),
+    prepareModelManagedRun: preparation === undefined ? undefined
+      : (prepared, request, model) => preparation.prepareManagedModelRun(moon, prepared, request, model),
     prepareSerializationManagedRun: preparation === undefined ? undefined
       : (prepared, request, plan, limits, workspace, original) => preparation.prepareManagedSerializationRun(
         moon, prepared, request, plan, limits, workspace, original),
@@ -6117,9 +6119,9 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       finally {run.selecting = false;}
     },
     prepareManagedModelRun(runtime, prepared, request, model) {
-      const manager = sourceManaged;
+      const manager = sourceManaged ?? computeManaged;
       if (runtime !== moon || manager === undefined || typeof manager.prepareModelRun !== 'function' ||
-          record.mockSourceProfile === undefined || model.control !== runtimeCore(runtime).publicationControl) {
+          model.control !== runtimeCore(runtime).publicationControl) {
         throw clientOperationError('InstalledMockModelOperationalAdmissionUnavailable');
       }
       const releaseModelSelection = Object.getOwnPropertyDescriptor(originalInstallation,
@@ -6127,7 +6129,8 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       if (typeof releaseModelSelection !== 'function') {
         throw clientOperationError('NodeManagedRunRuntimeUnavailable');
       }
-      assertSourceManagedInstallationCurrent(manager, originals);
+      (sourceManaged === undefined ? assertManagedComputeInstallationCurrent
+        : assertSourceManagedInstallationCurrent)(manager, originals);
       const runs = record.computeRuns ??= new WeakMap(), liveRuns = record.computeLiveRuns ??= new Set();
       originalInstallation.computeRuns = runs;
       const prior = runs.get(prepared);
@@ -6150,6 +6153,22 @@ export async function connectEmbeddedLocal(options, initialEntry) {
         run.check = runtime.clientProgramInstalledManagedRunCheck;
         run.releaseModelAliases = model.releaseAliases;
         run.releaseModelSelection = releaseModelSelection;
+        if (model.serializationGraph !== undefined) {
+          const content = model.contentPreparation;
+          if (content?.prepared !== prepared || content.inputHolder === undefined ||
+              content.plan.compiled !== model.compiled || content.plan.runDefinition !== model.runDefinition ||
+              content.plan.serializationGraph !== model.serializationGraph ||
+              typeof Object.getOwnPropertyDescriptor(content, 'releaseAliases')?.value !== 'function' ||
+              typeof content.contentControl?.cleanupRequestPrefix !== 'function') {
+            throw clientOperationError('InstalledContentRunPreparationUnavailable');
+          }
+          run.contentPreparation = content;
+          run.releaseContentAliases = content.releaseAliases;
+          run.content = content.contentControl;
+          run.cleanupSerialization = content.contentControl.cleanupRequestPrefix;
+          run.serializationCleaned = false;
+          content.managed = run;
+        }
         if (![run.retire, run.check, run.releaseModelAliases, run.releaseModelSelection]
           .every(method => typeof method === 'function')) {
           throw clientOperationError('NodeManagedRunRuntimeUnavailable');
@@ -6161,7 +6180,8 @@ export async function connectEmbeddedLocal(options, initialEntry) {
         run.original = adopted.original; run.value = adopted.value; run.preparationFunded = true;
         run.preparedSequences = run.modelPlan = undefined;
         checked(Reflect.apply(run.check, runtime, [run.value, prepared, request]));
-        assertSourceManagedInstallationCurrent(manager, originals);
+        (sourceManaged === undefined ? assertManagedComputeInstallationCurrent
+        : assertSourceManagedInstallationCurrent)(manager, originals);
         return run;
       } catch (cause) {run.failure = cause; throw cause;}
       finally {run.selecting = false;}
@@ -6276,7 +6296,8 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       }
       // This private operation is called by the complete dispatch retirement
       // predicate, not by a terminal result projection or handler completion.
-      const contentRetirement = run.preparationKind === 'serialization-plan' || run.preparationKind === 'keyed-content-plan';
+      const contentRetirement = run.preparationKind === 'serialization-plan' || run.preparationKind === 'keyed-content-plan' ||
+        run.preparationKind === 'model-plan' && run.contentPreparation !== undefined;
       const mockSourceRetirement = run.mockSourceReads !== undefined;
       const effectRetirement = run.preparationKind === 'effect-plan';
       const effectValue = run.value, effectRequest = run.request, effectOriginal = run.original,
@@ -6323,7 +6344,8 @@ export async function connectEmbeddedLocal(options, initialEntry) {
           throw clientOperationError('ForeignInstalledEffectManagedRun');
         }
         if (run.preparationFunded) {
-          if (run.preparationKind === 'serialization-plan' && !run.serializationCleaned) {
+          if ((run.preparationKind === 'serialization-plan' || run.preparationKind === 'model-plan' &&
+              run.serialization !== undefined) && !run.serializationCleaned) {
             if (Reflect.apply(run.cleanupSerialization, run.content, [run.value, run.serialization]) !== true) {
               throw clientOperationError('InstalledContentRunCleanupPending');
             }

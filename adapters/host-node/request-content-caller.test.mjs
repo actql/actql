@@ -6,6 +6,7 @@ import {installNodeContentRun} from './installed-content-run.mjs';
 import {finishInstalledEffectModelScope} from './installed-effect-managed-run.mjs';
 import {contentGenerationControl} from '../host-common/runtime-core.mjs';
 import {localOutputLimits, localContractLimits} from './local-values-plan.mjs';
+import {cleanupRequestInput} from '../local-node/request-preparation-adapter.mjs';
 
 // Actual methods with explicit Core/current ports. These are not a compiled
 // Common ABI, a physical capacity admission or an ordinary Content receipt.
@@ -283,4 +284,124 @@ test('Request Content manager cuts its selected Plan alias before a consumed bor
   const sever=method('./ordinary-source-managed.mjs','severPreparation',{runs,fail,checked:v=>v});
   assert.throws(()=>sever(prepared,original),e=>e===primary);assert.equal(run.content,undefined);
   sever(prepared,original);assert.equal(returns,1);
+});
+
+
+function modelContentFixture({constructorFailure} = {}) {
+  const prepared = {}, request = {}, sdkRequest = {}, parent = {}, input = {}, compilation = {}, holder = {};
+  const graph = {}, component = {}, scope = {}, value = {}, original = {}, prefix = {}, calls = [];
+  const plan = {kind: 'infer', inferGraph: graph, serializationGraph: component,
+    compiled: {owner: prepared}, runDefinition: {wire: '{"valid_until":"2027-01-01T00:00:00.000Z"}'}};
+  const model = {compiled: plan.compiled, runDefinition: plan.runDefinition,
+    graph, serializationGraph: component, scope: undefined,
+    control: {}, releaseAliases() {
+      assert.equal(this, model); assert.equal(model.scope, undefined);
+      calls.push('model alias cut');
+    }};
+  let retired = false, returns = 0, retained;
+  const moon = {clientProgramAcquisitionCount: () => 0,
+    clientProgramPreparationBorrowRead: actual => {assert.equal(actual, holder); return prepared;},
+    clientProgramPreparationBorrowRetirementStarted: actual => {assert.equal(actual, holder); return retired;},
+    clientProgramPreparationBorrowReturn: actual => {assert.equal(actual, holder); returns++; return {$tag: 1, _0: true};},
+    clientProgramAbortRequestPreparation: actual => {assert.equal(actual, parent); retired = true; return {$tag: 1, _0: undefined};},
+    clientProgramInstalledManagedRunRetire() {assert.fail('No independent Model or Content parent retirement');},
+    clientProgramInstalledManagedRunCheck(v, p, r) {assert.deepEqual([v, p, r], [value, prepared, request]);},
+  };
+  const state = {prepared, parent, holder, compilationFamily: 'model', context: {runtime: moon}};
+  const producer = {receipt: input, preparation: state};
+  const retain = method('./ordinary-source-managed.mjs', 'retainContentPreparation', {
+    current() {}, producerForRequest: actual => {assert.equal(actual, sdkRequest); return producer;}, fail});
+  const record = {}, originals = {}, originalInstallation = {releaseRequestDomainAliases(p) {
+    assert.equal(p, prepared); calls.push('selection alias cut');
+  }};
+  const contentControl = {workspaceCapacity: () => ({}),
+    requestPrefixCapacity(actual) {assert.equal(actual, prefix); return {retainedBytes: 11n, executionBytes: 13n};},
+    cleanupRequestPrefix() {assert.fail('No prefix starts in constructor fixture');}};
+  const manager = {prepareModelRun(p, r, identity, m, construct) {
+    assert.deepEqual([p, r, identity, m], [prepared, sdkRequest, request, model]);
+    assert.equal(state.contentPreparation, retained);
+    assert.equal(retained.inputHolder, holder);
+    construct(parent, input, compilation);
+    model.scope = scope;
+    return {original, value};
+  }};
+  const ports = {sourceManaged: undefined, computeManaged: manager, moon, record, originals, originalInstallation,
+    runtimeCore: () => ({publicationControl: model.control}), checked: result => result,
+    assertManagedComputeInstallationCurrent() {}, originalSourceManagedHostRequest: () => sdkRequest,
+    clientOperationError: code => Object.assign(new Error(code), {code}), finishInstalledEffectModelScope,
+    prepareRequestMockModelPlan(o, run, m, c, p, i) {
+      assert.deepEqual([o, m, c, p, i], [originals, model, compilation, parent, input]);
+      assert.equal(record.computeRuns.get(prepared), run);
+      assert.equal(record.computeLiveRuns.has(run), true);
+      assert.equal(run.contentPreparation, retained);
+      assert.equal(retained.managed, run);
+      assert.equal(run.content, contentControl);
+      assert.equal(retained.plan, plan);
+      calls.push('same Model Request constructor');
+      if (constructorFailure) throw constructorFailure;
+      run.serialization = prefix;
+      return {};
+    }};
+  const prepare = method('./embedded-local.mjs', 'prepareManagedModelRun', ports);
+  const retire = method('./embedded-local.mjs', 'retireManagedComputeRun', ports);
+  const content = installNodeContentRun({moon, preparedRunRequired: true, assertRunCurrent() {},
+    registry: '{}', values: '{}', ownerPrincipal: 'owner', storeAuthorityCid: 'store', now: () => '2026-11-01T00:00:00.000Z',
+    authorize: () => true,
+    retainPreparation(p, actual) {
+      assert.equal(p, prepared); retained = actual;
+      actual.releaseSelection = originalInstallation.releaseRequestDomainAliases;
+      retain(prepared, sdkRequest, actual);
+      calls.push('same Request record retained');
+    },
+    prepareModelManagedRun: (p, r, m) => prepare(moon, p, r, m),
+    prepareSerializationManagedRun() {assert.fail('No separate terminal Content adoption');},
+    core: {contentGenerationControl: contentControl,
+      publicationControl: {checkClientCompiledRunOwner(c, p) {assert.equal(c.owner, p);},
+        checkedClientSerializationGenerationLimits: () => ({maxRows: 1, maxBytes: 128})}}});
+  const begin = () => content.prepareModelRun({preparedProgram: prepared, plan, request, model});
+  return {begin, content, state, model, calls, prepared, plan, request, record,
+    retained: () => retained, returns: () => returns,
+    abort: () => cleanupRequestInput(state, p => {assert.equal(p, prepared); retire(p);})};
+}
+
+test('Model Content caller retains the same Request and Host record before one shared constructor', () => {
+  const f = modelContentFixture(); f.begin(); f.begin();
+  const original = f.retained(), run = f.record.computeRuns.get(f.prepared);
+  assert.equal(f.state.contentPreparation, original);
+  assert.equal(f.model.contentPreparation, original);
+  assert.equal(original.managed, run);
+  assert.equal(run.serializationCleaned, false);
+  assert.equal(typeof f.content.generate, 'function');
+  assert.deepEqual(f.calls, ['same Request record retained', 'same Model Request constructor']);
+});
+
+test('Model Content caller preserves partial constructor failure until same Request abort and original holder retirement', () => {
+  const primary = new Error('original mixed constructor'), f = modelContentFixture({constructorFailure: primary});
+  assert.throws(f.begin, cause => cause === primary);
+  assert.throws(f.begin, cause => cause === primary);
+  const original = f.retained();
+  assert.equal(f.state.contentPreparation, original);
+  assert.equal(f.model.contentPreparation, original);
+  assert.equal(f.record.computeRuns.get(f.prepared).failure, primary);
+  assert.throws(() => Reflect.apply(original.releaseAliases, original, [undefined, original.inputHolder]),
+    /InstalledContentRunCleanupPending/);
+  f.abort();
+  assert.equal(original.retired, true);
+  assert.equal(original.plan, undefined);
+  assert.equal(original.model, undefined);
+  assert.equal(f.state.contentPreparation, undefined);
+  assert.equal(f.returns(), 1);
+  assert.equal(f.record.computeLiveRuns.size, 0);
+  assert.throws(f.begin, /ForeignInstalledContentRun/);
+  assert.equal(f.calls.filter(value => value === 'same Model Request constructor').length, 1);
+});
+
+test('Model Content generate refuses missing original preparation before writer or prefix starts', async () => {
+  const f = modelContentFixture();
+  await assert.rejects(() => f.content.generate({preparedProgram: f.prepared, plan: f.plan,
+    store: {storeAuthorityCid: 'store', status: () => ({closed: false}),
+      createPreparedObjectWriter() {assert.fail('No Store child before original preparation');}},
+    principalId: 'owner', retainExecution() {assert.fail('No generated child before original preparation');}}),
+  /InstalledContentRunPreparationUnavailable/);
+  assert.deepEqual(f.calls, []);
 });

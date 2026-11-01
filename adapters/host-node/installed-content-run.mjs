@@ -17,7 +17,8 @@ import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.
 export function installNodeContentRun({moon, core, registry, values, fragment, ordered,
   namespaceId, authorityScopeCid, storeAuthorityCid, ownerPrincipal, now, authorize,
   faultInjection, assertRunCurrent, preparedRunRequired = false,
-  prepareKeyedManagedRun, borrowKeyedManagedLedger, prepareSerializationManagedRun, retainPreparation}) {
+  prepareKeyedManagedRun, borrowKeyedManagedLedger, prepareSerializationManagedRun,
+  prepareModelManagedRun, retainPreparation}) {
   const control = core.contentGenerationControl;
   const publications = core.publicationControl;
   const bodies = {registry, values, fragment, ordered};
@@ -101,12 +102,15 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
     }};
   };
   const execute = async ({preparedProgram, plan, store, principalId, signal, retainExecution,
-    acquiredContent}) => {
+    acquiredContent}, intermediate = false) => {
     publications.checkClientCompiledRunOwner(plan.compiled, preparedProgram);
-    if (plan.kind !== 'serialization' ||
+    if (plan.kind !== (intermediate ? 'infer' : 'serialization') ||
         plan.serializationGraph === undefined || principalId !== ownerPrincipal ||
         store.storeAuthorityCid !== storeAuthorityCid || typeof retainExecution !== 'function') {
       throw new TypeError('InvalidInstalledContentRun');
+    }
+    if (intermediate && acquiredContent !== undefined) {
+      throw new TypeError('InstalledModelCapturedContentPreparationUnavailable');
     }
     const {task, step} = plan.serializationGraph;
     const compiledLimits = publications.checkedClientSerializationGenerationLimits(
@@ -158,7 +162,7 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
       throw new TypeError('Foreign Content acquisition ledger');
     }
     let prefix, input, writer, physical, byteHolding, retained, publication;
-    let failureCleanup, cleanupFlight, cleaned = false;
+    let failureCleanup, cleanupFlight, cleaned = false, generatedRetained = false;
     let work = 0n;
     const remainingWork = () => Number(BigInt(prefixLimits.maxWork) - work);
     const chargeWork = delta => {
@@ -202,9 +206,10 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
           if (status.operationPending !== false || status.preparedPending !== false ||
               (status.committed !== true && status.abandoned !== true)) return false;
         }
-        // This terminal composition owns only its original publication. The
-        // separate Effect Content family retains its own intermediate holdings.
-        if (committed === undefined) {
+        // A retained intermediate generation keeps its original committed
+        // holdings for the Model's fixed-input receipt, including Unknown.
+        // Unreturned/failed generation stays on this same cleanup record.
+        if (committed === undefined && !generatedRetained) {
           retired = true;
           for (const cid of [byteHolding?.holding_cid,
             ...(retained?.bindings ?? []).map(binding => binding.holdingCid)].filter(Boolean)) {
@@ -293,6 +298,24 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
         inputEvidence, candidate, content, live, completionLimits);
       await retainGeneratedContentEvidence({store, publications, compiled: plan.compiled,
         generation, signal, retainHoldings(_holdings, recovery) { retained = recovery; }});
+      if (intermediate) {
+        generatedRetained = true;
+        const capturedContentRecovery = acquiredContent?.keyedContent?.recoveryInventory();
+        if (acquiredContent?.keyedContent !== undefined && capturedContentRecovery === undefined) {
+          throw new Error('InstalledCapturedContentInventoryUnavailable');
+        }
+        return Object.freeze({generation,
+          capturedContentRecovery,
+          capturedContentBinding: acquiredContent?.keyedContent?.sourceBinding,
+          sourceEvidence: acquiredContent === undefined ? [] :
+            [acquiredContent.sourceEvidence, acquiredContent.keyedSourceEvidence].filter(Boolean),
+          recoveryBindings: retained.bindings,
+          // The Model fixed-input receipt authenticates this exact inventory
+          // together with its original rows. It is not fresh generation proof.
+          recovery: Object.freeze({referenceWire: description.wire,
+            binding: Object.freeze({...binding}), byteHoldingCid: byteHolding.holding_cid,
+            bindings: Object.freeze(retained.bindings.map(value => Object.freeze({...value})))})});
+      }
       publication = serializationTaskPublicationPlan({moon, control: publications,
         preparedProgram, admitted: plan, generation, authorityScopeCid,
         namespaceId, storeAuthorityCid, now,
@@ -347,6 +370,47 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
       assertRunCurrent();
     } catch (error) {if (!original.retired) {original.failed = true; original.failure = error;} throw error;}
   };
+  // Intermediate Model generation uses the same Request/Run as its Model
+  // Scope. Retain the original Content record before the Host constructor;
+  // no separate Content completion, adoption or scalar Ledger is selected.
+  run.prepareModelRun = ({preparedProgram, plan, request, model}) => {
+    if (!preparedRunRequired || typeof assertRunCurrent !== 'function' ||
+        typeof prepareModelManagedRun !== 'function' || typeof retainPreparation !== 'function' ||
+        request === undefined) throw new TypeError('InstalledContentRunPreparationUnavailable');
+    assertRunCurrent();
+    publications.checkClientCompiledRunOwner(plan.compiled, preparedProgram);
+    if (plan.kind !== 'infer' || plan.serializationGraph === undefined ||
+        moon.clientProgramAcquisitionCount(preparedProgram) !== 0 ||
+        model?.compiled !== plan.compiled || model.runDefinition !== plan.runDefinition ||
+        model.graph !== plan.inferGraph || model.serializationGraph !== plan.serializationGraph) {
+      throw new TypeError('InstalledContentRunPreparationUnsupported');
+    }
+    const prior = preparedRuns.get(preparedProgram);
+    if (prior !== undefined) {
+      if (prior.retired || prior.plan !== plan || prior.request !== request || prior.model !== model ||
+          prior.attempted) throw new TypeError('ForeignInstalledContentRun');
+      if (prior.failed) throw prior.failure;
+      return;
+    }
+    if (preparedRunCount === 4096) throw new TypeError('InstalledContentRunLimit');
+    preparedRunCount++;
+    const original = {prepared: preparedProgram, plan, request, model, attempted: false,
+      capacity: undefined, managed: undefined, inputHolder: undefined, localPreparation: undefined,
+      releaseSelection: undefined, contentControl: control, prefixLimits, workspace,
+      retired: false, failed: false, failure: undefined};
+    preparedRuns.set(preparedProgram, original);
+    try {
+      retainOriginalPreparation(preparedProgram, original);
+      model.contentPreparation = original;
+      original.managed = prepareModelManagedRun(preparedProgram, request, model);
+      if (original.managed?.value === undefined || original.managed.serialization === undefined) {
+        throw new TypeError('InstalledContentRunPreparationUnavailable');
+      }
+      original.capacity = control.requestPrefixCapacity(original.managed.serialization);
+      assertRunCurrent();
+    } catch (error) {if (!original.retired) {original.failed = true; original.failure = error;} throw error;}
+  };
+  run.generate = options => execute(options, true);
   // The selected existing Source owner creates the same-Run Content parent
   // before durable admission or I/O. This finite prefix recipe is DATA; the
   // callback must retain its real Resource original and partial cleanup.

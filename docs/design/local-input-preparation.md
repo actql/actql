@@ -4041,8 +4041,8 @@ handler and dispatch borrows and finishes that same parent. A refused
 construction retains its partial module and issued Scope for original cleanup;
 pending children or an unacknowledged Scope cannot become alias retirement.
 An inventory shape selects custody only when the same Request supplies an
-actual Core borrower. It does not authorize Model construction or adopt Content
-into this Model route.
+actual Core borrower. That inventory alone does not authorize Model construction
+or retain the Content component of a serialized Model.
 
 These input and handoff contracts do not supply physical backing. Complete
 compiler, module, provider, codec, output, constructor and failed-child overlap
@@ -4061,10 +4061,11 @@ Host, generation, Store, output or failed-child backing.
 The selected serialization Plan's record and its Ledger limits are reserved on
 that same Request before the prefix constructor. Their field inventory is
 separate from the compiler artifact and from the provider, output and physical
-Store domains. Model Scope and Content construction are mutually exclusive and
-share the Request's existing absolute-quote slot. A declined grow preserves
-that target; continuing it does not add the record again. Reentry cannot select
-another constructor or retire the parent while the original grow is active.
+Store domains. Model Scope and Content constructors use the Request's existing
+absolute-quote slot sequentially. Their completed originals can coexist in
+separate retained fields. A declined grow preserves that target; continuing it
+does not add the record again. Reentry cannot select another constructor or
+retire the parent while the original grow is active.
 
 The installed Content cleanup retains physical writer/holding duties before
 settling its original prefix. A failed prefix start remains reachable through
@@ -4073,6 +4074,32 @@ that prefix's acknowledged cleanup once before parent payload severing; a later
 consumed-borrow settlement failure retries the original parent continuation,
 not a new prefix or a query of a severed Content payload. Keyed Content and
 intermediate Model serialization remain distinct constructor purposes.
+
+### Serialized Model on the original Request
+
+The Request retains the checked Serialization component before constructing its
+Model Graph. The Model constructor measures that same original component and
+retains its completed prefix and consumer lowerings. The composed Task compiler
+carries the original Content graph and Content contract profile through its
+artifact; it does not parse a graph wire or issue a replacement component.
+
+A source-free serialized Model retains its prefix provider, compiler, Request,
+Definition and workspace before constructing its configured module. The typed
+Request Plan binds that same module and prefix. A module-only Plan cannot drop
+the Content component. The Model Scope and Content prefix remain independent
+live duties on the same adopted Run, with additive requirements checked against
+the original parent. Prefix construction uses the existing parsed-input extent
+while the Model Graph and compiler stay retained; the Plan link fields have
+their own fixed record inventory. These are construction and overlap debits,
+not execution permission or a replacement physical supplier.
+
+Starting the prefix reserves its actual attempt and bytes on that same adopted
+Run. It explicitly selects the existing neutral quantity amount because prefix
+execution consumes no Model tokens, cost or duration. The original Ledger still
+checks configuration, currentness and each limit. A prefix ACK cannot finish a
+Model Scope, acknowledge a Store writer or return another Request borrower.
+Failed construction retains the same prefix and compiler for original cleanup;
+retirement prevents a replacement prefix or a consumed borrower from reissuing.
 
 ### Original Contract Value body construction
 
