@@ -140,7 +140,11 @@ class OriginalStoreReconciliation:
                 raise ValueError('Original saved Host current port is unavailable')
             self._saved_current()
             self._projection._current()
-            self._validate_facts()
+            # Reobserve the already admitted immutable material here. The
+            # selected Core action and post-consumer validators still perform
+            # their complete original Source/Account/current checks.
+            for fact in self._facts:
+                fact.observe_original_material()
             self._saved_current()
             return
         if self._publisher is None:
