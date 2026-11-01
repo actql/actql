@@ -1,4 +1,6 @@
 import test from 'node:test';
+import {readFile} from 'node:fs/promises';
+import {parse} from 'acorn';
 import assert from 'node:assert/strict';
 import {createServer} from 'node:http';
 import {createClientHttpHandler} from './client-http.mjs';
@@ -975,3 +977,179 @@ test('HTTP publication current refusal keeps its primary and still finishes the 
   assert.throws(() => prepare('submit-intent', request), error => error === primary);
   assert.deepEqual(events, ['operation', 'snapshot']);
 });
+
+
+// Keep the whole HTTP handler and all real wire/preparation imports. Only the
+// existing Result service entrance is an explicit delivery port in this Source
+// component; no grant, Core, actual Host or durable Result is claimed here.
+async function httpHandlerWithDeliveryPort() {
+  const file = new URL('./client-http.mjs', import.meta.url);
+  const source = await readFile(file, 'utf8');
+  const ast = parse(source, {sourceType: 'module', ecmaVersion: 'latest'});
+  const imports = ast.body.filter(node => node.type === 'ImportDeclaration');
+  assert.equal(imports.filter(node => node.source.value === './result-access.mjs').length, 1);
+  const port = `export const deliverAuthorizedResult = (service, ...args) => service.deliver(...args);
+    export const describeAuthorizedResult = () => { throw new Error('UnselectedDescriptionPort'); };
+    export const inspectAuthorizedDeliveryAttempt = () => { throw new Error('UnselectedLookupPort'); };`;
+  let projected = source;
+  for (const node of [...imports].reverse()) {
+    const specifier = node.source.value === './result-access.mjs'
+      ? 'data:text/javascript;base64,' + Buffer.from(port).toString('base64')
+      : new URL(node.source.value, file).href;
+    projected = projected.slice(0, node.source.start) + JSON.stringify(specifier) +
+      projected.slice(node.source.end);
+  }
+  return (await import('data:text/javascript;base64,' +
+    Buffer.from(projected).toString('base64'))).createClientHttpHandler;
+}
+
+test('HTTP read response close releases its original Request when end callback is absent',
+  {timeout: 10000}, async () => {
+    const createHandler = await httpHandlerWithDeliveryPort();
+    const events = [];
+    const finishes = [];
+    let handlerSettled = false, originalEndCallback;
+    let responseClosed;
+    const closed = new Promise(resolve => { responseClosed = resolve; });
+    const handler = createHandler({
+      authenticate: () => 'principal', authorizeConnection: () => true,
+      prepareRequest(operation, original) {
+        assert.equal(operation, 'read');
+        return {body: original, bindRequest() {}, beforeReply() {},
+          finish(terminal) {finishes.push(terminal); events.push('request-finished');}};
+      },
+      resultService: {async deliver(request, sink, signal) {
+        assert.equal(request.resultName, 'answer');
+        assert.equal(signal.aborted, false);
+        await sink.write(Buffer.from('{"value":1}\n'));
+        await sink.finish();
+        events.push('delivery-port-returned');
+      }},
+    });
+    await withServer((request, response) => {
+      const end = response.end;
+      response.end = function(...args) {
+        originalEndCallback = args.at(-1);
+        assert.equal(typeof originalEndCallback, 'function');
+        events.push('native-end-invoked');
+        // Exercise callback loss at the existing physical edge. The original
+        // native end still runs, and its real close event is observed. The
+        // selected original callback is never invoked by this fixture.
+        return Reflect.apply(end, this, args.slice(0, -1));
+      };
+      response.once('close', () => {
+        events.push('native-response-close');
+        assert.equal(response.writableEnded, true);
+        responseClosed();
+      });
+      handler(request, response).then(() => {
+        handlerSettled = true; events.push('handler-returned');
+      });
+    }, async base => {
+      const response = await fetch(`${base}/actql/client/0.1/read`, {
+        method: 'POST', headers: {'content-type': 'application/json'},
+        body: JSON.stringify({connection: {mode: 'remote', owner: 'remote',
+          runners: [], consentRefs: []}, ref, resultName: 'answer',
+          format: 'jsonl', attemptId: 'read-end-close'}),
+        signal: AbortSignal.timeout(2000),
+      });
+      assert.equal(response.status, 200);
+      assert.equal(await response.text(), '{"value":1}\n\x1e');
+      await closed;
+      await new Promise(resolve => setImmediate(resolve));
+      await new Promise(resolve => setImmediate(resolve));
+      assert.equal(typeof originalEndCallback, 'function');
+      assert.deepEqual(events.slice(0, 3), [
+        'delivery-port-returned', 'native-end-invoked', 'native-response-close']);
+      assert.equal(handlerSettled, true, 'Original HTTP handler must settle after physical response close without inventing an end callback ACK');
+      assert.deepEqual(finishes, ['failed']);
+    });
+  });
+
+// The same whole-handler component, with real ServerResponse callback/close
+// events and explicit delivery/preparation ports; no Result authority is issued.
+async function httpReadEndSettlement(mode) {
+  const createHandler = await httpHandlerWithDeliveryPort();
+  const primary = new Error('OriginalResponseFailure');
+  const late = new Error('LateNativeCallbackFailure');
+  const finishes = [], destroys = [], physicalErrors = [];
+  let originalCallback, nativeCallbacks = 0, responseObject;
+  let ended;
+  const handlerEnded = new Promise(resolve => { ended = resolve; });
+  const handler = createHandler({
+    authenticate: () => 'principal', authorizeConnection: () => true,
+    prepareRequest(_operation, original) {
+      return {body: original, bindRequest() {}, beforeReply() {},
+        finish(terminal) {finishes.push(terminal);}};
+    },
+    resultService: {async deliver(_request, sink) {
+      await sink.write(Buffer.from('{"value":1}\n'));
+      await sink.finish();
+    }},
+  });
+  await withServer((request, response) => {
+    responseObject = response;
+    // Retain the physical error for identity assertions; this fixture owns it.
+    response.on('error', error => { physicalErrors.push(error); });
+    const end = response.end, destroy = response.destroy;
+    response.destroy = function(error) {
+      destroys.push(error);
+      return Reflect.apply(destroy, this, [error]);
+    };
+    response.end = function(...args) {
+      originalCallback = args.at(-1);
+      assert.equal(typeof originalCallback, 'function');
+      if (mode === 'native-ack') {
+        args[args.length - 1] = function(...callbackArgs) {
+          nativeCallbacks++;
+          return Reflect.apply(originalCallback, this, callbackArgs);
+        };
+        return Reflect.apply(end, this, args);
+      }
+      const answer = Reflect.apply(end, this, args.slice(0, -1));
+      if (mode === 'error-first') response.emit('error', primary);
+      return answer;
+    };
+    handler(request, response).then(ended);
+  }, async base => {
+    // Transport failure is not classified as a known refusal or successful
+    // delivery here. The assertions concern the original handler's lifetime.
+    try {
+      const response = await fetch(`${base}/actql/client/0.1/read`, {
+        method: 'POST', headers: {'content-type': 'application/json'},
+        body: JSON.stringify({connection: {mode: 'remote', owner: 'remote',
+          runners: [], consentRefs: []}, ref, resultName: 'answer',
+          format: 'jsonl', attemptId: 'read-end-settlement'}),
+        signal: AbortSignal.timeout(2000),
+      });
+      await response.arrayBuffer();
+    } catch {}
+    await handlerEnded;
+    await new Promise(resolve => setImmediate(resolve));
+    assert.deepEqual(finishes, [mode === 'native-ack' ? 'returned' : 'failed']);
+    assert.equal(nativeCallbacks, mode === 'native-ack' ? 1 : 0);
+    assert.equal(responseObject.listenerCount('close'), 0);
+    assert.equal(responseObject.listenerCount('error'), 1); // Only fixture owner.
+    if (mode === 'error-first') assert.strictEqual(destroys[0], primary);
+    if (mode !== 'native-ack') {
+      const before = [...destroys];
+      // Deliberately late/duplicate callbacks are fault DATA after physical
+      // close and original lifetime settlement, never a synthetic native ACK.
+      originalCallback();
+      originalCallback(late);
+      await new Promise(resolve => setImmediate(resolve));
+      assert.deepEqual(finishes, ['failed']);
+      assert.deepEqual(destroys, before);
+    }
+    return {finishes, physicalErrors};
+  });
+}
+
+test('HTTP read native end callback ACK releases its Request and listeners',
+  {timeout: 10000}, () => httpReadEndSettlement('native-ack'));
+
+test('HTTP read close rejects once and ignores late duplicate end callbacks',
+  {timeout: 10000}, () => httpReadEndSettlement('close-first'));
+
+test('HTTP read response error retains its primary through close and late callbacks',
+  {timeout: 10000}, () => httpReadEndSettlement('error-first'));
