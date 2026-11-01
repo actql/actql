@@ -180,9 +180,13 @@ assert.deepEqual(order, ['dependency', 'host', 'connect']);
 });
 
 test('disabled or failed optional cache statuses never become a Local admission decision', async () => {
-  for (const mode of ['disabled', 'failed']) await check(`
+  await check(`
 const client = await node.open();
 assert.equal(client.originalClient, true);
 assert.deepEqual(order, ['enable', 'dependency', 'host', 'enable', 'connect']);
-`, {mode});
+module.enableCompileCache = () => {order.push('declined'); return {status: 'failed'};};
+syncBuiltinESMExports();
+assert.equal((await node.open()).originalClient, true);
+assert.deepEqual(order.slice(5), ['declined', 'declined', 'connect']);
+`, {mode: 'disabled'});
 });
