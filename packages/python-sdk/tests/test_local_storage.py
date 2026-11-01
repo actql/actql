@@ -15,6 +15,28 @@ from actql_sdk._local_storage import (LocalByteStore, LocalStorageError,
 
 
 class LocalPhysicalStorageTests(unittest.TestCase):
+    def test_original_fence_set_matches_exact_bytes_in_one_physical_read(self) -> None:
+        with TemporaryDirectory(prefix='actql-exact-fence-set-') as directory:
+            with self.store(Path(directory) / 'core.sqlite') as store:
+                rows = (("original'[]", 0, b'{"missing":null}'),
+                        ('e\u0301', 0, b'original\r\nbytes'),
+                        ('empty', 0, b''))
+                for key, generation, payload in rows:
+                    self.assertEqual(store.compare_exchange(key, None, payload), generation)
+                statements = []
+                store._connection.set_trace_callback(statements.append)
+                database = store._physical
+                database.begin_read()
+                try:
+                    self.assertTrue(database._match_rows(rows))
+                finally:
+                    database.finish_read()
+                    store._connection.set_trace_callback(None)
+                reads = [sql for sql in statements if 'FROM core_bytes' in sql]
+                self.assertEqual(len(reads), 1, reads)
+                self.assertFalse(any(sql.startswith(('INSERT', 'UPDATE', 'DELETE', 'COMMIT'))
+                                     for sql in statements))
+
     def store(self, path: Path, *, records: int = 4, row: int = 128,
               total: int = 256) -> LocalByteStore:
         return LocalByteStore(path, max_records=records, max_record_bytes=row,

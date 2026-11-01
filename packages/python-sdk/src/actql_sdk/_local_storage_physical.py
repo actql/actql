@@ -204,6 +204,36 @@ class _SQLiteByteDatabase:
             ORDER BY key COLLATE BINARY LIMIT 1''', (max_bytes, lower, upper)).fetchone()
         return cast(tuple[object, object, object, object, object] | None, raw)
 
+    def _match_rows(self, rows: tuple[tuple[str, int, bytes], ...]) -> bool:
+        """Compare bounded original bytes in this transaction; no grant or write."""
+        if type(rows) is not tuple or not 1 <= len(rows) <= 32:
+            raise ValueError('Invalid original physical fence set')
+        used = 0
+        keys: set[str] = set()
+        for row in rows:
+            if (type(row) is not tuple or len(row) != 3
+                    or type(row[0]) is not str or not row[0]
+                    or type(row[1]) is not int or not 0 <= row[1] < 2**63
+                    or type(row[2]) is not bytes):
+                raise ValueError('Invalid original physical fence')
+            key, generation, payload = row
+            encoded = key.encode('utf-8')
+            if len(encoded) > 4096 or key in keys:
+                raise ValueError('Invalid original physical fence key')
+            keys.add(key)
+            used += len(encoded) + len(payload) + 8
+            if used > 8192:
+                raise ValueError('Original physical fence set exceeds its query holding')
+        before = self._snapshot_identity()
+        matched = True
+        for key, generation, payload in rows:
+            actual = self.read_row(key, len(payload))
+            if actual != (generation, payload, 'blob', len(payload)):
+                matched = False
+        if self._snapshot_identity() != before:
+            raise ValueError('Original physical fence snapshot changed')
+        return matched
+
     def read_capacity(self, namespace: str, key: str) -> tuple[int, int] | None:
         return cast(tuple[int, int] | None, self._connection.execute(
             '''SELECT reserved_bytes, reserved_objects
