@@ -7424,7 +7424,7 @@
   {
     "module": "src/connectors/sheets/host_node/range_construction.mbt",
     "responsibilityFacet": "primary",
-    "sha256": "4785cabb6a8e4b27e499fdfbbcb20ab2ee2d733e94823c958d52a07bbc356ef3",
+    "sha256": "0c417f0b84e00e145f5dbbfeb8fae1ab313fd120985d67718742de0f40b587af",
     "operations": [
       {
         "name": "sheets_clear_capture_construction_profile",

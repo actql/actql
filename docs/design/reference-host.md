@@ -1931,6 +1931,15 @@ failure. The immutable admitted protocol holder is retained before subsequent
 current/reconcile callbacks. No second parser, protocol meaning, quota,
 Resource owner, permission or physical acknowledgement is introduced.
 
+Range/clear request payload and target serialization use the existing
+preserving canonical codec; their framed request identity hashes the original
+UTF8 parts. They do not invoke configuration NFC normalization. The native
+request quantity therefore keeps its parser/index, Json/canonical forests,
+writer, byte preimages and Host output backing without adding a normalization
+constructor that this path never calls. Binding and recovery configuration
+identity retain their distinct normalization obligations. This changes no
+payload spelling, request identity, refusal guard or installed resource ceiling.
+
 The actual range/clear driver supplies its same immutable Command definition,
 constructor descriptor and original native binding profile to the existing
 standard Effect Plan composer. It does not supply an independently handwritten

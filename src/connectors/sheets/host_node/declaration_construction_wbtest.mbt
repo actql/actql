@@ -225,3 +225,49 @@ test "closed Command output retains its Host forests separately from native temp
   assert_eq(@execution.execution_capacity_retained_bytes(before), 11L + peak)
   assert_eq(@execution.execution_capacity_retained_bytes(after), 11L + retained)
 }
+
+///|
+test "two original range request constructors do not reserve a nonexistent payload normalization" {
+  // SAME existing installer body limits and original range schema. The two
+  // native request occurrences alone must fit the unchanged Local ceiling;
+  // this necessary condition is not full Plan or HTTP/Store admission.
+  let metadata : @catalog.RangeConstructionMetadata = {
+    columns: 3,
+    rows: 2,
+    name_units: 14L,
+    schema_bytes: 147L,
+    origin_units: 32,
+    spreadsheet_units: 4,
+    target_units: 500,
+    range: {
+      sheet_id: 7,
+      start_row: 2,
+      end_row: 4,
+      start_column: 0,
+      end_column: 3,
+    },
+    limits: {
+      max_bytes: 300000,
+      max_nodes: 200000,
+      max_depth: 32,
+      max_cells: 6400,
+    },
+  }
+  for clear in [false, true] {
+    let original = sheets_range_request_capacity(
+      metadata, 100000, 10000, 16, clear,
+    ).unwrap()
+    let pair = @execution.add_execution_capacity(original, original).unwrap()
+    let admitted = @client_host.client_local_preparation_initial_limits(
+      @client_host.client_local_resource_policy(),
+    ).unwrap()
+    assert_true(
+      @execution.execution_capacity_retained_bytes(pair) <=
+      admitted.retained_bytes,
+    )
+    assert_true(
+      @execution.execution_capacity_execution_bytes(pair) <=
+      admitted.execution_bytes,
+    )
+  }
+}
