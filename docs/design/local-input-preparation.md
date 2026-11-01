@@ -5164,3 +5164,25 @@ existing error projection, which retains failures and partial output on that
 Request. The fixed callback is transient; no additional graph or constructor
 alias is retained. Foreign/current/reentry fences, adoption, Scope and physical
 cleanup responsibilities remain with their existing owners.
+
+
+### Model selector and module use retained invocation originals
+
+The installed Model constructor selects its single Source input with the same
+Prepared and original Request already retained by the Host carrier. It uses the
+existing selected-input kind and optional reference projections. An unavailable
+projection, absent reference or unsupported input kind refuses before provider
+selection and module construction; a Query failure never selects another route.
+
+Compiled Run and Definition objects exposed by the runtime facade are views.
+The existing source-free, Mock-capture and provider-capture module bindings look
+up their opaque originals in that same facade's private maps before invoking
+their fixed typed constructors. They forward the original Request, raw Task
+compilation, declarations, provider capacities, contracts, QueryTime and optional
+original-component binder unchanged. A copied or foreign view never enters a
+native constructor. No token is parsed from wire, copied or reissued.
+
+The returned module remains on the original Host record before the next current
+check or Plan binding. Failures retain the same partial prefix/module and parent
+for existing cleanup. The binding adds no retained constructor/token alias and
+changes no reservation, Scope, Source/read, Store, adoption or retirement owner.

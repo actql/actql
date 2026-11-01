@@ -16935,6 +16935,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original installed Model read recipe"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model selector and module use retained invocation originals"
               }
             ],
             "inputsOutputs": [
@@ -16961,6 +16965,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original installed Model read recipe"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model selector and module use retained invocation originals"
               }
             ],
             "identity": [
@@ -16987,6 +16995,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original installed Model read recipe"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model selector and module use retained invocation originals"
               }
             ],
             "ownership": [
@@ -17013,6 +17025,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original installed Model read recipe"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model selector and module use retained invocation originals"
               }
             ],
             "synchronization": [
@@ -17039,6 +17055,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original installed Model read recipe"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model selector and module use retained invocation originals"
               }
             ],
             "failure": [
@@ -17065,6 +17085,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original installed Model read recipe"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model selector and module use retained invocation originals"
               }
             ],
             "cancellation": [
@@ -17091,6 +17115,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original installed Model read recipe"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model selector and module use retained invocation originals"
               }
             ],
             "resources": [
@@ -17117,6 +17145,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original installed Model read recipe"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model selector and module use retained invocation originals"
               }
             ],
             "extension": [
@@ -17143,6 +17175,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original installed Model read recipe"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model selector and module use retained invocation originals"
               }
             ],
             "verification": [
@@ -17181,6 +17217,14 @@
               {
                 "path": "adapters/host-node/installed-model-registration.test.mjs",
                 "anchor": "installed read recipe"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model selector and module use retained invocation originals"
+              },
+              {
+                "path": "adapters/host-node/request-model-plan.test.mjs",
+                "anchor": "Request Model module unwraps same compiler and Definition before its existing native constructor"
               }
             ]
           }
@@ -18852,7 +18896,7 @@
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "b13dbd1c2b5f18bdc51ffb193ae5ec6b7c28a5e6fab897c12fde17f1fd88182f"
+      "sha256": "e1d149ff1c0508a19d63a7b5a6a8d1f6b4203cf230db6383b24e0979c5e984cf"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
