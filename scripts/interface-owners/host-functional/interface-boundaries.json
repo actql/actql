@@ -54512,7 +54512,7 @@
               },
               {
                 "path": "adapters/host-node/initial-control-image-source.test.mjs",
-                "anchor": "without rereading"
+                "anchor": "a pre-close refusal stays pending without retrying the original integer or read"
               },
               {
                 "path": "adapters/host-node/initial-control-installation-owner.cjs",
@@ -54672,7 +54672,7 @@
               },
               {
                 "path": "adapters/host-node/initial-control-image-source.test.mjs",
-                "anchor": "without rereading"
+                "anchor": "a pre-close refusal stays pending without retrying the original integer or read"
               },
               {
                 "path": "adapters/host-node/initial-control-installation-owner.cjs",
