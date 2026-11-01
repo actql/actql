@@ -3,7 +3,7 @@
 #define ACTQL_COMPILER_CORE_ABI_H
 #include <stddef.h>
 typedef struct { const char *name; const char *parameters; const char *result; } actql_compiler_signature;
-#define ACTQL_COMPILER_CORE_ABI 85
+#define ACTQL_COMPILER_CORE_ABI 84
 static const actql_compiler_signature actql_compiler_imports[] = {
     {"execution_child_admit", "i64", "i32"},
     {"execution_child_capacity", "i64 i32", "i64"},

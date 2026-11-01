@@ -194,18 +194,16 @@ class OriginalHostBinding:
         A known-row fence alone cannot certify absence of another member after
         a different transaction. Core retains all original semantic decisions.
         """
-        found: list[tuple[str, bytes, int]] = []
-        def receive(row: tuple[str, StoredBytes] | None) -> None:
-            if row is not None:
-                found.append((row[0], row[1].payload, row[1].generation))
-        reader.scan_after('client_local_adoption', '', receive)
-        if (len(found) != 1 or found[0][0] != 'adoption' or found[0][2] != 0
-                or found[0][1] != self._fences[0].payload):
+        query = reader.query_current
+        if query is None:
+            raise ValueError('Original Local owned inventory query is unavailable')
+        found: tuple[str, StoredBytes] | None = query(
+            reader, 0, 'client_local_adoption', '', self._current_observer)
+        if (found is None or found[0] != 'adoption' or found[1].generation != 0
+                or found[1].payload != self._fences[0].payload):
             raise LocalStorageError('Original Local adoption singleton changed')
-        extra: list[object] = []
-        reader.scan_after('client_local_adoption', 'adoption',
-                          lambda row: extra.append(row) if row is not None else None)
-        if extra:
+        if query(reader, 0, 'client_local_adoption', 'adoption',
+                 self._current_observer) is not None:
             raise LocalStorageError('Original Local adoption singleton is incomplete')
 
     def _require_observation_frame(self, core: LocalCore, current: _Output,
@@ -233,20 +231,19 @@ class OriginalHostBinding:
         # Use the literal original logical names, including colons in file keys.
         expected = {'manifest': self._fences[1].payload} | {
             'file:' + value.name: value.body for value in self._selected}
+        query = reader.query_current
+        if query is None:
+            raise ValueError('Original Local owned inventory query is unavailable')
         cursor = ''
         for _ in range(len(expected)):
-            found: list[tuple[str, bytes, int]] = []
-            def receive(row: tuple[str, StoredBytes] | None) -> None:
-                if row is not None:
-                    found.append((row[0], row[1].payload, row[1].generation))
-            reader.scan_after('client_local_settings', cursor, receive)
-            if (len(found) != 1 or found[0][0] not in expected
-                    or found[0][1] != expected[found[0][0]] or found[0][2] != 0):
+            found = query(reader, 0, 'client_local_settings', cursor,
+                          self._current_observer)
+            if (found is None or found[0] not in expected
+                    or found[1].payload != expected[found[0]] or found[1].generation != 0):
                 raise LocalStorageError('Original Local settings inventory changed')
-            cursor = found[0][0]
-        extra: list[object] = []
-        reader.scan_after('client_local_settings', cursor, lambda row: extra.append(row) if row is not None else None)
-        if extra:
+            cursor = found[0]
+        if query(reader, 0, 'client_local_settings', cursor,
+                 self._current_observer) is not None:
             raise LocalStorageError('Original Local settings inventory is incomplete')
 
     def inspect(self, consume: Callable[[_Output], object]) -> None:
