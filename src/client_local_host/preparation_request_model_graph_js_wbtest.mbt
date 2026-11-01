@@ -337,6 +337,7 @@ priv struct RequestSerializedModelFixture {
 fn request_serialized_model_fixture(
   current? : () -> Bool = () => true,
   single_capture? : Bool = false,
+  serialized? : Bool = true,
 ) -> RequestSerializedModelFixture raise {
   let declaration = if single_capture {
     Some(request_model_module_declaration())
@@ -344,7 +345,7 @@ fn request_serialized_model_fixture(
     None
   }
   let (parent, input, prepared) = request_model_input_fixture(
-    with_serialization=true,
+    with_serialization=serialized,
     single_capture~,
     current~,
     declaration~,
@@ -358,34 +359,40 @@ fn request_serialized_model_fixture(
   let contracts = request_program_module_contracts()
   let manifests = request_program_module_manifests()
   let compilation_limits = @publication_host.client_standard_pure_compilation_limits()
-  let component = if single_capture {
-    prepare_request_acquired_serialization_graph(
-      parent,
-      input,
-      1,
-      2,
-      1,
-      128,
-      false,
-      contracts,
-      manifests~,
-      compilation_limits~,
-    ).unwrap()
+  let component = if !serialized {
+    None
+  } else if single_capture {
+    Some(
+      prepare_request_acquired_serialization_graph(
+        parent,
+        input,
+        1,
+        2,
+        1,
+        128,
+        false,
+        contracts,
+        manifests~,
+        compilation_limits~,
+      ).unwrap(),
+    )
   } else {
-    prepare_request_serialization_graph(
-      parent,
-      input,
-      0,
-      2,
-      request_graph_policy_cid,
-      request_graph_policy_wire,
-      1,
-      128,
-      false,
-      contracts,
-      manifests~,
-      compilation_limits~,
-    ).unwrap()
+    Some(
+      prepare_request_serialization_graph(
+        parent,
+        input,
+        0,
+        2,
+        request_graph_policy_cid,
+        request_graph_policy_wire,
+        1,
+        128,
+        false,
+        contracts,
+        manifests~,
+        compilation_limits~,
+      ).unwrap(),
+    )
   }
   let (occurrence, execution) = request_model_graph_inputs(prepared)
   let graph = prepare_request_model_graph(
@@ -396,7 +403,7 @@ fn request_serialized_model_fixture(
     contracts,
     manifests~,
     compilation_limits~,
-    serialization=Some(component),
+    serialization=component,
   ).unwrap()
   let compilation = prepare_request_model_compilation(
     parent,
@@ -1473,6 +1480,133 @@ test "Request acquired Node Model binds original provider and physical Plan on t
   )
   assert_true(
     cleanup_installed_managed_serialization_prefix(run, prefix).unwrap(),
+  )
+  retire_installed_managed_run(run).unwrap()
+  assert_eq(@resources.ledger_usage(f.parent.ledger).live_reservations, 0)
+}
+
+///|
+// Real checked one-Source occurrence, compiler, provider capacity and shared
+// Scope. Resource admission/physical transport are explicit component ports;
+// no normal Account, Model send, Store operation or ACK is issued here.
+test "plain acquired Model constructs its original Graph module and Source reader on one Request without Content" {
+  let f = request_serialized_model_fixture(
+    single_capture=true,
+    serialized=false,
+  )
+  assert_true(f.graph.serialization is None)
+  assert_true(
+    @publication_host.client_task_compilation_serialization(f.compilation)
+    is None,
+  )
+  let before = @resources.preparation_capacity_working_extents(
+    f.parent.program_capacity.unwrap(),
+    f.input,
+  ).unwrap()
+  let provider = @execution.execution_capacity(7L, 9L).unwrap()
+  let original = prepare_request_model_capture_module(
+    f.parent,
+    f.input,
+    f.request,
+    f.compiled,
+    f.definition,
+    f.compilation,
+    [f.declaration.unwrap()],
+    original_row_query_contract_fixture,
+    original_row_evidence_contract_fixture,
+    [4096L],
+    [2048L],
+    f.contracts,
+    true,
+    0,
+    _ => [],
+    providers=Some([Some(provider)]),
+  ).unwrap()
+  let after = @resources.preparation_capacity_working_extents(
+    f.parent.program_capacity.unwrap(),
+    f.input,
+  ).unwrap()
+  assert_true(after.0 > before.0 && after.1 > before.1)
+  assert_true(
+    installed_provider_row_capture_capacity_matches(
+      original.captures[0],
+      original.captures[0].acquisition.unwrap(),
+      provider,
+    ),
+  )
+  let layout = request_node_model_layout_declaration(f.graph)
+  let plan = prepare_request_node_model_capture_plan(
+    f.parent,
+    f.input,
+    original,
+    f.request,
+    f.compiled,
+    f.definition,
+    f.occurrence,
+    f.graph,
+    effect_model_plan_limits,
+    Some(layout),
+    request_node_model_layout_installation(),
+    layout.runtime_artifact_cid,
+    layout.layout_artifact_cid,
+    None,
+    20,
+    20,
+    20,
+  ).unwrap()
+  assert_true(plan.content_prefix is None)
+  let scope = prepare_request_model_read_scope(f.parent, f.input, plan).unwrap()
+  complete_request_model_preparation(f.parent, f.input, plan).unwrap()
+  assert_false(@resources.return_preparation_body_borrow(f.holder).unwrap())
+  let run = begin_request_model_managed_run(f.parent, f.request, scope).unwrap()
+  let (read, requirement, acquisition, capacity) = begin_installed_managed_capture_source_read(
+    run,
+    f.prepared,
+    f.request,
+    f.declaration.unwrap(),
+    0,
+  ).unwrap()
+  assert_true(
+    physical_equal(acquisition, original.captures[0].acquisition.unwrap()),
+  )
+  assert_true(physical_equal(requirement, original.captures[0].requirement))
+  assert_true(
+    prepare_installed_managed_run_ledger(
+      run,
+      f.prepared,
+      f.request,
+      [{ ..capacity, }],
+      [4096L],
+      [2048L],
+      f.contracts,
+      f.contracts.original.values_body,
+      f.contracts.original.fragment_body,
+      f.contracts.original.ordered_body,
+    )
+    is Err(ForeignOriginal),
+  )
+  let ledger = prepare_installed_managed_run_ledger(
+    run,
+    f.prepared,
+    f.request,
+    [capacity],
+    [4096L],
+    [2048L],
+    f.contracts,
+    f.contracts.original.values_body,
+    f.contracts.original.fragment_body,
+    f.contracts.original.ordered_body,
+  ).unwrap()
+  assert_true(physical_equal(ledger, f.parent.ledger))
+  retire_installed_source_read(read).unwrap()
+  assert_true(
+    @publication_host.finish_client_model_read_scope(
+      scope,
+      f.compiled,
+      f.definition,
+      f.graph,
+      true,
+    ).unwrap(),
   )
   retire_installed_managed_run(run).unwrap()
   assert_eq(@resources.ledger_usage(f.parent.ledger).live_reservations, 0)
