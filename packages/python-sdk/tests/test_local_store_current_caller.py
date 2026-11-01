@@ -47,7 +47,11 @@ class StoreCurrentCallerTests(unittest.TestCase):
                 self.assertIs(frame.owner, store)
                 frames.append((name, frame))
                 if family == 'publication_commit_export':
-                    if name == 'reserve': return 200 + args[1]
+                    if name in ('reserve', 'reserve_bounded'):
+                        if name == 'reserve_bounded':
+                            self.assertEqual(len(args), 4)
+                            self.assertIn(args[2], (64, 71))
+                        return 200 + args[1]
                     if name == 'produce_index_key': body = b'd' * 64
                     elif name == 'produce_lookup_reference': body = refs[1 + args[2]]
                     elif name in ('length', 'close'):
