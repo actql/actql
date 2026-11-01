@@ -176,7 +176,11 @@ fn installed_json_source_reader_capacity_with_decoder(
   // Original installation/schema/Account/Journal backing remains borrowed.
   // The same reader retains one optional direct sequence reference in its
   // existing frame until original read/binding retirement; no child Owner.
-  let common_fields = 37L + 4L + 1L + 3L + 3L + 21L + 6L + 2L + 2L
+  // RowRun's existing preparation flag now retains its SAME original response
+  // borrow through workspace return and final cleanup. Include that reference
+  // in the full envelope as well as the existing pre-borrow flag word; this is
+  // not another reader, wrapper or resource authority.
+  let common_fields = 38L + 4L + 1L + 3L + 3L + 21L + 6L + 2L + 2L
   let provider_fields = 5L + 5L + 6L + 3L + 18L + 16L + 5L + 6L + 8L + 4L
   let closures = 13L
   // One resolver-close carrier (six fields), its original binding field and

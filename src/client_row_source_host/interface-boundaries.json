@@ -174,7 +174,7 @@
     {
       "module": "src/client_row_source_host/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "55eb1fc267dd720f49eb477651ff2d8b20e2e77ba1b48aadcab2cd3e2f46f9e7",
+      "sha256": "44acde4f556ffef51dad2f98bd304b03a08036bcac403fd052ab9c9ffaf9a073",
       "role": "common-semantics",
       "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
       "exports": [
@@ -269,6 +269,7 @@
         "pub fn restored_row_original_read(RowRestoredOriginalInput) -> @execution_relation.SuppliedRelationRead?",
         "pub fn retain_keyed_row_run(RowRun) -> Result[RowKeyedSourceCapture, RowHostIssue]",
         "pub fn retain_row_capture_task(RowSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Result[Unit, RowHostIssue]",
+        "pub fn retire_row_run_response_workspace(RowRunResponseBorrow) -> Result[Unit, RowHostIssue]",
         "pub fn row_acquisition_column_contract(RowAcquisition, Int) -> @value_contract.Contract?",
         "pub fn row_acquisition_columns(RowAcquisition) -> Array[String]",
         "pub fn row_acquisition_contracts_construction_capacity(Int, Int) -> @execution_relation.ExecutionCapacity?",
@@ -688,6 +689,10 @@
         {
           "name": "retain_row_capture_task",
           "declaration": "pub fn retain_row_capture_task(RowSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Result[Unit, RowHostIssue]"
+        },
+        {
+          "name": "retire_row_run_response_workspace",
+          "declaration": "pub fn retire_row_run_response_workspace(RowRunResponseBorrow) -> Result[Unit, RowHostIssue]"
         },
         {
           "name": "row_acquisition_column_contract",
@@ -3192,6 +3197,76 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "retire_row_run_response_workspace"
+          ],
+          "exports": [
+            "pub fn retire_row_run_response_workspace(RowRunResponseBorrow) -> Result[Unit, RowHostIssue]"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Provider response workspace retirement keeps the original captured Source"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Provider response workspace retirement keeps the original captured Source"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Provider response workspace retirement keeps the original captured Source"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Provider response workspace retirement keeps the original captured Source"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Provider response workspace retirement keeps the original captured Source"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Provider response workspace retirement keeps the original captured Source"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Provider response workspace retirement keeps the original captured Source"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Provider response workspace retirement keeps the original captured Source"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Provider response workspace retirement keeps the original captured Source"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Provider response workspace retirement keeps the original captured Source"
+              }
+            ]
+          }
         }
       ]
     },
@@ -3200,12 +3275,16 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
-      "sha256": "3b9fc9972f472d9438fc12e222ad36d91282aacf2ca32c54cbd7741f3dfc7b9a",
+      "sha256": "2a5e7f98aba9ce6aa5b555d0c74fe9811c22d8bb582886bd4db4a46b8b1c29cb",
       "exports": [],
       "operations": [
         {
           "name": "bind_row_run_response_borrow_cleanup",
           "declaration": "bind_row_run_response_borrow_cleanup ( value : RowRunResponseBorrow , cleanup : ( ) - > Bool , ) - > Result [ Unit , RowHostIssue ]"
+        },
+        {
+          "name": "borrow_row_input_run_responses",
+          "declaration": "borrow_row_input_run_responses ( run : RowRun , acquisition : RowInputAcquisition , ) - > Result [ RowRunResponseBorrow , RowHostIssue ]"
         },
         {
           "name": "borrow_row_run_responses",
@@ -3218,6 +3297,14 @@
         {
           "name": "check_row_run_response_borrow_current",
           "declaration": "check_row_run_response_borrow_current ( value : RowRunResponseBorrow , ) - > Result [ Unit , RowHostIssue ]"
+        },
+        {
+          "name": "retire_row_run_response_workspace",
+          "declaration": "retire_row_run_response_workspace ( value : RowRunResponseBorrow , ) - > Result [ Unit , RowHostIssue ]"
+        },
+        {
+          "name": "row_response_workspace_capture_current",
+          "declaration": "row_response_workspace_capture_current ( value : RowRunResponseBorrow ) - > Bool"
         }
       ],
       "contracts": [
@@ -3289,6 +3376,76 @@
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "- Verification:"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "borrow_row_input_run_responses",
+            "retire_row_run_response_workspace",
+            "row_response_workspace_capture_current"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Provider response workspace retirement keeps the original captured Source"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Provider response workspace retirement keeps the original captured Source"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Provider response workspace retirement keeps the original captured Source"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Provider response workspace retirement keeps the original captured Source"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Provider response workspace retirement keeps the original captured Source"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Provider response workspace retirement keeps the original captured Source"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Provider response workspace retirement keeps the original captured Source"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Provider response workspace retirement keeps the original captured Source"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Provider response workspace retirement keeps the original captured Source"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Provider response workspace retirement keeps the original captured Source"
               }
             ]
           }

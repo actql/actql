@@ -205,6 +205,8 @@ pub fn retain_keyed_row_run(RowRun) -> Result[RowKeyedSourceCapture, RowHostIssu
 
 pub fn retain_row_capture_task(RowSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Result[Unit, RowHostIssue]
 
+pub fn retire_row_run_response_workspace(RowRunResponseBorrow) -> Result[Unit, RowHostIssue]
+
 pub fn row_acquisition_column_contract(RowAcquisition, Int) -> @value_contract.Contract?
 
 pub fn row_acquisition_columns(RowAcquisition) -> Array[String]

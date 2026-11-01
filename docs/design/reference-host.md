@@ -2787,3 +2787,24 @@ from one phase and high wire count from another are not one simultaneously live
 constructor. Retained original inputs remain additive to the largest whole
 phase, including every original failed-prefix alternative. This does not alter
 rejection limits, the common tariff, grants, attempts or physical retirement.
+
+Provider response workspace retirement keeps the original captured Source,
+evidence and final Row cleanup authority. The same bound reader observation
+must confirm retirement before the direct provider's transient E-R may be
+returned. The retained provider frame, complete acquisition/evidence workspace
+and original page scratch remain charged. Whole-input, keyed and listing
+profiles retain their own lifetimes. A read Promise or stop request alone is
+not this boundary, and a pending or throwing observer supplies no credit.
+
+The Resource operation reduces only the original reservation's absolute
+execution-byte remainder after its original current check. It does not return
+transfer, retention, quantities, attempts or consumed history, clear cleanup
+pending, close a reservation or acknowledge physical cleanup. Repeating the
+same remainder is idempotent; increasing it refuses. The response borrow's
+existing state slot fences synchronous observer reentry, and its original
+observer remains installed until final Row cleanup. If resource currentness
+closes the original Source, already returned retired workspace is monotonic;
+neither an error nor a retry restores a historical debit or issues a new owner.
+The Node completion boundary delegates its one retirement observation to Core
+before returning the captured Source. Final cleanup still uses the same
+reader, receiver, observer and reservation.

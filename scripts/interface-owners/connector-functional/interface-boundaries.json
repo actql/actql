@@ -8556,7 +8556,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-run.mjs",
-      "sha256": "0fc435be1e05f832751d9d172106be17981017a7488f7ec6c7fbe8a53f2b69f7",
+      "sha256": "25a7b17ce31b987dbe9f455eb7b9e6b5a63d0b01b6e40704429d44232fbdfae2",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing RowRun acquisition/capture/release plumbing; physical provider and original current authority stay with the adapter",

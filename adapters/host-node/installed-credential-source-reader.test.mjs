@@ -58,6 +58,10 @@ function fixture({pendingRead, pendingBinding = false} = {}) {
     clientProgramRowSourceStartProviderAccounted() {events.push('reserve'); return ok(run);},
     clientProgramRowSourceBorrowResponses() {events.push('borrow'); return ok({});},
     clientProgramRowSourceBindResponseCleanup(borrow, observed) {cleanup = observed; events.push('retain'); return ok(undefined);},
+    clientProgramRowSourceRetireResponseWorkspace() {
+      if (!cleanup()) return error('same original response duty pending');
+      events.push('workspace-return');return ok(undefined);
+    },
     clientProgramRowSourceCloseAccounted() {
       if (!cleanup()) return error('same original response duty pending');
       coreRetired = true; events.push('core-retire'); return ok(undefined);
@@ -171,6 +175,7 @@ function directFixture({gate, pendingBinding = false, failCharge = false} = {}) 
   const moon = {clientProgramRowSourceStartProviderAccounted() {events.push('reserve'); return ok({});},
     clientProgramRowSourceBorrowResponses() {return ok({});},
     clientProgramRowSourceBindResponseCleanup(_borrow, value) {cleanup = value; events.push('retain-reader'); return ok(undefined);},
+    clientProgramRowSourceRetireResponseWorkspace() {assert.fail('no Source completion in this control');},
     clientProgramRowSourceCloseAccounted() {if (!cleanup()) return error('original read/binding pending'); retired = true; return ok(undefined);},
     clientProgramRowSourceCaptureCleanup() {return ok(true);}};
   const session = startInstalledRowRun({moon, acquisition: {}, nonce: 'original-read', ledger: {},
@@ -221,8 +226,8 @@ test('managed Source accounting refusal cannot acknowledge unresolved accounting
 });
 
 
-// Safer current-code controls: actual Reader + actual RowRun JS, explicit
-// Core/authority/transport ports. No reservation bytes are returned here.
+// Actual Reader + actual RowRun JS; Core/authority/transport remain explicit
+// ports. These assertions do not prove physical bytes or a normal budget.
 test('original Reader can retire after capture while SAME Source and evidence remain live',async()=>{
   const f=fixture();await f.read();const captured=await f.complete();
   assert.equal(captured.capture.source(),f.capturedSource);
@@ -238,13 +243,13 @@ test('original Reader can retire after capture while SAME Source and evidence re
   assert.equal(f.events.filter(value=>value==='bind').length,1);
 });
 
-test('original Reader pending binding preserves live Source and SAME cleanup without another read',async()=>{
-  const f=fixture({pendingBinding:true});await f.read();const captured=await f.complete();
-  f.reader().requestStop();
+test('original Reader pending binding prevents Source return and keeps SAME cleanup without another read',async()=>{
+  const f=fixture({pendingBinding:true});await f.read();
+  await assert.rejects(f.complete(),{code:'MoonBitHostFailure'});
   assert.equal(f.reader().observe().cleanupConfirmed,false);
   assert.equal(await f.session.cleanup(),false);
   assert.equal(f.inspect().coreRetired,false);
-  assert.equal(captured.capture.source(),f.capturedSource);
+  assert.equal(f.events.includes('workspace-return'),false);
   f.bindingRetires();
   assert.equal(await f.session.cleanup(),true);
   assert.equal(f.inspect().coreRetired,true);

@@ -48,7 +48,8 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
       : originalRead === undefined ? 'clientProgramRowSourceStartProviderAccounted'
       : 'clientProgramInstalledSourceReadStartProviderRows',
       wholeInput ? 'clientProgramWholeSourceBorrowResponses' : 'clientProgramRowSourceBorrowResponses',
-      'clientProgramRowSourceBindResponseCleanup']
+      'clientProgramRowSourceBindResponseCleanup',
+      ...(!wholeInput ? ['clientProgramRowSourceRetireResponseWorkspace'] : [])]
       .some(name => typeof moon[name] !== 'function')) fail('InstalledProviderSourceUnavailable');
   }
   if (reportCapacity !== undefined) {
@@ -137,6 +138,7 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
     closed = true;
     sourceEvidenceOriginal = sourceEvidenceCapture = undefined;
     reader = readerRead = readerStop = readerObserve = readerRetry = undefined;
+    readerPrepared = false;
     if (!keyed) {
       // Only after external ACK and Core capture/read retirement. A closed
       // cleanup handle keeps terminal state, not the original native owner.
@@ -158,6 +160,9 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
     readerPrepared = true;
     const borrow = checked(wholeInput ? moon.clientProgramWholeSourceBorrowResponses(run, acquisition)
       : moon.clientProgramRowSourceBorrowResponses(run, acquisition));
+    // Replace the existing one-shot preparation flag with its SAME original
+    // borrow; no extra retained carrier or second reader owner is introduced.
+    readerPrepared = borrow;
     checked(moon.clientProgramRowSourceBindResponseCleanup(borrow, readerRetired));
     reader = Reflect.apply(prepare, receiver, [options]);
     if (typeof reader?.then === 'function') {
@@ -225,6 +230,18 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
     retainedRelationOutput, currentRead, signal, captureOnly = false}) {
     if (keyed) fail('InstalledSourceProgramMismatch');
     const captured = await capture({currentRead, signal});
+    if (providerCapacity !== undefined && !wholeInput) {
+      // This SAME reader must actually retire its response/decode workspace
+      // before Source/Compute/Effect consumers may use that phase allowance.
+      // Keep its observer and receiver for final Row cleanup, including a
+      // pending/throwing retirement; stopping alone never returns bytes.
+      stopReader();
+      // Core invokes the SAME bound observer once for this cut. Do not first
+      // observe it here and then repeat that external observation in Core.
+      checked(moon.clientProgramRowSourceRetireResponseWorkspace(readerPrepared));
+      signal?.throwIfAborted();
+      if (closed) fail('InstalledSourceClosed');
+    }
     const source = () => checked(
       moon.clientProgramRowSourceCaptureSource(captured));
     const capturedSource = source();

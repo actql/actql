@@ -1913,6 +1913,8 @@ pub fn client_program_row_source_restore_relation_declaration(String, String, St
 
 pub fn client_program_row_source_retain_captured_task(@client_row_source_host.RowSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Result[Unit, @client_row_source_host.RowHostIssue]
 
+pub fn client_program_row_source_retire_response_workspace(@client_row_source_host.RowRunResponseBorrow) -> Result[Unit, @client_row_source_host.RowHostIssue]
+
 pub fn client_program_row_source_start(@client_row_source_host.RowAcquisition, String, (@client_row_source_host.RowAttempt) -> Bool) -> Result[@client_row_source_host.RowRun, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_row_source_start_accounted(@client_row_source_host.RowAcquisition, String, (@client_row_source_host.RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64) -> Result[@client_row_source_host.RowRun, @client_row_source_host.RowHostIssue]
