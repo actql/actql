@@ -541,19 +541,18 @@ fn sheets_range_capture_phase_capacity(
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
+  let mut peak_bytes = 0L
   for phase in phases {
-    peak = {
-      record_headers: Int64::max(peak.record_headers, phase.record_headers),
-      reference_slots: Int64::max(peak.reference_slots, phase.reference_slots),
-      scalar_words: Int64::max(peak.scalar_words, phase.scalar_words),
-      owned_utf16_units: Int64::max(
-        peak.owned_utf16_units,
-        phase.owned_utf16_units,
-      ),
-      owned_wire_bytes: Int64::max(
-        peak.owned_wire_bytes,
-        phase.owned_wire_bytes,
-      ),
+    // These are complete sequential phases under the SAME original owner.
+    // Compare their full shared-tariff costs, preserving every phase's input,
+    // output, builder and refusal inventory. Component-wise maxima would
+    // combine unrelated lifetimes into a fictitious simultaneous phase.
+    guard @execution.preparation_representation_cost(phase) is Some(bytes) else {
+      return None
+    }
+    if bytes > peak_bytes {
+      peak = phase
+      peak_bytes = bytes
     }
   }
   @execution.preparation_execution_capacity({
@@ -565,7 +564,6 @@ fn sheets_range_capture_phase_capacity(
     workspace_bytes: 0L,
   })
 }
-
 ///|
 // The actual pre-NFC guards for fresh and saved metadata, respectively.
 // Clear canonicalizes its reconstructed expected metadata before NFC; range
@@ -920,21 +918,10 @@ fn sheets_range_capture_profile(
   // range compares its entire wire directly without another supplied tree.
   let normalized = { ..metadata_native, owned_utf16_units: 0L, }
   let metadata_normalized = { ..metadata_native, owned_utf16_units: 0L, }
-  // range_parse's preserving Source check returns only Bool before the
-  // native Json constructor starts. While the SECOND Source check runs,
-  // only the FIRST native input is live. Both complete native constructors
-  // still have their separate peak after that check; no native quantity,
-  // incoming String/Bytes, parser refusal or physical duty is removed.
-  // Keep clear's previous conservative marker-prefix quotation unchanged.
-  let parse_inputs = if clear {
-    [inputs, input, native, native]
-  } else {
-    [inputs, input, native]
-  }
-  guard @execution.compose_preparation_representation(parse_inputs)
+  guard @execution.compose_preparation_representation([
+      inputs, input, native, native,
+    ])
     is Some(parse_peak) &&
-    @execution.compose_preparation_representation([inputs, native, native])
-    is Some(native_parse_peak) &&
     @execution.compose_preparation_representation([
       inputs, native, native, entry_input, entry,
     ])
@@ -977,8 +964,8 @@ fn sheets_range_capture_profile(
     ])
     is Some(metadata_canonical_peak) &&
     sheets_range_capture_phase_capacity(retained, [
-      parse_peak, native_parse_peak, entry_peak, normalize_peak, canonical_peak, expected_peak,
-      metadata_parse_peak, metadata_normalize_peak, metadata_canonical_peak,
+      parse_peak, entry_peak, normalize_peak, canonical_peak, expected_peak, metadata_parse_peak,
+      metadata_normalize_peak, metadata_canonical_peak,
     ])
     is Some(fixed) &&
     sheets_range_request_capacity(

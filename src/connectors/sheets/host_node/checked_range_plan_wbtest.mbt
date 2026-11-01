@@ -105,3 +105,23 @@ test "authored bounded range Program quotes its actual checked Compute Source an
   assert_true(required[4]<=original.retained_bytes,msg=required[4].to_string())
   assert_true(required[5]<=original.execution_bytes,msg=required[5].to_string())
 }
+
+///|
+test "capture phase maximum retains whole original phases without combining unrelated units" {
+  let retained : @execution.PreparationRepresentationUnits = {record_headers:0L,reference_slots:0L,scalar_words:0L,owned_utf16_units:0L,owned_wire_bytes:5L}
+  let headers = { ..retained, record_headers:100L, owned_wire_bytes:0L }
+  let wire = { ..retained, owned_wire_bytes:1601L }
+  for phases in [[headers,wire],[wire,headers],[headers,wire,headers]] {
+    let quote=sheets_range_capture_phase_capacity(retained,phases).unwrap()
+    assert_eq(@execution.execution_capacity_retained_bytes(quote),5L)
+    // Existing16-byte header and1-byte wire prices. Neither complete phase
+    // coexists with the other: max(1600,1601)+5, never1600+1601+5.
+    assert_eq(@execution.execution_capacity_execution_bytes(quote),1606L)
+  }
+  let empty=sheets_range_capture_phase_capacity(retained,[]).unwrap()
+  assert_eq(@execution.execution_capacity_execution_bytes(empty),5L)
+  let invalid={ ..retained, reference_slots:-1L }
+  assert_true(sheets_range_capture_phase_capacity(retained,[headers,invalid]) is None)
+  let overflow={ ..retained, record_headers:9223372036854775807L }
+  assert_true(sheets_range_capture_phase_capacity(retained,[overflow]) is None)
+}
