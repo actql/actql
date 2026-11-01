@@ -4761,3 +4761,11 @@ its original cleanup. Once provider entry has occurred, missing or failed child
 return remains pending; absence is not a Source or provider cleanup ACK. Only
 the existing Source-read owner closes its RowRun, and Scope and parent retirement
 remain separate duties after those actual children settle.
+
+Failed-before-adoption Model cleanup keeps its existing Host bag and original
+Scope carrier through Scope finish. That finish can invoke reservation/current
+callbacks. Its successful return is followed by same bag membership, Model,
+request, original input and cleanup-method checks before managed aliases or
+records retire. A changed Scope tuple cannot inherit the old Scope's cleanup
+result. Pending or throwing finish retains the same failed preparation; it does
+not fabricate an adopted Run or replace the Request's original abort duty.

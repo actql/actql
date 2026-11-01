@@ -41845,7 +41845,7 @@
     {
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "255370b2e9df6fc080675af4e20fc13280fb2763c6b65d1a37f84720951c1a30",
+      "sha256": "9312670fbafa8f891999d66fa215c154297f315989e85f32f98aba0cb2150760",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -48080,6 +48080,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "inputsOutputs": [
@@ -48106,6 +48110,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "identity": [
@@ -48132,6 +48140,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "ownership": [
@@ -48158,6 +48170,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "synchronization": [
@@ -48184,6 +48200,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "failure": [
@@ -48210,6 +48230,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "cancellation": [
@@ -48236,6 +48260,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "resources": [
@@ -48262,6 +48290,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "extension": [
@@ -48288,6 +48320,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "verification": [
@@ -48314,6 +48350,14 @@
               {
                 "path": "adapters/host-node/content-preparation-retirement.test.mjs",
                 "anchor": "retired keyed Content does not exhaust the unchanged 4096 live-preparation limit"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
+              },
+              {
+                "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
+                "anchor": "Host unadopted Model Scope cleanup fences"
               }
             ]
           }
