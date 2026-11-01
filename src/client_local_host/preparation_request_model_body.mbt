@@ -206,8 +206,8 @@ pub fn[I] prepare_request_model_source_free_plan(
   guard owner.phase == ModelPlanReserved &&
     owner.input is Some(same_input) &&
     physical_equal(same_input, input) &&
-    owner.program_source_free is Some(module) &&
-    physical_equal(module, original) &&
+    owner.program_source_free is Some(selected_module) &&
+    physical_equal(selected_module, original) &&
     owner.program_domain_compilation_inputs
     is Some(RequestModelCompilation(_, _, _, same_graph)) &&
     physical_equal(same_graph, graph) &&

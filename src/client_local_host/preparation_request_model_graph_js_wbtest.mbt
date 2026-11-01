@@ -448,7 +448,7 @@ test "serialized Model adopts the same Request Content prefix and retains both o
     None,
     None,
   ).unwrap()
-  let module = prepare_request_model_source_free_module(
+  let selected_module = prepare_request_model_source_free_module(
     f.parent,
     f.input,
     f.request,
@@ -467,7 +467,7 @@ test "serialized Model adopts the same Request Content prefix and retains both o
   // An old module-only Plan cannot discard the still-live Content component.
   assert_true(
     prepare_installed_mock_model_source_free_plan(
-      module,
+      selected_module,
       f.request,
       f.compiled,
       f.definition,
@@ -485,7 +485,7 @@ test "serialized Model adopts the same Request Content prefix and retains both o
   let plan = prepare_request_model_source_free_plan(
     f.parent,
     f.input,
-    module,
+    selected_module,
     f.request,
     f.compiled,
     f.definition,
@@ -506,11 +506,19 @@ test "serialized Model adopts the same Request Content prefix and retains both o
     run.content is SerializationContent(original) &&
     physical_equal(original, prefix),
   )
-  let child = start_installed_managed_serialization_prefix(
-    run,
-    f.prepared,
-    prefix,
-  ).unwrap()
+  let child = match
+    start_installed_managed_serialization_prefix(run, f.prepared, prefix) {
+    Ok(child) => child
+    Err(Resource(issue)) =>
+      fail("original prefix Resource: " + @debug.to_string(issue))
+    Err(SerializationPrefix(Physical(issue))) =>
+      fail("original prefix physical: " + @debug.to_string(issue))
+    Err(SerializationPrefix(Provider(_))) =>
+      fail("original prefix provider constructor")
+    Err(SerializationPrefix(_)) => fail("original prefix selected child")
+    Err(ForeignOriginal) => fail("original prefix tuple")
+    _ => fail("original prefix lifetime")
+  }
   assert_true(physical_equal(child.ledger, f.parent.ledger))
   assert_true(retire_installed_managed_run(run) is Err(CleanupPending))
   let mut output = None
