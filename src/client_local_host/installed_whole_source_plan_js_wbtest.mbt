@@ -90,6 +90,10 @@ test "one original Request Plan captures whole unfiltered Source and leaves auth
   assert_eq(plan.captures.length(), 0)
   complete_request_capture_preparation(parent, input, plan).unwrap()
   let owner = begin_request_capture_managed_run(parent, request).unwrap()
+  assert_eq(
+    installed_managed_source_input_kind(owner, prepared, request).unwrap(),
+    "whole-input",
+  )
   let (read, original, acquisition, _) = begin_installed_managed_whole_source_read(
     owner, prepared, request, declaration,
   ).unwrap()
