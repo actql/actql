@@ -21,17 +21,43 @@ test "same-stage acquired serialized Model preserves original capture module inp
     environment=Some(environment),
     initial_limits=Some(@resources.add_ledger_limits(ordinary, domain).unwrap()),
   )
-  finish_program_check_preparation(child).unwrap() |> ignore
+  let outcome = finish_program_check_preparation(child).unwrap()
+  let semantic = match outcome {
+    @checked.Checked(_) => "checked"
+    @checked.NeedsInputs(_) => "needs-inputs"
+    @checked.Rejected(diagnostic) => {
+      let category = @debug.to_string(@checked.diagnostic_category(diagnostic))
+      let cause = match @checked.diagnostic_cause(diagnostic) {
+        @checked.Units(@checked.UnsupportedStaticPath(_)) =>
+          "Units.UnsupportedStaticPath"
+        @checked.Units(@checked.UnclosedSourceExecution(_, _)) =>
+          "Units.UnclosedSourceExecution"
+        @checked.Units(@checked.UnclosedPublicationPolicy(_, _)) =>
+          "Units.UnclosedPublicationPolicy"
+        @checked.Units(_) => "Units"
+        @checked.Closure(_) => "Closure"
+        @checked.Source(_) => "Source"
+        @checked.Environment(_) => "Environment"
+        @checked.Program(_) => "Program"
+        @checked.CapacityInputs(_) => "CapacityInputs"
+        @checked.Template(_, _) => "Template"
+        @checked.InvalidLimits => "InvalidLimits"
+      }
+      category + "/" + cause
+    }
+  }
   let prepared = match
     compile_program_check_preparation(
       child,
       @publication_host.client_standard_program_preparation_limits(),
     ) {
     Ok(value) => value
-    Err(issue) => {
-      let original : Error = issue
-      fail("same-stage checked fixture: " + @debug.to_string(original))
-    }
+    Err(WrongPhase) =>
+      fail("same-stage checked fixture: WrongPhase/" + semantic)
+    Err(Compilation(_)) =>
+      fail("same-stage checked fixture: Compilation/" + semantic)
+    Err(_) =>
+      fail("same-stage checked fixture: other typed refusal/" + semantic)
   }
   assert_true(
     physical_equal(
@@ -138,10 +164,19 @@ test "same-stage acquired serialized Model preserves original capture module inp
   abort_request_preparation_after_cleanup(parent).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
   match result {
-    Err(issue) => {
-      let original : Error = issue
-      fail("same-stage capture module: " + @debug.to_string(original))
-    }
+    Err(Preparation(ForeignOriginal)) =>
+      fail("same-stage capture module: Preparation.ForeignOriginal")
+    Err(Installed(Unsupported)) =>
+      fail("same-stage capture module: Installed.Unsupported")
+    Err(ModelQuery(Sequences)) =>
+      fail("same-stage capture module: ModelQuery.Sequences")
+    Err(ModelQuery(_)) =>
+      fail("same-stage capture module: ModelQuery other typed refusal")
+    Err(ModelSource(_)) =>
+      fail("same-stage capture module: ModelSource typed refusal")
+    Err(CapacityExceeded(_)) =>
+      fail("same-stage capture module: CapacityExceeded")
+    Err(_) => fail("same-stage capture module: other typed refusal")
     Ok(original) => {
       assert_eq(calls.val, 1)
       assert_true(
