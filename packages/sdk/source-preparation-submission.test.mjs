@@ -19,7 +19,6 @@ const profile = {version: 'actql-client-host/0.1', mode: 'local', owner: 'local'
 async function fixture(receiver, perform) {
   // Explicit metadata-only Source double; no canonical-identity proof or
   // operational supplier is inferred from this synthetic response.
-  receiver.intentCid ??= () => cid('d');
   const port = {[sourcePreparationPort]: receiver, async perform(operation, packet) {
     if (operation === 'connect') return profile;
     return perform(operation, packet);
@@ -28,13 +27,46 @@ async function fixture(receiver, perform) {
   return {client, port};
 }
 
+test('selected Local Source rejects incomplete required methods before connect or caller access', async () => {
+  for (const method of ['captureSourceSnapshot', 'assertSourceSnapshotCurrent', 'publishSourceSnapshot']) {
+    for (const form of ['missing', 'inherited', 'accessor', 'undefined', 'nonfunction']) {
+      let reads = 0, connects = 0, entries = 0;
+      const receiver = {
+        beforeSourceSnapshot() {entries++; return {};},
+        captureSourceSnapshot(_receipt, value, snapshot) {entries++; return snapshot(value);},
+        assertSourceSnapshotCurrent() {entries++;},
+        bindSourceSnapshot() {entries++;}, publishSourceSnapshot() {entries++;},
+        bindSourceRequest() {entries++;}, finishSourceProducer() {entries++;},
+        intentCid() {entries++; return cid('d');},
+      };
+      if (form === 'missing' || form === 'inherited') delete receiver[method];
+      if (form === 'inherited') Object.setPrototypeOf(receiver, {[method]() {entries++;}});
+      if (form === 'accessor') Object.defineProperty(receiver, method,
+        {get() {reads++; assert.fail('RequiredMethodGetterMustNotRun');}});
+      if (form === 'undefined') receiver[method] = undefined;
+      if (form === 'nonfunction') receiver[method] = {};
+      const observed = await connectInProcess({mode: 'local', owner: 'local'}, {
+        [sourcePreparationPort]: receiver,
+        async perform(operation) {assert.equal(operation, 'connect'); connects++; return profile;},
+      }).then(client => ({client}), error => ({error}));
+      if (observed.client) await observed.client.close();
+      assert.equal(observed.error?.code, 'NodeSourceManagedAdmissionUnavailable', `${method}:${form}`);
+      assert.equal(connects, 0); assert.equal(reads, 0); assert.equal(entries, 0);
+    }
+  }
+});
+
 test('closed selected Source queries reject locally without touching the retired Host receiver', async () => {
   let hostCalls = 0, sends = 0;
   const retired = () => {
     hostCalls++;
     throw Object.assign(new Error('ClientHostClosing'), {code: 'ClientHostClosing'});
   };
-  const {client} = await fixture({beforeSourceSnapshot: retired,
+  const {client} = await fixture({
+    captureSourceSnapshot(_receipt, value, snapshot) {return snapshot(value);},
+    assertSourceSnapshotCurrent() {},
+    publishSourceSnapshot() {},
+    beforeSourceSnapshot: retired,
     beforeSourceQuery: retired, bindSourceSnapshot: retired,
     bindSourceRequest: retired, finishSourceProducer: retired,
     intentCid: retired, beforeResultRead: retired, assertResultReadCurrent: retired},
@@ -61,7 +93,12 @@ test('Source refusal precedes every original option access and sends nothing', a
   const original = Object.assign(new Error('Unavailable'), {code: 'NodeSourceManagedAdmissionUnavailable'});
   const options = new Proxy({}, {get() {reads++; throw new Error('ReadBeforeAdmission');},
     ownKeys() {reads++; throw new Error('EnumeratedBeforeAdmission');}});
-  const {client} = await fixture({beforeSourceSnapshot(kind, input, supplied) {
+  const {client} = await fixture({
+    intentCid() {return cid('d');},
+    captureSourceSnapshot(_receipt, value, snapshot) {return snapshot(value);},
+    assertSourceSnapshotCurrent() {},
+    publishSourceSnapshot() {},
+    beforeSourceSnapshot(kind, input, supplied) {
     assert.equal(kind, 'aql'); assert.equal(input, 'original'); assert.equal(supplied, options);
     throw original;
   }, bindSourceSnapshot() {assert.fail('NoSnapshot');},
@@ -76,7 +113,12 @@ test('selected Source observes omitted options before the SDK creates its defaul
   const original = Object.freeze(new Error('OriginalAdmissionRefusal'));
   const observed = [];
   let sends = 0;
-  const {client} = await fixture({beforeSourceSnapshot(kind, input, options) {
+  const {client} = await fixture({
+    intentCid() {return cid('d');},
+    captureSourceSnapshot(_receipt, value, snapshot) {return snapshot(value);},
+    assertSourceSnapshotCurrent() {},
+    publishSourceSnapshot() {},
+    beforeSourceSnapshot(kind, input, options) {
     observed.push({kind, input, options}); throw original;
   }, bindSourceSnapshot() {assert.fail('NoSnapshot');},
   bindSourceRequest() {assert.fail('NoPacket');}, finishSourceProducer() {assert.fail('NoReceipt');}},
@@ -109,6 +151,10 @@ test('one original receipt binds the synchronous frozen snapshot and exact trans
   const options = {format: 'sql', parameters, submissionRef: originalSubmission('source-original')};
   let body, packet;
   const receiver = {
+    intentCid() {return cid('d');},
+    captureSourceSnapshot(_receipt, value, snapshot) {return snapshot(value);},
+    assertSourceSnapshotCurrent() {},
+    publishSourceSnapshot() {},
     beforeSourceSnapshot(kind, text, originalOptions) {
       order.push('before'); assert.equal(kind, 'aql'); assert.equal(text, 'SELECT @n AS n');
       assert.equal(originalOptions, options); return receipt;
@@ -229,7 +275,12 @@ test('external shallow freeze cannot skip deep protection of mutable descendants
 test('failed producer cleanup retains original Unknown and retries only alias retirement on close', async () => {
   let sends = 0, finishes = 0;
   const receipt = {}, cleanup = new Error('OriginalAliasPending');
-  const {client} = await fixture({beforeSourceSnapshot() {return receipt;},
+  const {client} = await fixture({
+    intentCid() {return cid('d');},
+    captureSourceSnapshot(_receipt, value, snapshot) {return snapshot(value);},
+    assertSourceSnapshotCurrent() {},
+    publishSourceSnapshot() {},
+    beforeSourceSnapshot() {return receipt;},
     bindSourceSnapshot() {}, bindSourceRequest() {},
     finishSourceProducer(original, terminal) {
       assert.equal(original, receipt); assert.equal(terminal, 'failed');
@@ -248,7 +299,12 @@ test('failed producer cleanup retains original Unknown and retries only alias re
 
 test('successful producer cleanup failure retains the original returned Run without resubmission', async () => {
   let sends = 0, finishes = 0;
-  const {client} = await fixture({beforeSourceSnapshot() {return {};},
+  const {client} = await fixture({
+    intentCid() {return cid('d');},
+    captureSourceSnapshot(_receipt, value, snapshot) {return snapshot(value);},
+    assertSourceSnapshotCurrent() {},
+    publishSourceSnapshot() {},
+    beforeSourceSnapshot() {return {};},
     bindSourceSnapshot() {}, bindSourceRequest() {}, finishSourceProducer() {
       if (++finishes === 1) throw new Error('OriginalAliasPending');
     }}, (_operation, packet) => {sends++; return readySubmissionAttempt(packet, admission);});
@@ -266,7 +322,12 @@ test('successful producer cleanup failure retains the original returned Run with
 
 test('packet binding refusal remains NotSent and never reaches the Host', async t => {
   let sends = 0, finishes = 0;
-  const {client} = await fixture({beforeSourceSnapshot() {return {};}, bindSourceSnapshot() {},
+  const {client} = await fixture({
+    intentCid() {return cid('d');},
+    captureSourceSnapshot(_receipt, value, snapshot) {return snapshot(value);},
+    assertSourceSnapshotCurrent() {},
+    publishSourceSnapshot() {},
+    beforeSourceSnapshot() {return {};}, bindSourceSnapshot() {},
     bindSourceRequest() {throw new Error('ForeignOriginalPacket');},
     finishSourceProducer(_original, terminal) {assert.equal(terminal, 'failed'); finishes++;}},
   () => {sends++;});
@@ -286,7 +347,11 @@ test('selected Source uses its original same-body intent identity without starti
     else Object.defineProperty(crypto.subtle, 'digest', originalDigest);
   });
   const receipt = {};
-  const {client} = await fixture({beforeSourceSnapshot() {return receipt;},
+  const {client} = await fixture({
+    captureSourceSnapshot(_receipt, value, snapshot) {return snapshot(value);},
+    assertSourceSnapshotCurrent() {},
+    publishSourceSnapshot() {},
+    beforeSourceSnapshot() {return receipt;},
     bindSourceSnapshot(original, value) {assert.equal(original, receipt); body = value;},
     intentCid(original, value) {
       assert.equal(original, receipt); assert.equal(value, body); hashes++;
@@ -306,7 +371,11 @@ test('native snapshot fence stops original retired producer before clone freeze 
   const receipt = {}, order = [], cleanupHandle = {};
   const primary = Object.assign(new Error('OriginalSnapshotCurrentLost'), {cleanupHandle});
   let retired = false, sends = 0, freezes = 0;
-  const receiver = {beforeSourceSnapshot() {order.push('before');return receipt;},
+  const receiver = {
+    intentCid() {return cid('d');},
+    captureSourceSnapshot(_receipt, value, snapshot) {return snapshot(value);},
+    publishSourceSnapshot() {},
+    beforeSourceSnapshot() {order.push('before');return receipt;},
     assertSourceSnapshotCurrent(actual) {assert.equal(actual, receipt);order.push('current');if (retired) throw primary;},
     bindSourceSnapshot() {order.push('bind');throw primary;}, bindSourceRequest() {assert.fail('NoPacket');},
     finishSourceProducer(actual, terminal) {assert.equal(actual, receipt);order.push(terminal);}};
@@ -324,7 +393,11 @@ test('native snapshot fence stops original retired producer before clone freeze 
 
 test('native snapshot fence preserves thrown undefined while same producer cleanup remains retryable', async () => {
   const receipt = {};let visits = 0, finishes = 0, rejected = false, failure = 'not-rejected';
-  const {client} = await fixture({beforeSourceSnapshot() {return receipt;},
+  const {client} = await fixture({
+    intentCid() {return cid('d');},
+    captureSourceSnapshot(_receipt, value, snapshot) {return snapshot(value);},
+    publishSourceSnapshot() {},
+    beforeSourceSnapshot() {return receipt;},
     assertSourceSnapshotCurrent(actual) {assert.equal(actual, receipt);throw undefined;},
     bindSourceSnapshot() {assert.fail('NoSnapshot');}, bindSourceRequest() {assert.fail('NoPacket');},
     finishSourceProducer(actual, terminal) {assert.equal(actual, receipt);assert.equal(terminal, 'failed');
@@ -341,6 +414,9 @@ test('selected snapshot uses the captured original serializer receiver once befo
   const receipt = {}, events = [];let gets = 0, body, originalWire;
   const parameters = {get n() {gets++; return 7;}};
   const receiver = {
+    intentCid() {return cid('d');},
+    assertSourceSnapshotCurrent() {},
+    publishSourceSnapshot() {},
     beforeSourceSnapshot() {events.push('before');return receipt;},
     captureSourceSnapshot(original, value, snapshot) {
       assert.equal(this, receiver);assert.equal(original, receipt);assert.equal(gets, 0);
@@ -368,6 +444,9 @@ test('snapshot preserves only the original observer failure and maps caller erro
     const receipt = {}, original = Object.assign(new Error('SameSpelling'), {code: 'PreparationCapacityExceeded'});
     let sends = 0, finishes = 0;
     const receiver = {
+      intentCid() {return cid('d');},
+      assertSourceSnapshotCurrent() {},
+      publishSourceSnapshot() {},
       beforeSourceSnapshot() {return receipt;},
       captureSourceSnapshot(actual, value, snapshot) {
         assert.equal(actual, receipt);
@@ -391,7 +470,11 @@ test('snapshot preserves only the original observer failure and maps caller erro
 test('selected capture cannot replace or repeat the SDK original native snapshot', async () => {
   for (const selected of ['skip', 'copy', 'repeat', 'foreign']) {
     let finishes = 0, sends = 0;
-    const {client} = await fixture({beforeSourceSnapshot() {return {};},
+    const {client} = await fixture({
+      intentCid() {return cid('d');},
+      assertSourceSnapshotCurrent() {},
+      publishSourceSnapshot() {},
+      beforeSourceSnapshot() {return {};},
       captureSourceSnapshot(_receipt, value, snapshot) {
         if (selected === 'skip') return value;
         if (selected === 'foreign') return snapshot({...value});

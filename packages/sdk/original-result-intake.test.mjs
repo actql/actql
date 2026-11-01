@@ -14,7 +14,11 @@ const profile = {version: 'actql-client-host/0.1', mode: 'local', owner: 'local'
   durability: 'volatile', scopeRef: 'result-scope', capabilities: ['aql-document'], submissionEpoch,
   limits: {maxReadWireBytes: 4096, maxRowWireBytes: 1024, maxRowRetainedValueBytes: 1024,
     maxRetainedValueBytes: 4096, maxRows: 10, maxBatchRows: 3, maxBatchRetainedValueBytes: 1024}};
-const source = () => ({beforeSourceSnapshot() {return {};}, bindSourceSnapshot() {},
+const source = () => ({
+  captureSourceSnapshot(_receipt, value, snapshot) {return snapshot(value);},
+  assertSourceSnapshotCurrent() {},
+  publishSourceSnapshot() {},
+  beforeSourceSnapshot() {return {};}, bindSourceSnapshot() {},
   beforeSourceQuery() {return {};}, bindSourceRequest() {}, finishSourceProducer() {}, intentCid() {return cid('c');}});
 async function fixture(t, beforeResultRead, wait, assertResultReadCurrent = () => {}) {
   const receiver = source(), calls = [];

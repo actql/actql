@@ -761,6 +761,15 @@ alias-retirement retry. A pending producer prevents both its lease and a last
 sibling lease from finalizing the Host; Result forwarding supplies no Source
 admission, Result permission or physical close acknowledgement.
 
+Selecting the private Local Source preparation receiver requires its complete
+snapshot, current, publication, request-binding, intent and retirement protocol.
+The SDK captures these own DATA methods and their original receiver once during
+initialization. Missing required methods refuse before connection or caller
+input access; a selected request cannot substitute standalone capture, omit its
+current fence or skip snapshot publication. Remote transport without a Local
+preparation receiver remains independent. Query-specific acquisition and the
+Result read/current pair retain their separate capability and refusal boundaries.
+
 The ordinary selected Node Host has a separate finite Local Result/publication
 service. Its actual package prefix retains the same startup/runtime/module and
 filesystem, crypto, Buffer, WebCrypto and Journal native originals before the
