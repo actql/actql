@@ -1,4 +1,5 @@
 """Original handle/FFI doubles and actual file integrity; no native Engine execution."""
+from contextlib import nullcontext
 from dataclasses import replace
 from copy import copy, deepcopy
 from ctypes import c_void_p, cast, POINTER
@@ -248,13 +249,15 @@ class InstalledImageTests(unittest.TestCase):
 
     def test_installed_host_routes_only_to_image_constructor(self):
         components = object(); core = Mock()
+        core._host_operation.return_value = nullcontext()
         with TemporaryDirectory() as directory, \
                 patch('actql_sdk._local_product.installed_local_components', return_value=components), \
                 patch.object(LocalCore, '_from_installed_image', return_value=core) as create, \
                 patch('actql_sdk._local_product._default_directory', return_value=Path(directory)), \
                 patch.object(InstalledLocalHost, '__init__', return_value=None):
             InstalledLocalHost.installed(resources=RESOURCES)
-        create.assert_called_once_with(components, transfer_capacity=12582912, slots=64, resources=RESOURCES)
+        create.assert_called_once_with(components, transfer_capacity=12582912, slots=128,
+                                       resources=RESOURCES, _ordinary_host=True)
 
     def test_baseline_competes_with_vm_and_pool_before_capture(self):
         # Independent scalar fixture, not an adopted product baseline.

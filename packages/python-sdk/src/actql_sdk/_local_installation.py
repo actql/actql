@@ -316,8 +316,17 @@ class OriginalLocalInstallation:
                         or value.st_uid != os.getuid() or value.st_mode & 0o077
                         or (value.st_dev, value.st_ino) != (original.device, original.inode)):
                     raise ValueError('Original Local installation directory changed')
-        for root, reader in self._readers:
-            root.observe_original(reader)
+        # Preserve original order; only consecutive members of the SAME root
+        # share that directory's before/after physical observation. Every file
+        # FD/name and every installation root pathname is still observed now.
+        index = 0
+        while index < len(self._readers):
+            root = self._readers[index][0]
+            readers = []
+            while index < len(self._readers) and self._readers[index][0] is root:
+                readers.append(self._readers[index][1])
+                index += 1
+            root._observe_originals(tuple(readers))
 
     def _writer(self, root: LocalFileRoot, name: str, length: int) -> _PayloadFile:
         try:
