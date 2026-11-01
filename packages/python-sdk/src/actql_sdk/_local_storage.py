@@ -46,8 +46,10 @@ class _NamespaceReader:
     # Only the actual Store supplies this live-thread/frame check. It is not
     # a current observation; queries and protected decisions keep their fences.
     check_frame: Callable[['_NamespaceReader'], None] | None = None
+    # The closed journal transport returns only immutable physical row DATA.
+    # Arbitrary consumers keep read/scan_after and their post-consumer fence.
     query_current: Callable[['_NamespaceReader', int, str, str,
-                             _NamespaceConsumer, Callable[[], object]], None] | None = None
+                             Callable[[], object]], tuple[str, StoredBytes] | None] | None = None
 
 
 _InventoryInspection = Callable[[_NamespaceReader], object]
@@ -987,8 +989,9 @@ class LocalByteStore:
                 failure = error
                 raise
 
-        def observe(namespace: str, after: str, consume: _NamespaceConsumer, *,
-                    scan: bool, required_current: Callable[[], object] | None = None) -> None:
+        def observe(namespace: str, after: str, consume: _NamespaceConsumer | None, *,
+                    scan: bool, required_current: Callable[[], object] | None = None
+                    ) -> tuple[str, StoredBytes] | None:
             nonlocal reading, reads, copied, failure
             entered = False
             try:
@@ -996,7 +999,8 @@ class LocalByteStore:
                         or failure is not None):
                     raise ValueError('Local inventory reader is not active')
                 self._capacity_name(namespace)
-                if type(after) is not str or not callable(consume):
+                if (type(after) is not str or not callable(consume)
+                        and (consume is not None or required_current is None)):
                     raise ValueError('Invalid Local inventory cursor or consumer')
                 # Use the same injective namespace/key encoding as physical
                 # writes. Empty cursor means start, not an empty logical key.
@@ -1027,6 +1031,11 @@ class LocalByteStore:
                     copied += len(payload)
                     observation = (logical, StoredBytes(generation, payload))
                 fence(required_current, reuse_snapshot=required_current is not None)
+                if consume is None:
+                    # No caller callback runs between the SQL read and return.
+                    # The returned row is bounded immutable DATA, not current
+                    # permission or a snapshot usable for a later operation.
+                    return observation
                 # The Host completes transfer into its reserved Core input and
                 # returns the same input/output loan before requesting a row.
                 if consume(observation) is not None:
@@ -1041,18 +1050,18 @@ class LocalByteStore:
                     reading = False
 
         def query_current(view: _NamespaceReader, mode: int, namespace: str,
-                          key: str, consume: _NamespaceConsumer,
-                          required_current: Callable[[], object]) -> None:
+                          key: str, required_current: Callable[[], object]
+                          ) -> tuple[str, StoredBytes] | None:
             nonlocal failure
             try:
                 check_frame(view)
                 if type(mode) is not int or mode not in (0, 1) or not callable(required_current):
                     raise ValueError('Invalid original Local current query')
-                # The same actual query owns all three physical/current fences.
-                # Equal-looking callbacks are not merged; only this exact
-                # original observer is already included by the enclosing fence.
-                observe(namespace, key, consume, scan=mode == 0,
-                        required_current=required_current)
+                # One physical query, fenced before IO and before returning its
+                # DATA. The arbitrary-consumer path retains all three fences.
+                # Distinct current callbacks are still observed independently.
+                return observe(namespace, key, None, scan=mode == 0,
+                               required_current=required_current)
             except BaseException as error:
                 failure = error
                 raise
