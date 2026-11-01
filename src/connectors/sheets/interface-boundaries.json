@@ -2418,8 +2418,28 @@
   {
     "module": "src/connectors/sheets/catalog/cells.mbt",
     "responsibilityFacet": "primary",
-    "sha256": "de297cd2f7d3679df5f55f5275be9617ce6950641179d9d4c81c93b34d475d24",
+    "sha256": "70c76f335882c6be0d2d8714d816da3178929e0a8779de97a06d822bef7d67d8",
     "operations": [
+      {
+        "name": "acknowledgement_array",
+        "declaration": "acknowledgement_array ( node : @ source . Node ) - > Array [ @ source . Node ] ?"
+      },
+      {
+        "name": "acknowledgement_int32",
+        "declaration": "acknowledgement_int32 ( node : @ source . Node ) - > Int ?"
+      },
+      {
+        "name": "acknowledgement_object",
+        "declaration": "acknowledgement_object ( node : @ source . Node ) - > Map [ String , @ source . Node ] ?"
+      },
+      {
+        "name": "acknowledgement_object_length",
+        "declaration": "acknowledgement_object_length ( node : @ source . Node ) - > Int ?"
+      },
+      {
+        "name": "acknowledgement_text",
+        "declaration": "acknowledgement_text ( node : @ source . Node ) - > String ?"
+      },
       {
         "name": "admit",
         "declaration": "admit ( body : Bytes , limits : Limits ) - > Result [ @ decode . Cursor , Issue ]"
@@ -2479,6 +2499,10 @@
       {
         "name": "page_rows",
         "declaration": "page_rows ( page : Page ) - > Array [ Json ]"
+      },
+      {
+        "name": "parse_response_body",
+        "declaration": "parse_response_body ( body : Bytes , limits : Limits , ) - > Result [ @ source . Node , Issue ]"
       },
       {
         "name": "project_grid",
@@ -2632,6 +2656,79 @@
             {
               "path": "adapters/connectors/sheets/test/sheets-request-identity.test.mjs",
               "anchor": "same-typed path/body role swap"
+            }
+          ]
+        }
+      },
+      {
+        "operations": [
+          "acknowledgement_array",
+          "acknowledgement_int32",
+          "acknowledgement_object",
+          "acknowledgement_object_length",
+          "acknowledgement_text",
+          "parse_response_body"
+        ],
+        "exports": [],
+        "attributes": {
+          "responsibility": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Range acknowledgement construction follows"
+            }
+          ],
+          "inputsOutputs": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Range acknowledgement construction follows"
+            }
+          ],
+          "identity": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Range acknowledgement construction follows"
+            }
+          ],
+          "ownership": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Range acknowledgement construction follows"
+            }
+          ],
+          "synchronization": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Range acknowledgement construction follows"
+            }
+          ],
+          "failure": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Range acknowledgement construction follows"
+            }
+          ],
+          "cancellation": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Range acknowledgement construction follows"
+            }
+          ],
+          "resources": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Range acknowledgement construction follows"
+            }
+          ],
+          "extension": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Range acknowledgement construction follows"
+            }
+          ],
+          "verification": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Range acknowledgement construction follows"
             }
           ]
         }
@@ -6099,7 +6196,7 @@
   },
   {
     "module": "src/connectors/sheets/catalog/clear.mbt",
-    "sha256": "7df46195d9818665cd71667316fb3e6fd64d408a098dcc23e8824b9b9f8a0415",
+    "sha256": "3cc144a8a0de759e16a686316419b85fec154f7adbd6bf0a95181f1b10c0db0d",
     "exports": [],
     "operations": [
       {
@@ -7217,7 +7314,7 @@
   {
     "module": "src/connectors/sheets/host_node/append_construction.mbt",
     "responsibilityFacet": "primary",
-    "sha256": "4ddbf01148b2e567595499dc4338d4c0749ff8b4e9926dc33efc8e66814c6c0f",
+    "sha256": "64edaa91399e379882a40f06b6cb24150f65a57fd2222f470fa8bca6906fdadc",
     "operations": [
       {
         "name": "sheets_append_construction_profile",
@@ -7655,7 +7752,7 @@
   {
     "module": "src/connectors/sheets/host_node/range_construction.mbt",
     "responsibilityFacet": "primary",
-    "sha256": "1f632740b85e7b47cacac42d97adb6e74e3b4482e6962273536cd03e9a93d8d1",
+    "sha256": "1f6d9b13e89c89edb867c1ac3c840979cb0541cfa96ef265895bd2d6bee1b4e3",
     "operations": [
       {
         "name": "sheets_clear_ack_marker_construction",
@@ -7675,7 +7772,7 @@
       },
       {
         "name": "sheets_range_ack_projection_construction",
-        "declaration": "sheets_range_ack_projection_construction ( nodes : Int , depth : Int , ) - > @ execution . PreparationRepresentationUnits ?"
+        "declaration": "sheets_range_ack_projection_construction ( nodes : Int , ) - > @ execution . PreparationRepresentationUnits ?"
       },
       {
         "name": "sheets_range_canonical_construction",

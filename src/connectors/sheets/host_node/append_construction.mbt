@@ -314,8 +314,9 @@ pub fn sheets_append_construction_profile(
     max_depth: 2,
   }
   guard sheets_writer_units(refusal, 5, 2) is Some(reply_writer) &&
-    sheets_constructor_capacity([response_input, target, reply_writer])
-    is Some(reply) &&
+    // Append shares the same private fresh-Source acknowledgement classifier.
+    // Metadata still uses its original full indexed projection below.
+    sheets_range_response_capacity(response_bytes, nodes, depth) is Some(reply) &&
     sheets_constructor_capacity([schema, response_input, target, reply_writer])
     is Some(metadata) else {
     return None

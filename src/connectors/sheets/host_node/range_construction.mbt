@@ -363,46 +363,30 @@ fn sheets_range_request_capacity(
 }
 
 ///|
-// classify_append opens one root Map. classify_clear opens at most five
-// root/second/create/metadata/location Maps. Their fields are disjoint Source
-// nodes; entries across all maps cannot exceed the SAME total node bound.
-// elements(replies) does materialize every supplied reply Cursor before its
-// later cardinality refusal, so retain that entire Array and every Cursor.
+// Both classifiers borrow the private fresh Source tree. Clear opens at most
+// five maps whose fields belong to that one parsed tree; all entries together
+// are bounded by its original nodes. Replies borrow the original Source Array,
+// without a second Array of Cursors or a full decoded/indexed tree.
 fn sheets_range_ack_projection_construction(
   nodes : Int,
-  depth : Int,
 ) -> @execution.PreparationRepresentationUnits? {
-  let cursor = @decode.cursor_construction_extent()
-  let child = @decode.indexed_child_construction_extent()
-  let n = nodes.to_int64()
   guard @shape.collection_construction_extent({
-      records: n * cursor.record_headers,
-      record_references: n * cursor.reference_slots,
-      record_words: n * cursor.scalar_words,
-      reference_arrays: 1L,
-      reference_items: n,
+      // Original map/field/Node/scalar lookup argument and Option carriers.
+      // Include both finite-number/Int32 reader calls and all clear branches.
+      records: 32L,
+      record_references: 64L,
+      record_words: 24L,
+      reference_arrays: 5L,
+      reference_items: 0L,
       scalar_arrays: 0L,
       scalar_items: 0L,
       maps: 5L,
-      map_entries: n,
+      map_entries: nodes.to_int64(),
     })
-    is Some(collections) &&
-    @decode.issue_construction_extent(depth + 1) is Some(issue) else {
+    is Some(collections) else {
     return None
   }
-  @execution.compose_preparation_representation([
-    sheets_collection_units(collections),
-    sheets_collection_units(issue),
-    // The ten original lookups plus their scalar/Option/result carriers fit
-    // within the original sixteen-child envelope, co-held with all maps.
-    {
-      record_headers: 16L * child.record_headers,
-      reference_slots: 16L * child.reference_slots,
-      scalar_words: 16L * child.scalar_words,
-      owned_utf16_units: 0L,
-      owned_wire_bytes: 0L,
-    },
-  ])
+  Some(sheets_collection_units(collections))
 }
 
 ///|
@@ -450,8 +434,8 @@ fn sheets_range_response_capacity(
   if bytes < 1 || nodes < 1 || depth < 1 || depth == 2147483647 {
     return None
   }
-  guard sheets_decoded_construction(bytes, nodes, depth) is Some(input) &&
-    sheets_range_ack_projection_construction(nodes, depth) is Some(projection) &&
+  guard sheets_range_parsed_construction(bytes, nodes, depth) is Some(input) &&
+    sheets_range_ack_projection_construction(nodes) is Some(projection) &&
     sheets_writer_units(64, 3, 1) is Some(writer) &&
     // Clear additionally canonicalizes the fixed marker+five-coordinate
     // object. A36-ASCII marker, Int coordinates and original field syntax
@@ -466,7 +450,8 @@ fn sheets_range_response_capacity(
     return None
   }
   // Only the Native outcome String escapes this synchronous projection.
-  // The input Source/index/maps/reply Cursors and failure path do not escape.
+  // The original Source/maps and failure path do not escape. No second full
+  // index or reply-Cursor forest is constructed by either classifier.
   // Common separately backs its declared64-byte Host output JSON projection.
   @execution.preparation_execution_capacity({
     retained: {

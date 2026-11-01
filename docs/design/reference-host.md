@@ -2424,12 +2424,24 @@ ceiling. Arbitrary failed input keeps its full original parser/constructor
 bounds. No callback or physical child is retired by this phase composition.
 
 Range acknowledgement construction follows `classify_append`; clear follows
-`classify_clear`. The latter opens at most five maps whose total fields belong
-to the one admitted input tree. Reply Cursor materialization remains bounded
-by all supplied nodes, including later cardinality refusal. The closed clear
-marker projection retains its eight-node, seven-field, depth-two construction
-and canonical writer. Only the Native outcome String escapes; input indexes,
-maps, reply cursors and failed-prefix paths remain temporary workspace.
+`classify_clear`. Both now borrow the fresh private Source tree produced by
+the same byte/parser factory as the existing full decoder. Their synchronous
+code exposes no editable Node or callback between parsing and classification.
+The parser already supplies complete grammar, UTF8, duplicate-key, node and
+container-depth checks; decoded key/value UTF8 totals cannot exceed their
+original encoded spelling. A second full indexed snapshot adds no fact here.
+The classifiers retain only their original field maps and borrow the Source
+reply Array. Clear's Int32 reads still use the same finite-number and integer
+owner. The closed marker projection keeps its eight-node, seven-field,
+depth-two canonical writer. Other consumers which use a Cursor retain the
+original full decoder and its issue mapping.
+
+Range, clear and append acknowledgement quotes use that same parser-only
+inventory plus bounded field views. Only the Native outcome String escapes;
+Source trees, maps and failed prefixes remain temporary workspace. Metadata
+and grid projections keep their existing indexed inventories. This changes no
+HTTP, node, depth or cell ceiling, response acceptance, retry/Unknown meaning,
+Resource reservation, physical stop or cleanup acknowledgment.
 
 Native range capture quotes returned entry/request-array material separately
 from its synchronous parser, NFC and canonical-writer work. The two full

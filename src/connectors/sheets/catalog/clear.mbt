@@ -125,34 +125,34 @@ pub fn classify_clear(
   if status != 200 || !check_clear_marker(marker) {
     return Unknown
   }
-  guard admit(body, limits) is Ok(root) &&
-    @decode.open_object(root) is Ok(object) &&
-    @decode.lookup(object, "spreadsheetId") is Some(id) &&
-    @decode.text(id) == Ok(spreadsheet_id) &&
-    @decode.lookup(object, "replies") is Some(replies) &&
-    @decode.elements(replies) is Ok(items) &&
+  guard parse_response_body(body, limits) is Ok(root) &&
+    acknowledgement_object(root) is Some(object) &&
+    object.get("spreadsheetId") is Some(id) &&
+    acknowledgement_text(id) == Some(spreadsheet_id) &&
+    object.get("replies") is Some(replies) &&
+    acknowledgement_array(replies) is Some(items) &&
     items.length() == 2 &&
-    @decode.object_length(items[0]) is Some(0) &&
-    @decode.open_object(items[1]) is Ok(second) &&
-    @decode.lookup(second, "createDeveloperMetadata") is Some(created) &&
-    @decode.open_object(created) is Ok(created) &&
-    @decode.lookup(created, "developerMetadata") is Some(metadata) &&
-    @decode.open_object(metadata) is Ok(metadata) &&
-    @decode.lookup(metadata, "metadataId") is Some(metadata_id) &&
-    @decode.int32(metadata_id) is Ok(metadata_id) &&
+    acknowledgement_object_length(items[0]) is Some(0) &&
+    acknowledgement_object(items[1]) is Some(second) &&
+    second.get("createDeveloperMetadata") is Some(created) &&
+    acknowledgement_object(created) is Some(created) &&
+    created.get("developerMetadata") is Some(metadata) &&
+    acknowledgement_object(metadata) is Some(metadata) &&
+    metadata.get("metadataId") is Some(metadata_id) &&
+    acknowledgement_int32(metadata_id) is Some(metadata_id) &&
     metadata_id >= 0 &&
-    @decode.lookup(metadata, "metadataKey") is Some(key) &&
-    @decode.text(key) == Ok("actql_request") &&
-    @decode.lookup(metadata, "metadataValue") is Some(value) &&
-    @decode.text(value) is Ok(value) &&
+    metadata.get("metadataKey") is Some(key) &&
+    acknowledgement_text(key) == Some("actql_request") &&
+    metadata.get("metadataValue") is Some(value) &&
+    acknowledgement_text(value) is Some(value) &&
     range_canonical(clear_marker_value(range, marker), limits) == Ok(value) &&
-    @decode.lookup(metadata, "visibility") is Some(visibility) &&
-    @decode.text(visibility) == Ok("DOCUMENT") &&
-    @decode.lookup(metadata, "location") is Some(location) &&
-    @decode.object_length(location) is Some(1) &&
-    @decode.open_object(location) is Ok(location) &&
-    @decode.lookup(location, "sheetId") is Some(sheet_id) &&
-    @decode.int32(sheet_id) == Ok(range.sheet_id) else {
+    metadata.get("visibility") is Some(visibility) &&
+    acknowledgement_text(visibility) == Some("DOCUMENT") &&
+    metadata.get("location") is Some(location) &&
+    acknowledgement_object_length(location) is Some(1) &&
+    acknowledgement_object(location) is Some(location) &&
+    location.get("sheetId") is Some(sheet_id) &&
+    acknowledgement_int32(sheet_id) == Some(range.sheet_id) else {
     return Unknown
   }
   Applied

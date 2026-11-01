@@ -212,7 +212,10 @@ fn check_range(
 }
 
 ///|
-fn admit(body : Bytes, limits : Limits) -> Result[@decode.Cursor, Issue] {
+fn parse_response_body(
+  body : Bytes,
+  limits : Limits,
+) -> Result[@source.Node, Issue] {
   match check_limits(limits) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
@@ -235,6 +238,15 @@ fn admit(body : Bytes, limits : Limits) -> Result[@decode.Cursor, Issue] {
         },
       )
   }
+  Ok(parsed)
+}
+
+///|
+fn admit(body : Bytes, limits : Limits) -> Result[@decode.Cursor, Issue] {
+  let parsed = match parse_response_body(body, limits) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   match
     @decode.admit(parsed, {
       max_nodes: limits.max_nodes,
@@ -251,6 +263,54 @@ fn admit(body : Bytes, limits : Limits) -> Result[@decode.Cursor, Issue] {
           InvalidResponse
         },
       )
+  }
+}
+
+///|
+// Only fresh, private parser results reach these acknowledgement projections.
+// The Source owner already checked the entire tree, exact duplicate keys,
+// Unicode, nodes/depth and byte spelling. Decoded key/value UTF8 totals cannot
+// exceed that same original JSON input, so no second full index is needed.
+// These views borrow nodes; they neither admit caller Nodes nor escape here.
+fn acknowledgement_object(node : @source.Node) -> Map[String, @source.Node]? {
+  guard node.value is @source.Object(fields) else { return None }
+  let output : Map[String, @source.Node] = Map([])
+  for field in fields {
+    output[field.key] = field.value
+  }
+  Some(output)
+}
+
+///|
+fn acknowledgement_array(node : @source.Node) -> Array[@source.Node]? {
+  match node.value {
+    @source.Array(items) => Some(items)
+    _ => None
+  }
+}
+
+///|
+fn acknowledgement_object_length(node : @source.Node) -> Int? {
+  match node.value {
+    @source.Object(fields) => Some(fields.length())
+    _ => None
+  }
+}
+
+///|
+fn acknowledgement_text(node : @source.Node) -> String? {
+  match node.value {
+    @source.String(text) => Some(text)
+    _ => None
+  }
+}
+
+///|
+fn acknowledgement_int32(node : @source.Node) -> Int? {
+  match node.value {
+    @source.Number(number) =>
+      @scalar.read_finite_number(number).bind(@scalar.read_int32)
+    _ => None
   }
 }
 
@@ -682,15 +742,15 @@ pub fn classify_append(
   if status != 200 {
     return Unknown
   }
-  guard admit(body, limits) is Ok(root) &&
-    @decode.open_object(root) is Ok(object) &&
-    @decode.lookup(object, "spreadsheetId") is Some(id) &&
-    @decode.text(id) is Ok(answered) &&
+  guard parse_response_body(body, limits) is Ok(root) &&
+    acknowledgement_object(root) is Some(object) &&
+    object.get("spreadsheetId") is Some(id) &&
+    acknowledgement_text(id) is Some(answered) &&
     answered == spreadsheet_id &&
-    @decode.lookup(object, "replies") is Some(replies) &&
-    @decode.elements(replies) is Ok(items) &&
+    object.get("replies") is Some(replies) &&
+    acknowledgement_array(replies) is Some(items) &&
     items.length() == 1 &&
-    @decode.object_length(items[0]) is Some(0) else {
+    acknowledgement_object_length(items[0]) is Some(0) else {
     return Unknown
   }
   Applied
