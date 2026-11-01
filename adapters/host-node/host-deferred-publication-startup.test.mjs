@@ -20,6 +20,12 @@ function collect(node){
   }
 }
 collect(ast);
+const installedHost=ast.body.find(node=>node.type==='FunctionDeclaration'&&
+  node.id.name==='openInstalledHost');
+const installedEntryGuard=installedHost.body.body[0];
+assert.equal(installedEntryGuard.type,'IfStatement');
+assert.match(source.slice(installedEntryGuard.start,installedEntryGuard.end),
+  /InstalledRequestPreparationUnavailable/u);
 const declaration=name=>{
   const found=nodes.filter(node=>node.type==='VariableDeclarator'&&node.id.name===name);
   assert.equal(found.length,1,name);return source.slice(found[0].start,found[0].end);
@@ -40,7 +46,10 @@ const make=compileFunction(`return async function(input){
   const closeHostRequestJournal=()=>journal.close();
   const sourceProfile=input.source,installedEffect=undefined,diagnostic=undefined,observation=undefined;
   const preparation=input.selected===false?undefined:{initialControl:input.initialControl,
+    fundedPreparation(){throw Error('No business funding in this fixture');},
+    requestPreparation(){throw Error('No business Request in this fixture');},
     bindSourceRequest(){throw Error('No business Source in this fixture');}};
+  ${source.slice(installedEntryGuard.start,installedEntryGuard.end)}
   const originalSourcePreparation=input.withSource===false?undefined:Object.freeze(Object.fromEntries(
     ['beforeSourceSnapshot','bindSourceSnapshot','bindSourceRequest','finishSourceProducer','intentCid']
       .map(name=>[name,()=>{throw Error('No business Source in this fixture');}])));
@@ -88,10 +97,11 @@ async function createFixture({initialize,withSource=true,selected=true}={}){
     connect:()=>registry.connect('/original','same',async()=>host,{mode:'local',owner:'local'})};
 }
 
-nodeTest('unprepared Host retains its original eager publication service construction',async()=>{
-  const f=await createFixture({selected:false,withSource:false});
-  assert.equal(f.constructions(),1);
-  assert.notEqual(f.host.port,undefined);
+nodeTest('installed Host fixture requires its actual preparation owner before activation',async()=>{
+  let initialized=0;
+  await assert.rejects(createFixture({selected:false,withSource:false,
+    initialize(){initialized++;}}),{name:'TypeError',message:'InstalledRequestPreparationUnavailable'});
+  assert.equal(initialized,0);
 });
 
 nodeTest('selected ordinary Host cannot borrow Journal coverage for Publication activation',()=>{
