@@ -201,6 +201,53 @@ class LocalOwnedStoreInitializationTests(unittest.TestCase):
                 finally:
                     store._physical.finish_read()
 
+    def test_missing_optional_index_expression_preserves_existing_legacy_format(self):
+        class NoJson(sqlite3.Connection):
+            def execute(self, sql, *args, **kwargs):
+                if sql.startswith('SELECT json_extract('):
+                    failure = sqlite3.OperationalError('no such function: json_extract')
+                    failure.sqlite_errorcode = sqlite3.SQLITE_ERROR
+                    raise failure
+                if sql.startswith('CREATE UNIQUE INDEX'):
+                    raise AssertionError('Unsupported expression reached schema mutation')
+                return super().execute(sql, *args, **kwargs)
+        path, root, original = self.fixture()
+        connect = sqlite3.connect
+        with patch('actql_sdk._local_storage.sqlite3.connect',
+                   side_effect=lambda *a, **k: connect(*a, **k, factory=NoJson)):
+            store = self.open(path / original.name, root, original)
+        self.assertEqual(store._connection.execute('PRAGMA user_version').fetchone(), (2,))
+        store._physical.begin_read()
+        try:
+            self.assertEqual(store._physical._journal_schema(), 0)
+        finally:
+            store._physical.finish_read()
+        self.assertEqual(store.compare_exchange('opaque', None, b'original'), 0)
+        self.assertEqual(store.read('opaque').payload, b'original')
+
+    def test_unrelated_index_probe_error_is_not_legacy_fallback_or_retry(self):
+        class ProbeFailure(sqlite3.Connection):
+            calls = 0
+            failure = sqlite3.OperationalError('original metadata IO interrupted')
+            def execute(self, sql, *args, **kwargs):
+                if sql.startswith('SELECT json_extract('):
+                    self.calls += 1
+                    raise self.failure
+                return super().execute(sql, *args, **kwargs)
+        path, root, original = self.fixture()
+        connect = sqlite3.connect
+        opened = []
+        def acquire(*args, **kwargs):
+            value = connect(*args, **kwargs, factory=ProbeFailure)
+            opened.append(value)
+            return value
+        with patch('actql_sdk._local_storage.sqlite3.connect', side_effect=acquire):
+            with self.assertRaises(sqlite3.OperationalError) as caught:
+                self.open(path / original.name, root, original)
+        self.assertIs(caught.exception, ProbeFailure.failure)
+        self.assertEqual(opened[0].calls, 1)
+        self.assertTrue(original.store_claimed)
+
     def test_original_file_generation_is_bound_before_sql_and_claimed_once(self):
         path, root, value = self.fixture()
         observed = root.observe(value)
