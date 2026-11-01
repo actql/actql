@@ -79,18 +79,38 @@ export function createEmbeddedHostRegistry(sameInstallation) {
     }
     entry.preparationRetired = true;
     entry.mockPreparation = undefined;
+    entry.requestIndex = undefined;
     entry.hostJournalPreparation = undefined;
     entry.originalHost = entry.originalInstallation = entry.generation = undefined;
   };
+  function originalRequestRecord(entry, request) {
+    const original = entry.requestIndex.get(request);
+    if (original === undefined || original.owner !== entry ||
+        original.generation !== entry.generation || original.request === undefined ||
+        entry.handling.get(original.pending) !== original) preparationChanged();
+    return original;
+  }
+  function assertUnboundRequest(entry, request) {
+    if (request === null || typeof request !== 'object' ||
+        entry.requestIndex.has(request)) preparationChanged();
+  }
+  function retainRequestRecord(entry, request, pending) {
+    const original = {request, pending, owner: entry, generation: entry.generation};
+    entry.requestIndex.set(request, original);
+    entry.handling.set(pending, original);
+    return original;
+  }
+  function retireRequestRecord(entry, pending, original) {
+    if (entry.handling.get(pending) === original) entry.handling.delete(pending);
+    // Weak aliases may outlive this call. Their tombstone retains no request,
+    // Promise, Host or generation, and cannot bind to a different original.
+    original.request = original.pending = original.owner = original.generation = undefined;
+  }
   function originalSourceRequest(host, installation, generation, request) {
     const entry = preparationFor(host, installation, generation);
     if (entry.closing || entry.failure !== undefined ||
         request === null || typeof request !== 'object') preparationChanged();
-    for (const original of entry.handling.values()) {
-      if (original !== undefined && (original.request === request ||
-          original.aliases.has(request))) return original.request;
-    }
-    preparationChanged();
+    return originalRequestRecord(entry, request).request;
   }
   return Object.freeze({
   // A candidate belongs to this SAME registry, before Project discovery. It
@@ -104,7 +124,7 @@ export function createEmbeddedHostRegistry(sameInstallation) {
     }
     profiles.set(host, {originalHost: host, originalInstallation: installation,
       generation, preparing: true, leases: 0, accepting: 0, closing: false,
-      handling: new Map()});
+      handling: new Map(), requestIndex: new WeakMap()});
   },
   assertPreparation(host, installation, generation) {
     const entry = preparationFor(host, installation, generation);
@@ -163,30 +183,27 @@ export function createEmbeddedHostRegistry(sameInstallation) {
         typeof request !== 'object' || !(pending instanceof Promise) || entry.handling.has(pending)) {
       preparationChanged();
     }
-    entry.handling.set(pending, {request, aliases: new WeakSet()});
-    pending.finally(() => entry.handling.delete(pending)).catch(() => {});
+    assertUnboundRequest(entry, request);
+    const original = retainRequestRecord(entry, request, pending);
+    pending.finally(() => retireRequestRecord(entry, pending, original)).catch(() => {});
   },
   assertSourceRequest(host, installation, generation, request) {
     originalSourceRequest(host, installation, generation, request);
   },
   bindSourceRequest(host, installation, generation, parent, derived) {
-    const originalRequest = originalSourceRequest(host, installation, generation, parent);
-    if (derived === null || typeof derived !== 'object') preparationChanged();
     const entry = preparationFor(host, installation, generation);
-    let selected;
-    for (const original of entry.handling.values()) {
-      if (original === undefined) continue;
-      if (original.request === originalRequest) selected = original;
-      else if (original.request === derived || original.aliases.has(derived)) preparationChanged();
+    if (entry.closing || entry.failure !== undefined || parent === null ||
+        typeof parent !== 'object' || derived === null || typeof derived !== 'object') preparationChanged();
+    const selected = originalRequestRecord(entry, parent);
+    const bound = entry.requestIndex.get(derived);
+    if (bound !== undefined) {
+      if (bound !== selected) preparationChanged();
+      return;
     }
-    if (derived === originalRequest || selected.aliases.has(derived)) return;
     // Alias identity is weak: the active operation/dispatch owns its payload.
-    // Keeping an authorization lookup alive must not root a retired compiler
-    // body. Membership belongs to this pending original only; cumulative
-    // alias issuance is not a live-resource census or an authorization limit.
-    // The fixed constructors own their copies and control-entry costs. This
-    // lookup grants no capacity and never changes packet grammar or identity.
-    selected.aliases.add(derived);
+    // The same strong handling inventory remains the physical drain owner.
+    // This index grants no capacity or authority and never changes a packet.
+    entry.requestIndex.set(derived, selected);
   },
   retirePreparation(host, installation, generation) {
     const entry = preparationFor(host, installation, generation);
@@ -217,7 +234,7 @@ export function createEmbeddedHostRegistry(sameInstallation) {
       } else throw entry.failure;
     }
     if (entry === undefined) {
-      entry = prepared ?? {leases: 0, accepting: 0, closing: false, handling: new Map()};
+      entry = prepared ?? {leases: 0, accepting: 0, closing: false, handling: new Map(), requestIndex: new WeakMap()};
       entry.identity = identity;
       entry.preparing = false;
       const opened = entry;
@@ -460,15 +477,17 @@ export function createEmbeddedHostRegistry(sameInstallation) {
       }),
       perform(operation, request, signal) {
         if (sealed || opened.closing) return Promise.reject(closing());
+        // Refuse rebinding before scheduling any physical operation.
+        try { assertUnboundRequest(opened, request); }
+        catch (cause) { return Promise.reject(cause); }
         const pending = Promise.resolve().then(() => host.port.perform(operation, request, signal));
         handling.add(pending);
-        // Same pending operation, not a second request index or cache. The
-        // supplier may retain an admitted original after this Promise retires;
-        // deleting this association is neither a holding nor physical ACK.
-        opened.handling.set(pending, {request, aliases: new WeakSet()});
+        // Same pending operation and drain record; the weak index supplies
+        // identity lookup only, never a holding or physical acknowledgement.
+        const original = retainRequestRecord(opened, request, pending);
         pending.finally(() => {
           handling.delete(pending);
-          opened.handling.delete(pending);
+          retireRequestRecord(opened, pending, original);
         }).catch(() => {});
         return pending;
       }, close, seal,
