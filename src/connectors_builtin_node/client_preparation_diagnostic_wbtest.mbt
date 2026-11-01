@@ -156,6 +156,119 @@ fn request_diagnostic_checked_issue_code(
 }
 
 ///|
+// Exercise the actual existing JS Result reader across this concrete bridge
+// callback. No new Option/tuple decoding or result shape is manufactured.
+extern "js" fn request_observation_test_read_js(
+  loader : RequestDiagnosticTestLoader,
+  project : () -> Result[
+    String?,
+    @client_local_host.ClientRequestPreparationIssue,
+  ],
+  present : Bool,
+) -> Bool =
+  #|(loader,project,present) => { const value=loader('../../../../../adapters/host-common/runtime-result.mjs').checked(project()); return present ? typeof value==='string' && value.includes('"verdict":"invalid"') : value===undefined; }
+
+///|
+test "Request original observation bridge returns optional String through the actual JS Result reader without rechecking" {
+  let environment = original_lookup_diagnostic_environment(false)
+  let wire = "{\"environmentCid\":\"" +
+    @program_check.checking_environment_cid(environment) +
+    "\",\"aliases\":[]}"
+  let publication = @source_publication.prepare_published_query_environment(
+    environment, wire,
+  ).unwrap()
+  let document =
+    #|{"version":"actql/0.1","id":"original-observation","stages":[{"id":"s","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[]},"as":"v"},{"take":-1,"as":"bad"}],"results":{"rows":{"from":"bad","fields":["id"]}}}],"results":{"rows":{"from":{"stage":"s","result":"rows"}}}}
+  let (parent, input) = request_diagnostic_test_parent()
+  let original_result = client_program_prepare_request_native_computation(
+    parent,
+    input,
+    request_diagnostic_test_json(document),
+    request_diagnostic_test_json("null"),
+    environment,
+    publication,
+    None,
+  )
+  assert_true(original_result is Err(CheckOutcome(_)))
+  let project = () => {
+    client_program_project_request_check_outcome(
+      parent,
+      input,
+      original_result,
+      wire,
+      "ctx:" + "a".repeat(64),
+      "program",
+      "rev:" + "b".repeat(64),
+      document.length(),
+      None,
+      0,
+      None,
+      0,
+      "corr:" + "c".repeat(32),
+      None,
+    )
+  }
+  let loader = request_diagnostic_test_loader(request_diagnostic_test_url())
+  assert_true(request_observation_test_read_js(loader, project, true))
+  client_program_abort_request_preparation(parent).unwrap()
+  assert_true(request_observation_test_read_js(loader, project, false))
+}
+
+///|
+test "Request original observation bridge never upgrades undisclosable NeedsInputs to verified" {
+  let environment = original_lookup_diagnostic_environment(false)
+  let wire = "{\"environmentCid\":\"" +
+    @program_check.checking_environment_cid(environment) +
+    "\",\"aliases\":[]}"
+  let publication = @source_publication.prepare_published_query_environment(
+    environment, wire,
+  ).unwrap()
+  // Existing report labels are deliberately limited to256. The semantic
+  // parameter name is valid, but its unresolved obligation must not disappear
+  // merely because that particular public requirement cannot be enumerated.
+  let name = "p".repeat(257)
+  let document = "{\"version\":\"actql/0.1\",\"id\":\"original-needs-input\",\"params\":{\"" +
+    name +
+    "\":{\"type\":\"number\"}},\"stages\":[{\"id\":\"s\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"id\":1}]},\"as\":\"v\"},{\"derive\":{\"value\":\"id + $" +
+    name +
+    "\"},\"as\":\"d\"}],\"results\":{\"rows\":{\"from\":\"d\",\"fields\":[\"value\"]}}}],\"results\":{\"rows\":{\"from\":{\"stage\":\"s\",\"result\":\"rows\"}}}}"
+  let (parent, input) = request_diagnostic_test_parent()
+  let original_result = client_program_prepare_request_native_computation(
+    parent,
+    input,
+    request_diagnostic_test_json(document),
+    request_diagnostic_test_json("null"),
+    environment,
+    publication,
+    None,
+  )
+  guard original_result is Err(CheckOutcome(@program_check.NeedsInputs(_))) else {
+    fail("must retain the actual nominal NeedsInputs frontier")
+  }
+  let report = client_program_project_request_check_outcome(
+      parent,
+      input,
+      original_result,
+      wire,
+      "ctx:" + "a".repeat(64),
+      "program",
+      "rev:" + "b".repeat(64),
+      document.length(),
+      None,
+      0,
+      None,
+      0,
+      "corr:" + "c".repeat(32),
+      None,
+    )
+    .unwrap()
+    .unwrap()
+  assert_true(report.contains("\"verdict\":\"undetermined\""), msg=report)
+  assert_false(report.contains(name))
+  client_program_abort_request_preparation(parent).unwrap()
+}
+
+///|
 test "Request failure projection uses the original semantic issue without another check" {
   let environment = original_lookup_diagnostic_environment(false)
   let publication = @source_publication.prepare_published_query_environment(

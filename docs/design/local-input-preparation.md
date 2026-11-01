@@ -4992,3 +4992,42 @@ separate from the native bounds and from Source/Content Store custody.
 The original Scope/read and Source/Content cleanup paths retain their physical
 duties. Neither binding the recipe nor retiring its aliases acknowledges a
 provider, Source, writer, holding, Store or parent release.
+
+## Live original Request refusal observation
+
+A public check observation can borrow the same still-live Request check refusal.
+The Node projection accepts the original `Result` returned by that Request's
+check call, together with its existing parent and original input receipt. The
+portable Request boundary matches the nominal outcome, Program and arguments;
+JavaScript does not reconstruct an error, decode a check constructor or issue
+another Request. A successful original check has no negative observation.
+
+The trusted Host binds input kind, revisions and byte counts to its original
+SDK snapshot. It supplies current Source publication and optional nominal
+selector namespace only after the current audience's authorization awaits.
+These report fields are DATA, never Source permission or resource backing.
+Namespace correspondence uses the same admitted environment wire owner. A
+Source dependency whose original collected inputs are unavailable stays
+unresolved; reporting does not collect or resolve it again. Native originals
+without an authored text mapping do not acquire invented text coordinates.
+
+Before reading current publication metadata or constructing report output,
+the same Request grows its retained and working extents for the bounded report
+writer, findings, labels, publication/index views and sequential Source-reference
+strings. Cached original Program admission geometry bounds those strings;
+they are constructed once per original input rather than once per visible
+alias. The original semantic data envelope remains live. Existing trusted
+Host/Request controls cover the synchronous call frame and borrowed references.
+The existing busy guard excludes reentrant preparation and retirement, and the
+post-current fence verifies the same parent, input, arguments, outcome and
+original Source registration/collection before projection.
+
+Projection does not parse another Program or Parameters document, repeat a
+semantic check, lower or compile, transfer the original outcome, or cache a
+report in Journal. Missing or undisclosable original input obligations remain
+undetermined even when an individual requirement label cannot be emitted. A
+cleared, transferred or retired original yields no optional observation. The
+Host can retain its existing coarse current-audience problem, but a fresh
+check is not evidence of that former original. Alias retirement and absence of
+a report do not settle the parent or acknowledge physical cleanup; the same
+existing Request and child cleanup duties still apply.
