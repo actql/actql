@@ -303,6 +303,7 @@ function registrationFixture(family, {full = false} = {}) {
     callbacks: {request: () => request, contentRequirements: () => ({attempts: 1})},
     producerForRequest: r => r === request ? producer : undefined,
     checked: v => v, checkedRequestProgramPreparation: (_moon, v) => v,
+    reportCapacityRefusal() {},
     originalTimedInvocation: () => undefined};
   const methods = requestManagerMethods(['adoptPreparation', 'adoptCapturePreparation', 'adoptModelPreparation', 'adoptContentPreparation'], ports);
   const invoke = () => family === 'pure' ? methods.adoptPreparation(prepared, request, identity)
