@@ -195,6 +195,9 @@ pub fn start_installed_managed_serialization_prefix(
           0L,
           @execution.execution_capacity_retained_bytes(selected.capacity),
           @execution.execution_capacity_execution_bytes(selected.capacity),
+          // This selected Content prefix consumes no Model quantities. The
+          // SAME configured Ledger and ordinary reservation validate this DATA.
+          quantities=@resources.quantity_neutral_amounts(ledger),
         ) {
         Err(@resources.Resource(issue)) =>
           return Err(SerializationPrefix(Physical(issue)))

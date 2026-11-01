@@ -506,6 +506,7 @@ test "serialized Model adopts the same Request Content prefix and retains both o
     run.content is SerializationContent(original) &&
     physical_equal(original, prefix),
   )
+  let quantities_before_prefix = @resources.quantity_usage(f.parent.ledger)
   let child = match
     start_installed_managed_serialization_prefix(run, f.prepared, prefix) {
     Ok(child) => child
@@ -520,6 +521,10 @@ test "serialized Model adopts the same Request Content prefix and retains both o
     _ => fail("original prefix lifetime")
   }
   assert_true(physical_equal(child.ledger, f.parent.ledger))
+  assert_eq(
+    @resources.quantity_usage(f.parent.ledger),
+    quantities_before_prefix,
+  )
   assert_true(retire_installed_managed_run(run) is Err(CleanupPending))
   let mut output = None
   for _ in 0..<1000 {
@@ -540,6 +545,10 @@ test "serialized Model adopts the same Request Content prefix and retains both o
   )
   assert_true(
     cleanup_installed_managed_serialization_prefix(run, prefix).unwrap(),
+  )
+  assert_eq(
+    @resources.quantity_usage(f.parent.ledger),
+    quantities_before_prefix,
   )
   // Prefix ACK does not release the Model Scope or the Request borrower.
   assert_true(retire_installed_managed_run(run) is Err(CleanupPending))
