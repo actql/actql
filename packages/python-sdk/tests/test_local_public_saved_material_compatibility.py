@@ -218,5 +218,25 @@ class PublicSavedMaterialCompatibilityTests(unittest.TestCase):
             self.assertIs(holder.original_first_output(request), first)
 
 
+    def test_saved_lookup_reuses_original_material_and_keeps_current_before_action(self):
+        with self.fixture() as (holder, observation, fact, _, core, request, first,
+                                clock, _, state, calls, _, _, _):
+            holder.bind_original_payload(request, clock, fact)
+            original_input = fact.pending_input
+            self.assertIsNotNone(original_input)
+            before = len(calls)
+            current_before = state['current']
+            physical = fact._root.observe_original
+            with observation._serialized_facts(), patch.object(
+                    fact._root, 'observe_original', wraps=physical) as observed:
+                observation._current_call(observation._before_lookup)
+                self.assertGreater(observed.call_count, 0)
+            self.assertEqual(calls[before:], [])
+            self.assertEqual(state['current'] - current_before, 2)
+            self.assertIs(fact.pending_input, original_input)
+            self.assertIs(holder.original_first_output(request), first)
+            self.assertIs(core._loans[original_input.ticket], original_input)
+
+
 if __name__ == '__main__':
     unittest.main()
