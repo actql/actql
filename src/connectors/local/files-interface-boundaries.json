@@ -496,7 +496,7 @@
     {
       "module": "adapters/connectors/local/host/installed-project-files.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e37ab450de193883ca065f8ac84a549ae5a703e505e51b0b2165cc67b4afcd32",
+      "sha256": "1aacce4ad50ead929d6ba7fb542622ebc1866a8ddd34d31cfda2b303ab0f5cfa",
       "exports": [
         "LOCAL_FILES_DEFAULT_LIMITS",
         "installPreparedProjectLocalFiles",
@@ -723,6 +723,30 @@
           "async": false
         },
         {
+          "name": "installPreparedProjectLocalFiles/contentSourceEntry",
+          "parameters": [
+            "resource",
+            "reference"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/contentSourceEntry/index/index",
+          "parameters": [
+            "source",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/contentSourceEntry/index/index/index",
+          "parameters": [
+            "alias",
+            "slot"
+          ],
+          "async": false
+        },
+        {
           "name": "installPreparedProjectLocalFiles/current/current",
           "parameters": [],
           "async": false
@@ -816,34 +840,9 @@
         },
         {
           "name": "installPreparedProjectLocalFiles/prepareContentRun/prepareContentRun",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "installPreparedProjectLocalFiles/prepareContentRun/prepareContentRun/content/content",
           "parameters": [
-            "entry"
-          ],
-          "async": false
-        },
-        {
-          "name": "installPreparedProjectLocalFiles/prepareContentRun/prepareContentRun/content/content/content",
-          "parameters": [
-            "view"
-          ],
-          "async": false
-        },
-        {
-          "name": "installPreparedProjectLocalFiles/prepareContentRun/prepareContentRun/direct/direct",
-          "parameters": [
-            "entry"
-          ],
-          "async": false
-        },
-        {
-          "name": "installPreparedProjectLocalFiles/prepareContentRun/prepareContentRun/direct/direct/direct",
-          "parameters": [
-            "view"
+            "parent",
+            "requestInput"
           ],
           "async": false
         },
@@ -1150,14 +1149,17 @@
             "installPreparedProjectLocalFiles/close",
             "installPreparedProjectLocalFiles/closeRead",
             "installPreparedProjectLocalFiles/contentLedger",
+            "installPreparedProjectLocalFiles/contentSourceEntry",
+            "installPreparedProjectLocalFiles/contentSourceEntry/index/index",
+            "installPreparedProjectLocalFiles/contentSourceEntry/index/index/index",
             "installPreparedProjectLocalFiles/current/current",
             "installPreparedProjectLocalFiles/init:ledgerCapacity/init:ledgerCapacity",
             "installPreparedProjectLocalFiles/init:prepare/init:prepare",
             "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles",
+            "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles/installPreparedProjectLocalFiles",
             "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles#2",
             "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles#3",
             "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles#4",
-            "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles/installPreparedProjectLocalFiles",
             "installPreparedProjectLocalFiles/issuer/issuer",
             "installPreparedProjectLocalFiles/issuer/issuer#2",
             "installPreparedProjectLocalFiles/keyedTransports/keyedTransports",
@@ -1797,11 +1799,7 @@
         },
         {
           "operations": [
-            "installPreparedProjectLocalFiles/prepareContentRun/prepareContentRun",
-            "installPreparedProjectLocalFiles/prepareContentRun/prepareContentRun/content/content",
-            "installPreparedProjectLocalFiles/prepareContentRun/prepareContentRun/content/content/content",
-            "installPreparedProjectLocalFiles/prepareContentRun/prepareContentRun/direct/direct",
-            "installPreparedProjectLocalFiles/prepareContentRun/prepareContentRun/direct/direct/direct"
+            "installPreparedProjectLocalFiles/prepareContentRun/prepareContentRun"
           ],
           "exports": [],
           "attributes": {

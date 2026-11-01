@@ -1948,7 +1948,7 @@
     {
       "module": "adapters/host-common/completed-run-publication.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "affa57ebc89120a64f52de7bec03274ccba4dd66e79d39de7083ec568e66082b",
+      "sha256": "02f798e8c019510a3444868dc03605f8c7439dbfa99df4f29126c25dddd9a7bc",
       "role": "physical-io",
       "owner": "Existing Run Publication/Artifact Owners and physical Store sequencing",
       "exports": [
@@ -2280,6 +2280,64 @@
           "async": false
         },
         {
+          "name": "prepareCompletedEffectfulCaptureRetirement",
+          "parameters": [
+            "store",
+            "control",
+            "run",
+            "contractLimits",
+            "record",
+            "recordCid",
+            "captureCid",
+            "wire"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareCompletedEffectfulCaptureRetirement/admit/admit",
+          "parameters": [
+            "name",
+            "wire"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareCompletedEffectfulCaptureRetirement/chain/chain",
+          "parameters": [
+            "wire"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareCompletedEffectfulCaptureRetirement/chain/chain#2",
+          "parameters": [
+            "wire"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareCompletedEffectfulCaptureRetirement/prepareCompletedEffectfulCaptureRetirement",
+          "parameters": [
+            "object"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareCompletedEffectfulCaptureRetirement/sourceCids/sourceCids",
+          "parameters": [
+            "memberIndex",
+            "artifact"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareCompletedEffectfulCaptureRetirement/sources/sources",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareCompletedEffectfulPublication",
           "parameters": [
             "options"
@@ -2411,12 +2469,66 @@
         {
           "name": "recoverCompletedEffectfulComputation",
           "parameters": [
-            "options"
+            "options",
+            "recoveryResources"
           ],
           "async": true
         },
         {
-          "name": "recoverCompletedEffectfulComputation/admit/admit",
+          "name": "recoverCompletedEffectfulComputation/recoverCompletedEffectfulComputation",
+          "parameters": [
+            "beforeRead"
+          ],
+          "async": false
+        },
+        {
+          "name": "recoverCompletedEffectfulComputationOwned",
+          "parameters": [
+            "options",
+            "beforeRead",
+            "recoveryResources"
+          ],
+          "async": true
+        },
+        {
+          "name": "recoverCompletedEffectfulComputationOwned/recoverCompletedEffectfulComputationOwned",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "recoverCompletedEffectfulComputationOwned/recoverCompletedEffectfulComputationOwned#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "recoverCompletedEffectfulComputationOwned/recovered/recovered",
+          "parameters": [
+            "_plaintext",
+            "read"
+          ],
+          "async": false
+        },
+        {
+          "name": "recoverCompletedEffectfulPlaintext",
+          "parameters": [
+            "store",
+            "control",
+            "contractLimits",
+            "admittedRun",
+            "captureHoldingCid",
+            "recordHoldingCid",
+            "record",
+            "read",
+            "recoveryResources"
+          ],
+          "async": true
+        },
+        {
+          "name": "recoverCompletedEffectfulPlaintext/admit/admit",
           "parameters": [
             "name",
             "wire"
@@ -2424,119 +2536,110 @@
           "async": false
         },
         {
-          "name": "recoverCompletedEffectfulComputation/artifacts/artifacts",
+          "name": "recoverCompletedEffectfulPlaintext/artifacts/artifacts",
           "parameters": [
             "wire"
           ],
           "async": false
         },
         {
-          "name": "recoverCompletedEffectfulComputation/connectorRecovery/connectorRecovery",
+          "name": "recoverCompletedEffectfulPlaintext/connectorRecovery/connectorRecovery",
           "parameters": [
             "item"
           ],
           "async": false
         },
         {
-          "name": "recoverCompletedEffectfulComputation/definitions/definitions",
+          "name": "recoverCompletedEffectfulPlaintext/definitions/definitions",
           "parameters": [
             "wire"
           ],
           "async": false
         },
         {
-          "name": "recoverCompletedEffectfulComputation/derivations/derivations",
+          "name": "recoverCompletedEffectfulPlaintext/derivations/derivations",
           "parameters": [
             "wire"
           ],
           "async": false
         },
         {
-          "name": "recoverCompletedEffectfulComputation/durableBindings/durableBindings",
+          "name": "recoverCompletedEffectfulPlaintext/durableBindings/durableBindings",
           "parameters": [
             "wire"
           ],
           "async": false
         },
         {
-          "name": "recoverCompletedEffectfulComputation/orderings/orderings",
+          "name": "recoverCompletedEffectfulPlaintext/orderings/orderings",
           "parameters": [
             "wire"
           ],
           "async": false
         },
         {
-          "name": "recoverCompletedEffectfulComputation/recoverCompletedEffectfulComputation",
+          "name": "recoverCompletedEffectfulPlaintext/recoverCompletedEffectfulPlaintext",
           "parameters": [
             "name"
           ],
           "async": false
         },
         {
-          "name": "recoverCompletedEffectfulComputation/recoverCompletedEffectfulComputation#2",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "recoverCompletedEffectfulComputation/recoverCompletedEffectfulComputation#3",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "recoverCompletedEffectfulComputation/recoverCompletedEffectfulComputation#4",
+          "name": "recoverCompletedEffectfulPlaintext/recoverCompletedEffectfulPlaintext#2",
           "parameters": [
             "values"
           ],
           "async": false
         },
         {
-          "name": "recoverCompletedEffectfulComputation/recoverCompletedEffectfulComputation#5",
+          "name": "recoverCompletedEffectfulPlaintext/recoverCompletedEffectfulPlaintext#3",
           "parameters": [
             "object"
           ],
           "async": false
         },
         {
-          "name": "recoverCompletedEffectfulComputation/recoverCompletedEffectfulComputation#6",
+          "name": "recoverCompletedEffectfulPlaintext/recoverCompletedEffectfulPlaintext#4",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "recoverCompletedEffectfulComputation/recoverCompletedEffectfulComputation#7",
+          "name": "recoverCompletedEffectfulPlaintext/recoverCompletedEffectfulPlaintext#5",
           "parameters": [
             "source"
           ],
           "async": false
         },
         {
-          "name": "recoverCompletedEffectfulComputation/retentions/retentions",
+          "name": "recoverCompletedEffectfulPlaintext/recoverCompletedEffectfulPlaintext#6",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "recoverCompletedEffectfulPlaintext/retentions/retentions",
           "parameters": [
             "wire"
           ],
           "async": false
         },
         {
-          "name": "recoverCompletedEffectfulComputation/sourceInventory/sourceInventory",
+          "name": "recoverCompletedEffectfulPlaintext/sourceInventory/sourceInventory",
           "parameters": [
             "item"
           ],
           "async": false
         },
         {
-          "name": "recoverCompletedEffectfulComputation/sourceMemberIndices/sourceMemberIndices",
+          "name": "recoverCompletedEffectfulPlaintext/sourceMemberIndices/sourceMemberIndices",
           "parameters": [
             "source"
           ],
           "async": false
         },
         {
-          "name": "recoverCompletedEffectfulComputation/storedResults/storedResults",
+          "name": "recoverCompletedEffectfulPlaintext/storedResults/storedResults",
           "parameters": [
             "definition",
             "index"
@@ -2676,61 +2779,41 @@
         {
           "name": "retireCompletedEffectfulCapture",
           "parameters": [
-            "store",
-            "control",
-            "runDefinition",
-            "contractLimits"
+            "options",
+            "recoveryResources"
           ],
           "async": true
         },
         {
-          "name": "retireCompletedEffectfulCapture/admit/admit",
-          "parameters": [
-            "name",
-            "wire"
-          ],
-          "async": false
-        },
-        {
-          "name": "retireCompletedEffectfulCapture/chain/chain",
-          "parameters": [
-            "wire"
-          ],
-          "async": false
-        },
-        {
-          "name": "retireCompletedEffectfulCapture/chain/chain#2",
-          "parameters": [
-            "wire"
-          ],
-          "async": false
-        },
-        {
           "name": "retireCompletedEffectfulCapture/retireCompletedEffectfulCapture",
+          "parameters": [
+            "beforeRead"
+          ],
+          "async": false
+        },
+        {
+          "name": "retireCompletedEffectfulCaptureOwned",
+          "parameters": [
+            "store",
+            "control",
+            "runDefinition",
+            "contractLimits",
+            "beforeRead"
+          ],
+          "async": true
+        },
+        {
+          "name": "retireCompletedEffectfulCaptureOwned/retireCompletedEffectfulCaptureOwned",
           "parameters": [
             "name"
           ],
           "async": false
         },
         {
-          "name": "retireCompletedEffectfulCapture/retireCompletedEffectfulCapture#2",
+          "name": "retireCompletedEffectfulCaptureOwned/retireCompletedEffectfulCaptureOwned#2",
           "parameters": [
-            "object"
-          ],
-          "async": false
-        },
-        {
-          "name": "retireCompletedEffectfulCapture/sourceCids/sourceCids",
-          "parameters": [
-            "memberIndex",
-            "artifact"
-          ],
-          "async": false
-        },
-        {
-          "name": "retireCompletedEffectfulCapture/sources/sources",
-          "parameters": [
-            "item"
+            "_plaintext",
+            "read"
           ],
           "async": false
         },
@@ -2811,6 +2894,28 @@
             "options"
           ],
           "async": false
+        },
+        {
+          "name": "withCaptureRecoveryResources",
+          "parameters": [
+            "resources",
+            "consume"
+          ],
+          "async": true
+        },
+        {
+          "name": "withCaptureRecoveryResources/value/value",
+          "parameters": [
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "withCaptureRecoveryResources/withCaptureRecoveryResources",
+          "parameters": [
+            "name"
+          ],
+          "async": false
         }
       ],
       "contracts": [
@@ -2827,6 +2932,9 @@
             "fail/fail",
             "isCompletedEffectfulPublicationCleanupFailure",
             "issueCompletedEffectfulComputationEvidence",
+            "issueCompletedEffectfulComputationEvidence/capturedRun/capturedRun",
+            "issueCompletedEffectfulComputationEvidence/capturedRun/capturedRun#2",
+            "issueCompletedEffectfulComputationEvidence/capturedRun/capturedRun#3",
             "issueCompletedEffectfulComputationEvidence/captureHolding/captureHolding",
             "issueCompletedEffectfulComputationEvidence/captureRecordWire/captureRecordWire",
             "issueCompletedEffectfulComputationEvidence/captureRecordWire/captureRecordWire#2",
@@ -2837,9 +2945,6 @@
             "issueCompletedEffectfulComputationEvidence/captureRecordWire/captureRecordWire#7",
             "issueCompletedEffectfulComputationEvidence/captureRecordWire/captureRecordWire#8",
             "issueCompletedEffectfulComputationEvidence/captureRecordWire/captureRecordWire#9",
-            "issueCompletedEffectfulComputationEvidence/capturedRun/capturedRun",
-            "issueCompletedEffectfulComputationEvidence/capturedRun/capturedRun#2",
-            "issueCompletedEffectfulComputationEvidence/capturedRun/capturedRun#3",
             "issueCompletedEffectfulComputationEvidence/dependencyBindings/dependencyBindings",
             "issueCompletedEffectfulComputationEvidence/issueCompletedEffectfulComputationEvidence",
             "issueCompletedEffectfulComputationEvidence/issueCompletedEffectfulComputationEvidence#2",
@@ -2856,14 +2961,21 @@
             "matchingContentEvidence/matchingContentEvidence/matchingContentEvidence",
             "member/member",
             "ownContract/ownContract",
-            "prepareCompletedEffectSourceMembers",
-            "prepareCompletedEffectSourceMembers/prepareCompletedEffectSourceMembers",
+            "prepareCompletedEffectfulCaptureRetirement",
+            "prepareCompletedEffectfulCaptureRetirement/admit/admit",
+            "prepareCompletedEffectfulCaptureRetirement/chain/chain",
+            "prepareCompletedEffectfulCaptureRetirement/chain/chain#2",
+            "prepareCompletedEffectfulCaptureRetirement/prepareCompletedEffectfulCaptureRetirement",
+            "prepareCompletedEffectfulCaptureRetirement/sourceCids/sourceCids",
+            "prepareCompletedEffectfulCaptureRetirement/sources/sources",
             "prepareCompletedEffectfulPublication",
             "prepareCompletedEffectfulPublication/chain/chain",
             "prepareCompletedEffectfulPublication/chain/chain#2",
             "prepareCompletedEffectfulPublication/chain/chain#3",
             "prepareCompletedEffectfulPublication/prepareCompletedEffectfulPublication",
             "prepareCompletedEffectfulPublication/prepareCompletedEffectfulPublication#2",
+            "prepareCompletedEffectSourceMembers",
+            "prepareCompletedEffectSourceMembers/prepareCompletedEffectSourceMembers",
             "publishCompletedEffectFreeRun",
             "publishCompletedEffectFreeRun/artifacts/artifacts",
             "publishCompletedEffectFreeRun/definitions/definitions",
@@ -2874,24 +2986,29 @@
             "publishCompletedEffectFreeRun/publishCompletedEffectFreeRun",
             "publishCompletedEffectfulRun",
             "recoverCompletedEffectfulComputation",
-            "recoverCompletedEffectfulComputation/admit/admit",
-            "recoverCompletedEffectfulComputation/artifacts/artifacts",
-            "recoverCompletedEffectfulComputation/connectorRecovery/connectorRecovery",
-            "recoverCompletedEffectfulComputation/definitions/definitions",
-            "recoverCompletedEffectfulComputation/derivations/derivations",
-            "recoverCompletedEffectfulComputation/durableBindings/durableBindings",
-            "recoverCompletedEffectfulComputation/orderings/orderings",
             "recoverCompletedEffectfulComputation/recoverCompletedEffectfulComputation",
-            "recoverCompletedEffectfulComputation/recoverCompletedEffectfulComputation#2",
-            "recoverCompletedEffectfulComputation/recoverCompletedEffectfulComputation#3",
-            "recoverCompletedEffectfulComputation/recoverCompletedEffectfulComputation#4",
-            "recoverCompletedEffectfulComputation/recoverCompletedEffectfulComputation#5",
-            "recoverCompletedEffectfulComputation/recoverCompletedEffectfulComputation#6",
-            "recoverCompletedEffectfulComputation/recoverCompletedEffectfulComputation#7",
-            "recoverCompletedEffectfulComputation/retentions/retentions",
-            "recoverCompletedEffectfulComputation/sourceInventory/sourceInventory",
-            "recoverCompletedEffectfulComputation/sourceMemberIndices/sourceMemberIndices",
-            "recoverCompletedEffectfulComputation/storedResults/storedResults",
+            "recoverCompletedEffectfulComputationOwned",
+            "recoverCompletedEffectfulComputationOwned/recoverCompletedEffectfulComputationOwned",
+            "recoverCompletedEffectfulComputationOwned/recoverCompletedEffectfulComputationOwned#2",
+            "recoverCompletedEffectfulComputationOwned/recovered/recovered",
+            "recoverCompletedEffectfulPlaintext",
+            "recoverCompletedEffectfulPlaintext/admit/admit",
+            "recoverCompletedEffectfulPlaintext/artifacts/artifacts",
+            "recoverCompletedEffectfulPlaintext/connectorRecovery/connectorRecovery",
+            "recoverCompletedEffectfulPlaintext/definitions/definitions",
+            "recoverCompletedEffectfulPlaintext/derivations/derivations",
+            "recoverCompletedEffectfulPlaintext/durableBindings/durableBindings",
+            "recoverCompletedEffectfulPlaintext/orderings/orderings",
+            "recoverCompletedEffectfulPlaintext/recoverCompletedEffectfulPlaintext",
+            "recoverCompletedEffectfulPlaintext/recoverCompletedEffectfulPlaintext#2",
+            "recoverCompletedEffectfulPlaintext/recoverCompletedEffectfulPlaintext#3",
+            "recoverCompletedEffectfulPlaintext/recoverCompletedEffectfulPlaintext#4",
+            "recoverCompletedEffectfulPlaintext/recoverCompletedEffectfulPlaintext#5",
+            "recoverCompletedEffectfulPlaintext/recoverCompletedEffectfulPlaintext#6",
+            "recoverCompletedEffectfulPlaintext/retentions/retentions",
+            "recoverCompletedEffectfulPlaintext/sourceInventory/sourceInventory",
+            "recoverCompletedEffectfulPlaintext/sourceMemberIndices/sourceMemberIndices",
+            "recoverCompletedEffectfulPlaintext/storedResults/storedResults",
             "releaseCompletedResultOwner",
             "releaseCompletedResultOwner/releaseCompletedResultOwner",
             "releaseCompletedResultOwner/releaseCompletedResultOwner#2",
@@ -2911,13 +3028,10 @@
             "retainCompletedEffectDependencyPayloads/adopted/adopted",
             "retainCompletedEffectDependencyPayloads/retainCompletedEffectDependencyPayloads",
             "retireCompletedEffectfulCapture",
-            "retireCompletedEffectfulCapture/admit/admit",
-            "retireCompletedEffectfulCapture/chain/chain",
-            "retireCompletedEffectfulCapture/chain/chain#2",
             "retireCompletedEffectfulCapture/retireCompletedEffectfulCapture",
-            "retireCompletedEffectfulCapture/retireCompletedEffectfulCapture#2",
-            "retireCompletedEffectfulCapture/sourceCids/sourceCids",
-            "retireCompletedEffectfulCapture/sources/sources",
+            "retireCompletedEffectfulCaptureOwned",
+            "retireCompletedEffectfulCaptureOwned/retireCompletedEffectfulCaptureOwned",
+            "retireCompletedEffectfulCaptureOwned/retireCompletedEffectfulCaptureOwned#2",
             "storeCompletedRunResultSet",
             "storeCompletedRunResultSet/storeCompletedRunResultSet",
             "suspendCompletedEffectfulComputation",
@@ -2927,7 +3041,10 @@
             "validateControl",
             "validateControl/validateControl",
             "validateExecution",
-            "validateOptions"
+            "validateOptions",
+            "withCaptureRecoveryResources",
+            "withCaptureRecoveryResources/value/value",
+            "withCaptureRecoveryResources/withCaptureRecoveryResources"
           ],
           "exports": [
             "CompletedRunPublicationError",
@@ -27678,7 +27795,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -27841,7 +27958,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -28473,7 +28590,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -40165,7 +40282,7 @@
     {
       "module": "adapters/host-node/effect-run-recovery.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "9b6c3657138a8971a3527131e9c7de7765f6f525eb521cc2be5b8ed73a47124f",
+      "sha256": "5535071f0e6f776f230a97fa7bd784cd4f6ab9435f89619b993926a2fcb2f2d9",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
       "exports": [
@@ -40205,6 +40322,8 @@
             "contractLimits",
             "signal",
             "restoreOriginal",
+            "prepareRecoveryResources",
+            "retainRecoveryResources",
             "loadRuntime"
           ],
           "async": true
@@ -40232,6 +40351,25 @@
           "async": false
         },
         {
+          "name": "recoverAdmittedEffectRun/recoverAdmittedEffectRun#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "recoverAdmittedEffectRun/recoverAdmittedEffectRun#4",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "recoverAdmittedEffectRun/selected/init:retain/init:retain",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
           "name": "text/text",
           "parameters": [
             "value"
@@ -40247,6 +40385,9 @@
             "isEffectCaptureRecoveryRefusal/isEffectCaptureRecoveryRefusal",
             "recoverAdmittedEffectRun",
             "recoverAdmittedEffectRun/recoverAdmittedEffectRun",
+            "recoverAdmittedEffectRun/recoverAdmittedEffectRun#3",
+            "recoverAdmittedEffectRun/recoverAdmittedEffectRun#4",
+            "recoverAdmittedEffectRun/selected/init:retain/init:retain",
             "text/text"
           ],
           "exports": [
@@ -58529,7 +58670,7 @@
     {
       "module": "adapters/host-node/installed-content-run.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "dc74ff57cd337cbdd40b38c5480fa271b9598fa256cfc48934465aa00688a064",
+      "sha256": "a2594293fefe96f0962eaf0446e0c3ce869fb5ab14b5e63585d050fdd9dde94e",
       "role": "physical-io",
       "owner": "Existing Content/Reference/completion/publication Owners and physical Store writer",
       "exports": [
@@ -58921,8 +59062,8 @@
             "installNodeContentRun/execute/execute/chargeWork/chargeWork",
             "installNodeContentRun/execute/execute/cleanup/cleanup",
             "installNodeContentRun/execute/execute/cleanup/cleanup/cleanup",
-            "installNodeContentRun/execute/execute/cleanup/cleanup/cleanup#2",
             "installNodeContentRun/execute/execute/cleanup/cleanup/cleanup/cleanup",
+            "installNodeContentRun/execute/execute/cleanup/cleanup/cleanup#2",
             "installNodeContentRun/execute/execute/content/content",
             "installNodeContentRun/execute/execute/execute",
             "installNodeContentRun/execute/execute/execute#2",
@@ -58931,14 +59072,8 @@
             "installNodeContentRun/execute/execute/init:retainHoldings/init:retainHoldings",
             "installNodeContentRun/execute/execute/live/live",
             "installNodeContentRun/execute/execute/remainingWork/remainingWork",
+            "installNodeContentRun/installedBinding/installedBinding",
             "installNodeContentRun/installNodeContentRun",
-            "installNodeContentRun/installNodeContentRun#2",
-            "installNodeContentRun/installNodeContentRun#3",
-            "installNodeContentRun/installNodeContentRun#4",
-            "installNodeContentRun/installNodeContentRun#5",
-            "installNodeContentRun/installNodeContentRun#6",
-            "installNodeContentRun/installNodeContentRun#7",
-            "installNodeContentRun/installNodeContentRun#8",
             "installNodeContentRun/installNodeContentRun/closed/closed",
             "installNodeContentRun/installNodeContentRun/content/content",
             "installNodeContentRun/installNodeContentRun/content/content#2",
@@ -58947,19 +59082,25 @@
             "installNodeContentRun/installNodeContentRun/init:close/init:close",
             "installNodeContentRun/installNodeContentRun/inputAvailable/inputAvailable",
             "installNodeContentRun/installNodeContentRun/installNodeContentRun",
+            "installNodeContentRun/installNodeContentRun/installNodeContentRun/installNodeContentRun",
+            "installNodeContentRun/installNodeContentRun/installNodeContentRun/installNodeContentRun#2",
+            "installNodeContentRun/installNodeContentRun/installNodeContentRun/installNodeContentRun#3",
             "installNodeContentRun/installNodeContentRun/installNodeContentRun#2",
             "installNodeContentRun/installNodeContentRun/installNodeContentRun#3",
             "installNodeContentRun/installNodeContentRun/installNodeContentRun#4",
             "installNodeContentRun/installNodeContentRun/installNodeContentRun#5",
             "installNodeContentRun/installNodeContentRun/installNodeContentRun#6",
-            "installNodeContentRun/installNodeContentRun/installNodeContentRun/installNodeContentRun",
-            "installNodeContentRun/installNodeContentRun/installNodeContentRun/installNodeContentRun#2",
-            "installNodeContentRun/installNodeContentRun/installNodeContentRun/installNodeContentRun#3",
             "installNodeContentRun/installNodeContentRun/live/live",
             "installNodeContentRun/installNodeContentRun/recheck/recheck",
             "installNodeContentRun/installNodeContentRun/recheckBinding/recheckBinding",
             "installNodeContentRun/installNodeContentRun/verifyRead/verifyRead",
-            "installNodeContentRun/installedBinding/installedBinding",
+            "installNodeContentRun/installNodeContentRun#2",
+            "installNodeContentRun/installNodeContentRun#3",
+            "installNodeContentRun/installNodeContentRun#4",
+            "installNodeContentRun/installNodeContentRun#5",
+            "installNodeContentRun/installNodeContentRun#6",
+            "installNodeContentRun/installNodeContentRun#7",
+            "installNodeContentRun/installNodeContentRun#8",
             "installNodeContentRun/run/run"
           ],
           "exports": [
@@ -59523,7 +59664,7 @@
             "resources": [
               {
                 "path": "adapters/host-node/installed-content-run.mjs",
-                "anchor": "prefixRetainedBytes: prefix.retainedBytes, prefixExecutionBytes: prefix.executionBytes"
+                "anchor": "original.managed = prepareSerializationManagedRun(preparedProgram, request, plan, prefixLimits, workspace, original);"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -61957,7 +62098,7 @@
     {
       "module": "adapters/host-node/installed-effect-site.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "3a2e220607cae20f42e18568dd887ff8b7abc3b65d75079f837a7fa130e31552",
+      "sha256": "328f27d7f65f709f18432598842ff04f7c6d8af56aa84a8d6d208307b5195ed6",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
       "exports": [
@@ -62081,6 +62222,13 @@
           "async": false
         },
         {
+          "name": "cleanupCustody/init:retainRecoveryResources/init:retainRecoveryResources",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
           "name": "cleanupCustody/releaseAuthorizations/releaseAuthorizations",
           "parameters": [],
           "async": true
@@ -62179,7 +62327,7 @@
         {
           "name": "createInstalledEffectSite/init:resume/init:resume/init:resume",
           "parameters": [],
-          "async": false
+          "async": true
         },
         {
           "name": "createInstalledEffectSite/init:resume/init:resume/init:resume#2",
@@ -62292,6 +62440,7 @@
             "cleanupCustody/init:requireRelease/init:requireRelease",
             "cleanupCustody/init:retainAuthorization/init:retainAuthorization",
             "cleanupCustody/init:retainAuthorization/init:retainAuthorization/init:retainAuthorization",
+            "cleanupCustody/init:retainRecoveryResources/init:retainRecoveryResources",
             "cleanupCustody/releaseAuthorizations/releaseAuthorizations",
             "cleanupCustody/releaseAuthorizations/releaseAuthorizations/releaseAuthorizations",
             "cleanupCustody/releaseInputs/releaseInputs",
@@ -106639,7 +106788,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-source-managed.mjs",
-      "sha256": "03a4c688219294271443362a6e3741bf62cf86ebceeed40d749972421841e45c",
+      "sha256": "3032028c990857f704fb22b7c47edab37155967840315097dfca3d2bf837470e",
       "exports": [
         "assertOrdinarySourcePreparationCurrent",
         "prepareOrdinaryProjectSourceManagedInstallation",
@@ -107150,6 +107299,15 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareContentGraph/init:prepareContentGraph",
+          "parameters": [
+            "prepared",
+            "request",
+            "constructOriginal"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/view/init:prepareKeyedContentRun/init:prepareKeyedContentRun",
           "parameters": [
             "prepared",
@@ -107204,11 +107362,44 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelBinding/init:prepareModelBinding",
+          "parameters": [
+            "prepared",
+            "request",
+            "providerId",
+            "installation",
+            "contract",
+            "configuration"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelCompilation/init:prepareModelCompilation",
           "parameters": [
             "prepared",
             "request",
             "graph"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelGraph/init:prepareModelGraph",
+          "parameters": [
+            "prepared",
+            "request",
+            "occurrence",
+            "execution"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelMaterials/init:prepareModelMaterials",
+          "parameters": [
+            "prepared",
+            "request",
+            "count",
+            "wireAt",
+            "containerCount"
           ],
           "async": false
         },
@@ -107690,8 +107881,8 @@
             "prepareOrdinaryManagedInstallation/closeChild/work/work",
             "prepareOrdinaryManagedInstallation/view/init:adoptEffectPreparation/init:adoptEffectPreparation",
             "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation",
-            "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation#2",
             "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation",
+            "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation#2",
             "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/methods/methods",
             "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:retainChild/init:retainChild",
             "prepareOrdinaryProjectSourceManagedInstallation"
@@ -108177,8 +108368,8 @@
           "operations": [
             "prepareOrdinaryManagedInstallation/prepareRun",
             "prepareOrdinaryManagedInstallation/prepareRun/prepareRun",
-            "prepareOrdinaryManagedInstallation/prepareRun/prepareRun#2",
-            "prepareOrdinaryManagedInstallation/prepareRun/prepareRun/prepareRun"
+            "prepareOrdinaryManagedInstallation/prepareRun/prepareRun/prepareRun",
+            "prepareOrdinaryManagedInstallation/prepareRun/prepareRun#2"
           ],
           "exports": [],
           "attributes": {
@@ -108767,7 +108958,11 @@
         },
         {
           "operations": [
-            "prepareOrdinaryManagedInstallation/view/init:adoptCapturePreparation/init:adoptCapturePreparation"
+            "prepareOrdinaryManagedInstallation/view/init:adoptCapturePreparation/init:adoptCapturePreparation",
+            "prepareOrdinaryManagedInstallation/view/init:prepareContentGraph/init:prepareContentGraph",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelBinding/init:prepareModelBinding",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelGraph/init:prepareModelGraph",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelMaterials/init:prepareModelMaterials"
           ],
           "exports": [],
           "attributes": {
@@ -114655,7 +114850,7 @@
     },
     {
       "module": "adapters/local-node/request-preparation-adapter.mjs",
-      "sha256": "8915fc44e69f5aa28afbd93d7769b401e63a50afd1ff1942c1992a2b28018269",
+      "sha256": "ef6c46f63a0cda4c660ad8e0c1a0f5367b5831aeacd941ab128656e01b03b866",
       "exports": [
         "assertRequestPreparationControl",
         "beginRequestInput",
@@ -116059,7 +116254,7 @@
     },
     {
       "module": "adapters/host-node/local-preparation-registry.mjs",
-      "sha256": "eee76a63f27af9fb68d176a40e7404a51acca31aeff2f09016cba3e5af7840f6",
+      "sha256": "dd01e84914d723574f13d03af9fc5c03eedd997fa68b0a667b0e3146f11620e6",
       "exports": [
         "installLocalPreparationRegistry"
       ],
@@ -116069,7 +116264,8 @@
           "parameters": [
             "select",
             "retirePrepared",
-            "resource"
+            "resource",
+            "retireInitialAliases"
           ],
           "async": false
         },
@@ -116192,7 +116388,8 @@
         {
           "name": "installLocalPreparationRegistry/retireUndispatched/retireUndispatched",
           "parameters": [
-            "entry"
+            "entry",
+            "retiringOriginal"
           ],
           "async": false
         },
@@ -118323,7 +118520,7 @@
       "sha256": "2ee6349eeab84f91d0d34d24031d6a62e801babd48758632fee7e6b4297e115a",
       "responsibilityFacet": "primary",
       "role": "physical-io",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "exports": [
         "createInstalledCredentialSourceReader",
         "installedJsonSourceReaderLimitNames",
@@ -119062,7 +119259,7 @@
       "sha256": "b316bbda6a28ab1c3feea0dadc964e01612d9085a0095f6a8a21abbc17ae5cc9",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "exports": [
         "finishInstalledEffectModelScope",
         "installedEffectModelPreparation",
@@ -119751,7 +119948,7 @@
       "sha256": "ebcdc4731bed592ed91ab82bd3fda98af55bd796db15baa21a31b25913a552d1",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "exports": [
         "assertInstalledSourceConstruction",
         "beginInstalledSourceInitialization",
@@ -123613,6 +123810,214 @@
       "imports": [],
       "compilerFields": [],
       "unresolvedSyntax": []
+    },
+    {
+      "module": "adapters/host-node/effect-capture-resources.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "445acd9e407cab8a35dca9264e491a05b5523ace0bf57b577251c4bed3a76b29",
+      "role": "physical-io",
+      "owner": "Existing Request preparation and same adopted Effect Run resource/cleanup ownership through the installed Node Host; no independent grant, Ledger or semantic issuer",
+      "exports": [
+        "prepareEffectCaptureResources"
+      ],
+      "operations": [
+        {
+          "name": "captureFailure",
+          "parameters": [
+            "state",
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "pending/pending",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareEffectCaptureResources",
+          "parameters": [
+            "moon",
+            "control",
+            "request",
+            "runDefinition",
+            "contractLimits",
+            "managed",
+            "assertCurrent",
+            "retain",
+            "retired"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareEffectCaptureResources/prepareEffectCaptureResources",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareEffectCaptureResources/prepareEffectCaptureResources#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "recoveryView",
+          "parameters": [
+            "state"
+          ],
+          "async": false
+        },
+        {
+          "name": "recoveryView/close/close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "recoveryView/close/close/flight/flight",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "recoveryView/close/close/flight/flight#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "recoveryView/init:begin/init:begin",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "recoveryView/init:finish/init:finish",
+          "parameters": [
+            "failed",
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "recoveryView/init:retainCleanup/init:retainCleanup",
+          "parameters": [
+            "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "recoveryView/recoveryView",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "recoveryView/reserve/reserve",
+          "parameters": [
+            "encryptedBytes"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../host-common/completed-run-publication.mjs",
+        "../host-common/runtime-result.mjs",
+        "../local-node/request-preparation-adapter.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "captureFailure",
+            "fail/fail",
+            "pending/pending",
+            "prepareEffectCaptureResources",
+            "prepareEffectCaptureResources/prepareEffectCaptureResources",
+            "prepareEffectCaptureResources/prepareEffectCaptureResources#2",
+            "recoveryView",
+            "recoveryView/close/close",
+            "recoveryView/close/close/flight/flight",
+            "recoveryView/close/close/flight/flight#2",
+            "recoveryView/init:begin/init:begin",
+            "recoveryView/init:finish/init:finish",
+            "recoveryView/init:retainCleanup/init:retainCleanup",
+            "recoveryView/recoveryView",
+            "recoveryView/reserve/reserve"
+          ],
+          "exports": [
+            "prepareEffectCaptureResources"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/effect-capture-resources.mjs",
+                "anchor": "// Fixed adapter to the existing Request preparation or SAME adopted Run."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/effect-capture-resources.mjs",
+                "anchor": "export function prepareEffectCaptureResources({moon, control, request, runDefinition,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/effect-capture-resources.mjs",
+                "anchor": "managed.value, managed.prepared, managed.request, managed.definitionOriginal.definition,"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/effect-capture-resources.mjs",
+                "anchor": "retain(view);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/effect-capture-resources.mjs",
+                "anchor": "if (state.closeFlight !== undefined) return state.closeFlight;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/effect-capture-resources.mjs",
+                "anchor": "state.failure ??= error;"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/effect-capture-resources.mjs",
+                "anchor": "state.closing = true;"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/effect-capture-resources.mjs",
+                "anchor": "checked(state.context.runtime.clientProgramReserveInstalledEffectCaptureRecovery("
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/effect-capture-resources.mjs",
+                "anchor": "typeof control?.reserveEffectCaptureRecovery !== 'function') fail('EffectCaptureResourceUnavailable');"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/effect-capture-resources.test.mjs",
+                "anchor": "import test from 'node:test';"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Existing Host responsibility for the frozen capture resource adapter. Source references only; not compiled ABI, physical ACK, normal admission or a new semantic Owner."
     }
   ],
   "generated": [],
