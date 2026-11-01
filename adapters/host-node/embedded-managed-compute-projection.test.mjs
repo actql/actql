@@ -132,6 +132,35 @@ test('open borrows the one installed AoA projection through the same sequence or
   assert.strictEqual(original.control, f.originals.installation.initialControl);
 });
 
+test('open refuses a closed or foreign contract original before parsing another AoA image', async () => {
+  for (const changed of ['current', 'runtime', 'control']) {
+    const f = fixture(); let parses = 0;
+    f.ports.JSON = {parse(wire) {parses++; return JSON.parse(wire);}, stringify: JSON.stringify};
+    const open = openSequenceContracts(f);
+    await open(); assert.equal(parses, 1);
+    if (changed === 'current') f.stop();
+    else if (changed === 'runtime') f.originals.installation.projectRuntime = {};
+    else f.originals.installation.initialControl = {};
+    await assert.rejects(open(), error => changed === 'current' ? /CurrentRefused/u.test(error.message)
+      : error.code === 'ForeignInstalledManagedRunContracts');
+    assert.equal(parses, 1);
+    assert.deepEqual(f.installationCalls, ['manifests', 'sequence']);
+  }
+});
+
+test('open preserves original manifest and sequence failure without a fallback or partial admission', async () => {
+  for (const phase of ['manifests', 'sequence']) {
+    const f = fixture(), failure = new Error('OriginalInstalledContractFailure'); let parses = 0;
+    f.ports.JSON = {parse(wire) {parses++; return JSON.parse(wire);}, stringify: JSON.stringify};
+    const rejected = phase === 'manifests' ? f.manifestAdmission : f.contractAdmission;
+    f.ports.checked = value => {if (value === rejected) throw failure; return value;};
+    await assert.rejects(openSequenceContracts(f)(), error => error === failure);
+    assert.equal(f.originals.installation.sequenceContractOriginal, undefined);
+    assert.equal(parses, phase === 'manifests' ? 0 : 1);
+    assert.deepEqual(f.installationCalls, phase === 'manifests' ? ['manifests'] : ['manifests', 'sequence']);
+  }
+});
+
 test('installed managed contract strings are projected once across distinct Host Run requests', () => {
   const f = fixture(), second = {}, requests = new Set([f.prepared, second]);
   let parses = 0, stringifies = 0;
