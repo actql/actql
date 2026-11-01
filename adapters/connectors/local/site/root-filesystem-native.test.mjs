@@ -19,7 +19,7 @@ const require=createRequire(import.meta.url);
 let scratch, native, fault;
 const closed={outcome:'closed',errno:0};
 test.before(async()=>{
-  assert.equal(process.platform,'darwin');assert.equal(process.versions.node,'22.22.0');
+  assert(['darwin','linux'].includes(process.platform));assert.equal(process.versions.node,'22.22.0');
   scratch=await createOwnedScratch({parent:join(root,'_build'),prefix:'local-files-native-',
     label:'Local descriptor-relative filesystem boundary',digests:()=>['original.node','fault.node']});
   const command=(file,args)=>{
@@ -28,16 +28,19 @@ test.before(async()=>{
     assert.equal(result.status,0,JSON.stringify({file,args,stdout:result.stdout,stderr:result.stderr}));
     return result.stdout.trim();
   };
-  const compiler=command('xcrun',['--find','clang']),sdk=command('xcrun',['--show-sdk-path']);
+  const darwin=process.platform==='darwin';
+  const compiler=darwin?command('xcrun',['--find','clang']):'/usr/bin/gcc';
+  const platformArgs=darwin?['-D_DARWIN_C_SOURCE','-isysroot',command('xcrun',['--show-sdk-path']),
+    '-bundle','-undefined','dynamic_lookup']:['-D_GNU_SOURCE','-shared','-fPIC'];
   function build(source,name){
     const output=join(scratch.path,name+'.node');
-    command(compiler,['-std=c11','-D_DARWIN_C_SOURCE','-Wall','-Wextra','-Werror','-O0','-g',
-      '-isysroot',sdk,'-DNAPI_VERSION=8','-DNODE_GYP_MODULE_NAME=actql_directory',
-      '-bundle','-undefined','dynamic_lookup','-I',resolve(dirname(process.execPath),'../include/node'),
+    command(compiler,['-std=c11','-Wall','-Wextra','-Werror','-O0','-g',
+      ...platformArgs,'-DNAPI_VERSION=8','-DNODE_GYP_MODULE_NAME=actql_directory',
+      '-I',resolve(dirname(process.execPath),'../include/node'),
       join(root,'adapters/host-node/native',source),'-o',output]);
     return require(output);
   }
-  native=build('directory-darwin.c','original');
+  native=build(darwin?'directory-darwin.c':'local-files-linux.c','original');
   fault=build('fixtures/directory-close-fault.c','fault');
 });
 test.after(()=>{scratch?.passed();});

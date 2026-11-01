@@ -15,7 +15,11 @@ static int consumed_close(int fd) {
 #undef NAPI_MODULE
 #define NAPI_MODULE(name, callback)
 #define close consumed_close
+#if defined(__linux__)
+#include "../local-files-linux.c"
+#else
 #include "../directory-darwin.c"
+#endif
 #undef close
 static napi_value attempts(napi_env env, napi_callback_info info) {
   (void)info; napi_value result;

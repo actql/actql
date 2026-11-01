@@ -75,11 +75,10 @@ static napi_value local_fs_publish(napi_env env, napi_callback_info info) {
   if (!local_fs_current(original) || !original->writable || original->published)
     return unavailable(env, "LocalFileWriteUnavailable");
   if (fsync(original->descriptor) != 0) return unavailable(env, "LocalFileSyncFailed");
-#if defined(__APPLE__)
   /* Exclusive rename is the create condition itself, not a preceding exists
    * check. Replacement swaps the directory entry, never follows its symlink. */
-  int result = renameatx_np(original->parent->descriptor, original->name,
-    original->parent->descriptor, original->destination, overwrite ? 0 : RENAME_EXCL);
+  int result = local_fs_rename(original->parent->descriptor, original->name,
+    original->destination, overwrite);
   if (result != 0) return unavailable(env,
     errno == EEXIST ? "LocalFileDestinationExists" : "LocalFilePublishFailed");
   original->published = true;
@@ -89,8 +88,4 @@ static napi_value local_fs_publish(napi_env env, napi_callback_info info) {
   if (fsync(original->parent->descriptor) != 0)
     return unavailable(env, "LocalFilePublishDurabilityUnknown");
   return undefined(env);
-#else
-  (void)overwrite;
-  return unavailable(env, "LocalFilePublishPlatformUnavailable");
-#endif
 }
