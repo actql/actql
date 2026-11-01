@@ -1951,6 +1951,25 @@ remain with their existing owners.
 
 ## Original saved-journal physical port
 
+Within one borrowed SQL reader, request blocks and copies of its already-read
+immutable row use the Store's private frame check. It checks the exact reader,
+active lifetime, original thread, non-reentrancy and latched failure; it observes
+no current fact and returns no permission. Scalar diagnostic readers without
+this port retain their full current checks. Actual queries still check the
+original current before and after I/O, and the Core row consumer checks its
+typed current before and after the complete transfer. File, settings, epoch,
+Account and authorization checks remain at those protected boundaries. No
+frame, row or successful decision survives the enclosing reader.
+
+The standard original operation metadata callback joins its adjacent current
+and required-frame fence checks in one complete observation of the same reader.
+It accepts only the captured original current callback and retains the complete
+raw/cleanup path. A synchronous submission produce/read handoff likewise uses
+the producer's postvalidation as its transfer prevalidation, then validates
+again after copying. Standalone methods keep both their original checks. A
+failed producer, current or copy leaves the same output/input loans for cleanup;
+neither composition caches a grant, refreshes fuel or repeats uncertain work.
+
 Private ABI 48 connects the original complete journal inspection to a trusted
 same-Store physical port. The Core sends a bounded namespace/key request for
 `scan_after` or exact `read`; the Host returns the actual raw key, Int64 revision

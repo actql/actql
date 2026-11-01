@@ -43,6 +43,9 @@ class _NamespaceReader:
     check_fences: Callable[['_NamespaceReader', tuple['ByteFence', ...]], None]
     check_fences_and_current: Callable[
         ['_NamespaceReader', tuple['ByteFence', ...], Callable[[], object]], None]
+    # Only the actual Store supplies this live-thread/frame check. It is not
+    # a current observation; queries and protected decisions keep their fences.
+    check_frame: Callable[['_NamespaceReader'], None] | None = None
 
 
 _InventoryInspection = Callable[[_NamespaceReader], object]
@@ -907,11 +910,20 @@ class LocalByteStore:
             if not self._fences_match_locked(fences, successors):
                 raise LocalStorageError('Original Local inventory metadata changed')
 
+        def check_frame(view: _NamespaceReader) -> None:
+            nonlocal failure
+            try:
+                if (view is not reader or not active or reading
+                        or get_ident() != thread or failure is not None):
+                    raise ValueError('Local inventory reader is not active')
+            except BaseException as error:
+                failure = error
+                raise
+
         def current_snapshot() -> None:
             nonlocal failure
             try:
-                if not active or reading or get_ident() != thread or failure is not None:
-                    raise ValueError('Local inventory reader is not active')
+                check_frame(reader)
                 fence()
             except BaseException as error:
                 failure = error
@@ -1008,7 +1020,8 @@ class LocalByteStore:
                 read=lambda namespace, key, consume:
                     observe(namespace, key, consume, scan=False),
                 owner=self, current=current_snapshot, check_fences=check_fences,
-                check_fences_and_current=check_fences_and_current)
+                check_fences_and_current=check_fences_and_current,
+                check_frame=check_frame)
             result = inspect(reader)
             if failure is not None:
                 raise failure
