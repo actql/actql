@@ -1042,6 +1042,7 @@ class LocalByteStore:
                     raise ValueError('Invalid Local inventory consumer result')
                 del observation, row
                 fence(required_current, reuse_snapshot=required_current is not None)
+                return None
             except BaseException as error:
                 failure = error
                 raise
@@ -1066,13 +1067,16 @@ class LocalByteStore:
                 failure = error
                 raise
 
+        def scan_after(namespace: str, after: str, consume: _NamespaceConsumer) -> None:
+            observe(namespace, after, consume, scan=True)
+
+        def read(namespace: str, key: str, consume: _NamespaceConsumer) -> None:
+            observe(namespace, key, consume, scan=False)
+
         try:
             fence()
             reader = _NamespaceReader(
-                scan_after=lambda namespace, after, consume:
-                    observe(namespace, after, consume, scan=True),
-                read=lambda namespace, key, consume:
-                    observe(namespace, key, consume, scan=False),
+                scan_after=scan_after, read=read,
                 owner=self, current=current_snapshot, check_fences=check_fences,
                 check_fences_and_current=check_fences_and_current,
                 check_frame=check_frame, query_current=query_current)
