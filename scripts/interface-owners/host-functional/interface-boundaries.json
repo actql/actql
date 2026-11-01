@@ -57163,15 +57163,26 @@
     {
       "module": "adapters/host-node/installed-check-environment.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c3fa84178d67197612e9a15dd76f4d4bba78705b522e8de66853c19a86d3e689",
+      "sha256": "7457fc466e808c9c74633171f1db546bf9d71029c93c0fdafb83e1470c1e139c",
       "role": "physical-io",
       "owner": "Existing static checker/Frontend/compiled preparation Owners; no Run permission",
       "exports": [
         "composeInstalledCheckEnvironment",
+        "composeInstalledCheckEnvironmentOriginal",
         "installedCheckEnvironmentInputs",
         "verifyInstalledConnectorBindings"
       ],
       "operations": [
+        {
+          "name": "admitEnvironment",
+          "parameters": [
+            "moon",
+            "wire",
+            "evidenceCid",
+            "body"
+          ],
+          "async": false
+        },
         {
           "name": "admittedDocument",
           "parameters": [
@@ -57191,49 +57202,59 @@
           "async": false
         },
         {
-          "name": "composeInstalledCheckEnvironment/composeInstalledCheckEnvironment",
+          "name": "composeInstalledCheckEnvironmentOriginal",
+          "parameters": [
+            "moon",
+            "baseWire",
+            "sourceWire",
+            "effectWire"
+          ],
+          "async": false
+        },
+        {
+          "name": "composeInstalledCheckEnvironmentOriginal/composeInstalledCheckEnvironmentOriginal",
           "parameters": [
             "key"
           ],
           "async": false
         },
         {
-          "name": "composeInstalledCheckEnvironment/composeInstalledCheckEnvironment#2",
+          "name": "composeInstalledCheckEnvironmentOriginal/composeInstalledCheckEnvironmentOriginal#2",
           "parameters": [
             "section"
           ],
           "async": false
         },
         {
-          "name": "composeInstalledCheckEnvironment/composeInstalledCheckEnvironment#3",
+          "name": "composeInstalledCheckEnvironmentOriginal/composeInstalledCheckEnvironmentOriginal#3",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "composeInstalledCheckEnvironment/composeInstalledCheckEnvironment#4",
+          "name": "composeInstalledCheckEnvironmentOriginal/composeInstalledCheckEnvironmentOriginal#4",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "composeInstalledCheckEnvironment/composeInstalledCheckEnvironment#5",
+          "name": "composeInstalledCheckEnvironmentOriginal/composeInstalledCheckEnvironmentOriginal#5",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "composeInstalledCheckEnvironment/composeInstalledCheckEnvironment#6",
+          "name": "composeInstalledCheckEnvironmentOriginal/composeInstalledCheckEnvironmentOriginal#6",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "composeInstalledCheckEnvironment/composeInstalledCheckEnvironment#7",
+          "name": "composeInstalledCheckEnvironmentOriginal/composeInstalledCheckEnvironmentOriginal#7",
           "parameters": [
             "value"
           ],
@@ -57274,8 +57295,22 @@
         {
           "name": "mergeMembers/mergeMembers",
           "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "mergeMembers/mergeMembers#2",
+          "parameters": [
             "a",
             "b"
+          ],
+          "async": false
+        },
+        {
+          "name": "mergeMembers/mergeMembers#3",
+          "parameters": [
+            "member"
           ],
           "async": false
         },
@@ -57320,19 +57355,23 @@
       "contracts": [
         {
           "operations": [
+            "admitEnvironment",
             "admittedDocument",
             "composeInstalledCheckEnvironment",
-            "composeInstalledCheckEnvironment/composeInstalledCheckEnvironment",
-            "composeInstalledCheckEnvironment/composeInstalledCheckEnvironment#2",
-            "composeInstalledCheckEnvironment/composeInstalledCheckEnvironment#3",
-            "composeInstalledCheckEnvironment/composeInstalledCheckEnvironment#4",
-            "composeInstalledCheckEnvironment/composeInstalledCheckEnvironment#5",
-            "composeInstalledCheckEnvironment/composeInstalledCheckEnvironment#6",
-            "composeInstalledCheckEnvironment/composeInstalledCheckEnvironment#7",
+            "composeInstalledCheckEnvironmentOriginal",
+            "composeInstalledCheckEnvironmentOriginal/composeInstalledCheckEnvironmentOriginal",
+            "composeInstalledCheckEnvironmentOriginal/composeInstalledCheckEnvironmentOriginal#2",
+            "composeInstalledCheckEnvironmentOriginal/composeInstalledCheckEnvironmentOriginal#3",
+            "composeInstalledCheckEnvironmentOriginal/composeInstalledCheckEnvironmentOriginal#4",
+            "composeInstalledCheckEnvironmentOriginal/composeInstalledCheckEnvironmentOriginal#5",
+            "composeInstalledCheckEnvironmentOriginal/composeInstalledCheckEnvironmentOriginal#6",
+            "composeInstalledCheckEnvironmentOriginal/composeInstalledCheckEnvironmentOriginal#7",
             "mergeManifest",
             "mergeManifest/mergeManifest",
             "mergeMembers",
             "mergeMembers/mergeMembers",
+            "mergeMembers/mergeMembers#2",
+            "mergeMembers/mergeMembers#3",
             "refuse/refuse",
             "rejectConflictingSelectors",
             "verifyInstalledConnectorBindings",
@@ -57341,6 +57380,7 @@
           ],
           "exports": [
             "composeInstalledCheckEnvironment",
+            "composeInstalledCheckEnvironmentOriginal",
             "verifyInstalledConnectorBindings"
           ],
           "attributes": {
@@ -57356,6 +57396,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Environment composer retains its same-call body, exact wire and evidence"
               }
             ],
             "inputsOutputs": [
@@ -57370,6 +57414,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Run admission and identity"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Environment composer retains its same-call body, exact wire and evidence"
               }
             ],
             "identity": [
@@ -57384,6 +57432,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Environment composer retains its same-call body, exact wire and evidence"
               }
             ],
             "ownership": [
@@ -57398,6 +57450,10 @@
               {
                 "path": "docs/design/checked-program.md",
                 "anchor": "# Checked Program construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Environment composer retains its same-call body, exact wire and evidence"
               }
             ],
             "synchronization": [
@@ -57454,6 +57510,10 @@
               {
                 "path": "docs/design/checked-program.md",
                 "anchor": "# Checked Program construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Environment composer retains its same-call body, exact wire and evidence"
               }
             ],
             "extension": [
@@ -57468,6 +57528,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Run admission and identity"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Environment composer retains its same-call body, exact wire and evidence"
               }
             ],
             "verification": [
@@ -57478,6 +57542,18 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/installed-check-environment-original.test.mjs",
+                "anchor": "test('composer does not reparse or rehash its own newly encoded Environment'"
+              },
+              {
+                "path": "adapters/host-node/installed-check-environment-original.test.mjs",
+                "anchor": "test('selected Environment original retains the exact runtime, body, wire, CID and admission'"
+              },
+              {
+                "path": "adapters/host-node/installed-check-environment-original.test.mjs",
+                "anchor": "test('external wire encoding, CID and selected admission remain required'"
               }
             ]
           }
@@ -125465,8 +125541,8 @@
   ],
   "counts": {
     "modules": 188,
-    "operations": 4878,
-    "exports": 1133,
+    "operations": 4882,
+    "exports": 1134,
     "explicitContractGroups": 506
   },
   "scope": "The original supplied modules and explicitly added Project Task/profile installation modules are source/reference facets, not a reassignment of Coordinator/Transfer, process, Connector, Credential, Store or semantic implementation ownership."
