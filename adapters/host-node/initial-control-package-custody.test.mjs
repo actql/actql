@@ -329,3 +329,39 @@ test('optional SDK custody follows the actual consumer resolution rather than a 
     });
   assert.equal(result.status, 0, result.stderr);
 });
+
+
+test('ordinary custody enables its original code cache before compiling the Host dependency graph', t => {
+  const f = fixture(t,
+    'import "./cold-dependency.mjs";import "./compile-cache.mjs";' +
+    'globalThis.coldOrder.push("host");export function assertInitialControlHostPreparation(){};');
+  const additions = {
+    'adapters/host-node/compile-cache.mjs': Buffer.from(
+      'globalThis.coldOrder.push("helper");export function enableNodeCompileCache(){globalThis.coldOrder.push("enable");}'),
+    'adapters/host-node/cold-dependency.mjs': Buffer.from('globalThis.coldOrder.push("dependency");'),
+  };
+  for (const [path, bytes] of Object.entries(additions)) {
+    writeFileSync(join(f.root, path), bytes);
+    f.inventory.images.push(fact(path, bytes));
+  }
+  const entry = join(f.directory, 'ordinary-entry.cjs');
+  writeFileSync(entry, [
+    'const assert=require("node:assert/strict");globalThis.coldOrder=[];',
+    'const {captureOrdinaryInitialControlPackageCustody}=require(' + JSON.stringify(custody) + ');',
+    'const selected=captureOrdinaryInitialControlPackageCustody(' + JSON.stringify(f.inventory) + ',' +
+      JSON.stringify(f.root) + ',__filename);',
+    // This is only byte/module custody, not an operational Host admission.
+    // It must load the already-captured helper, not replacement pathname bytes.
+    'require("node:fs").writeFileSync(' + JSON.stringify(join(f.root, 'adapters/host-node/compile-cache.mjs')) +
+      ',' + JSON.stringify('throw new Error("ReplacementCacheMustNotLoad")') + ');',
+    'const first=selected.initializeHostNamespace();',
+    'assert.deepEqual(coldOrder,["helper","enable","dependency","host"]);',
+    'assert.strictEqual(selected.initializeHostNamespace(),first);',
+    'assert.deepEqual(coldOrder,["helper","enable","dependency","host"]);',
+    'assert.equal(globalThis.localPublicInitializations,undefined);selected.assertCurrent();',
+  ].join('\n'));
+  const result = spawnSync(process.execPath, [entry], {
+    cwd: f.directory, env: {PATH: process.env.PATH}, encoding: 'utf8', timeout: 30000});
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 0, result.stderr);
+});
