@@ -15,6 +15,33 @@ from local_abi_declaration_fixture import original_byte_fixture_port
 
 
 class SDKDeliveryStorageTests(unittest.TestCase):
+    def test_grouped_proposal_file_change_rolls_back_before_commit_and_keeps_original_loans(self):
+        from actql_sdk._local_files import LocalFileError
+        helper = file_fixture.ReaderFactsTests()
+        with helper.file() as (path, root, _, final):
+            holder, store, core, observation, request, _, _, _, rows = self.bridge(
+                root, helper.transfer_ready(root, final))
+            sql = []
+            inserted = [0]
+            def changed(statement):
+                sql.append(statement)
+                if statement.startswith('INSERT INTO core_bytes'):
+                    inserted[0] += 1
+                    if inserted[0] == 3:
+                        original = path / 'payload-original'
+                        body = original.read_bytes()
+                        original.write_bytes(b'X' + body[1:])
+            store._connection.set_trace_callback(changed)
+            with self.assertRaises(LocalFileError):
+                holder.persist(request, 37)
+            self.assertNotIn('COMMIT', sql)
+            for row in rows:
+                self.assertIsNone(store.read(store.namespaced_key(row['table'], row['key'])))
+            self.assertIs(core._loans[request.ticket], request)
+            self.assertFalse(holder.close())
+            self.assertTrue(observation._projection.retire_outputs())
+            self.assertTrue(holder.close())
+
     def test_one_six_row_proposal_keeps_complete_facts_at_group_and_commit_boundaries(self):
         helper = file_fixture.ReaderFactsTests()
         with helper.file() as (_, root, _, final):

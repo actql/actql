@@ -1980,6 +1980,14 @@ again after copying. Standalone methods keep both their original checks. A
 failed producer, current or copy leaves the same output/input loans for cleanup;
 neither composition caches a grant, refreshes fuel or repeats uncertain work.
 
+One closed six-row delivery proposal validates its locked original Reader
+facts around the complete synchronous projection group. The existing Store
+owns all six uncommitted CAS writes, then invokes the independent precommit
+current/Account/producer checks; COMMIT occurs only after the enclosing
+inspection returns. A changed file or failed ordinal therefore rolls back the
+whole group. A failed COMMIT still retains the same Unknown attempt and child
+cleanup responsibility. No fact observation is reused by another transaction.
+
 Private ABI 48 connects the original complete journal inspection to a trusted
 same-Store physical port. The Core sends a bounded namespace/key request for
 `scan_after` or exact `read`; the Host returns the actual raw key, Int64 revision
