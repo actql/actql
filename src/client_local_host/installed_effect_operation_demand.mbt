@@ -243,6 +243,22 @@ fn installed_effect_limits_fit(
 }
 
 ///|
+// The optional original Effect graph, current source/owner/target/bound
+// carriers and nested row Option add at most six headers/references/tags;
+// selected-source/max/count and scratch controls add four scalar words. No new arrays,
+// copied graph or persistent inventory are introduced. The Request backs this
+// scratch BEFORE Plan construction; the finished Plan records the same cost.
+fn installed_effect_source_result_bound_scratch_bytes() -> Int64 {
+  @execution.preparation_representation_cost({
+    record_headers: 6L,
+    reference_slots: 6L,
+    scalar_words: 10L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }).unwrap()
+}
+
+///|
 /// Quote the original selected implementation and checked row inventory before
 /// importing the existing managed parent. All still-retained operation bodies
 /// overlap the Compute/Source inventory; no phase is discarded based on a
@@ -424,6 +440,9 @@ pub fn prepare_installed_effect_managed_plan(
       graph=Some(graph),
       scalar_only=false,
       workspace=Some(workspace),
+      effect_sources=Some(
+        @publication_host.prepared_client_effect_computation_graph(prepared),
+      ),
     )
   }
   let rows = match proof {
@@ -613,31 +632,37 @@ pub fn prepare_installed_effect_managed_plan(
   // The Model limit addition retains one intermediate limits record and its
   // Some through this quote only (2H,1R,7W); it is not a second Run limit.
   let provider_scratch = if provider_sources > 0 { 1L } else { 0L }
+  let source_result_scratch = if source_free is None {
+    installed_effect_source_result_bound_scratch_bytes()
+  } else {
+    0L
+  }
   let temporary = @execution.preparation_representation_cost({
-    record_headers: 21L +
-    2L +
-    workspace.row_bounds.to_int64() +
-    2L * time_holder +
-    3L * provider_scratch +
-    2L * model_holder,
-    reference_slots: 12L +
-    owner_slots +
-    row_slots +
-    3L * time_holder +
-    2L * provider_scratch +
-    model_holder,
-    // Empty/selected implementation control accumulator and the original
-    // base capacity coexist with their combined result during this quote.
-    scalar_words: 40L +
-    6L +
-    input_slots +
-    2L * workspace.row_bounds.to_int64() +
-    time_holder +
-    4L * provider_scratch +
-    7L * model_holder,
-    owned_utf16_units: 0L,
-    owned_wire_bytes: 0L,
-  }).unwrap()
+      record_headers: 21L +
+      2L +
+      workspace.row_bounds.to_int64() +
+      2L * time_holder +
+      3L * provider_scratch +
+      2L * model_holder,
+      reference_slots: 12L +
+      owner_slots +
+      row_slots +
+      3L * time_holder +
+      2L * provider_scratch +
+      model_holder,
+      // Empty/selected implementation control accumulator and the original
+      // base capacity coexist with their combined result during this quote.
+      scalar_words: 40L +
+      6L +
+      input_slots +
+      2L * workspace.row_bounds.to_int64() +
+      time_holder +
+      4L * provider_scratch +
+      7L * model_holder,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    }).unwrap() +
+    source_result_scratch
   if retained > 9223372036854775807L - controls ||
     execution > 9223372036854775807L - controls - temporary {
     return Err(Unsupported)

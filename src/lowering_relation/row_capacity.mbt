@@ -12,11 +12,17 @@ pub fn node_row_count_bound(node : PreparedNode, inputs : Array[Int]) -> Int? {
     }
   }
   match node.payload {
-    Values(values) => Some(@values.row_count(values))
+    Values(_) => node_input_independent_row_count_bound(node)
     InnerJoin(join) =>
       intrinsic_join_row_bound(
         @join.kind(join),
         @join.output_guard(join),
+        inputs,
+      )
+    CrossJoinRows(join) =>
+      intrinsic_join_row_bound(
+        @join.Inner,
+        @join.cross_output_guard(join),
         inputs,
       )
     Derive(_)
@@ -46,6 +52,28 @@ pub fn node_row_count_bound(node : PreparedNode, inputs : Array[Int]) -> Int? {
         Some(total.to_int())
       }
     }
+    _ => None
+  }
+}
+
+///|
+/// A successful-output bound already present on the same checked node, even
+/// when an upstream input's cardinality is unknown. This neither proves that
+/// input's demand nor turns a failed output guard into successful truncation.
+/// Parameter guards require their original binding and deliberately decline.
+pub fn node_input_independent_row_count_bound(node : PreparedNode) -> Int? {
+  match node.payload {
+    Values(values) => Some(@values.row_count(values))
+    InnerJoin(join) =>
+      declared_join_row_bound(
+        @join.output_guard(join),
+        node.input_targets.length(),
+      )
+    CrossJoinRows(join) =>
+      declared_join_row_bound(
+        @join.cross_output_guard(join),
+        node.input_targets.length(),
+      )
     _ => None
   }
 }

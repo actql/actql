@@ -13,14 +13,16 @@ pub fn installed_json_effect_request_construction_capacity(
   if max_input_bytes < 1 || max_nodes < 1 || max_depth < 1 {
     return None
   }
-  guard installed_source_response_workspace(
+  guard installed_source_response_preserving_workspace(
       max_input_bytes, max_nodes, max_depth,
     )
     is Some(decoded) else {
     return None
   }
   // Same parse_json_bytes_preserving/decode.admit family as the reader's
-  // private constructor inventory, NOT that reader's transport/Run allowance.
+  // private constructor inventory, NOT its normalizing alternative or its
+  // transport/Run allowance. Data-key Preview admission preserves original
+  // text; Native/configuration normalization belongs to its own provider.
   // Keep the whole decoding envelope beside retained native values so String
   // backing is never assumed severed merely because the decoder returned.
   // The mapper additionally owns its input JSON String and encoded Bytes.

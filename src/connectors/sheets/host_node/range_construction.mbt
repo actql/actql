@@ -165,8 +165,6 @@ fn sheets_range_request_capacity(
     sheets_range_json_inventory(b, n) is Some(native_input) &&
     sheets_range_json_inventory(facts_bytes.to_int(), facts_nodes.to_int())
     is Some(native_output) &&
-    @canonical.nfc_lf_construction_extent(facts_bytes.to_int())
-    is Some(normalization) &&
     sheets_writer_units(output.body_bytes, output.body_nodes, output.body_depth)
     is Some(body_writer) &&
     sheets_writer_units(
@@ -190,11 +188,14 @@ fn sheets_range_request_capacity(
     native_output,
     native_output,
     {
-      record_headers: normalization.record_headers + 3L,
-      reference_slots: normalization.reference_slots + 14L,
-      scalar_words: normalization.scalar_words + 4L,
-      owned_utf16_units: normalization.owned_utf16_units +
-      2L * input_bytes.to_int64() +
+      // Payload/target facts use range_canonical(data_keys=true), preserving
+      // original keys and values. Request identity hashes the framed original
+      // UTF8 parts. Neither path invokes range_configuration_value or NFC;
+      // installation/recovery configuration identity has its separate quote.
+      record_headers: 3L,
+      reference_slots: 14L,
+      scalar_words: 4L,
+      owned_utf16_units: 2L * input_bytes.to_int64() +
       target_bytes +
       facts_bytes +
       output.body_bytes.to_int64(),

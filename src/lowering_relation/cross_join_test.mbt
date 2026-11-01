@@ -117,3 +117,49 @@ test "cross join lowering resolves positive parameter guards only" {
     is Err(CrossJoinFailure(1, InvalidGuard)),
   )
 }
+
+///|
+test "cross join original checked output guard supplies its row-count bound" {
+  let prepared = @lowering_relation.prepare(
+    checked(",{\"cross_join\":{\"with\":\"seed\",\"max_output_rows\":1}}"),
+    limits(),
+  ).unwrap()
+  let node = @lowering_relation.node_at(prepared, 1).unwrap()
+  assert_eq(@lowering_relation.node_row_count_bound(node, [1, 1]), Some(1))
+}
+
+///|
+test "cross join independent bound comes only from its original literal guard" {
+  let prepared = @lowering_relation.prepare(
+    checked(",{\"cross_join\":{\"with\":\"seed\",\"max_output_rows\":1}}"),
+    limits(),
+  ).unwrap()
+  let node = @lowering_relation.node_at(prepared, 1).unwrap()
+  assert_eq(
+    @lowering_relation.node_input_independent_row_count_bound(node),
+    Some(1),
+  )
+  assert_eq(@lowering_relation.node_row_count_bound(node, []), None)
+  let open = @lowering_relation.prepare(
+    checked(",{\"cross_join\":{\"with\":\"seed\"}}"),
+    limits(),
+  ).unwrap()
+  assert_eq(
+    @lowering_relation.node_input_independent_row_count_bound(
+      @lowering_relation.node_at(open, 1).unwrap(),
+    ),
+    None,
+  )
+}
+
+///|
+test "cross join independent bound never substitutes a bound parameter as literal DATA" {
+  let owner = cross_join_parameter_owner(2)
+  let prepared = @lowering_relation.bound_preparation(owner)
+  let node = @lowering_relation.node_at(prepared, 1).unwrap()
+  assert_eq(
+    @lowering_relation.node_input_independent_row_count_bound(node),
+    None,
+  )
+  assert_eq(@lowering_relation.node_row_count_bound(node, [3, 4]), Some(12))
+}

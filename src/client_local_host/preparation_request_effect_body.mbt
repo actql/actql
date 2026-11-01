@@ -77,6 +77,21 @@ fn[I] request_effect_plan_quote(
       Err(issue) => return Err(issue)
       Ok(value) => value
     }
+    // The captured Effect's existing schema walk also resolves its SAME
+    // checked Result endpoints. Back the additional fixed scratch before
+    // that call; no new graph, proof arrays or caller-selected bounds.
+    let scratch = match owner.compiled_effect {
+      Some(prepared) if @strategy.graph_captured_prefix(
+          @strategy.checked_effect_computation_graph(
+            @publication_host.prepared_client_effect_computation_graph(prepared),
+          ),
+        ) >
+        0 => installed_effect_source_result_bound_scratch_bytes()
+      _ => 0L
+    }
+    guard @execution.checked_preparation_add_product(e, scratch, 1L) is Some(e) else {
+      return Err(Policy)
+    }
     owner.program_plan_quote = Some((r, e))
     owner.phase = EffectPlanQuoted
   }
