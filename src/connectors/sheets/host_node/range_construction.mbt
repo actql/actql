@@ -920,10 +920,21 @@ fn sheets_range_capture_profile(
   // range compares its entire wire directly without another supplied tree.
   let normalized = { ..metadata_native, owned_utf16_units: 0L, }
   let metadata_normalized = { ..metadata_native, owned_utf16_units: 0L, }
-  guard @execution.compose_preparation_representation([
-      inputs, input, native, native,
-    ])
+  // range_parse's preserving Source check returns only Bool before the
+  // native Json constructor starts. While the SECOND Source check runs,
+  // only the FIRST native input is live. Both complete native constructors
+  // still have their separate peak after that check; no native quantity,
+  // incoming String/Bytes, parser refusal or physical duty is removed.
+  // Keep clear's previous conservative marker-prefix quotation unchanged.
+  let parse_inputs = if clear {
+    [inputs, input, native, native]
+  } else {
+    [inputs, input, native]
+  }
+  guard @execution.compose_preparation_representation(parse_inputs)
     is Some(parse_peak) &&
+    @execution.compose_preparation_representation([inputs, native, native])
+    is Some(native_parse_peak) &&
     @execution.compose_preparation_representation([
       inputs, native, native, entry_input, entry,
     ])
@@ -966,8 +977,8 @@ fn sheets_range_capture_profile(
     ])
     is Some(metadata_canonical_peak) &&
     sheets_range_capture_phase_capacity(retained, [
-      parse_peak, entry_peak, normalize_peak, canonical_peak, expected_peak, metadata_parse_peak,
-      metadata_normalize_peak, metadata_canonical_peak,
+      parse_peak, native_parse_peak, entry_peak, normalize_peak, canonical_peak, expected_peak,
+      metadata_parse_peak, metadata_normalize_peak, metadata_canonical_peak,
     ])
     is Some(fixed) &&
     sheets_range_request_capacity(
