@@ -6381,7 +6381,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "b7ed4d01c201c69d33dccd3ad4cce6868a02e57526ea1fd1611b48cfd78537b9",
+      "sha256": "c811e8684e9fe5169bbdd42995f3c376cbe93005a0710950524cf93ce227e7eb",
       "exports": [
         "admitOriginalHostRootFormat",
         "assertInitialControlHostPreparation",
@@ -7302,6 +7302,17 @@
           "name": "connectEmbeddedLocal/preparation/init:retireManagedComputeRun/init:retireManagedComputeRun",
           "parameters": [
             "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:selectManagedDomainSourceInput/init:selectManagedDomainSourceInput",
+          "parameters": [
+            "runtime",
+            "prepared",
+            "identity",
+            "stage",
+            "sourceIndex"
           ],
           "async": false
         },
@@ -11737,6 +11748,7 @@
             "connectEmbeddedLocal/preparation/init:prepareManagedModelBinding/init:prepareManagedModelBinding",
             "connectEmbeddedLocal/preparation/init:prepareManagedModelGraph/init:prepareManagedModelGraph",
             "connectEmbeddedLocal/preparation/init:prepareManagedModelMaterials/init:prepareManagedModelMaterials",
+            "connectEmbeddedLocal/preparation/init:selectManagedDomainSourceInput/init:selectManagedDomainSourceInput",
             "openInstalledHost/assertMockEffectRunOriginal",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#6",
             "openInstalledHost/mockEffectResources/init:assertCurrent/init:assertCurrent",

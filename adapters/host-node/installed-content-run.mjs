@@ -101,9 +101,9 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
     }};
   };
   const execute = async ({preparedProgram, plan, store, principalId, signal, retainExecution,
-    acquiredContent}, intermediate) => {
+    acquiredContent}) => {
     publications.checkClientCompiledRunOwner(plan.compiled, preparedProgram);
-    if (plan.kind !== (intermediate ? 'infer' : 'serialization') ||
+    if (plan.kind !== 'serialization' ||
         plan.serializationGraph === undefined || principalId !== ownerPrincipal ||
         store.storeAuthorityCid !== storeAuthorityCid || typeof retainExecution !== 'function') {
       throw new TypeError('InvalidInstalledContentRun');
@@ -122,7 +122,7 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
     if (!live()) throw new Error('InstalledContentAuthorityUnavailable');
     const source = acquiredContent?.captured.capture.source();
     let ledger, managed, capacity, selectedKeyed;
-    if (acquiredContent === undefined && !intermediate) {
+    if (acquiredContent === undefined) {
       const original = preparedRuns.get(preparedProgram);
       if (original === undefined || original.retired || original.plan !== plan || original.attempted ||
           original.failure !== undefined || original.managed === undefined || original.managed.closed) {
@@ -133,7 +133,7 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
       original.attempted = true;
       assertRunCurrent();
       managed = original.managed; capacity = original.capacity;
-    } else if (preparedRunRequired && !intermediate) {
+    } else if (preparedRunRequired) {
       const original = preparedKeyedRuns.get(preparedProgram);
       if (original === undefined || original.retired || original.plan !== plan || original.attempted ||
           original.failed || original.managed === undefined || original.managed.closed ||
@@ -150,15 +150,15 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
       ledger = acquiredContent.ledger;
     } else {
       capacity = control.prefixCapacity(preparedProgram, task, step, bodies, prefixLimits, workspace, source);
-      ledger = acquiredContent === undefined
-        ? checked(moon.clientProgramAcquisitionLedger(1, 0, 0n,
-          capacity.retainedBytes, capacity.executionBytes, 0)) : acquiredContent.ledger;
+      // The source-free case already selected its same Request above. This
+      // remaining explicit acquired route borrows its original Source Ledger.
+      ledger = acquiredContent.ledger;
     }
     if (acquiredContent !== undefined && acquiredLedgers.get(ledger) !== plan.compiled) {
       throw new TypeError('Foreign Content acquisition ledger');
     }
     let prefix, input, writer, physical, byteHolding, retained, publication;
-    let failureCleanup, cleanupFlight, cleaned = false, generatedRetained = false;
+    let failureCleanup, cleanupFlight, cleaned = false;
     let work = 0n;
     const remainingWork = () => Number(BigInt(prefixLimits.maxWork) - work);
     const chargeWork = delta => {
@@ -202,10 +202,9 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
           if (status.operationPending !== false || status.preparedPending !== false ||
               (status.committed !== true && status.abandoned !== true)) return false;
         }
-        // Intermediate bytes have their own committed generation/evidence
-        // holdings and declared lifetime. A Model approval wait or unknown
-        // outcome has no public index; that is not permission to delete them.
-        if (committed === undefined && !generatedRetained) {
+        // This terminal composition owns only its original publication. The
+        // separate Effect Content family retains its own intermediate holdings.
+        if (committed === undefined) {
           retired = true;
           for (const cid of [byteHolding?.holding_cid,
             ...(retained?.bindings ?? []).map(binding => binding.holdingCid)].filter(Boolean)) {
@@ -294,24 +293,6 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
         inputEvidence, candidate, content, live, completionLimits);
       await retainGeneratedContentEvidence({store, publications, compiled: plan.compiled,
         generation, signal, retainHoldings(_holdings, recovery) { retained = recovery; }});
-      if (intermediate) {
-        generatedRetained = true;
-        const capturedContentRecovery = acquiredContent?.keyedContent?.recoveryInventory();
-        if (acquiredContent?.keyedContent !== undefined && capturedContentRecovery === undefined) {
-          throw new Error('InstalledCapturedContentInventoryUnavailable');
-        }
-        return Object.freeze({generation,
-          capturedContentRecovery,
-          capturedContentBinding: acquiredContent?.keyedContent?.sourceBinding,
-          sourceEvidence: acquiredContent === undefined ? [] :
-            [acquiredContent.sourceEvidence, acquiredContent.keyedSourceEvidence].filter(Boolean),
-          recoveryBindings: retained.bindings,
-          // The Model fixed-input receipt authenticates this exact inventory
-          // together with its original rows. It is not fresh generation proof.
-          recovery: Object.freeze({referenceWire: description.wire,
-            binding: Object.freeze({...binding}), byteHoldingCid: byteHolding.holding_cid,
-            bindings: Object.freeze(retained.bindings.map(value => Object.freeze({...value})))})});
-      }
       publication = serializationTaskPublicationPlan({moon, control: publications,
         preparedProgram, admitted: plan, generation, authorityScopeCid,
         namespaceId, storeAuthorityCid, now,
@@ -327,7 +308,7 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
       throw error;
     }
   };
-  const run = options => execute(options, false);
+  const run = options => execute(options);
   // The ordinary trusted Host prepares this exact checked Run before durable
   // admission. This Ledger expresses managed limits; platform allocation is
   // the supplier, and no successful allocation, authority or physical ACK is
@@ -490,9 +471,6 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
       inventory: original, verifyRead});
     return frame;
   };
-  // The enclosing Model custody retains this same child before allocation.
-  // No second Run, encoder, publication or dispatch cleanup owner is created.
-  run.generate = options => execute(options, true);
   run.effectFamily = ({prepared, plan, store, principalId, signal, restored, retainCleanup}) =>
     installEffectContentFamily({moon, control, publications, bodies,
       prepared, plan, store, principalId, ownerPrincipal, now, authorize, signal,

@@ -4524,6 +4524,11 @@ which may still decline or throw. A legacy prefix remains retained until its
 own stop acknowledgement. Cleanup callbacks join the existing single flight;
 neither process exit nor a missing JavaScript alias acknowledges a child.
 
+The installed terminal Content driver exposes no intermediate generation
+entrance. Effect Content uses its existing family owner and original capture
+binding, output holdings and cleanup. It does not enter the terminal driver's
+former private Model/intermediate branch or reconstruct a scalar Run there.
+
 Before Run adoption, the same Request abort and original input borrow's
 retirement phase govern alias release. Failed construction does not fabricate
 a managed Run or a successful physical outcome. The Request retains partial

@@ -27795,7 +27795,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -27958,7 +27958,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -28590,7 +28590,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -58670,7 +58670,7 @@
     {
       "module": "adapters/host-node/installed-content-run.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a2594293fefe96f0962eaf0446e0c3ce869fb5ab14b5e63585d050fdd9dde94e",
+      "sha256": "38faf28234332e1bc0c8c17bdaa4959827c1fcb322dc6a954966fe6b080a99de",
       "role": "physical-io",
       "owner": "Existing Content/Reference/completion/publication Owners and physical Store writer",
       "exports": [
@@ -58711,8 +58711,7 @@
             "principalId",
             "signal",
             "retainExecution",
-            "acquiredContent",
-            "intermediate"
+            "acquiredContent"
           ],
           "async": true
         },
@@ -58763,13 +58762,6 @@
         {
           "name": "installNodeContentRun/execute/execute/execute#3",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "installNodeContentRun/execute/execute/execute#4",
-          "parameters": [
-            "value"
-          ],
           "async": false
         },
         {
@@ -58929,18 +58921,6 @@
           "name": "installNodeContentRun/installNodeContentRun#10",
           "parameters": [
             "preparedProgram",
-            "plan",
-            "direct",
-            "acquisition",
-            "capacity",
-            "capturedContent"
-          ],
-          "async": false
-        },
-        {
-          "name": "installNodeContentRun/installNodeContentRun#11",
-          "parameters": [
-            "preparedProgram",
             "preparedEffect",
             "plan",
             "store",
@@ -58997,13 +58977,6 @@
         {
           "name": "installNodeContentRun/installNodeContentRun#6",
           "parameters": [
-            "options"
-          ],
-          "async": false
-        },
-        {
-          "name": "installNodeContentRun/installNodeContentRun#7",
-          "parameters": [
             "prepared",
             "plan",
             "store",
@@ -59015,9 +58988,18 @@
           "async": false
         },
         {
-          "name": "installNodeContentRun/installNodeContentRun#8",
+          "name": "installNodeContentRun/installNodeContentRun#7",
           "parameters": [
             "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeContentRun/installNodeContentRun#8",
+          "parameters": [
+            "preparedProgram",
+            "plan",
+            "sourceCapacity"
           ],
           "async": false
         },
@@ -59026,7 +59008,10 @@
           "parameters": [
             "preparedProgram",
             "plan",
-            "sourceCapacity"
+            "direct",
+            "acquisition",
+            "capacity",
+            "capturedContent"
           ],
           "async": false
         },
@@ -59068,7 +59053,6 @@
             "installNodeContentRun/execute/execute/execute",
             "installNodeContentRun/execute/execute/execute#2",
             "installNodeContentRun/execute/execute/execute#3",
-            "installNodeContentRun/execute/execute/execute#4",
             "installNodeContentRun/execute/execute/init:retainHoldings/init:retainHoldings",
             "installNodeContentRun/execute/execute/live/live",
             "installNodeContentRun/execute/execute/remainingWork/remainingWork",
@@ -59890,9 +59874,7 @@
           }
         },
         {
-          "operations": [
-            "installNodeContentRun/installNodeContentRun#11"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -106788,7 +106770,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-source-managed.mjs",
-      "sha256": "3032028c990857f704fb22b7c47edab37155967840315097dfca3d2bf837470e",
+      "sha256": "7b2b670354cb024a2e0853789f7cb347af8acddc851cb0e65e9b4460a0bb4904",
       "exports": [
         "assertOrdinarySourcePreparationCurrent",
         "prepareOrdinaryProjectSourceManagedInstallation",
@@ -107529,6 +107511,17 @@
           "name": "prepareOrdinaryManagedInstallation/view/init:retireSeveredPreparation/init:retireSeveredPreparation",
           "parameters": [
             "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:selectDomainSourceInput/init:selectDomainSourceInput",
+          "parameters": [
+            "prepared",
+            "request",
+            "identity",
+            "stage",
+            "sourceIndex"
           ],
           "async": false
         },
@@ -108962,7 +108955,8 @@
             "prepareOrdinaryManagedInstallation/view/init:prepareContentGraph/init:prepareContentGraph",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelBinding/init:prepareModelBinding",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelGraph/init:prepareModelGraph",
-            "prepareOrdinaryManagedInstallation/view/init:prepareModelMaterials/init:prepareModelMaterials"
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelMaterials/init:prepareModelMaterials",
+            "prepareOrdinaryManagedInstallation/view/init:selectDomainSourceInput/init:selectDomainSourceInput"
           ],
           "exports": [],
           "attributes": {
@@ -118520,7 +118514,7 @@
       "sha256": "2ee6349eeab84f91d0d34d24031d6a62e801babd48758632fee7e6b4297e115a",
       "responsibilityFacet": "primary",
       "role": "physical-io",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "createInstalledCredentialSourceReader",
         "installedJsonSourceReaderLimitNames",
@@ -119259,7 +119253,7 @@
       "sha256": "b316bbda6a28ab1c3feea0dadc964e01612d9085a0095f6a8a21abbc17ae5cc9",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "finishInstalledEffectModelScope",
         "installedEffectModelPreparation",
@@ -119948,7 +119942,7 @@
       "sha256": "ebcdc4731bed592ed91ab82bd3fda98af55bd796db15baa21a31b25913a552d1",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "assertInstalledSourceConstruction",
         "beginInstalledSourceInitialization",
