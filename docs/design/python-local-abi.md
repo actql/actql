@@ -1974,19 +1974,23 @@ semantic absence fact.
 Within that same live reader, the exact stdlib SQLite adapter can retain a
 completed immutable metadata-fence observation. Reuse requires the same
 physical adapter and connection, unchanged original transaction sequence and
-actual schema version, plus SQLite's unchanged total row-change count. The
-bounded schema-version PRAGMA still runs before and after every mutable current
-observation; it is counted separately from metadata-row queries. DDL can leave
-`total_changes` unchanged and is therefore never inferred absent from that
-counter. A schema/transaction/connection replacement refuses, and any row
+actual main and TEMP schema versions, plus SQLite's unchanged total row-change
+count. Both bounded schema-version PRAGMAs still run before and after every
+mutable current observation; they are counted separately from metadata-row
+queries. TEMP can shadow the physical table without changing the main schema
+version or any row, so the two schema observations must come from the same
+original connection and transaction. DDL is never inferred absent from
+`total_changes` alone. A schema/transaction/connection replacement refuses, and any row
 change requires complete metadata validation again. Savepoint rollback does
 not reset SQLite's total-change count. Another reader starts without an
 observation, and physical suppliers without this exact port keep full checks.
 
 Every physical/current callback still runs, including file/settings/epoch and
-Account checks. Actual row queries retain all three complete before/after SQL
-fences and their mutable-current calls; the outer read/write and precommit
-fences remain complete. Copy/thread/reentry, retired transaction, callback or
+Account checks. The typed original-current query uses that same immutable
+metadata observation at all three query fences, each with fresh complete
+snapshot and mutable-current checks. Its actual physical row is always read;
+raw readers and other physical suppliers retain all metadata-row reads. The
+outer read/write and precommit fences remain complete. Copy/thread/reentry, retired transaction, callback or
 schema-probe failure poisons the same reader. There is no current/Allow cache,
 new owner, retry, changed bound, Native ABI, or persistent snapshot token.
 
@@ -2006,6 +2010,56 @@ current/Account/producer checks; COMMIT occurs only after the enclosing
 inspection returns. A changed file or failed ordinal therefore rolls back the
 whole group. A failed COMMIT still retains the same Unknown attempt and child
 cleanup responsibility. No fact observation is reused by another transaction.
+
+### Closed Guest current observation
+
+The existing Guest current record retains the same adopted material, original
+Account and adoption bytes, actual original row, Store and generation. Its
+physical operation observation remains fresh on every protected decision.
+Physical callbacks may retire the Instance or record: liveness is checked both
+before and after the actual callback, and retirement clears the observed
+operation before refusing. A returned operation number is DATA, not authority.
+
+Only the closed Guest adapter can share that fresh observation with the adjacent
+synchronous projection of already-admitted originals. It checks the same
+Instance after the callback and compares the original Account, bytes, material,
+row, Store value, generation, operation and record state across that callback.
+Replacement, reentry changes, retirement or failure refuses; equal copied bytes
+or an equal operation number cannot supply another original. There is no query,
+external callback or await between the final field checks and the projection.
+Common still validates the complete original observation and evaluates Account
+Allow or Deny separately for each protected operation.
+
+Raw independent callback ports retain their second physical sample, including
+callbacks that fail or change only on that sample. A zero or newly observed
+operation retains both actual row queries, physical current and the final
+physical sample. This is not an Account/current-success cache, a new phase
+carrier, a public author callback or a new capacity allowance. The existing
+Guest Instance/current/buffer and imported parent remain the only owners;
+retirement and failed cleanup retain their original pending responsibility.
+
+### Consumed installation preparation readers
+
+After the original Host binding has completed its own admission and actual
+initial inspection, the same Installation may retire an earlier completed EOF
+reader only when its later live Host pin has the same root/name and complete
+original physical snapshot, including device/inode, size and digest. Both
+original descriptors are physically observed before retirement; the same Host
+pins recheck their complete current, including named installation roots, Store
+generation and retained files, after the old descriptor closes. The pin keeps its own
+original body and descriptor, and every subsequent current still observes it.
+This removes a consumed physical preparation read, not a current or Account
+check, semantic original, file, immutable byte body or resource reservation.
+
+Unmatched preparation originals remain in the Installation's original reader
+list. Ambiguous, copied, foreign, closing or changed pins refuse. Failed or
+uncertain close retains the same original reader and pending Installation;
+only its existing explicit cleanup may observe that same descriptor again.
+Successful close removes exactly that old reader from the existing cleanup
+list before post-close observation, so a later refusal keeps all remaining
+pins and owners without reopening or double-closing the old descriptor. Saved
+files, Store state, canonical material and existing conservative bounds remain
+unchanged; there is no replacement pin, authority or cleanup owner.
 
 ### Original file observation groups
 
@@ -2044,6 +2098,13 @@ through the immediate loaded-symbol comparison, then closes them through the
 existing one-shot descriptor carrier. There is no intervening native call,
 callback, await or new authority. A standalone linkage check owns its own
 identical bounded observation; later initializers never reuse it.
+
+The selected image descriptor is bound to the original component's exact
+filename, byte length and digest before capture. Its existing bounded reader
+still reads and hashes the complete actual file before returning immutable
+bytes. The resolver compares that same descriptor instead of hashing those
+unchanged returned bytes again. This does not bypass the separate unsafe
+Engine/image entrance, native-load checks or standalone diagnostic predicates.
 
 The scope binds the same original recipe and exact runtime path. Before and
 after the thirteen address comparisons it checks the retained FD and named
