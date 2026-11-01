@@ -186,6 +186,21 @@ class LocalOwnedStoreInitializationTests(unittest.TestCase):
                 self.assertIs(caught.exception, failure)
                 self.assertEqual(len(required_calls), stop)
 
+    def test_actual_catalog_keeps_closed_storage_schema_and_application_identity(self):
+        path, root, original = self.fixture()
+        store = self.open(path / original.name, root, original)
+        for change in ('CREATE TABLE foreign_schema (value TEXT)',
+                       'PRAGMA main.application_id=1'):
+            with self.subTest(change=change):
+                store._physical.begin_read()
+                try:
+                    self.assertEqual(store._physical._journal_schema(), 1)
+                    store._connection.execute(change)
+                    with self.assertRaises(ValueError):
+                        store._physical._journal_schema()
+                finally:
+                    store._physical.finish_read()
+
     def test_original_file_generation_is_bound_before_sql_and_claimed_once(self):
         path, root, value = self.fixture()
         observed = root.observe(value)
