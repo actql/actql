@@ -703,3 +703,47 @@ test "observed response quantum bounds admitted copies without changing body or 
     installed_effect_operation_response_backing_fits(original, 32769, 32),
   )
 }
+
+///|
+test "standard Host JSON output retains returned tree rather than parser construction controls" {
+  let limits : @source.ParseLimits = {
+    max_input_bytes: 4096,
+    max_nodes: 128,
+    max_depth: 8,
+  }
+  let original = @execution.execution_capacity(17L, 23L).unwrap()
+  let peak = @source.json_literal_construction_extent(4096, 128, 8).unwrap()
+  // A Source tree including spans/Value/Field carriers is a conservative
+  // returned envelope for the bare Host JSON result, not another parser call.
+  // All containers together fit N; this Owner uses their combined population.
+  let returned = @source.json_tree_retained_construction_extent(
+    128, 127, 128, 0, 4096L,
+  ).unwrap()
+  let price = (value : @source.JsonConstructionExtent) => {
+    @execution.preparation_representation_cost({
+      record_headers: value.record_headers,
+      reference_slots: value.reference_slots,
+      scalar_words: value.scalar_words,
+      owned_utf16_units: value.owned_utf16_units,
+      owned_wire_bytes: 0L,
+    }).unwrap()
+  }
+  for native_peak in [23L, 9000000000L] {
+    let native = @execution.execution_capacity(17L, native_peak).unwrap()
+    let values = installed_standard_create_constructor_capacities(
+      Some([(native, None, Some(limits)), (original, None, None)]),
+    ).unwrap()
+    assert_eq(
+      @execution.execution_capacity_retained_bytes(values[0]),
+      17L + price(returned),
+    )
+    assert_eq(
+      @execution.execution_capacity_execution_bytes(values[0]),
+      17L +
+      price(returned) +
+      Int64::max(native_peak - 17L, price(peak) - price(returned)),
+    )
+    assert_eq(@execution.execution_capacity_retained_bytes(values[1]), 17L)
+    assert_eq(@execution.execution_capacity_execution_bytes(values[1]), 23L)
+  }
+}

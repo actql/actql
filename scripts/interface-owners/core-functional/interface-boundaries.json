@@ -48182,7 +48182,7 @@
     },
     {
       "module": "src/client_local_host/installed_effect_request_construction.mbt",
-      "sha256": "396b217ae09296ad1ce07555c2c264260b9083b6e718e2976648d0f4d4bcd297",
+      "sha256": "be46a10f41d5d088158fc06ec8c568833004610fb063fb0a41048d84fd0e51fe",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "D \u2014 original Kintone native protocol constructors and same Request Effect composition",
@@ -48200,6 +48200,10 @@
         {
           "name": "installed_standard_create_constructor_capacities",
           "declaration": "installed_standard_create_constructor_capacities ( original : Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ? , ) - > Result [ Array [ @ execution . ExecutionCapacity ] , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "installed_standard_host_json_output_capacity",
+          "declaration": "installed_standard_host_json_output_capacity ( limits : @ source . ParseLimits , ) - > @ execution . ExecutionCapacity ?"
         }
       ],
       "contracts": [
@@ -48283,6 +48287,74 @@
               {
                 "path": "src/client_local_host/installed_effect_response_buffer_wbtest.mbt",
                 "anchor": "test \"standard JSON constructor adapter rejects malformed and overflowing opaque profiles\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installed_standard_host_json_output_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The standard Native JSON export returns before the Host parses its original"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The standard Native JSON export returns before the Host parses its original"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The standard Native JSON export returns before the Host parses its original"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The standard Native JSON export returns before the Host parses its original"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The standard Native JSON export returns before the Host parses its original"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The standard Native JSON export returns before the Host parses its original"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The standard Native JSON export returns before the Host parses its original"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The standard Native JSON export returns before the Host parses its original"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The standard Native JSON export returns before the Host parses its original"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The standard Native JSON export returns before the Host parses its original"
               }
             ]
           }

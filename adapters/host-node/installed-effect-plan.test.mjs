@@ -848,3 +848,36 @@ test('original stored projector failure keeps its same unfinished control prefix
   assert.throws(() => f.work(undefined,() => 1,[]),cause => cause === undefined);
   assert.equal(f.work.retire(),true);
 });
+
+
+// Actual installed Sheets projection with explicit Native original ports,
+// not a provider/Common/normal admission or allocator measurement.
+test('standard native JSON projection returns before Host parsing and keeps its original handle', async () => {
+  const {projectOwnedSheetsRequest,ownedSheetsRequestCid}=await import('../connectors/sheets/site/sheets-owned-request.mjs');
+  const events=[],binding={},handle={};
+  const body='original body e\u0301😀';
+  const factsWire=JSON.stringify({value:{rows:[{text:'e\u0301😀',flag:false}]},target:{resource:'book'}});
+  let nativeActive=false;
+  const moon={
+    sheetsRangeRequestJson(b,h){assert.equal(this,moon);assert.equal(b,binding);assert.equal(h,handle);
+      nativeActive=true;events.push('native.enter');nativeActive=false;events.push('native.return');
+      return {$tag:1,_0:factsWire};},
+    sheetsRangeRequestBody(b,h){assert.equal(this,moon);assert.equal(b,binding);assert.equal(h,handle);
+      events.push('native.body');return {$tag:1,_0:body};},
+    sheetsRangeRequestCid(b,h){assert.equal(this,moon);assert.equal(b,binding);assert.equal(h,handle);
+      events.push('native.cid');return {$tag:1,_0:'original-request-cid'};},
+  };
+  const parse=JSON.parse;
+  let projected;
+  try {
+    JSON.parse=function(wire,...rest){assert.equal(nativeActive,false);assert.equal(wire,factsWire);
+      events.push('host.parse');return Reflect.apply(parse,this,[wire,...rest]);};
+    projected=projectOwnedSheetsRequest(moon,binding,handle);
+  } finally {JSON.parse=parse;}
+  assert.deepEqual(events,['native.enter','native.return','host.parse','native.body']);
+  assert.equal(projected.body,body);assert.equal(projected.value.rows[0].text,'e\u0301😀');
+  assert(Object.isFrozen(projected));assert(Object.isFrozen(projected.value.rows));
+  assert.equal(ownedSheetsRequestCid(projected,binding),'original-request-cid');
+  assert.deepEqual(events,['native.enter','native.return','host.parse','native.body','native.cid']);
+  assert.throws(()=>ownedSheetsRequestCid({...projected},binding),{code:'ForeignSheetsRangeRequest'});
+});

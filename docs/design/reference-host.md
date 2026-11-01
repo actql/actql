@@ -2609,6 +2609,18 @@ Existing payload severing, failed initialization and physical cleanup duties
 remain on their original records.
 
 
+The standard Native JSON export returns before the Host parses its original
+String. Its constructor quotation retains every native output and the Host
+returned tree, using the existing Source Owner's tree envelope as a conservative
+upper bound for the smaller bare Host value. Parser/key/growth controls remain
+in the original complete construction peak and do not become retained values.
+The same original synchronous constructor uses the maximum of native and Host
+workspace; their returned holders remain summed. A failed native or Host parse
+keeps that complete combined peak until the existing child retires. Optional
+input decoding, raw responses, credentials and physical duties remain separate.
+This does not move early Source/Preview allocation onto a deferred constructor
+workspace: that earlier capture backing retains its existing boundary.
+
 The managed HTTP response quotation receives its read quantum from the same
 Credential implementation that performs the observed binary read. With Q-byte
 reads, the original Node reader waits for Q bytes until EOF; one final partial

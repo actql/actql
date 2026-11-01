@@ -112,9 +112,61 @@ pub fn installed_json_effect_response_construction_capacity(
 }
 
 ///|
+// The Host parses the SAME native-produced valid JSON String, not an input
+// document or a second Source parser. Keep the existing complete literal
+// constructor peak as a conservative envelope. Only its returned tree can
+// survive the synchronous parse. The original Source tree Owner (including
+// spans/Value/Field carriers) also bounds the smaller bare Host JSON result;
+// no new shape-price table or VM/GC assertion is introduced here.
+fn installed_standard_host_json_output_capacity(
+  limits : @source.ParseLimits,
+) -> @execution.ExecutionCapacity? {
+  guard @source.json_literal_construction_extent(
+      limits.max_input_bytes,
+      limits.max_nodes,
+      limits.max_depth,
+    )
+    is Some(peak) &&
+    @source.json_tree_retained_construction_extent(
+      limits.max_nodes,
+      limits.max_nodes - 1,
+      limits.max_nodes,
+      0,
+      limits.max_input_bytes.to_int64(),
+    )
+    is Some(tree) &&
+    peak.record_headers >= tree.record_headers &&
+    peak.reference_slots >= tree.reference_slots &&
+    peak.scalar_words >= tree.scalar_words &&
+    peak.owned_utf16_units >= tree.owned_utf16_units else {
+    return None
+  }
+  @execution.preparation_execution_capacity({
+    retained: {
+      record_headers: tree.record_headers,
+      reference_slots: tree.reference_slots,
+      scalar_words: tree.scalar_words,
+      owned_utf16_units: tree.owned_utf16_units,
+      owned_wire_bytes: 0L,
+    },
+    workspace: {
+      record_headers: peak.record_headers - tree.record_headers,
+      reference_slots: peak.reference_slots - tree.reference_slots,
+      scalar_words: peak.scalar_words - tree.scalar_words,
+      owned_utf16_units: peak.owned_utf16_units - tree.owned_utf16_units,
+      owned_wire_bytes: 0L,
+    },
+    retained_nodes: 0L,
+    workspace_nodes: 0L,
+    retained_bytes: 0L,
+    workspace_bytes: 0L,
+  })
+}
+
+///|
 /// Compose the SAME native JSON export with its actual Host JSON.parse
 /// constructor. Optional byte-JSON input uses the existing indexed decoder
-/// inventory; a present output uses literal JSON geometry and borrows the
+/// inventory; a present output uses the original returned-tree role and borrows the
 /// already-owned native String. An absent output is the actual no-native-JSON
 /// request phase, not a fabricated empty JSON document or spare allowance.
 /// No request/response/secret/transport/failed-child allowance
@@ -133,34 +185,16 @@ pub fn installed_standard_create_constructor_capacities(
     let combined = match output {
       None => native
       Some(output) => {
-        guard @source.json_literal_construction_extent(
-            output.max_input_bytes,
-            output.max_nodes,
-            output.max_depth,
+        guard installed_standard_host_json_output_capacity(output) is Some(host) &&
+          // Native returns its original String before Host JSON.parse begins.
+          // Every returned native/Host holder stays summed; their private
+          // synchronous constructor scratch does not coexist. A failed phase
+          // still keeps this SAME complete combined peak until cleanup.
+          standard_create_sum_capacities(
+            [native, host],
+            sequential_workspace=true,
           )
-          is Some(parsed) &&
-          @execution.preparation_execution_capacity({
-            retained: {
-              record_headers: parsed.record_headers,
-              reference_slots: parsed.reference_slots,
-              scalar_words: parsed.scalar_words,
-              owned_utf16_units: parsed.owned_utf16_units,
-              owned_wire_bytes: 0L,
-            },
-            workspace: {
-              record_headers: 0L,
-              reference_slots: 0L,
-              scalar_words: 0L,
-              owned_utf16_units: 0L,
-              owned_wire_bytes: 0L,
-            },
-            retained_nodes: 0L,
-            workspace_nodes: 0L,
-            retained_bytes: 0L,
-            workspace_bytes: 0L,
-          })
-          is Some(host) &&
-          @execution.add_execution_capacity(native, host) is Some(combined) else {
+          is Some(combined) else {
           return Err(Unsupported)
         }
         combined
