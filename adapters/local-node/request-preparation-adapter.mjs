@@ -150,8 +150,8 @@ export function closeHostInitializationPreparation(state) {
 export function beginRequestInput(state, receipt, connection, assertCurrent, childrenPending = noPhysicalChildren) {
   const moon=state.context.runtime;
   if(typeof moon.clientProgramReserveRequestSnapshot!=='function') invalid();
-  if (!Object.isFrozen(connection) || connection.mode !== 'local' ||
-      connection.owner !== 'local' || !Array.isArray(connection.consentRefs) ||
+  if (!Object.isFrozen(connection) || !['local', 'remote'].includes(connection.mode) ||
+      connection.owner !== connection.mode || !Array.isArray(connection.consentRefs) ||
       !Array.isArray(connection.runners)) return false;
   openRequestPreparation(state,receipt,assertCurrent,childrenPending);
   return true;
