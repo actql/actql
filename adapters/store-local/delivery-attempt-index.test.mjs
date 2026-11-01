@@ -1687,6 +1687,54 @@ for(const afterCommit of [false,true]) {
   });
 }
 
+test('completion receipt statement is acquired once per original connection', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-completion-statement-'));
+  const path = join(directory, 'index.sqlite3');
+  const options = {create:true, maxEntries:3, maxWireBytes:4096};
+  const sql = 'SELECT receipt_wire FROM completions WHERE receipt_cid=? LIMIT 1';
+  const original = DatabaseSync.prototype.prepare;
+  let prepared = 0, index;
+  t.mock.method(DatabaseSync.prototype, 'prepare', function(selected) {
+    if (selected === sql) prepared++;
+    return Reflect.apply(original, this, [selected]);
+  });
+  t.after(async () => {index?.close(); await rm(directory, {recursive:true});});
+  index = await openDeliveryAttemptIndex(path, options);
+  index.migrate([]);
+  assert.equal(prepared, 0, 'opening does not prepare an unused completion lookup');
+  const cid = value => 'sha256:' + value.repeat(64);
+  const claim = (key, attempt, run, initial) => {
+    index.claim({logical_key:key, attempt_cid:cid(attempt), grant_cid:cid('f'),
+      run_cid:cid(run), attempt_wire:'{}', grant_wire:'{}'}, 3, '{}', cid(initial));
+  };
+  claim('first', '1', '2', '3');
+  claim('second', '4', '5', '6');
+  claim('third', '7', '8', '9');
+  const first = {attempt_cid:cid('1'), prior_cid:cid('3'), record_cid:cid('a'),
+    record_wire:'{"record":1}', receipt_cid:cid('e'), receipt_wire:'{"receipt":1}'};
+  const second = {...first, attempt_cid:cid('4'), prior_cid:cid('6'),
+    record_cid:cid('b'), record_wire:'{"record":2}'};
+  index.complete(first);
+  index.complete(second);
+  assert.equal(prepared, 1, 'distinct attempts reuse the same connection-owned lookup');
+  const third = {...first, attempt_cid:cid('7'), prior_cid:cid('9'),
+    record_cid:cid('c'), record_wire:'{"record":3}'};
+  assert.throws(() => index.complete({...third, receipt_wire:'{"different":true}'}),
+    {code:'DeliveryRecordConflict'});
+  assert.equal(index.completion(third.attempt_cid), undefined);
+  index.close();
+  assert.throws(() => index.complete(third), {code:'DeliveryAttemptIndexClosed'});
+  assert.equal(prepared, 1, 'closed owners cannot prepare or reuse the lookup');
+  index = await openDeliveryAttemptIndex(path, {...options, create:false});
+  assert.equal(prepared, 1, 'a new connection keeps its lookup unprepared until needed');
+  index.complete(third);
+  assert.equal(prepared, 2, 'the new connection acquires its own statement');
+  for (const end of [first, second, third]) {
+    assert.equal(index.completion(end.attempt_cid).record_cid, end.record_cid);
+    assert.equal(index.completion(end.attempt_cid).ack_revision, 1);
+  }
+});
+
 test('native completion CAS and retirement retain the other original Run and exact grant use',async t=>{
   const directory=await mkdtemp(join(tmpdir(),'actql-delivery-index-end-retirement-'));
   let index;
