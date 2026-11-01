@@ -124284,7 +124284,7 @@
     },
     {
       "module": "adapters/host-node/http-request-preparation.mjs",
-      "sha256": "689b11ff98b84d65e77b80f0bdb63fb86f717cc00f0498818cb5444bb0acdb28",
+      "sha256": "3e4eb3094ebf502781dfbe91f541850e58f174bd6a1eeb32a954f58e6813f62d",
       "exports": [
         "installHttpRequestPreparation"
       ],
@@ -124335,7 +124335,7 @@
       ],
       "imports": [
         "../../packages/client-wire/index.mjs",
-        "../../packages/sdk/internal/data.mjs"
+        "../../packages/sdk/internal/private-source-preparation.mjs"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
