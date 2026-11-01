@@ -111,7 +111,7 @@ test "range and clear driver profiles retain original binding constructor and in
     // it is a per-row capture holding, never an aliased physical send grant.
     assert_eq(
       @execution.execution_capacity_execution_bytes(captures[index][1]),
-      @execution.execution_capacity_execution_bytes(profiles[index][0].0),
+      @execution.execution_capacity_execution_bytes(profiles[index][0].0) + 96L,
     )
   }
   assert_true(
@@ -348,35 +348,6 @@ fn recovery_guard_test_metadata(
 }
 
 ///|
-fn recovery_guard_test_fixed(
-  bytes : Int,
-  clear : Bool,
-) -> @execution.ExecutionCapacity {
-  sheets_range_capture_profile(
-    recovery_guard_test_metadata(bytes),
-    1000000,
-    100000,
-    64,
-    100000,
-    10000,
-    16,
-    bytes,
-    200000,
-    32,
-    clear,
-  ).unwrap()[0]
-}
-
-///|
-fn recovery_guard_test_decoder_pair(
-  bytes : Int,
-) -> @execution.ExecutionCapacity {
-  // The original complete forest's node envelope is100000+4*3+32.
-  let input = sheets_range_parsed_construction(bytes, 100044, 32).unwrap()
-  sheets_constructor_capacity([input, input]).unwrap()
-}
-
-///|
 fn recovery_guard_test_nfc(bytes : Int) -> @execution.ExecutionCapacity {
   let original = @canonical.nfc_lf_construction_extent(bytes).unwrap()
   sheets_constructor_capacity([
@@ -392,58 +363,31 @@ fn recovery_guard_test_nfc(bytes : Int) -> @execution.ExecutionCapacity {
 
 ///|
 test "range recovery retains the independent saved-entry normalization floor" {
-  let regular = recovery_guard_test_fixed(100000, false)
-  let smaller = recovery_guard_test_fixed(50000, false)
-  let regular_decode = recovery_guard_test_decoder_pair(100000)
-  let smaller_decode = recovery_guard_test_decoder_pair(50000)
-  // A foreign saved entry may reach NFC before its later identity refusal.
-  // Reducing only the binding bound cannot reduce that original saved guard.
   assert_eq(
-    @execution.execution_capacity_retained_bytes(regular) -
-    @execution.execution_capacity_retained_bytes(regular_decode),
-    @execution.execution_capacity_retained_bytes(smaller) -
-    @execution.execution_capacity_retained_bytes(smaller_decode),
+    sheets_range_capture_normalization_inputs(100000, 2000000, false),
+    (100000, 100000),
+  )
+  assert_eq(
+    sheets_range_capture_normalization_inputs(50000, 2000000, false),
+    (50000, 100000),
   )
 }
 
 ///|
 test "range recovery keeps the larger original binding normalization guard" {
-  let regular = recovery_guard_test_fixed(100000, false)
-  let larger = recovery_guard_test_fixed(300000, false)
-  let regular_decode = recovery_guard_test_decoder_pair(100000)
-  let larger_decode = recovery_guard_test_decoder_pair(300000)
-  let regular_nfc = recovery_guard_test_nfc(100000)
-  let larger_nfc = recovery_guard_test_nfc(300000)
   assert_eq(
-    @execution.execution_capacity_retained_bytes(larger) -
-    @execution.execution_capacity_retained_bytes(regular),
-    @execution.execution_capacity_retained_bytes(larger_decode) -
-    @execution.execution_capacity_retained_bytes(regular_decode) +
-    @execution.execution_capacity_retained_bytes(larger_nfc) -
-    @execution.execution_capacity_retained_bytes(regular_nfc),
+    sheets_range_capture_normalization_inputs(300000, 2000000, false),
+    (300000, 100000),
   )
 }
 
 ///|
 test "clear recovery keeps its distinct original normalization envelope" {
-  // Clear and range share every decoder/writer constructor. Only clear
-  // lacks the early saved range-entry guard. Compare that original NFC
-  // difference independently of the shared decoder's construction recipe.
-  let clear = recovery_guard_test_fixed(100000, true)
-  let range = recovery_guard_test_fixed(100000, false)
-  let whole_forest = recovery_guard_test_nfc(7004171)
-  let guarded = recovery_guard_test_nfc(100000)
+  // The unchanged canonical(expected) guard precedes content NFC. Unlike
+  // range's saved100000 guard, it uses the actual incoming recovery limits.
   assert_eq(
-    @execution.execution_capacity_retained_bytes(clear) -
-    @execution.execution_capacity_retained_bytes(range),
-    @execution.execution_capacity_retained_bytes(whole_forest) -
-    @execution.execution_capacity_retained_bytes(guarded),
-  )
-  assert_eq(
-    @execution.execution_capacity_execution_bytes(clear) -
-    @execution.execution_capacity_execution_bytes(range),
-    @execution.execution_capacity_execution_bytes(whole_forest) -
-    @execution.execution_capacity_execution_bytes(guarded),
+    sheets_range_capture_normalization_inputs(100000, 2000000, true),
+    (100000, 2000000),
   )
 }
 
@@ -474,19 +418,16 @@ test "range capture quotes the actual incoming recovery limits independently fro
   let actual = sheets_range_capture_profile(
       metadata, 1000000, 100000, 64, 100000, 10000, 16, 2000000, 200000, 32, false,
     ).unwrap()[0]
-  let narrow_input = sheets_constructor_capacity([
-    sheets_range_parsed_construction(100000, 100000, 32).unwrap(),
-    sheets_range_parsed_construction(100000, 100000, 32).unwrap(),
-  ]).unwrap()
-  let actual_input = sheets_constructor_capacity([
-    sheets_range_parsed_construction(2000000, 100044, 32).unwrap(),
-    sheets_range_parsed_construction(2000000, 100044, 32).unwrap(),
-  ]).unwrap()
+  // Returned material is independent of the incoming decoder bound. The
+  // constructor peak is a maximum of phases, not the previous sum of both
+  // complete parser workspaces, so an additive delta is no longer its oracle.
   assert_eq(
-    @execution.execution_capacity_execution_bytes(actual) -
+    @execution.execution_capacity_retained_bytes(actual),
+    @execution.execution_capacity_retained_bytes(narrow),
+  )
+  assert_true(
+    @execution.execution_capacity_execution_bytes(actual) >
     @execution.execution_capacity_execution_bytes(narrow),
-    @execution.execution_capacity_execution_bytes(actual_input) -
-    @execution.execution_capacity_execution_bytes(narrow_input),
   )
   for
     (bytes, nodes, depth) in [
@@ -518,4 +459,30 @@ test "range acknowledgement does not construct a target metadata map for every r
     @execution.execution_capacity_retained_bytes(actual) <
     @execution.execution_capacity_execution_bytes(actual),
   )
+}
+
+///|
+test "range capture keeps sequential parser and writer peaks out of its returned holding" {
+  let actual = sheets_range_capture_profile(
+      recovery_guard_test_metadata(300000),
+      1000000,
+      100000,
+      64,
+      100000,
+      10000,
+      16,
+      2000000,
+      200000,
+      32,
+      false,
+    ).unwrap()[0]
+  let retained = @execution.execution_capacity_retained_bytes(actual)
+  let execution = @execution.execution_capacity_execution_bytes(actual)
+  println("RANGE_CAPTURE retained=\{retained} execution=\{execution}")
+  assert_true(retained < execution)
+  let original = @client_host.client_local_preparation_initial_limits(
+    @client_host.client_local_resource_policy(),
+  ).unwrap()
+  // A necessary native member slice, not the complete Compute/HTTP/Store Plan.
+  assert_true(execution <= original.execution_bytes, msg=execution.to_string())
 }

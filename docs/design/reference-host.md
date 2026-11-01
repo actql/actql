@@ -2308,3 +2308,16 @@ by all supplied nodes, including later cardinality refusal. The closed clear
 marker projection retains its eight-node, seven-field, depth-two construction
 and canonical writer. Only the Native outcome String escapes; input indexes,
 maps, reply cursors and failed-prefix paths remain temporary workspace.
+
+Native range capture quotes returned entry/request-array material separately
+from its synchronous parser, NFC and canonical-writer work. The two full
+recovery input trees can coexist; Source parsing, entry parsing, normalization
+and canonical emission use their actual sequential phases. Each phase retains
+all original input Strings/encodings and its failed prefix. Metadata generation
+uses its closed column/target/coordinate/marker construction, not the complete
+Preview forest. Canonical emission checks its original byte bound before
+appending output; saved clear first canonicalizes expected metadata before
+NFC, while saved range also has its earlier independent wire guard. The same
+representation owner takes the coordinate maximum and keeps returned material
+separate. This quote does not certify a consumer's actual phase reconciliation,
+physical cleanup, or the complete Compute/HTTP/Store Plan.

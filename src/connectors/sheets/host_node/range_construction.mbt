@@ -359,6 +359,122 @@ fn sheets_range_response_capacity(
 }
 
 ///|
+// CanonicalValue/FrozenArray/field pairs, the active BuildFrame stack, seen
+// keys and sort scratch in canonical_json.from_json(data_keys=true). Text is
+// borrowed from the preceding native/normalization owner. This is the actual
+// range_canonical constructor, not another parse or normalization quote.
+fn sheets_range_canonical_construction(
+  nodes : Int,
+  depth : Int,
+) -> @execution.PreparationRepresentationUnits? {
+  let n = nodes.to_int64()
+  let d = Int::min(nodes, depth).to_int64()
+  let frames = 2L * d + 4L
+  guard @shape.collection_construction_extent({
+      records: 3L * n + frames + 1L + 6L,
+      record_references: 4L * n + 3L * frames + 8L,
+      record_words: 2L * n + 2L * frames + 3L + 6L,
+      // Owned output vectors, one pending stack and current sort scratch.
+      reference_arrays: n + 2L,
+      reference_items: 2L * n + frames,
+      scalar_arrays: 0L,
+      scalar_items: 0L,
+      maps: d,
+      map_entries: n,
+    })
+    is Some(body) else {
+    return None
+  }
+  let iter = @shape.reference_map_iterator_construction_extent()
+  let next = @shape.reference_map_iterator_next_construction_extent()
+  @execution.compose_preparation_representation([
+    sheets_collection_units(body),
+    {
+      record_headers: d * iter.record_headers + next.record_headers,
+      reference_slots: d * iter.reference_slots + next.reference_slots,
+      scalar_words: d * iter.scalar_words + next.scalar_words,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    },
+  ])
+}
+
+///|
+fn sheets_range_normalization_construction(
+  bytes : Int,
+) -> @execution.PreparationRepresentationUnits? {
+  guard @canonical.nfc_lf_construction_extent(bytes) is Some(value) else {
+    return None
+  }
+  Some({
+    record_headers: value.record_headers,
+    reference_slots: value.reference_slots,
+    scalar_words: value.scalar_words,
+    owned_utf16_units: value.owned_utf16_units,
+    owned_wire_bytes: 0L,
+  })
+}
+
+///|
+// Declared synchronous alternatives of this SAME capture/recovery callback.
+// Their peak uses the common representation and tariff exactly once. Returned
+// material remains separate; no Resource, current observation or release ACK.
+fn sheets_range_capture_phase_capacity(
+  retained : @execution.PreparationRepresentationUnits,
+  phases : Array[@execution.PreparationRepresentationUnits],
+) -> @execution.ExecutionCapacity? {
+  let mut peak : @execution.PreparationRepresentationUnits = {
+    record_headers: 0L,
+    reference_slots: 0L,
+    scalar_words: 0L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }
+  for phase in phases {
+    peak = {
+      record_headers: Int64::max(peak.record_headers, phase.record_headers),
+      reference_slots: Int64::max(peak.reference_slots, phase.reference_slots),
+      scalar_words: Int64::max(peak.scalar_words, phase.scalar_words),
+      owned_utf16_units: Int64::max(
+        peak.owned_utf16_units,
+        phase.owned_utf16_units,
+      ),
+      owned_wire_bytes: Int64::max(
+        peak.owned_wire_bytes,
+        phase.owned_wire_bytes,
+      ),
+    }
+  }
+  @execution.preparation_execution_capacity({
+    retained,
+    workspace: peak,
+    retained_nodes: 0L,
+    workspace_nodes: 0L,
+    retained_bytes: 0L,
+    workspace_bytes: 0L,
+  })
+}
+
+///|
+// The actual pre-NFC guards for fresh and saved metadata, respectively.
+// Clear canonicalizes its reconstructed expected metadata before NFC; range
+// additionally has its earlier independent saved-wire byte guard.
+fn sheets_range_capture_normalization_inputs(
+  binding_bytes : Int,
+  recovery_bytes : Int,
+  clear : Bool,
+) -> (Int, Int) {
+  (
+    binding_bytes,
+    if clear {
+      recovery_bytes
+    } else {
+      Int::min(recovery_bytes, @catalog.range_saved_recovery_wire_byte_limit())
+    },
+  )
+}
+
+///|
 fn sheets_range_capture_profile(
   metadata : @catalog.RangeConstructionMetadata,
   capture_bytes : Int,
@@ -397,59 +513,158 @@ fn sheets_range_capture_profile(
   let b = Int::min(wire.to_int(), recovery_bytes)
   let n = Int::min(nodes.to_int(), recovery_nodes)
   let binding_bytes = Int::min(wire.to_int(), metadata.limits.max_bytes)
-  // range_recovery_entry first canonicalizes within the original binding's
-  // byte guard, before configuration NFC. Saved range recovery checks its
-  // independent wire-byte guard before parsing/normalizing a supplied entry,
-  // including a later identity refusal. Neither path normalizes the complete
-  // Preview payload/escaped forest. Keep clear's distinct old envelope: its
-  // recovery path has no equivalent early stored-wire guard.
-  let normalization_bytes = if clear {
-    wire.to_int()
-  } else {
-    Int::max(
-      binding_bytes,
-      Int::min(wire.to_int(), @catalog.range_saved_recovery_wire_byte_limit()),
-    )
+  let (fresh_normalization_bytes, entry_bytes) = sheets_range_capture_normalization_inputs(
+    binding_bytes, b, clear,
+  )
+  let entry_nodes = Int::min(n, entry_bytes)
+  // Fresh metadata has no Preview values: columns, fixed coordinates, the
+  // immutable target and (clear only) the already bounded marker vector.
+  // A target JSON node consumes at least one original encoded byte. Its
+  // UTF8 input is <=3*the retained original UTF16 units. No new input cap.
+  let metadata_nodes = 4L * metadata.columns.to_int64() +
+    3L * metadata.target_units.to_int64() +
+    64L +
+    (if clear { metadata.limits.max_cells.to_int64() } else { 0L })
+  if metadata_nodes > 2147483643L {
+    return None
+  }
+  let metadata_nodes = metadata_nodes.to_int()
+  let zero : @execution.PreparationRepresentationUnits = {
+    record_headers: 0L,
+    reference_slots: 0L,
+    scalar_words: 0L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
   }
   guard sheets_range_parsed_construction(b, n, recovery_depth) is Some(input) &&
-    sheets_range_json_inventory(wire.to_int(), nodes.to_int()) is Some(native) &&
-    @canonical.nfc_lf_construction_extent(normalization_bytes)
-    is Some(normalization) &&
-    sheets_writer_units(wire.to_int(), nodes.to_int(), capture_depth)
-    is Some(writer) &&
-    @source.json_literal_construction_extent(
-      wire.to_int(),
-      nodes.to_int(),
-      capture_depth,
+    sheets_range_json_inventory(b, n) is Some(native) &&
+    sheets_range_parsed_construction(entry_bytes, entry_nodes, recovery_depth)
+    is Some(entry_input) &&
+    sheets_range_json_inventory(entry_bytes, entry_nodes) is Some(entry) &&
+    sheets_range_canonical_construction(entry_nodes, recovery_depth)
+    is Some(canonical) &&
+    sheets_writer_units(recovery_bytes, n, recovery_depth) is Some(writer) &&
+    sheets_range_normalization_construction(entry_bytes) is Some(normalization) &&
+    @canonical.nfc_lf_construction_extent(entry_bytes) is Some(normalized_text) &&
+    sheets_range_parsed_construction(
+      binding_bytes,
+      metadata_nodes,
+      metadata.limits.max_depth,
     )
-    is Some(host) &&
-    sheets_constructor_capacity([
-      input,
-      input,
+    is Some(metadata_input) &&
+    sheets_range_json_inventory(binding_bytes, metadata_nodes)
+    is Some(metadata_native) &&
+    sheets_range_canonical_construction(
+      metadata_nodes,
+      metadata.limits.max_depth,
+    )
+    is Some(metadata_canonical) &&
+    sheets_writer_units(
+      binding_bytes,
+      metadata_nodes + 4,
+      metadata.limits.max_depth,
+    )
+    is Some(metadata_writer) &&
+    sheets_range_normalization_construction(fresh_normalization_bytes)
+    is Some(metadata_normalization) &&
+    @canonical.nfc_lf_construction_extent(fresh_normalization_bytes)
+    is Some(metadata_text) &&
+    @shape.collection_construction_extent({
+      // Entry object/Strings and return holder; Native+Host outer/inner
+      // request arrays and currents survive only through actual retirement.
+      records: 5L,
+      record_references: 5L,
+      record_words: 0L,
+      reference_arrays: 5L,
+      reference_items: 5L,
+      scalar_arrays: 0L,
+      scalar_items: 0L,
+      maps: 0L,
+      map_entries: 0L,
+    })
+    is Some(output) &&
+    @execution.compose_preparation_representation([
+      sheets_collection_units(output),
+      { ..zero, owned_utf16_units: binding_bytes.to_int64() + 128L, },
+    ])
+    is Some(retained) else {
+    return None
+  }
+  // JSON.stringify's two original input Strings/encodings are caller-owned
+  // construction, including the pre-byte-refusal path. They are not retained
+  // Native output. Keep the original complete escaped-wire bound here.
+  let inputs = {
+    ..zero,
+    record_headers: 6L,
+    owned_utf16_units: 2L * wire,
+    owned_wire_bytes: 2L * wire,
+  }
+  let normalized = { ..entry, owned_utf16_units: 0L, }
+  let metadata_normalized = { ..metadata_native, owned_utf16_units: 0L, }
+  guard @execution.compose_preparation_representation([
+      inputs, input, native, native,
+    ])
+    is Some(parse_peak) &&
+    @execution.compose_preparation_representation([
+      inputs, native, native, entry_input, entry,
+    ])
+    is Some(entry_peak) &&
+    @execution.compose_preparation_representation([
+      inputs, native, native, entry, normalized, normalization,
+    ])
+    is Some(normalize_peak) &&
+    @execution.compose_preparation_representation([
+      inputs,
       native,
       native,
-      {
-        record_headers: normalization.record_headers,
-        reference_slots: normalization.reference_slots,
-        scalar_words: normalization.scalar_words,
-        owned_utf16_units: normalization.owned_utf16_units + wire,
-        owned_wire_bytes: 2L * wire,
-      },
+      entry,
+      normalized,
+      canonical,
       writer,
-      writer,
-      {
-        record_headers: host.record_headers,
-        reference_slots: host.reference_slots,
-        scalar_words: host.scalar_words,
-        owned_utf16_units: host.owned_utf16_units,
-        owned_wire_bytes: 0L,
-      },
+      { ..zero, owned_utf16_units: normalized_text.max_output_utf16_units, },
+    ])
+    is Some(canonical_peak) &&
+    @execution.compose_preparation_representation([
+      inputs, metadata_input, metadata_native,
+    ])
+    is Some(metadata_parse_peak) &&
+    @execution.compose_preparation_representation([
+      inputs, metadata_native, metadata_normalized, metadata_normalization,
+    ])
+    is Some(metadata_normalize_peak) &&
+    @execution.compose_preparation_representation([
+      inputs,
+      metadata_native,
+      metadata_normalized,
+      metadata_canonical,
+      metadata_writer,
+      { ..zero, owned_utf16_units: metadata_text.max_output_utf16_units, },
+    ])
+    is Some(metadata_canonical_peak) &&
+    sheets_range_capture_phase_capacity(retained, [
+      parse_peak, entry_peak, normalize_peak, canonical_peak, metadata_parse_peak,
+      metadata_normalize_peak, metadata_canonical_peak,
     ])
     is Some(fixed) &&
     sheets_range_request_capacity(
       metadata, input_bytes, input_nodes, input_depth, clear,
     )
-    is Some(row) else {
+    is Some(row) &&
+    @shape.collection_construction_extent({
+      records: 0L,
+      record_references: 0L,
+      record_words: 0L,
+      reference_arrays: 0L,
+      reference_items: 4L,
+      scalar_arrays: 0L,
+      scalar_items: 0L,
+      maps: 0L,
+      map_entries: 0L,
+    })
+    is Some(row_slots) &&
+    sheets_constructor_capacity([sheets_collection_units(row_slots)])
+    is Some(row_slots) &&
+    @execution.add_execution_capacity(row, row_slots) is Some(row) else {
     return None
   }
   Some([fixed, row])

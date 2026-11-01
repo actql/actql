@@ -7429,7 +7429,7 @@
   {
     "module": "src/connectors/sheets/host_node/range_construction.mbt",
     "responsibilityFacet": "primary",
-    "sha256": "256288586e884e8f372ed0fbbe9b55ae79e4c9edbb89f5390ff13e635396aa23",
+    "sha256": "2c7aad2d0a921357cc15dc13eb0ee6401dac2af017b553d048b695717a6e6200",
     "operations": [
       {
         "name": "sheets_clear_ack_marker_construction",
@@ -7448,8 +7448,20 @@
         "declaration": "sheets_range_ack_projection_construction ( nodes : Int , depth : Int , ) - > @ execution . PreparationRepresentationUnits ?"
       },
       {
+        "name": "sheets_range_canonical_construction",
+        "declaration": "sheets_range_canonical_construction ( nodes : Int , depth : Int , ) - > @ execution . PreparationRepresentationUnits ?"
+      },
+      {
         "name": "sheets_range_capture_construction_profile",
         "declaration": "sheets_range_capture_construction_profile ( binding : @ catalog . RangeBinding , capture_bytes : Int , capture_nodes : Int , capture_depth : Int , input_bytes : Int , input_nodes : Int , input_depth : Int , recovery_bytes : Int , recovery_nodes : Int , recovery_depth : Int , ) - > Array [ @ execution . ExecutionCapacity ] ?"
+      },
+      {
+        "name": "sheets_range_capture_normalization_inputs",
+        "declaration": "sheets_range_capture_normalization_inputs ( binding_bytes : Int , recovery_bytes : Int , clear : Bool , ) - > ( Int , Int )"
+      },
+      {
+        "name": "sheets_range_capture_phase_capacity",
+        "declaration": "sheets_range_capture_phase_capacity ( retained : @ execution . PreparationRepresentationUnits , phases : Array [ @ execution . PreparationRepresentationUnits ] , ) - > @ execution . ExecutionCapacity ?"
       },
       {
         "name": "sheets_range_capture_profile",
@@ -7466,6 +7478,10 @@
       {
         "name": "sheets_range_json_inventory",
         "declaration": "sheets_range_json_inventory ( bytes : Int , nodes : Int , ) - > @ execution . PreparationRepresentationUnits ?"
+      },
+      {
+        "name": "sheets_range_normalization_construction",
+        "declaration": "sheets_range_normalization_construction ( bytes : Int , ) - > @ execution . PreparationRepresentationUnits ?"
       },
       {
         "name": "sheets_range_parsed_construction",
@@ -7499,7 +7515,11 @@
           "sheets_range_response_capacity",
           "sheets_range_parsed_construction",
           "sheets_range_ack_projection_construction",
-          "sheets_clear_ack_marker_construction"
+          "sheets_clear_ack_marker_construction",
+          "sheets_range_canonical_construction",
+          "sheets_range_normalization_construction",
+          "sheets_range_capture_phase_capacity",
+          "sheets_range_capture_normalization_inputs"
         ],
         "exports": [],
         "attributes": {
