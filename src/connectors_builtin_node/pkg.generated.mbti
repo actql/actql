@@ -620,6 +620,8 @@ pub fn client_program_captured_task_source_matches(@run_publication_host.Prepare
 
 pub fn client_program_charge_installed_source_io(@physical_resources.PreparationIo, Int64) -> Result[Unit, @physical_resources.PreparationCapacityIssue]
 
+pub fn client_program_check_compiled_local_execution_owner(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract) -> Bool
+
 pub fn client_program_check_compiled_run_definition(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract) -> Bool
 
 pub fn client_program_check_compiler_identity() -> String

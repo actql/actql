@@ -20,11 +20,13 @@ import {assertHostJournalDirectoryInspector, inspectHostJournalDirectory}
   from './host-journal-directory.mjs';
 import {snapshotSqliteSchemaReadLimits, snapshotSqliteSchemaSqlSupport}
   from '../host-common/sqlite-schema-resource-bounds.mjs';
-import {assertOriginalPreparedLocalPublicationStoreOwnership}
+import {assertOriginalPreparedLocalPublicationStoreOwnership,
+  captureOriginalLocalExecutionOwner, originalLocalExecutionOwnerStopped}
   from '../store-local/publication-store.mjs';
 import {openClientObservationStorage} from './client-observation-journal.mjs';
 import {isHostObservationProjection} from '../host-common/observation.mjs';
 import {canonicalJson} from './local-account-config.mjs';
+import {checked} from '../host-common/runtime-result.mjs';
 import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
 import {BOUND_SOURCE_INVENTORY, validBoundSourceOccurrence} from './ordinary-source-binding.mjs';
 import {valuesExecutionContextCid} from './local-values-capacity.mjs';
@@ -1072,6 +1074,33 @@ const journalColumns = [...columns.split(',').map(name => name.trim()),
   'physical_close_confirmed', 'observed_terminal_outcome',
   'reconciliation_state_wire', 'state_revision', 'state_observation_key'].sort();
 
+// One bounded receipt per already admitted Run, committed with its first
+// physical-start claim. This is private observation data, not a start/retry
+// permission. Old journals/rows without it retain their unknown outcome.
+const localExecutionOwnerTable = `CREATE TABLE client_local_execution_owners (
+  namespace_id TEXT NOT NULL,
+  authority_scope_cid TEXT NOT NULL,
+  run_definition_cid TEXT PRIMARY KEY REFERENCES client_requests(run_definition_cid) ON DELETE CASCADE,
+  owner_token TEXT NOT NULL CHECK (length(owner_token) = 36),
+  anchor_identity TEXT NOT NULL CHECK (length(anchor_identity) = 36),
+  anchor_device TEXT NOT NULL CHECK (length(anchor_device) BETWEEN 1 AND 32),
+  anchor_inode TEXT NOT NULL CHECK (length(anchor_inode) BETWEEN 1 AND 32)
+) STRICT`;
+function inspectLocalExecutionOwnerStorage(database) {
+  const row = database.prepare("SELECT substr(sql, 1, ?) AS sql FROM sqlite_master WHERE type = 'table' AND name = 'client_local_execution_owners'")
+    .get(localExecutionOwnerTable.length + 1);
+  if (row !== undefined && row.sql !== localExecutionOwnerTable) {
+    fail('UnknownClientRequestJournalFormat');
+  }
+}
+function validLocalExecutionOwnerReceipt(value) {
+  const uuid = value => typeof value === 'string' &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/u.test(value);
+  const coordinate = value => typeof value === 'string' && /^[0-9]{1,32}$/u.test(value);
+  return uuid(value?.token) && uuid(value?.anchor?.identity) &&
+    coordinate(value?.anchor?.device) && coordinate(value?.anchor?.inode);
+}
+
 // Additive custody in the existing request journal. The original format marker
 // is retained byte-for-byte; partially introduced custody is never reset.
 const cancellationMarkerName = 'cancellation-operations-format.json';
@@ -1488,6 +1517,7 @@ function inspectJournalNativeStorage(database, features) {
   inspectNameStorage(database, features.nameEnabled);
   inspectSubmissionUsageStorage(database, features.usageEnabled);
   inspectClientSourceOperationStorage(database);
+  inspectLocalExecutionOwnerStorage(database);
 }
 
 // Unowned/standalone inspection still needs an isolated snapshot: merely
@@ -1975,6 +2005,11 @@ export function openClientRequestJournal(directory, {
       "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'client_source_operation_originals'").get() === undefined) {
       initializeFeature(() => database.exec(sourceOperationTable));
     }
+    inspectLocalExecutionOwnerStorage(database);
+    if (ownedOriginal !== undefined && database.prepare(
+      "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'client_local_execution_owners'").get() === undefined) {
+      initializeFeature(() => database.exec(localExecutionOwnerTable));
+    }
     };
     if (existed) initializeSchema();
     else {
@@ -2135,6 +2170,17 @@ export function openClientRequestJournal(directory, {
   const sourceOperations = clientSourceOperationStorage(database, {ensureOpen,
     transact, limits: sourceOperationLimits,
     readRun: ref => selectRef.get(ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid)});
+  // The FK and unique Run key bound this table by the existing admitted
+  // request rows. SQL substr bounds materialization of corrupt old records.
+  const localExecutionOwnerInsert = ownedOriginal === undefined ? undefined : database.prepare(`
+    INSERT INTO client_local_execution_owners VALUES (?, ?, ?, ?, ?, ?, ?)`);
+  const localExecutionOwnerLookup = ownedOriginal === undefined ? undefined : database.prepare(`
+    SELECT substr(owner_token, 1, 37) AS owner_token,
+      substr(anchor_identity, 1, 37) AS anchor_identity,
+      substr(anchor_device, 1, 33) AS anchor_device,
+      substr(anchor_inode, 1, 33) AS anchor_inode
+    FROM client_local_execution_owners
+    WHERE namespace_id = ? AND authority_scope_cid = ? AND run_definition_cid = ?`);
   const readRunDefinitionRow = (ref, requestControl) => {
     ensureOpen();
     if (!text(ref?.namespaceId) || !cid(ref?.authorityScopeCid) ||
@@ -3644,7 +3690,7 @@ export function openClientRequestJournal(directory, {
     // Compute. A missing claim is safe to resume; a claim or legacy unknown
     // is never evidence that Compute did not run.
     reservePhysicalStart(identity, {namespaceId, ref, currentAuthorization,
-      captureSourceOperation},
+      captureSourceOperation, localExecutionOwner},
       requestControl, publicationControl) {
       ensureOpen();
       if (!text(namespaceId) || !text(ref?.namespaceId) ||
@@ -3685,6 +3731,31 @@ export function openClientRequestJournal(directory, {
         captureOriginal = capture;
         captureReceiver = captureSourceOperation;
       }
+      // Only the actual compiled effect-free Prepared original can qualify;
+      // source text, a caller boolean or an empty local worker map cannot.
+      let localOwnerProgram, localOwnerCompiled;
+      if (localExecutionOwner !== undefined && ownedOriginal !== undefined) {
+        const {program, compiled} = localExecutionOwner;
+        try {
+          if (requestControl.clientProgramMatchesRequestIdentity(program, identity) !== true) {
+            fail('ForeignClientLocalExecutionOwner');
+          }
+          publicationControl.checkClientCompiledRunOwner(compiled, program);
+          const row = selectRef.get(ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid);
+          if (row === undefined) fail('ForeignClientLocalExecutionOwner');
+          const definition = retainedRunDefinition(row, publicationControl, maxRunDefinitionWireBytes);
+          publicationControl.checkClientCompiledRunDefinition(compiled, definition);
+          publicationControl.checkClientCompiledLocalExecutionOwner(compiled, definition);
+          const inferred = checked(requestControl.clientProgramComposedInferOccurrences(program));
+          const serialized = requestControl.clientProgramSerializationOccurrences(program);
+          if (requestControl.clientProgramAcquisitionCount(program) !== 0 ||
+              !Array.isArray(inferred) || inferred.length !== 0 ||
+              !Array.isArray(serialized) || serialized.length !== 0) {
+            fail('ForeignClientLocalExecutionOwner');
+          }
+          localOwnerProgram = program; localOwnerCompiled = compiled;
+        } catch (cause) {fail('ForeignClientLocalExecutionOwner', cause);}
+      }
       const started = transact('physical_start', 'ClientRunPhysicalStartUnknown',
         error => typeof error?.code === 'string' &&
           (error.code.startsWith('ClientRun') ||
@@ -3712,6 +3783,20 @@ export function openClientRequestJournal(directory, {
           fail(action === 3 ? 'ClientRequestIntentConflict' :
             action === 5 ? 'ClientRunPhysicalStartDenied' :
             'ClientRequestJournalCorrupt');
+        }
+        if (localOwnerProgram !== undefined) {
+          publicationControl.checkClientCompiledRunOwner(localOwnerCompiled, localOwnerProgram);
+          publicationControl.checkClientCompiledRunDefinition(localOwnerCompiled, definition);
+          publicationControl.checkClientCompiledLocalExecutionOwner(localOwnerCompiled, definition);
+          const receipt = captureOriginalLocalExecutionOwner(ownedOriginal);
+          // Unsupported native ownership proof preserves ordinary execution;
+          // its absent receipt cannot later be promoted into a stop witness.
+          if (receipt !== undefined) {
+            if (!validLocalExecutionOwnerReceipt(receipt)) fail('ForeignClientLocalExecutionOwner');
+            localExecutionOwnerInsert.run(ref.namespaceId, ref.authorityScopeCid,
+              ref.runDefinitionCid, receipt.token, receipt.anchor.identity,
+              receipt.anchor.device, receipt.anchor.inode);
+          }
         }
         if (reservePhysicalStart.run(ref.namespaceId,
           ref.authorityScopeCid, ref.runDefinitionCid).changes !== 1) {
@@ -3912,8 +3997,32 @@ export function openClientRequestJournal(directory, {
           Object.freeze({kind: 'found', cancellation: retained.outcome});
       });
     },
-    // Only the live execution owner may report a completed physical close.
-    // A restarted process cannot infer this from its empty worker map.
+    // This observation is only available to the SAME original Store owner
+    // holding its stable lease. It never starts work, marks a stop or claims
+    // cleanup. The caller must still inspect publication and revalidate this
+    // nominal frame before recording the existing terminal observation.
+    observeStoppedLocalExecutionOwner(ref, originalFrame) {
+      ensureOpen();
+      const original = retainRunStateFrame(originalFrame, ref);
+      if (localExecutionOwnerLookup === undefined) return false;
+      const row = selectRef.get(ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid);
+      if (!sameRunStateRow(row, original.row)) fail('ClientRunStopObservationChanged');
+      if (row.physical_start_reserved !== 1 || row.physical_close_confirmed !== 0 ||
+          row.observed_terminal_outcome !== null) return false;
+      const stored = localExecutionOwnerLookup.get(ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid);
+      if (stored === undefined) return false;
+      const receipt = {token: stored.owner_token, anchor: {identity: stored.anchor_identity,
+        device: stored.anchor_device, inode: stored.anchor_inode}};
+      if (!validLocalExecutionOwnerReceipt(receipt)) return false;
+      const stopped = originalLocalExecutionOwnerStopped(ownedOriginal, receipt);
+      // The native owner observation must not make a stale frame current.
+      if (!sameRunStateRow(selectRef.get(ref.namespaceId, ref.authorityScopeCid,
+        ref.runDefinitionCid), original.row)) fail('ClientRunStopObservationChanged');
+      return stopped === true;
+    },
+    // Only original execution custody may report a completed physical close.
+    // A successor needs the retained native lease, publication and cleanup
+    // observations; an empty worker map never establishes any of them.
     markPhysicalClose(ref, terminalOutcome = null, originalFrame) {
       ensureOpen();
       if (!text(ref?.namespaceId) || !cid(ref?.authorityScopeCid) ||

@@ -190,6 +190,13 @@ function loadHostJournalDirectoryNative(packageRoot, expected, limits, assertRun
       if (typeof operation !== 'function') fail('HostJournalNativeImageUnavailable');
       captured[name] = operation;
     }
+    // The optional Store lease borrows this SAME selected image. Older images
+    // still support directory inspection but supply no recovery capability.
+    for (const name of ['openFileRoot','fileRootCurrent','fileRootClose',
+      'openStoreOwnerLease','storeOwnerLeaseReceipt']) {
+      const operation = descriptor(native, name)?.value;
+      if (typeof operation === 'function') captured[name] = operation;
+    }
     fence();
     entry.view = freeze({operations: native, assertCurrent() {
       fence();

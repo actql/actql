@@ -129,11 +129,13 @@ const valuesAdmissions = new WeakMap();
 const originalPlans = new WeakMap();
 const originalPlanLimits = Object.freeze({maxWireBytes: 65536, maxNodes: 4096, maxDepth: 64});
 export function sourceFreePlanOriginal(plan) {return originalPlans.get(plan)?.original;}
+export function sourceFreePlanExecutionOwner(plan) {return originalPlans.get(plan)?.executionOwner;}
 
 function retainOriginalPlan(plan, compiled, preparedProgram, control, queryTime) {
   // Keep lifetime links in the existing private association, outside the
   // closed publication data bag. This replaces the larger timed Plan clone.
   originalPlans.set(plan, Object.freeze({
+    executionOwner: Object.freeze({program: preparedProgram, compiled}),
     original: control.captureOriginalClientRunPlan(
       compiled, preparedProgram, plan.runDefinition, originalPlanLimits),
     queryTimePreparation: queryTime?.queryTimePreparation,

@@ -182,7 +182,10 @@ test('ordinary Local source binds its finite native delivery images to the actua
   for (const path of new Set(native.flatMap(value => value.sourceFiles))) assert(builder.includes(`'${path}'`));
   const host = result.modules.find(value => value.module === 'adapters/host-node/embedded-local.mjs');
   assert.deepEqual(host.unresolvedSyntax, []);
-  assert.equal(host.imports.filter(path => path.endsWith('.node')).length, 6);
+  const filesystem = result.modules.find(value => value.module === 'adapters/host-node/local-files-native.mjs');
+  assert.deepEqual(filesystem.unresolvedSyntax, []);
+  assert.equal(filesystem.imports.filter(path => path.endsWith('.node')).length, 6);
+  assert.equal(host.imports.filter(path => path.endsWith('.node')).length, 0);
   assert(result.modules.every(value => !value.module.endsWith('.node')));
 });
 

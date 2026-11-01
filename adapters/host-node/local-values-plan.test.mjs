@@ -15,13 +15,26 @@ import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {installNodeClientProgramPreparation} from
   './client-program-preparation.mjs';
-import {sourceFreeValuesPlan, sourceFreeTaskPlan,
+import {sourceFreeValuesPlan, sourceFreeTaskPlan, sourceFreePlanExecutionOwner,
   acquiredTaskRunAdmission} from
   './local-values-plan.mjs';
 import {admitEnvironment as admitStandaloneEnvironment,
   prepare as prepareStandalone, compileValues as compileStandaloneValues,
   compileTasks as compileStandaloneTasks, compiledPlanCid, taskResultSchema,
   privateTaskCompilationWires} from '../../packages/run-host-core/index.mjs';
+
+function assertOriginalExecutionOwner(plan, program, control) {
+  const packet = sourceFreePlanExecutionOwner(plan);
+  assert.ok(Object.isFrozen(packet));
+  assert.equal(packet.program, program);
+  assert.equal(sourceFreePlanExecutionOwner(plan), packet);
+  control.checkClientCompiledRunOwner(packet.compiled, program);
+  control.checkClientCompiledRunDefinition(packet.compiled, plan.runDefinition);
+  assert.equal(sourceFreePlanExecutionOwner({...plan}), undefined);
+  assert.equal(sourceFreePlanExecutionOwner(Object.create(plan)), undefined);
+  assert.equal(sourceFreePlanExecutionOwner({}), undefined);
+  assert.equal(Object.hasOwn(plan, 'executionOwner'), false);
+}
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const hash = body => `sha256:${createHash('sha256')
@@ -163,6 +176,7 @@ test('source-free task profile issues through the compiled Run owner',
       preparedProgram, authorityScopeCid: cid('a'), namespaceId: 'local',
       storeAuthorityCid: cid('c'),
       now: () => '2026-09-27T00:00:00.000Z'});
+    assertOriginalExecutionOwner(plan, preparedProgram, control);
     assert.match(plan.runDefinition.identity, /^sha256:[0-9a-f]{64}$/u);
     assert.match(plan.invocation.identity, /^sha256:[0-9a-f]{64}$/u);
     assert.match(plan.observation.identity, /^sha256:[0-9a-f]{64}$/u);
@@ -226,6 +240,7 @@ for (const kind of ['values', 'tasks']) {
         namespaceId: 'local', storeAuthorityCid: cid('c'),
         now: () => '2026-09-27T00:00:00.000Z',
       });
+      assertOriginalExecutionOwner(plan, preparedProgram, control);
       assert.match(plan.runDefinition.identity, /^sha256:[0-9a-f]{64}$/u);
       assert.deepEqual(calls,
         {prepare: 1, values: acquired ? 0 : 1, tasks: acquired ? 1 : 0});

@@ -418,3 +418,50 @@ test('actual Local consumer refuses bounds and wrong versions without losing ori
   for(let index=0;index<3;index++)assert.equal(carrier.cleanupHandle.retry().pending,true);
   assert.equal(fault.attempts(),attempts+1);assert.equal(fault.physicallyClosed(),physicallyClosed+1);
 });
+
+test('Store lease locks the exact retained anchor and refuses a second live owner', () => {
+  const path=join(scratch.path,'store-lease-live');mkdirSync(path,{mode:0o700});
+  const first=native.openFileRoot(path),second=native.openFileRoot(path);
+  const lease=native.openStoreOwnerLease(first,'11111111-1111-4111-8111-111111111111');
+  const original=native.storeOwnerLeaseReceipt(lease);
+  const busy=native.openStoreOwnerLease(second,'22222222-2222-4222-8222-222222222222');
+  assert.throws(()=>native.storeOwnerLeaseReceipt(busy),{code:'PublicationStoreBusy'});
+  assert.deepEqual(native.storeOwnerLeaseReceipt(lease),original);
+  assert.deepEqual(native.fileRootClose(busy),closed);assert.deepEqual(native.fileRootClose(second),closed);
+  assert.deepEqual(native.fileRootClose(lease),closed);assert.deepEqual(native.fileRootClose(first),closed);
+  const successor=native.openFileRoot(path),next=native.openStoreOwnerLease(successor,'33333333-3333-4333-8333-333333333333');
+  assert.deepEqual(native.storeOwnerLeaseReceipt(next),original);
+  assert.deepEqual(native.fileRootClose(next),closed);assert.deepEqual(native.fileRootClose(successor),closed);
+});
+
+test('Store lease rejects replacement of its exact opened anchor without deleting either file', () => {
+  const path=join(scratch.path,'store-lease-replacement');mkdirSync(path,{mode:0o700});
+  const root=native.openFileRoot(path),lease=native.openStoreOwnerLease(root,'11111111-1111-4111-8111-111111111111');
+  native.storeOwnerLeaseReceipt(lease);
+  renameSync(join(path,'owner-lease'),join(path,'original-anchor'));
+  writeFileSync(join(path,'owner-lease'),'22222222-2222-4222-8222-222222222222',{mode:0o600});
+  assert.throws(()=>native.storeOwnerLeaseReceipt(lease),{code:'PublicationStoreLeaseUnavailable'});
+  assert.deepEqual(native.fileRootClose(lease),closed);assert.deepEqual(native.fileRootClose(root),closed);
+  assert.equal(readFileSync(join(path,'original-anchor'),'utf8'),'11111111-1111-4111-8111-111111111111');
+  assert.equal(readFileSync(join(path,'owner-lease'),'utf8'),'22222222-2222-4222-8222-222222222222');
+});
+
+test('partial Store lease bytes never become an original execution proof or get reset', () => {
+  const path=join(scratch.path,'store-lease-partial');mkdirSync(path,{mode:0o700});
+  writeFileSync(join(path,'owner-lease'),'partial',{mode:0o600});
+  const root=native.openFileRoot(path),lease=native.openStoreOwnerLease(root,'11111111-1111-4111-8111-111111111111');
+  assert.throws(()=>native.storeOwnerLeaseReceipt(lease),{code:'PublicationStoreLeaseUnavailable'});
+  assert.deepEqual(native.fileRootClose(lease),closed);assert.deepEqual(native.fileRootClose(root),closed);
+  assert.equal(readFileSync(join(path,'owner-lease'),'utf8'),'partial');
+});
+
+test('Store lease retains ambiguous consumed-close custody without closing a recycled descriptor', () => {
+  const path=join(scratch.path,'store-lease-close');mkdirSync(path,{mode:0o700});
+  const operations=fault.operations,root=operations.openFileRoot(path);
+  const lease=operations.openStoreOwnerLease(root,'11111111-1111-4111-8111-111111111111');
+  operations.storeOwnerLeaseReceipt(lease);const before=fault.attempts();
+  const outcome=operations.fileRootClose(lease);assert.equal(outcome.outcome,'unknown');
+  assert.deepEqual(operations.fileRootClose(lease),outcome);assert.equal(fault.attempts(),before+1);
+  assert.equal(operations.fileRootClose(root).outcome,'pending');
+  assert.throws(()=>operations.storeOwnerLeaseReceipt(lease),{code:'PublicationStoreLeaseUnavailable'});
+});
