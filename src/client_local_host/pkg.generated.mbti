@@ -800,6 +800,8 @@ pub fn program_check_preparation_initial_inventory() -> @execution_relation.Prep
 
 pub fn program_json_preparation_initial_inventory() -> @execution_relation.PreparationRepresentationUnits
 
+pub fn[I] project_request_check_outcome(ClientRequestPreparation[I], I, ClientRequestTerminalIssue, String, String, String, String, Int, String?, Int, String?, Int, String, @client_local_preparation.ClientCheckSourceSelectorNamespace?) -> Result[String?, ClientRequestPreparationIssue]
+
 pub fn read_client_infer_retained_input_descriptor(String) -> Result[@execution_relation.RetainedCompletionDescriptor, ClientInferRetainedInputIssue]
 
 pub fn read_client_source_capture_descriptor(String) -> Result[@execution_relation.RetainedCompletionDescriptor, ClientSourceCaptureIssue]

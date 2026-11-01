@@ -218,6 +218,64 @@ test "Request original observation bridge returns optional String through the ac
 }
 
 ///|
+test "Request original observation bridge never upgrades undisclosable NeedsInputs to verified" {
+  let environment = original_lookup_diagnostic_environment(false)
+  let wire = "{\"environmentCid\":\"" +
+    @program_check.checking_environment_cid(environment) +
+    "\",\"aliases\":[]}"
+  let publication = @source_publication.prepare_published_query_environment(
+    environment, wire,
+  ).unwrap()
+  // Existing report labels are deliberately limited to256. The semantic
+  // parameter name is valid, but its unresolved obligation must not disappear
+  // merely because that particular public requirement cannot be enumerated.
+  let name = "p".repeat(257)
+  let document = "{\"version\":\"actql/0.1\",\"id\":\"original-needs-input\",\"params\":{\"" +
+    name +
+    "\":{\"type\":\"number\"}},\"stages\":[{\"id\":\"s\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"id\":1}]},\"as\":\"v\"},{\"derive\":{\"value\":\"id + $" +
+    name +
+    "\"},\"as\":\"d\"}],\"results\":{\"rows\":{\"from\":\"d\",\"fields\":[\"value\"]}}}],\"results\":{\"rows\":{\"from\":{\"stage\":\"s\",\"result\":\"rows\"}}}}"
+  let (parent, input) = request_diagnostic_test_parent()
+  let terminal = match
+    client_program_prepare_request_native_computation(
+      parent,
+      input,
+      request_diagnostic_test_json(document),
+      request_diagnostic_test_json("null"),
+      environment,
+      publication,
+      None,
+    ) {
+    Err(issue) => issue
+    Ok(_) => fail("the original missing parameter must remain incomplete")
+  }
+  guard terminal is CheckOutcome(@program_check.NeedsInputs(_)) else {
+    fail("must retain the actual nominal NeedsInputs frontier")
+  }
+  let report = client_program_project_request_check_outcome(
+      parent,
+      input,
+      terminal,
+      wire,
+      "ctx:" + "a".repeat(64),
+      "program",
+      "rev:" + "b".repeat(64),
+      document.length(),
+      None,
+      0,
+      None,
+      0,
+      "corr:" + "c".repeat(32),
+      None,
+    )
+    .unwrap()
+    .unwrap()
+  assert_true(report.contains("\"verdict\":\"undetermined\""), msg=report)
+  assert_false(report.contains(name))
+  client_program_abort_request_preparation(parent).unwrap()
+}
+
+///|
 test "Request failure projection uses the original semantic issue without another check" {
   let environment = original_lookup_diagnostic_environment(false)
   let publication = @source_publication.prepare_published_query_environment(
