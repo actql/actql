@@ -3401,8 +3401,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     if (preparation === undefined || typeof preparation.prepareManagedModelRun !== 'function' ||
         inferSelections.get(prepared) !== selection || selection.localMock ||
         selection.originalReadInstallation === undefined || selection.occurrence === undefined ||
-        selection.components !== undefined || acquisitionCount > 1 ||
-        acquisitionCount === 1 && selection.serializationGraph === undefined) {
+        selection.components !== undefined || acquisitionCount > 1) {
       throw clientOperationError('HostResultPublicationPurposeUnavailable');
     }
     let early = earlyMockInferPlans.get(prepared);
@@ -3448,6 +3447,7 @@ async function openInstalledHost(originalInstallation, preparation) {
         early.managed = model.contentPreparation?.managed;
       } else early.managed = preparation.prepareManagedModelRun(moon, prepared, requested, model);
       if (early.managed === undefined) throw clientOperationError('NodeManagedRunAdmissionUnavailable');
+      model.managed = early.managed;
       return model;
     } catch (cause) {early.failure = cause; throw cause;}
     finally {early.selecting = false;}
@@ -4022,8 +4022,13 @@ async function openInstalledHost(originalInstallation, preparation) {
         () => preparation.modelPublicationCapacity(submission.preparedProgram));
     } else if (selectedModel !== undefined) {
       const model = prepareInstalledRequestModelRun(submission, requested, selectedModel);
-      managedSourceRun = earlyMockInferPlans.get(submission.preparedProgram).managed;
-      if (managedSourceRun.model !== model) throw clientOperationError('ForeignInstalledModelPreparation');
+      const managed = earlyMockInferPlans.get(submission.preparedProgram).managed;
+      if (managed.model !== model || managed.value === undefined || model.managed !== managed) {
+        throw clientOperationError('ForeignInstalledModelPreparation');
+      }
+      // Dispatch and the original Source wrapper consume the same nominal
+      // Run, never the private JS record that retains it.
+      managedSourceRun = managed.value;
     } else if (acquisitionCount > 0 &&
         moon.clientProgramSerializationOccurrences(submission.preparedProgram).length !== 0) {
       const early = earlyContentPlans.get(submission.preparedProgram);

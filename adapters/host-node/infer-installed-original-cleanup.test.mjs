@@ -10,7 +10,7 @@ const {installNodeInferRun} = await import(process.env.ACTQL_ORIGINAL_CLEANUP_MO
 
 function fixture({startIssue, stopComplete = true, modelCleanupComplete = true,
   installation = false, readIssue, scopeIssue, waiting=false,
-  authorization='dispatch',cutIssue,afterAuthorize,scopeBindingIssue,requestModel=false,serialized=false,prefixWaiting=false,acquired=false,composed=false} = {}) {
+  authorization='dispatch',cutIssue,afterAuthorize,scopeBindingIssue,requestModel=false,serialized=false,prefixWaiting=false,acquired=false,composed=false,preparationBytes=0n,swapFinishedScope=false} = {}) {
   const calls = [], active = {}, read = {}, scope = {}, compiled = {}, consumer = {};
   const preparedProgram = {}, graph = {};
   const runDefinition = {wire: '{"run_id":"original-cleanup"}'};
@@ -176,7 +176,7 @@ function fixture({startIssue, stopComplete = true, modelCleanupComplete = true,
   }
   let sourceLive = composed;
   const composedStartIssue = new Error('OriginalBeforeComposedDriverEntry');
-  const nativeParent = {}, originalRequest = {}, sourceLedger = {}, source = {}, setup = {}, dag = {};
+  const nativeParent = {}, originalRequest = {}, sourceLedger = {}, source = {}, setup = {}, dag = {}, preparationHolder = {};
   const acquiredInfer = composed ? {ledger: sourceLedger, managedRun: nativeParent,
     captured: {capture: {source: () => source, retainTask(actual, index) {
       assert.strictEqual(actual, dag); assert.equal(index, 0); calls.push('source-borrow');
@@ -195,9 +195,13 @@ function fixture({startIssue, stopComplete = true, modelCleanupComplete = true,
     moon.strategyHostRun = actual => {assert.strictEqual(actual, setup); return dag;};
     moon.strategyHostStop = actual => {assert.strictEqual(actual, setup); calls.push('dag-stop');};
     moon.strategyHostCloseOutputs = actual => {assert.strictEqual(actual, setup); calls.push('dag-outputs');};
+    moon.clientProgramPreparationBorrowUsageIsolated = (holder, actualDag) => {
+      assert.strictEqual(holder, preparationHolder); assert.strictEqual(actualDag, dag);
+      calls.push('original-preparation-isolation'); return !sourceLive;
+    };
     moon.strategyHostUsage = actual => {
       assert.strictEqual(actual, setup); const usage = Array(13).fill(0n);
-      if (sourceLive) usage[3] = 1n; return usage;
+      if (sourceLive) usage[3] = 1n; usage[10] = preparationBytes; return usage;
     };
     control.admitComposedInferSources = (_occurrence, captures, evidence) => {
       assert.deepEqual(captures, [acquiredInfer.captured]);
@@ -227,6 +231,14 @@ function fixture({startIssue, stopComplete = true, modelCleanupComplete = true,
     serializationGraph: selected.serializationGraph,
     contentPreparation: serialized ? {managed: {}} : undefined,
     budget: {readRetainedBytes: 7n, readExecutionBytes: 5n, modelRetainedBytes: 100n, modelExecutionBytes: 5n}};
+  if (swapFinishedScope) {
+    const finish = control.finishCheckedClientInferOriginalReadScope;
+    control.finishCheckedClientInferOriginalReadScope = (...args) => {
+      const complete = finish(...args);
+      if (complete === true) requestCarrier.scope = {};
+      return complete;
+    };
+  }
   if (composed) {
     requestCarrier.managed = {value: nativeParent, request: originalRequest, closed: false};
     requestCarrier.sourceLedger = sourceLedger;
@@ -246,6 +258,7 @@ function fixture({startIssue, stopComplete = true, modelCleanupComplete = true,
       return requestCarrier;
     }});
   const input = {preparedProgram, plan, originalPreparation, acquiredContent: acquiredOriginal, acquiredInfer,
+    preparationHolder: composed ? preparationHolder : undefined,
     signal: new AbortController().signal,
     retainExecution(value) { assert.equal(custody, undefined); custody = value; },
     beginPhysicalWork() { if (composed) {calls.push('physicalBegin'); throw composedStartIssue;} if(!waiting)assert.fail('refused execution cannot begin physical work');calls.push('physicalBegin'); }};
@@ -686,4 +699,29 @@ test('Request-owned plain acquired Model reuses its prepared component and adopt
   assert.equal(f.calls.includes('readPrepare'), false);
   assert.equal(f.calls.includes('originalStart'), false);
   assert.equal(f.calls.includes('unownedStart'), false);
+});
+
+
+test('Request-owned plain acquired Model cleanup isolates only its original preparation debit after actual Source and output cleanup', async () => {
+  const f = fixture({installation: true, requestModel: true, composed: true, preparationBytes: 64n});
+  await assert.rejects(f.run(), error => error === f.composedStartIssue);
+  assert.equal(await f.custody().close(), false);
+  assert.equal(f.requestCarrier.scopeFinished, false);
+  f.releaseOriginalSource();
+  assert.equal(await f.custody().cleanup(), true);
+  assert.equal(f.requestCarrier.scopeFinished, true);
+  assert.equal(f.calls.filter(value => value === 'original-preparation-isolation').length, 1);
+  assert(f.calls.indexOf('dag-outputs') < f.calls.indexOf('original-preparation-isolation'));
+  assert.equal(f.custody().cleanupPending(), false);
+});
+
+
+test('Request Model Scope cleanup does not acknowledge a carrier changed by the original finish callback or repeat its consumed finish', async () => {
+  const f = fixture({installation: true, requestModel: true, swapFinishedScope: true});
+  await assert.rejects(f.run(), typed(f.issue));
+  await assert.rejects(f.custody().close(), /InvalidInstalledRequestModelPreparation/);
+  assert.equal(f.requestCarrier.scopeFinished, false);
+  await assert.rejects(f.custody().cleanup(), /InvalidInstalledRequestModelPreparation/);
+  assert.equal(f.calls.filter(value => value === 'scopeFinish').length, 1);
+  assert.equal(f.custody().cleanupPending(), true);
 });

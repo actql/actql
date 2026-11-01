@@ -200,9 +200,9 @@ export function createNodeHostEntry(loadRuntime, install) {
   const composition = Object.freeze({loadRuntime: load, install});
   return Object.freeze({
     recoverAdmittedEffectRun: options => recoverAdmittedRun(options, load),
-    runCapturedStrategy: (setup, options = {}, signal, observer) =>
+    runCapturedStrategy: (setup, options = {}, signal, observer, cleanup) =>
       runCapturedStrategyTarget({setup, options, composition,
-        control: {signal, observer}, results: {publishCheckedResults: true}}),
+        control: {signal, observer}, results: {publishCheckedResults: true}, cleanup}),
     runCapturedInternalStrategy: (setup, options = {}, signal, observer) =>
       runCapturedStrategyTarget({setup, options, composition,
         control: {signal, observer}, results: {publishCheckedResults: false}}),

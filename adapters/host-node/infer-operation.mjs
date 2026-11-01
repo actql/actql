@@ -1129,7 +1129,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
 export function openNodeComposedInferProvider({moon, selected, sources,
   control, plan, principalId, now, signal, retainOperation, retainCompleted,
   durableCalls = false, restoredInput, generatedInput, originalPreparation, deferred = false,
-  inputPrefix = selected?.computePrefix, bindComputeSuffix}) {
+  inputPrefix = selected?.computePrefix, bindComputeSuffix, assertRuntimeCurrent}) {
   if (selected?.occurrence === undefined ||
       typeof deferred !== 'boolean' || !deferred && typeof retainOperation !== 'function' ||
       deferred && (generatedInput !== undefined || originalPreparation !== undefined || retainOperation !== undefined)) {
@@ -1199,7 +1199,7 @@ export function openNodeComposedInferProvider({moon, selected, sources,
           quantityCapacity: selected.quantityCapacity,
           physicalPreflight: selected.physicalPreflight,
           egressAdmission: selected.egressAdmission, signal, durableCalls, restoredInput,
-          originalPreparation: preparation, bindComputeSuffix,
+          originalPreparation: preparation, bindComputeSuffix, assertRuntimeCurrent,
           retainOperation(value) { operation = value; retainOperation(value); }});
         operation.bindRun(control, plan);
         if (!durableCalls) operation.bindDispatch(control, {...plan, account: selected.account,
@@ -1228,7 +1228,7 @@ export function openNodeComposedInferProvider({moon, selected, sources,
       operation.cleanupPending() === false,
     ...(generatedInput === undefined ? [computePrefix] : []));
   const component = Object.freeze({provider, operation: () => operation,
-    failure: () => failure,
+    failure: () => failure, hasFailure: () => failureRecorded,
     ...(deferred ? {bindOriginal(context) {
       if (bound || attempted) throw new Error('ComposedInferAlreadyBound');
       const read = name => Object.getOwnPropertyDescriptor(context ?? {}, name)?.value;
@@ -1243,6 +1243,10 @@ export function openNodeComposedInferProvider({moon, selected, sources,
       principalId = read('principalId'); now = read('now'); signal = read('signal');
       retainOperation = read('retainOperation'); retainCompleted = read('retainCompleted');
       durableCalls = read('durableCalls') === true; restoredInput = read('restoredInput');
+      assertRuntimeCurrent = read('assertRuntimeCurrent');
+      if (assertRuntimeCurrent !== undefined && typeof assertRuntimeCurrent !== 'function') {
+        throw new TypeError('InferTrustedRuntimeScopeUnavailable');
+      }
       originalPreparation = preparation; prepareRead = prepare; deferredRead = prepare !== undefined;
       bound = true;
       return component;

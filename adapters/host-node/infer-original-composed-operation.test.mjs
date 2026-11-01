@@ -355,3 +355,26 @@ test('installed Node composed layout refusal preserves the original cause and ne
   assert.equal(f.calls.length, 1);
   assert.equal(originalReadCleaned(f.originalPreparation.read), false);
 });
+
+
+test('Request composed suffix binder receives the same active only after original operation custody and retains typed failure', async () => {
+  const f = originalNodeComposedFixture(), cause = Object.freeze({issue: 'OriginalSuffixBindingRefused'});
+  let open, retained, binds = 0;
+  f.moon.clientProgramComposedInferLocalProvider = (_occurrence, actualOpen) => {open = actualOpen; return {};};
+  const component = openNodeComposedInferProvider({moon: f.moon,
+    selected: {occurrence: f.occurrence, graph: f.graph, provider: f.provider},
+    sources: f.sources, control: f.originalPreparation.control,
+    originalPreparation: f.originalPreparation,
+    retainOperation(value) {retained = value;},
+    bindComputeSuffix(active) {
+      assert.strictEqual(active, f.active); assert(retained); binds++;
+      return {$tag: 0, _0: cause};
+    }});
+  assert.strictEqual(open(f.inputs), undefined);
+  assert.equal(binds, 1); assert.strictEqual(component.operation(), retained);
+  assert.strictEqual(component.failure().cause, cause);
+  assert.strictEqual(component.failure().cleanupOwner, retained);
+  assert.equal(originalReadCleaned(f.originalPreparation.read), false);
+  await retained.close();
+  assert.equal(originalReadCleaned(f.originalPreparation.read), true);
+});

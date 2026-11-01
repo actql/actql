@@ -38,7 +38,14 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
     throw new Error('InstalledComposedInferInputUnavailable');
   }
   const children = selected.components.map(selection => ({selection}));
-  let execution, pendingSetup, issuance, publication, holding, sourceContinuation, restoredSource;
+  const installedCaptured = originalPreparation !== undefined &&
+    typeof originalPreparation.openCapturedHost === 'function';
+  if (installedCaptured && (children.length !== 1 ||
+      originalPreparation.selection !== children[0].selection ||
+      typeof originalPreparation.component?.bindOriginal !== 'function')) {
+    throw new TypeError('InvalidInstalledRequestModelPreparation');
+  }
+  let execution, pendingSetup, issuance, publication, holding, sourceContinuation, restoredSource, preflightCleanup;
   let issuanceComplete = false, closeAttempted = false, released = false;
   function retainCompleted(child) {
     if (!child.capture.retainCompleted()) return false;
@@ -63,6 +70,11 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
   }
   async function cleanup() {
     if (released) return true;
+    if (preflightCleanup !== undefined) {
+      if (preflightCleanup.status()?.pending === true) await preflightCleanup.retry();
+      if (preflightCleanup.status()?.pending !== false) return false;
+      preflightCleanup = undefined;
+    }
     // Installation can fail before the asynchronous driver returns an owner.
     // Retain that exact setup until its stopped outputs and reservations close.
     if (pendingSetup !== undefined) {
@@ -137,7 +149,11 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
     if (sourceContinuation !== undefined) {await sourceContinuation.close(); sourceContinuation = undefined;}
     if (originalPreparation !== undefined && await originalPreparation.retire() !== true) return false;
     if (pendingSetup !== undefined) {
-      if (ledgerUsageHasPendingResources(moon.strategyHostUsage(pendingSetup))) return false;
+      if (ledgerUsageHasPendingResources(moon.strategyHostUsage(pendingSetup)) &&
+          !(originalPreparation?.preparationHolder !== undefined &&
+            typeof moon.clientProgramPreparationBorrowUsageIsolated === 'function' &&
+            moon.clientProgramPreparationBorrowUsageIsolated(originalPreparation.preparationHolder,
+              moon.strategyHostRun(pendingSetup)) === true)) return false;
       pendingSetup = undefined;
     }
     released = true;
@@ -225,16 +241,22 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
     const sources = child.restoredInput === undefined && !sourceFree ? control.admitComposedInferSources(
       child.selection.occurrence, captures, sourceEvidence, authorityScopeCid,
       captureStartedAt, captureCompletedAt) : undefined;
-    child.component = openNodeComposedInferProvider({moon, selected: child.selection, sources,
+    const context = {moon, selected: child.selection, sources,
       control, plan, principalId, now, signal, durableCalls: true, restoredInput: child.restoredInput,
-      originalPreparation,
+      originalPreparation, assertRuntimeCurrent: originalPreparation?.assertRuntimeCurrent,
       retainOperation(operation) {
         child.operation = operation;
+        originalPreparation?.retainOperation?.(operation);
         child.capture = openNodeInferCaptureCustody({moon, control, operation, plan, store,
           storeAuthorityCid, sourceEvidence, faultInjection, durableCalls: true, captureOnly: true});
-      }, retainCompleted: () => retainCompleted(child)});
+      }, retainCompleted: () => retainCompleted(child)};
+    if (installedCaptured) {
+      child.component = originalPreparation.component;
+      child.component.bindOriginal(context);
+    } else child.component = openNodeComposedInferProvider(context);
   }
-  const setup = sourceFree ? originalPreparation.openSourceFreeHost(registry, values, fragment, ordered,
+  const setup = installedCaptured ? originalPreparation.openCapturedHost(captures)
+    : sourceFree ? originalPreparation.openSourceFreeHost(registry, values, fragment, ordered,
     children.map(child => child.component.provider)) : multiple ? moon.clientProgramOpenMultiCapturedComposedInferHost(preparedProgram,
     captures.map(value => value.capture.source()), input.ledger, registry, values, fragment, ordered,
     children.map(child => child.component.provider)) : moon.clientProgramOpenCapturedComposedInferHost(preparedProgram,
@@ -242,7 +264,7 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
     children.map(child => child.component.provider));
   if (setup === undefined) throw new Error('InstalledComposedInferHostUnavailable');
   pendingSetup = setup;
-  if (multiple) {
+  if (multiple || installedCaptured) {
     const dag = moon.strategyHostRun(setup);
     for (const [task, original] of captures.entries()) original.capture.retainTask(dag, task);
   }
@@ -287,7 +309,22 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
     return {action: 'waiting_checkpoint', checkpoint: decision.checkpoint};
   });
   beginPhysicalWork();
-  execution = await runCapturedStrategy(setup, {...computeConfigurations, local}, signal);
+  execution = await runCapturedStrategy(setup, {...computeConfigurations, local}, signal, undefined,
+    installedCaptured ? {preparationHolder: originalPreparation.preparationHolder,
+      retainPreflightCleanup(owner) {
+        if (preflightCleanup !== undefined || pendingSetup !== setup) {
+          throw new TypeError('InstalledComposedInferPreflightCleanupUnavailable');
+        }
+        // Keep even a malformed original partial carrier before reporting a
+        // protocol failure. That is pending custody, never a cleanup ACK.
+        preflightCleanup = owner;
+        if (typeof owner?.status !== 'function' || typeof owner?.retry !== 'function') {
+          throw new TypeError('InstalledComposedInferPreflightCleanupUnavailable');
+        }
+        // Existing entry supplies this exact refused setup/partial Site owner
+        // before stopping it. Transfer the slot, never wrap or replace it.
+        pendingSetup = undefined;
+      }} : undefined);
   pendingSetup = undefined;
   if (execution.status === 'host-tasks-waiting') {
     return Object.freeze({status: 'waiting_checkpoint', checkpoint: execution.checkpoint});
@@ -307,8 +344,11 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
       }
       return Object.freeze({status: 'needs_reconciliation'});
     }
-    throw children.find(child => child.component.failure() !== undefined)?.component.failure() ??
-      execution.failure ?? new Error('InstalledComposedInferComputationFailed');
+    const failed = children.find(child => child.component.hasFailure?.() === true ||
+      child.component.failure() !== undefined);
+    if (failed !== undefined) throw failed.component.failure();
+    if (Object.hasOwn(execution, 'failure')) throw execution.failure;
+    throw new Error('InstalledComposedInferComputationFailed');
   }
   for (const child of children) await child.capture.persist();
   const calls = children.reduce((sum, child) => sum + child.capture.evaluationBundle().count, 0);

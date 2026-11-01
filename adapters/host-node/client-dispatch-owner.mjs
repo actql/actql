@@ -722,9 +722,11 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         if (ledger === undefined) throw new Error('InstalledMultiSourceLedgerUnavailable');
         entry.acquisitionLedger = ledger;
       }
-      if (generatingContent && acquiring && keyedSelection === undefined) {
+      const requestModelAcquired = inferring && !generatingContent && acquiring && !multiple &&
+        keyedSelection === undefined && held.managedRun !== undefined;
+      if ((generatingContent || requestModelAcquired) && acquiring && keyedSelection === undefined) {
         if (multiple ||
-            typeof runContent.prepareAcquiredLedger !== 'function' ||
+            typeof (requestModelAcquired ? runInfer : runContent).prepareAcquiredLedger !== 'function' ||
             typeof installedSource?.ledgerCapacity !== 'function') {
           throw new Error('InstalledContentAcquiredDispatchUnavailable');
         }
@@ -734,7 +736,12 @@ export function installNodeClientDispatchOwner({moon, control, journal,
           held.preparedSource = await prepareAcquisition(preparedProgram, access);
           held.preparedSourceAccess = access;
         }
-        ledger = runContent.prepareAcquiredLedger({preparedProgram, plan: held.plan,
+        if (requestModelAcquired) {
+          retainDispatchPreparationHost(entry, moon, held.managedRun, preparedProgram, requested, preparationLease !== undefined);
+          ledger = runInfer.prepareAcquiredLedger({preparedProgram, plan: held.plan,
+            sourceCapacity: installedSource.ledgerCapacity(held.preparedSource)});
+          entry.borrowedSources = true;
+        } else ledger = runContent.prepareAcquiredLedger({preparedProgram, plan: held.plan,
           sourceCapacity: installedSource.ledgerCapacity(held.preparedSource)});
         entry.acquisitionLedger = ledger;
       }
@@ -958,8 +965,8 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         }
         const {captureStartedAt, captureCompletedAt, sourceEvidence, sourceEvidenceWire} =
           await acquireSource(entry, preparedProgram, held.preparedSource, sourceAccess,
-            {captureOnly: generatingContent, originalEvidence: singleAccounted || inferring && !generatingContent,
-              ledger: generatingContent || singleAccounted ? ledger : undefined});
+            {captureOnly: generatingContent || requestModelAcquired, originalEvidence: singleAccounted || inferring && !generatingContent,
+              ledger: generatingContent || singleAccounted || requestModelAcquired ? ledger : undefined});
         if (generatingContent) {
           acquiredContent = {captured: entry.sourceCapture, ledger, sourceEvidenceWire,
             authorityScopeCid, captureStartedAt, captureCompletedAt,
@@ -967,10 +974,11 @@ export function installNodeClientDispatchOwner({moon, control, journal,
               {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 100})};
         } else if (inferring) {
           const captured = entry.sourceCapture;
-          const input = captured.composedInfer ? undefined : control.admitInferCapturedInput(
+          const input = requestModelAcquired || captured.composedInfer ? undefined : control.admitInferCapturedInput(
             preparedProgram, captured, sourceEvidence, authorityScopeCid,
             captured.checkedSource.sourceDataPolicyCid, captureStartedAt, captureCompletedAt);
           acquiredInfer = {input, captured, preparedSource: held.preparedSource, sourceAccess,
+            ...(requestModelAcquired ? {ledger, managedRun: held.managedRun} : {}),
             sourceEvidenceWire: sourceEvidence.wire, captureStartedAt, captureCompletedAt, sourceEvidence};
         } else {
           held.plan = acquiredTaskPublicationPlan({moon, control,
@@ -1035,6 +1043,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       }
       if (inferring) {
         const result = await runInfer({preparedProgram, plan: held.plan, store,
+          preparationHolder: entry.preparationHostBorrow,
           acquiredInfer, acquiredContent,
           ...(acquiredInfer?.sources === undefined ? {} : {
             originalPreparation: sourceProfile.modelPreparation(preparedProgram, held.plan)}),
