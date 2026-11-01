@@ -4525,6 +4525,15 @@ async function openInstalledHost(originalInstallation, preparation) {
   const submissionService = installNodeClientSubmission({journal, moon,
     authorizedScope: value => hostConnection(value) ? authorizedScope(value) : undefined,
     prepareSubmit, submit, lookupRequest: lookupHeld, checkSubmissionInput: check,
+    observeOriginalPreparationFailure: preparation === undefined ? undefined : async (failure, value) => {
+      if (!hostConnection(value)) throw clientOperationError('ClientConnectionDenied');
+      const outcome = await checkSource.projectOriginal({principalId: value.principalId,
+        connection: value.connection, kind: value.kind === 'program' ? 'program' : 'text',
+        scope: 'bound_input', input: value.input, parameters: value.parameters, signal: value.signal},
+      metadata => preparation.projectOriginalCheckOutcome(value, failure, metadata));
+      if (!hostConnection(value)) throw clientOperationError('ClientConnectionDenied');
+      return outcome;
+    },
     bindOwnedRequest,
     preparationCustody: localPreparationCustody,
     submittedIntentOriginal: value => preparation?.submittedIntentOriginal?.(value),
@@ -6057,6 +6066,14 @@ async function openPreparedInstalledHost(options, initialEntry) {
         : assertSourceManagedInstallationCurrent)(manager, originals);
       return manager.fundedPreparation(originalSourceManagedHostRequest(originals, request), environment,
         originalVerifier, signal);
+    },
+    projectOriginalCheckOutcome(request, failure, metadata) {
+      const manager = sourceManaged ?? computeManaged;
+      if (manager === undefined) return undefined;
+      (sourceManaged === undefined ? assertManagedComputeInstallationCurrent
+        : assertSourceManagedInstallationCurrent)(manager, originals);
+      return manager.projectOriginalCheckOutcome?.(
+        originalSourceManagedHostRequest(originals, request), failure, metadata);
     },
     borrowManagedPreparation(prepared, request) {
       const manager = sourceManaged ?? computeManaged;

@@ -208,6 +208,7 @@ export function cleanupRequestInput(state, retireInitialPreparation) {
   if(state.original!==undefined && !resources.ordinaryManagedRunStatus(state.original).stopped) invalid();
   state.original=state.prepared=state.snapshot=state.snapshotDocument=undefined;
   state.parametersCursor=state.compilationKind=state.preparationFailure=undefined;
+  state.originalCheckResult=state.projectOriginalCheck=undefined;
   state.compilationFamily=undefined;
   state.modelCompilation=state.modelGraph=state.modelPlan=state.modelProviderBinding=state.contentPlan=state.contentCompilation=state.contentGraph=undefined;
   state.capturePlan=state.acquisitionCount=undefined;

@@ -8236,7 +8236,22 @@
           "async": false
         },
         {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/submissionService/submissionService/outcome/outcome",
+          "parameters": [
+            "metadata"
+          ],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/submissionService/submissionService#2",
+          "parameters": [
+            "failure",
+            "value"
+          ],
+          "async": true
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/submissionService/submissionService#3",
           "parameters": [
             "value"
           ],
@@ -9569,6 +9584,15 @@
             "rootCreation"
           ],
           "async": true
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:projectOriginalCheckOutcome/init:projectOriginalCheckOutcome",
+          "parameters": [
+            "request",
+            "failure",
+            "metadata"
+          ],
+          "async": false
         },
         {
           "name": "openPreparedInstalledHost/preparation/init:publicationOwnership/init:publicationOwnership",
@@ -11427,7 +11451,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/initial-control-environment-source.test.mjs",
@@ -15109,7 +15133,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               }
             ]
           }
@@ -18196,7 +18220,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/initial-control-environment-source.test.mjs",
@@ -18360,6 +18384,80 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/submissionService/submissionService/outcome/outcome",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/submissionService/submissionService#3",
+            "openPreparedInstalledHost/preparation/init:projectOriginalCheckOutcome/init:projectOriginalCheckOutcome"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Node caller and transient disclosure"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Node caller and transient disclosure"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Node caller and transient disclosure"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Node caller and transient disclosure"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Node caller and transient disclosure"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Node caller and transient disclosure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Node caller and transient disclosure"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Node caller and transient disclosure"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Node caller and transient disclosure"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Node caller and transient disclosure"
+              },
+              {
+                "path": "adapters/host-node/client-submission.test.mjs",
+                "anchor": "original Request observation is transient initial metadata"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -18476,12 +18574,12 @@
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "f42d463d195794093f7fd2425915009e4228b9d981c7fb714318702dcb87cdc0"
+      "sha256": "04bf857bfcc27c497b7ab0c4b7267d6324617beaaf5397da1ef18ca3331d4683"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
       "role": "physical-io",
-      "owner": "A — existing Host preparation input boundary",
+      "owner": "A \u2014 existing Host preparation input boundary",
       "responsibilityFacet": "primary",
       "contracts": [
         {
@@ -20268,7 +20366,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -20566,7 +20664,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               }
             ]
           }
@@ -21087,7 +21185,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
