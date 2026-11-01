@@ -1,5 +1,6 @@
 """Actual pre-SQL file custody; not Host adoption or public Local acceptance."""
 import copy
+import json
 import os
 from pathlib import Path
 import sqlite3
@@ -8,7 +9,7 @@ import unittest
 from unittest.mock import patch
 
 from actql_sdk._local_files import LocalFileRoot, LocalFileError
-from actql_sdk._local_storage import LocalByteStore, LocalStorageError
+from actql_sdk._local_storage import ByteWrite, LocalByteStore, LocalStorageError
 from actql_sdk._local_submission import LocalSubmissionAuthority, LocalSubmissionIdentityError
 
 
@@ -28,6 +29,89 @@ class LocalOwnedStoreInitializationTests(unittest.TestCase):
             max_records=8, max_record_bytes=4096, max_payload_bytes=32768)
         self.addCleanup(store.close)
         return store
+
+    def test_owned_journal_format_keeps_unique_definition_in_original_transaction(self):
+        path, root, original = self.fixture()
+        store = self.open(path / original.name, root, original)
+        self.assertEqual(store._connection.execute('PRAGMA user_version').fetchone(), (3,))
+        expected = ("CREATE UNIQUE INDEX actql_client_run_definition_unique ON core_bytes("
+                    "json_extract(json_extract(CAST(payload AS TEXT),'$.run_definition'),"
+                    "'$.run_definition_cid')) WHERE key>='namespace:11:client_runs:' "
+                    "AND key<'namespace:11:client_runs;'")
+        self.assertEqual(store._connection.execute(
+            "SELECT sql FROM sqlite_schema WHERE name='actql_client_run_definition_unique'").fetchone(),
+            (expected,))
+        # Physical index vectors only: these are not admitted Run originals.
+        body = json.dumps({'run_definition': json.dumps({'run_definition_cid': 'sha256:' + 'a' * 64})}).encode()
+        first = store.namespaced_key('client_runs', 'first')
+        second = store.namespaced_key('client_runs', 'second')
+        self.assertEqual(store.compare_exchange(first, None, body), 0)
+        with self.assertRaises(sqlite3.IntegrityError):
+            store.compare_exchange_many((ByteWrite('original-counter', None, b'1'),
+                                         ByteWrite(second, None, body)))
+        self.assertIsNone(store.read(second))
+        self.assertIsNone(store.read('original-counter'))
+        self.assertEqual(store.read(first).payload, body)
+
+    def test_owned_journal_schema_observation_is_fresh_and_needs_same_transaction(self):
+        path, root, original = self.fixture()
+        store = self.open(path / original.name, root, original)
+        database = store._physical
+        with self.assertRaises(ValueError):
+            database._journal_schema()
+        database.begin_read()
+        try:
+            self.assertEqual(database._journal_schema(), 1)
+            store._connection.execute('DROP INDEX actql_client_run_definition_unique')
+            with self.assertRaises(ValueError):
+                database._journal_schema()
+        finally:
+            database.finish_read()
+        database.begin_read()
+        try:
+            self.assertEqual(database._journal_schema(), 1)
+        finally:
+            database.finish_read()
+
+    def test_owned_journal_reopen_refuses_missing_or_colliding_index_without_repair(self):
+        for colliding in (False, True):
+            with self.subTest(colliding=colliding):
+                path, root, original = self.fixture()
+                filename = path / original.name
+                store = self.open(filename, root, original)
+                store.close()
+                with sqlite3.connect(filename) as physical:
+                    physical.execute('DROP INDEX actql_client_run_definition_unique')
+                    if colliding:
+                        physical.execute('CREATE UNIQUE INDEX actql_client_run_definition_unique ON core_bytes(key)')
+                    before = physical.execute('SELECT name, sql FROM sqlite_schema ORDER BY name').fetchall()
+                with self.assertRaisesRegex(LocalStorageError, 'physical storage format'):
+                    LocalByteStore(filename, max_records=8, max_record_bytes=4096,
+                                   max_payload_bytes=32768)
+                with sqlite3.connect(filename) as physical:
+                    self.assertEqual(physical.execute('PRAGMA user_version').fetchone(), (3,))
+                    self.assertEqual(physical.execute('SELECT name, sql FROM sqlite_schema ORDER BY name').fetchall(), before)
+
+    def test_raw_legacy_store_stays_format_two_and_is_never_migrated_on_observation(self):
+        with TemporaryDirectory(prefix='actql-legacy-journal-format-') as directory:
+            filename = Path(directory) / 'legacy.sqlite3'
+            store = LocalByteStore(filename, max_records=8, max_record_bytes=4096,
+                                   max_payload_bytes=32768)
+            self.addCleanup(store.close)
+            database = store._physical
+            database.begin_read()
+            try:
+                self.assertEqual(database._journal_schema(), 0)
+            finally:
+                database.finish_read()
+            self.assertEqual(store._connection.execute('PRAGMA user_version').fetchone(), (2,))
+            self.assertIsNone(store._connection.execute(
+                "SELECT sql FROM sqlite_schema WHERE name='actql_client_run_definition_unique'").fetchone())
+            store.close()
+            reopened = LocalByteStore(filename, max_records=8, max_record_bytes=4096,
+                                      max_payload_bytes=32768)
+            self.addCleanup(reopened.close)
+            self.assertEqual(reopened._connection.execute('PRAGMA user_version').fetchone(), (2,))
 
     def test_original_file_generation_is_bound_before_sql_and_claimed_once(self):
         path, root, value = self.fixture()
