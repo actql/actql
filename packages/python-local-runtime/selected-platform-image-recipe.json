@@ -28,7 +28,7 @@
       "max_core_instance_size": 1048576,
       "total_tables": 1,
       "max_tables_per_module": 1,
-      "table_elements": 1915,
+      "table_elements": 1917,
       "total_gc_heaps": 0,
       "total_component_instances": 0,
       "total_stacks": 0
