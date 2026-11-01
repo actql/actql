@@ -43529,7 +43529,7 @@
     {
       "module": "adapters/host-node/entry.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "78dc2438ff88c83d05a439ab1e0ed939327bc1cdbb4f828ab38c39b7e4154732",
+      "sha256": "30a9b3cbb5b562353695a31befb42b32d2f230cf741d79e25c90957bd074cc04",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
@@ -43583,7 +43583,8 @@
             "setup",
             "options",
             "signal",
-            "observer"
+            "observer",
+            "cleanup"
           ],
           "async": false
         },
@@ -43779,6 +43780,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "inputsOutputs": [
@@ -43793,6 +43798,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Program and stage execution"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "identity": [
@@ -43807,6 +43816,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "ownership": [
@@ -43825,6 +43838,10 @@
               {
                 "path": "adapters/host-node/client-values-fragment-capacity.test.mjs",
                 "anchor": "test('execution failure wrapper retains the exact first failure and cleanup handle'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "synchronization": [
@@ -43839,6 +43856,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "failure": [
@@ -43857,6 +43878,10 @@
               {
                 "path": "adapters/host-node/client-values-fragment-capacity.test.mjs",
                 "anchor": "test('execution failure wrapper retains the exact first failure and cleanup handle'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "cancellation": [
@@ -43871,6 +43896,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Program and stage execution"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "resources": [
@@ -43885,6 +43914,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "# Connector ownership and repository layout"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "extension": [
@@ -43899,6 +43932,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Program and stage execution"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "verification": [
@@ -43917,6 +43954,14 @@
               {
                 "path": "adapters/host-node/client-values-fragment-capacity.test.mjs",
                 "anchor": "test('execution failure wrapper retains the exact first failure and cleanup handle'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "adapters/host-node/infer-installed-original-cleanup.test.mjs",
+                "anchor": "Request-owned plain acquired Model"
               }
             ]
           }

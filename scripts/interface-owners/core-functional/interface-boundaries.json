@@ -13087,7 +13087,7 @@
     },
     {
       "module": "adapters/host-node/infer-operation.mjs",
-      "sha256": "9c1950ffab36e8fb4f898e6f503fc65b5928aa3f0d3e805890c3489a5ac2796e",
+      "sha256": "f0be5bc07e4e3c161a7bb09fab976f4df9856d8e7f75ac4d21fabab0fdd924a8",
       "role": "physical-io",
       "exports": [
         "inferOriginalReadCleanupComplete",
@@ -13154,7 +13154,9 @@
             "generatedInput",
             "originalPreparation",
             "deferred",
-            "inputPrefix"
+            "inputPrefix",
+            "bindComputeSuffix",
+            "assertRuntimeCurrent"
           ],
           "async": false
         },
@@ -13165,6 +13167,11 @@
         },
         {
           "name": "openNodeComposedInferProvider/component/component#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openNodeComposedInferProvider/component/component#3",
           "parameters": [],
           "async": false
         },
@@ -13261,7 +13268,8 @@
             "rawCaptureBinder",
             "serializedInput",
             "restoredReferenceIssuer",
-            "assertRuntimeCurrent"
+            "assertRuntimeCurrent",
+            "bindComputeSuffix"
           ],
           "async": false
         },
@@ -14148,13 +14156,14 @@
             "openNodeComposedInferProvider",
             "openNodeComposedInferProvider/component/component",
             "openNodeComposedInferProvider/component/component#2",
+            "openNodeComposedInferProvider/component/component#3",
             "openNodeComposedInferProvider/component/init:bindOriginal/init:bindOriginal",
             "openNodeComposedInferProvider/component/init:bindOriginal/init:bindOriginal/read/read",
             "openNodeComposedInferProvider/provider/provider",
+            "openNodeComposedInferProvider/provider/provider/init:retainOperation/init:retainOperation",
             "openNodeComposedInferProvider/provider/provider#2",
             "openNodeComposedInferProvider/provider/provider#3",
             "openNodeComposedInferProvider/provider/provider#4",
-            "openNodeComposedInferProvider/provider/provider/init:retainOperation/init:retainOperation",
             "openNodeComposedInferProvider/recordFailure/recordFailure",
             "openNodeInferOperation",
             "openNodeInferOperation/bindOriginalRuntimeObservation",
@@ -14165,12 +14174,12 @@
             "openNodeInferOperation/drive",
             "openNodeInferOperation/observeOriginalRuntime",
             "openNodeInferOperation/openNodeInferOperation",
+            "openNodeInferOperation/openNodeInferOperation/openNodeInferOperation",
             "openNodeInferOperation/openNodeInferOperation#2",
             "openNodeInferOperation/openNodeInferOperation#3",
             "openNodeInferOperation/openNodeInferOperation#4",
             "openNodeInferOperation/openNodeInferOperation#5",
             "openNodeInferOperation/openNodeInferOperation#6",
-            "openNodeInferOperation/openNodeInferOperation/openNodeInferOperation",
             "openNodeInferOperation/operation/init:advanceOriginalCurrentStateComparison/init:advanceOriginalCurrentStateComparison",
             "openNodeInferOperation/operation/init:advanceOriginalCurrentStateComparisonWithMatch/init:advanceOriginalCurrentStateComparisonWithMatch",
             "openNodeInferOperation/operation/init:advanceOriginalCurrentStateDecode/init:advanceOriginalCurrentStateDecode",
@@ -14201,6 +14210,12 @@
             "openNodeInferOperation/operation/init:startOriginalCurrentStateComparison/init:startOriginalCurrentStateComparison",
             "openNodeInferOperation/operation/init:startOriginalCurrentStateDecode/init:startOriginalCurrentStateDecode",
             "openNodeInferOperation/operation/operation",
+            "openNodeInferOperation/operation/operation/operation",
+            "openNodeInferOperation/operation/operation/operation#2",
+            "openNodeInferOperation/operation/operation/operation#3",
+            "openNodeInferOperation/operation/operation/operation#4",
+            "openNodeInferOperation/operation/operation/saved/saved",
+            "openNodeInferOperation/operation/operation/slotWires/slotWires",
             "openNodeInferOperation/operation/operation#10",
             "openNodeInferOperation/operation/operation#11",
             "openNodeInferOperation/operation/operation#12",
@@ -14249,12 +14264,6 @@
             "openNodeInferOperation/operation/operation#7",
             "openNodeInferOperation/operation/operation#8",
             "openNodeInferOperation/operation/operation#9",
-            "openNodeInferOperation/operation/operation/operation",
-            "openNodeInferOperation/operation/operation/operation#2",
-            "openNodeInferOperation/operation/operation/operation#3",
-            "openNodeInferOperation/operation/operation/operation#4",
-            "openNodeInferOperation/operation/operation/saved/saved",
-            "openNodeInferOperation/operation/operation/slotWires/slotWires",
             "openNodeInferOperation/prepare/prepare",
             "openNodeInferOperation/requestStop/requestStop",
             "openNodeInferOperation/retainRawCaptureBinder/retainRawCaptureBinder",
@@ -14306,6 +14315,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Installed layout consumer for composed Model input"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "inputsOutputs": [
@@ -14324,6 +14337,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Installed layout consumer for composed Model input"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "identity": [
@@ -14342,6 +14359,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Installed layout consumer for composed Model input"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "ownership": [
@@ -14360,6 +14381,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Installed layout consumer for composed Model input"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "synchronization": [
@@ -14374,6 +14399,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Installed layout consumer for composed Model input"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "failure": [
@@ -14388,6 +14417,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Installed layout consumer for composed Model input"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "cancellation": [
@@ -14402,6 +14435,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Installed layout consumer for composed Model input"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "resources": [
@@ -14420,6 +14457,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Installed layout consumer for composed Model input"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "extension": [
@@ -14434,6 +14475,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Installed layout consumer for composed Model input"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "verification": [
@@ -14460,6 +14505,14 @@
               {
                 "path": "adapters/host-node/composed-infer-provider.test.mjs",
                 "anchor": "Request component constructor forwards"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "adapters/host-node/infer-installed-original-cleanup.test.mjs",
+                "anchor": "Request-owned plain acquired Model"
               }
             ]
           }
@@ -14474,6 +14527,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Ordinary Host composition"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "inputsOutputs": [
@@ -14484,12 +14541,20 @@
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function prepareManagedMockModelRun("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "identity": [
               {
                 "path": "src/client_local_host/preparation_request_model_body.mbt",
                 "anchor": "pub fn[I] prepare_request_model_read_scope("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "ownership": [
@@ -14500,12 +14565,20 @@
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function retireModelRead(model) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "failure": [
@@ -14516,12 +14589,20 @@
               {
                 "path": "adapters/host-node/mock-model-early-run-custody.test.mjs",
                 "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function retireModelRead(model) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "resources": [
@@ -14532,12 +14613,20 @@
               {
                 "path": "src/client_local_host/preparation_request_model_body.mbt",
                 "anchor": "pub fn[I] prepare_request_model_read_scope("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Ordinary Host composition"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "verification": [
@@ -14552,6 +14641,14 @@
               {
                 "path": "adapters/host-node/ordinary-project-source-managed.test.mjs",
                 "anchor": "test('Project Source distinguishes same-declaration occurrences and preserves pending child custody'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "adapters/host-node/infer-installed-original-cleanup.test.mjs",
+                "anchor": "Request-owned plain acquired Model"
               }
             ]
           }
@@ -14814,7 +14911,7 @@
     },
     {
       "module": "adapters/host-node/installed-composed-infer-run.mjs",
-      "sha256": "8553aadb109cca8383e4e0ae12a4cb266a553bb2d0ac2463085766e444f5c18e",
+      "sha256": "9ea5b8d1a237317547b1c3f95a074b8020c078c6999e50572dda40f1688dd882",
       "role": "physical-io",
       "exports": [
         "runInstalledComposedInfers"
@@ -14893,10 +14990,29 @@
           "async": true
         },
         {
+          "name": "runInstalledComposedInfers/context/context",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "runInstalledComposedInfers/context/init:retainOperation/init:retainOperation",
+          "parameters": [
+            "operation"
+          ],
+          "async": false
+        },
+        {
           "name": "runInstalledComposedInfers/declaredResults/declaredResults",
           "parameters": [
             "_",
             "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "runInstalledComposedInfers/failed/failed",
+          "parameters": [
+            "child"
           ],
           "async": false
         },
@@ -14922,9 +15038,9 @@
           "async": false
         },
         {
-          "name": "runInstalledComposedInfers/init:retainOperation/init:retainOperation",
+          "name": "runInstalledComposedInfers/init:retainPreflightCleanup/init:retainPreflightCleanup",
           "parameters": [
-            "operation"
+            "owner"
           ],
           "async": false
         },
@@ -14969,13 +15085,6 @@
           "async": false
         },
         {
-          "name": "runInstalledComposedInfers/runInstalledComposedInfers#10",
-          "parameters": [
-            "child"
-          ],
-          "async": false
-        },
-        {
           "name": "runInstalledComposedInfers/runInstalledComposedInfers#2",
           "parameters": [
             "record"
@@ -15006,18 +15115,13 @@
         },
         {
           "name": "runInstalledComposedInfers/runInstalledComposedInfers#7",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "runInstalledComposedInfers/runInstalledComposedInfers#8",
           "parameters": [
             "child"
           ],
           "async": false
         },
         {
-          "name": "runInstalledComposedInfers/runInstalledComposedInfers#9",
+          "name": "runInstalledComposedInfers/runInstalledComposedInfers#8",
           "parameters": [
             "child"
           ],
@@ -15062,11 +15166,14 @@
             "runInstalledComposedInfers/candidates/candidates",
             "runInstalledComposedInfers/children/children",
             "runInstalledComposedInfers/cleanup",
+            "runInstalledComposedInfers/context/context",
+            "runInstalledComposedInfers/context/init:retainOperation/init:retainOperation",
             "runInstalledComposedInfers/declaredResults/declaredResults",
+            "runInstalledComposedInfers/failed/failed",
             "runInstalledComposedInfers/historical/historical",
             "runInstalledComposedInfers/init:retainCopy/init:retainCopy",
             "runInstalledComposedInfers/init:retainCopy/init:retainCopy#2",
-            "runInstalledComposedInfers/init:retainOperation/init:retainOperation",
+            "runInstalledComposedInfers/init:retainPreflightCleanup/init:retainPreflightCleanup",
             "runInstalledComposedInfers/local/local",
             "runInstalledComposedInfers/local/local/child/child",
             "runInstalledComposedInfers/local/local/init:retainEvidenceCopy/init:retainEvidenceCopy",
@@ -15077,8 +15184,6 @@
             "runInstalledComposedInfers/runInstalledComposedInfers#5",
             "runInstalledComposedInfers/runInstalledComposedInfers#6",
             "runInstalledComposedInfers/runInstalledComposedInfers#7",
-            "runInstalledComposedInfers/runInstalledComposedInfers#8",
-            "runInstalledComposedInfers/runInstalledComposedInfers#9",
             "runInstalledComposedInfers/setup/setup"
           ],
           "exports": [
@@ -15097,6 +15202,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "inputsOutputs": [
@@ -15111,6 +15220,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### INFER original captured evidence"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "identity": [
@@ -15121,6 +15234,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "ownership": [
@@ -15131,6 +15248,10 @@
               {
                 "path": "docs/design/infer-async-response-custody.md",
                 "anchor": "# Retained asynchronous Model response custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "synchronization": [
@@ -15141,6 +15262,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "failure": [
@@ -15151,6 +15276,10 @@
               {
                 "path": "docs/design/infer-async-response-custody.md",
                 "anchor": "# Retained asynchronous Model response custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "cancellation": [
@@ -15161,6 +15290,10 @@
               {
                 "path": "docs/design/infer-async-response-custody.md",
                 "anchor": "# Retained asynchronous Model response custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "resources": [
@@ -15171,6 +15304,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "extension": [
@@ -15181,6 +15318,10 @@
               {
                 "path": "docs/design/infer-async-response-custody.md",
                 "anchor": "# Retained asynchronous Model response custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "verification": [
@@ -15195,6 +15336,14 @@
               {
                 "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
                 "anchor": "test('composed INFER consumes original captured evidence without serializing or readmitting it'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "adapters/host-node/infer-installed-original-cleanup.test.mjs",
+                "anchor": "Request-owned plain acquired Model"
               }
             ]
           }
@@ -15203,7 +15352,7 @@
           "operations": [
             "runInstalledComposedInfers/captures/captures",
             "runInstalledComposedInfers/originals/originals",
-            "runInstalledComposedInfers/runInstalledComposedInfers#10",
+            "runInstalledComposedInfers/runInstalledComposedInfers#8",
             "runInstalledComposedInfers/setup/setup#2",
             "runInstalledComposedInfers/setup/setup#3"
           ],
@@ -15213,6 +15362,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Ordinary Host composition"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "inputsOutputs": [
@@ -15223,12 +15376,20 @@
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function prepareManagedMockModelRun("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "identity": [
               {
                 "path": "src/client_local_host/preparation_request_model_body.mbt",
                 "anchor": "pub fn[I] prepare_request_model_read_scope("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "ownership": [
@@ -15239,12 +15400,20 @@
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function retireModelRead(model) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "failure": [
@@ -15255,12 +15424,20 @@
               {
                 "path": "adapters/host-node/mock-model-early-run-custody.test.mjs",
                 "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function retireModelRead(model) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "resources": [
@@ -15271,12 +15448,20 @@
               {
                 "path": "src/client_local_host/preparation_request_model_body.mbt",
                 "anchor": "pub fn[I] prepare_request_model_read_scope("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Ordinary Host composition"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "verification": [
@@ -15291,6 +15476,14 @@
               {
                 "path": "adapters/host-node/ordinary-project-source-managed.test.mjs",
                 "anchor": "test('Project Source distinguishes same-declaration occurrences and preserves pending child custody'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "adapters/host-node/infer-installed-original-cleanup.test.mjs",
+                "anchor": "Request-owned plain acquired Model"
               }
             ]
           }
@@ -15305,6 +15498,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Ordinary Host composition"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "inputsOutputs": [
@@ -15315,12 +15512,20 @@
               {
                 "path": "adapters/host-node/installed-composed-infer-run.mjs",
                 "anchor": "issuance ??= startCompleteInferObservation({moon, operations: [child.operation],"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "identity": [
               {
                 "path": "adapters/host-node/installed-composed-infer-run.mjs",
                 "anchor": "if (children.length !== 1 || children[0] !== child) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "ownership": [
@@ -15331,24 +15536,40 @@
               {
                 "path": "adapters/host-node/installed-composed-infer-run.mjs",
                 "anchor": "if (!checked(moon.clientProgramCleanupInferObservationIssuance(issuance))) return false;"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/host-node/installed-composed-infer-run.mjs",
                 "anchor": "for (let step = 0; step < calls + 2 && !issuanceComplete; step++) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "failure": [
               {
                 "path": "adapters/host-node/installed-composed-infer-run.mjs",
                 "anchor": "if (!issuanceComplete) throw new Error('InstalledComposedInferOriginalObservationUnavailable');"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/host-node/installed-composed-infer-run.mjs",
                 "anchor": "if (moon.clientProgramCancelInferObservationIssuance(issuance)) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "resources": [
@@ -15359,12 +15580,20 @@
               {
                 "path": "src/client_infer_host/observation_issuance.mbt",
                 "anchor": "pub fn start_original_observation_issuance("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "extension": [
               {
                 "path": "adapters/host-node/installed-composed-infer-run.mjs",
                 "anchor": "} else if (issuance === undefined || !issuanceComplete) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "verification": [
@@ -15375,6 +15604,14 @@
               {
                 "path": "adapters/host-node/composed-infer-observation-frontier.test.mjs",
                 "anchor": "test('original Model observation failed advance retains the same partial issuer for cleanup'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "adapters/host-node/infer-installed-original-cleanup.test.mjs",
+                "anchor": "Request-owned plain acquired Model"
               }
             ]
           }
@@ -15389,6 +15626,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "For a checked source-free Program, the same connection has no Source children"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "inputsOutputs": [
@@ -15403,6 +15644,10 @@
               {
                 "path": "src/connectors_builtin_node/client_composed_infer_bridge.mbt",
                 "anchor": "pub fn client_program_open_installed_managed_source_free_composed_infer_host("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "identity": [
@@ -15413,6 +15658,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "prepareOriginalMockRun(prepared, plan) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "ownership": [
@@ -15423,12 +15672,20 @@
               {
                 "path": "adapters/host-node/installed-composed-infer-run.mjs",
                 "anchor": "if (originalPreparation !== undefined && await originalPreparation.retire() !== true) return false;"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "model.hostAttempted = true;"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "failure": [
@@ -15439,12 +15696,20 @@
               {
                 "path": "adapters/host-node/source-free-mock-run-custody.test.mjs",
                 "anchor": "test('source-free Mock keeps the same driver and Scope until their separate retirement completes'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/host-node/installed-composed-infer-run.mjs",
                 "anchor": "if (originalPreparation !== undefined && await originalPreparation.retire() !== true) return false;"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "resources": [
@@ -15459,6 +15724,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "For a checked source-free Program, the same connection has no Source children"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "extension": [
@@ -15469,6 +15738,10 @@
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "if (run.effectful || run.retired || model.closed || !model.taken || model.hostAttempted ||"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "verification": [
@@ -15483,6 +15756,14 @@
               {
                 "path": "adapters/host-node/source-free-mock-run-custody.test.mjs",
                 "anchor": "test('source-free Mock cannot manufacture a Scope when its original Host preparation is absent'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "adapters/host-node/infer-installed-original-cleanup.test.mjs",
+                "anchor": "Request-owned plain acquired Model"
               }
             ]
           }
@@ -15629,7 +15910,7 @@
     },
     {
       "module": "adapters/host-node/installed-infer-run.mjs",
-      "sha256": "d1758c6b29c738def19fa2096484266519970cd8bedb2a95205b30845d2bbfbf",
+      "sha256": "2f2392d25e123affb4cd11387e631c8de05809018482985e501bcca01987fd5e",
       "role": "physical-io",
       "exports": [
         "installNodeInferRun"
@@ -15668,6 +15949,15 @@
           "parameters": [
             "preparedProgram",
             "plan",
+            "sourceCapacity"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeInferRun/installNodeInferRun#2",
+          "parameters": [
+            "preparedProgram",
+            "plan",
             "direct",
             "acquisition",
             "capacity",
@@ -15692,7 +15982,8 @@
             "existingModel",
             "modelClaim",
             "assertCurrent",
-            "originalPreparation"
+            "originalPreparation",
+            "preparationHolder"
           ],
           "async": true
         },
@@ -15758,6 +16049,13 @@
           "async": false
         },
         {
+          "name": "installNodeInferRun/run/run/init:retainExecution/init:retainExecution",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "installNodeInferRun/run/run/init:retainOperation/init:retainOperation",
           "parameters": [
             "value"
@@ -15765,7 +16063,46 @@
           "async": false
         },
         {
+          "name": "installNodeInferRun/run/run/liveModel/liveModel",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installNodeInferRun/run/run/original/init:openCapturedHost/init:openCapturedHost",
+          "parameters": [
+            "captures"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeInferRun/run/run/original/init:prepareRead/init:prepareRead",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installNodeInferRun/run/run/original/init:retain/init:retain",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installNodeInferRun/run/run/original/init:retainOperation/init:retainOperation",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "installNodeInferRun/run/run/prepareRead/prepareRead",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installNodeInferRun/run/run/retireOriginalPreparation/retireOriginalPreparation",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "installNodeInferRun/run/run/retireOriginalPreparation/retireOriginalPreparation/sameOriginal/sameOriginal",
           "parameters": [],
           "async": false
         },
@@ -15796,6 +16133,11 @@
         },
         {
           "name": "installNodeInferRun/run/run/run#14",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installNodeInferRun/run/run/run#15",
           "parameters": [
             "issuance",
             "modelEvidence"
@@ -15873,6 +16215,7 @@
           "operations": [
             "installNodeInferRun",
             "installNodeInferRun/installNodeInferRun",
+            "installNodeInferRun/installNodeInferRun#2",
             "installNodeInferRun/run/run",
             "installNodeInferRun/run/run/assertOriginalRuntime/assertOriginalRuntime",
             "installNodeInferRun/run/run/cleanup/cleanup",
@@ -15884,14 +16227,23 @@
             "installNodeInferRun/run/run/frame/init:retainExecution/init:retainExecution",
             "installNodeInferRun/run/run/generated/init:retainExecution/init:retainExecution",
             "installNodeInferRun/run/run/init:retainCopy/init:retainCopy",
+            "installNodeInferRun/run/run/init:retainExecution/init:retainExecution",
             "installNodeInferRun/run/run/init:retainOperation/init:retainOperation",
+            "installNodeInferRun/run/run/liveModel/liveModel",
+            "installNodeInferRun/run/run/original/init:openCapturedHost/init:openCapturedHost",
+            "installNodeInferRun/run/run/original/init:prepareRead/init:prepareRead",
+            "installNodeInferRun/run/run/original/init:retain/init:retain",
+            "installNodeInferRun/run/run/original/init:retainOperation/init:retainOperation",
             "installNodeInferRun/run/run/prepareRead/prepareRead",
+            "installNodeInferRun/run/run/retireOriginalPreparation/retireOriginalPreparation",
+            "installNodeInferRun/run/run/retireOriginalPreparation/retireOriginalPreparation/sameOriginal/sameOriginal",
             "installNodeInferRun/run/run/run",
             "installNodeInferRun/run/run/run#10",
             "installNodeInferRun/run/run/run#11",
             "installNodeInferRun/run/run/run#12",
             "installNodeInferRun/run/run/run#13",
             "installNodeInferRun/run/run/run#14",
+            "installNodeInferRun/run/run/run#15",
             "installNodeInferRun/run/run/run#2",
             "installNodeInferRun/run/run/run#3",
             "installNodeInferRun/run/run/run#4",
@@ -15922,6 +16274,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "inputsOutputs": [
@@ -15936,6 +16292,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "identity": [
@@ -15950,6 +16310,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "ownership": [
@@ -15964,6 +16328,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "synchronization": [
@@ -15978,6 +16346,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "failure": [
@@ -15992,6 +16364,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "cancellation": [
@@ -16006,6 +16382,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "resources": [
@@ -16020,6 +16400,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "extension": [
@@ -16034,6 +16418,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "verification": [
@@ -16052,6 +16440,14 @@
               {
                 "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
                 "anchor": "installed Model caller cuts"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "adapters/host-node/infer-installed-original-cleanup.test.mjs",
+                "anchor": "Request-owned plain acquired Model"
               }
             ]
           }
@@ -49823,7 +50219,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
-      "sha256": "cc7a5a220709f6dd1787b267ab66a598e325e5ac7e86b9343bd79fa8378382c3",
+      "sha256": "9463c3026633c245af4af9c97ec269d94e63da474ddc3064a698d2d36b10de65",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "D — original installed Effect Plan and Model demand correspondence",
@@ -49859,7 +50255,7 @@
         },
         {
           "name": "client_program_prepare_request_model_provider_component_capture_module",
-          "declaration": "client_program_prepare_request_model_provider_component_capture_module ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , compilation : @ publication_host . ClientTaskCompilation , declaration : @ client_row_source_host . RowDeclaration , provider : @ execution . ExecutionCapacity ? , query_contract_body : String , evidence_contract_body : String , transport_bytes : Int64 , transport_execution_bytes : Int64 , contracts : @ client_local_host . ClientInstalledSequenceContracts , retained_output : Bool , query_time : @ publication_host . ClientQueryTimePreparation ? , construct : ( @ execution . ExecutionCapacity , @ execution . GeneratedSequence , @ execution . GeneratedSequence ? , ) - > @ local . ManagedProvider , ) - > Result [ @ client_local_host . ClientInstalledManagedCapturePlan , ClientRequestProgramModuleBridgeIssue , ]"
+          "declaration": "client_program_prepare_request_model_provider_component_capture_module ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , compilation : @ publication_host . ClientTaskCompilation , declaration : @ client_row_source_host . RowDeclaration , provider : @ execution . ExecutionCapacity ? , query_contract_body : String , evidence_contract_body : String , transport_bytes : Int64 , transport_execution_bytes : Int64 , contracts : @ client_local_host . ClientInstalledSequenceContracts , retained_output : Bool , query_time : @ publication_host . ClientQueryTimePreparation ? , construct : ( @ execution . ExecutionCapacity , @ execution . GeneratedSequence , ( @ infer_host . Execution ) - > Result [ Unit , @ infer_host . Issue ] , ) - > @ local . ManagedProvider , ) - > Result [ @ client_local_host . ClientInstalledManagedCapturePlan , ClientRequestProgramModuleBridgeIssue , ]"
         },
         {
           "name": "client_program_prepare_request_model_source_free_plan",
@@ -49931,6 +50327,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "inputsOutputs": [
@@ -49957,6 +50357,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "identity": [
@@ -49983,6 +50387,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "ownership": [
@@ -50009,6 +50417,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "synchronization": [
@@ -50035,6 +50447,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "failure": [
@@ -50061,6 +50477,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "cancellation": [
@@ -50087,6 +50507,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "resources": [
@@ -50113,6 +50537,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "extension": [
@@ -50139,6 +50567,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "verification": [
@@ -50177,6 +50609,14 @@
               {
                 "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
                 "anchor": "plain Model module retains"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "adapters/host-node/infer-installed-original-cleanup.test.mjs",
+                "anchor": "Request-owned plain acquired Model"
               }
             ]
           }
