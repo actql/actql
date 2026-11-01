@@ -151,6 +151,94 @@ class SnapshotTransportTests(unittest.TestCase):
             self.assertFalse(store._physical.in_transaction)
             self.assertEqual(store.read('epoch').payload, b'original-epoch')
 
+    def test_schema_probe_cannot_return_a_replaced_original_connection_or_transaction(self):
+        import sqlite3
+        for replace_connection in (False, True):
+            with self.subTest(replace_connection=replace_connection), \
+                    TemporaryDirectory(prefix='actql-schema-original-reentry-') as directory:
+                store = LocalByteStore(Path(directory) / 'original.sqlite', max_records=8,
+                    max_record_bytes=4096, max_payload_bytes=16384)
+                self.addCleanup(store.close)
+                store.compare_exchange('epoch', None, b'original-epoch')
+                foreign = sqlite3.connect(':memory:', isolation_level=None)
+                self.addCleanup(foreign.close)
+                database = store._physical
+                original = store._connection
+                armed = []
+                fired = []
+                def reenter(sql):
+                    if armed and sql == 'PRAGMA temp.schema_version':
+                        armed.clear()
+                        fired.append(True)
+                        if replace_connection:
+                            database._connection = foreign
+                        else:
+                            database.rollback()
+                            database.begin_read()
+                def inspect(reader):
+                    reader.read('original', 'one', lambda _: None)
+                    armed.append(True)
+                    original.set_trace_callback(reenter)
+                    try:
+                        with self.assertRaises(ValueError): reader.current()
+                    finally:
+                        original.set_trace_callback(None)
+                        database._connection = original
+                    with self.assertRaises(ValueError): reader.current()
+                with self.assertRaises(ValueError):
+                    store.inspect_namespaces((ByteFence('epoch', 0, b'original-epoch'),),
+                        inspect=inspect, current=lambda: None)
+                self.assertEqual(fired, [True])
+                self.assertFalse(database.in_transaction)
+                self.assertEqual(store.read('epoch').payload, b'original-epoch')
+
+    def test_temp_shadow_from_query_consumer_refuses_the_original_after_consumer_fence(self):
+        from actql_sdk._local_storage import LocalStorageError
+        with TemporaryDirectory(prefix='actql-query-temp-after-consumer-') as directory:
+            store = LocalByteStore(Path(directory) / 'original.sqlite', max_records=8,
+                max_record_bytes=4096, max_payload_bytes=16384)
+            self.addCleanup(store.close)
+            store.compare_exchange('epoch', None, b'original-epoch')
+            store.compare_exchange(store.namespaced_key('original', 'one'), None, b'original-row')
+            rows = []
+            def consume(row):
+                rows.append(row)
+                store._connection.execute('CREATE TEMP TABLE core_bytes(key TEXT, generation INTEGER, payload BLOB)')
+            def inspect(reader):
+                with self.assertRaises(LocalStorageError):
+                    reader.query_current(reader, 1, 'original', 'one', consume, lambda: None)
+                with self.assertRaises(ValueError): reader.current()
+            with self.assertRaises(LocalStorageError):
+                store.inspect_namespaces((ByteFence('epoch', 0, b'original-epoch'),),
+                    inspect=inspect, current=lambda: None)
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0][1].payload, b'original-row')
+            self.assertFalse(store._physical.in_transaction)
+
+    def test_temp_schema_probe_refusal_is_not_a_cached_success(self):
+        import sqlite3
+        with TemporaryDirectory(prefix='actql-temp-schema-probe-denied-') as directory:
+            store = LocalByteStore(Path(directory) / 'original.sqlite', max_records=8,
+                max_record_bytes=4096, max_payload_bytes=16384)
+            self.addCleanup(store.close)
+            store.compare_exchange('epoch', None, b'original-epoch')
+            def inspect(reader):
+                reader.read('original', 'one', lambda _: None)
+                def deny(action, name, argument, database, *_):
+                    return (sqlite3.SQLITE_DENY if action == sqlite3.SQLITE_PRAGMA
+                            and name == 'schema_version' and database == 'temp' else sqlite3.SQLITE_OK)
+                store._connection.set_authorizer(deny)
+                try:
+                    with self.assertRaises(sqlite3.DatabaseError): reader.current()
+                finally:
+                    store._connection.set_authorizer(None)
+                with self.assertRaises(ValueError): reader.current()
+            with self.assertRaises(sqlite3.DatabaseError):
+                store.inspect_namespaces((ByteFence('epoch', 0, b'original-epoch'),),
+                    inspect=inspect, current=lambda: None)
+            self.assertFalse(store._physical.in_transaction)
+            self.assertEqual(store.read('epoch').payload, b'original-epoch')
+
     def test_snapshot_savepoint_rollback_invalidates_without_reusing_a_mutated_row(self):
         with TemporaryDirectory(prefix='actql-sql-savepoint-') as directory:
             store = LocalByteStore(Path(directory) / 'original.sqlite', max_records=8,
@@ -217,8 +305,8 @@ class SnapshotTransportTests(unittest.TestCase):
                 finally:
                     store._connection.set_trace_callback(None)
                 self.assertEqual(len(currents) - before, 5)
-                self.assertEqual(len(sql), 10)
-                self.assertTrue(all(query == 'PRAGMA schema_version' for query in sql))
+                self.assertEqual(len(sql), 20)
+                self.assertEqual(sql, ['PRAGMA schema_version', 'PRAGMA temp.schema_version'] * 10)
             store.inspect_namespaces(fences, inspect=inspect, current=lambda: currents.append(True))
 
     def test_schema_probe_failure_is_not_cached_success_or_permission(self):
