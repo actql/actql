@@ -1444,7 +1444,7 @@ test('Request Model Scope is retained before same Plan completion and captured o
   assert.equal(actual.original, f.original); assert.equal(actual.value, f.parent);
   assert.equal(actual.operationPlan, f.plan); assert.equal(f.outer.modelScope, f.scope);
   assert.equal(f.view.prepareEffectModelPlanRun, undefined);
-  assert.deepEqual(f.events, ['compile', 'borrow', 'scope', 'complete', 'adopt-model']);
+  assert.deepEqual(f.events, ['check', 'compile', 'borrow', 'scope', 'complete', 'adopt-model']);
   assert.throws(() => f.view.adoptEffectModelPreparation(f.prepared, f.sdkRequest, f.identity, f.plan, f.outer),
     {code: 'ForeignInstalledSourceProducer'});
   // The real physical cleanup witness is an explicit port in this component.
