@@ -134,14 +134,17 @@ class _JournalCallbacks:
             if (self.request is None or self.received != len(self.request)
                     or self.queried):
                 raise ValueError('Incomplete original Local journal physical query')
-            if self.check_current() != 0:
+            reader = self.reader
+            if reader is None:
+                raise ValueError('Original Local journal transaction loan expired')
+            query_current = getattr(reader, 'query_current', None)
+            if (self.check_current() if query_current is None else self.check_frame()) != 0:
                 return -41
             self.queried = True
             namespace = self.request[:self.namespace_length].decode('utf-8')
             key = self.request[self.namespace_length:].decode('utf-8')
             self.request = None
-            reader = self.reader
-            if reader is None:
+            if self.reader is not reader:
                 raise ValueError('Original Local journal transaction loan expired')
 
             def consume(row: tuple[str, StoredBytes] | None) -> None:
@@ -157,11 +160,13 @@ class _JournalCallbacks:
                 # ticket until Core finishes copying/consuming and releases it.
                 self.row = (encoded, body)
 
-            if self.mode == 0:
+            if query_current is not None:
+                query_current(reader, self.mode, namespace, key, consume, self.current)
+            elif self.mode == 0:
                 reader.scan_after(namespace, key, consume)
             else:
                 reader.read(namespace, key, consume)
-            if self.check_current() != 0:
+            if (self.check_current() if query_current is None else self.check_frame()) != 0:
                 return -41
             # Only the actual physical reader's confirmed miss/end yields 1.
             return 1 if self.row is None else 0

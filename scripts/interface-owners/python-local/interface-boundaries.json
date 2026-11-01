@@ -1,6 +1,6 @@
 {
   "source": "d5d66cd86ac2e153f31a511e7d37c78e0cc28ae3",
-  "syntaxProjectionSha256": "5980780f4051aa11a3b6abad7b447e9bbfdea6dea298db95aba0bf17b3fb6c1a",
+  "syntaxProjectionSha256": "63e9869793d03dfae26b05adbbaf7997359e98aa83d2d701f835d522d0e33da0",
   "qualification": "Source-reference coverage only; original Native/FFI/Python executions retain their own source, artifact and target qualifications. No normal funding, VM or installed product admission.",
   "generated": [
     {
@@ -29184,7 +29184,7 @@
           ]
         }
       ],
-      "sha256": "22f0fea79e085425228c0663249cfd5bdf5bea1d4e88ed6740f32e6e42def87f",
+      "sha256": "8a0b3604db7380852b597bccf2db9cc7e6ed2337dae3510203bc96480cf50b0e",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -58048,7 +58048,9 @@
         {
           "async": false,
           "name": "LocalByteStore/_inspect_namespace_locked/fence",
-          "parameters": []
+          "parameters": [
+            "required_current"
+          ]
         },
         {
           "async": false,
@@ -58057,7 +58059,20 @@
             "namespace",
             "after",
             "consume",
-            "scan"
+            "scan",
+            "required_current"
+          ]
+        },
+        {
+          "async": false,
+          "name": "LocalByteStore/_inspect_namespace_locked/query_current",
+          "parameters": [
+            "view",
+            "mode",
+            "namespace",
+            "key",
+            "consume",
+            "required_current"
           ]
         },
         {
@@ -58658,7 +58673,7 @@
           "parameters": []
         }
       ],
-      "sha256": "526d65588fe15300896c305d43732d8d9896fbaa43a1af3ebe1622a1471ecbd9",
+      "sha256": "f98dee343d4fc12a8f55bfd7587566d246a8a62437f7ac239c0362bc8b5364ce",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -59220,6 +59235,7 @@
             "LocalByteStore/_inspect_namespace_locked/current_snapshot",
             "LocalByteStore/_inspect_namespace_locked/fence",
             "LocalByteStore/_inspect_namespace_locked/observe",
+            "LocalByteStore/_inspect_namespace_locked/query_current",
             "LocalByteStore/_inspect_publication_projected",
             "LocalByteStore/_inspect_publication_projected/consume_all",
             "LocalByteStore/_inspect_publication_projected/fence",

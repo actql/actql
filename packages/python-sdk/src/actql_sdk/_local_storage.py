@@ -46,6 +46,8 @@ class _NamespaceReader:
     # Only the actual Store supplies this live-thread/frame check. It is not
     # a current observation; queries and protected decisions keep their fences.
     check_frame: Callable[['_NamespaceReader'], None] | None = None
+    query_current: Callable[['_NamespaceReader', int, str, str,
+                             _NamespaceConsumer, Callable[[], object]], None] | None = None
 
 
 _InventoryInspection = Callable[[_NamespaceReader], object]
@@ -903,10 +905,12 @@ class LocalByteStore:
         reads = copied = 0
         failure: BaseException | None = None
 
-        def fence() -> None:
+        def fence(required_current: Callable[[], object] | None = None) -> None:
             if not self._fences_match_locked(fences, successors):
                 raise LocalStorageError('Original Local inventory metadata changed')
             self._fenced_current(current)
+            if required_current is not None and required_current is not current:
+                self._fenced_current(required_current)
             if not self._fences_match_locked(fences, successors):
                 raise LocalStorageError('Original Local inventory metadata changed')
 
@@ -960,7 +964,7 @@ class LocalByteStore:
                 raise
 
         def observe(namespace: str, after: str, consume: _NamespaceConsumer, *,
-                    scan: bool) -> None:
+                    scan: bool, required_current: Callable[[], object] | None = None) -> None:
             nonlocal reading, reads, copied, failure
             entered = False
             try:
@@ -979,7 +983,7 @@ class LocalByteStore:
                 if reads >= self._max_inspection_queries:
                     raise LocalStorageError('Local inventory inspection capacity exceeded')
                 reading = entered = True
-                fence()
+                fence(required_current)
                 # A malformed empty logical key must be observed and refused,
                 # not silently excluded from the original namespace inventory.
                 row = self._physical.scan_range(lower, upper,
@@ -998,19 +1002,36 @@ class LocalByteStore:
                     self._key(logical)
                     copied += len(payload)
                     observation = (logical, StoredBytes(generation, payload))
-                fence()
+                fence(required_current)
                 # The Host completes transfer into its reserved Core input and
                 # returns the same input/output loan before requesting a row.
                 if consume(observation) is not None:
                     raise ValueError('Invalid Local inventory consumer result')
                 del observation, row
-                fence()
+                fence(required_current)
             except BaseException as error:
                 failure = error
                 raise
             finally:
                 if entered:
                     reading = False
+
+        def query_current(view: _NamespaceReader, mode: int, namespace: str,
+                          key: str, consume: _NamespaceConsumer,
+                          required_current: Callable[[], object]) -> None:
+            nonlocal failure
+            try:
+                check_frame(view)
+                if type(mode) is not int or mode not in (0, 1) or not callable(required_current):
+                    raise ValueError('Invalid original Local current query')
+                # The same actual query owns all three physical/current fences.
+                # Equal-looking callbacks are not merged; only this exact
+                # original observer is already included by the enclosing fence.
+                observe(namespace, key, consume, scan=mode == 0,
+                        required_current=required_current)
+            except BaseException as error:
+                failure = error
+                raise
 
         try:
             fence()
@@ -1021,7 +1042,7 @@ class LocalByteStore:
                     observe(namespace, key, consume, scan=False),
                 owner=self, current=current_snapshot, check_fences=check_fences,
                 check_fences_and_current=check_fences_and_current,
-                check_frame=check_frame)
+                check_frame=check_frame, query_current=query_current)
             result = inspect(reader)
             if failure is not None:
                 raise failure

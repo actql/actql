@@ -14,6 +14,71 @@ import test_local_submission_lookup as lookup_fixture
 
 
 class SnapshotTransportTests(unittest.TestCase):
+    def test_query_keeps_distinct_current_and_refuses_at_every_existing_boundary(self):
+        for stop in (None, 1, 2, 3):
+            with self.subTest(stop=stop), TemporaryDirectory(prefix='actql-query-refusal-') as directory:
+                store = LocalByteStore(Path(directory) / 'original.sqlite', max_records=8,
+                    max_record_bytes=4096, max_payload_bytes=16384)
+                self.addCleanup(store.close)
+                store.compare_exchange('epoch', None, b'original-epoch')
+                store.compare_exchange(store.namespaced_key('original', 'one'), None, b'original-row')
+                original_calls, required_calls = [], []
+                failure = PermissionError('same original current refused')
+                def original_current():
+                    original_calls.append('physical')
+                def required_current():
+                    required_calls.append('required')
+                    if len(required_calls) == stop:
+                        raise failure
+                callbacks = _JournalCallbacks(required_current, store)
+                def inspect(reader):
+                    callbacks.reader = reader
+                    self.assertEqual(callbacks.begin(1, 8, 3), 0)
+                    self.assertEqual(callbacks.query_copy(0, b'originalone'), 11)
+                    before = len(original_calls)
+                    if stop is None:
+                        self.assertEqual(callbacks.query(), 0)
+                        self.assertEqual(len(original_calls) - before, 3)
+                        self.assertEqual(len(required_calls), 3)
+                        self.assertEqual(callbacks.row_copy(1, 0, 12), b'original-row')
+                        self.assertEqual(callbacks.release(), 0)
+                    else:
+                        self.assertEqual(callbacks.query(), -41)
+                        self.assertIs(callbacks.failure, failure)
+                        self.assertEqual(len(required_calls), stop)
+                        self.assertEqual(callbacks.release(), -41)
+                if stop is None:
+                    store.inspect_namespaces((ByteFence('epoch', 0, b'original-epoch'),),
+                        inspect=inspect, current=original_current)
+                else:
+                    with self.assertRaises(PermissionError) as failed:
+                        store.inspect_namespaces((ByteFence('epoch', 0, b'original-epoch'),),
+                            inspect=inspect, current=original_current)
+                    self.assertIs(failed.exception, failure)
+
+    def test_query_current_change_cannot_hide_a_metadata_fence_mutation(self):
+        from actql_sdk._local_storage import LocalStorageError
+        with TemporaryDirectory(prefix='actql-query-row-change-') as directory:
+            store = LocalByteStore(Path(directory) / 'original.sqlite', max_records=8,
+                max_record_bytes=4096, max_payload_bytes=16384)
+            self.addCleanup(store.close)
+            store.compare_exchange('epoch', None, b'original-epoch')
+            store.compare_exchange(store.namespaced_key('original', 'one'), None, b'original-row')
+            callbacks = _JournalCallbacks(lambda: None, store)
+            def changed():
+                store._connection.execute('UPDATE core_bytes SET generation=1 WHERE key=?', ('epoch',))
+            def inspect(reader):
+                callbacks.reader = reader
+                self.assertEqual(callbacks.begin(1, 8, 3), 0)
+                self.assertEqual(callbacks.query_copy(0, b'originalone'), 11)
+                callbacks.current = changed
+                self.assertEqual(callbacks.query(), -41)
+                self.assertIsInstance(callbacks.failure, LocalStorageError)
+                self.assertIsNone(callbacks.row)
+            with self.assertRaises(LocalStorageError):
+                store.inspect_namespaces((ByteFence('epoch', 0, b'original-epoch'),),
+                    inspect=inspect, current=lambda: None)
+
     def test_query_current_is_observed_at_each_physical_boundary_without_adjacent_duplicates(self):
         with TemporaryDirectory(prefix='actql-query-current-') as directory:
             store = LocalByteStore(Path(directory) / 'original.sqlite', max_records=8,

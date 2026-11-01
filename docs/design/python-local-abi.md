@@ -1961,6 +1961,16 @@ typed current before and after the complete transfer. File, settings, epoch,
 Account and authorization checks remain at those protected boundaries. No
 frame, row or successful decision survives the enclosing reader.
 
+The actual Store reader can also enclose the Journal's required current
+observer in its existing query. Its three fences remain before physical read,
+after physical read and after consumption, each with complete SQL metadata and
+original physical-current checks. Only callback identity suppresses an adjacent
+duplicate observation already performed by that same fence; a different
+observer runs separately at every boundary. A private reader without this port
+keeps the original outer before/after checks. Neither shape returns bytes after
+a latched failure, changes query/copy bounds or turns a physical miss into a
+semantic absence fact.
+
 The standard original operation metadata callback joins its adjacent current
 and required-frame fence checks in one complete observation of the same reader.
 It accepts only the captured original current callback and retains the complete
