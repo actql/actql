@@ -474,7 +474,7 @@ test('GitHub Effect installer forwards original declaration Mapping and Site con
 // Actual existing Source material/context and Environment assembler. Only
 // native Core capacities/projection and current/retirement ports are explicit;
 // this exercises ownership/order, not numeric backing or a physical ACK.
-function commandConstructionFixture({refuseReserve = false, failProjection, duringReserve, role = 'effect', reserveAt = 2, additionalNative = [], contractQuantity, contractFailure, repeatedNative = false} = {}) {
+function commandConstructionFixture({refuseReserve = false, failProjection, duringReserve, role = 'effect', reserveAt = 2, additionalNative = [], contractQuantity, contractFailure, repeatedNative = false, retainedNative, failRetainedProjection, missingRetainedProjection = false} = {}) {
   const ok = value => ({$tag: 1, _0: value});
   const initial = {}, input = {}, unit = {}, capacity = {}, declaration = {}, native = {};
   const installed = Object.freeze({registration: 'sheets', revision: 'sheets/0.1', effect: {}});
@@ -482,7 +482,7 @@ function commandConstructionFixture({refuseReserve = false, failProjection, duri
   const base = {catalog_cid: cid, catalog: '{}', contracts: [], view_bodies: [],
     evidence_schemas: [], evidence_capabilities: [], manifest_entry: '{}'};
   const declared = {...base, command_bodies: ['{}']};
-  const events = [], quotes = [], reservedQuotes = [], refusal = new Error('original command reservation refused'), contractOriginal={original:'contracts'};
+  const events = [], quotes = [], reservedQuotes = [], completions = [], refusal = new Error('original command reservation refused'), contractOriginal={original:'contracts'};
   let reserveCalls = 0, retired = 0, context, pending;
   const originalIo=new Set();
   const moon = Object.fromEntries(['ReconcileInstalledSourceConstruction','CompleteInstalledSourceMaterial',
@@ -498,8 +498,9 @@ function commandConstructionFixture({refuseReserve = false, failProjection, duri
     clientProgramTakeHostInitializationSourceCapacity(value) {assert.equal(value, initial);return ok({_0: input, _1: unit});},
     clientProgramContinueInstalledSourceMaterial(value, original) {assert.equal(value, unit);assert.equal(original, input);return ok(capacity);},
     clientProgramInstalledSourceConstructionCapacity(...values) {return ok(Object.freeze({values}));},
+    clientProgramInstalledSourceRetainedConstructionCapacity(value) {assert.equal(value,native);if(failRetainedProjection==='undefined')throw undefined;const retained=retainedNative??value;completions.push({original:value,retained});return ok(retained);},
     clientProgramComposeInstalledSourceConstructionCapacity(original, selected) {
-      assert.equal(selected[0], native);if(repeatedNative)assert(selected.every(value=>value===native));else assert.deepEqual(selected.slice(1), selected.length === 1 ? [] : additionalNative);quotes.push({original, selected: [...selected]});return ok(Object.freeze({original, selected}));
+      assert(selected[0]===native||retainedNative!==undefined&&selected[0]===retainedNative);if(repeatedNative)assert(selected.every(value=>value===native||value===retainedNative));else assert.deepEqual(selected.slice(1), selected.length === 1 ? [] : additionalNative);quotes.push({original, selected: [...selected]});return ok(Object.freeze({original, selected: Object.freeze([...selected])}));
     },
     clientProgramReserveInstalledSourceConstruction(value, original, quote) {
       assert.equal(value, capacity);assert.equal(original, input);reservedQuotes.push(quote);reserveCalls++;events.push('reserve');
@@ -509,6 +510,7 @@ function commandConstructionFixture({refuseReserve = false, failProjection, duri
     clientProgramRowSourceRestoreRelationDeclaration(...args) {assert.equal(events.at(-1), 'reserve');events.push('restore');assert.equal(args[4], undefined);return ok(declaration);},
     clientProgramRowSourceDeclarationJson(value) {assert.equal(value, declaration);return JSON.stringify(base);},
   });
+  if (missingRetainedProjection) delete moon.clientProgramInstalledSourceRetainedConstructionCapacity;
   const services = createInstalledHostServices({root: '/unopened-original-command-construction', principalId: 'fixture', moon,
     initialPreparation: initial, assertCurrent() {}});
   retainInstalledHostServiceInstallation(services, installed, cid);
@@ -523,7 +525,7 @@ function commandConstructionFixture({refuseReserve = false, failProjection, duri
     if (failProjection === 'async') return new Promise(resolve => {pending = resolve;});
     return Object.freeze({declared, commands, definition: Object.freeze({installed:commands[0]}), wire:JSON.stringify(declared)});
   }});
-  return {context,services,projection,commands,declared,declaration,quotes,reservedQuotes,events,refusal,contractOriginal,installed,moon,native,environment,
+  return {context,services,projection,commands,declared,declaration,quotes,reservedQuotes,completions,events,refusal,contractOriginal,installed,moon,native,environment,
     prepare:expected=>context.prepareDeclaredCommands('{"views":[]}',projection,expected),
     finish:()=>finishInstalledSourceInitialization(context, undefined, new Error('original unit terminal'), true),
     retire:()=>retireInstalledSourceInitialization(services), retired:()=>retired,originalIo,
@@ -813,5 +815,49 @@ test('Environment quote shares only its paired role input and preserves all addi
   assert.deepEqual(paired,f.quotes.at(-1).original.values);
   reserveInstalledSourceEnvironment(f.services,'base','source',undefined);
   assert(paired[3]>f.quotes.at(-1).original.values[3],'Additional occurrence stays funded');
+  f.finish();assert.equal(f.retire(),true);
+});
+
+
+test('closed Command completion keeps its actual retained output quantity before the next original constructor',()=>{
+  const output=Object.freeze({original:'retained-output'}),f=commandConstructionFixture({retainedNative:output});
+  const prepared=f.prepare();assert.equal(prepared.declaration,f.declaration);
+  assert.equal(f.completions.length,1);assert.equal(f.completions[0].original,f.native);
+  assert.equal(f.completions[0].retained,output);
+  assert.equal(f.reservedQuotes[0].selected,undefined);
+  assert.equal(f.reservedQuotes[1].selected[0],f.native,'Full original peak before projection');
+  assert.equal(f.reservedQuotes[2].selected[0],output,'Returned original output stays before Environment construction');
+  assert.equal(f.quotes.at(-1).selected[0],output,'Same output stays until original Source retirement');
+  f.finish();assert.equal(f.retire(),true);
+});
+
+for(const failure of ['reserve','projection','retained-projection']){
+  test(`closed Command output cannot retire an incomplete original constructor: ${failure}`,()=>{
+    const f=commandConstructionFixture({retainedNative:{original:'output'},
+      refuseReserve:failure==='reserve',failProjection:failure==='projection'?'undefined':undefined,
+      failRetainedProjection:failure==='retained-projection'?'undefined':undefined});
+    let thrown=false,cause;
+    try{f.prepare();}catch(error){thrown=true;cause=error;}
+    assert.equal(thrown,true);assert.equal(cause,failure==='reserve'?f.refusal:undefined);
+    assert.equal(f.completions.length,0);
+    assert.equal(f.quotes.at(-1).selected[0],f.native,'Full original native debt remains');
+    assert.throws(()=>f.prepare(),{code:'ForeignInstalledSourceInitialization'});
+    assert.equal(f.retire(),false);f.finish();assert.equal(f.retire(),true);
+  });
+}
+
+test('invalid asynchronous Command keeps its original peak and pending child without selecting retained output',async()=>{
+  const f=commandConstructionFixture({failProjection:'async',retainedNative:{original:'output'}});
+  assert.throws(()=>f.prepare(),{code:'InstalledSourceConstructorNotSynchronous'});
+  assert.equal(f.completions.length,0);assert.equal(f.quotes.at(-1).selected[0],f.native);
+  f.finish();assert.equal(f.retire(),false);
+  f.getPending()({original:'late-invalid-output'});await Promise.resolve();await Promise.resolve();
+  assert.equal(f.completions.length,0);assert.equal(f.retire(),true);
+});
+
+test('closed Command missing retained DATA port refuses before original constructor entry',()=>{
+  const f=commandConstructionFixture({missingRetainedProjection:true});
+  assert.throws(()=>f.prepare(),{code:'InstalledSourceInitializationRuntimeUnavailable'});
+  assert.deepEqual(f.events,[]);assert.equal(f.completions.length,0);
   f.finish();assert.equal(f.retire(),true);
 });

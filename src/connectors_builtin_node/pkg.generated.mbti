@@ -1738,6 +1738,8 @@ pub fn client_program_installed_source_read_start_rows(@client_local_host.Client
 
 pub fn client_program_installed_source_reader_policy() -> Array[Int]
 
+pub fn client_program_installed_source_retained_construction_capacity(@execution_relation.ExecutionCapacity?) -> Result[@execution_relation.ExecutionCapacity?, @physical_resources.PreparationCapacityIssue]
+
 pub fn client_program_installed_standard_create_constructor_capacities(Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?) -> Result[Array[@execution_relation.ExecutionCapacity], @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_standard_create_recipe_capacities(Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?, Int, Int, Int, Int, Int, Int, Int, Bool, Int, Int, Int, Int, Int, Int, Int64) -> Result[Array[@execution_relation.ExecutionCapacity], @client_local_host.ClientInstalledManagedRunIssue]

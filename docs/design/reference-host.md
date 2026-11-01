@@ -1851,8 +1851,18 @@ identity domains. Original schema/connector text supplies only variable extent,
 never a second semantic declaration or caller-chosen allowance. Native parse,
 index, canonical-identity workspace, escaped outputs and Host output parsing
 remain backed together with prior Source material and failed prefixes. The
-shared quantity fold conservatively keeps the whole native peak retained until
-this same Source retires; it does not refund on callback return or infer GC.
+shared quantity fold retains each selected native quantity through the same
+Source lifetime. Before the closed synchronous Command projection it selects
+the full original peak. Only after its canonical wires and plain frozen
+outputs have returned, validated and been retained does the same Source
+replace that entry with its original retained-output quantity. The final
+outer declaration and definition forests, final wire and captured schema/range
+text remain charged using the existing Host units. Native parser, NFC and
+writer locals do not escape this closed call. Failed, invalid asynchronous or
+unproven construction keeps the full original peak. This selection issues no
+Resource, current observation, physical-GC acknowledgement or work refund.
+The next constructor still crosses the original current/reservation boundary;
+only its existing after-unwind reconciliation may reduce the live reservation.
 
 The completed original Command array, full declared Catalog and one Environment
 stay associated with that context. The installer forwards them unchanged to
@@ -1873,7 +1883,8 @@ do not expose or nest their Writer/cursor. Their completed Catalog, contract,
 Command and declaration Strings remain co-held, while the active writer
 workspace is counted once beside all retained output families. This is a
 logical live-representation bound, not a GC observation or physical ACK. The
-Source still retains the whole selected native peak until its own retirement.
+Source keeps the returned Command outputs until its own retirement. Other
+native construction families keep their existing conservative peak lifetime.
 
 Initialized range and clear also construct their original retained binding
 inside that SAME Source initializer, before the Effect adapter is created.
@@ -1895,8 +1906,9 @@ original Source presence and logical close remain distinct facts; a failed or
 closed Source cannot supply this handoff. The same before-use current fence
 still runs without an extra Environment workspace, and reentrant loss refuses
 rather than reconstructing after selection. Each native declaration and its
-full peak remain independently retained. Only the repeated Environment
-assembly is omitted, with no new permission, physical ACK or budget refund.
+completed output quantities remain independently retained. Only the repeated
+Environment assembly is omitted, with no new permission, physical ACK or work
+refund. Uncompleted native quantities retain their original full peak.
 
 Identical complete Source and Effect Environment wires are admitted once by
 the same composer; distinct complete inputs retain their separate admission,

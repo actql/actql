@@ -48921,7 +48921,7 @@
     },
     {
       "module": "src/client_local_host/installed_source_material.mbt",
-      "sha256": "1e851af1e50988e803458b8ef9c226f929fa970f51a7b0f744c44b66a0d07b99",
+      "sha256": "26e84b6b4ce061e329265e3fcbbf52e76ef34a8b4ec4580e83a0e86866b7355d",
       "exports": [],
       "operations": [
         {
@@ -48951,6 +48951,10 @@
         {
           "name": "installed_source_construction_capacity",
           "declaration": "installed_source_construction_capacity ( retained_nodes : Int64 , retained_text_bytes : Int64 , retained_wire_bytes : Int64 , workspace_nodes : Int64 , workspace_text_bytes : Int64 , workspace_wire_bytes : Int64 , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "retained_installed_source_construction_capacity",
+          "declaration": "retained_installed_source_construction_capacity ( original : @ execution . ExecutionCapacity , ) - > @ execution . ExecutionCapacity"
         }
       ],
       "responsibilityFacet": "primary",
@@ -49100,12 +49104,86 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "retained_installed_source_construction_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "replace that entry with its original retained-output quantity."
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "replace that entry with its original retained-output quantity."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "replace that entry with its original retained-output quantity."
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "replace that entry with its original retained-output quantity."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "replace that entry with its original retained-output quantity."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/installed_source_material.mbt",
+                "anchor": "pub fn retained_installed_source_construction_capacity("
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Pure original typed quantity DATA, no callback, current observation or I/O. Only the closed original Source caller selects it after retaining all outputs."
+            },
+            "cancellation": {
+              "notApplicable": "No cancellation, resource retirement, work refund or physical acknowledgement is issued."
+            },
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "replace that entry with its original retained-output quantity."
+              },
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "material.providers[providerIndex] = retained;"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/installed_source_provider_capacity_wbtest.mbt",
+                "anchor": "test \"retained Source constructor DATA cannot invent a completion or refund original work\""
+              },
+              {
+                "path": "src/connectors_builtin_node/client_installed_source_material_bridge_wbtest.mbt",
+                "anchor": "test \"retained Source optional constructor quantity remains typed and absent quantity refuses\""
+              },
+              {
+                "path": "adapters/host-node/installed-effect-profile-cleanup.test.mjs",
+                "anchor": "test('closed Command completion keeps its actual retained output quantity"
+              }
+            ]
+          }
         }
       ]
     },
     {
       "module": "src/connectors_builtin_node/client_installed_source_material_bridge.mbt",
-      "sha256": "f2e7d968a8065fe8b39f6592fc243e1f8c84377845cbc1fd9479a3a2fb203718",
+      "sha256": "f8f21a0cfa8d0cf7d779cdd87a80ec8e19147ad1b8f0e44701f854c7938ae7d3",
       "exports": [],
       "operations": [
         {
@@ -49147,6 +49225,10 @@
         {
           "name": "client_program_installed_source_construction_capacity",
           "declaration": "client_program_installed_source_construction_capacity ( retained_nodes : Int64 , retained_text_bytes : Int64 , retained_wire_bytes : Int64 , workspace_nodes : Int64 , workspace_text_bytes : Int64 , workspace_wire_bytes : Int64 , ) - > Result [ @ execution . ExecutionCapacity , @ resources . PreparationCapacityIssue ]"
+        },
+        {
+          "name": "client_program_installed_source_retained_construction_capacity",
+          "declaration": "client_program_installed_source_retained_construction_capacity ( original : @ execution . ExecutionCapacity ? , ) - > Result [ @ execution . ExecutionCapacity ? , @ resources . PreparationCapacityIssue ]"
         },
         {
           "name": "client_program_mark_installed_source_io_transfer_uncertain",
@@ -49326,6 +49408,80 @@
               {
                 "path": "src/connectors/sheets/host_node/declaration_construction_wbtest.mbt",
                 "anchor": "test \"range and clear native constructor quote composes onto original Source without issuing a declaration\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_installed_source_retained_construction_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "replace that entry with its original retained-output quantity."
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "replace that entry with its original retained-output quantity."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "replace that entry with its original retained-output quantity."
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "replace that entry with its original retained-output quantity."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "replace that entry with its original retained-output quantity."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/installed_source_material.mbt",
+                "anchor": "pub fn retained_installed_source_construction_capacity("
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Pure original typed quantity DATA, no callback, current observation or I/O. Only the closed original Source caller selects it after retaining all outputs."
+            },
+            "cancellation": {
+              "notApplicable": "No cancellation, resource retirement, work refund or physical acknowledgement is issued."
+            },
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "replace that entry with its original retained-output quantity."
+              },
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "material.providers[providerIndex] = retained;"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/installed_source_provider_capacity_wbtest.mbt",
+                "anchor": "test \"retained Source constructor DATA cannot invent a completion or refund original work\""
+              },
+              {
+                "path": "src/connectors_builtin_node/client_installed_source_material_bridge_wbtest.mbt",
+                "anchor": "test \"retained Source optional constructor quantity remains typed and absent quantity refuses\""
+              },
+              {
+                "path": "adapters/host-node/installed-effect-profile-cleanup.test.mjs",
+                "anchor": "test('closed Command completion keeps its actual retained output quantity"
               }
             ]
           }

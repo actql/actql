@@ -51,6 +51,7 @@ function sourceMaterial(original) {
     ContinueInstalledSourceMaterial: original.moon.clientProgramContinueInstalledSourceMaterial,
     InstalledSourceConstructionCapacity: original.moon.clientProgramInstalledSourceConstructionCapacity,
     ComposeInstalledSourceConstructionCapacity: original.moon.clientProgramComposeInstalledSourceConstructionCapacity,
+    InstalledSourceRetainedConstructionCapacity: original.moon.clientProgramInstalledSourceRetainedConstructionCapacity,
     ReserveInstalledSourceConstruction: original.moon.clientProgramReserveInstalledSourceConstruction,
     ReconcileInstalledSourceConstruction: original.moon.clientProgramReconcileInstalledSourceConstruction,
     CompleteInstalledSourceMaterial: original.moon.clientProgramCompleteInstalledSourceMaterial,
@@ -65,7 +66,7 @@ function sourceMaterial(original) {
     FinishInstalledSourceIoAfterCleanup: original.moon.clientProgramFinishInstalledSourceIoAfterCleanup,
   });
   for (const [name, fn] of Object.entries(methods)) {
-    if (name === 'ComposeInstalledSourceConstructionCapacity' && fn === undefined) continue;
+    if ((name === 'ComposeInstalledSourceConstructionCapacity' || name === 'InstalledSourceRetainedConstructionCapacity') && fn === undefined) continue;
     if (typeof fn !== 'function') fail('InstalledSourceInitializationRuntimeUnavailable');
   }
   const material = {methods, input: undefined, unit: undefined, capacity: undefined,
@@ -520,7 +521,8 @@ export function beginInstalledSourceInitialization(services, installation, conne
         fail('InvalidInstalledSourceCommandProjection');
       }
       const {capacity: capacityFor, project} = sourceProjectionMethods(projection);
-      if (typeof material.methods.ComposeInstalledSourceConstructionCapacity !== 'function') fail('InstalledSourceInitializationRuntimeUnavailable');
+      if (typeof material.methods.ComposeInstalledSourceConstructionCapacity !== 'function' ||
+          typeof material.methods.InstalledSourceRetainedConstructionCapacity !== 'function') fail('InstalledSourceInitializationRuntimeUnavailable');
       scope.commandAttempted = true;
       const units = BigInt(scope.connectorId.length) + BigInt(scope.baseEnvironmentWire.length) + BigInt(viewsWire.length);
       // The expected identity belongs to the FINAL Catalog, not its original
@@ -534,6 +536,7 @@ export function beginInstalledSourceInitialization(services, installation, conne
           if (!quantity || typeof quantity !== 'object' || nodeTypes.isProxy(quantity)) fail('InstalledSourceCommandConstructionUnavailable');
           // Retain the selected native peak before the original current/resize
           // call. Failed projections keep that same Source constructor debt.
+          const providerIndex = material.providers.length;
           material.providers.push(quantity);material.inputs.push(projection);
           reserveSource(original, material);
           if (!scope.active || material.phase !== 'working' || scope.prepared !== undefined) fail('ForeignInstalledSourceInitialization');
@@ -554,12 +557,23 @@ export function beginInstalledSourceInitialization(services, installation, conne
               fail('InstalledSourceCommandCatalogMismatch');
             }
             material.inputs.push(projected, declared, commands, definition, outputWire);
+            // The closed native declaration exported only these canonical
+            // wires/plain frozen outputs. Its original local parser/identity/
+            // writer work cannot escape this successful synchronous result.
+            // Keep the owner's retained output quantity before a later phase;
+            // any throw/invalid async/invalid output above keeps the full peak.
+            const retained = checked(Reflect.apply(material.methods.InstalledSourceRetainedConstructionCapacity,
+              original.moon, [quantity]));
+            if (!retained || typeof retained !== 'object' || nodeTypes.isProxy(retained) ||
+                material.providers[providerIndex] !== quantity) fail('InstalledSourceCommandConstructionUnavailable');
+            material.inputs.push(quantity, retained);
+            material.providers[providerIndex] = retained;
           } finally {material.busy = false;}
           // A successfully installed original Source may already retain the
           // SAME immutable Environment inputs on this same initial parent.
           // Match the original entry and complete wires, never a CID/name or
-          // copied holder. Both native declarations/peaks stay independently
-          // retained; only the duplicate Environment assembly is omitted.
+          // copied holder. Both completed native output quantities stay
+          // independently retained; only duplicate Environment assembly is omitted.
           const sourceScope = scope.role !== 'effect' ? undefined : material.contexts.find(other =>
             other.role === 'source' && other.finishedSuccessfully === true && other.source !== undefined &&
             other.closed !== true && other.installation === scope.installation &&
