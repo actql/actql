@@ -337,7 +337,7 @@ fn saved_result_fence_packet(
         _ => None
       }
       guard document is Some(document) else { break }
-      let bytes = @encode.document_bytes(document) + if end == start { 0 } else { 1 }
+      let bytes = @encode.document_bytes(document) + (if end == start { 0 } else { 1 })
       if bytes > 4096 - used {
         break
       }
@@ -367,7 +367,7 @@ fn validate_saved_result_fences(
   let mut index = 0
   let mut scalar_only = false
   while index < fences.length() {
-    match if scalar_only { None } else { saved_result_fence_packet(fences, index) } {
+    match (if scalar_only { None } else { saved_result_fence_packet(fences, index) }) {
       Some((wire, end)) =>
         match packet(wire) {
           Err(code) => return Err(code)
