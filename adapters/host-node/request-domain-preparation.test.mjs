@@ -378,7 +378,7 @@ test('Request registration reserves the final live slot across another Request c
       return {};
     }};
     states.forEach(state => {state.context = {runtime: moon};});
-    object = requestManagerMethods(['adoptPreparation'], {current() {}, fail, runs, liveRuns,
+    object = requestManagerMethods(['adoptPreparation'], {current() {}, fail, runs, liveRuns, reportCapacityRefusal() {},
       producerForRequest: request => producers[requests.indexOf(request)], originals: {installation: {}}, checked: v => v});
     if (nativeFailure) {
       let caught = false; try {invoke(0);} catch (cause) {caught = true; assert.equal(cause, null);} assert(caught);
