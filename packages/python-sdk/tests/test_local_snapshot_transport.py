@@ -208,7 +208,8 @@ class SnapshotTransportTests(unittest.TestCase):
                 with self.assertRaises(LocalStorageError):
                     reader.query_current(reader, 1, 'original', 'one', consume, lambda: None)
                 with self.assertRaises(ValueError): reader.current()
-            with self.assertRaises(LocalStorageError):
+            # The second attempted use is the existing poisoned-reader refusal.
+            with self.assertRaises(ValueError):
                 store.inspect_namespaces((ByteFence('epoch', 0, b'original-epoch'),),
                     inspect=inspect, current=lambda: None)
             self.assertEqual(len(rows), 1)
@@ -233,7 +234,8 @@ class SnapshotTransportTests(unittest.TestCase):
                 finally:
                     store._connection.set_authorizer(None)
                 with self.assertRaises(ValueError): reader.current()
-            with self.assertRaises(sqlite3.DatabaseError):
+            # The second attempted use is the existing poisoned-reader refusal.
+            with self.assertRaises(ValueError):
                 store.inspect_namespaces((ByteFence('epoch', 0, b'original-epoch'),),
                     inspect=inspect, current=lambda: None)
             self.assertFalse(store._physical.in_transaction)
