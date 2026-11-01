@@ -121,13 +121,21 @@ fn host_current_observation(
         cursor,
       )
     },
+    post_original=Some(() => {
+      if value.closing || value.runtime_closing {
+        Err(-41)
+      } else {
+        Ok(())
+      }
+    }),
   )
 }
 
 ///|
 fn host_current_observe_original(
   record : StoredHostCurrent,
-  checked_operation : () -> Result[Int64, Int],
+  checked_operation : (  post_original? : (() -> Result[Unit, Int])? = None,
+) -> Result[Int64, Int],
   current : () -> Result[Unit, Int],
   select_row : (String) -> Result[@host.ClientJournalPhysicalRow?, Int],
 ) -> Result[@host.ClientLocalAdoptionCurrentObservation[Ref[Int]], Int] {

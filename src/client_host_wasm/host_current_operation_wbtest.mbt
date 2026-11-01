@@ -268,3 +268,62 @@ test "entered physical current callback cannot return a ready operation after re
     @buffers.close_pool(pool).unwrap()
   }
 }
+
+///|
+test "closed entered observation shares only its adjacent pure projection sample" {
+  let (record, pool) = operation_current_fixture()
+  let checks = Ref(0)
+  let reads = Ref(0)
+  let entered = Ref(false)
+  let row : @host.ClientJournalPhysicalRow = {
+    key: "adoption",
+    revision: 0L,
+    body: record.adoption_original.unwrap(),
+  }
+  let current = () => Ok(())
+  let observe = () => {
+    let post : (() -> Result[Unit, Int])? = if entered.val {
+      Some(() => Ok(()))
+    } else {
+      None
+    }
+    host_current_observe_original(
+      record,
+      () => {
+        checks.val += 1
+        Ok(1L)
+      },
+      current,
+      cursor => {
+        reads.val += 1
+        Ok(if cursor == "" { Some(row) } else { None })
+      },
+      post_original=post,
+    )
+  }
+  let material = @host.bind_client_local_adopted_host_material(record.store, observe).unwrap()
+  record.material = Some(material)
+  assert_eq(checks.val, 2)
+  assert_eq(reads.val, 2)
+  entered.val = true
+  assert_true(
+    @host.client_local_adopted_account_outcome(material, record.store, {
+      principal: "operator",
+      connection: "local-files",
+      resource: "run",
+      operation: "read",
+    }) is Ok(@authorization.Allow(_)),
+  )
+  assert_true(
+    @host.client_local_adopted_account_outcome(material, record.store, {
+      principal: "foreign",
+      connection: "local-files",
+      resource: "run",
+      operation: "read",
+    }) is Ok(@authorization.Deny(_)),
+  )
+  assert_eq(checks.val, 4)
+  assert_eq(reads.val, 2)
+  @buffers.close_buffer(pool, record.slot).unwrap()
+  @buffers.close_pool(pool).unwrap()
+}
