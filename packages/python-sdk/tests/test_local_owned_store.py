@@ -248,6 +248,39 @@ class LocalOwnedStoreInitializationTests(unittest.TestCase):
         self.assertEqual(opened[0].calls, 1)
         self.assertTrue(original.store_claimed)
 
+    def test_catalog_observation_uses_existing_query_budget_and_rejects_boolean_permission(self):
+        for returned in (True, False, -1, 2, None):
+            with self.subTest(returned=returned):
+                path, root, original = self.fixture()
+                store = self.open(path / original.name, root, original)
+                store.compare_exchange('catalog-fence', None, b'original')
+                callbacks = _JournalCallbacks(lambda: None, store)
+                def inspect(reader):
+                    callbacks.reader = reader
+                    self.assertEqual(callbacks.schema(), -41)
+                    self.assertIsInstance(callbacks.failure, ValueError)
+                with patch.object(type(store._physical), '_journal_schema', return_value=returned):
+                    with self.assertRaises(ValueError):
+                        store.inspect_namespaces((ByteFence('catalog-fence', 0, b'original'),),
+                            inspect=inspect, current=lambda: None)
+        path, root, original = self.fixture()
+        store = LocalByteStore.initialize_owned_file(path / original.name, root, original,
+            max_records=8, max_record_bytes=4096, max_payload_bytes=32768,
+            max_inspection_queries=1)
+        self.addCleanup(store.close)
+        store.compare_exchange('catalog-fence', None, b'original')
+        failure = []
+        def inspect(reader):
+            self.assertEqual(reader.journal_schema(reader, lambda: None), 1)
+            try:
+                reader.read('unrelated', 'row', lambda _: None)
+            except LocalStorageError as error:
+                failure.append(error)
+        with self.assertRaises(LocalStorageError) as caught:
+            store.inspect_namespaces((ByteFence('catalog-fence', 0, b'original'),),
+                inspect=inspect, current=lambda: None)
+        self.assertIs(caught.exception, failure[0])
+
     def test_original_file_generation_is_bound_before_sql_and_claimed_once(self):
         path, root, value = self.fixture()
         observed = root.observe(value)
