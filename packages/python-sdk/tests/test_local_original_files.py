@@ -21,6 +21,23 @@ class LocalOriginalFileTests(unittest.TestCase):
         file.chmod(0o600)
         return file
 
+    def test_repeated_eof_observation_reuses_only_immutable_snapshot_after_each_physical_check(self):
+        with TemporaryDirectory(prefix='actql-eof-observation-') as directory:
+            path = Path(directory)
+            self.saved(path, body=b'one')
+            root = self.root(path)
+            self.addCleanup(root.close)
+            reader = root.open_original('account', max_bytes=3)
+            self.addCleanup(lambda: root.close_original(reader))
+            chunk = root.read_original(reader); root.release_original_chunk(reader, chunk)
+            original = root.observe_original(reader)
+            with patch.object(root, '_validate_original', wraps=root._validate_original) as current:
+                for _ in range(5): self.assertIs(root.observe_original(reader), original)
+                self.assertEqual(current.call_count, 5)
+            (path / 'account').write_bytes(b'two')
+            with self.assertRaises(LocalFileError): root.observe_original(reader)
+            self.assertTrue(reader.invalid)
+
     def test_exact_raw_chunks_and_snapshot_preserve_unicode_crlf_and_null(self):
         with TemporaryDirectory(prefix='actql-originals-') as directory:
             path = Path(directory)
