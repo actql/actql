@@ -592,9 +592,10 @@ function installedModelRequestFixture({serialized = false, refusePlan, refuseSco
     serializationGraph: selected.serializationGraph, queryTimePreparation: queryTime};
   const inferSelections = new WeakMap([[prepared, selected]]), earlyMockInferPlans = new WeakMap();
   const control = {}, moon = {clientProgramAcquisitionCount: () => 0};
-  let invoke, managed;
+  let invoke, managed, saved = false;
   const clientOperationError = code => Object.assign(new Error(code), {code});
-  const preparation = {prepareManagedModelRun(runtime, p, r, model) {
+  const preparation = {admitResultPublicationRun(p) {assert.equal(p, prepared); calls.push('publication');},
+    prepareManagedModelRun(runtime, p, r, model) {
     assert.deepEqual([runtime, p, r], [moon, prepared, request]);
     assert.equal(earlyMockInferPlans.get(prepared).model, model);
     assert.equal(model.compiled, compilation); assert.equal(model.runDefinition, definition);
@@ -622,7 +623,21 @@ function installedModelRequestFixture({serialized = false, refusePlan, refuseSco
   const construct = Function(...Object.keys(ports), 'return ' + hostSource.slice(constructor.start, constructor.end))(...Object.values(ports));
   const submission = {preparedProgram: prepared, requestId: 'original-request'};
   invoke = () => construct(submission, request, selected);
-  return {invoke, calls, scope, prepared, selected, plan, request, early: () => earlyMockInferPlans.get(prepared),
+  let admission;
+  const findAdmission = n => {
+    if (!n || typeof n !== 'object') return;
+    if (n.type === 'FunctionExpression' && n.params.length === 1 && n.params[0].name === 'submission' &&
+        hostSource.slice(n.start, n.end).includes('prepareInstalledRequestModelRun')) {assert(!admission); admission = n;}
+    for (const v of Object.values(n)) {if (Array.isArray(v)) v.forEach(findAdmission); else if (v && typeof v === 'object') findAdmission(v);}
+  };
+  findAdmission(parse(hostSource, {ecmaVersion: 'latest', sourceType: 'module'})); assert(admission);
+  const failures = new WeakMap(), admissionPorts = {...ports,
+    requestOf: () => ({requested: request, acquisitionCount: 0, effectful: false}),
+    journal: {resolveDefinition: () => saved ? {physicalStartReserved: true} : undefined}, namespaceId: 'fixture',
+    prepareInstalledRequestModelRun: construct, admissionFailures: failures};
+  const admit = Function(...Object.keys(admissionPorts), 'return (' + hostSource.slice(admission.start, admission.end) + ');')(...Object.values(admissionPorts));
+  return {invoke, admit: () => admit(submission), saved: () => {saved = true;}, failures, submission,
+    calls, scope, prepared, selected, plan, request, early: () => earlyMockInferPlans.get(prepared),
     foreignRequest: () => construct(submission, {}, selected),
     get managed() {return managed;}};
 }
@@ -662,4 +677,27 @@ test('installed Model caller cuts its same managed aliases only after original r
   assert.equal(f.early().plan, undefined); assert.equal(f.early().managed, undefined);
   assert.equal(f.early().requested, undefined); assert.equal(model.closed, true);
   Reflect.apply(release, model, []); assert.equal(f.early().aliasesReleased, true);
+});
+
+
+test('actual installed admission routes sourcefree Model and Content through the same original constructor before submission', () => {
+  for (const serialized of [false, true]) {
+    const f = installedModelRequestFixture({serialized});
+    f.admit(); assert.equal(f.early().model.scope, f.scope); assert.equal(f.early().managed, f.managed);
+    f.admit(); assert.equal(f.calls.filter(v => v === 'compile/Definition').length, 1);
+    assert.equal(f.calls.filter(v => v === 'construct').length, 1);
+    assert.equal(f.calls.filter(v => v === 'same prefix').length, serialized ? 1 : 0);
+    assert.equal(f.failures.has(f.submission), false);
+  }
+});
+
+test('actual installed admission observes saved physical work and preserves fresh partial failure without replacement Scope', () => {
+  const saved = installedModelRequestFixture({serialized: true}); saved.saved(); saved.admit();
+  assert.equal(saved.early(), undefined); assert.deepEqual(saved.calls, ['publication']);
+  const primary = new Error('original fresh Model Scope completion'), failed = installedModelRequestFixture({refuseScope: primary});
+  assert.throws(failed.admit, cause => cause === primary); assert.throws(failed.admit, cause => cause === primary);
+  assert.equal(failed.failures.get(failed.submission).error, primary);
+  assert.equal(failed.failures.get(failed.submission).requested, failed.request);
+  assert.equal(failed.early().model.scope, failed.scope);
+  assert.equal(failed.calls.filter(v => v === 'construct').length, 1);
 });

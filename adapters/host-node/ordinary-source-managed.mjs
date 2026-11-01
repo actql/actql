@@ -642,7 +642,9 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
             const infers = checked(Reflect.apply(inferOccurrences, moon, [prepared]));
             const serializations = Reflect.apply(serializationOccurrences, moon, [prepared]);
             if (!Array.isArray(infers) || !Array.isArray(serializations)) fail('InvalidHostRuntimeResult');
-            if (infers.length !== 0 && serializations.length !== 0) fail('NodeManagedRunPlanUnavailable');
+            // Model owns the mixed constructor borrow too. Its typed Graph
+            // and prefix constructors validate the original composition;
+            // inventory counts do not authorize an ordinary Pure module.
             state.compilationFamily = infers.length !== 0 ? 'model'
               : serializations.length !== 0 ? 'content' : 'pure';
             if (state.compilationFamily !== 'pure') {

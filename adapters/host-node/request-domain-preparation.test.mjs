@@ -94,11 +94,12 @@ test('domain selection refuses once and a consumed inventory return keeps its or
   assert.equal(g.calls.filter(value => value === 'content').length, 1);
 });
 
-test('mixed inventories and foreign domain originals refuse before ordinary or domain construction', async () => {
+test('mixed inventory retains the Model constructor borrow and a foreign original still refuses before domain construction', async () => {
   const mixed = fixture({infers: [{}], serializations: [{}]});
-  await assert.rejects(mixed.read(), {code: 'NodeManagedRunPlanUnavailable'});
-  assert.equal(mixed.state.holder, mixed.inventory);
-  assert(!mixed.calls.includes('model')); assert(!mixed.calls.includes('content'));
+  assert.equal((await mixed.read()).prepared, mixed.prepared);
+  assert.equal(mixed.state.holder, mixed.selected); assert.equal(mixed.state.inventoryHolder, undefined);
+  assert.equal(mixed.state.compilationFamily, 'model');
+  assert.deepEqual(mixed.calls, ['check', 'compile', 'inventory', 'infer', 'serialization', 'model', 'return-inventory']);
   assert(!mixed.calls.includes('ordinary-module'));
   const foreign = fixture({infers: [{}], foreign: true});
   await assert.rejects(foreign.read(), {code: 'ForeignInstalledSourceProducer'});
