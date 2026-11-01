@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import './rest-source-page-typed.test.mjs';
 import test from 'node:test';
 import {mkdtemp, open, writeFile} from 'node:fs/promises';
 import {readFileSync} from 'node:fs';
