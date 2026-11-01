@@ -57,6 +57,11 @@ class PhysicalFixture:
 
                 self.linker.define_func('actql_host', name,
                     wasmtime.FuncType(params, [wasmtime.ValType.i64() if name == 'journal_revision' else i32]), callback)
+            for name in ('input_copy', 'publisher_copy', 'journal_query_copy', 'journal_copy'):
+                params, result = _IMPORT_SIGNATURES[name]
+                self.linker.define_func('actql_host', name, wasmtime.FuncType(
+                    [i32 for _ in params.split()], [i32]),
+                    getattr(self, name), access_caller=True)
             for name, (params, result) in _IMPORT_SIGNATURES.items():
                 if not name.startswith('execution_child_'):
                     continue
@@ -112,6 +117,19 @@ class PhysicalFixture:
 
     def publisher_finish(self, ticket):
         return -2
+
+    def input_copy(self, *args):
+        # The separately selected scalar fixture does not acquire a bulk port.
+        return -5
+
+    def publisher_copy(self, *args):
+        return -2
+
+    def journal_query_copy(self, *args):
+        return -41
+
+    def journal_copy(self, *args):
+        return -41
 
     def journal_refuse(self, *args):
         # Existing unrelated physical fixtures have no original journal port.

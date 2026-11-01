@@ -109,6 +109,10 @@ if(process.argv.includes('--build-and-consume')){
   assert.equal(packed.success,true);
   assert.equal(packed.module_sha256,digest);
   assert.deepEqual(packed.cases,['original_wasmtime_i64_packed_transport']);
+  const bulk=JSON.parse(run(python,['scripts/fixtures/python-local-original-bulk-abi.py',module]));
+  assert.equal(bulk.success,true);
+  assert.equal(bulk.module_sha256,digest);
+  assert.deepEqual(bulk.cases,['original_wasmtime_bounded_block_transport']);
   if(resultPublicationBoundary){
     const library=process.env.ACTQL_PYTHON_DUCKDB_LIBRARY;
     const libraryDigest=process.env.ACTQL_PYTHON_DUCKDB_SHA256;
