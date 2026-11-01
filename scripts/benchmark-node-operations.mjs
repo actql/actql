@@ -81,7 +81,8 @@ export const nodeWarmSmallQueryFixtures = Object.freeze([
       + 'SELECT SUM(amount) AS total FROM items',
     expected: [{total: '4.00'}]},
   {operation: 'warm-parameters', text: 'SELECT @id AS id',
-    options: Object.freeze({parameters: Object.freeze({id: 7}),
+    parameters: Object.freeze({id: 7}),
+    options: Object.freeze({
       parameterDeclarations: Object.freeze({id: Object.freeze({type: 'number'})})}), expected: [{id: 7}]},
   {operation: 'warm-unicode', text: "SELECT 'é😀' AS label", expected: [{label: 'é😀'}]},
 ].map(fixture => Object.freeze({...fixture,
@@ -238,7 +239,8 @@ export async function runNodeWarmBenchmark({manifestPath, consumer, output, cont
         const execute = async () => {
           try {
             if (query || operation === 'warm-select') {
-              observed = await client.sql(query?.text ?? 'SELECT 1 AS id', query?.options).all();
+              observed = await client.sql(query?.text ?? 'SELECT 1 AS id',
+                query?.parameters, query?.options).all();
               assert.deepEqual(observed, expected);
             } else if (operation === 'warm-result') {
               observed = await original.result('main').all(); assert.deepEqual(observed, expected);
