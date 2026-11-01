@@ -2954,6 +2954,12 @@ Cold status uses the existing reference-only submission projection and retains
 its original saved snapshot until output cleanup. It returns only a saved SDK
 state whose original observation key and public revision match the same Run.
 It neither refreshes availability nor issues an observation clock or counter.
+The existing validation export forwards both saved state and saved original
+metadata projections to the same retained-lookup validator, alongside the
+existing lookup and Result projections. Its private kind selection does not
+replace original snapshot, current, configuration, full wire or output-lifetime
+checks. Missing original snapshots still refuse before observation; no success
+or live Run can be inferred from the projection kind alone.
 Missing historical state remains unavailable, and refused validation retains
 the same output/input loans. The live Run status/observation path stays separate.
 

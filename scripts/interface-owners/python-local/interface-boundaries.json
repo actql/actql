@@ -13837,6 +13837,14 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "src/client_host_wasm/saved_lookup_validation_dispatch_wbtest.mbt",
+                "anchor": "test \"saved status exported validation reaches its existing original snapshot guard\""
+              },
+              {
+                "path": "src/client_host_wasm/submission_append.mbt",
+                "anchor": "kind: 4 | 5 | 6 | 7 | 8, .."
               }
             ]
           }

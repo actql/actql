@@ -3,6 +3,8 @@ import fs from 'node:fs';
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 const artifact = process.argv[2];
+const selected = process.argv[4] ?? 'original_metadata_wbtest.mbt';
+assert.match(selected, /^[a-z0-9_]+_wbtest\.mbt$/u);
 const bytes = fs.readFileSync(artifact);
 const module = new WebAssembly.Module(bytes);
 let instance;
@@ -54,15 +56,15 @@ for (const entry of WebAssembly.Module.imports(module)) {
 instance = new WebAssembly.Instance(module, imports);
 instance.exports._start();
 const info = JSON.parse(fs.readFileSync(process.argv[3], 'utf8'));
-const tests = info.tests['original_metadata_wbtest.mbt'];
-assert.ok(tests.length >= 2);
+const tests = info.tests[selected];
+assert.ok(Array.isArray(tests) && tests.length >= 2);
 for (const {index} of tests) {
-  instance.exports.moonbit_test_driver_internal_execute('original_metadata_wbtest.mbt', index);
+  instance.exports.moonbit_test_driver_internal_execute(selected, index);
 }
 instance.exports.moonbit_test_driver_finish();
 const results = output.split('\n').filter(line => line.startsWith('{')).map(line => JSON.parse(line)).filter(row => row.type === 'result');
 assert.equal(hostCalls, 0);
 assert.equal(results.length, tests.length);
 assert.deepEqual(results.map(row => row.index).sort((a,b)=>a-b), tests.map(row => row.index).sort((a,b)=>a-b));
-assert.ok(results.every(row => row.message === ''), 'Original metadata entrance assertion failed');
+assert.ok(results.every(row => row.message === ''), 'Selected pure Core entrance assertion failed');
 console.log(JSON.stringify({actualTests: results.length, hostCalls, wasmSha256: crypto.createHash('sha256').update(bytes).digest('hex')}));
