@@ -27,34 +27,35 @@ function visit(node, select) {
     else if (child && typeof child === 'object') visit(child, select);
   }
 }
-function admission(preparation, sourceProfile, prepared, request, count) {
+function admission(preparation, sourceProfile, prepared, request, count, prepareTimedRunInvocation) {
   let declaration;
   visit(ast, node => {
     if (node.type === 'VariableDeclaration' && node.declarations.length === 1 &&
         node.declarations[0].id.name === 'admitPreparedSubmission') declaration = node;
   });
   assert(declaration);
-  return new Function('preparation', 'sourceProfile', 'prepared', 'request', 'count', `
+  return new Function('preparation', 'sourceProfile', 'prepared', 'request', 'count', 'prepareTimedRunInvocation', `
     const requestOf=()=>({requested:request,acquisitionCount:count,effectful:false});
     const moon={clientProgramSerializationOccurrences:()=>[]},inferSelections=new WeakMap();
     const admissionFailures=new WeakMap(),holderRefusal=undefined;
     const clientOperationError=code=>Object.assign(new Error(code),{code});
     ${source.slice(declaration.start, declaration.end)}
     return admitPreparedSubmission({preparedProgram:prepared});
-  `)(preparation, sourceProfile, prepared, request, count);
+  `)(preparation, sourceProfile, prepared, request, count, prepareTimedRunInvocation);
 }
 
 test('ordinary installed Source admission uses the same generic Host Run service', () => {
   const prepared = {}, request = {}, profile = {sources: [{}, {}]}, calls = [];
+  const invocation = () => assert.fail('This Source admission only forwards the original timed constructor');
   const preparation = {
     admitResultPublicationRun(value) {assert.strictEqual(value, prepared); calls.push('publication');},
-    prepareManagedSourceRun(runtime, value, requested, selected) {
+    prepareManagedSourceRun(runtime, value, requested, selected, originalInvocation) {
       assert.equal(typeof runtime.clientProgramSerializationOccurrences, 'function');
       assert.strictEqual(value, prepared); assert.strictEqual(requested, request);
-      assert.strictEqual(selected, profile); calls.push('same-source-parent');
+      assert.strictEqual(selected, profile); assert.strictEqual(originalInvocation, invocation); calls.push('same-source-parent');
     },
   };
-  admission(preparation, profile, prepared, request, 2);
+  admission(preparation, profile, prepared, request, 2, invocation);
   assert.deepEqual(calls, ['publication', 'same-source-parent']);
 });
 

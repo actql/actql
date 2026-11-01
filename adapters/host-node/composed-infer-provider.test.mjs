@@ -187,3 +187,26 @@ test('failed composed binding leaves cleanup to the already retained evidence ow
   assert.equal(retained.cleanup(), true);
   assert.equal(cleanups, 1);
 });
+
+
+test('Request component constructor forwards its already backed original prefix without changing the selected Graph', () => {
+  const occurrence = {}, graph = {}, prefix = new Proxy({}, {
+    get() {assert.fail('the opaque original prefix must not be inspected');},
+  }), provider = {}, selected = Object.freeze({occurrence, graph, provider: {}});
+  let open, constructors = 0;
+  const moon = {clientProgramComposedInferLocalProvider(actual, start, _issue, _retain, _cleanup, sequence) {
+    constructors++;
+    assert.strictEqual(actual, occurrence);
+    assert.strictEqual(sequence, prefix);
+    open = start;
+    return provider;
+  }};
+  const component = openNodeComposedInferProvider({moon, selected, inputPrefix: prefix, deferred: true});
+  assert.strictEqual(component.provider, provider);
+  assert.equal(constructors, 1);
+  assert.equal(Object.hasOwn(selected, 'computePrefix'), false);
+  assert.equal(open([]), undefined);
+  assert.equal(component.failure().message, 'ComposedInferOriginalContextUnavailable');
+  assert.throws(() => component.bindOriginal({selected, retainOperation() {}}),
+    {message: 'ComposedInferAlreadyBound'});
+});

@@ -610,6 +610,7 @@ pub fn start_accounted_row_input_acquisition(
       transfer_bytes,
       retained,
       execution + execution_scratch,
+      quantities=@resources.quantity_neutral_amounts(ledger),
     ) {
     Ok(value) => value
     Err(issue) => return Err(Physical(issue))

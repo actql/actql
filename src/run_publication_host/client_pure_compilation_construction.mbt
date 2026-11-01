@@ -407,7 +407,16 @@ fn measure_prepared_client_compilation_construction_owned(
       if components.is_empty() {
         []
       } else {
-        client_multi_infer_required_profiles(())
+        client_multi_infer_required_profiles(
+          (),
+          content_contract=if components.any(component => {
+              component.serialization is Some(_)
+            }) {
+            Some(())
+          } else {
+            None
+          },
+        )
       },
     )
   } catch {

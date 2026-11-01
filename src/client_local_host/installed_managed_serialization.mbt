@@ -12,7 +12,7 @@ priv enum ClientInstalledContentPreparation {
 }
 
 ///|
-/// The actual source-free Content prefix and its original compilation. The
+/// The actual Content prefix and its original compilation. The
 /// caller backs constructor/output coexistence before entry. Keeping these
 /// originals eliminates the former capacity/start provider reconstruction;
 /// neither the record nor its requirements projection is physical admission.
@@ -42,6 +42,8 @@ fn prepare_installed_managed_serialization(
   execution : @execution.SequenceExecutionLimits,
   measurement : @execution.FixedInputGuardMeasureLimits,
   workspace : @execution.ExecutionCapacity?,
+  model? : @publication_host.ClientInferPlanGraph? = None,
+  query_time? : @publication_host.ClientQueryTimePreparation? = None,
 ) -> Result[
   ClientInstalledManagedSerializationPreparation,
   ClientInstalledManagedRunIssue,
@@ -53,10 +55,25 @@ fn prepare_installed_managed_serialization(
     @publication_host.client_compiled_run_matches_tasks(
       compiled, prepared, compilation,
     ) &&
-    @publication_host.prepared_client_acquisition_count(prepared) == 0 &&
+    (
+      @publication_host.prepared_client_acquisition_count(prepared) == 0 ||
+      (
+        model is Some(_) &&
+        @publication_host.prepared_client_acquisition_count(prepared) == 1
+      )
+    ) &&
     @publication_host.prepared_client_composed_infer_occurrences(prepared)
     is Some(infers) &&
-    infers.is_empty() &&
+    (match model {
+      None => infers.is_empty()
+      Some(graph) =>
+        infers.length() == 1 &&
+        physical_equal(graph.owner, prepared) &&
+        compilation.infers.length() == 1 &&
+        physical_equal(compilation.infers[0], graph) &&
+        graph.serialization is Some(original) &&
+        physical_equal(original, component)
+    }) &&
     @publication_host.prepared_client_serialization_occurrences(prepared) ==
     [(component.task, component.step)] else {
     return Err(ForeignOriginal)
@@ -67,6 +84,15 @@ fn prepare_installed_managed_serialization(
     ) {
     Err(_) => return Err(ForeignOriginal)
     Ok(_) => ()
+  }
+  if query_time is Some(original) {
+    match
+      @publication_host.client_query_time_preparation_context_for_run(
+        original, prepared, compiled, definition, request,
+      ) {
+      Err(_) => return Err(ForeignOriginal)
+      Ok(_) => ()
+    }
   }
   let installed = contracts.original
   guard serialization_prefix_provider(
@@ -79,6 +105,9 @@ fn prepare_installed_managed_serialization(
       installed.ordered_body,
       execution,
       measurement,
+      acquired=@publication_host.prepared_client_acquisition_count(prepared) ==
+        1,
+      query_time=query_time.map(original => (original, request)),
     )
     is Some((sequence, provider, prefix_capacity)) else {
     return Err(Unsupported)
@@ -134,6 +163,39 @@ pub fn start_installed_managed_serialization_prefix(
   prepared : @publication_host.PreparedClientProgram,
   selected : ClientInstalledManagedSerializationPreparation,
 ) -> Result[ClientSerializationPrefix, ClientInstalledManagedRunIssue] {
+  start_installed_managed_serialization_prefix_owned(
+    owner,
+    prepared,
+    selected,
+    None,
+  )
+}
+
+///|
+/// Borrow this SAME adopted Model Run's original accounted capture. Its
+/// retained Query is the only input-binding source; no query/provider/Source
+/// or Ledger is reconstructed. The capture remains alive until prefix cleanup.
+pub fn start_installed_managed_acquired_serialization_prefix(
+  owner : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  selected : ClientInstalledManagedSerializationPreparation,
+  capture : @row_source_host.RowSourceCapture,
+) -> Result[ClientSerializationPrefix, ClientInstalledManagedRunIssue] {
+  start_installed_managed_serialization_prefix_owned(
+    owner,
+    prepared,
+    selected,
+    Some(capture),
+  )
+}
+
+///|
+fn start_installed_managed_serialization_prefix_owned(
+  owner : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  selected : ClientInstalledManagedSerializationPreparation,
+  capture : @row_source_host.RowSourceCapture?,
+) -> Result[ClientSerializationPrefix, ClientInstalledManagedRunIssue] {
   guard owner.original is Some(original) &&
     physical_equal(original, owner) &&
     owner.content is SerializationContent(plan) &&
@@ -149,14 +211,67 @@ pub fn start_installed_managed_serialization_prefix(
   preparation_module_call(
     () => {
       guard owner.ledger is Some(ledger) &&
-        owner.preparation
-        is Some(PreparationContentManaged(admission, original)) &&
-        physical_equal(original, prepared) &&
+        owner.preparation is Some(preparation) &&
         owner.content is SerializationContent(current) &&
         physical_equal(current, selected) else {
         return Err(Retired)
       }
-      let preparation = PreparationContentManaged(admission, original)
+      // Both purposes retain the same Content prefix on this exact adopted
+      // Run. A bare Pure preparation without that original cannot enter.
+      let admission = match preparation {
+        PreparationContentManaged(admission, original)
+        | PureManaged(admission, original) => {
+          guard physical_equal(original, prepared) else {
+            return Err(ForeignOriginal)
+          }
+          admission
+        }
+        _ => return Err(ForeignOriginal)
+      }
+      let original_capture = match capture {
+        None => {
+          guard @publication_host.prepared_client_acquisition_count(prepared) ==
+            0 else {
+            return Err(ForeignOriginal)
+          }
+          None
+        }
+        Some(capture) => {
+          guard owner.captured_preparation is Some(plan) &&
+            physical_equal(plan.prepared, prepared) &&
+            physical_equal(plan.request, selected.request) &&
+            plan.captures.length() == 1 else {
+            return Err(ForeignOriginal)
+          }
+          let capacity = plan.captures[0]
+          guard @row_source_host.row_capture_original_prefix_requirement(
+              capture, ledger,
+            )
+            is Some(requirement) &&
+            physical_equal(requirement, capacity.requirement) else {
+            return Err(ForeignOriginal)
+          }
+          let source = match @row_source_host.row_capture_source(capture) {
+            Ok(value) => value
+            Err(issue) => return Err(SerializationPrefix(Capture(issue)))
+          }
+          // Capture liveness invokes the transport verifier. Keep and check
+          // the same original Plan/capacity after those callbacks, before the
+          // prefix reservation or any producer-read/input allocation.
+          match
+            check_installed_managed_run_original(owner, ledger, preparation) {
+            Err(issue) => return Err(issue)
+            Ok(_) => ()
+          }
+          guard owner.captured_preparation is Some(current) &&
+            physical_equal(current, plan) &&
+            plan.captures.length() == 1 &&
+            physical_equal(plan.captures[0], capacity) else {
+            return Err(ForeignOriginal)
+          }
+          Some((capture, plan, capacity, source))
+        }
+      }
       let reservation = match
         @resources.reserve_node_managed_run_attempt(
           admission,
@@ -165,6 +280,9 @@ pub fn start_installed_managed_serialization_prefix(
           0L,
           @execution.execution_capacity_retained_bytes(selected.capacity),
           @execution.execution_capacity_execution_bytes(selected.capacity),
+          // This selected Content prefix consumes no Model quantities. The
+          // SAME configured Ledger and ordinary reservation validate this DATA.
+          quantities=@resources.quantity_neutral_amounts(ledger),
         ) {
         Err(@resources.Resource(issue)) =>
           return Err(SerializationPrefix(Physical(issue)))
@@ -173,34 +291,121 @@ pub fn start_installed_managed_serialization_prefix(
       }
       let prefix = serialization_prefix_reservation(ledger, reservation)
       owner.serialization_prefix = Some(prefix)
-      match check_installed_managed_run_original(owner, ledger, preparation) {
-        Err(issue) => {
-          // No provider has started. Keep the original here if settlement
-          // refuses, so later cleanup cannot lose this reservation.
-          prefix.child_cleaned = true
-          ignore(cleanup_client_serialization_prefix(prefix))
-          return Err(issue)
-        }
-        Ok(_) => ()
-      }
-      match
-        start_retained_serialization_prefix_provider(
-          prefix,
-          selected.sequence,
-          selected.provider,
-          [],
-          selected.execution,
-          selected.measurement,
-        ) {
-        Err(issue) => return Err(SerializationPrefix(issue))
-        Ok(_) => ()
-      }
-      match check_installed_managed_run_original(owner, ledger, preparation) {
-        Err(issue) => return Err(issue)
-        Ok(original_ledger) if physical_equal(original_ledger, ledger) =>
-          Ok(prefix)
-        Ok(_) => Err(ForeignOriginal)
-      }
+      let provider_entered = Ref(false)
+      preparation_module_call(
+        () => {
+          match
+            check_installed_managed_run_original(owner, ledger, preparation) {
+            Err(issue) => return Err(issue)
+            Ok(_) => ()
+          }
+          let inputs = match original_capture {
+            None => []
+            Some((capture, plan, capacity, source)) => {
+              let requirement = capacity.requirement
+              let query = @query.query_sequence_requirement(
+                @planning.query_material_owner(
+                  @planning.query_requirement_material(requirement),
+                ),
+              )
+              guard @publication_host.client_compiled_run_serialization(
+                  selected._observed_compiled,
+                )
+                is Some(component) else {
+                return Err(ForeignOriginal)
+              }
+              let inputs = match
+                prepare_acquired_serialization_prefix_inputs(
+                  prepared,
+                  component.task,
+                  source,
+                  selected.sequence,
+                  query,
+                  selected.execution,
+                  selected.measurement,
+                  ledger,
+                  None,
+                ) {
+                Err(issue) => return Err(SerializationPrefix(issue))
+                Ok(value) => value
+              }
+              // Bindings can reenter the original capture verifier. This
+              // reservation-specific check keeps Source and prefix on the
+              // same Ledger; a failed callback never permits a replacement.
+              guard @row_source_host.row_capture_original_prefix_requirement(
+                  capture,
+                  ledger,
+                  prefix=Some(reservation),
+                )
+                is Some(current_requirement) &&
+                physical_equal(current_requirement, requirement) &&
+                owner.captured_preparation is Some(current) &&
+                physical_equal(current, plan) &&
+                plan.captures.length() == 1 &&
+                physical_equal(plan.captures[0], capacity) else {
+                return Err(ForeignOriginal)
+              }
+              inputs
+            }
+          }
+          // Acquired input/liveness callbacks crossed a new boundary. Observe
+          // the SAME physical Run current once after them, then fence every
+          // retained original without another callback. Empty-input startup
+          // keeps its existing callback-free post-construction fence.
+          let current_ledger = match original_capture {
+            None =>
+              check_installed_managed_run_original(owner, ledger, preparation)
+            Some(_) => require_installed_managed_run(owner)
+          }
+          match current_ledger {
+            Err(issue) => return Err(issue)
+            Ok(current) if physical_equal(current, ledger) => ()
+            Ok(_) => return Err(ForeignOriginal)
+          }
+          guard owner.content is SerializationContent(original) &&
+            physical_equal(original, selected) &&
+            owner.serialization_prefix is Some(original_prefix) &&
+            physical_equal(original_prefix, prefix) else {
+            return Err(ForeignOriginal)
+          }
+          if original_capture is Some((_, plan, capacity, _)) {
+            guard owner.captured_preparation is Some(current) &&
+              physical_equal(current, plan) &&
+              plan.captures.length() == 1 &&
+              physical_equal(plan.captures[0], capacity) else {
+              return Err(ForeignOriginal)
+            }
+          }
+          provider_entered.val = true
+          match
+            start_retained_serialization_prefix_provider(
+              prefix,
+              selected.sequence,
+              selected.provider,
+              inputs,
+              selected.execution,
+              selected.measurement,
+            ) {
+            Err(issue) => return Err(SerializationPrefix(issue))
+            Ok(_) => ()
+          }
+          match
+            check_installed_managed_run_original(owner, ledger, preparation) {
+            Err(issue) => return Err(issue)
+            Ok(original_ledger) if physical_equal(original_ledger, ledger) =>
+              Ok(prefix)
+            Ok(_) => Err(ForeignOriginal)
+          }
+        },
+        () => {
+          // Before provider entry, only closed borrowed inputs exist. A throw
+          // after entry keeps the same retained child/Unknown for its cleanup.
+          if !provider_entered.val {
+            prefix.child_cleaned = true
+            ignore(cleanup_client_serialization_prefix(prefix))
+          }
+        },
+      )
     },
     () => owner.source_free_opening = false,
   )

@@ -17,6 +17,7 @@ assert.ok(cleanup);assert.ok(issuance);
 const construct=compileFunction(`
   let {children,originalPreparation,modelController}=context;
   let released=false,pendingSetup,holding,publication,issuance,execution,restoredSource,sourceContinuation;
+  let preflightCleanup=context.preflightCleanup;
   let closeAttempted=false;
   ${source.slice(cleanup.start,cleanup.end)}
   return {cleanup,pending:()=>!released};`,['context','checked']);
@@ -106,4 +107,23 @@ test('composed legacy issuer selection retains its existing explicit metadata Le
       assert.equal(retained,262272n);assert.equal(work,3);issued++;return {$tag:1,_0:ledger};}},
     1,args=>args,checked);
   assert.strictEqual(selected.ledger,ledger);assert.equal(issued,1);
+});
+
+
+test('composed Model retains the entry original partial preflight owner and does not retire Scope while it is pending', async () => {
+  const events = [], cause = new Error('OriginalPartialSitePending');
+  let siteReady = false, released = false;
+  const original = {status: () => ({pending: !released}), retry() {
+    events.push('original-retry'); if (!siteReady) throw cause;
+    released = true; return {pending: false};
+  }};
+  const parent = {async retire() {events.push('Scope'); return true;}};
+  const owner = construct({children: [], originalPreparation: parent,
+    modelController: {}, preflightCleanup: original}, checked);
+  await assert.rejects(owner.cleanup(), error => error === cause);
+  assert.equal(owner.pending(), true); assert.deepEqual(events, ['original-retry']);
+  siteReady = true;
+  assert.equal(await owner.cleanup(), true);
+  assert.deepEqual(events, ['original-retry', 'original-retry', 'Scope']);
+  assert.equal(owner.pending(), false);
 });

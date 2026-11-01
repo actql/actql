@@ -312,3 +312,69 @@ test('deferred composed read never invokes an inherited then getter on the retur
   assert.equal(component.failure(), undefined);
   await component.operation().close();
 });
+
+
+function originalNodeComposedFixture({refuse = false} = {}) {
+  const f = fixture(), layout = {}, installation = {}, probability = {},
+    nodeInstallation = Object.freeze({layout, installation, probability,
+      runtimeArtifactCid: 'original-runtime', layoutArtifactCid: 'original-layout'});
+  f.originalPreparation.nodeInstallation = nodeInstallation;
+  const cause = Object.freeze({issue: 'OriginalNodeLayoutRefusal'});
+  let claims = 0;
+  f.moon.clientProgramClaimInferNodePreparationLayout = (...actual) => {
+    claims++;
+    const expected = [f.originalPreparation.read, f.rawCompiled, f.rawDefinition,
+      f.graph, layout, installation, 'original-runtime', 'original-layout', probability];
+    assert.equal(actual.length, expected.length);
+    for (const [i, value] of expected.entries()) assert.strictEqual(actual[i], value);
+    f.calls.push(['layout-claim', ...actual]);
+    return refuse ? {$tag: 0, _0: cause} : {$tag: 1, _0: f.consumer};
+  };
+  f.moon.clientProgramClaimInferOriginalPreparation = () => assert.fail('Node installation cannot use the private envelope claim');
+  return {...f, cause, claims: () => claims};
+}
+
+test('installed Node composed input claims the same original layout before its original composed start', async () => {
+  const f = originalNodeComposedFixture();
+  const operation = openNodeInferOperation(f.options);
+  assert.equal(f.claims(), 1);
+  assert.equal(f.calls[0][0], 'layout-claim');
+  assert.equal(f.calls[1][0], 'start');
+  assert.strictEqual(f.calls[1][3], f.prefix);
+  assert.strictEqual(f.calls[1][8], f.consumer);
+  assert.strictEqual(operation.originalResourceScope(), f.originalPreparation.scope);
+  await operation.close();
+  assert.equal(originalReadCleaned(f.originalPreparation.read), true);
+});
+
+test('installed Node composed layout refusal preserves the original cause and never retries an envelope or unowned start', () => {
+  const f = originalNodeComposedFixture({refuse: true});
+  assert.throws(() => openNodeInferOperation(f.options), error =>
+    error.code === 'MoonBitHostFailure' && error.cause === f.cause);
+  assert.equal(f.claims(), 1);
+  assert.equal(f.calls.length, 1);
+  assert.equal(originalReadCleaned(f.originalPreparation.read), false);
+});
+
+
+test('Request composed suffix binder receives the same active only after original operation custody and retains typed failure', async () => {
+  const f = originalNodeComposedFixture(), cause = Object.freeze({issue: 'OriginalSuffixBindingRefused'});
+  let open, retained, binds = 0;
+  f.moon.clientProgramComposedInferLocalProvider = (_occurrence, actualOpen) => {open = actualOpen; return {};};
+  const component = openNodeComposedInferProvider({moon: f.moon,
+    selected: {occurrence: f.occurrence, graph: f.graph, provider: f.provider},
+    sources: f.sources, control: f.originalPreparation.control,
+    originalPreparation: f.originalPreparation,
+    retainOperation(value) {retained = value;},
+    bindComputeSuffix(active) {
+      assert.strictEqual(active, f.active); assert(retained); binds++;
+      return {$tag: 0, _0: cause};
+    }});
+  assert.strictEqual(open(f.inputs), undefined);
+  assert.equal(binds, 1); assert.strictEqual(component.operation(), retained);
+  assert.strictEqual(component.failure().cause, cause);
+  assert.strictEqual(component.failure().cleanupOwner, retained);
+  assert.equal(originalReadCleaned(f.originalPreparation.read), false);
+  await retained.close();
+  assert.equal(originalReadCleaned(f.originalPreparation.read), true);
+});

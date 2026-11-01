@@ -142,6 +142,10 @@ pub fn prepare_client_serialization_prefix(
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
+  query_time? : (
+    @publication_host.ClientQueryTimePreparation,
+    @publication_host.ClientRequestIdentity,
+  )? = None,
 ) -> @execution.GeneratedSequence? {
   let graph = @publication_host.prepared_client_graph(prepared)
   guard @strategy.graph_task_owner(graph, task) is Some(owner) &&
@@ -156,6 +160,7 @@ pub fn prepare_client_serialization_prefix(
     values_body,
     fragment_body,
     ordered_body,
+    query_time~,
   )
 }
 
@@ -170,6 +175,10 @@ pub fn prepare_client_acquired_serialization_prefix(
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
+  query_time? : (
+    @publication_host.ClientQueryTimePreparation,
+    @publication_host.ClientRequestIdentity,
+  )? = None,
 ) -> @execution.GeneratedSequence? {
   if @publication_host.select_client_single_keyed_acquisition(prepared)
     is Ok(Some(keyed)) {
@@ -181,9 +190,16 @@ pub fn prepare_client_acquired_serialization_prefix(
       ) &&
       @publication_host.client_keyed_direct_acquisition_coordinates(keyed)
       is Some((_, input, direct_task)) &&
-      @publication_host.prepare_client_query_acquisition(
-        prepared, direct_task, input,
-      )
+      (match query_time {
+        None =>
+          @publication_host.prepare_client_query_acquisition(
+            prepared, direct_task, input,
+          )
+        Some((original, request)) =>
+          @publication_host.prepare_client_query_acquisition_at_query_time(
+            prepared, direct_task, input, original, request,
+          )
+      })
       is Ok(query) &&
       @sourceviews.query_acquisition_capture(query) is @pipeline.Step(capture) &&
       prepare_client_serialization_prefix_owned(
@@ -194,6 +210,7 @@ pub fn prepare_client_acquired_serialization_prefix(
         values_body,
         fragment_body,
         ordered_body,
+        query_time~,
       )
       is Some(prefix) else {
       return None
@@ -228,9 +245,17 @@ pub fn prepare_client_acquired_serialization_prefix(
       values_body,
       fragment_body,
       ordered_body,
+      query_time~,
     )
   }
-  guard @publication_host.prepare_client_query_acquisition(prepared, task, 0)
+  guard (match query_time {
+      None =>
+        @publication_host.prepare_client_query_acquisition(prepared, task, 0)
+      Some((original, request)) =>
+        @publication_host.prepare_client_query_acquisition_at_query_time(
+          prepared, task, 0, original, request,
+        )
+    })
     is Ok(query) &&
     @sourceviews.query_acquisition_capture(query) is @pipeline.Step(capture) &&
     prepare_client_serialization_prefix_owned(
@@ -241,6 +266,7 @@ pub fn prepare_client_acquired_serialization_prefix(
       values_body,
       fragment_body,
       ordered_body,
+      query_time~,
     )
     is Some(prefix) else {
     return None
@@ -294,6 +320,10 @@ fn prepare_client_serialization_prefix_owned(
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
+  query_time? : (
+    @publication_host.ClientQueryTimePreparation,
+    @publication_host.ClientRequestIdentity,
+  )? = None,
 ) -> @execution.GeneratedSequence? {
   let (graph, barrier) = match prepared {
     Pure(value) =>
@@ -346,6 +376,7 @@ fn prepare_client_serialization_prefix_owned(
       ),
     ),
     serialization_input=Some((task, barrier)),
+    query_time~,
   )
   .to_option()
   .bind(sequences => sequences.get(0))

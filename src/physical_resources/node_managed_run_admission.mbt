@@ -393,6 +393,7 @@ pub fn[P] reserve_node_managed_run_attempt(
   transfer_bytes : Int64,
   retained_bytes : Int64,
   execution_bytes : Int64,
+  quantities? : QuantityAmounts? = None,
 ) -> Result[Reservation, ImportedChildLedgerIssue] {
   if transfer_bytes < 0L || retained_bytes < 0L || execution_bytes < 0L {
     return Err(Resource(InvalidCharge))
@@ -406,11 +407,7 @@ pub fn[P] reserve_node_managed_run_attempt(
     Ok(_) => ()
   }
   reserve_attempt_current(
-    ledger,
-    transfer_bytes,
-    retained_bytes,
-    execution_bytes,
-    None,
+    ledger, transfer_bytes, retained_bytes, execution_bytes, quantities,
   ).map_err(issue => Resource(issue))
 }
 

@@ -74,6 +74,7 @@ pub fn[P] reserve_node_managed_run_attempt(
   _transfer_bytes : Int64,
   _retained_bytes : Int64,
   _execution_bytes : Int64,
+  quantities? : QuantityAmounts? = None,
 ) -> Result[Reservation, ImportedChildLedgerIssue] {
   match value {
 

@@ -27,7 +27,7 @@ assert.equal(slices.match(/(?:function |const )(?:sameRun|prepareManagedRun|prep
 
 function fixture({afterFactoryFailure,readFailure,settleFailure,acquisitionCount=2}={}){
   const calls=[],prepared={},request={},compiled={},compilation={},runDefinition={},graph={},occurrence={};
-  const records=new Map(),original={},admission={},value={},scope={},read={};
+  const records=new Map(),original={},value={},scope={},read={};
   const sources=[],closedSources=new Set(),sourceReady=[true,true],sourceCloseCalls=[0,0];
   const cleanedModelReads=new WeakSet(),settledReads=new WeakSet();
   const cleanup={settleFailure};
@@ -35,29 +35,24 @@ function fixture({afterFactoryFailure,readFailure,settleFailure,acquisitionCount
   const current=()=>{calls.push('current');if(issued&&afterFactoryFailure)throw afterFactoryFailure;};
   const fail=code=>{throw Object.assign(new Error(code),{code});};
   const checked=value=>value;
-  const sourceManaged={prepareLocalMockModelRun(p,model){
+  const prepareOwnedModel=(p,model)=>{
     assert.strictEqual(p,prepared);calls.push('original');issued=true;
     model.budget={bootstrapRetainedBytes:10n,bootstrapExecutionBytes:10n,
       readRetainedBytes:10n,readExecutionBytes:10n,modelRetainedBytes:10n,modelExecutionBytes:10n};
     return original;
-  },assertCurrent:current};
+  };
+  const sourceManaged={assertCurrent:current};
   const setup={},providers=[{}];
   const moon={clientProgramAcquisitionCount:p=>{assert.strictEqual(p,prepared);return acquisitionCount;},
     clientProgramOpenInstalledManagedSourceFreeComposedInferHost(v,p,r,registry,values,fragment,ordered,actualProviders){
       assert.strictEqual(v,value);assert.strictEqual(p,prepared);assert.strictEqual(r,request);
       assert.deepEqual([registry,values,fragment,ordered],['registry','values','fragment','ordered']);
       assert.strictEqual(actualProviders,providers);calls.push('open-source-free');return setup;
-    },clientProgramNodeLocalMockModelRunPrepare(o,p){
-    assert.strictEqual(o,original);assert.strictEqual(p,prepared);calls.push('admission');return admission;
-  },clientProgramInstalledManagedRunCheck(v,p,r){
+    },clientProgramInstalledManagedRunCheck(v,p,r){
     assert.strictEqual(v,value);assert.strictEqual(p,prepared);assert.strictEqual(r,request);calls.push('check');
   },clientProgramInstalledSourceReadRetire(){calls.push('retire-source');},
   clientProgramInstalledManagedRunRetire(v){assert.strictEqual(v,value);calls.push('retire-parent');}};
-  const control={beginCheckedClientMockModelManagedRun(a,p,r,c,d,g){
-    assert.strictEqual(a,admission);assert.strictEqual(p,prepared);assert.strictEqual(r,request);
-    assert.strictEqual(c,compiled);assert.strictEqual(d,runDefinition);assert.strictEqual(g,graph);
-    calls.push('scope');return[value,scope];
-  },prepareCheckedClientInferOriginalRead(c,d,g,s){
+  const control={prepareCheckedClientInferOriginalRead(c,d,g,s){
     assert.strictEqual(c,compiled);assert.strictEqual(d,runDefinition);
     assert.strictEqual(g,graph);assert.strictEqual(s,scope);calls.push('read');
     if(readFailure)throw readFailure;readIssued=true;return read;
@@ -80,7 +75,7 @@ function fixture({afterFactoryFailure,readFailure,settleFailure,acquisitionCount
     assert.strictEqual(p,prepared);assert.strictEqual(r,request);
     assert.strictEqual(records.get(prepared).model,model);
     // Existing trusted Host port, not the removed Local standalone issuer.
-    sourceManaged.prepareLocalMockModelRun(p,model);
+    prepareOwnedModel(p,model);
     model.scope=scope;calls.push('scope');
     releaseRequestAliases=()=>Reflect.apply(model.releaseAliases,model,[]);
     return{original,value};
@@ -91,7 +86,7 @@ function fixture({afterFactoryFailure,readFailure,settleFailure,acquisitionCount
       retirementFor(value=>cleanedModelReads.has(value)),prepareRequestModel);
   sources.push(...[0,1].map(index=>({close:()=>api.closeSource(index)})));
   const plan={compiled,runDefinition},selection={graph,occurrence};
-  return{...api,calls,records,prepared,request,plan,selection,compilation,control,original,admission,value,scope,
+  return{...api,calls,records,prepared,request,plan,selection,compilation,control,original,value,scope,
     sourceReady,sourceCloseCalls,cleanup,setup,providers,
     releaseRequestAliases:()=>releaseRequestAliases(),
     loseCurrent(error){afterFactoryFailure=error;},originalModelCleaned:()=>cleanedModelReads.add(read),

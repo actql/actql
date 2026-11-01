@@ -185,3 +185,52 @@ test "Request diagnostic accounting observes one reservation across snapshot gro
   )
   assert_eq(stopped.3, active.3)
 }
+
+///|
+test "fixed Request control envelope preserves original upper bound through the common tariff" {
+  assert_eq(
+    @execution.preparation_representation_cost(
+      request_preparation_fixed_control_envelope,
+    ),
+    Some(10368L),
+  )
+  assert_eq(
+    client_request_preparation_control_capacity(client_local_resource_policy()),
+    Some((14464L, 0L)),
+  )
+  assert_eq(request_preparation_fixed_control_envelope.owned_utf16_units, 0L)
+  assert_eq(request_preparation_fixed_control_envelope.owned_wire_bytes, 0L)
+}
+
+///|
+test "fixed Request control envelope leaves proportional snapshot growth on its same original reservation" {
+  let input = [1]
+  let owner = begin_request_preparation(
+    request_parent_fixture(input),
+    input,
+    client_local_resource_policy(),
+  ).unwrap()
+  let reservation = owner.capacity
+  let before = @resources.ledger_usage(owner.ledger)
+  assert_eq(before.reserved_retention_bytes, 14464L)
+  reserve_request_snapshot(owner, input, 16L, 2L).unwrap()
+  let small = @resources.ledger_usage(owner.ledger)
+  reserve_request_snapshot(owner, input, 256L, 32L).unwrap()
+  let large = @resources.ledger_usage(owner.ledger)
+  assert_true(physical_equal(reservation, owner.capacity))
+  assert_eq(small.live_reservations, before.live_reservations)
+  assert_eq(large.live_reservations, before.live_reservations)
+  assert_true(large.reserved_retention_bytes > small.reserved_retention_bytes)
+  assert_true(large.reserved_execution_bytes > small.reserved_execution_bytes)
+  assert_eq(
+    large.reserved_retention_bytes - small.reserved_retention_bytes,
+    request_snapshot_data_bytes(256L, 32L).unwrap() -
+    request_snapshot_data_bytes(16L, 2L).unwrap(),
+  )
+  assert_eq(
+    client_request_preparation_control_capacity(client_local_resource_policy()),
+    Some((14464L, 0L)),
+  )
+  abort_request_preparation_after_cleanup(owner).unwrap()
+  assert_eq(@resources.ledger_usage(owner.ledger).live_reservations, 0)
+}

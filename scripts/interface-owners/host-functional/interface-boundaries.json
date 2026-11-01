@@ -27826,7 +27826,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -27989,7 +27989,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -28621,7 +28621,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -44181,7 +44181,7 @@
     {
       "module": "adapters/host-node/entry.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "78dc2438ff88c83d05a439ab1e0ed939327bc1cdbb4f828ab38c39b7e4154732",
+      "sha256": "30a9b3cbb5b562353695a31befb42b32d2f230cf741d79e25c90957bd074cc04",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
@@ -44235,7 +44235,8 @@
             "setup",
             "options",
             "signal",
-            "observer"
+            "observer",
+            "cleanup"
           ],
           "async": false
         },
@@ -44431,6 +44432,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "inputsOutputs": [
@@ -44445,6 +44450,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Program and stage execution"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "identity": [
@@ -44459,6 +44468,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "ownership": [
@@ -44477,6 +44490,10 @@
               {
                 "path": "adapters/host-node/client-values-fragment-capacity.test.mjs",
                 "anchor": "test('execution failure wrapper retains the exact first failure and cleanup handle'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "synchronization": [
@@ -44491,6 +44508,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "failure": [
@@ -44509,6 +44530,10 @@
               {
                 "path": "adapters/host-node/client-values-fragment-capacity.test.mjs",
                 "anchor": "test('execution failure wrapper retains the exact first failure and cleanup handle'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "cancellation": [
@@ -44523,6 +44548,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Program and stage execution"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "resources": [
@@ -44537,6 +44566,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "# Connector ownership and repository layout"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "extension": [
@@ -44551,6 +44584,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Program and stage execution"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
               }
             ],
             "verification": [
@@ -44569,6 +44606,14 @@
               {
                 "path": "adapters/host-node/client-values-fragment-capacity.test.mjs",
                 "anchor": "test('execution failure wrapper retains the exact first failure and cleanup handle'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "adapters/host-node/infer-installed-original-cleanup.test.mjs",
+                "anchor": "Request-owned plain acquired Model"
               }
             ]
           }
@@ -59632,7 +59677,7 @@
     {
       "module": "adapters/host-node/installed-content-run.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a2594293fefe96f0962eaf0446e0c3ce869fb5ab14b5e63585d050fdd9dde94e",
+      "sha256": "ccb0cdf83bf99bd204377dba1f01edc4c74300f44b388939d9ef9def43b28f4e",
       "role": "physical-io",
       "owner": "Existing Content/Reference/completion/publication Owners and physical Store writer",
       "exports": [
@@ -59660,6 +59705,7 @@
             "prepareKeyedManagedRun",
             "borrowKeyedManagedLedger",
             "prepareSerializationManagedRun",
+            "prepareModelManagedRun",
             "retainPreparation"
           ],
           "async": false
@@ -59892,6 +59938,15 @@
           "parameters": [
             "preparedProgram",
             "plan",
+            "sourceCapacity"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeContentRun/installNodeContentRun#11",
+          "parameters": [
+            "preparedProgram",
+            "plan",
             "direct",
             "acquisition",
             "capacity",
@@ -59900,7 +59955,7 @@
           "async": false
         },
         {
-          "name": "installNodeContentRun/installNodeContentRun#11",
+          "name": "installNodeContentRun/installNodeContentRun#12",
           "parameters": [
             "preparedProgram",
             "preparedEffect",
@@ -59917,6 +59972,23 @@
           "name": "installNodeContentRun/installNodeContentRun#2",
           "parameters": [
             "preparedProgram",
+            "plan",
+            "request",
+            "model"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeContentRun/installNodeContentRun#3",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeContentRun/installNodeContentRun#4",
+          "parameters": [
+            "preparedProgram",
             "serializationGraph",
             "request",
             "keyedAcquisition"
@@ -59924,7 +59996,7 @@
           "async": false
         },
         {
-          "name": "installNodeContentRun/installNodeContentRun#3",
+          "name": "installNodeContentRun/installNodeContentRun#5",
           "parameters": [
             "preparedProgram",
             "plan",
@@ -59934,14 +60006,14 @@
           "async": false
         },
         {
-          "name": "installNodeContentRun/installNodeContentRun#4",
+          "name": "installNodeContentRun/installNodeContentRun#6",
           "parameters": [
             "options"
           ],
           "async": false
         },
         {
-          "name": "installNodeContentRun/installNodeContentRun#5",
+          "name": "installNodeContentRun/installNodeContentRun#7",
           "parameters": [
             "preparedProgram",
             "plan",
@@ -59957,14 +60029,7 @@
           "async": true
         },
         {
-          "name": "installNodeContentRun/installNodeContentRun#6",
-          "parameters": [
-            "options"
-          ],
-          "async": false
-        },
-        {
-          "name": "installNodeContentRun/installNodeContentRun#7",
+          "name": "installNodeContentRun/installNodeContentRun#8",
           "parameters": [
             "prepared",
             "plan",
@@ -59977,18 +60042,9 @@
           "async": false
         },
         {
-          "name": "installNodeContentRun/installNodeContentRun#8",
-          "parameters": [
-            "options"
-          ],
-          "async": false
-        },
-        {
           "name": "installNodeContentRun/installNodeContentRun#9",
           "parameters": [
-            "preparedProgram",
-            "plan",
-            "sourceCapacity"
+            "options"
           ],
           "async": false
         },
@@ -60056,13 +60112,14 @@
             "installNodeContentRun/installNodeContentRun/recheck/recheck",
             "installNodeContentRun/installNodeContentRun/recheckBinding/recheckBinding",
             "installNodeContentRun/installNodeContentRun/verifyRead/verifyRead",
+            "installNodeContentRun/installNodeContentRun#10",
             "installNodeContentRun/installNodeContentRun#2",
             "installNodeContentRun/installNodeContentRun#3",
-            "installNodeContentRun/installNodeContentRun#4",
             "installNodeContentRun/installNodeContentRun#5",
             "installNodeContentRun/installNodeContentRun#6",
             "installNodeContentRun/installNodeContentRun#7",
             "installNodeContentRun/installNodeContentRun#8",
+            "installNodeContentRun/installNodeContentRun#9",
             "installNodeContentRun/run/run"
           ],
           "exports": [
@@ -60509,7 +60566,7 @@
         },
         {
           "operations": [
-            "installNodeContentRun/installNodeContentRun#9"
+            "installNodeContentRun/installNodeContentRun#11"
           ],
           "exports": [],
           "attributes": {
@@ -60669,7 +60726,7 @@
         },
         {
           "operations": [
-            "installNodeContentRun/installNodeContentRun#10"
+            "installNodeContentRun/installNodeContentRun#12"
           ],
           "exports": [],
           "attributes": {
@@ -60853,7 +60910,7 @@
         },
         {
           "operations": [
-            "installNodeContentRun/installNodeContentRun#11"
+            "installNodeContentRun/installNodeContentRun#4"
           ],
           "exports": [],
           "attributes": {
@@ -69341,8 +69398,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "src/client_local_host/installed_mock_model_run.mbt",
-                "anchor": "pub fn begin_installed_mock_model_managed_run("
+                "path": "src/client_local_host/preparation_request_model_body.mbt",
+                "anchor": "pub fn[I] prepare_request_model_read_scope("
               },
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
@@ -69351,8 +69408,8 @@
             ],
             "identity": [
               {
-                "path": "src/client_local_host/installed_mock_model_run.mbt",
-                "anchor": "pub fn begin_installed_mock_model_managed_run("
+                "path": "src/client_local_host/preparation_request_model_body.mbt",
+                "anchor": "pub fn[I] prepare_request_model_read_scope("
               }
             ],
             "ownership": [
@@ -69393,8 +69450,8 @@
                 "anchor": "###### Ordinary Host composition"
               },
               {
-                "path": "src/client_local_host/installed_mock_model_run.mbt",
-                "anchor": "pub fn begin_installed_mock_model_managed_run("
+                "path": "src/client_local_host/preparation_request_model_body.mbt",
+                "anchor": "pub fn[I] prepare_request_model_read_scope("
               }
             ],
             "extension": [
@@ -69409,8 +69466,12 @@
                 "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
               },
               {
-                "path": "adapters/host-node/ordinary-source-managed.test.mjs",
-                "anchor": "test('ordinary Mock purpose retains one request original and both real Source children without conversion'"
+                "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
+                "anchor": "test('Local Model retains the exact Request carrier before the actual Host constructor and never issues a standalone Run'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-project-source-managed.test.mjs",
+                "anchor": "test('Project Source distinguishes same-declaration occurrences and preserves pending child custody'"
               }
             ]
           }
@@ -70204,8 +70265,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "src/client_local_host/installed_mock_model_run.mbt",
-                "anchor": "pub fn begin_installed_mock_model_managed_run("
+                "path": "src/client_local_host/preparation_request_model_body.mbt",
+                "anchor": "pub fn[I] prepare_request_model_read_scope("
               },
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
@@ -70218,8 +70279,8 @@
             ],
             "identity": [
               {
-                "path": "src/client_local_host/installed_mock_model_run.mbt",
-                "anchor": "pub fn begin_installed_mock_model_managed_run("
+                "path": "src/client_local_host/preparation_request_model_body.mbt",
+                "anchor": "pub fn[I] prepare_request_model_read_scope("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -70280,8 +70341,8 @@
                 "anchor": "###### Ordinary Host composition"
               },
               {
-                "path": "src/client_local_host/installed_mock_model_run.mbt",
-                "anchor": "pub fn begin_installed_mock_model_managed_run("
+                "path": "src/client_local_host/preparation_request_model_body.mbt",
+                "anchor": "pub fn[I] prepare_request_model_read_scope("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -70304,12 +70365,16 @@
                 "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
               },
               {
-                "path": "adapters/host-node/ordinary-source-managed.test.mjs",
-                "anchor": "test('ordinary Mock purpose retains one request original and both real Source children without conversion'"
+                "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
+                "anchor": "Local Model pending Sources"
               },
               {
                 "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
-                "anchor": "Local Model pending Sources"
+                "anchor": "test('Local Model retains the exact Request carrier before the actual Host constructor and never issues a standalone Run'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-project-source-managed.test.mjs",
+                "anchor": "test('Project Source distinguishes same-declaration occurrences and preserves pending child custody'"
               }
             ]
           }
@@ -70332,8 +70397,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "src/client_local_host/installed_mock_model_run.mbt",
-                "anchor": "pub fn begin_installed_mock_model_managed_run("
+                "path": "src/client_local_host/preparation_request_model_body.mbt",
+                "anchor": "pub fn[I] prepare_request_model_read_scope("
               },
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
@@ -70346,8 +70411,8 @@
             ],
             "identity": [
               {
-                "path": "src/client_local_host/installed_mock_model_run.mbt",
-                "anchor": "pub fn begin_installed_mock_model_managed_run("
+                "path": "src/client_local_host/preparation_request_model_body.mbt",
+                "anchor": "pub fn[I] prepare_request_model_read_scope("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -70408,8 +70473,8 @@
                 "anchor": "###### Ordinary Host composition"
               },
               {
-                "path": "src/client_local_host/installed_mock_model_run.mbt",
-                "anchor": "pub fn begin_installed_mock_model_managed_run("
+                "path": "src/client_local_host/preparation_request_model_body.mbt",
+                "anchor": "pub fn[I] prepare_request_model_read_scope("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -70432,12 +70497,16 @@
                 "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
               },
               {
-                "path": "adapters/host-node/ordinary-source-managed.test.mjs",
-                "anchor": "test('ordinary Mock purpose retains one request original and both real Source children without conversion'"
+                "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
+                "anchor": "Local Model pending Sources"
               },
               {
                 "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
-                "anchor": "Local Model pending Sources"
+                "anchor": "test('Local Model retains the exact Request carrier before the actual Host constructor and never issues a standalone Run'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-project-source-managed.test.mjs",
+                "anchor": "test('Project Source distinguishes same-declaration occurrences and preserves pending child custody'"
               }
             ]
           }
@@ -70460,8 +70529,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "src/client_local_host/installed_mock_model_run.mbt",
-                "anchor": "pub fn begin_installed_mock_model_managed_run("
+                "path": "src/client_local_host/preparation_request_model_body.mbt",
+                "anchor": "pub fn[I] prepare_request_model_read_scope("
               },
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
@@ -70474,8 +70543,8 @@
             ],
             "identity": [
               {
-                "path": "src/client_local_host/installed_mock_model_run.mbt",
-                "anchor": "pub fn begin_installed_mock_model_managed_run("
+                "path": "src/client_local_host/preparation_request_model_body.mbt",
+                "anchor": "pub fn[I] prepare_request_model_read_scope("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -70536,8 +70605,8 @@
                 "anchor": "###### Ordinary Host composition"
               },
               {
-                "path": "src/client_local_host/installed_mock_model_run.mbt",
-                "anchor": "pub fn begin_installed_mock_model_managed_run("
+                "path": "src/client_local_host/preparation_request_model_body.mbt",
+                "anchor": "pub fn[I] prepare_request_model_read_scope("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -70560,12 +70629,16 @@
                 "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
               },
               {
-                "path": "adapters/host-node/ordinary-source-managed.test.mjs",
-                "anchor": "test('ordinary Mock purpose retains one request original and both real Source children without conversion'"
+                "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
+                "anchor": "Local Model pending Sources"
               },
               {
                 "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
-                "anchor": "Local Model pending Sources"
+                "anchor": "test('Local Model retains the exact Request carrier before the actual Host constructor and never issues a standalone Run'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-project-source-managed.test.mjs",
+                "anchor": "test('Project Source distinguishes same-declaration occurrences and preserves pending child custody'"
               }
             ]
           }
@@ -70606,8 +70679,8 @@
             ],
             "identity": [
               {
-                "path": "src/client_local_host/installed_mock_model_run.mbt",
-                "anchor": "pub fn begin_installed_mock_model_managed_run("
+                "path": "src/client_local_host/preparation_request_model_body.mbt",
+                "anchor": "pub fn[I] prepare_request_model_read_scope("
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -70668,8 +70741,8 @@
             ],
             "resources": [
               {
-                "path": "src/client_local_host/installed_mock_model_run.mbt",
-                "anchor": "pub fn begin_installed_mock_model_managed_run("
+                "path": "src/client_local_host/preparation_request_model_body.mbt",
+                "anchor": "pub fn[I] prepare_request_model_read_scope("
               },
               {
                 "path": "src/connectors_builtin_node/client_composed_infer_bridge.mbt",
@@ -107762,7 +107835,6 @@
     },
     {
       "module": "adapters/host-node/ordinary-source-managed.mjs",
-      "sha256": "a326873e5c02ff6852ac929700ab0653976f54ddcf21967188c197757a9c558c",
       "exports": [
         "assertOrdinarySourcePreparationCurrent",
         "prepareOrdinaryProjectSourceManagedInstallation",
@@ -107842,6 +107914,14 @@
           "name": "prepareOrdinaryManagedInstallation/closeChild/work/work",
           "parameters": [],
           "async": true
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/constructRequestDomain",
+          "parameters": [
+            "state",
+            "construct"
+          ],
+          "async": false
         },
         {
           "name": "prepareOrdinaryManagedInstallation/current/current",
@@ -107977,6 +108057,14 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/registerRequestRun",
+          "parameters": [
+            "run",
+            "construct"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/releaseFinishedProducer/releaseFinishedProducer",
           "parameters": [
             "producer"
@@ -108042,6 +108130,11 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/view/init:adoptCapturePreparation/init:adoptCapturePreparation/init:adoptCapturePreparation",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/view/init:adoptContentPreparation/init:adoptContentPreparation",
           "parameters": [
             "prepared",
@@ -108049,6 +108142,11 @@
             "contentPlan",
             "serialization"
           ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:adoptContentPreparation/init:adoptContentPreparation/init:adoptContentPreparation",
+          "parameters": [],
           "async": false
         },
         {
@@ -108090,6 +108188,11 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/view/init:adoptModelPreparation/init:adoptModelPreparation/init:adoptModelPreparation#2",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/view/init:adoptPreparation/init:adoptPreparation",
           "parameters": [
             "prepared",
@@ -108097,6 +108200,11 @@
             "identity",
             "constructInvocation"
           ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:adoptPreparation/init:adoptPreparation/init:adoptPreparation",
+          "parameters": [],
           "async": false
         },
         {
@@ -108294,12 +108402,22 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareContentCompilation/init:prepareContentCompilation/init:prepareContentCompilation",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/view/init:prepareContentGraph/init:prepareContentGraph",
           "parameters": [
             "prepared",
             "request",
             "constructOriginal"
           ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareContentGraph/init:prepareContentGraph/init:prepareContentGraph",
+          "parameters": [],
           "async": false
         },
         {
@@ -108313,6 +108431,11 @@
             "compileOriginal",
             "contentPreparation"
           ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareKeyedContentRun/init:prepareKeyedContentRun/init:prepareKeyedContentRun",
+          "parameters": [],
           "async": false
         },
         {
@@ -108369,6 +108492,11 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelBinding/init:prepareModelBinding/init:prepareModelBinding",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelCompilation/init:prepareModelCompilation",
           "parameters": [
             "prepared",
@@ -108378,13 +108506,24 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelCompilation/init:prepareModelCompilation/init:prepareModelCompilation",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelGraph/init:prepareModelGraph",
           "parameters": [
             "prepared",
             "request",
             "occurrence",
-            "execution"
+            "execution",
+            "serializationGraph"
           ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelGraph/init:prepareModelGraph/init:prepareModelGraph",
+          "parameters": [],
           "async": false
         },
         {
@@ -108399,6 +108538,11 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelMaterials/init:prepareModelMaterials/init:prepareModelMaterials",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelRun/init:prepareModelRun",
           "parameters": [
             "prepared",
@@ -108407,6 +108551,11 @@
             "model",
             "constructPlan"
           ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelRun/init:prepareModelRun/init:prepareModelRun",
+          "parameters": [],
           "async": false
         },
         {
@@ -108474,6 +108623,11 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareSerializationRun/init:prepareSerializationRun/init:prepareSerializationRun",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/view/init:publicationPreparation/init:publicationPreparation",
           "parameters": [
             "prepared"
@@ -108525,6 +108679,22 @@
           "parameters": [
             "original"
           ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:selectDomainSourceInput/init:selectDomainSourceInput",
+          "parameters": [
+            "prepared",
+            "request",
+            "identity",
+            "stage",
+            "sourceIndex"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:selectDomainSourceInput/init:selectDomainSourceInput/init:selectDomainSourceInput",
+          "parameters": [],
           "async": false
         },
         {
@@ -109385,8 +109555,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "src/client_local_host/installed_mock_model_run.mbt",
-                "anchor": "pub fn begin_installed_mock_model_managed_run("
+                "path": "src/client_local_host/preparation_request_model_body.mbt",
+                "anchor": "pub fn[I] prepare_request_model_read_scope("
               },
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
@@ -109403,8 +109573,8 @@
             ],
             "identity": [
               {
-                "path": "src/client_local_host/installed_mock_model_run.mbt",
-                "anchor": "pub fn begin_installed_mock_model_managed_run("
+                "path": "src/client_local_host/preparation_request_model_body.mbt",
+                "anchor": "pub fn[I] prepare_request_model_read_scope("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -109485,8 +109655,8 @@
                 "anchor": "###### Ordinary Host composition"
               },
               {
-                "path": "src/client_local_host/installed_mock_model_run.mbt",
-                "anchor": "pub fn begin_installed_mock_model_managed_run("
+                "path": "src/client_local_host/preparation_request_model_body.mbt",
+                "anchor": "pub fn[I] prepare_request_model_read_scope("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -109517,16 +109687,20 @@
                 "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
               },
               {
-                "path": "adapters/host-node/ordinary-source-managed.test.mjs",
-                "anchor": "test('ordinary Mock purpose retains one request original and both real Source children without conversion'"
-              },
-              {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
               },
               {
                 "path": "adapters/host-node/request-content-caller.test.mjs",
                 "anchor": "Request Content manager compiles one original graph"
+              },
+              {
+                "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
+                "anchor": "test('Local Model retains the exact Request carrier before the actual Host constructor and never issues a standalone Run'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-project-source-managed.test.mjs",
+                "anchor": "test('Project Source distinguishes same-declaration occurrences and preserves pending child custody'"
               }
             ]
           }
@@ -109534,8 +109708,10 @@
         {
           "operations": [
             "prepareOrdinaryManagedInstallation/producerForRequest/producerForRequest",
+            "prepareOrdinaryManagedInstallation/registerRequestRun",
             "prepareOrdinaryManagedInstallation/retireInitialPreparation/retireInitialPreparation",
             "prepareOrdinaryManagedInstallation/view/init:adoptPreparation/init:adoptPreparation",
+            "prepareOrdinaryManagedInstallation/view/init:adoptPreparation/init:adoptPreparation/init:adoptPreparation",
             "prepareOrdinaryManagedInstallation/view/init:beforeSourceSnapshot/init:beforeSourceSnapshot/assertOriginalCurrent/assertOriginalCurrent",
             "prepareOrdinaryManagedInstallation/view/init:borrowPreparation/init:borrowPreparation",
             "prepareOrdinaryManagedInstallation/view/init:captureSourceSnapshot/init:captureSourceSnapshot",
@@ -109568,6 +109744,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Fixed Request controls and synchronous domain construction"
               }
             ],
             "inputsOutputs": [
@@ -109590,6 +109770,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Fixed Request controls and synchronous domain construction"
               }
             ],
             "identity": [
@@ -109612,6 +109796,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Fixed Request controls and synchronous domain construction"
               }
             ],
             "ownership": [
@@ -109634,6 +109822,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Fixed Request controls and synchronous domain construction"
               }
             ],
             "synchronization": [
@@ -109656,6 +109848,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Fixed Request controls and synchronous domain construction"
               }
             ],
             "failure": [
@@ -109678,6 +109874,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Fixed Request controls and synchronous domain construction"
               }
             ],
             "cancellation": [
@@ -109700,6 +109900,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Fixed Request controls and synchronous domain construction"
               }
             ],
             "resources": [
@@ -109722,6 +109926,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Fixed Request controls and synchronous domain construction"
               }
             ],
             "extension": [
@@ -109744,6 +109952,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Fixed Request controls and synchronous domain construction"
               }
             ],
             "verification": [
@@ -109762,6 +109974,14 @@
               {
                 "path": "adapters/host-node/content-preparation-retirement.test.mjs",
                 "anchor": "retired keyed Content does not exhaust the unchanged 4096 live-preparation limit"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Fixed Request controls and synchronous domain construction"
+              },
+              {
+                "path": "adapters/host-node/request-domain-preparation.test.mjs",
+                "anchor": "test('Request registration refuses every full or duplicate original before native adoption'"
               }
             ]
           }
@@ -109954,11 +110174,19 @@
         },
         {
           "operations": [
+            "prepareOrdinaryManagedInstallation/constructRequestDomain",
             "prepareOrdinaryManagedInstallation/view/init:adoptCapturePreparation/init:adoptCapturePreparation",
+            "prepareOrdinaryManagedInstallation/view/init:adoptCapturePreparation/init:adoptCapturePreparation/init:adoptCapturePreparation",
             "prepareOrdinaryManagedInstallation/view/init:prepareContentGraph/init:prepareContentGraph",
+            "prepareOrdinaryManagedInstallation/view/init:prepareContentGraph/init:prepareContentGraph/init:prepareContentGraph",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelBinding/init:prepareModelBinding",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelBinding/init:prepareModelBinding/init:prepareModelBinding",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelGraph/init:prepareModelGraph",
-            "prepareOrdinaryManagedInstallation/view/init:prepareModelMaterials/init:prepareModelMaterials"
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelGraph/init:prepareModelGraph/init:prepareModelGraph",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelMaterials/init:prepareModelMaterials",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelMaterials/init:prepareModelMaterials/init:prepareModelMaterials",
+            "prepareOrdinaryManagedInstallation/view/init:selectDomainSourceInput/init:selectDomainSourceInput",
+            "prepareOrdinaryManagedInstallation/view/init:selectDomainSourceInput/init:selectDomainSourceInput/init:selectDomainSourceInput"
           ],
           "exports": [],
           "attributes": {
@@ -109970,6 +110198,10 @@
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
                 "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan, constructInvocation)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Fixed Request controls and synchronous domain construction"
               }
             ],
             "inputsOutputs": [
@@ -109984,6 +110216,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Accounted captured module before Run adoption"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Fixed Request controls and synchronous domain construction"
               }
             ],
             "identity": [
@@ -109994,6 +110230,10 @@
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
                 "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan, constructInvocation)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Fixed Request controls and synchronous domain construction"
               }
             ],
             "ownership": [
@@ -110004,6 +110244,10 @@
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
                 "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan, constructInvocation)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Fixed Request controls and synchronous domain construction"
               }
             ],
             "synchronization": [
@@ -110014,6 +110258,10 @@
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
                 "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan, constructInvocation)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Fixed Request controls and synchronous domain construction"
               }
             ],
             "failure": [
@@ -110024,6 +110272,10 @@
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
                 "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan, constructInvocation)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Fixed Request controls and synchronous domain construction"
               }
             ],
             "cancellation": [
@@ -110034,6 +110286,10 @@
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
                 "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan, constructInvocation)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Fixed Request controls and synchronous domain construction"
               }
             ],
             "resources": [
@@ -110044,6 +110300,10 @@
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
                 "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan, constructInvocation)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Fixed Request controls and synchronous domain construction"
               }
             ],
             "extension": [
@@ -110054,6 +110314,10 @@
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
                 "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan, constructInvocation)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Fixed Request controls and synchronous domain construction"
               }
             ],
             "verification": [
@@ -110068,6 +110332,14 @@
               {
                 "path": "adapters/host-node/request-preparation-parent.test.mjs",
                 "anchor": "test('captured Request constructs its accounted module before original Run adoption on the same borrow'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Fixed Request controls and synchronous domain construction"
+              },
+              {
+                "path": "adapters/host-node/request-domain-preparation.test.mjs",
+                "anchor": "test('Request registration refuses every full or duplicate original before native adoption'"
               }
             ]
           }
@@ -110751,9 +111023,12 @@
         {
           "operations": [
             "prepareOrdinaryManagedInstallation/view/init:adoptContentPreparation/init:adoptContentPreparation",
+            "prepareOrdinaryManagedInstallation/view/init:adoptContentPreparation/init:adoptContentPreparation/init:adoptContentPreparation",
             "prepareOrdinaryManagedInstallation/view/init:adoptModelPreparation/init:adoptModelPreparation",
             "prepareOrdinaryManagedInstallation/view/init:adoptModelPreparation/init:adoptModelPreparation/init:adoptModelPreparation",
-            "prepareOrdinaryManagedInstallation/view/init:prepareModelCompilation/init:prepareModelCompilation"
+            "prepareOrdinaryManagedInstallation/view/init:adoptModelPreparation/init:adoptModelPreparation/init:adoptModelPreparation#2",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelCompilation/init:prepareModelCompilation",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelCompilation/init:prepareModelCompilation/init:prepareModelCompilation"
           ],
           "exports": [],
           "attributes": {
@@ -110941,7 +111216,8 @@
         },
         {
           "operations": [
-            "prepareOrdinaryManagedInstallation/view/init:prepareModelRun/init:prepareModelRun"
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelRun/init:prepareModelRun",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelRun/init:prepareModelRun/init:prepareModelRun"
           ],
           "exports": [],
           "attributes": {
@@ -111046,7 +111322,9 @@
         {
           "operations": [
             "prepareOrdinaryManagedInstallation/view/init:prepareContentCompilation/init:prepareContentCompilation",
-            "prepareOrdinaryManagedInstallation/view/init:prepareSerializationRun/init:prepareSerializationRun"
+            "prepareOrdinaryManagedInstallation/view/init:prepareContentCompilation/init:prepareContentCompilation/init:prepareContentCompilation",
+            "prepareOrdinaryManagedInstallation/view/init:prepareSerializationRun/init:prepareSerializationRun",
+            "prepareOrdinaryManagedInstallation/view/init:prepareSerializationRun/init:prepareSerializationRun/init:prepareSerializationRun"
           ],
           "exports": [],
           "attributes": {
@@ -111230,7 +111508,8 @@
         },
         {
           "operations": [
-            "prepareOrdinaryManagedInstallation/view/init:prepareKeyedContentRun/init:prepareKeyedContentRun"
+            "prepareOrdinaryManagedInstallation/view/init:prepareKeyedContentRun/init:prepareKeyedContentRun",
+            "prepareOrdinaryManagedInstallation/view/init:prepareKeyedContentRun/init:prepareKeyedContentRun/init:prepareKeyedContentRun"
           ],
           "exports": [],
           "attributes": {
@@ -111776,7 +112055,8 @@
           }
         }
       ],
-      "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending."
+      "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
+      "sha256": "8cd42a9bbcc9985b339a2cfe5fff65710b3fdc51223e5cf4d4661b1bdb9e8b30"
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",
@@ -119667,7 +119947,7 @@
       "sha256": "285c2eca6d2008492079b918a7721b2e9d62405f307d5214136fc382c02d38ef",
       "responsibilityFacet": "primary",
       "role": "physical-io",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "createInstalledCredentialSourceReader",
         "installedJsonSourceReaderLimitNames",
@@ -120335,7 +120615,7 @@
       "sha256": "b316bbda6a28ab1c3feea0dadc964e01612d9085a0095f6a8a21abbc17ae5cc9",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "finishInstalledEffectModelScope",
         "installedEffectModelPreparation",
@@ -121024,7 +121304,7 @@
       "sha256": "86f613556ff3048496fa65b9223ec5fc3bade0906aeb7dd2f2e1e6740da3e60a",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "assertInstalledSourceConstruction",
         "beginInstalledSourceInitialization",

@@ -24,8 +24,6 @@ async function fixture(source = true, project = false) {
     attempts: 10, holdings: 10, transferBytes: 10000n, retainedBytes: 10000n, executionBytes: 10000n};},
     effectRequirements: () => {quotes.effect++; return {planningWork: 100,
       attempts: 10, holdings: 10, transferBytes: 10000n, retainedBytes: 10000n, executionBytes: 10000n};},
-    mockRequirements: () => ({planningWork: 100, attempts: 10, holdings: 10,
-      transferBytes: 10000n, retainedBytes: 10000n, executionBytes: 10000n}),
     contentRequirements(value, actualPrepared, actualSelected) {
       assert.strictEqual(value, originals); assert.strictEqual(actualPrepared, prepared);
       assert.strictEqual(actualSelected, selected);
@@ -86,38 +84,6 @@ test('ordinary Compute refuses a foreign request and retains a real in-flight pr
   const f = await fixture(false);
   assert.throws(() => f.view.prepareRun({}));
   assert.equal((await f.view.close()).pending, true);
-  f.view.finishSourceProducer(f.receipt, 'failed');
-  assert.equal((await f.view.close()).pending, false);
-});
-
-test('ordinary Mock purpose retains one request original and both real Source children without conversion', async () => {
-  const f = await fixture(), model = Object.freeze({});
-  const original = f.view.prepareLocalMockModelRun(f.prepared, model);
-  assert.strictEqual(f.view.prepareLocalMockModelRun(f.prepared, model), original);
-  assert.equal(runtime.prepareOriginalManagedRunPorts(original, f.prepared), null);
-  assert.throws(() => f.view.prepareRun(f.prepared), {code: 'ForeignInstalledModelPreparation'});
-  assert.throws(() => f.view.prepareLocalMockModelRun(f.prepared, {}), {code: 'ForeignInstalledModelPreparation'});
-  const ports = runtime.prepareOriginalLocalMockModelRunPorts(original, f.prepared);
-  assert.equal(ports.status(0), 0);
-  assert.equal(runtime.prepareOriginalLocalMockModelRunPorts(original, f.prepared), null);
-  const children = f.declarations.map(declaration => f.view.prepareRead(f.prepared, declaration, original));
-  const bytes = await Promise.all(children.map(child => child.readOriginalBytes()));
-  assert.deepEqual(bytes[0], bytes[1]);
-  assert.notStrictEqual(bytes[0], bytes[1]);
-  f.view.finishSourceProducer(f.receipt, 'returned');
-  assert.equal(ports.report(0, 0, 0, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0, 0, 0), 0);
-  assert.equal(ports.status(2), -42);
-  await children[0].close();
-  assert.equal(ports.status(2), -42);
-  await children[1].close();
-  assert.equal(ports.status(2), 0);
-  assert.equal((await f.view.close()).pending, false);
-});
-
-test('ordinary Source original cannot later acquire the separate Mock purpose', async () => {
-  const f = await fixture();
-  f.view.prepareRun(f.prepared);
-  assert.throws(() => f.view.prepareLocalMockModelRun(f.prepared, {}), {code: 'ForeignInstalledModelPreparation'});
   f.view.finishSourceProducer(f.receipt, 'failed');
   assert.equal((await f.view.close()).pending, false);
 });

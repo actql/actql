@@ -20,6 +20,8 @@ struct ClientInstalledManagedCapturePlan {
   compute_sequences : Array[@execution.GeneratedSequence]
   capacity_plan : ClientLocalCapacityPlan
   configuration : ClientPreparedLocalConfiguration
+  mut model_input_prefix : @execution.GeneratedSequence?
+  mut model_input_suffix : @execution.GeneratedSequence?
   mut compilation : @publication_host.ClientRunCompilation?
   limits : @resources.LedgerLimits
 }
@@ -79,6 +81,7 @@ fn prepare_installed_managed_capture_plan_owned(
     @local.ManagedProvider,
   ],
   query_time? : @publication_host.ClientQueryTimePreparation? = None,
+  model? : @publication_host.ClientInferPlanGraph? = None,
 ) -> Result[ClientInstalledManagedCapturePlan, ClientInstalledManagedRunIssue] {
   let identity = @publication_host.prepared_client_identity(prepared)
   if identity.program_definition_cid !=
@@ -89,7 +92,11 @@ fn prepare_installed_managed_capture_plan_owned(
   }
   let graph = @publication_host.prepared_client_graph(prepared)
   let count = @strategy.graph_captured_prefix(graph)
-  if !installed_managed_run_shape_supported(prepared, model_purpose) ||
+  if !installed_managed_owner_shape_supported(
+      Pure(prepared),
+      model_purpose,
+      model~,
+    ) ||
     count < 1 ||
     captures.length() != count ||
     transport_bytes.length() != count ||
@@ -166,6 +173,8 @@ fn prepare_installed_managed_capture_plan_owned(
     compute_sequences: compute.sequences,
     capacity_plan: compute.capacity_plan,
     configuration: compute.configuration,
+    model_input_prefix: None,
+    model_input_suffix: None,
     compilation: None,
     limits: compute.limits,
   })
