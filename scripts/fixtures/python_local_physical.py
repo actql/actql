@@ -57,7 +57,7 @@ class PhysicalFixture:
                 ('journal_release', [i32], self.journal_refuse)):
 
                 self.linker.define_func('actql_host', name,
-                    wasmtime.FuncType(params, [wasmtime.ValType.i64() if _IMPORT_SIGNATURES[name][1] == 'i64' else i32]), callback)
+                    wasmtime.FuncType(params, [wasmtime.ValType.i64() if _IMPORT_SIGNATURES.get(name, ('', 'i32'))[1] == 'i64' else i32]), callback)
             for name in ('input_copy', 'publisher_copy', 'journal_query_copy', 'journal_copy'):
                 params, result = _IMPORT_SIGNATURES[name]
                 self.linker.define_func('actql_host', name, wasmtime.FuncType(
