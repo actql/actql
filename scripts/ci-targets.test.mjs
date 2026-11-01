@@ -53,7 +53,7 @@ test('normal Host CI executes bounded Journal preparation and cursor regressions
   const step = jobs.host.steps.find(row =>
     row.name === 'Test bounded Journal preparation and execution');
   assert.ok(step);
-  assert.equal(step.run, 'node --test adapters/host-node/client-request-journal-sql-bounds.test.mjs adapters/host-node/client-request-journal-execution-bounds.test.mjs adapters/host-node/client-request-journal-wal-bounds.test.mjs');
+  assert.equal(step.run, 'node --test adapters/host-node/client-request-journal-sql-bounds.test.mjs adapters/host-node/client-request-journal-execution-bounds.test.mjs adapters/host-node/client-request-journal-wal-bounds.test.mjs adapters/host-node/client-request-journal-fresh-schema.test.mjs');
   assert.ok(jobs.host.steps.indexOf(step) > jobs.host.steps.findIndex(row =>
     row.run === 'npm run check:retained-boundary'));
 });

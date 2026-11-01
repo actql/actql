@@ -41758,7 +41758,7 @@
     {
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "268c23d693f24a5a7018c872272f942744ead88f3864e3e06e135e9858bfeff3",
+      "sha256": "219a7d216460d00bbff76a0f17446b5ad9eb2e8bf12aa479624e16d432fc2f87",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -47903,6 +47903,10 @@
               {
                 "path": "adapters/host-node/content-preparation-retirement.test.mjs",
                 "anchor": "retired keyed Content does not exhaust the unchanged 4096 live-preparation limit"
+              },
+              {
+                "path": "adapters/host-node/embedded-managed-compute-projection.test.mjs",
+                "anchor": "test('open borrows the one installed AoA projection through the same sequence original'"
               }
             ]
           }
@@ -51369,6 +51373,10 @@
               {
                 "path": "adapters/host-node/content-preparation-retirement.test.mjs",
                 "anchor": "retired keyed Content does not exhaust the unchanged 4096 live-preparation limit"
+              },
+              {
+                "path": "adapters/host-node/embedded-managed-compute-projection.test.mjs",
+                "anchor": "test('open borrows the one installed AoA projection through the same sequence original'"
               }
             ]
           }
@@ -55061,9 +55069,11 @@
         "../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js",
         "../../_build/native/directory-darwin-arm64.node",
         "../../_build/native/directory-darwin-x64.node",
+        "../../_build/native/local-files-linux-x64.node",
         "../../packages/client-wire/index.mjs",
         "../../packages/local-node/_build/native/directory-darwin-arm64.node",
         "../../packages/local-node/_build/native/directory-darwin-x64.node",
+        "../../packages/local-node/_build/native/local-files-linux-x64.node",
         "../../packages/sdk/host-port.mjs",
         "../../packages/sdk/internal/private-source-preparation.mjs",
         "../connectors/local/host/installed-project-file-effects.mjs",

@@ -1197,9 +1197,32 @@ function inspectSubmissionUsageStorage(database, enabled) {
   return true;
 }
 
-function adoptSubmissionUsageStorage(database, transaction, previousMarker) {
-  const complete = inspectSubmissionUsageStorage(database,previousMarker);
-  transaction.run(() => {
+function createSubmissionUsageStorage(database, retained) {
+  database.exec(submissionUsageTables.map(([,sql]) => `${sql};`).join('\n'));
+  for (let i=0;i<submissionUsageTables.length;i++) {
+    database.prepare(`INSERT INTO ${submissionUsageTables[i][0]} VALUES(1,?,?,0)`)
+      .run(retained[i].n,retained[i].bytes);
+  }
+  database.exec(submissionUsageTriggers.map(([,sql]) => `${sql};`).join('\n'));
+}
+function createJournalRowUsageStorage(database, retainedRows) {
+  database.exec(journalRowUsageTables.map(([,sql])=>`${sql};`).join('\n'));
+  for(let i=0;i<journalRowUsageTables.length;i++) {
+    database.prepare(`INSERT INTO ${journalRowUsageTables[i][0]} VALUES(1,?)`).run(retainedRows[i]);
+  }
+  database.exec(journalRowUsageTriggers.map(([,sql])=>`${sql};`).join('\n'));
+}
+function adoptSubmissionUsageStorage(database, transact, previousMarker, fresh) {
+  const complete = !fresh && inspectSubmissionUsageStorage(database,previousMarker);
+  transact(() => {
+    if (fresh) {
+      // This connection created all source tables in this same transaction.
+      // No historical issuance exists to census or adopt.
+      createSubmissionUsageStorage(database,[{n:0,bytes:0},{n:0,bytes:0}]);
+      createJournalRowUsageStorage(database,[0,0]);
+      database.exec('PRAGMA user_version=2');
+      return;
+    }
     const issued = database.prepare('SELECT issued_count FROM client_submitted_intent_custody WHERE singleton=1').get()?.issued_count;
     const retired = database.prepare('SELECT retired_count FROM client_submitted_intent_retirement WHERE singleton=1').get()?.retired_count;
     const restarts = database.prepare('SELECT issued_count FROM client_submission_restart_custody WHERE singleton=1').get()?.issued_count;
@@ -1225,12 +1248,7 @@ function adoptSubmissionUsageStorage(database, transaction, previousMarker) {
       }
       return row;
     });
-    database.exec(submissionUsageTables.map(([,sql]) => `${sql};`).join('\n'));
-    for (let i=0;i<submissionUsageTables.length;i++) {
-      database.prepare(`INSERT INTO ${submissionUsageTables[i][0]} VALUES(1,?,?,0)`)
-        .run(retained[i].n,retained[i].bytes);
-    }
-    database.exec(submissionUsageTriggers.map(([,sql]) => `${sql};`).join('\n'));
+    createSubmissionUsageStorage(database,retained);
     }
     // Extend the same private adoption transaction. No request or cancel is
     // issued here: original cumulative custody bounds this one legacy census.
@@ -1241,11 +1259,7 @@ function adoptSubmissionUsageStorage(database, transaction, previousMarker) {
       if(n!==issued) fail(table==='client_requests'?'ClientRequestSubmissionCustodyLost':'ClientRequestJournalCorrupt');
       return n;
     });
-    database.exec(journalRowUsageTables.map(([,sql])=>`${sql};`).join('\n'));
-    for(let i=0;i<journalRowUsageTables.length;i++) {
-      database.prepare(`INSERT INTO ${journalRowUsageTables[i][0]} VALUES(1,?)`).run(retainedRows[i]);
-    }
-    database.exec(journalRowUsageTriggers.map(([,sql])=>`${sql};`).join('\n'));
+    createJournalRowUsageStorage(database,retainedRows);
     database.exec('PRAGMA user_version=2');
   });
 }
@@ -1790,6 +1804,22 @@ export function openClientRequestJournal(directory, {
       temporarySelected, retainedGeometry);
     database.exec('PRAGMA journal_mode = WAL');
     database.exec('PRAGMA synchronous = FULL');
+    // Fresh schema is one unpublished FULL transaction. Reuse these same DDL
+    // statements for retained older formats; only those upgrades acknowledge
+    // their separate durable feature transitions as before.
+    const pendingFormatMarkers=[];
+    const writeFormatMarker=(name,bytes)=>{
+      const marker=openSync(join(root,name),'wx',0o600);
+      try {writeFileSync(marker,bytes);fsyncSync(marker);}
+      finally {closeSync(marker);}
+      syncFormatDirectory();
+    };
+    const publishFormatMarker=(name,bytes)=>{
+      if (existed) writeFormatMarker(name,bytes);
+      else pendingFormatMarkers.push([name,bytes]);
+    };
+    const initializeFeature=action=>existed ? transaction.run(action) : action();
+    const initializeSchema=()=>{
     database.exec(`
       CREATE TABLE IF NOT EXISTS client_requests (
         authority_scope_cid TEXT NOT NULL,
@@ -1825,21 +1855,11 @@ export function openClientRequestJournal(directory, {
         PRIMARY KEY (authority_scope_cid, caller_request_id)
       ) STRICT;
     `);
-    if (!existed) {
-      syncFormatDirectory();
-      const marker = openSync(join(root, 'journal-format.json'), 'wx', 0o600);
-      try {
-        writeFileSync(marker, journalMarker);
-        fsyncSync(marker);
-      } finally {
-        closeSync(marker);
-      }
-      syncFormatDirectory();
-    }
+    if (!existed) publishFormatMarker('journal-format.json',journalMarker);
     if (!existsSync(join(root, submissionMarkerName))) {
       // Adopt only the retained original rows of an admitted prior format.
       // This cannot certify missing pre-upgrade history or issue an epoch.
-      transaction.run(() => database.exec(`
+      initializeFeature(() => database.exec(`
         CREATE TABLE client_submission_custody (
           singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
           issued_count INTEGER NOT NULL CHECK (issued_count >= 0)
@@ -1847,15 +1867,12 @@ export function openClientRequestJournal(directory, {
         INSERT INTO client_submission_custody
           SELECT 1, COUNT(*) FROM client_requests;
       `));
-      const marker = openSync(join(root, submissionMarkerName), 'wx', 0o600);
-      try { writeFileSync(marker, submissionMarker); fsyncSync(marker); }
-      finally { closeSync(marker); }
-      syncFormatDirectory();
+      publishFormatMarker(submissionMarkerName,submissionMarker);
     }
     if (!existsSync(join(root, epochMarkerName))) {
       // One retained authentication key and monotonic expiry watermark suffice
       // to validate bounded-lifetime tickets. No per-epoch history is evicted.
-      transaction.run(() => {
+      initializeFeature(() => {
         database.exec(`CREATE TABLE client_submission_epoch_authority (
           singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
           authentication_key TEXT NOT NULL,
@@ -1864,13 +1881,10 @@ export function openClientRequestJournal(directory, {
         database.prepare('INSERT INTO client_submission_epoch_authority VALUES (1, ?, 0)')
           .run(randomBytes(32).toString('hex'));
       });
-      const marker = openSync(join(root, epochMarkerName), 'wx', 0o600);
-      try {writeFileSync(marker, epochMarker); fsyncSync(marker);}
-      finally {closeSync(marker);}
-      syncFormatDirectory();
+      publishFormatMarker(epochMarkerName,epochMarker);
     }
     if (!existsSync(join(root, intentMarkerName))) {
-      transaction.run(() => database.exec(`
+      initializeFeature(() => database.exec(`
         CREATE TABLE client_submitted_intents (
           submission_id TEXT PRIMARY KEY,
           authority_scope_cid TEXT NOT NULL,
@@ -1889,28 +1903,22 @@ export function openClientRequestJournal(directory, {
         ) STRICT;
         INSERT INTO client_submitted_intent_custody VALUES (1, 0);
       `));
-      const marker = openSync(join(root, intentMarkerName), 'wx', 0o600);
-      try {writeFileSync(marker, intentMarker); fsyncSync(marker);}
-      finally {closeSync(marker);}
-      syncFormatDirectory();
+      publishFormatMarker(intentMarkerName,intentMarker);
     }
     if (!existsSync(join(root, retirementMarkerName))) {
       // Adoption records zero formal retirements; it never resets issuance
       // or repairs a missing original row in a previously admitted journal.
-      transaction.run(() => database.exec(`
+      initializeFeature(() => database.exec(`
         CREATE TABLE client_submitted_intent_retirement (
           singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
           retired_count INTEGER NOT NULL CHECK (retired_count >= 0)
         ) STRICT;
         INSERT INTO client_submitted_intent_retirement VALUES (1, 0);
       `));
-      const marker = openSync(join(root, retirementMarkerName), 'wx', 0o600);
-      try {writeFileSync(marker, retirementMarker); fsyncSync(marker);}
-      finally {closeSync(marker);}
-      syncFormatDirectory();
+      publishFormatMarker(retirementMarkerName,retirementMarker);
     }
     if (!existsSync(join(root, restartMarkerName))) {
-      transaction.run(() => database.exec(`
+      initializeFeature(() => database.exec(`
         CREATE TABLE client_submission_restarts (
           fresh_submission_id TEXT PRIMARY KEY,
           original_submission_id TEXT NOT NULL,
@@ -1922,13 +1930,10 @@ export function openClientRequestJournal(directory, {
         ) STRICT;
         INSERT INTO client_submission_restart_custody VALUES (1, 0);
       `));
-      const marker = openSync(join(root, restartMarkerName), 'wx', 0o600);
-      try {writeFileSync(marker, restartMarker); fsyncSync(marker);}
-      finally {closeSync(marker);}
-      syncFormatDirectory();
+      publishFormatMarker(restartMarkerName,restartMarker);
     }
     if (!existsSync(join(root, cancellationMarkerName))) {
-      transaction.run(() => database.exec(`
+      initializeFeature(() => database.exec(`
         CREATE TABLE client_cancellation_operations (
           namespace_id TEXT NOT NULL,
           authority_scope_cid TEXT NOT NULL,
@@ -1947,26 +1952,20 @@ export function openClientRequestJournal(directory, {
         ) STRICT;
         INSERT INTO client_cancellation_custody VALUES (1, 0);
       `));
-      const marker = openSync(join(root, cancellationMarkerName), 'wx', 0o600);
-      try { writeFileSync(marker, cancellationMarker); fsyncSync(marker); }
-      finally { closeSync(marker); }
-      syncFormatDirectory();
+      publishFormatMarker(cancellationMarkerName,cancellationMarker);
     }
     if (!existsSync(join(root, nameMarkerName))) {
       // Old nonces are not names. This empty additive index never adopts or
       // searches their history. Once issued, a name is not evicted or reused.
-      transaction.run(() => database.exec(`
+      initializeFeature(() => database.exec(`
         ${nameTables.map(([, sql]) => `${sql};`).join('\n')}
         INSERT INTO client_submission_name_custody VALUES (1, 0, 0);
         ${nameTriggers.map(([, sql]) => `${sql};`).join('\n')}
       `));
-      const marker = openSync(join(root, nameMarkerName), 'wx', 0o600);
-      try {writeFileSync(marker, nameMarker); fsyncSync(marker);}
-      finally {closeSync(marker);}
-      syncFormatDirectory();
+      publishFormatMarker(nameMarkerName,nameMarker);
     }
     if (database.prepare('PRAGMA user_version').get().user_version < 2) {
-      adoptSubmissionUsageStorage(database,transaction,existsSync(join(root,usageMarkerName)));
+      adoptSubmissionUsageStorage(database,initializeFeature,existsSync(join(root,usageMarkerName)),!existed);
     }
     // This optional original-operation storage belongs to this same Journal.
     // Legacy absence grants no new dispatch: live scope issuance additionally
@@ -1974,7 +1973,15 @@ export function openClientRequestJournal(directory, {
     inspectClientSourceOperationStorage(database);
     if (sourceOperationLimits !== undefined && database.prepare(
       "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'client_source_operation_originals'").get() === undefined) {
-      transaction.run(() => database.exec(sourceOperationTable));
+      initializeFeature(() => database.exec(sourceOperationTable));
+    }
+    };
+    if (existed) initializeSchema();
+    else {
+      transaction.run(initializeSchema);
+      // No format marker claims an uncommitted current schema. Each original
+      // file keeps its fsync; the existing final directory ACK precedes ready.
+      for (const [name,bytes] of pendingFormatMarkers) writeFormatMarker(name,bytes);
     }
   // Statement preparation is part of initialization: no journal owner has
   // been returned yet. Keep it under the same single cleanup boundary.

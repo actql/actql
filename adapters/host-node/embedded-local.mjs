@@ -1907,21 +1907,11 @@ async function openInstalledHost(originalInstallation, preparation) {
       observation?.diagnostic(event, detail);
       delivery(event, detail);
     }, {close: delivery.close, status: delivery.status});
-    const registryWire = preparation === undefined
-      ? await readFile(join(packageRoot,
-        'spec/dependencies/aoa-pipeline-registry.json'), 'utf8')
-      : preparation.readAsset('spec/dependencies/aoa-pipeline-registry.json');
-    const aoa = JSON.parse(preparation === undefined
-      ? await readFile(join(packageRoot,
-        'spec/contracts/actql-aoa.json'), 'utf8')
-      : preparation.readAsset('spec/contracts/actql-aoa.json'));
-    values = JSON.stringify(aoa.execution_contracts['REL.values']);
-    fragment = JSON.stringify(
-      aoa.execution_contracts['ACTQL.expression_fragment/0.1']);
-    ordered = JSON.stringify(aoa.execution_contracts['REL.derive.ordered']);
-    registry = preparation === undefined
-      ? checked(moon.clientPrepareInstalledSequenceContracts(registryWire, values, fragment, ordered))
-      : preparation.readSequenceContracts();
+    const sequenceContracts = preparation.readSequenceContracts();
+    values = sequenceContracts.contracts.values;
+    fragment = sequenceContracts.contracts.expression;
+    ordered = sequenceContracts.contracts.ordered;
+    registry = sequenceContracts.admission;
     await mkdir(journalDirectory, {recursive: true, mode: 0o700});
     const snapshotDirectory = join(root, 'carrier-snapshots');
     // Installed physical wiring, never Program settings. Allocation occurs
@@ -6715,7 +6705,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
     // this SAME preparation. Missing/current-refused images never fall back
     // to a pathname or acquire another installation's source bytes.
     readSequenceContracts() {
-      return prepareInstalledSequenceContractOriginal(originals).admission;
+      return prepareInstalledSequenceContractOriginal(originals);
     },
     readAsset(path) {
       return readInitialControlInstallationAsset(control, originals, path);
