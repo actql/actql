@@ -41961,7 +41961,7 @@
     {
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "e0b653418c7ed49df2e9cd60d84ad03dbbe176cc21b307176a090f44a5f547d8",
+      "sha256": "969e681c454d38c48517b09ad095eac0d1680dce72638d935cd2dbdff25d3726",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -43281,7 +43281,8 @@
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/answerLocalCheckpoint/answerLocalCheckpoint/init:loadRunOriginal/init:loadRunOriginal",
           "parameters": [
             "view",
-            "signal"
+            "signal",
+            "consume"
           ],
           "async": true
         },
@@ -51960,54 +51961,90 @@
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "The ordinary Local Mock Host retains its packaged finite signing policy and"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Effect signing consumes the same live recovery"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "answer port selects an original Checkpoint from that Host; it neither exports"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Effect signing consumes the same live recovery"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "binds those originals to the same Store and private-key generation. A missing"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Effect signing consumes the same live recovery"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "the key nor accepts an arbitrary signing preimage. Run-read, resolve and key-sign"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Effect signing consumes the same live recovery"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "and purpose-bound operation, then commits each exact preimage's one-use claim"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Effect signing consumes the same live recovery"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "before native signing. A claimed or uncertain outcome cannot be replaced by a"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Effect signing consumes the same live recovery"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "authority are checked before key observation and around asynchronous work."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Effect signing consumes the same live recovery"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "The same Checkpoint Journal retains the original decision, clock sample, expiry"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Effect signing consumes the same live recovery"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "an Effect send permit: the existing signed Resolution admission and current"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Effect signing consumes the same live recovery"
               }
             ],
             "verification": [
@@ -52018,6 +52055,14 @@
               {
                 "path": "adapters/host-node/local-checkpoint-signing-custody.test.mjs",
                 "anchor": "test('same original signing claim and saved outcome survive actual Journal close and reopen'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Effect signing consumes the same live recovery"
+              },
+              {
+                "path": "adapters/host-node/local-checkpoint-recovery-custody.test.mjs",
+                "anchor": "original signing consumer"
               }
             ]
           }
@@ -53202,6 +53247,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Effect signing consumes the same live recovery"
               }
             ],
             "inputsOutputs": [
@@ -53216,6 +53265,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Effect signing consumes the same live recovery"
               }
             ],
             "identity": [
@@ -53226,6 +53279,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Effect signing consumes the same live recovery"
               }
             ],
             "ownership": [
@@ -53240,6 +53297,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Effect signing consumes the same live recovery"
               }
             ],
             "synchronization": [
@@ -53250,6 +53311,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Effect signing consumes the same live recovery"
               }
             ],
             "failure": [
@@ -53260,6 +53325,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Effect signing consumes the same live recovery"
               }
             ],
             "cancellation": [
@@ -53274,6 +53343,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Effect signing consumes the same live recovery"
               }
             ],
             "resources": [
@@ -53288,6 +53361,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Effect signing consumes the same live recovery"
               }
             ],
             "extension": [
@@ -53298,6 +53375,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Effect signing consumes the same live recovery"
               }
             ],
             "verification": [
@@ -53316,6 +53397,14 @@
               {
                 "path": "adapters/host-node/content-preparation-retirement.test.mjs",
                 "anchor": "retired keyed Content does not exhaust the unchanged 4096 live-preparation limit"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Effect signing consumes the same live recovery"
+              },
+              {
+                "path": "adapters/host-node/local-checkpoint-recovery-custody.test.mjs",
+                "anchor": "original signing consumer"
               }
             ]
           }
