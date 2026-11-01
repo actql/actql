@@ -654,7 +654,7 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
     throw clientOperationError('NodeManagedRunRuntimeUnavailable');
   }
   const count = moon.clientProgramAcquisitionCount(run.prepared);
-  if (count !== 0 && count !== 2) throw clientOperationError('InstalledMockModelOperationalAdmissionUnavailable');
+  if (count !== 0 && count !== 1 && count !== 2) throw clientOperationError('InstalledMockModelOperationalAdmissionUnavailable');
   // Retain the actual selected opaque Limits before the module/Plan frame.
   // The nine fixed DATA fields are the existing consumer suffix, not the
   // Model Ledger totals and not a repeat of the old fifteen-number quote.
@@ -664,8 +664,9 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
       limits.some(value => typeof value !== 'bigint' || value < 0n || value > 9223372036854775807n) ||
       limits.slice(6).some(value => value > 2147483647n)) throw clientOperationError('InvalidHostRuntimeResult');
   const physical = model.originalReadInstallation;
-  if (physical !== undefined && (count !== 0 ||
-      typeof model.control.prepareCheckedClientRequestNodeModelSourceFreePlan !== 'function')) {
+  if (physical !== undefined && (count === 2 ||
+      typeof model.control[count === 1 ? 'prepareCheckedClientRequestNodeModelCapturePlan'
+        : 'prepareCheckedClientRequestNodeModelSourceFreePlan'] !== 'function')) {
     throw clientOperationError('NodeManagedRunRuntimeUnavailable');
   }
   // The installed Node read's declared complete envelope stays beside its
@@ -680,25 +681,50 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
     maxHoldings: physical === undefined ? Number(limits[7]) : Math.max(Number(limits[7]), physical.bootstrap.maxHoldings),
     maxDelegations: physical === undefined ? Number(limits[8]) : Math.max(Number(limits[8]), physical.bootstrap.maxDelegations)});
   current();
+  if (count === 1) {
+    if (physical === undefined || model.serializationGraph === undefined ||
+        run.sourceProfile !== originals.installation.managedSourceProfile ||
+        typeof moon.clientProgramPrepareRequestModelProviderCaptureModule !== 'function') {
+      throw clientOperationError('InstalledModelSourcePreparationUnavailable');
+    }
+    const selected = checked(moon.clientProgramSelectInstalledSourceInput(run.prepared, 0, 0));
+    if (moon.clientProgramInstalledSourceInputKind(selected) !== 'query') {
+      throw clientOperationError('InstalledModelSourcePreparationUnavailable');
+    }
+    const adapter = installedSourceFor(run.sourceProfile, moon.clientProgramInstalledSourceInputRef(selected));
+    if (typeof adapter?.managedEffectPlanSelection !== 'function') {
+      throw clientOperationError('InstalledModelSourcePreparationUnavailable');
+    }
+    // Retain the original installed declaration/provider before another
+    // callback. This selection is DATA, never a new grant or Resource owner.
+    run.modelSourceSelection = adapter.managedEffectPlanSelection();
+    current();
+    const original = run.modelSourceSelection;
+    if (original?.declaration === undefined || original.provider === undefined ||
+        typeof original.transferBytes !== 'bigint' || original.transferBytes < 0n ||
+        typeof original.executionBytes !== 'bigint' || original.executionBytes < 0n) {
+      throw clientOperationError('InstalledModelSourcePreparationUnavailable');
+    }
+  }
+  if (count === 0 && typeof moon.clientProgramPrepareRequestModelSourceFreeModule !== 'function') {
+    throw clientOperationError('NodeManagedRunRuntimeUnavailable');
+  }
+  if (model.serializationGraph !== undefined) {
+    const content = run.contentPreparation;
+    if (content === undefined || content.prepared !== run.prepared || content.managed !== run ||
+        content.plan.compiled !== model.compiled || content.plan.runDefinition !== model.runDefinition ||
+        content.plan.serializationGraph !== model.serializationGraph ||
+        typeof content.contentControl?.prepareModelRequestPrefix !== 'function') {
+      throw clientOperationError('InstalledContentRunPreparationUnavailable');
+    }
+    // Retain the prefix before module/Scope/adoption or another current
+    // callback. This is the same Request compiler and original workspace.
+    run.serialization = content.contentControl.prepareModelRequestPrefix(parent, input,
+      run.request, model.compiled, model.runDefinition, content.prefixLimits,
+      content.workspace, run.queryTimePreparation);
+    current();
+  }
   if (count === 0) {
-    if (typeof moon.clientProgramPrepareRequestModelSourceFreeModule !== 'function') {
-      throw clientOperationError('NodeManagedRunRuntimeUnavailable');
-    }
-    if (model.serializationGraph !== undefined) {
-      const content = run.contentPreparation;
-      if (content === undefined || content.prepared !== run.prepared || content.managed !== run ||
-          content.plan.compiled !== model.compiled || content.plan.runDefinition !== model.runDefinition ||
-          content.plan.serializationGraph !== model.serializationGraph ||
-          typeof content.contentControl?.prepareModelRequestPrefix !== 'function') {
-        throw clientOperationError('InstalledContentRunPreparationUnavailable');
-      }
-      // Retain the prefix before module/Scope/adoption or another current
-      // callback. This is the same Request compiler and original workspace.
-      run.serialization = content.contentControl.prepareModelRequestPrefix(parent, input,
-        run.request, model.compiled, model.runDefinition, content.prefixLimits,
-        content.workspace, run.queryTimePreparation);
-      current();
-    }
     run.preparedSequences = checked(moon.clientProgramPrepareRequestModelSourceFreeModule(
       parent, input, run.request, model.compiled, model.runDefinition, compilation,
       installed.admission, retainedRelationOutput, run.queryTimePreparation));
@@ -710,6 +736,21 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
       : model.control.prepareCheckedClientRequestNodeModelSourceFreePlan(parent, input,
         run.preparedSequences, run.request, model.compiled, model.runDefinition,
         model.occurrence, model.graph, model.selectedBounds, physical);
+  } else if (count === 1) {
+    const original = run.modelSourceSelection;
+    const query = readInitialControlInstallationAsset(initialControl, originals,
+      'spec/contracts/actql-query-acquisition.json');
+    const evidence = readInitialControlInstallationAsset(initialControl, originals,
+      'spec/contracts/actql-query-process-evidence.json');
+    run.preparedSequences = checked(moon.clientProgramPrepareRequestModelProviderCaptureModule(
+      parent, input, run.request, model.compiled, model.runDefinition, compilation,
+      original.declaration, original.provider, query, evidence,
+      original.transferBytes, original.executionBytes, installed.admission,
+      retainedRelationOutput, run.queryTimePreparation));
+    current();
+    run.modelPlan = model.control.prepareCheckedClientRequestNodeModelCapturePlan(parent, input,
+      run.preparedSequences, run.request, model.compiled, model.runDefinition,
+      model.occurrence, model.graph, model.selectedBounds, physical);
   } else {
     const sources = readInstalledMockPreparation(originals).sources;
     if (sources.length !== 2 || typeof moon.clientProgramPrepareRequestModelCaptureModule !== 'function') {
@@ -6272,7 +6313,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
           (parent, input, compilation) => prepareRequestMockModelPlan(originals,
             run, model, compilation, parent, input));
         run.original = adopted.original; run.value = adopted.value; run.preparationFunded = true;
-        run.preparedSequences = run.modelPlan = undefined;
+        run.preparedSequences = run.modelPlan = run.modelSourceSelection = undefined;
         checked(Reflect.apply(run.check, runtime, [run.value, prepared, request]));
         (sourceManaged === undefined ? assertManagedComputeInstallationCurrent
         : assertSourceManagedInstallationCurrent)(manager, originals);

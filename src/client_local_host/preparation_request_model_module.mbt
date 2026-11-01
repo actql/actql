@@ -8,10 +8,13 @@ fn request_model_module_container_bytes(
   tasks : Int,
   captures : Int,
   installed_providers : Int,
+  provider_captures? : Int = 0,
 ) -> Int64? {
   guard tasks > captures &&
     captures >= 0 &&
     installed_providers >= 0 &&
+    provider_captures >= 0 &&
+    provider_captures <= captures &&
     @local.local_module_container_inventory(
       tasks - captures,
       installed_providers,
@@ -24,9 +27,9 @@ fn request_model_module_container_bytes(
         if captures == 0 {
           0L
         } else {
-          3L
+          3L + (if provider_captures == 0 { 0L } else { 1L })
         },
-        3L * captures.to_int64(),
+        3L * captures.to_int64() + provider_captures.to_int64(),
         true,
       ),
     ])
@@ -48,6 +51,7 @@ fn[I] begin_request_model_module(
   captures : Int,
   installed_providers : Int,
   query_time : @publication_host.ClientQueryTimePreparation?,
+  provider_captures? : Int = 0,
 ) -> Result[
   @publication_host.PreparedClientProgram,
   ClientRequestProgramPlanIssue,
@@ -120,6 +124,7 @@ fn[I] begin_request_model_module(
       @strategy.graph_task_count(dag),
       captures,
       installed_providers,
+      provider_captures~,
     )
     is Some(bytes) else {
     return Err(Installed(Unsupported))
@@ -229,19 +234,33 @@ pub fn[I] prepare_request_model_capture_module(
     @local.ManagedProvider,
   ],
   query_time? : @publication_host.ClientQueryTimePreparation? = None,
+  providers? : Array[@execution.ExecutionCapacity?]? = None,
 ) -> Result[ClientInstalledManagedCapturePlan, ClientRequestProgramPlanIssue] {
   let count = declarations.length()
   if (count != 1 && count != 2) ||
     transport_bytes.length() != count ||
-    transport_execution_bytes.length() != count {
+    transport_execution_bytes.length() != count ||
+    (
+      providers is Some(originals) &&
+      (originals.length() != count || originals.any(value => value is None))
+    ) {
     return Err(Installed(Unsupported))
   }
   preparation_module_call(
     () => {
       let prepared = match
         begin_request_model_module(
-          owner, input, request, compiled, definition, compilation, contracts, count,
-          installed_providers, query_time,
+          owner,
+          input,
+          request,
+          compiled,
+          definition,
+          compilation,
+          contracts,
+          count,
+          installed_providers,
+          query_time,
+          provider_captures=if providers is Some(_) { count } else { 0 },
         ) {
         Err(issue) => return Err(issue)
         Ok(value) => value
@@ -323,7 +342,15 @@ pub fn[I] prepare_request_model_capture_module(
           Err(issue) => return Err(ModelSource(issue))
           Ok(value) => value
         }
-        let capacity = match installed_row_capture_capacity(acquisition) {
+        let capacity = match
+          (match providers {
+            Some(originals) =>
+              installed_provider_row_capture_capacity(
+                acquisition,
+                originals[stage],
+              )
+            None => installed_row_capture_capacity(acquisition)
+          }) {
           None => return Err(Installed(Unsupported))
           Some(value) => value
         }

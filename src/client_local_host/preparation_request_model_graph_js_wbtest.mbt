@@ -1335,3 +1335,145 @@ test "Request Node Model read issued before prefix cannot refresh or claim the c
   retire_installed_managed_run(run).unwrap()
   assert_eq(@resources.ledger_usage(f.parent.ledger).live_reservations, 0)
 }
+
+///|
+test "Request acquired Node Model binds original provider and physical Plan on the same parent before Scope" {
+  let f = request_serialized_model_fixture(single_capture=true)
+  let (_, execution, measurement) = client_local_execution_limits(max_rows=1)
+  let prefix = prepare_request_model_serialization_plan(
+    f.parent,
+    f.input,
+    f.request,
+    f.compiled,
+    f.definition,
+    execution,
+    measurement,
+    None,
+    None,
+  ).unwrap()
+  let provider = @execution.execution_capacity(7L, 9L).unwrap()
+  let calls = Ref(0)
+  // A missing original provider cannot enter any Query/module constructor.
+  assert_true(
+    prepare_request_model_capture_module(
+      f.parent,
+      f.input,
+      f.request,
+      f.compiled,
+      f.definition,
+      f.compilation,
+      [f.declaration.unwrap()],
+      original_row_query_contract_fixture,
+      original_row_evidence_contract_fixture,
+      [4096L],
+      [2048L],
+      f.contracts,
+      true,
+      0,
+      _ => {
+        calls.val += 1
+        []
+      },
+      providers=Some([None]),
+    )
+    is Err(Installed(Unsupported)),
+  )
+  assert_eq(calls.val, 0)
+  assert_true(f.parent.program_captured is None)
+  let original = prepare_request_model_capture_module(
+    f.parent,
+    f.input,
+    f.request,
+    f.compiled,
+    f.definition,
+    f.compilation,
+    [f.declaration.unwrap()],
+    original_row_query_contract_fixture,
+    original_row_evidence_contract_fixture,
+    [4096L],
+    [2048L],
+    f.contracts,
+    true,
+    0,
+    _ => {
+      calls.val += 1
+      []
+    },
+    providers=Some([Some(provider)]),
+  ).unwrap()
+  assert_eq(calls.val, 1)
+  let capture = original.captures[0]
+  assert_true(
+    installed_provider_row_capture_capacity_matches(
+      capture,
+      capture.acquisition.unwrap(),
+      provider,
+    ),
+  )
+  let layout = request_node_model_layout_declaration(f.graph)
+  let installation = request_node_model_layout_installation()
+  assert_true(
+    prepare_request_node_model_capture_plan(
+      f.parent,
+      f.input,
+      original,
+      f.request,
+      f.compiled,
+      f.definition,
+      f.occurrence,
+      f.graph,
+      effect_model_plan_limits,
+      Some({ ..layout, parameter_values_cid: "sha256:" + "f".repeat(64), }),
+      installation,
+      layout.runtime_artifact_cid,
+      layout.layout_artifact_cid,
+      None,
+      20,
+      20,
+      20,
+    )
+    is Err(ModelLayout(@publication_host.PreparationMismatch)),
+  )
+  let plan = prepare_request_node_model_capture_plan(
+    f.parent,
+    f.input,
+    original,
+    f.request,
+    f.compiled,
+    f.definition,
+    f.occurrence,
+    f.graph,
+    effect_model_plan_limits,
+    Some(layout),
+    installation,
+    layout.runtime_artifact_cid,
+    layout.layout_artifact_cid,
+    None,
+    20,
+    20,
+    20,
+  ).unwrap()
+  assert_true(plan.content_prefix is Some(same) && physical_equal(same, prefix))
+  let scope = prepare_request_model_read_scope(f.parent, f.input, plan).unwrap()
+  complete_request_model_preparation(f.parent, f.input, plan).unwrap()
+  assert_false(@resources.return_preparation_body_borrow(f.holder).unwrap())
+  let run = begin_request_model_managed_run(f.parent, f.request, scope).unwrap()
+  assert_eq(
+    installed_managed_source_input_kind(run, f.prepared, f.request).unwrap(),
+    "query",
+  )
+  assert_true(
+    @publication_host.finish_client_model_read_scope(
+      scope,
+      f.compiled,
+      f.definition,
+      f.graph,
+      true,
+    ).unwrap(),
+  )
+  assert_true(
+    cleanup_installed_managed_serialization_prefix(run, prefix).unwrap(),
+  )
+  retire_installed_managed_run(run).unwrap()
+  assert_eq(@resources.ledger_usage(f.parent.ledger).live_reservations, 0)
+}
