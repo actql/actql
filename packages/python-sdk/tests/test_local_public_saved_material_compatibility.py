@@ -1,4 +1,4 @@
-"""Public ABI78 compatibility with real File/SQLite and scalar Core fixtures.
+"""Existing public saved-material compatibility with File/SQLite and scalar Core.
 
 No installed guest/runtime, permission, publication or ordinary speed acceptance.
 """
@@ -17,6 +17,7 @@ from actql_sdk._local_store_reconciliation import OriginalStoreReconciliation
 from actql_sdk._local_wasm_abi import LOCAL_CORE_ABI
 import test_local_host_binding as host_fixture
 import test_local_reader_facts as file_fixture
+from local_abi_declaration_fixture import assert_current_local_abi
 
 
 class PublicSavedMaterialCompatibilityTests(unittest.TestCase):
@@ -110,7 +111,7 @@ class PublicSavedMaterialCompatibilityTests(unittest.TestCase):
     def test_public_two_validator_order_and_failed_second_call_keep_same_input(self):
         with self.fixture() as (holder, observation, fact, _, core, request, _, clock,
                                 _, state, calls, _, _, _):
-            self.assertEqual(LOCAL_CORE_ABI, 78)
+            assert_current_local_abi(self, LOCAL_CORE_ABI)
             self.assertFalse(hasattr(core, 'validate_payload_reader_facts'))
             state['snapshot'] = -32
             for _ in range(2):

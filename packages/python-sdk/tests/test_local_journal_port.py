@@ -15,7 +15,7 @@ from actql_sdk._local_journal_port import _JournalCallbacks
 from actql_sdk._local_storage import LocalByteStore, ByteWrite, ByteFence, StoredBytes, _NamespaceReader
 from actql_sdk import _wire as wire
 from actql_sdk._values import decode_json
-from local_abi_declaration_fixture import original_byte_fixture_port
+from local_abi_declaration_fixture import assert_current_local_abi, original_byte_fixture_port
 
 
 def scalar_reader_check(view, required, current):
@@ -335,7 +335,7 @@ class LocalJournalBridgeCustodyTests(unittest.TestCase):
         callbacks.reader = None
 
     def test_private_loader_matches_changed_abi_imports_and_revision_width(self):
-        self.assertEqual(LOCAL_CORE_ABI, 74)
+        assert_current_local_abi(self, LOCAL_CORE_ABI)
         self.assertEqual(_JOURNAL_SIGNATURES, {
             'reserve': ('i64 i32 i32 i32 i64', 'i32'), 'inspect': ('i64 i32', 'i32'),
             'revision': ('i64 i32 i32', 'i64'), 'admission_length': ('i64 i32', 'i32'), 'close': ('i64 i32', 'i32')})
