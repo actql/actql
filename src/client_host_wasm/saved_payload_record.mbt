@@ -3,6 +3,7 @@ fn saved_payload_record_context(
   value : Instance,
   record : StoredPayloadRecord,
   configuration : Int,
+  original? : OriginalSDKReadContext? = None,
 ) -> Result[
   (StoredSubmissionProjection, StoredSavedResultRead, StoredRunConfiguration),
   Int,
@@ -19,9 +20,34 @@ fn saved_payload_record_context(
   if value.closing || value.runtime_closing || record.closing {
     return Err(-5)
   }
-  match validate_saved_result_read(value, parent, current) {
-    Err(code) => return Err(code)
-    Ok(_) => ()
+  match original {
+    Some(context) => {
+      // Only the closed finish caller supplies its SAME context immediately
+      // after check_current. Reuse immutable selection, never an Allow or a
+      // successful check across an IO/stop callback or another invocation.
+      guard physical_equal(context.current, current) &&
+        saved.source is Some(source) &&
+        physical_equal(context.source, source) &&
+        saved.finite is Some(finite) &&
+        physical_equal(context.finite, finite) &&
+        saved.owner is Some(owner) &&
+        physical_equal(context.owner, owner) &&
+        saved.view is Some(view) &&
+        physical_equal(context.view, view) &&
+        context.result_name == saved.result_name else {
+        return Err(-32)
+      }
+      // Keep the original view/observed-child liveness check here even though
+      // this private handoff does not repeat its completed physical row scan.
+      if owner.finish_observed_commit(view) is Err(_) {
+        return Err(-32)
+      }
+    }
+    None =>
+      match validate_saved_result_read(value, parent, current) {
+        Err(code) => return Err(code)
+        Ok(_) => ()
+      }
   }
   if record.closing || parent.output_closed {
     return Err(-5)
@@ -34,9 +60,10 @@ fn observe_saved_payload_record(
   value : Instance,
   record : StoredPayloadRecord,
   configuration : Int,
+  original? : OriginalSDKReadContext? = None,
 ) -> Result[@publication.PublicationContract?, Int] {
   let (_, saved, current) = match
-    saved_payload_record_context(value, record, configuration) {
+    saved_payload_record_context(value, record, configuration, original~) {
     Ok(value) => value
     Err(code) => return Err(code)
   }
@@ -240,12 +267,15 @@ fn saved_payload_binding(
   value : Instance,
   record : StoredPayloadRecord,
   configuration : Int,
+  original? : OriginalSDKReadContext? = None,
 ) -> Result[@publication.PublicationContract, Int] {
   if !record.confirmed || record.pending || record.closing {
     return Err(-32)
   }
   record.pending = true
-  let result = observe_saved_payload_record(value, record, configuration)
+  let result = observe_saved_payload_record(
+    value, record, configuration, original~,
+  )
   record.pending = false
   if record.closing {
     return Err(-5)
