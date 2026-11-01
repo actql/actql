@@ -74965,7 +74965,7 @@
     {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "38e9b3703d6b7c13b9f875acad63d134bf97a5c85d56655b42179e6286b70b6c",
+      "sha256": "81fa57d432d98c223dd545165e5519b0077fffb3c42c5c28a17044031f909981",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -76290,6 +76290,13 @@
           "async": false
         },
         {
+          "name": "prepareImmutablePhysicalTargets/init:prepare/init:prepare/target/target",
+          "parameters": [
+            "target"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareImmutablePhysicalTargets/mismatch/mismatch",
           "parameters": [],
           "async": false
@@ -76642,7 +76649,8 @@
           "operations": [
             "byCid/byCid",
             "byCid/byCid/byCid",
-            "byCid/byCid/byCid#2"
+            "byCid/byCid/byCid#2",
+            "prepareImmutablePhysicalTargets/init:prepare/init:prepare/target/target"
           ],
           "exports": [],
           "attributes": {
