@@ -35,14 +35,14 @@ fn sdk_payload_read_current_frame(
 // Only the same freshly constructed Saved context selects this private path.
 // These are live owner/Account/Host checks, never a remembered successful check.
 // The enclosing read-only frame separately reobserves all saved Store rows.
-fn sdk_payload_read_current(
+fn sdk_payload_saved_read_current(
   value : Instance,
   first : StoredPublicationCommitExport,
   context : OriginalSDKReadContext,
   current_configuration : Int,
 ) -> Result[Unit, Int] {
   if value.publications.contains(first.publication) {
-    return (context.check_current)()
+    return Err(-32)
   }
   if value.closing || value.runtime_closing || first.closing {
     return Err(-5)
@@ -118,12 +118,7 @@ fn sdk_payload_access_current(
     required_text(observed, "observed_at") is Some(at) else {
     return Err(-30)
   }
-  sdk_payload_read_current_frame(
-    context.check_current,
-    () => {
-      sdk_payload_read_current(value, first, context, current_configuration)
-    },
-    current => {
+  let observe = current => {
     @local_run.validate_local_sdk_payload_encoding_source_current(
       context.source,
       context.current.account,
@@ -141,8 +136,21 @@ fn sdk_payload_access_current(
       (table, key) => sdk_run_journal_port(value, context.current, 1, table, key),
       current,
     ).map_err(sdk_payload_codec_issue)
-    },
-  )
+  }
+  if value.publications.contains(first.publication) {
+    // The Live caller keeps its original callback selection and work.
+    observe(context.check_current)
+  } else {
+    sdk_payload_read_current_frame(
+      context.check_current,
+      () => {
+        sdk_payload_saved_read_current(
+          value, first, context, current_configuration,
+        )
+      },
+      observe,
+    )
+  }
 }
 
 ///|
