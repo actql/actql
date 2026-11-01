@@ -58,6 +58,30 @@ class LocalHostFilePinsTests(unittest.TestCase):
             self.assertEqual([observed.count(value.reader.descriptor) for value in originals], [1] * 5)
             self.assertEqual(named, ['original-' + str(i) for i in range(5)])
 
+    def test_current_keeps_each_physical_member_without_deep_comparing_same_snapshot(self):
+        from actql_sdk._local_files import PhysicalFileSnapshot
+        _, root, _, pins = self.fixture()
+        originals = (pins.read_original('account.json', max_bytes=11),
+                     pins.read_original('policy.json', max_bytes=16))
+        for value in originals:
+            self.assertIs(value.snapshot, value.reader.result)
+        equal = PhysicalFileSnapshot.__eq__
+        comparisons = []
+        def compare(left, right):
+            comparisons.append(left is right)
+            return equal(left, right)
+        with patch.object(PhysicalFileSnapshot, '__eq__', compare), \
+                patch.object(root, '_validate_original_member',
+                             wraps=root._validate_original_member) as members, \
+                patch.object(root, '_validate_original_directory',
+                             wraps=root._validate_original_directory) as directory:
+            self.assertIsNone(pins.current())
+        self.assertEqual(members.call_count, 2)
+        self.assertEqual(directory.call_count, 2)
+        self.assertEqual(comparisons, [])
+        self.assertTrue(pins.close())
+        self.assertTrue(root.close())
+
     def test_exact_original_bytes_and_current_preserve_files_store_and_no_scope(self):
         path, root, store, pins = self.fixture()
         changes = store._connection.total_changes
