@@ -12,7 +12,7 @@ priv enum ClientInstalledContentPreparation {
 }
 
 ///|
-/// The actual source-free Content prefix and its original compilation. The
+/// The actual Content prefix and its original compilation. The
 /// caller backs constructor/output coexistence before entry. Keeping these
 /// originals eliminates the former capacity/start provider reconstruction;
 /// neither the record nor its requirements projection is physical admission.
@@ -55,7 +55,13 @@ fn prepare_installed_managed_serialization(
     @publication_host.client_compiled_run_matches_tasks(
       compiled, prepared, compilation,
     ) &&
-    @publication_host.prepared_client_acquisition_count(prepared) == 0 &&
+    (
+      @publication_host.prepared_client_acquisition_count(prepared) == 0 ||
+      (
+        model is Some(_) &&
+        @publication_host.prepared_client_acquisition_count(prepared) == 1
+      )
+    ) &&
     @publication_host.prepared_client_composed_infer_occurrences(prepared)
     is Some(infers) &&
     (match model {
@@ -99,6 +105,8 @@ fn prepare_installed_managed_serialization(
       installed.ordered_body,
       execution,
       measurement,
+      acquired=@publication_host.prepared_client_acquisition_count(prepared) ==
+        1,
       query_time=query_time.map(original => (original, request)),
     )
     is Some((sequence, provider, prefix_capacity)) else {

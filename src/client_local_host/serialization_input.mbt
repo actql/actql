@@ -53,7 +53,14 @@ fn serialization_prefix_provider(
   }
   let sequence = if acquired {
     prepare_client_acquired_serialization_prefix(
-      prepared, task, step, installed_contracts, values_body, fragment_body, ordered_body,
+      prepared,
+      task,
+      step,
+      installed_contracts,
+      values_body,
+      fragment_body,
+      ordered_body,
+      query_time~,
     )
   } else {
     prepare_client_serialization_prefix(

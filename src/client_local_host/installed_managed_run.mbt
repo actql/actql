@@ -223,7 +223,10 @@ fn installed_managed_owner_shape_supported(
       )
   }
   (
-    (captured > 0 && (!mock_model || captured == 2)) ||
+    (
+      captured > 0 &&
+      (!mock_model || captured == 2 || (model is Some(_) && captured == 1))
+    ) ||
     (captured == 0 && @strategy.graph_source_free_inputs_complete(graph))
   ) &&
   boundary_count is Some(count) &&

@@ -110,7 +110,11 @@ fn[I] begin_request_model_module(
   }
   let dag = @publication_host.prepared_client_graph(prepared)
   guard @strategy.graph_captured_prefix(dag) == captures &&
-    (captures == 0 || captures == 2) &&
+    (
+      captures == 0 ||
+      captures == 2 ||
+      (captures == 1 && graph.serialization is Some(_))
+    ) &&
     owner.program_plan_quote is Some((quoted_r, quoted_e)) &&
     request_model_module_container_bytes(
       @strategy.graph_task_count(dag),
@@ -202,9 +206,9 @@ pub fn[I] prepare_request_model_source_free_module(
 }
 
 ///|
-/// The actual two Query originals, acquisitions and configured module are
+/// The actual Query originals, acquisitions and configured module are
 /// constructed once inside the already held Request. No JS requirement or
-/// provider is reconstructed later. Contract parses coexist with both captures
+/// provider is reconstructed later. Contract parses coexist with all captures
 /// and their module, and their input-derived debit precedes the first parse.
 pub fn[I] prepare_request_model_capture_module(
   owner : ClientRequestPreparation[I],
@@ -226,16 +230,17 @@ pub fn[I] prepare_request_model_capture_module(
   ],
   query_time? : @publication_host.ClientQueryTimePreparation? = None,
 ) -> Result[ClientInstalledManagedCapturePlan, ClientRequestProgramPlanIssue] {
-  if declarations.length() != 2 ||
-    transport_bytes.length() != 2 ||
-    transport_execution_bytes.length() != 2 {
+  let count = declarations.length()
+  if (count != 1 && count != 2) ||
+    transport_bytes.length() != count ||
+    transport_execution_bytes.length() != count {
     return Err(Installed(Unsupported))
   }
   preparation_module_call(
     () => {
       let prepared = match
         begin_request_model_module(
-          owner, input, request, compiled, definition, compilation, contracts, 2,
+          owner, input, request, compiled, definition, compilation, contracts, count,
           installed_providers, query_time,
         ) {
         Err(issue) => return Err(issue)
@@ -251,7 +256,9 @@ pub fn[I] prepare_request_model_capture_module(
         is Some(protocol_bytes) &&
         request_local_query_construction_bytes() is Some(query_bytes) &&
         @execution.checked_preparation_add_product(
-          protocol_bytes, query_bytes, 2L,
+          protocol_bytes,
+          query_bytes,
+          count.to_int64(),
         )
         is Some(bytes) else {
         return Err(Preparation(Policy))
@@ -261,7 +268,7 @@ pub fn[I] prepare_request_model_capture_module(
         Err(issue) => return Err(issue)
         Ok(_) => ()
       }
-      // The two actual Query/material constructors and their protocol overlap
+      // The actual Query/material constructors and their protocol overlap
       // are backed before the first parse/Query call on this SAME Request.
       // Both acquisitions borrow these SAME admitted protocol originals. Do
       // not parse/check the identical installation bodies for a second Source.
@@ -273,7 +280,7 @@ pub fn[I] prepare_request_model_capture_module(
         Ok(value) => value
       }
       let captures = []
-      for stage in 0..<2 {
+      for stage in 0..<count {
         let requirement = match
           (match query_time {
             Some(original) =>

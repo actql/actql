@@ -123,6 +123,11 @@ pub fn prepare_installed_mock_model_capture_plan(
       retained_output~,
       provider_factory~,
       query_time~,
+      model=if compilation.infers[0].serialization is Some(_) {
+        Some(compilation.infers[0])
+      } else {
+        None
+      },
     ) {
     Err(issue) => return Err(issue)
     Ok(value) => value
