@@ -1974,19 +1974,23 @@ semantic absence fact.
 Within that same live reader, the exact stdlib SQLite adapter can retain a
 completed immutable metadata-fence observation. Reuse requires the same
 physical adapter and connection, unchanged original transaction sequence and
-actual schema version, plus SQLite's unchanged total row-change count. The
-bounded schema-version PRAGMA still runs before and after every mutable current
-observation; it is counted separately from metadata-row queries. DDL can leave
-`total_changes` unchanged and is therefore never inferred absent from that
-counter. A schema/transaction/connection replacement refuses, and any row
+actual main and TEMP schema versions, plus SQLite's unchanged total row-change
+count. Both bounded schema-version PRAGMAs still run before and after every
+mutable current observation; they are counted separately from metadata-row
+queries. TEMP can shadow the physical table without changing the main schema
+version or any row, so the two schema observations must come from the same
+original connection and transaction. DDL is never inferred absent from
+`total_changes` alone. A schema/transaction/connection replacement refuses, and any row
 change requires complete metadata validation again. Savepoint rollback does
 not reset SQLite's total-change count. Another reader starts without an
 observation, and physical suppliers without this exact port keep full checks.
 
 Every physical/current callback still runs, including file/settings/epoch and
-Account checks. Actual row queries retain all three complete before/after SQL
-fences and their mutable-current calls; the outer read/write and precommit
-fences remain complete. Copy/thread/reentry, retired transaction, callback or
+Account checks. The typed original-current query uses that same immutable
+metadata observation at all three query fences, each with fresh complete
+snapshot and mutable-current checks. Its actual physical row is always read;
+raw readers and other physical suppliers retain all metadata-row reads. The
+outer read/write and precommit fences remain complete. Copy/thread/reentry, retired transaction, callback or
 schema-probe failure poisons the same reader. There is no current/Allow cache,
 new owner, retry, changed bound, Native ABI, or persistent snapshot token.
 
