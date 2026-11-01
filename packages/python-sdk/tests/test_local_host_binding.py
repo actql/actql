@@ -16,6 +16,46 @@ from actql_sdk._local_submission import LocalSubmissionAuthority, LocalSubmissio
 
 
 class OriginalHostBindingTests(unittest.TestCase):
+    def test_owned_inventory_uses_direct_rows_without_arbitrary_consumer_callbacks(self):
+        _, store, core, _, _, _, _, calls, _, _, binding = self.fixture()
+        original = LocalByteStore._inspect_namespace_locked
+        counts = {'direct': 0, 'consumer': 0}
+        readers = []
+        def inspect_frame(owner, inspect, fences, current, **kwargs):
+            def inspect_reader(reader):
+                readers.append(reader)
+                query, scan = reader.query_current, reader.scan_after
+                def direct(view, mode, namespace, key, observer):
+                    result = query(view, mode, namespace, key, observer)
+                    counts['direct'] += 1
+                    return result
+                def callback(namespace, cursor, consume):
+                    counts['consumer'] += 1
+                    return scan(namespace, cursor, consume)
+                # Retain the actual same reader/closure identities. A copied
+                # reader must not substitute for the enclosing Store frame.
+                object.__setattr__(reader, 'query_current', direct)
+                object.__setattr__(reader, 'scan_after', callback)
+                return inspect(reader)
+            return original(owner, inspect_reader, fences, current, **kwargs)
+        changes = store._connection.total_changes
+        with patch.object(LocalByteStore, '_inspect_namespace_locked', inspect_frame):
+            binding.inspect(lambda current: self.assertIs(current, binding._current))
+        self.assertEqual(counts['consumer'], 0)
+        # Two complete singleton/settings inventories, including each trailing
+        # absence: adoption2 + settings3 before and after the Core consumer.
+        self.assertEqual(counts['direct'], 10)
+        self.assertEqual(store._connection.total_changes, changes)
+        self.assertFalse(store._connection.in_transaction)
+        self.assertEqual([name for family, name, _ in calls if family == 'current'][-2:],
+                         ['bind', 'validate'])
+        with self.assertRaises(ValueError):
+            readers[0].query_current(readers[0], 0, 'client_local_adoption', '',
+                                     binding._current_observer)
+        self.assertEqual(counts['direct'], 10)
+        self.assertIsNone(core._journal_callbacks(binding._current.ticket).reader)
+        self.assertTrue(binding.close())
+
     def fixture(self, *, create=True):
         directory = TemporaryDirectory(prefix='actql-original-host-binding-')
         self.addCleanup(directory.cleanup)
