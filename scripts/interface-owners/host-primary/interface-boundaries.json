@@ -18230,6 +18230,7 @@
         "./client-run-plan.mjs",
         "./client-run-start.mjs",
         "./client-submission.mjs",
+        "./compile-cache.mjs",
         "./effect-capture-resources.mjs",
         "./effect-run-recovery.mjs",
         "./effect-target-read-continuation.mjs",
@@ -18298,7 +18299,7 @@
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "51fff0006eebc73e03a124ebdb35d4381adca4365b3b6539a399a4db0af2dcbd"
+      "sha256": "5221189c9f52bf28e78fe86f8515778fbae6a2304b75df476e948a09c4094a87"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
