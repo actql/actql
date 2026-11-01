@@ -12,6 +12,19 @@ fn sdk_payload_encoding_issue(
 }
 
 ///|
+// Keep the original callback selection in this extraction. The focused counter
+// distinguishes full saved-chain observation from fresh current callbacks.
+// This is a private synchronous call boundary, not an author/permission port.
+fn sdk_payload_read_current_frame(
+  original_current : () -> Result[Unit, Int],
+  current : () -> Result[Unit, Int],
+  observe : (() -> Result[Unit, Int]) -> Result[Unit, Int],
+) -> Result[Unit, Int] {
+  current |> ignore
+  observe(original_current)
+}
+
+///|
 fn sdk_payload_access_current(
   value : Instance,
   first : StoredPublicationCommitExport,
@@ -40,23 +53,29 @@ fn sdk_payload_access_current(
     required_text(observed, "observed_at") is Some(at) else {
     return Err(-30)
   }
-  @local_run.validate_local_sdk_payload_encoding_source_current(
-    context.source,
-    context.current.account,
-    context.finite,
-    context.sdk.read,
-    context.sdk.adoption_cid,
-    context.owner,
-    context.view,
-    original,
-    context.result_name,
-    context.format,
-    attempt_id,
-    at,
-    8,
-    (table, key) => sdk_run_journal_port(value, context.current, 1, table, key),
+  sdk_payload_read_current_frame(
     context.check_current,
-  ).map_err(sdk_payload_codec_issue)
+    context.check_current,
+    current => {
+    @local_run.validate_local_sdk_payload_encoding_source_current(
+      context.source,
+      context.current.account,
+      context.finite,
+      context.sdk.read,
+      context.sdk.adoption_cid,
+      context.owner,
+      context.view,
+      original,
+      context.result_name,
+      context.format,
+      attempt_id,
+      at,
+      8,
+      (table, key) => sdk_run_journal_port(value, context.current, 1, table, key),
+      current,
+    ).map_err(sdk_payload_codec_issue)
+    },
+  )
 }
 
 ///|
