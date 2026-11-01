@@ -1961,15 +1961,18 @@ typed current before and after the complete transfer. File, settings, epoch,
 Account and authorization checks remain at those protected boundaries. No
 frame, row or successful decision survives the enclosing reader.
 
-The actual Store reader can also enclose the Journal's required current
-observer in its existing query. Its three fences remain before physical read,
-after physical read and after consumption, each with complete SQL metadata and
-original physical-current checks. Only callback identity suppresses an adjacent
-duplicate observation already performed by that same fence; a different
-observer runs separately at every boundary. A private reader without this port
-keeps the original outer before/after checks. Neither shape returns bytes after
-a latched failure, changes query/copy bounds or turns a physical miss into a
-semantic absence fact.
+The actual Store reader encloses the Journal's required current observer in
+its existing query and returns bounded immutable row DATA directly. Complete
+SQL metadata and original physical-current checks run before physical read and
+before returning that DATA. No external consumer runs between those checks:
+the Journal only validates and packages the row for its existing ABI transfer.
+The generic `read` and `scan_after` paths retain their arbitrary consumer and
+all three fences, including the separate post-consumer check. Only callback
+identity suppresses an adjacent duplicate observation already performed by the
+same fence; a different observer runs separately at every boundary. A private
+reader without the direct port keeps the original outer before/after checks.
+Neither shape returns bytes after a latched failure, changes query/copy bounds
+or turns a physical miss into a semantic absence fact.
 
 Within that same live reader, the exact stdlib SQLite adapter can retain a
 completed immutable metadata-fence observation. Reuse requires the same
@@ -1987,9 +1990,10 @@ observation, and physical suppliers without this exact port keep full checks.
 
 Every physical/current callback still runs, including file/settings/epoch and
 Account checks. The typed original-current query uses that same immutable
-metadata observation at all three query fences, each with fresh complete
+metadata observation at both physical query boundaries, each with fresh complete
 snapshot and mutable-current checks. Its actual physical row is always read;
-raw readers and other physical suppliers retain all metadata-row reads. The
+raw readers and other physical suppliers retain complete metadata-row reads at
+their respective query and consumer boundaries. The
 outer read/write and precommit fences remain complete. Copy/thread/reentry, retired transaction, callback or
 schema-probe failure poisons the same reader. There is no current/Allow cache,
 new owner, retry, changed bound, Native ABI, or persistent snapshot token.

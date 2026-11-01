@@ -1,6 +1,6 @@
 {
   "source": "d5d66cd86ac2e153f31a511e7d37c78e0cc28ae3",
-  "syntaxProjectionSha256": "63d97bbfffc2717d804bbd5fe613afa030ea32a9580b156b982ad0eeb1111e23",
+  "syntaxProjectionSha256": "4b6eea3a336d3050604eef2670da26b532446c756733e46c80a5d1a3757e087b",
   "qualification": "Source-reference coverage only; original Native/FFI/Python executions retain their own source, artifact and target qualifications. No normal funding, VM or installed product admission.",
   "generated": [
     {
@@ -29927,7 +29927,7 @@
           ]
         }
       ],
-      "sha256": "8a0b3604db7380852b597bccf2db9cc7e6ed2337dae3510203bc96480cf50b0e",
+      "sha256": "b2929eb576e3abcbc7e7b2bd1d5ca8a804f488bd0acb3ffe46b24b2cc0bef47c",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -58911,8 +58911,25 @@
             "mode",
             "namespace",
             "key",
-            "consume",
             "required_current"
+          ]
+        },
+        {
+          "async": false,
+          "name": "LocalByteStore/_inspect_namespace_locked/read",
+          "parameters": [
+            "namespace",
+            "key",
+            "consume"
+          ]
+        },
+        {
+          "async": false,
+          "name": "LocalByteStore/_inspect_namespace_locked/scan_after",
+          "parameters": [
+            "namespace",
+            "after",
+            "consume"
           ]
         },
         {
@@ -59513,7 +59530,7 @@
           "parameters": []
         }
       ],
-      "sha256": "5b6f08a347b422b7150aaa14a59219c8b1797028bd1699a01340a69b4cdc3758",
+      "sha256": "425d420c2e082f24f87b01f10406bcfe7ee3eca358a8d0f969ddd2dc4f93b5ee",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -60077,6 +60094,8 @@
             "LocalByteStore/_inspect_namespace_locked/metadata_fence",
             "LocalByteStore/_inspect_namespace_locked/observe",
             "LocalByteStore/_inspect_namespace_locked/query_current",
+            "LocalByteStore/_inspect_namespace_locked/read",
+            "LocalByteStore/_inspect_namespace_locked/scan_after",
             "LocalByteStore/_inspect_publication_projected",
             "LocalByteStore/_inspect_publication_projected/consume_all",
             "LocalByteStore/_inspect_publication_projected/fence",
