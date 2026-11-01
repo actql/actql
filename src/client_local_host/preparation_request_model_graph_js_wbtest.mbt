@@ -545,6 +545,7 @@ priv struct RequestAcquiredModelCaptureFixture {
   module_plan : ClientInstalledManagedCapturePlan
   scope : @publication_host.ClientModelReadScope
   run : ClientInstalledManagedRun
+  read : ClientInstalledSourceRead
   source : @row_source_host.RowRun
   capture : @row_source_host.RowSourceCapture
   verify_hook : Ref[(() -> Unit)?]
@@ -603,13 +604,30 @@ fn request_acquired_model_capture_fixture(
   assert_false(@resources.return_preparation_body_borrow(f.holder).unwrap())
   let run = begin_request_model_managed_run(f.parent, f.request, scope).unwrap()
   let verify_hook : Ref[(() -> Unit)?] = Ref(None)
-  let source = start_client_original_row_acquisition(
-    scope,
-    f.compiled,
-    f.definition,
-    f.graph,
+  let (read, requirement, acquisition, capacity) = begin_installed_managed_capture_source_read(
+    run,
     f.prepared,
-    module_plan.captures[0].acquisition.unwrap(),
+    f.request,
+    f.declaration.unwrap(),
+    0,
+  ).unwrap()
+  assert_true(physical_equal(requirement, module_plan.captures[0].requirement))
+  let ledger = prepare_installed_managed_run_ledger(
+    run,
+    f.prepared,
+    f.request,
+    [capacity],
+    [4096L],
+    [2048L],
+    f.contracts,
+    module_plan.values_body,
+    module_plan.fragment_body,
+    module_plan.ordered_body,
+  ).unwrap()
+  assert_true(physical_equal(ledger, f.parent.ledger))
+  let source = start_installed_source_read_rows(
+    read,
+    acquisition,
     "same-request-acquired-model",
     _ => {
       if verify_hook.val is Some(hook) {
@@ -645,6 +663,7 @@ fn request_acquired_model_capture_fixture(
     module_plan,
     scope,
     run,
+    read,
     source,
     capture,
     verify_hook,
@@ -659,7 +678,7 @@ fn request_acquired_model_capture_close(
   assert_true(
     cleanup_installed_managed_serialization_prefix(f.run, f.prefix).unwrap(),
   )
-  @row_source_host.close_accounted_row_run(f.source).unwrap()
+  retire_installed_source_read(f.read).unwrap()
   let original = f.original
   assert_true(
     @publication_host.finish_client_model_read_scope(
