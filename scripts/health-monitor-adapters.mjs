@@ -162,6 +162,8 @@ export async function publicNodeSample(config) {
     const original = await client.startSource(healthFixtures.select.text, {format: 'sql'});
     assert.equal((await original.wait()).status, 'succeeded');
     assert.deepEqual(await original.result('main').all(), healthFixtures.select.expected);
+    report.publicTiming = {kind: 'process-result-close', startNs: Number(started),
+      observedNs: Number(process.hrtime.bigint())};
     report.firstQueryNs = Number(process.hrtime.bigint() - first);
     report.originalRunSha256 = jsonDigest(original.ref);
     if (config.kind === 'warm') {
@@ -183,8 +185,12 @@ export async function publicNodeSample(config) {
             }
           } catch (cause) {error = cause;}
           const used = process.cpuUsage(cpu);
-          metric.samples.push({iteration, pid: process.pid, wallNs: Number(process.hrtime.bigint() - start),
+          const end = process.hrtime.bigint();
+          metric.samples.push({iteration, pid: process.pid, wallNs: Number(end - start),
             cpuUserUs: used.user, cpuSystemUs: used.system, cpuScope: 'actual Node collector process',
+            ...usage(),
+            ...(!error ? {publicTiming: {kind: id === 'warm-status' ? 'public-status' : 'public-result',
+              startNs: Number(start), observedNs: Number(end), endNs: Number(end)}} : {}),
             completed: !error, verified: !error, ...(error ? {error: nodeBenchmarkFailure(error)} : {})});
           await save();
           if (error) throw error; // No retry, replay or sampling until green.
@@ -195,10 +201,13 @@ export async function publicNodeSample(config) {
   finally {
     if (client) {
       const close = process.hrtime.bigint();
+      if (report.publicTiming) report.publicTiming.closeStartNs = Number(close);
       try {await client.close(); report.cleanup.closed = true;}
       catch (error) {primary ??= error; report.cleanup.failure = nodeBenchmarkFailure(error);}
       report.closeNs = Number(process.hrtime.bigint() - close);
+      if (report.publicTiming) report.publicTiming.closeEndNs = Number(process.hrtime.bigint());
     }
+    if (report.publicTiming) report.publicTiming.endNs = Number(process.hrtime.bigint());
     await save();
   }
   if (primary) throw primary;
@@ -239,6 +248,8 @@ export async function quickNodeMetrics({prepared, root, repository, command, cou
     cold.samples.push({iteration, pid: child.pid, wallNs: observation.wallNs,
       cpuUserUs: child.processCpu.user, cpuSystemUs: child.processCpu.system,
       cpuScope: 'actual Node child through awaited close; excludes reporting and final process exit',
+      peakRssBytes: child.peakRssBytes, rssScope: child.rssScope,
+      publicTiming: child.publicTiming,
       completed: true, verified: true, moduleImportAndOpenNs: child.importAndOpenNs,
       firstQueryNs: child.firstQueryNs, observation: output});
     peaks.push(child.peakRssBytes); await onMetric(cold);

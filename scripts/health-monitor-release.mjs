@@ -232,7 +232,7 @@ export async function releaseMeasurements({options, prepared, repository, root, 
       status: 'incomplete', reason: 'Existing final Node collector requires a fixed matched SQLite comparison'});
   }
   // Native CLI evidence is independent of the Node SQLite comparison.
-  for (const id of ['warm-select', 'warm-result', 'warm-status', 'warm-join', 'warm-decimal-sum']) {
+  for (const id of ['warm-select', 'warm-result', 'warm-status', 'warm-join', 'warm-union', 'warm-decimal-sum', 'warm-parameters', 'warm-unicode']) {
     await onMetric({id, target: 'native', kind: 'latency', temperature: 'warm', unit: 'ms',
       requiredSamples: 100, required: true, status: 'incomplete',
       reason: 'Existing ordinary Native CLI collector has no retained-Host warm entry; new CLI processes cannot substitute'});
@@ -247,7 +247,7 @@ export async function releaseMeasurements({options, prepared, repository, root, 
   if (options.comparison) assert.deepEqual(controls.comparison,
     await readFixedSQLiteComparison(options.comparison, env, options.load ?? 'concurrent'));
   const common = {manifestPath: prepared.manifestPath, consumer: prepared.consumer, controlsPath, mode: 'final'};
-  for (const id of ['warm-select', 'warm-result', 'warm-status', 'warm-join', 'warm-union', 'warm-decimal-sum', 'first-init', 'cold-existing']) {
+  for (const id of ['warm-select', 'warm-result', 'warm-status', 'warm-join', 'warm-union', 'warm-decimal-sum', 'warm-parameters', 'warm-unicode', 'first-init', 'cold-existing']) {
     await onMetric({id, kind: 'latency', target: 'node-local', required: true, status: 'incomplete', reason: 'Required final collector family not yet observed'});
   }
   for (const operation of ['warm', 'first-init', 'cold-existing']) {
@@ -267,7 +267,7 @@ export async function releaseMeasurements({options, prepared, repository, root, 
     scope: 'actual Release Node collector process high-water RSS, including verification/reporting; spawned compiler/Native/Python processes excluded; Node KiB converted to bytes', evidence: root});
   const pythonRuntime = options.pythonVenv ? pythonRuntimeIdentity(options.pythonVenv) : null;
   const pythonControls = options.pythonControls ? JSON.parse(await readFile(options.pythonControls)) : null;
-  for (const adapter of ['python']) for (const operation of ['first-init', 'cold-existing', 'warm-select', 'warm-result', 'warm-status', 'warm-join', 'warm-decimal-sum']) {
+  for (const adapter of ['python']) for (const operation of ['first-init', 'cold-existing', 'warm-select', 'warm-result', 'warm-status', 'warm-join', 'warm-union', 'warm-decimal-sum', 'warm-parameters', 'warm-unicode']) {
     if (adapter === 'python' && !options.pythonVenv) {
       await onMetric({id: operation, target: adapter, kind: 'latency', required: true, status: 'incomplete', reason: 'Matching ordinary Python venv absent'}); continue;
     }
