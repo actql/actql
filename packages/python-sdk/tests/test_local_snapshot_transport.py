@@ -49,6 +49,7 @@ class SnapshotTransportTests(unittest.TestCase):
             store = LocalByteStore(Path(directory) / 'original.sqlite', max_records=8,
                 max_record_bytes=4096, max_payload_bytes=16384)
             self.addCleanup(store.close)
+            store.compare_exchange('epoch', None, b'original-epoch')
             store.compare_exchange(store.namespaced_key('original', 'one'), None, b'original-row')
             active = [True]
             original = PermissionError('original physical current revoked')
@@ -71,7 +72,8 @@ class SnapshotTransportTests(unittest.TestCase):
                 self.assertEqual(callbacks.release(), -41)
                 active[0] = True
             with self.assertRaises(PermissionError) as failed:
-                store.inspect_namespaces((), inspect=inspect, current=current)
+                store.inspect_namespaces((ByteFence('epoch', 0, b'original-epoch'),),
+                    inspect=inspect, current=current)
             self.assertIs(failed.exception, original)
 
     def test_original_operation_observation_joins_its_two_adjacent_current_checks(self):
