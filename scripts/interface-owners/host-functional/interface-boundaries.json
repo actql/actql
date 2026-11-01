@@ -43699,7 +43699,9 @@
           }
         },
         {
-          "operations": [],
+          "operations": [
+            "<module>"
+          ],
           "exports": [],
           "attributes": {
             "responsibility": [
