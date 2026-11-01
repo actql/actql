@@ -18,6 +18,70 @@ import test_local_submission_lookup as host_fixture
 
 
 class SavedReadPortsTests(unittest.TestCase):
+    def _record_preparation_ports(self, *, deny_at=None, fail_produce=False):
+        # Actual saved caller/current wrappers through record materialization;
+        # Core, installation and metadata parsing are explicit semantic ports.
+        # This does not claim a complete saved read, physical IO or authority.
+        class StopAfterRecord(Exception): pass
+        events, currents = [], []
+        source, record, current = object(), object(), object()
+        original_failure = PermissionError('same original current refused')
+        producer_failure = OSError('same original record producer failure')
+        class Core:
+            _inputs = {7: SimpleNamespace(payload=b'original-source-metadata')}
+            def validate_submission_lookup(self, actual_source, actual_current):
+                events.append('source-current')
+                self_test.assertIs(actual_source, parent)
+                self_test.assertIs(actual_current, current)
+                currents.append(True)
+                if len(currents) == deny_at: raise original_failure
+            def reserve_saved_payload_record(self, actual_source, *, cleanup):
+                self_test.assertIs(actual_source, parent)
+                events.append('reserve-record')
+                return record
+            def produce_payload_record(self, actual, configuration):
+                self_test.assertIs(actual, saved._record)
+                self_test.assertIs(actual, record)
+                self_test.assertEqual(configuration, 31)
+                events.append('produce-record')
+                if fail_produce: raise producer_failure
+            def read_payload_record(self, actual, configuration):
+                self_test.assertIs(actual, saved._record)
+                self_test.assertEqual(configuration, 31)
+                events.append('validate-and-copy-record')
+                return b'original-record'
+        self_test = self
+        parent = SimpleNamespace(ticket=7, original=source)
+        def inspect(consume): consume(current)
+        installation = SimpleNamespace(_store=SimpleNamespace(_max_payload_bytes=8192),
+            _results=object(), binding=SimpleNamespace(inspect=inspect))
+        host = SimpleNamespace(_core=Core(), _active=lambda: installation,
+            _configuration=SimpleNamespace(sdk=True, handle=31),
+            _retain_original_result_read=lambda *_: parent, _reserve=lambda acquire: acquire())
+        saved = OriginalSavedResultRead(host)
+        def parse(raw, limit):
+            if limit == 1048576:
+                self.assertEqual(raw, b'original-source-metadata')
+                return {'resultOrdinal': '0', 'bindingOrdinal': '0'}
+            self.assertEqual((raw, limit), (b'original-record', 65536))
+            raise StopAfterRecord()
+        with patch('actql_sdk._local_saved_read._object', side_effect=parse), patch.object(
+                OriginalCommitProjection, 'from_saved_read', return_value=object()):
+            try: saved.prepare({}, 'answer', 'jsonl', 'original-attempt')
+            except BaseException as error: result = error
+            else: self.fail('Finite fixture must stop before subsequent physical reader work')
+        return saved, parent, record, result, StopAfterRecord, events, currents, original_failure, producer_failure
+
+    def test_saved_record_produce_and_validated_copy_share_one_original_current_frame(self):
+        saved, parent, record, result, stop, events, currents, _, _ = self._record_preparation_ports()
+        self.assertIsInstance(result, stop)
+        self.assertEqual(len(currents), 4)  # metadata pair, then materialization pair
+        self.assertEqual(events, ['source-current', 'source-current', 'reserve-record',
+            'source-current', 'produce-record', 'validate-and-copy-record', 'source-current'])
+        self.assertIs(saved._source, parent)
+        self.assertIs(saved._record, record)
+        self.assertFalse(saved._preparing)
+
     def test_payload_output_uses_its_live_or_saved_original_parent_until_child_ack(self):
         for saved in (False, True):
             with self.subTest(saved=saved):
