@@ -2028,6 +2028,15 @@ reader without the direct port keeps the original outer before/after checks.
 Neither shape returns bytes after a latched failure, changes query/copy bounds
 or turns a physical miss into a semantic absence fact.
 
+The installed Host's own adoption/settings inventories use that same direct
+row port for their fixed raw membership comparisons. Their local list-append
+consumers are removed; no arbitrary caller runs between the query and those
+comparisons. Both full inventories still run before and after protected Core
+work, including each trailing absence query and every original byte/revision.
+The exact Local Store always supplies this port; an incomplete Local reader
+refuses rather than selecting a compatibility path. Independent physical
+adapters retain their complete metadata checks through the same Store reader.
+
 Within that same live reader, the exact stdlib SQLite adapter can retain a
 completed immutable metadata-fence observation. Reuse requires the same
 physical adapter and connection, unchanged original transaction sequence and

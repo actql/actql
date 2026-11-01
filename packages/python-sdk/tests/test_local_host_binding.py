@@ -113,6 +113,25 @@ class OriginalHostBindingTests(unittest.TestCase):
         self.assertFalse(store._connection.in_transaction)
         self.assertTrue(binding.close())
 
+    def test_incomplete_owned_inventory_port_refuses_before_core_binding(self):
+        _, store, core, _, _, _, _, calls, _, _, binding = self.fixture()
+        raw = LocalByteStore._inspect_namespace_locked
+        def incomplete(owner, inspect, fences, current, **kwargs):
+            def inspect_reader(reader):
+                object.__setattr__(reader, 'query_current', None)
+                return inspect(reader)
+            return raw(owner, inspect_reader, fences, current, **kwargs)
+        before = len(calls)
+        original = binding._current
+        with patch.object(LocalByteStore, '_inspect_namespace_locked', incomplete):
+            with self.assertRaisesRegex(ValueError, 'owned inventory query is unavailable'):
+                binding.inspect(lambda _: self.fail('Incomplete Local reader reached Core'))
+        self.assertEqual(len(calls), before)
+        self.assertIs(core._loans[original.ticket], original)
+        self.assertIsNone(core._journal_callbacks(original.ticket).reader)
+        self.assertFalse(store._connection.in_transaction)
+        self.assertTrue(binding.close())
+
     def fixture(self, *, create=True):
         directory = TemporaryDirectory(prefix='actql-original-host-binding-')
         self.addCleanup(directory.cleanup)
