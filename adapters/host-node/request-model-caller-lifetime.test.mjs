@@ -502,3 +502,76 @@ test('Mock Effect reader consumes the same planned original and retires physical
   assert.equal(retires, 1); assert.equal(reads, 1); assert.equal(closes, 2);
   assert.equal(run.mockSourceReads[0].raw, undefined); assert.equal(run.mockSourceReads[0].observedBytes, undefined);
 });
+
+const graphMethodStart = managerSource.indexOf('    prepareModelGraph(');
+const graphMethodEnd = managerSource.indexOf('    prepareModelCompilation(', graphMethodStart);
+assert(graphMethodStart >= 0 && graphMethodEnd > graphMethodStart);
+function requestGraphFixture({serialized = true, missingPort = false, replaceAfter = false, refuse} = {}) {
+  const prepared = {}, request = {}, parent = {}, input = {}, holder = {}, occurrence = {}, execution = {};
+  const component = serialized ? {} : undefined, graph = {}, admission = {}, calls = [];
+  const state = {prepared, parent, holder, contentGraph: component, compilationFamily: 'model'};
+  const producer = {preparation: state, receipt: input};
+  let object;
+  const fail = code => {throw Object.assign(new Error(code), {code});};
+  const moon = {
+    clientProgramPreparationBorrowRead(value) {assert.equal(value, holder); return prepared;},
+    clientProgramRequestProgramModuleIssueCode() {assert.fail('No issue reclassification on success');},
+    clientProgramPrepareRequestModelGraph(...args) {
+      assert.equal(this, moon); assert.equal(serialized, false);
+      assert.deepEqual(args, [parent, input, occurrence, execution, admission]);
+      calls.push('original Model'); return {value: graph};
+    },
+    clientProgramPrepareRequestSerializedModelGraph(...args) {
+      assert.equal(this, moon); assert.equal(serialized, true);
+      assert.deepEqual(args, [parent, input, occurrence, component, execution, admission]);
+      assert.equal(state.preparing, true);
+      assert.throws(() => object.prepareModelGraph(prepared, request, occurrence, execution, component),
+        {code: 'ForeignInstalledSourceProducer'});
+      calls.push('same Request Content Model');
+      if (refuse) throw refuse;
+      return {value: graph};
+    },
+  };
+  if (missingPort) delete moon.clientProgramPrepareRequestSerializedModelGraph;
+  state.context = {runtime: moon};
+  const originals = {installation: {sequenceContractOriginal: {moon, admission}}};
+  object = Function('current', 'producerForRequest', 'fail', 'originals', 'checkedRequestProgramPreparation',
+    `return ({${managerSource.slice(graphMethodStart, graphMethodEnd).trim().replace(/,$/u, '')}});`)(
+    () => {if (replaceAfter && state.modelGraph !== undefined) state.contentGraph = {};},
+    value => {assert.equal(value, request); return producer;}, fail, originals,
+    (actual, result, issue) => {assert.equal(actual, moon); assert.equal(issue, moon.clientProgramRequestProgramModuleIssueCode); return result.value;});
+  return {state, calls, graph, invoke: () => object.prepareModelGraph(prepared, request, occurrence, execution, component),
+    foreign: () => object.prepareModelGraph(prepared, request, occurrence, execution, {})};
+}
+
+test('Request Model Graph forwards the same retained Content original to one typed parent constructor', () => {
+  const original = requestGraphFixture();
+  assert.equal(original.invoke(), original.graph);
+  assert.equal(original.state.modelGraph, original.graph);
+  assert.deepEqual(original.calls, ['same Request Content Model']);
+  assert.equal(original.state.preparing, false);
+  const plain = requestGraphFixture({serialized: false});
+  assert.equal(plain.invoke(), plain.graph);
+  assert.deepEqual(plain.calls, ['original Model']);
+  const missing = requestGraphFixture({missingPort: true});
+  assert.throws(missing.invoke, {code: 'NodeManagedRunRuntimeUnavailable'});
+  assert.deepEqual(missing.calls, []);
+  const foreign = requestGraphFixture();
+  assert.throws(foreign.foreign, {code: 'ForeignInstalledSourceProducer'});
+  assert.deepEqual(foreign.calls, []);
+});
+
+test('Request Model Graph keeps constructor failure or changed Content on the same Request cleanup', () => {
+  const primary = new Error('original serialized Model constructor');
+  const refused = requestGraphFixture({refuse: primary});
+  assert.throws(refused.invoke, cause => cause === primary);
+  assert.throws(refused.invoke, cause => cause === primary);
+  assert.deepEqual(refused.calls, ['same Request Content Model']);
+  const changed = requestGraphFixture({replaceAfter: true});
+  assert.throws(changed.invoke, {code: 'ForeignInstalledSourceProducer'});
+  assert.equal(changed.state.modelGraph, changed.graph, 'Keep returned constructor original for same Request abort');
+  assert.equal(changed.state.preparationFailed, true);
+  const retained = changed.state.preparationFailure;
+  assert.throws(changed.invoke, cause => cause === retained);
+  assert.deepEqual(changed.calls, ['same Request Content Model']);
+});

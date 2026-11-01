@@ -725,27 +725,32 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         state.preparationFailed = true; state.preparationFailure = cause; throw cause;
       } finally {state.preparing = false;}
     },
-    prepareModelGraph(prepared, request, occurrence, execution) {
+    prepareModelGraph(prepared, request, occurrence, execution, serializationGraph) {
       current();
       const producer = producerForRequest(request), state = producer?.preparation;
       if (state?.preparationFailed) throw state.preparationFailure;
       if (state === undefined || state.prepared !== prepared || state.compilationFamily !== 'model' ||
           state.holder === undefined || state.inventoryHolder !== undefined || state.adopting ||
-          state.preparing || state.modelGraph !== undefined) fail('ForeignInstalledSourceProducer');
+          state.preparing || state.modelGraph !== undefined ||
+          state.contentGraph !== serializationGraph) fail('ForeignInstalledSourceProducer');
       const moon = state.context.runtime, contracts = originals.installation.sequenceContractOriginal;
       if (contracts?.moon !== moon || moon.clientProgramPreparationBorrowRead(state.holder) !== prepared) {
         fail('ForeignInstalledSourceProducer');
       }
-      const construct = moon.clientProgramPrepareRequestModelGraph;
+      const construct = serializationGraph === undefined ? moon.clientProgramPrepareRequestModelGraph
+        : moon.clientProgramPrepareRequestSerializedModelGraph;
       const issue = moon.clientProgramRequestProgramModuleIssueCode;
       if (typeof construct !== 'function' || typeof issue !== 'function') fail('NodeManagedRunRuntimeUnavailable');
       state.preparing = true;
       try {
         state.modelGraph = checkedRequestProgramPreparation(moon, Reflect.apply(construct, moon,
-          [state.parent, producer.receipt, occurrence, execution, contracts.admission]), issue);
+          serializationGraph === undefined
+            ? [state.parent, producer.receipt, occurrence, execution, contracts.admission]
+            : [state.parent, producer.receipt, occurrence, serializationGraph, execution, contracts.admission]), issue);
         if (state.modelGraph === undefined) fail('NodeManagedRunCompilationUnavailable');
         current();
         if (producer.finished || producer.preparation !== state || state.prepared !== prepared ||
+            state.contentGraph !== serializationGraph ||
             moon.clientProgramPreparationBorrowRead(state.holder) !== prepared) fail('ForeignInstalledSourceProducer');
         return state.modelGraph;
       } catch (cause) {

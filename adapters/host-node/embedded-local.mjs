@@ -2574,7 +2574,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       ? moon.clientProgramSelectedInferStep(preparedProgram)
       : runtimeField(moon.clientProgramInferOccurrenceCoordinates(occurrence), 2);
     if (selectedStep !== undefined) {
-      const requestModelMaterials = mockModels !== undefined && preparation !== undefined &&
+      const requestModelMaterials = preparation !== undefined &&
         prepareSubmit.kindOf(preparedProgram) !== 'effectful'
         ? (count, wireAt, containers) => preparation.prepareManagedModelMaterials(
           moon, preparedProgram, count, wireAt, containers) : undefined;
@@ -2758,7 +2758,9 @@ async function openInstalledHost(originalInstallation, preparation) {
         admissionBoundary = 'plan_graph';
         const graph = restoredInfer !== undefined ? restoredInfer.graph
           : originalInfer !== undefined ? runtimeField(originalInfer, 0)
-          : effectGraph !== undefined ? effectGraph : serializationGraph !== undefined
+          : effectGraph !== undefined ? effectGraph : preparation !== undefined && occurrence !== undefined
+          ? preparation.prepareManagedModelGraph(moon, preparedProgram, occurrence, execution, serializationGraph)
+          : serializationGraph !== undefined
           ? control.prepareCheckedClientSerializedInferGraph(occurrence, serializationGraph, execution)
           : checked(occurrence === undefined
           ? moon.clientProgramInstalledInferPlanGraph(preparedProgram, step, execution)
@@ -2766,7 +2768,10 @@ async function openInstalledHost(originalInstallation, preparation) {
         admissionBoundary = 'provider_binding';
         const providerId = moon.clientProgramInferProviderId(execution);
         const providerBinding = durableModel
-          ? admitInstalledModelProviderBinding(moon, providerId, physical) : undefined;
+          ? admitInstalledModelProviderBinding(moon, providerId, physical,
+            prepareSubmit.kindOf(preparedProgram) !== 'effectful' && preparation !== undefined
+              ? (id, installation, contract, configuration) => preparation.prepareManagedModelBinding(
+                moon, preparedProgram, id, installation, contract, configuration) : undefined) : undefined;
         const selection = Object.freeze({step, graph, computeSuffix, serializationGraph,
           occurrence, computePrefix: runtimeOptionalField(segments, 0),
           provider: moon.clientProgramAdmittedModelProvider(admittedProvider, execution),
@@ -6486,7 +6491,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       return manager.prepareModelBinding(prepared,
         originalSourceManagedHostRequest(originals, prepared), providerId, installation, contract, configuration);
     },
-    prepareManagedModelGraph(runtime, prepared, occurrence, execution) {
+    prepareManagedModelGraph(runtime, prepared, occurrence, execution, serializationGraph) {
       const manager = computeManaged ?? sourceManaged;
       if (runtime !== moon || manager === undefined || typeof manager.prepareModelGraph !== 'function') {
         throw clientOperationError('NodeManagedRunCompilationUnavailable');
@@ -6494,7 +6499,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       (computeManaged === undefined ? assertSourceManagedInstallationCurrent
         : assertManagedComputeInstallationCurrent)(manager, originals);
       return manager.prepareModelGraph(prepared,
-        originalSourceManagedHostRequest(originals, prepared), occurrence, execution);
+        originalSourceManagedHostRequest(originals, prepared), occurrence, execution, serializationGraph);
     },
     prepareManagedModelCompilation(runtime, prepared, graph) {
       const manager = computeManaged ?? sourceManaged;
