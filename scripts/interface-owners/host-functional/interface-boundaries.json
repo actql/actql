@@ -27063,7 +27063,7 @@
     {
       "module": "adapters/host-node/client-program-preparation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "0a82b6326493db90a840db66229b32ad217d8c944e1585aced685c1b3c64ecde",
+      "sha256": "b3c67df2cb58c6ca5754c58dec3dae23d7fbf8f7ebc1307e7e1b267571d628c0",
       "role": "physical-io",
       "owner": "Existing static checker/Frontend/compiled preparation Owners; no Run permission",
       "exports": [
@@ -76680,7 +76680,7 @@
     {
       "module": "adapters/host-node/local-values-capacity.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "fa2b2de7cb0b3a7d995bf37f7f596c83c48c18ea7d7390e71f6dc7279a335fb6",
+      "sha256": "938687233a985fe3b2ee5906551ed1058f1eb3946dacd71ed817120e7ffd7b31",
       "role": "physical-io",
       "owner": "Existing static checker/Frontend/compiled preparation Owners; no Run permission",
       "exports": [
@@ -115903,7 +115903,7 @@
     },
     {
       "module": "adapters/local-node/request-preparation-adapter.mjs",
-      "sha256": "18e9f2e7739ab5fe9710445cc6a624daff2b518d5e0b44cedf2e0a5c7cec016e",
+      "sha256": "d4c1f06221d196855216ea5bf55322303e9f07280a5f24fffdc23b169742e7db",
       "exports": [
         "assertRequestPreparationControl",
         "beginRequestInput",

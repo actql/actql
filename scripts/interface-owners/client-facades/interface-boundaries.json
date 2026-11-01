@@ -2883,7 +2883,7 @@
     {
       "module": "packages/node/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "3c12cd1b5e59b8e74955cc0539b2725e0ccd2a976c7acf83bef6727202b83eb8",
+      "sha256": "dc23069e57cdaa537f2b570b6f70acc8d6982ae519bf9a6fec422eeef2f12ebc",
       "exports": [
         "CalendarArtifactInstallation",
         "Client",
