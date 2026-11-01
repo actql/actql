@@ -50627,23 +50627,23 @@
           }
         }
       ],
-      "sha256": "9e1df8fbf0e1deb9f44c4b9cf71055c57b6aa18bea6a7e8fa0ebe5d3e48c0311",
+      "sha256": "28a1f89d07f198c560ba13d3f16d4a4c6ee174c28367af8dd8763a86f2f234a6",
       "operations": [
         {
           "name": "installed_effect_http_response_construction_capacity",
-          "declaration": "installed_effect_http_response_construction_capacity ( max_response_bytes : Int , max_header_bytes : Int , ) - > @ execution . ExecutionCapacity ?"
+          "declaration": "installed_effect_http_response_construction_capacity ( max_response_bytes : Int , max_header_bytes : Int , response_read_quantum ? : Int"
         },
         {
           "name": "installed_effect_operation_response_backing_fits",
-          "declaration": "installed_effect_operation_response_backing_fits ( original : ClientInstalledEffectOperationExtent , max_response_bytes : Int , max_header_bytes : Int , ) - > Bool"
+          "declaration": "installed_effect_operation_response_backing_fits ( original : ClientInstalledEffectOperationExtent , max_response_bytes : Int , max_header_bytes : Int , response_read_quantum ? : Int"
         },
         {
           "name": "installed_effect_response_buffer_construction_capacity",
-          "declaration": "installed_effect_response_buffer_construction_capacity ( max_response_bytes : Int , ) - > @ execution . ExecutionCapacity ?"
+          "declaration": "installed_effect_response_buffer_construction_capacity ( max_response_bytes : Int , response_read_quantum ? : Int"
         },
         {
           "name": "installed_effect_response_buffer_representation",
-          "declaration": "installed_effect_response_buffer_representation ( max_response_bytes : Int , ) - > @ execution . PreparationRepresentationUnits ?"
+          "declaration": "installed_effect_response_buffer_representation ( max_response_bytes : Int , response_read_quantum ? : Int"
         },
         {
           "name": "installed_effect_response_headers_representation",
@@ -50974,7 +50974,7 @@
           }
         }
       ],
-      "sha256": "e2e6c3c00d6d8d8fc65164bc1afcefd9756cf40750c570afd1694d7a275cdd1a",
+      "sha256": "f6392290d6286a999eae40f3723a8980742d53e7d0f1a7b659f2e8096b1a8d74",
       "operations": [
         {
           "name": "client_program_installed_effect_http_response_construction_capacity",
@@ -51030,7 +51030,7 @@
         },
         {
           "name": "client_program_installed_effect_operation_response_backing_fits",
-          "declaration": "client_program_installed_effect_operation_response_backing_fits ( original : @ client_local_host . ClientInstalledEffectOperationExtent , max_response_bytes : Int , max_header_bytes : Int , ) - > Bool"
+          "declaration": "client_program_installed_effect_operation_response_backing_fits ( original : @ client_local_host . ClientInstalledEffectOperationExtent , max_response_bytes : Int , max_header_bytes : Int , response_read_quantum : Int , ) - > Bool"
         },
         {
           "name": "client_program_installed_effect_operation_retire",
@@ -58805,7 +58805,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_installed_effect_plan_bridge.mbt",
-      "sha256": "66b16537463eb9f0b960431c889aa839694c4b37efb2d6851bce2607d42aef20",
+      "sha256": "9c9df121303a88deda702d4fdbbd8ad959c8f65ba1e7017837b1f9a1ee16d9b7",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing checked Program, typed sequence and original Request/Plan preparation owners",
@@ -58886,11 +58886,11 @@
         },
         {
           "name": "client_program_installed_standard_create_recipe_capacities",
-          "declaration": "client_program_installed_standard_create_recipe_capacities ( original : Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ? , input_bytes : Int , input_nodes : Int , input_depth : Int , request_bytes : Int , response_bytes : Int , check_request_bytes : Int , check_response_bytes : Int , before_send : Bool , secret_bytes : Int , secret_prefix_units : Int , header_bytes : Int , stored_bytes : Int , stored_nodes : Int , stored_depth : Int , metadata_units : Int64 , ) - > Result [ Array [ @ execution . ExecutionCapacity ] , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+          "declaration": "client_program_installed_standard_create_recipe_capacities ( original : Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ? , input_bytes : Int , input_nodes : Int , input_depth : Int , request_bytes : Int , response_bytes : Int , check_request_bytes : Int , check_response_bytes : Int , before_send : Bool , secret_bytes : Int , secret_prefix_units : Int , header_bytes : Int , stored_bytes : Int , stored_nodes : Int , stored_depth : Int , metadata_units : Int64 , response_read_quantum : Int , ) - > Result [ Array [ @ execution . ExecutionCapacity ] , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
           "name": "client_program_installed_standard_driver_recipe_capacities",
-          "declaration": "client_program_installed_standard_driver_recipe_capacities ( original : Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ? , capture_original : Array [ @ execution . ExecutionCapacity ] ? , input_bytes : Int , input_nodes : Int , input_depth : Int , row_input_bytes : Int , row_input_nodes : Int , row_input_depth : Int , request_bytes : Int , response_bytes : Int , check_request_bytes : Int , check_response_bytes : Int , before_send : Bool , secret_bytes : Int , secret_prefix_units : Int , header_bytes : Int , stored_bytes : Int , stored_nodes : Int , stored_depth : Int , metadata_units : Int64 , ) - > Result [ Array [ @ execution . ExecutionCapacity ] , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+          "declaration": "client_program_installed_standard_driver_recipe_capacities ( original : Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ? , capture_original : Array [ @ execution . ExecutionCapacity ] ? , input_bytes : Int , input_nodes : Int , input_depth : Int , row_input_bytes : Int , row_input_nodes : Int , row_input_depth : Int , request_bytes : Int , response_bytes : Int , check_request_bytes : Int , check_response_bytes : Int , before_send : Bool , secret_bytes : Int , secret_prefix_units : Int , header_bytes : Int , stored_bytes : Int , stored_nodes : Int , stored_depth : Int , metadata_units : Int64 , response_read_quantum : Int , ) - > Result [ Array [ @ execution . ExecutionCapacity ] , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
           "name": "client_program_node_effect_managed_plan_cleanup",
@@ -59058,7 +59058,7 @@
     },
     {
       "module": "src/client_local_host/installed_standard_create_recipe.mbt",
-      "sha256": "34f7f5b6a99fb296ab4022dfcb33bc0b8c682640cfff5e90ff7e42e4978aa79e",
+      "sha256": "5c2d8a2f147b4cd0473370315804f92be6ce7b916563b283b3c4c8370143f1cb",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "D \u2014 original Kintone native protocol constructors and same Request Effect composition",
@@ -59067,15 +59067,15 @@
       "operations": [
         {
           "name": "installed_standard_create_recipe_capacities",
-          "declaration": "installed_standard_create_recipe_capacities ( original : Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ? , input_bytes : Int , input_nodes : Int , input_depth : Int , request_bytes : Int , response_bytes : Int , check_request_bytes : Int , check_response_bytes : Int , before_send : Bool , secret_bytes : Int , secret_prefix_units : Int , header_bytes : Int , stored_bytes : Int , stored_nodes : Int , stored_depth : Int , metadata_units : Int64 , ) - > Result [ Array [ @ execution . ExecutionCapacity ] , ClientInstalledManagedRunIssue ]"
+          "declaration": "installed_standard_create_recipe_capacities ( original : Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ? , input_bytes : Int , input_nodes : Int , input_depth : Int , request_bytes : Int , response_bytes : Int , check_request_bytes : Int , check_response_bytes : Int , before_send : Bool , secret_bytes : Int , secret_prefix_units : Int , header_bytes : Int , stored_bytes : Int , stored_nodes : Int , stored_depth : Int , metadata_units : Int64 , response_read_quantum ? : Int"
         },
         {
           "name": "installed_standard_driver_recipe_capacities",
-          "declaration": "installed_standard_driver_recipe_capacities ( original : Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ? , capture_original : Array [ @ execution . ExecutionCapacity ] ? , input_bytes : Int , input_nodes : Int , input_depth : Int , row_input_bytes : Int , row_input_nodes : Int , row_input_depth : Int , request_bytes : Int , response_bytes : Int , check_request_bytes : Int , check_response_bytes : Int , before_send : Bool , secret_bytes : Int , secret_prefix_units : Int , header_bytes : Int , stored_bytes : Int , stored_nodes : Int , stored_depth : Int , metadata_units : Int64 , ) - > Result [ Array [ @ execution . ExecutionCapacity ] , ClientInstalledManagedRunIssue ]"
+          "declaration": "installed_standard_driver_recipe_capacities ( original : Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ? , capture_original : Array [ @ execution . ExecutionCapacity ] ? , input_bytes : Int , input_nodes : Int , input_depth : Int , row_input_bytes : Int , row_input_nodes : Int , row_input_depth : Int , request_bytes : Int , response_bytes : Int , check_request_bytes : Int , check_response_bytes : Int , before_send : Bool , secret_bytes : Int , secret_prefix_units : Int , header_bytes : Int , stored_bytes : Int , stored_nodes : Int , stored_depth : Int , metadata_units : Int64 , response_read_quantum ? : Int"
         },
         {
           "name": "installed_standard_recipe_capacities",
-          "declaration": "installed_standard_recipe_capacities ( original : Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ? , capture_original : Array [ @ execution . ExecutionCapacity ] ? , input_bytes : Int , input_nodes : Int , input_depth : Int , row_input_bytes : Int , row_input_nodes : Int , row_input_depth : Int , request_bytes : Int , response_bytes : Int , check_request_bytes : Int , check_response_bytes : Int , before_send : Bool , secret_bytes : Int , secret_prefix_units : Int , header_bytes : Int , stored_bytes : Int , stored_nodes : Int , stored_depth : Int , metadata_units : Int64 , ) - > Result [ Array [ @ execution . ExecutionCapacity ] , ClientInstalledManagedRunIssue ]"
+          "declaration": "installed_standard_recipe_capacities ( original : Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ? , capture_original : Array [ @ execution . ExecutionCapacity ] ? , input_bytes : Int , input_nodes : Int , input_depth : Int , row_input_bytes : Int , row_input_nodes : Int , row_input_depth : Int , request_bytes : Int , response_bytes : Int , check_request_bytes : Int , check_response_bytes : Int , before_send : Bool , secret_bytes : Int , secret_prefix_units : Int , header_bytes : Int , stored_bytes : Int , stored_nodes : Int , stored_depth : Int , metadata_units : Int64 , response_read_quantum ? : Int"
         },
         {
           "name": "standard_create_grant_capacity",

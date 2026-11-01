@@ -2609,6 +2609,20 @@ Existing payload severing, failed initialization and physical cleanup duties
 remain on their original records.
 
 
+The managed HTTP response quotation receives its read quantum from the same
+Credential implementation that performs the observed binary read. With Q-byte
+reads, the original Node reader waits for Q bytes until EOF; one final partial
+chunk permits at most ceil(B/Q) copied buffers under the unchanged B-byte body
+limit. Both the standard recipe and the necessary pre-borrow backing predicate
+consume that same implementation fact. The conservative one-byte default stays
+on other/unqualified readers. The original read method and receiver are retained
+before any external byte observer, and their reference is included in the
+constructor inventory. The full B+1 refusal window, copied/concat/current byte
+peak, header/trailer/secret owners and failed-prefix cleanup remain unchanged.
+This geometry is internal implementation metadata, not a new user limit or
+resource grant. The selected Core/Node interfaces and adapters require one matching
+compiled supplier; older binaries do not establish this constructor quotation.
+
 The ordinary claimed write captures its original physical response before
 calling the original provider projector in the same control-construction
 frame. The standard recipe therefore assigns the Native response constructor

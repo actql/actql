@@ -123,9 +123,13 @@ pub fn client_program_installed_effect_operation_response_backing_fits(
   original : @client_local_host.ClientInstalledEffectOperationExtent,
   max_response_bytes : Int,
   max_header_bytes : Int,
+  response_read_quantum : Int,
 ) -> Bool {
   @client_local_host.installed_effect_operation_response_backing_fits(
-    original, max_response_bytes, max_header_bytes,
+    original,
+    max_response_bytes,
+    max_header_bytes,
+    response_read_quantum~,
   )
 }
 

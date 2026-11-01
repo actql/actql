@@ -311,7 +311,8 @@ test('response backing shortage refuses the original physical extent before borr
 test('response backing checks the same installed HTTP header bound before borrowing its original occurrence', async t => {
   const f = await operationFixture(t);
   let checks = 0;
-  f.runtime.clientProgramInstalledEffectOperationResponseBackingFits = (original, bytes, headerBytes) => {
+  f.runtime.clientProgramInstalledEffectOperationResponseBackingFits = (original, bytes, headerBytes, readQuantum) => {
+    assert.equal(readQuantum, 16384);
     assert.strictEqual(original, f.runtime.clientProgramInstalledEffectManagedPlanOperation()._0);
     assert.equal(bytes, 64); assert.equal(headerBytes, maxHeaderSize); checks++;
     return true;

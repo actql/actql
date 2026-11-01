@@ -627,3 +627,79 @@ test "standard write projection belongs to its existing control frame rather tha
     @execution.execution_capacity_execution_bytes(selections[0][4]),
   )
 }
+
+///|
+test "observed response quantum bounds admitted copies without changing body or refusal bytes" {
+  for
+    (bytes, quantum, copies) in [
+      (1, 16384, 1L),
+      (16383, 16384, 1L),
+      (16384, 16384, 1L),
+      (16385, 16384, 2L),
+      (32768, 16384, 2L),
+      (32769, 16384, 3L),
+      (2147483647, 16384, 131072L),
+    ] {
+    let old = installed_effect_response_buffer_representation(bytes).unwrap()
+    let observed = installed_effect_response_buffer_representation(
+      bytes,
+      response_read_quantum=quantum,
+    ).unwrap()
+    let containers = @shape.collection_construction_extent({
+      records: copies + 2L,
+      record_references: 1L,
+      record_words: 0L,
+      reference_arrays: 1L,
+      reference_items: copies,
+      scalar_arrays: 0L,
+      scalar_items: 0L,
+      maps: 0L,
+      map_entries: 0L,
+    }).unwrap()
+    assert_eq(observed.record_headers, containers.record_headers)
+    assert_eq(observed.reference_slots, containers.reference_slots)
+    assert_eq(observed.owned_wire_bytes, 3L * bytes.to_int64() + 1L)
+    let plain = installed_effect_response_buffer_construction_capacity(bytes).unwrap()
+    let selected = installed_effect_response_buffer_construction_capacity(
+      bytes,
+      response_read_quantum=quantum,
+    ).unwrap()
+    assert_eq(
+      @execution.execution_capacity_retained_bytes(selected),
+      @execution.execution_capacity_retained_bytes(plain),
+    )
+    assert_true(
+      @execution.execution_capacity_execution_bytes(selected) <=
+      @execution.execution_capacity_execution_bytes(plain),
+    )
+    assert_eq(old.owned_wire_bytes, observed.owned_wire_bytes)
+  }
+  for invalid in [0, -1] {
+    assert_true(
+      installed_effect_response_buffer_construction_capacity(
+        64,
+        response_read_quantum=invalid,
+      )
+      is None,
+    )
+  }
+  let capacity = installed_effect_http_response_construction_capacity(
+    32769,
+    32,
+    response_read_quantum=16384,
+  ).unwrap()
+  let original = prepare_installed_effect_operation_extent(
+    "read", capacity, 32770L, true,
+  ).unwrap()
+  assert_true(
+    installed_effect_operation_response_backing_fits(
+      original,
+      32769,
+      32,
+      response_read_quantum=16384,
+    ),
+  )
+  assert_false(
+    installed_effect_operation_response_backing_fits(original, 32769, 32),
+  )
+}

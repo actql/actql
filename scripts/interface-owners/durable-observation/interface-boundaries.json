@@ -6374,6 +6374,7 @@
         "exchangeHttpsCredentialAuthentication",
         "httpsCredentialAuthorizationPrefix",
         "httpsCredentialResponseHeaderByteLimit",
+        "httpsCredentialResponseReadQuantum",
         "httpsCredentialResponseWindowBytes",
         "openHttpsCredentialBinding",
         "prepareHttpsCredentialAuthenticationMaterial",
@@ -8176,9 +8177,77 @@
               }
             ]
           }
+        },
+        {
+          "operations": [],
+          "exports": [
+            "httpsCredentialResponseReadQuantum"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The managed HTTP response quotation receives its read quantum from the same"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The managed HTTP response quotation receives its read quantum from the same"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The managed HTTP response quotation receives its read quantum from the same"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The managed HTTP response quotation receives its read quantum from the same"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The managed HTTP response quotation receives its read quantum from the same"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The managed HTTP response quotation receives its read quantum from the same"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The managed HTTP response quotation receives its read quantum from the same"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The managed HTTP response quotation receives its read quantum from the same"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The managed HTTP response quotation receives its read quantum from the same"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The managed HTTP response quotation receives its read quantum from the same"
+              }
+            ]
+          }
         }
       ],
-      "sha256": "dc48732288e2d73efc390dab5dc9476454de13ef53686fd3af232d2241156ed4",
+      "sha256": "f1c30fe91ef91140ce06ebc8cc46109a48ca29bda307473db43e467b1d7f434f",
       "imports": [
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/credential-scope-fields.generated.mjs",

@@ -392,7 +392,7 @@ pub fn installed_capture_capacity_values(ClientInstalledCaptureCapacity) -> Arra
 
 pub fn installed_duckdb_capture_capacity(@host.CaptureConfiguration) -> ClientInstalledCaptureCapacity?
 
-pub fn installed_effect_http_response_construction_capacity(Int, Int) -> @execution_relation.ExecutionCapacity?
+pub fn installed_effect_http_response_construction_capacity(Int, Int, response_read_quantum? : Int) -> @execution_relation.ExecutionCapacity?
 
 pub fn installed_effect_managed_operation_plan(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity) -> Result[ClientInstalledEffectManagedPlan, ClientInstalledManagedRunIssue]
 
@@ -408,11 +408,11 @@ pub fn installed_effect_operation_extent_physical(ClientInstalledEffectOperation
 
 pub fn installed_effect_operation_extent_transfer(ClientInstalledEffectOperationExtent) -> Int64
 
-pub fn installed_effect_operation_response_backing_fits(ClientInstalledEffectOperationExtent, Int, Int) -> Bool
+pub fn installed_effect_operation_response_backing_fits(ClientInstalledEffectOperationExtent, Int, Int, response_read_quantum? : Int) -> Bool
 
 pub fn installed_effect_plan_matches_model_demand(ClientInstalledEffectManagedPlan, ClientInstalledEffectModelDemand) -> Bool
 
-pub fn installed_effect_response_buffer_construction_capacity(Int) -> @execution_relation.ExecutionCapacity?
+pub fn installed_effect_response_buffer_construction_capacity(Int, response_read_quantum? : Int) -> @execution_relation.ExecutionCapacity?
 
 pub fn installed_gmail_thread_reader_capacity(Array[Int], Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
 
@@ -484,9 +484,9 @@ pub fn installed_source_reader_policy() -> Array[Int]
 
 pub fn installed_standard_create_constructor_capacities(Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?) -> Result[Array[@execution_relation.ExecutionCapacity], ClientInstalledManagedRunIssue]
 
-pub fn installed_standard_create_recipe_capacities(Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?, Int, Int, Int, Int, Int, Int, Int, Bool, Int, Int, Int, Int, Int, Int, Int64) -> Result[Array[@execution_relation.ExecutionCapacity], ClientInstalledManagedRunIssue]
+pub fn installed_standard_create_recipe_capacities(Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?, Int, Int, Int, Int, Int, Int, Int, Bool, Int, Int, Int, Int, Int, Int, Int64, response_read_quantum? : Int) -> Result[Array[@execution_relation.ExecutionCapacity], ClientInstalledManagedRunIssue]
 
-pub fn installed_standard_driver_recipe_capacities(Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?, Array[@execution_relation.ExecutionCapacity]?, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Bool, Int, Int, Int, Int, Int, Int, Int64) -> Result[Array[@execution_relation.ExecutionCapacity], ClientInstalledManagedRunIssue]
+pub fn installed_standard_driver_recipe_capacities(Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?, Array[@execution_relation.ExecutionCapacity]?, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Bool, Int, Int, Int, Int, Int, Int, Int64, response_read_quantum? : Int) -> Result[Array[@execution_relation.ExecutionCapacity], ClientInstalledManagedRunIssue]
 
 pub fn installed_whole_source_acquisition(ClientInstalledWholeSourceCapacity) -> @client_row_source_host.RowInputAcquisition
 

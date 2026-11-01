@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {mkdtemp, rm} from 'node:fs/promises';
 import {readFileSync} from 'node:fs';
 import {EventEmitter} from 'node:events';
+import {Readable} from 'node:stream';
 import {types} from 'node:util';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -291,19 +292,20 @@ function originalReceiveComponent({observed = true, concatFailure} = {}) {
   const fail = code => {throw Object.assign(new Error(code), {code});};
   const receive = new Function('httpsRequest', 'httpsCredentialResponseHeaderByteLimit',
     'httpsCredentialAuthorizationPrefix', 'Buffer', 'types', 'nativePromiseThen',
-    'responseReadQuantum', 'fail', `${source.slice(start, end)};return receive;`)(
+    'httpsCredentialResponseReadQuantum', 'fail', `${source.slice(start, end)};return receive;`)(
     (_options, originalCallback) => {callback = originalCallback; return request;},
     maxHeaderSize, 'Bearer ', buffer, types, Promise.prototype.then, 16384, fail);
   const charges = [];
   const pending = receive({hostname: 'fixture.invalid', path: '/read', method: 'GET',
     requestBytes: 0, secret: 'fixture', headers: [], maxResponseBytes: 64,
     ...(observed ? {observeResponseBytes: count => {charges.push(count);}} : {})});
-  callback(response);
   if (observed) {
     const reads = [...originalBytes, null];
     response.read = () => reads.shift() ?? null;
-    response.emit('readable');
-  } else for (const chunk of originalBytes) response.emit('data', chunk);
+  }
+  callback(response);
+  if (observed) response.emit('readable');
+  else for (const chunk of originalBytes) response.emit('data', chunk);
   return {response, pending, charges, originalBytes,
     copied: () => copied, copiedAtConcat: () => copiedAtConcat};
 }
@@ -343,4 +345,54 @@ test('successful original response retains its independent historical byte snaps
     {code: 'RemoteCredentialRunResponseChanged'});
   assert.deepEqual(f.outcomes, ['succeeded']); assert.equal(f.claims(), 1);
   assert.equal(resource.closeHttpsCredentialBinding(f.binding), 'closed');
+});
+
+
+// Actual original receiver body with the pinned Node binary Readable.read(size)
+// implementation. The request/socket/authority are explicit component ports;
+// this proves copied-buffer geometry, not physical or normal Run admission.
+test('observed original binary reader coalesces tiny ingress chunks with one EOF partial and retains its read method', async () => {
+  assert.equal(resource.httpsCredentialResponseReadQuantum, 16384);
+  const source = readFileSync(new URL('./https-credential-resource.mjs', import.meta.url), 'utf8');
+  const start = source.indexOf('function receive({');
+  const end = source.indexOf('\n/// Execute one pre-registered HTTPS operation.', start);
+  assert(start >= 0 && end > start);
+  for (const bytes of [1,16383,16384,16385,32768,32769]) {
+    const response = new Readable({read() {}});
+    response.statusCode=200;response.headers={};response.rawHeaders=[];
+    const request = new EventEmitter();request.end=()=>{};
+    const nativeRead = response.read;
+    let callback;
+    const copied=[];const charges=[];
+    const buffer={from(chunk){copied.push(chunk.byteLength);return Buffer.from(chunk);},concat:Buffer.concat.bind(Buffer)};
+    const receive=new Function('httpsRequest','httpsCredentialResponseHeaderByteLimit',
+      'httpsCredentialAuthorizationPrefix','Buffer','types','nativePromiseThen',
+      'httpsCredentialResponseReadQuantum','fail',`${source.slice(start,end)};return receive;`)(
+      (_options,original)=>{callback=original;return request;}, maxHeaderSize,'Bearer ',buffer,types,
+      Promise.prototype.then,resource.httpsCredentialResponseReadQuantum,
+      code=>{throw Object.assign(new Error(code),{code});});
+    const pending=receive({hostname:'fixture.invalid',path:'/read',method:'GET',requestBytes:0,
+      secret:'fixture',headers:[],maxResponseBytes:bytes,observeResponseBytes(count){
+        charges.push(count);
+        response.read=size=>{
+          // Node's own deferred read(0) housekeeping remains outside this
+          // receiver; all positive reads must use its captured original.
+          assert.equal(size,0);
+          return Reflect.apply(nativeRead,response,[size]);
+        };
+      }});
+    callback(response);
+    for(let i=0;i<bytes;i++) {
+      response.push(Buffer.from([i%251]));
+      response.emit('readable');
+    }
+    response.push(null);response.emit('readable');
+    const result=await pending;
+    assert.equal(copied.length,Math.ceil(bytes/16384));
+    assert.deepEqual(copied,charges);
+    assert.deepEqual(copied,[...Array(Math.floor(bytes/16384)).fill(16384),...(bytes%16384?[bytes%16384]:[])]);
+    assert.equal(result.body.length,bytes);
+    for(let i=0;i<bytes;i++)assert.equal(result.body[i],i%251);
+    assert.equal(response.listenerCount('readable'),0);
+  }
 });

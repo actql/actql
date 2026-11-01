@@ -2,7 +2,7 @@
 // Core extents/Plan are DATA until the SAME Request completes and adopts them.
 import {types as nodeTypes} from 'node:util';
 import {checked} from '../host-common/runtime-result.mjs';
-import {httpsCredentialResponseWindowBytes, httpsCredentialResponseHeaderByteLimit, httpsCredentialAuthorizationPrefix}
+import {httpsCredentialResponseWindowBytes, httpsCredentialResponseHeaderByteLimit, httpsCredentialResponseReadQuantum, httpsCredentialAuthorizationPrefix}
   from '../site-node/https-credential-resource.mjs';
 import {effectLedgerImplementationBounds} from './effect-ledger-implementation-bounds.mjs';
 import {credentialInvocationBindingKeys} from '../host-common/credential-scope-fields.generated.mjs';
@@ -90,7 +90,7 @@ export function prepareInstalledStandardCreatePlanRecipe({moon, providerMoon, co
     write.maxRequestBytes, write.maxResponseBytes, check?.maxRequestBytes ?? 0, check?.maxResponseBytes ?? 0,
     check?.beforeSend === true, secret.limits.maxSecretBytes, httpsCredentialAuthorizationPrefix.length,
     httpsCredentialResponseHeaderByteLimit, effectLedgerImplementationBounds.maxResponseBytes,
-    effectLedgerImplementationBounds.maxNodes, effectLedgerImplementationBounds.maxDepth, units));
+    effectLedgerImplementationBounds.maxNodes, effectLedgerImplementationBounds.maxDepth, units, httpsCredentialResponseReadQuantum));
   if (!Array.isArray(capacities) || capacities.length !== (check === undefined ? 5 : 6) + (captureProfile === undefined ? 0 : 1)) {
     fail('InstalledStandardCreateConstructionUnavailable');
   }
@@ -431,7 +431,7 @@ export function prepareInstalledEffectCredentialChild({run, memberIndex, rowInde
     }
     if(maxResponseBytes>2147483647 || !Number.isSafeInteger(httpsCredentialResponseHeaderByteLimit) ||
         httpsCredentialResponseHeaderByteLimit<1 || httpsCredentialResponseHeaderByteLimit>2147483647 ||
-        Reflect.apply(responseBackingFits,runtime,[extent,maxResponseBytes,httpsCredentialResponseHeaderByteLimit])!==true) {
+        Reflect.apply(responseBackingFits,runtime,[extent,maxResponseBytes,httpsCredentialResponseHeaderByteLimit,httpsCredentialResponseReadQuantum])!==true) {
       fail('InsufficientInstalledEffectResponseBacking');
     }
   } catch(error) {

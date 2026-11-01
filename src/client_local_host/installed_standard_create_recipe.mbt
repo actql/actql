@@ -185,6 +185,7 @@ pub fn installed_standard_create_recipe_capacities(
   stored_nodes : Int,
   stored_depth : Int,
   metadata_units : Int64,
+  response_read_quantum? : Int = 1,
 ) -> Result[Array[@execution.ExecutionCapacity], ClientInstalledManagedRunIssue] {
   installed_standard_recipe_capacities(
     original,
@@ -207,6 +208,7 @@ pub fn installed_standard_create_recipe_capacities(
     stored_nodes,
     stored_depth,
     metadata_units,
+    response_read_quantum~,
   )
 }
 
@@ -234,6 +236,7 @@ pub fn installed_standard_driver_recipe_capacities(
   stored_nodes : Int,
   stored_depth : Int,
   metadata_units : Int64,
+  response_read_quantum? : Int = 1,
 ) -> Result[Array[@execution.ExecutionCapacity], ClientInstalledManagedRunIssue] {
   guard capture_original is Some(capture) &&
     (capture.length() == 2 || capture.length() == 3) &&
@@ -263,6 +266,7 @@ pub fn installed_standard_driver_recipe_capacities(
     stored_nodes,
     stored_depth,
     metadata_units,
+    response_read_quantum~,
   )
 }
 
@@ -290,6 +294,7 @@ fn installed_standard_recipe_capacities(
   stored_nodes : Int,
   stored_depth : Int,
   metadata_units : Int64,
+  response_read_quantum? : Int = 1,
 ) -> Result[Array[@execution.ExecutionCapacity], ClientInstalledManagedRunIssue] {
   guard original is Some(entries) &&
     input_bytes > 0 &&
@@ -350,7 +355,9 @@ fn installed_standard_recipe_capacities(
     )
     is Some(capture_fixed) &&
     installed_effect_http_response_construction_capacity(
-      response_bytes, header_bytes,
+      response_bytes,
+      header_bytes,
+      response_read_quantum~,
     )
     is Some(write_receive) &&
     standard_create_secret_capacity(secret_bytes, secret_prefix_units)
@@ -446,7 +453,9 @@ fn installed_standard_recipe_capacities(
   ]
   if checks {
     guard installed_effect_http_response_construction_capacity(
-        check_response_bytes, header_bytes,
+        check_response_bytes,
+        header_bytes,
+        response_read_quantum~,
       )
       is Some(read_receive) &&
       standard_create_sum_capacities([

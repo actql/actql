@@ -674,7 +674,9 @@ export function httpsCredentialResponseWindowBytes(maxResponseBytes) {
   return BigInt(maxResponseBytes) + 1n;
 }
 
-const responseReadQuantum = 16_384;
+// Implementation geometry of this original observed binary reader, not a
+// configurable body cap, transfer allowance or authority.
+export const httpsCredentialResponseReadQuantum = 16_384;
 
 function receive({hostname, port, path, method, body, bodyMediaType, requestBytes, secret,
   authenticationForm = false,
@@ -773,7 +775,11 @@ function receive({hostname, port, path, method, body, bodyMediaType, requestByte
         response.on('data', readResponseChunk);
         detachReader = () => response.off('data', readResponseChunk);
       } else {
-        // Paused binary read(size) returns at most size bytes. Bound the SAME
+        // Capture the original method and receiver before an external observer
+        // can replace read. Binary read(size) waits for size bytes until EOF,
+        // permitting one final partial copy rather than arbitrary tiny copies.
+        const readOriginal = response.read;
+        // Bound the SAME
         // reader's selected representation to B+1 even when its protocol body
         // cap is B. Charge each actual read BEFORE limit refusal/copy; the last
         // offending byte is included, never silently counted as zero.
@@ -781,8 +787,8 @@ function receive({hostname, port, path, method, body, bodyMediaType, requestByte
           if (settled || observerPending || response.destroyed) return;
           try {
             let chunk;
-            while ((chunk = response.read(Math.min(responseReadQuantum,
-              maxResponseBytes - received + 1))) !== null) {
+            while ((chunk = Reflect.apply(readOriginal, response, [Math.min(httpsCredentialResponseReadQuantum,
+              maxResponseBytes - received + 1)])) !== null) {
               const observed = observeResponseBytes(chunk.byteLength);
               if (observed !== undefined) {
                 if (types.isPromise(observed)) {
