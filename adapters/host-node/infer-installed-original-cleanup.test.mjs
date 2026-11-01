@@ -9,14 +9,14 @@ const {installNodeInferRun} = await import(process.env.ACTQL_ORIGINAL_CLEANUP_MO
 
 function fixture({startIssue, stopComplete = true, modelCleanupComplete = true,
   installation = false, readIssue, scopeIssue, waiting=false,
-  authorization='dispatch',cutIssue,afterAuthorize,scopeBindingIssue} = {}) {
+  authorization='dispatch',cutIssue,afterAuthorize,scopeBindingIssue,requestModel=false} = {}) {
   const calls = [], active = {}, read = {}, scope = {}, compiled = {}, consumer = {};
   const preparedProgram = {}, graph = {};
   const runDefinition = {wire: '{"run_id":"original-cleanup"}'};
   const issue = {kind: 'OriginalFixtureBindingRefused'};
   let custody, physicalComplete = false, physicalPending = true, physicalFailure;
   let allowScope = true, stoppedRead = false, settledRead = false;
-  let hostClosing=false,scopeLive=false;
+  let hostClosing=false,scopeLive=requestModel;
   const runtimeView={}, scopeView={};
   let stop = stopComplete, modelCleanup = modelCleanupComplete;
   let advances=0;
@@ -176,14 +176,22 @@ function fixture({startIssue, stopComplete = true, modelCleanupComplete = true,
       return {observe(){},entry(){},async authorize(){calls.push('authorize');afterAuthorize?.();return {status:authorization};},
         async prepareOriginalResourcesForDispatch(){calls.push('originalCut');if(cutIssue!==undefined)throw cutIssue;}};
     }};
+  const requestCarrier = {prepared: preparedProgram, control, compiled, runDefinition, graph,
+    originalReadInstallation: selected.originalReadInstallation, scope, scopeFinished: false,
+    read: undefined, readAttempted: false, taken: false,
+    budget: {readRetainedBytes: 7n, readExecutionBytes: 5n, modelRetainedBytes: 100n, modelExecutionBytes: 5n}};
   const runInfer = installNodeInferRun({moon, core: {publicationControl: control},
-    selections: new Map([[preparedProgram, selected]]), modelController});
+    selections: new Map([[preparedProgram, selected]]), modelController,
+    prepareOriginalModelRun: !requestModel ? undefined : (p, originalPlan, originalSelected) => {
+      assert.equal(p, preparedProgram); assert.equal(originalPlan, plan); assert.equal(originalSelected, selected);
+      return requestCarrier;
+    }});
   const input = {preparedProgram, plan, originalPreparation,
     signal: new AbortController().signal,
     retainExecution(value) { assert.equal(custody, undefined); custody = value; },
     beginPhysicalWork() { if(!waiting)assert.fail('refused execution cannot begin physical work');calls.push('physicalBegin'); }};
   if (installation) delete input.originalPreparation;
-  return {run: () => runInfer(input), input, issue, nextIssue, calls, originalPreparation, selected, control,
+  return {run: () => runInfer(input), input, issue, nextIssue, calls, originalPreparation, selected, control, requestCarrier,
     custody: () => custody,
     physical(complete, pending = !complete) { physicalComplete = complete; physicalPending = pending; },
     failPhysical(error) { physicalFailure = error; },
@@ -534,4 +542,33 @@ test('installed original cleanup fixes the original record across an awaited phy
   assert.equal(await closed, true);
   assert.equal(f.calls.filter(call => call === 'readSettle').length, 1);
   assert.equal(f.calls.filter(call => call === 'scopeFinish').length, 1);
+});
+
+
+test('Request-owned installed Model reuses its adopted Scope and retains original read until physical cleanup', async () => {
+  const f = fixture({installation: true, requestModel: true, modelCleanupComplete: false});
+  await assert.rejects(f.run(), typed(f.issue));
+  assert.equal(f.calls.includes('scopeBegin'), false);
+  assert.equal(f.requestCarrier.read, f.originalPreparation.read);
+  assert.equal(f.requestCarrier.readAttempted, true); assert.equal(f.requestCarrier.taken, true);
+  assert.equal(await f.custody().close(), false);
+  assert.equal(f.requestCarrier.scopeFinished, false); assert(f.requestCarrier.read);
+  f.modelClean(true); assert.equal(await f.custody().cleanup(), true);
+  assert.equal(f.requestCarrier.read, undefined); assert.equal(f.requestCarrier.scopeFinished, true);
+  assert.equal(f.calls.filter(value => value === 'readPrepare').length, 1);
+  assert.equal(f.calls.filter(value => value === 'scopeFinish').length, 1);
+});
+
+test('Request-owned installed Model keeps failed read or Scope binding on the same carrier without independent admission', async () => {
+  for (const phase of ['readIssue', 'scopeBindingIssue']) {
+    const primary = new Error('original Request ' + phase);
+    const f = fixture({installation: true, requestModel: true, [phase]: primary});
+    await assert.rejects(f.run(), cause => cause === primary);
+    assert.equal(f.calls.includes('scopeBegin'), false); assert.equal(f.requestCarrier.taken, true);
+    assert.equal(f.requestCarrier.read, undefined); assert.equal(f.requestCarrier.scopeFinished, false);
+    f.scopeAllowed(false); assert.equal(await f.custody().cleanup(), false);
+    assert.equal(f.requestCarrier.scopeFinished, false);
+    f.scopeAllowed(true); assert.equal(await f.custody().cleanup(), true);
+    assert.equal(f.requestCarrier.scopeFinished, true); assert.equal(f.calls.includes('unownedStart'), false);
+  }
 });
