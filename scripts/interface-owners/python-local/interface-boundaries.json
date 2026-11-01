@@ -72778,6 +72778,314 @@
           }
         }
       ]
+    },
+    {
+      "module": "src/client_host_wasm/saved_payload_record.mbt",
+      "sha256": "89b87bb5a2d0568c9e0892bec981a24722d156e80600bf4b96a8d0c9d0bd26b1",
+      "exports": [],
+      "operations": [
+        {
+          "name": "load_saved_payload_record",
+          "declaration": "load_saved_payload_record ( value : Instance , record : StoredPayloadRecord , configuration : Int , ) - > Result [ Unit , Int ]"
+        },
+        {
+          "name": "observe_saved_payload_record",
+          "declaration": "observe_saved_payload_record ( value : Instance , record : StoredPayloadRecord , configuration : Int , selection ? : OriginalSDKReadContext ?"
+        },
+        {
+          "name": "produce_saved_payload_record",
+          "declaration": "produce_saved_payload_record ( value : Instance , record : StoredPayloadRecord , configuration : Int , ) - > Int"
+        },
+        {
+          "name": "saved_payload_binding",
+          "declaration": "saved_payload_binding ( value : Instance , record : StoredPayloadRecord , configuration : Int , selection ? : OriginalSDKReadContext ?"
+        },
+        {
+          "name": "saved_payload_names_json",
+          "declaration": "saved_payload_names_json ( record : StoredPayloadRecord , ) - > Result [ String , Int ]"
+        },
+        {
+          "name": "saved_payload_record_context",
+          "declaration": "saved_payload_record_context ( value : Instance , record : StoredPayloadRecord , configuration : Int , selection ? : OriginalSDKReadContext ?"
+        },
+        {
+          "name": "saved_payload_record_current",
+          "declaration": "saved_payload_record_current ( value : Instance , record : StoredPayloadRecord , configuration : Int , ) - > Bool"
+        }
+      ],
+      "role": "physical-io",
+      "owner": "D / existing Python Local Guest saved Source, Sealed payload, publication and buffer cleanup Owners",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "load_saved_payload_record",
+            "observe_saved_payload_record",
+            "produce_saved_payload_record",
+            "saved_payload_binding",
+            "saved_payload_names_json",
+            "saved_payload_record_context",
+            "saved_payload_record_current"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_host_wasm/saved_payload_record.mbt",
+                "anchor": "fn saved_payload_record_context("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The closed SDK payload finish path has just completed the original context's"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_host_wasm/saved_payload_record.mbt",
+                "anchor": "selection? : OriginalSDKReadContext? = None"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The closed SDK payload finish path has just completed the original context's"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_host_wasm/saved_payload_record.mbt",
+                "anchor": "physical_equal(context.source, source)"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The closed SDK payload finish path has just completed the original context's"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_host_wasm/publication_commit_exports.mbt",
+                "anchor": "pub fn close_publication_commit_export("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The closed SDK payload finish path has just completed the original context's"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_host_wasm/saved_payload_record.mbt",
+                "anchor": "record.pending = true"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The closed SDK payload finish path has just completed the original context's"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_host_wasm/saved_payload_record.mbt",
+                "anchor": "return Err(-32)"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The closed SDK payload finish path has just completed the original context's"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_host_wasm/saved_payload_record.mbt",
+                "anchor": "if record.closing || parent.output_closed"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The closed SDK payload finish path has just completed the original context's"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_host_wasm/saved_payload_record.mbt",
+                "anchor": "row.body.length() <= 65536"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The closed SDK payload finish path has just completed the original context's"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_host_wasm/saved_payload_record.mbt",
+                "anchor": "selection? : OriginalSDKReadContext? = None"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The closed SDK payload finish path has just completed the original context's"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/tests/test_local_saved_read_ports.py",
+                "anchor": "def test_real_saved_descriptor_keeps_original_metadata_loan_and_current_refusal("
+              },
+              {
+                "path": "src/client_local_run/sdk_saved_payload_record_wbtest.mbt",
+                "anchor": "test \"saved SDK record refuses foreign material request attempt state and bytes\""
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The closed SDK payload finish path has just completed the original context's"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_host_wasm/sdk_payload_record.mbt",
+      "sha256": "7dcd6be40a0c743ef9318ab8179ba9060a999e07fc012714442d8bd70ee61b42",
+      "exports": [],
+      "operations": [
+        {
+          "name": "bind_publication_sdk_payload_record",
+          "declaration": "bind_publication_sdk_payload_record ( nonce : Int64 , first_handle : Int , payload_record : Int , current_configuration : Int , result : Int , binding_index : Int , ) - > Int"
+        },
+        {
+          "name": "publication_sdk_payload_ordinal",
+          "declaration": "publication_sdk_payload_ordinal ( nonce : Int64 , first_handle : Int , current_configuration : Int , field : Int , ) - > Int"
+        },
+        {
+          "name": "sdk_payload_finish_current",
+          "declaration": "sdk_payload_finish_current ( value : Instance , first : StoredPublicationCommitExport , context : OriginalSDKReadContext , current_configuration : Int , ) - > Int"
+        },
+        {
+          "name": "sdk_payload_record_binding_current",
+          "declaration": "sdk_payload_record_binding_current ( value : Instance , first : StoredPublicationCommitExport , context : OriginalSDKReadContext , payload_record : Int , result : Int , binding_index : Int , current_configuration : Int , selection ? : OriginalSDKReadContext ?"
+        },
+        {
+          "name": "sdk_payload_record_current",
+          "declaration": "sdk_payload_record_current ( value : Instance , first : StoredPublicationCommitExport , context : OriginalSDKReadContext , current_configuration : Int , selection ? : OriginalSDKReadContext ?"
+        }
+      ],
+      "role": "physical-io",
+      "owner": "D / existing Python Local Guest saved Source, Sealed payload, publication and buffer cleanup Owners",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "bind_publication_sdk_payload_record",
+            "publication_sdk_payload_ordinal",
+            "sdk_payload_finish_current",
+            "sdk_payload_record_binding_current",
+            "sdk_payload_record_current"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_host_wasm/sdk_payload_record.mbt",
+                "anchor": "fn sdk_payload_finish_current("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The closed SDK payload finish path has just completed the original context's"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_host_wasm/sdk_payload_record.mbt",
+                "anchor": "selection? : OriginalSDKReadContext? = None"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The closed SDK payload finish path has just completed the original context's"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_host_wasm/sdk_payload_record.mbt",
+                "anchor": "!physical_equal(original, context)"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The closed SDK payload finish path has just completed the original context's"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_host_wasm/publication_commit_exports.mbt",
+                "anchor": "pub fn close_publication_commit_export("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The closed SDK payload finish path has just completed the original context's"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_host_wasm/sdk_payload_record.mbt",
+                "anchor": "match (context.check_current)()"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The closed SDK payload finish path has just completed the original context's"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_host_wasm/sdk_payload_record.mbt",
+                "anchor": "return Err(-32)"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The closed SDK payload finish path has just completed the original context's"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_host_wasm/sdk_payload_record.mbt",
+                "anchor": "return -32"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The closed SDK payload finish path has just completed the original context's"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_host_wasm/saved_payload_record.mbt",
+                "anchor": "row.body.length() <= 65536"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The closed SDK payload finish path has just completed the original context's"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_host_wasm/sdk_payload_record.mbt",
+                "anchor": "selection? : OriginalSDKReadContext? = None"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The closed SDK payload finish path has just completed the original context's"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/tests/test_local_saved_read_ports.py",
+                "anchor": "def test_real_saved_descriptor_keeps_original_metadata_loan_and_current_refusal("
+              },
+              {
+                "path": "src/client_local_run/sdk_saved_payload_record_wbtest.mbt",
+                "anchor": "test \"saved SDK record refuses foreign material request attempt state and bytes\""
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The closed SDK payload finish path has just completed the original context's"
+              }
+            ]
+          }
+        }
+      ]
     }
   ],
   "syntaxProjectionBasis": "SHA256 of UTF-8 JSON.stringify over sorted declared {module,operations,exports,imports}; source inventory only."
