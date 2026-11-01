@@ -413,6 +413,7 @@ export async function openDeliveryAttemptIndex(path, {
     const updatePublicationUsage = prepare(`UPDATE publication_usage SET objects=objects+?,bytes=bytes+?,
       ack_revision=ack_revision+1 WHERE id=1`);
     const completion = prepare('SELECT * FROM completions WHERE attempt_cid=?');
+    const completionReceipt = prepareOnUse('SELECT receipt_wire FROM completions WHERE receipt_cid=? LIMIT 1');
     const initialRecord = prepare('SELECT * FROM initial_records WHERE attempt_cid=?');
     const confirmInitial = prepare('UPDATE initial_records SET ack_revision=ack_revision+1 WHERE attempt_cid=? AND initial_cid=?');
     const insertCompletion = prepare('INSERT INTO completions VALUES(?,?,?,?,?,1)');
@@ -1549,7 +1550,7 @@ export async function openDeliveryAttemptIndex(path, {
             if(attempt?.ready!==1 || attempt.initial_cid!==entry.prior_cid) fail('DeliveryRecordConflict');
             const retained=completionCopy(completion.get(entry.attempt_cid));
             if(retained===undefined) {
-              const receipt = prepare('SELECT receipt_wire FROM completions WHERE receipt_cid=? LIMIT 1').get(entry.receipt_cid);
+              const receipt = completionReceipt.get(entry.receipt_cid);
               if (receipt !== undefined && receipt.receipt_wire !== entry.receipt_wire) fail('DeliveryRecordConflict');
               insertCompletion.run(entry.attempt_cid,entry.record_cid,entry.record_wire,entry.receipt_cid,entry.receipt_wire);
             }
