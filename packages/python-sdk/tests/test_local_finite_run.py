@@ -221,7 +221,8 @@ class FiniteRunSQLiteTests(unittest.TestCase):
         original = core._call
         candidate = {'run_key': RUN_KEY, 'submission_key': append_fixture.REQUEST,
             'preparing': append_fixture.PREPARING.decode(), 'run': RUN_BODY.decode(),
-            'submitted': READY.decode(), 'issued_revision': '0', 'issued_body': '1'}
+            'submitted': READY.decode(), 'issued_revision': '0', 'issued_body': '1',
+            'reference_locator': {'key': '6' * 64, 'body': '{"opaque":"same original locator DATA"}'}}
         validations = []
         statuses = {}
         output_handle = []
@@ -269,7 +270,7 @@ class FiniteRunSQLiteTests(unittest.TestCase):
             ('client_run_custody', 'issued'), ('client_runs', RUN_KEY),
             ('client_submitted_intents', append_fixture.REQUEST)))
 
-    def test_core_candidate_three_writes_commit_in_one_original_transaction(self):
+    def test_core_candidate_ready_writes_commit_in_one_original_transaction(self):
         with TemporaryDirectory(prefix='actql-finite-run-') as directory:
             host, core, output, validations, _, _ = self.host(Path(directory))
             host._commit_original_run_rows(output)
@@ -300,7 +301,7 @@ class FiniteRunSQLiteTests(unittest.TestCase):
             self.assertIn(output, host._row_outputs)
             self.assertFalse(host._journal_outputs)
 
-    def test_same_transaction_core_refusal_rolls_back_all_three_writes(self):
+    def test_same_transaction_core_refusal_rolls_back_all_ready_writes(self):
         with TemporaryDirectory(prefix='actql-finite-run-') as directory:
             host, core, output, validations, statuses, _ = self.host(Path(directory))
             statuses[2] = -32

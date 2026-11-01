@@ -1282,7 +1282,7 @@ class InstalledLocalHost:
             candidate = captured[0]
             fields = {'run_key', 'submission_key', 'preparing', 'run', 'submitted',
                       'issued_revision', 'issued_body'}
-            if (not fields <= set(candidate) <= fields | {'task_materials', 'reference_locator'}
+            if (not fields | {'reference_locator'} <= set(candidate) <= fields | {'task_materials', 'reference_locator'}
                     or any(type(candidate[key]) is not str for key in fields)):
                 raise ValueError('Invalid original Core Run row projection')
             locator_writes: tuple[ByteWrite, ...] = ()
