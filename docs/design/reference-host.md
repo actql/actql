@@ -1940,6 +1940,18 @@ constructor that this path never calls. Binding and recovery configuration
 identity retain their distinct normalization obligations. This changes no
 payload spelling, request identity, refusal guard or installed resource ceiling.
 
+Captured Effect operation multiplicity selects the SAME checked member Result
+endpoints inside the existing work-bounded schema walk. It does not replace
+Source/Compute input demand with an output count or re-lower another Program.
+An original literal cross-join output guard can bound successful Result rows
+even when an upstream Source cardinality is unknown; it neither truncates a
+failed join nor proves its input demand. Missing/parameter/unknown facts keep
+the original executor fallback. Multiple members remain separate occurrences,
+even when they share the same immutable extent or Result owner. The existing
+Request reserves the extra fixed endpoint-selection scratch before calling the
+Plan constructor, and the Plan uses that same constructor quantity. General
+Compute inventories retain their original complete-node scope.
+
 The actual range/clear driver supplies its same immutable Command definition,
 constructor descriptor and original native binding profile to the existing
 standard Effect Plan composer. It does not supply an independently handwritten

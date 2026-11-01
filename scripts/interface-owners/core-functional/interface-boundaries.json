@@ -33558,7 +33558,7 @@
     {
       "module": "src/client_local_host/preparation_request_effect_body.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "a4e8ca51e0cd2f3e2861ec6d3d277bc330682ca6960554a1fa86642658544b4e",
+      "sha256": "be285e26732c29cdfd455bc42c0603d7500f132a897917db09dbdb6b97e651c8",
       "role": "common-semantics",
       "owner": "Existing Request preparation and installed Effect Plan owners",
       "exports": [],
@@ -33566,6 +33566,10 @@
         {
           "name": "[I]begin_request_effect_managed_run",
           "declaration": "[ I ] begin_request_effect_managed_run ( owner : ClientRequestPreparation [ I ] , request : @ publication_host . ClientRequestIdentity , ) - > Result [ ClientInstalledManagedRun , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "[I]begin_request_effect_model_managed_run",
+          "declaration": "[ I ] begin_request_effect_model_managed_run ( owner : ClientRequestPreparation [ I ] , request : @ publication_host . ClientRequestIdentity , scope : @ publication_host . ClientModelReadScope , ) - > Result [ ClientInstalledManagedRun , ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "[I]borrow_request_effect_plan_input",
@@ -33582,6 +33586,10 @@
         {
           "name": "[I]continue_request_effect_preparation",
           "declaration": "[ I ] continue_request_effect_preparation ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ @ publication_host . PreparedClientEffectComputation , ClientRequestPreparationIssue , ]"
+        },
+        {
+          "name": "[I]finish_request_effect_run_adoption",
+          "declaration": "[ I ] finish_request_effect_run_adoption ( owner : ClientRequestPreparation [ I ] , result : Result [ ClientInstalledManagedRun , ClientInstalledManagedRunIssue ] , ) - > Result [ ClientInstalledManagedRun , ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "[I]prepare_request_effect_model_read_scope",
@@ -33606,7 +33614,8 @@
             "[I]complete_request_effect_preparation",
             "[I]continue_request_effect_preparation",
             "[I]request_effect_plan_quote",
-            "[I]reserve_request_effect_plan"
+            "[I]reserve_request_effect_plan",
+            "[I]finish_request_effect_run_adoption"
           ],
           "exports": [],
           "attributes": {
@@ -33678,7 +33687,8 @@
         },
         {
           "operations": [
-            "[I]prepare_request_effect_model_read_scope"
+            "[I]prepare_request_effect_model_read_scope",
+            "[I]begin_request_effect_model_managed_run"
           ],
           "exports": [],
           "attributes": {
@@ -42015,7 +42025,7 @@
     },
     {
       "module": "src/client_local_host/installed_effect_operation_demand.mbt",
-      "sha256": "35a4925991d4eb0ce4cbafeb1ee056b23343f39087d9a238de677e8d9e68eb90",
+      "sha256": "7eb26218477dbfde074eab09aa6d9175f3e603b6219bc1af9903a734e70c6b74",
       "exports": [],
       "operations": [
         {
@@ -42041,6 +42051,10 @@
         {
           "name": "installed_effect_requirements",
           "declaration": "installed_effect_requirements ( limits : @ resources . LedgerLimits , ) - > Array [ Int64 ]"
+        },
+        {
+          "name": "installed_effect_source_result_bound_scratch_bytes",
+          "declaration": "installed_effect_source_result_bound_scratch_bytes ( ) - > Int64"
         },
         {
           "name": "prepare_installed_effect_capture_extent",
@@ -42181,6 +42195,76 @@
               {
                 "path": "adapters/host-node/request-preparation-parent.test.mjs",
                 "anchor": "test('normal first Request Plan keeps its original typed row refusal"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installed_effect_source_result_bound_scratch_bytes"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Captured Effect operation multiplicity selects the SAME checked member Result"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Captured Effect operation multiplicity selects the SAME checked member Result"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Captured Effect operation multiplicity selects the SAME checked member Result"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Captured Effect operation multiplicity selects the SAME checked member Result"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Captured Effect operation multiplicity selects the SAME checked member Result"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/installed_effect_operation_demand.mbt",
+                "anchor": "fn installed_effect_source_result_bound_scratch_bytes("
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Pure checked-original cardinality or fixed scratch DATA; no callback, current recheck, re-lowering or I/O."
+            },
+            "cancellation": {
+              "notApplicable": "No cancellation, retirement, work refund or physical acknowledgement is issued."
+            },
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Captured Effect operation multiplicity selects the SAME checked member Result"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_effect_body.mbt",
+                "anchor": "installed_effect_source_result_bound_scratch_bytes()"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/installed_effect_operation_demand_wbtest.mbt",
+                "anchor": "test \"Source Effect operations use their SAME checked Result bound after unknown input\""
+              },
+              {
+                "path": "src/lowering_relation/cross_join_test.mbt",
+                "anchor": "test \"cross join independent bound comes only from its original literal guard\""
               }
             ]
           }

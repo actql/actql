@@ -237,6 +237,8 @@ test "original implementation control material shares the checked row inventory 
 // generation supplies only fixture inputs; no Source/physical observation is
 // generated, and expected identities/rows are not taken from execution output.
 fn effect_operation_source_plan_fixture(
+  bounded_output? : Bool = false,
+  second_result? : Bool = false,
   provider? : @execution.ExecutionCapacity? = None,
   query_time_for? : ((
     @publication_host.PreparedClientEffectComputation,
@@ -325,6 +327,22 @@ fn effect_operation_source_plan_fixture(
   } else {
     document
   }
+  let document = if bounded_output {
+    document.replace(
+      old="{\"filter\":\"id > 2\",\"as\":\"selected\"}",
+      new="{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"id\":4}]},\"as\":\"one\"},{\"from\":\"one\",\"cross_join\":{\"with\":\"input\",\"max_output_rows\":1,\"select\":{\"id\":\"left.id\"}},\"as\":\"selected\"}",
+    )
+  } else {
+    document
+  }
+  let document = if second_result {
+    document.replace(
+      old="\"as\":\"selected\"}],\"results\":{\"rows\":{\"from\":\"selected\",\"fields\":[\"id\"]}},\"effects\":{\"save\":{\"update\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"from\":{\"result\":\"rows\"},\"id\":\"id\",\"set\":{\"Name\":{\"field\":\"id\"}}}}}",
+      new="\"as\":\"selected\"},{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"id\":3},{\"id\":5},{\"id\":7}]},\"as\":\"three\"}],\"results\":{\"rows\":{\"from\":\"selected\",\"fields\":[\"id\"]},\"other\":{\"from\":\"three\",\"fields\":[\"id\"]}},\"effects\":{\"save\":{\"update\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"from\":{\"result\":\"rows\"},\"id\":\"id\",\"set\":{\"Name\":{\"field\":\"id\"}}}},\"save_other\":{\"update\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"from\":{\"result\":\"other\"},\"id\":\"id\",\"set\":{\"Name\":{\"field\":\"id\"}}}}}",
+    )
+  } else {
+    document
+  }
   let prepared = match
     @publication_host.prepare_client_effect_computation(
       document,
@@ -378,6 +396,20 @@ fn effect_operation_source_plan_fixture(
     [extent],
     [extent],
   ).unwrap()
+  let demands = if second_result {
+    [
+      demand,
+      prepare_installed_effect_operation_demand(
+        prepared,
+        1,
+        "save_other",
+        [extent],
+        [extent],
+      ).unwrap(),
+    ]
+  } else {
+    [demand]
+  }
   prepare_installed_effect_managed_plan(
     prepared,
     request,
@@ -390,7 +422,7 @@ fn effect_operation_source_plan_fixture(
     source_query_original_values,
     Some(source_query_original_fragment),
     None,
-    [demand],
+    demands,
     query_time=query_time_for.map(make => make(prepared, request)),
     source_providers=provider.map(value => [value]),
     provider_factory=_ => [],
@@ -1148,5 +1180,86 @@ test "standard capture extent refuses overflow and row-slot reuse without changi
       Array::make(work + 1, static_extent),
     )
     is Err(Unsupported),
+  )
+}
+
+///|
+test "Source Effect operations use their SAME checked Result bound after unknown input" {
+  let plan = effect_operation_source_plan_fixture(bounded_output=true)
+  assert_eq(plan.rows, 1)
+  // Two distinct original occurrences: one member and one row. The source
+  // still has its independent original acquisition/Compute allowance.
+  assert_eq(plan.held_children, 2)
+  assert_eq(plan.limits.attempts - plan._observed_compute_limits.attempts, 2)
+  assert_eq(
+    plan.limits.transfer_bytes - plan._observed_compute_limits.transfer_bytes,
+    14L,
+  )
+  assert_true(plan.capacity_plan.demand_inventory.unwrap().closed_rows is None)
+}
+
+///|
+test "Effect Result bounds preserve unknown inputs instead of assuming the observed rows" {
+  let plan = effect_operation_source_plan_fixture()
+  assert_eq(
+    plan.rows,
+    @publication_host.client_standard_values_sequence_limits().max_rows,
+  )
+  assert_eq(plan.held_children, 1 + plan.rows)
+}
+
+///|
+test "Effect Result bounds keep multiple original member occurrences and endpoint widths" {
+  let plan = effect_operation_source_plan_fixture(
+    bounded_output=true,
+    second_result=true,
+  )
+  assert_eq(plan.rows, 3)
+  assert_eq(plan.held_children, 8)
+  assert_eq(plan.limits.attempts - plan._observed_compute_limits.attempts, 8)
+  assert_eq(
+    plan.limits.transfer_bytes - plan._observed_compute_limits.transfer_bytes,
+    56L,
+  )
+}
+
+///|
+test "Effect Result bound inventory refuses foreign graph and spends the existing proof work" {
+  let plan = effect_operation_source_plan_fixture(bounded_output=true)
+  let graph = installed_managed_owner_graph(Effect(plan.prepared))
+  let effect = @publication_host.prepared_client_effect_computation_graph(
+    plan.prepared,
+  )
+  let proof = client_local_schema_proof_inventory(
+    plan.sequences,
+    graph=Some(graph),
+    scalar_only=false,
+    effect_sources=Some(effect),
+  ).unwrap()
+  assert_eq(proof.closed_rows, Some(1))
+  assert_eq(proof._observed_owner_count, 2)
+  assert_true(
+    client_local_schema_proof_inventory(
+      plan.sequences,
+      max_work=1,
+      graph=Some(graph),
+      scalar_only=false,
+      effect_sources=Some(effect),
+    )
+    is None,
+  )
+  let foreign = effect_operation_source_plan_fixture(bounded_output=true)
+  assert_true(
+    client_local_schema_proof_inventory(
+      plan.sequences,
+      graph=Some(graph),
+      scalar_only=false,
+      effect_sources=Some(
+        @publication_host.prepared_client_effect_computation_graph(
+          foreign.prepared,
+        ),
+      ),
+    )
+    is None,
   )
 }
