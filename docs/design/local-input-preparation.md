@@ -5129,3 +5129,20 @@ return the parent. Failed signing and failed cleanup preserve the original
 primary reason, including null or undefined, together with the same existing
 cleanup retry. No cleanup exception acknowledges physical stop, refunds a
 resource or permits another recovery/signature to replace the original duty.
+
+
+### Installed managed starts retain the prepared parent
+
+The installed Local and HTTP Content caller always forwards the same selected
+preparation owner's current, retained-preparation, Model, serialization and
+keyed-Content methods. Absence of that owner cannot select the component-only
+Content route. The installed entry already requires its Request preparation;
+these downstream bindings preserve that requirement instead of offering an
+unprepared alternative.
+
+Effect parents are created from the original recorded Effect plan. The former
+unplanned Effect and Mock-Model starts, and the standalone keyed-Content managed
+start, no longer construct private managed-Run variants. Request-owned Content
+keeps its existing original admission and retirement path. This does not remove
+the raw serialization compiler entries used by query integration, or grant a
+raw compiler fixture an installed Host admission.
