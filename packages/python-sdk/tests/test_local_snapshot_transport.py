@@ -112,6 +112,71 @@ class SnapshotTransportTests(unittest.TestCase):
             store.inspect_namespaces((ByteFence('epoch', 0, b'original-epoch'),),
                 inspect=inspect, current=lambda: None)
 
+    def test_snapshot_schema_change_refuses_even_without_a_row_mutation(self):
+        from actql_sdk._local_storage import LocalStorageError
+        with TemporaryDirectory(prefix='actql-sql-schema-change-') as directory:
+            store = LocalByteStore(Path(directory) / 'original.sqlite', max_records=8,
+                max_record_bytes=4096, max_payload_bytes=16384)
+            self.addCleanup(store.close)
+            store.compare_exchange('epoch', None, b'original-epoch')
+            def inspect(reader):
+                reader.read('original', 'one', lambda _: None)
+                before = store._connection.total_changes
+                store._connection.execute('CREATE TABLE foreign_schema_change (value BLOB)')
+                self.assertEqual(store._connection.total_changes, before)
+                with self.assertRaises(LocalStorageError): reader.current()
+            with self.assertRaises(LocalStorageError):
+                store.inspect_namespaces((ByteFence('epoch', 0, b'original-epoch'),),
+                    inspect=inspect, current=lambda: None)
+
+    def test_snapshot_savepoint_rollback_invalidates_without_reusing_a_mutated_row(self):
+        with TemporaryDirectory(prefix='actql-sql-savepoint-') as directory:
+            store = LocalByteStore(Path(directory) / 'original.sqlite', max_records=8,
+                max_record_bytes=4096, max_payload_bytes=16384)
+            self.addCleanup(store.close)
+            store.compare_exchange('epoch', None, b'original-epoch')
+            def inspect(reader):
+                reader.read('original', 'one', lambda _: None)
+                before = store._connection.total_changes
+                store._connection.execute('SAVEPOINT original_test')
+                store._connection.execute('UPDATE core_bytes SET generation=1 WHERE key=?', ('epoch',))
+                store._connection.execute('ROLLBACK TO original_test')
+                store._connection.execute('RELEASE original_test')
+                self.assertGreater(store._connection.total_changes, before)
+                with patch.object(store, '_read_bytes_locked', wraps=store._read_bytes_locked) as sql:
+                    reader.current()
+                    self.assertEqual(sql.call_count, 1)
+                    reader.current()
+                    self.assertEqual(sql.call_count, 1)
+            store.inspect_namespaces((ByteFence('epoch', 0, b'original-epoch'),),
+                inspect=inspect, current=lambda: None)
+
+    def test_snapshot_equal_markers_on_different_connection_do_not_supply_original_reader(self):
+        from actql_sdk._local_storage import LocalStorageError
+        import sqlite3
+        with TemporaryDirectory(prefix='actql-sql-foreign-connection-') as directory:
+            store = LocalByteStore(Path(directory) / 'original.sqlite', max_records=8,
+                max_record_bytes=4096, max_payload_bytes=16384)
+            self.addCleanup(store.close)
+            store.compare_exchange('epoch', None, b'original-epoch')
+            foreign = sqlite3.connect(':memory:', isolation_level=None)
+            self.addCleanup(foreign.close)
+            foreign.execute('CREATE TABLE core_bytes(key TEXT, generation INTEGER, payload BLOB)')
+            foreign.execute('INSERT INTO core_bytes VALUES(?,?,?)', ('epoch', 0, b'original-epoch'))
+            foreign.execute('BEGIN')
+            def inspect(reader):
+                reader.read('original', 'one', lambda _: None)
+                original = store._physical._connection
+                self.assertEqual(foreign.total_changes, original.total_changes)
+                store._physical._connection = foreign
+                try:
+                    with self.assertRaises(LocalStorageError): reader.current()
+                finally:
+                    store._physical._connection = original
+            with self.assertRaises(LocalStorageError):
+                store.inspect_namespaces((ByteFence('epoch', 0, b'original-epoch'),),
+                    inspect=inspect, current=lambda: None)
+
     def test_query_keeps_distinct_current_and_refuses_at_every_existing_boundary(self):
         for stop in (None, 1, 2, 3):
             with self.subTest(stop=stop), TemporaryDirectory(prefix='actql-query-refusal-') as directory:
