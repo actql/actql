@@ -251,6 +251,7 @@ class OriginalLocalInstallation:
                     self._binding = failure.cleanup_binding
                     raise
                 self._binding.inspect(lambda _: None)
+                self._retire_preparation_readers()
                 if fresh:
                     # The same saved files and four original metadata outputs
                     # now own the installation. Retire only the consumed
@@ -267,6 +268,39 @@ class OriginalLocalInstallation:
             if isinstance(failure, LocalStorageInitializationError):
                 self._store = failure.cleanup_store
             raise LocalInstallationCleanupPending(self) from failure
+
+    def _retire_preparation_readers(self) -> None:
+        """Retire consumed initial reads only after the original Host binds.
+
+        The live Host pins already hold their own fully observed original
+        descriptors. Match the complete original physical snapshot before
+        retiring any preparation descriptor; unmatched originals remain owned.
+        No currentness, Account decision or successful cleanup is cached.
+        """
+        if self._original is not self or self._closing or self._binding is None:
+            raise ValueError('Original Local preparation reader retirement is unavailable')
+        for root, reader in tuple(self._readers):
+            selected = [(pins, member) for pins in self._pins if pins._root is root
+                        for member in pins._files.values() if member.name == reader.name]
+            if not selected:
+                continue
+            if len(selected) != 1:
+                raise ValueError('Ambiguous original Local preparation reader pin')
+            pins, member = selected[0]
+            pins._nominal()
+            pins._require_original(member)
+            if pins._closing or pins._pending or member.reader is reader:
+                raise ValueError('Original Local preparation reader has no independent live pin')
+            if (root.observe_original(reader) != member.snapshot
+                    or root.observe_original(member.reader) != member.snapshot):
+                raise ValueError('Original Local preparation reader differs from its Host pin')
+            if not root.close_original(reader):
+                raise ValueError('Original Local preparation reader cleanup remains pending')
+            self._readers.remove((root, reader))
+            # A failed/changed observation after close keeps the remaining pin
+            # and the same Installation cleanup; never reopen either original.
+            if root.observe_original(member.reader) != member.snapshot:
+                raise ValueError('Original Local Host pin changed during preparation retirement')
 
     def _reserve(self, acquire: Callable[[], _T]) -> _T:
         ticket = self._core._next_ticket
