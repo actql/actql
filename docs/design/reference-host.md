@@ -2402,6 +2402,27 @@ JSON construction stay in order; codecs which actually use a Cursor retain
 indexed admission. The range constructor therefore selects the parser-only
 projection of that same inventory.
 
+The original range binding retains its admitted native target, and each
+successful range request retains its admitted native value. Facts projection
+uses those same private originals after the existing binding/request check;
+canonical identity Strings remain DATA rather than replacement parse sources.
+Public facts expose only a String, so independently parsed consumer copies
+cannot mutate these retained trees. Equivalent noncanonical target admission,
+foreign-binding refusal and original Unicode/CRLF spelling remain unchanged.
+Clear shares the original binding target and retains no arbitrary input tree.
+
+The range Source validation helper returns only its verdict before native JSON
+construction. The same request quote separates target Source validation,
+target canonicalization, value Source validation, native validation/request
+construction and facts emission. Every phase retains the original input text,
+failed prefix and all successful output holdings. The representation Owner
+composes one largest sequential workspace with those holdings. The installation
+quote includes the binding's retained target; the request quote explicitly adds
+its cached native value and reference. The closed rectangle bounds successful
+nodes, while successful scalar text can still grow within the unchanged byte
+ceiling. Arbitrary failed input keeps its full original parser/constructor
+bounds. No callback or physical child is retired by this phase composition.
+
 Range acknowledgement construction follows `classify_append`; clear follows
 `classify_clear`. The latter opens at most five maps whose total fields belong
 to the one admitted input tree. Reply Cursor materialization remains bounded

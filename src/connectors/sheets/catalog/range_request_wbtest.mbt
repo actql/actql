@@ -410,3 +410,34 @@ test "range parser keeps the original full refusal boundary without constructing
   assert_eq(kept.get("text"), Some("e\u0301\r\n".to_json()))
   assert_eq(kept.get("b"), Some(true.to_json()))
 }
+
+///|
+test "original request material survives repeated facts without admitting a copied binding" {
+  let binding = owned_binding()
+  let request = prepare_range_request(
+    binding,
+    owned_value(),
+    binding.target_wire,
+  ).unwrap()
+  let value = request.value
+  let target = binding.target
+  let identity = range_request_identity(request)
+  let first = range_request_json(binding, request).unwrap()
+  let second = range_request_json(binding, request).unwrap()
+  assert_eq(first, second)
+  assert_eq(range_request_identity(request), identity)
+  assert_true(physical_equal(request.value, value))
+  assert_true(physical_equal(binding.target, target))
+  // A consumer may mutate its separately parsed public facts. It never gets
+  // the private original native Json retained by this binding/request.
+  let public_copy = @json.parse(first) catch { _ => fail("fixed facts") }
+  guard public_copy is Object(fields) else { fail("facts object") }
+  fields.set("value", "foreign consumer copy".to_json())
+  fields.set("target", Json::null())
+  assert_eq(range_request_json(binding, request), Ok(first))
+  let foreign = owned_binding()
+  assert_eq(
+    range_request_json(foreign, request).map_err(range_failure_code),
+    Err("ForeignSheetsRangeRequest"),
+  )
+}

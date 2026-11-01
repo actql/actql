@@ -111,15 +111,6 @@ pub fn clear_range_request_json(
     Err(issue) => return Err(issue)
   }
   let original = binding.original
-  let target = match
-    range_parse(
-      original.target_wire,
-      original.limits,
-      "SheetsRangeReferenceUnavailable",
-    ) {
-    Ok(target) => target
-    Err(issue) => return Err(issue)
-  }
   range_canonical(
     {
       "origin": original.origin.to_json(),
@@ -128,7 +119,7 @@ pub fn clear_range_request_json(
       "sheetId": original.range.sheet_id.to_json(),
       "clearedRows": (original.range.end_row - original.range.start_row).to_json(),
       "value": {},
-      "target": target,
+      "target": original.target,
       "marker": request.marker.to_json(),
       "requestCid": request.cid.to_json(),
     },

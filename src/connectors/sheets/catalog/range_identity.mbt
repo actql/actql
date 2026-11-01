@@ -28,6 +28,16 @@ pub fn range_failure_refusal(issue : RangeFailure) -> Issue? {
 }
 
 ///|
+fn check_range_json_source(body : Bytes, limits : Limits) -> Bool {
+  @source.parse_json_bytes_preserving(body, {
+    max_input_bytes: limits.max_bytes,
+    max_nodes: limits.max_nodes,
+    max_depth: limits.max_depth,
+  })
+  is Ok(_)
+}
+
+///|
 fn range_parse(
   wire : String,
   limits : Limits,
@@ -41,13 +51,11 @@ fn range_parse(
   // Keep the original limit validation and byte refusal before parsing.
   let body = @utf8.encode(wire)
   guard check_limits(limits) is Ok(_) else { return Err(range_failure(code)) }
+  // The checked Source tree stays inside this helper. Only its Boolean
+  // verdict returns, before the separate native Json constructor starts.
+  // No Source/index/parser frame is retained with the native Json result.
   guard body.length() <= limits.max_bytes &&
-    @source.parse_json_bytes_preserving(body, {
-      max_input_bytes: limits.max_bytes,
-      max_nodes: limits.max_nodes,
-      max_depth: limits.max_depth,
-    })
-    is Ok(_) else {
+    check_range_json_source(body, limits) else {
     return Err(range_failure(code))
   }
   Ok(@json.parse(wire)) catch {

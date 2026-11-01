@@ -94,7 +94,8 @@ pub fn sheets_range_installation_construction_capacity(
     is Some(writer) &&
     @shape.collection_construction_extent({
       records: columns.to_int64() + 2L,
-      record_references: columns.to_int64() + 10L,
+      // The same admitted binding now retains its original native target.
+      record_references: columns.to_int64() + 11L,
       record_words: 2L * columns.to_int64() + 4L,
       reference_arrays: 1L,
       reference_items: columns.to_int64(),
@@ -181,7 +182,11 @@ fn sheets_range_request_profile(
     16L
   let request_controls : @execution.PreparationRepresentationUnits = {
     record_headers: 3L,
-    reference_slots: 14L,
+    reference_slots: if clear {
+      14L
+    } else {
+      15L
+    },
     scalar_words: 4L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
@@ -200,8 +205,14 @@ fn sheets_range_request_profile(
     )
     is Some(validation) &&
     sheets_range_json_inventory(b, n) is Some(native_input) &&
-    sheets_range_json_inventory(facts_bytes.to_int(), facts_nodes.to_int())
+    sheets_range_json_inventory(facts_bytes.to_int(), returned_nodes.to_int())
     is Some(native_output) &&
+    sheets_range_json_inventory(target_bytes.to_int(), n) is Some(native_target) &&
+    sheets_range_canonical_construction(n, metadata.limits.max_depth)
+    is Some(target_canonical) &&
+    sheets_writer_units(target_bytes.to_int(), n, metadata.limits.max_depth)
+    is Some(target_writer) &&
+    sheets_range_canonical_construction(n, d) is Some(value_canonical) &&
     sheets_writer_units(output.body_bytes, output.body_nodes, output.body_depth)
     is Some(body_writer) &&
     sheets_writer_units(
@@ -235,44 +246,24 @@ fn sheets_range_request_profile(
     max_nodes: Int64::min(returned_nodes, metadata.limits.max_nodes.to_int64()).to_int(),
     max_depth: metadata.limits.max_depth,
   }
-  guard sheets_constructor_capacity([
-      // Original value, selector and facts can overlap through projection. The
-      // original target fast path still keeps the full changed-input refusal.
-      input,
-      input,
-      target,
-      target,
-      validation,
-      native_input,
-      native_input,
-      native_output,
-      {
-        // Payload/target facts use range_canonical(data_keys=true), preserving
-        // original keys and values. Request identity hashes the framed original
-        // UTF8 parts. Neither path invokes range_configuration_value or NFC;
-        // installation/recovery configuration identity has its separate quote.
-        ..request_controls,
-        owned_utf16_units: 2L * input_bytes.to_int64() +
-        target_bytes +
-        facts_bytes +
-        output.body_bytes.to_int64(),
-        // Value/selector UTF8 inputs, both pre-refusal outgoing encodings and
-        // original request-identity preimages remain independently bounded.
-        owned_wire_bytes: 2L * input_bytes.to_int64() +
-        target_bytes +
-        3L * output.body_bytes.to_int64() +
-        metadata.origin_units.to_int64() * 3L +
-        128L,
-      },
-      body_writer,
-      facts_writer,
-      facts_writer,
-    ])
-    is Some(peak) &&
-    sheets_constructor_capacity([
-      // The nominal request and returned native JSON String cross this
-      // boundary. The Host facts tree has its own SAME literal constructor
-      // below, not a second native Json tree retained here.
+  let zero : @execution.PreparationRepresentationUnits = {
+    record_headers: 0L,
+    reference_slots: 0L,
+    scalar_words: 0L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }
+  guard (if clear {
+      Some(zero)
+    } else {
+      // Only a successful rectangle escapes into the original request. The
+      // original outgoing body contains at least all those scalar value nodes.
+      // Invalid wider/deeper input still uses the full parser phases below.
+      sheets_range_json_inventory(b, Int::min(n, output.body_nodes))
+    })
+    is Some(retained_value) &&
+    @execution.compose_preparation_representation([
+      retained_value,
       {
         ..request_controls,
         owned_utf16_units: Int64::min(
@@ -293,10 +284,42 @@ fn sheets_range_request_profile(
     is Some(returned) else {
     return None
   }
-  guard @execution.execution_capacity(
-      @execution.execution_capacity_retained_bytes(returned),
-      @execution.execution_capacity_execution_bytes(peak),
-    )
+  let original_text = {
+    ..zero,
+    // Original UTF8 encodings remain coheld with the parser/native result.
+    // These rejection envelopes are unchanged by retaining successful JSON.
+    owned_utf16_units: 2L * input_bytes.to_int64() +
+    target_bytes +
+    facts_bytes +
+    output.body_bytes.to_int64(),
+    owned_wire_bytes: 2L * input_bytes.to_int64() +
+    target_bytes +
+    3L * output.body_bytes.to_int64() +
+    metadata.origin_units.to_int64() * 3L +
+    128L,
+  }
+  guard @execution.compose_preparation_representation([original_text, target])
+    is Some(target_source) &&
+    @execution.compose_preparation_representation([
+      original_text, native_target, target_canonical, target_writer,
+    ])
+    is Some(target_value) &&
+    @execution.compose_preparation_representation([original_text, input])
+    is Some(value_source) &&
+    @execution.compose_preparation_representation([
+      original_text, native_input, native_input, validation, value_canonical, body_writer,
+      facts_writer,
+    ])
+    is Some(value_request) &&
+    @execution.compose_preparation_representation([
+      // Facts use the SAME original value/target. Their trees are retained
+      // above or by the binding; no second Source parser or input Json tree.
+      original_text, native_output, facts_writer,
+    ])
+    is Some(facts) &&
+    sheets_range_capture_phase_capacity(returned, [
+      target_source, target_value, value_source, value_request, facts,
+    ])
     is Some(native) else {
     return None
   }

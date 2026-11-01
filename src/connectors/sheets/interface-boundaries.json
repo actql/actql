@@ -3641,11 +3641,15 @@
   {
     "module": "src/connectors/sheets/catalog/range_identity.mbt",
     "responsibilityFacet": "primary",
-    "sha256": "71524b9c45a5780ca9fad995fb9af5c3d3e02bb31790375557dacd023af8d409",
+    "sha256": "22fe71eb567c38b35b873c5db8efb663b7b7e0cc22784f4adb5d14c32487d3ff",
     "operations": [
       {
         "name": "append_request_identity",
         "declaration": "append_request_identity ( origin : String , path : String , body : String , ) - > Result [ String , RangeFailure ]"
+      },
+      {
+        "name": "check_range_json_source",
+        "declaration": "check_range_json_source ( body : Bytes , limits : Limits ) - > Bool"
       },
       {
         "name": "framed_request_identity",
@@ -3838,13 +3842,81 @@
             }
           ]
         }
+      },
+      {
+        "operations": [
+          "check_range_json_source"
+        ],
+        "exports": [],
+        "attributes": {
+          "responsibility": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "The original range binding retains its admitted native target"
+            }
+          ],
+          "inputsOutputs": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "The original range binding retains its admitted native target"
+            }
+          ],
+          "identity": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "The original range binding retains its admitted native target"
+            }
+          ],
+          "ownership": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "The original range binding retains its admitted native target"
+            }
+          ],
+          "synchronization": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "The original range binding retains its admitted native target"
+            }
+          ],
+          "failure": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "The original range binding retains its admitted native target"
+            }
+          ],
+          "cancellation": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "The original range binding retains its admitted native target"
+            }
+          ],
+          "resources": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "The original range binding retains its admitted native target"
+            }
+          ],
+          "extension": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "The original range binding retains its admitted native target"
+            }
+          ],
+          "verification": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "The original range binding retains its admitted native target"
+            }
+          ]
+        }
       }
     ]
   },
   {
     "module": "src/connectors/sheets/catalog/range_request.mbt",
     "responsibilityFacet": "primary",
-    "sha256": "6c1344f0ebbfe02df4762507103f703a0424af3e3750e1aceca6d1184ec3252e",
+    "sha256": "ec337b5044453e346e0fe8756fdb7d267a686eee302fc5cbb996b3d302611d9b",
     "operations": [
       {
         "name": "admit_range_binding",
@@ -5774,7 +5846,7 @@
   },
   {
     "module": "src/connectors/sheets/catalog/clear_request.mbt",
-    "sha256": "a82a2a770ebec1299046011201dbf397be24691119071d7a5eb0216ae3f45c10",
+    "sha256": "41b988c6847d922467b4fdab0b15860008bc6b6989d3aff8596b47d94af7980d",
     "exports": [],
     "operations": [
       {
@@ -7501,7 +7573,7 @@
   {
     "module": "src/connectors/sheets/host_node/range_construction.mbt",
     "responsibilityFacet": "primary",
-    "sha256": "de688159914ecc12490cd1e4678e90b65d0c509585c77de913c4b82c781290ef",
+    "sha256": "1f632740b85e7b47cacac42d97adb6e74e3b4482e6962273536cd03e9a93d8d1",
     "operations": [
       {
         "name": "sheets_clear_ack_marker_construction",

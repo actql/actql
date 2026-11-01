@@ -614,10 +614,11 @@ test "range returned holding follows the original closed rectangle while arbitra
         @execution.execution_capacity_retained_bytes(narrow),
       )
     } else {
-      // Both large inputs already meet the unchanged outgoing byte ceiling.
-      // Successful output stays capped while failed-input construction grows.
-      assert_eq(
-        @execution.execution_capacity_retained_bytes(text),
+      // Wire outputs already meet the unchanged outgoing byte ceiling. The
+      // original native value is now retained too: successful scalar text can
+      // grow within that ceiling, although its closed node inventory cannot.
+      assert_true(
+        @execution.execution_capacity_retained_bytes(text) >
         @execution.execution_capacity_retained_bytes(narrow),
       )
       let short = sheets_range_request_capacity(
@@ -1028,4 +1029,47 @@ test "range capture keeps its exact original non-marker recipe" {
       @execution.execution_capacity_execution_bytes(before[index]),
     )
   }
+}
+
+///|
+test "range request projection reuses original JSON within one parser-backed phase" {
+  let configuration = "{\"origin\":\"https://sheets.example.test\",\"spreadsheetId\":\"book\",\"range\":{\"sheetId\":7,\"startRow\":2,\"endRow\":4,\"startColumn\":1,\"endColumn\":3},\"columns\":[{\"name\":\"text\",\"type\":\"string\",\"nullable\":false},{\"name\":\"flag\",\"type\":\"boolean\",\"nullable\":true}]}"
+  let limits : @catalog.Limits = {
+    max_bytes: 300000,
+    max_nodes: 200000,
+    max_depth: 32,
+    max_cells: 6400,
+  }
+  let target = @catalog.range_reference(
+      "https://sheets.example.test",
+      "book",
+      { sheet_id: 7, start_row: 2, end_row: 4, start_column: 1, end_column: 3, },
+      "sha256:" + "a".repeat(64),
+      "sha256:" + "b".repeat(64),
+      limits,
+    )
+    .unwrap()
+    .stringify()
+  let binding = @catalog.admit_range_binding(
+    configuration,
+    "sha256:e3b7d39898d2037cffd055b1c51f24c66e616d2bb8ae3d4a34529515c26196ab",
+    "sha256:" + "b".repeat(64),
+    target,
+    limits,
+  ).unwrap()
+  let profile = sheets_range_construction_profile(
+    binding, 100000, 10000, 16, 1000000, 200000, 32,
+  ).unwrap()
+  let native = profile[0].0
+  println(
+    "RANGE_ORIGINAL_JSON_PHASE retained=\{@execution.execution_capacity_retained_bytes(native)} execution=\{@execution.execution_capacity_execution_bytes(native)}",
+  )
+  // A bounded local regression ceiling, not a product/Run capacity change.
+  // The original phase sum was >64MiB for this fixed two-by-two rectangle.
+  assert_true(@execution.execution_capacity_execution_bytes(native) < 67108864L)
+  assert_true(@execution.execution_capacity_retained_bytes(native) > 0L)
+  assert_true(
+    @execution.execution_capacity_execution_bytes(native) >=
+    @execution.execution_capacity_retained_bytes(native),
+  )
 }

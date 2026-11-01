@@ -10,6 +10,7 @@ pub struct RangeBinding {
   command_cid : String
   binding_cid : String
   target_wire : String
+  target : Json
   limits : Limits
 }
 
@@ -19,6 +20,7 @@ pub struct RangeRequest {
   body : String
   path : String
   value_wire : String
+  value : Json
   cid : String
 }
 
@@ -156,6 +158,7 @@ pub fn admit_range_binding(
     command_cid,
     binding_cid,
     target_wire,
+    target,
     limits,
   })
 }
@@ -287,7 +290,9 @@ pub fn prepare_range_request(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  Ok({ binding, body, path, value_wire, cid, })
+  // Retain the SAME admitted native value for later facts projection. Its
+  // canonical wire remains identity DATA, not a replacement parse source.
+  Ok({ binding, body, path, value_wire, value, cid, })
 }
 
 ///|
@@ -313,20 +318,6 @@ pub fn range_request_json(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  let value = match
-    range_parse(request.value_wire, binding.limits, "InvalidSheetsRangeInput") {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  let target = match
-    range_parse(
-      binding.target_wire,
-      binding.limits,
-      "SheetsRangeReferenceUnavailable",
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
   range_canonical(
     {
       "origin": binding.origin.to_json(),
@@ -334,8 +325,8 @@ pub fn range_request_json(
       "spreadsheetId": binding.spreadsheet_id.to_json(),
       "sheetId": binding.range.sheet_id.to_json(),
       "acknowledgedRows": (binding.range.end_row - binding.range.start_row).to_json(),
-      "value": value,
-      "target": target,
+      "value": request.value,
+      "target": binding.target,
       "requestCid": request.cid.to_json(),
     },
     binding.limits,
