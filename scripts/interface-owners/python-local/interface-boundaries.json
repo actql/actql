@@ -72888,12 +72888,13 @@
           "declaration": "validate_submitted_rows_material ( nonce : Int64 , handle : Int ) - > Int"
         }
       ],
-      "role": "boundary-adapter",
+      "role": "common-semantics",
       "owner": "D / existing Local material, submitted-row, Run and buffer Owners",
       "responsibilityFacet": "primary",
       "contracts": [
         {
           "operations": [
+            "<module>",
             "close_material",
             "material_length",
             "produce_material",
