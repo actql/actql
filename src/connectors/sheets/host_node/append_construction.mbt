@@ -463,7 +463,10 @@ pub fn sheets_range_declaration_construction_capacity(
       command.bundle_depth,
     )
     is Some(bundle) &&
-    @canonical.nfc_lf_construction_extent((8L * (d + c)).to_int())
+    // range_configuration_value normalizes the ORIGINAL decoded key/value
+    // strings, bounded by the two input wires. Returned NFC text is retained
+    // separately below; it is not another expanded normalization input.
+    @canonical.nfc_lf_construction_scratch_extent((d + c).to_int())
     is Some(normalization) &&
     sheets_writer_units(result.to_int(), n, depth) is Some(writer) &&
     @source.json_literal_construction_extent(result.to_int(), n, depth)
@@ -502,15 +505,21 @@ pub fn sheets_range_declaration_construction_capacity(
       owned_utf16_units: normalization.owned_utf16_units + 8L * (d + c),
       owned_wire_bytes: 0L,
     },
-    // Catalog identity, full Catalog wire, each contract wire, Command wire,
-    // final declaration and typed refusal exports are conservatively covered
-    // as co-live original writer families with the same whole-output bound.
+    // The six output families stay co-held, but these closed synchronous
+    // calls do not nest or return a Writer/cursor. Only one original writer
+    // workspace is live. Its quantity includes the current output; the other
+    // five complete output families retain their own String backing below.
+    // The per-contract loop contributes multiple Strings whose aggregate is
+    // bounded by the SAME complete declared wire, not one whole wire per
+    // contract. Keep their wrappers/references beside the fixed outputs.
     writer,
-    writer,
-    writer,
-    writer,
-    writer,
-    writer,
+    {
+      record_headers: native_nodes + 6L,
+      reference_slots: native_nodes + 6L,
+      scalar_words: 0L,
+      owned_utf16_units: 5L * result,
+      owned_wire_bytes: 0L,
+    },
     {
       record_headers: host.record_headers,
       reference_slots: host.reference_slots,
@@ -530,7 +539,9 @@ pub fn sheets_range_reference_construction_capacity(
   origin_bytes : Int,
   spreadsheet_bytes : Int,
 ) -> @execution.ExecutionCapacity? {
-  guard @catalog.range_reference_construction_bounds(origin_bytes, spreadsheet_bytes)
+  guard @catalog.range_reference_construction_bounds(
+      origin_bytes, spreadsheet_bytes,
+    )
     is Some(bounds) else {
     return None
   }
@@ -539,8 +550,13 @@ pub fn sheets_range_reference_construction_capacity(
   let depth = bounds.identity_depth
   guard @canonical.nfc_lf_construction_extent(bytes) is Some(normalization) &&
     sheets_writer_units(bytes, nodes, depth) is Some(identity_writer) &&
-    sheets_writer_units(bounds.reference_bytes, bounds.reference_nodes, 1) is Some(reference_writer) &&
-    @source.json_literal_construction_extent(bounds.reference_bytes, bounds.reference_nodes, 1)
+    sheets_writer_units(bounds.reference_bytes, bounds.reference_nodes, 1)
+    is Some(reference_writer) &&
+    @source.json_literal_construction_extent(
+      bounds.reference_bytes,
+      bounds.reference_nodes,
+      1,
+    )
     is Some(host) &&
     @shape.collection_construction_extent({
       records: nodes.to_int64(),
@@ -552,7 +568,8 @@ pub fn sheets_range_reference_construction_capacity(
       scalar_items: 0L,
       maps: nodes.to_int64(),
       map_entries: nodes.to_int64(),
-    }) is Some(identity_json) else {
+    })
+    is Some(identity_json) else {
     return None
   }
   sheets_constructor_capacity([
@@ -577,7 +594,10 @@ pub fn sheets_range_reference_construction_capacity(
       record_headers: host.record_headers + 4L,
       reference_slots: host.reference_slots + bounds.reference_nodes.to_int64(),
       scalar_words: host.scalar_words,
-      owned_utf16_units: host.owned_utf16_units + bounds.reference_bytes.to_int64() + bytes.to_int64() + 4L * 71L,
+      owned_utf16_units: host.owned_utf16_units +
+      bounds.reference_bytes.to_int64() +
+      bytes.to_int64() +
+      4L * 71L,
       owned_wire_bytes: bounds.reference_bytes.to_int64() + bytes.to_int64(),
     },
   ])
@@ -604,26 +624,40 @@ pub fn sheets_range_read_construction_capacity(
   if nodes < 1 || depth < 1 || depth == 2147483647 {
     return None
   }
-  let reply_bytes = ({ "refused": issue_json(BudgetExceeded) } : Json).stringify().length()
-  guard sheets_grid_read_construction_capacity(schema_bytes, columns, sheet_id,
-      start_row, end_row, start_column, end_column) is Some(grid) &&
+  let reply_bytes = ({ "refused": issue_json(BudgetExceeded) } : Json)
+    .stringify()
+    .length()
+  guard sheets_grid_read_construction_capacity(
+      schema_bytes, columns, sheet_id, start_row, end_row, start_column, end_column,
+    )
+    is Some(grid) &&
     sheets_column_construction(schema_bytes, columns, depth) is Some(schema) &&
     sheets_target_projection_construction(nodes, depth) is Some(target) &&
     sheets_writer_units(reply_bytes, 5, 2) is Some(writer) &&
     @source.json_literal_construction_extent(reply_bytes, 5, 2) is Some(host) &&
-    sheets_constructor_capacity([schema, target, writer, {
-      record_headers: host.record_headers + 2L,
-      reference_slots: host.reference_slots + 3L,
-      scalar_words: host.scalar_words,
-      owned_utf16_units: host.owned_utf16_units + schema_bytes.to_int64(),
-      owned_wire_bytes: schema_bytes.to_int64(),
-    }]) is Some(metadata) else {
+    sheets_constructor_capacity([
+      schema,
+      target,
+      writer,
+      {
+        record_headers: host.record_headers + 2L,
+        reference_slots: host.reference_slots + 3L,
+        scalar_words: host.scalar_words,
+        owned_utf16_units: host.owned_utf16_units + schema_bytes.to_int64(),
+        owned_wire_bytes: schema_bytes.to_int64(),
+      },
+    ])
+    is Some(metadata) else {
     return None
   }
   @execution.execution_capacity(
-    Int64::max(@execution.execution_capacity_retained_bytes(grid),
-      @execution.execution_capacity_retained_bytes(metadata)),
-    Int64::max(@execution.execution_capacity_execution_bytes(grid),
-      @execution.execution_capacity_execution_bytes(metadata)),
+    Int64::max(
+      @execution.execution_capacity_retained_bytes(grid),
+      @execution.execution_capacity_retained_bytes(metadata),
+    ),
+    Int64::max(
+      @execution.execution_capacity_execution_bytes(grid),
+      @execution.execution_capacity_execution_bytes(metadata),
+    ),
   )
 }

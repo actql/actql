@@ -16,4 +16,5 @@ import {
 
 import {
   "actql/actql/client_local_host" @client_host,
+  "actql/actql/physical_resources" @resources,
 } for "wbtest"

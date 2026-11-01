@@ -1865,6 +1865,16 @@ without turning its later result into an admitted construction. Original Site
 close, physical stop, Request admission and managed driver Plan construction
 remain distinct obligations.
 
+The native Command quote passes original decoded input lengths to the
+normalizer's scratch inventory. Its separately retained NFC outputs use the
+same canonical owner's output bound once; expanded output is not normalized
+again as a new input. The closed canonical emission calls are synchronous and
+do not expose or nest their Writer/cursor. Their completed Catalog, contract,
+Command and declaration Strings remain co-held, while the active writer
+workspace is counted once beside all retained output families. This is a
+logical live-representation bound, not a GC observation or physical ACK. The
+Source still retains the whole selected native peak until its own retirement.
+
 Initialized range and clear also construct their original retained binding
 inside that SAME Source initializer, before the Effect adapter is created.
 The initializer reserves the provider's configuration/reference/binding peak

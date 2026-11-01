@@ -145,3 +145,57 @@ test "range and clear driver profiles retain original binding constructor and in
     is None,
   )
 }
+
+///|
+test "two original Command declarations fit their unchanged observed Source quota without normalizing output as input" {
+  let columns : Array[Json] = [
+    { "name": "text", "type": "string", "nullable": false },
+    { "name": "number", "type": "number", "nullable": true },
+    { "name": "flag", "type": "boolean", "nullable": true },
+  ]
+  let range : Json = {
+    "sheetId": 7,
+    "startRow": 2,
+    "endRow": 4,
+    "startColumn": 0,
+    "endColumn": 3,
+  }
+  let native = sheets_range_declaration_construction_capacity(
+    @utf8.encode(columns.to_json().stringify()).length(),
+    3,
+    @utf8.encode(range.stringify()).length(),
+    10,
+    15870,
+  ).unwrap()
+  // Scalar quantity-only observation at the genuine 5bee before-call seam:
+  // the original Source and Effect each retain their own Command constructor;
+  // the common representation prefix and other original provider quantities
+  // remain co-live. These counts issue no declaration, permission or ACK.
+  let original = @execution.execution_capacity(
+    134291688L + 668286L + 36792546L,
+    134291688L + 668286L + 36792546L,
+  ).unwrap()
+  let quote = @client_host.compose_installed_source_construction_capacity(
+    original,
+    [native, native],
+  ).unwrap()
+  let quota = 536870912L
+  assert_true(
+    @execution.execution_capacity_retained_bytes(quote) <= quota,
+    msg=@execution.execution_capacity_retained_bytes(quote).to_string(),
+  )
+  let ledger = @resources.create_ledger({
+    planning_work: 0,
+    attempts: 0,
+    holdings: 0,
+    transfer_bytes: 0L,
+    retained_bytes: quota,
+    execution_bytes: quota,
+  }).unwrap()
+  let reservation = @resources.reserve_capacity(
+    ledger,
+    @execution.execution_capacity_retained_bytes(quote),
+    @execution.execution_capacity_execution_bytes(quote),
+  ).unwrap()
+  @resources.settle_capacity(ledger, reservation).unwrap()
+}
