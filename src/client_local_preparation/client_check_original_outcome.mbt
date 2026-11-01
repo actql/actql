@@ -79,14 +79,22 @@ pub fn client_program_project_original_check_outcome(
     }
     for index in 0..<@sourceview_input.count(inputs) {
       let input = @sourceview_input.at(inputs, index).unwrap()
+      let visible = match input.view {
+        Some(view) => {
+          let expected = "connector://" +
+            input.connector +
+            "/" +
+            input.resource +
+            "#" +
+            view
+          aliases.any(entry => {
+            check_program_public_text(entry, "sourceRef") == Some(expected)
+          })
+        }
+        None => false
+      }
       if !(unregistered is Some(original) && physical_equal(original, input)) &&
-        !(input.view is Some(view) &&
-        aliases.any(entry => {
-          check_program_public_text(entry, "sourceRef") ==
-          Some(
-            "connector://" + input.connector + "/" + input.resource + "#" + view,
-          )
-        })) {
+        !visible {
         hidden = true
       }
     }

@@ -157,7 +157,7 @@ test "live Request projection backs output before publication decoding and retai
   let outcome = child.check_outcome.unwrap()
   let publication = request_observation_publication(child)
   let bytes = request_check_observation_bytes(
-    child, source, outcome, publication,
+    child, source, outcome, publication, 0L,
   ).unwrap()
   let (retained, _) = @resources.preparation_capacity_working_extents(
     parent.capacity,
