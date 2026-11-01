@@ -14,7 +14,8 @@ export type EmbeddedHostInstallation = Readonly<{
   directory?: string;
   connectorTable?: InstalledConnectorTable;
   /** Explicit row bound for the installed source-free, single-task Values profile.
-   * Defaults to 100; 1..10000. Other work, cell and byte ceilings remain fixed. */
+   * Positive signed 32-bit integer; the upper bound is the Core integer representation,
+   * not an admitted workload size. Work, value, byte and resource admission still apply. */
   valuesMaxRows?: number;
   hostCapacityPolicy?: HostCapacityPolicy;
   hostLookupExecutionPolicy?: HostLookupExecutionPolicy;

@@ -66,9 +66,10 @@ fn client_values_row_limit_supported(
   graph : @strategy.CheckedDAG,
   max_rows : Int,
 ) -> Bool {
-  let standard = client_standard_values_sequence_limits()
+  // Rows are an explicit finite Host policy, not a product ceiling inferred
+  // from a different unit (cells). Authored cell demand and actual resources
+  // remain independently checked by lowering and the original capacity plan.
   if max_rows < 1 ||
-    max_rows > standard.max_cells ||
     @strategy.graph_task_count(graph) != 1 ||
     client_graph_uses_graph_carrier(graph) {
     return false

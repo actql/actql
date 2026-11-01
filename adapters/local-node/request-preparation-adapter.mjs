@@ -49,7 +49,7 @@ export function requestPreparationAvailable(context) {
   const rowField=Object.getOwnPropertyDescriptor(context,'valuesMaxRows');
   if (rowField!==undefined && !Object.hasOwn(rowField,'value')) return false;
   const rows=rowField?.value;
-  if (rows!==undefined && (!Number.isSafeInteger(rows) || rows<1 || rows>10000)) return false;
+  if (rows!==undefined && (!Number.isSafeInteger(rows) || rows<1 || rows>2147483647)) return false;
   return typeof own(moon,'clientProgramRequestPreparationControl')==='function' &&
     typeof own(moon,'clientProgramBeginRequestPreparation')==='function' &&
     typeof own(moon,'clientLocalPreparationResourceLimits')==='function' &&

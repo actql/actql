@@ -39,8 +39,10 @@ An explicit Local endpoint can use the connected Host path. The Remote SDK
 does not depend on the Local package or DuckDB.
 
 For the source-free, single-task Values profile, explicitly set
-`installation: {valuesMaxRows: 121}` to select a finite row ceiling (1..10000)
-instead of its default 100. Other work, cell, value, wire and the 512 MiB
+`installation: {valuesMaxRows: 121}` to select a finite positive signed 32-bit row
+budget instead of deriving demand from the checked authored input and closed
+outputs. The integer representation is not a product row ceiling or a guarantee
+that the selected workload fits. Other work, cell, value, wire and the 512 MiB
 capacity limits still apply. The installed Host saves the selected profile's
 original with request acceptance and binds it to the Run; attaching to an
 already successful Run does not re-execute it under current configuration.

@@ -1051,7 +1051,7 @@ function localStateRoot() {
 const REALIZATION_KEY = 'source-free-values';
 
 function validateValuesMaxRows(value) {
-  if (value !== undefined && (!Number.isSafeInteger(value) || value < 1 || value > 10000)) {
+  if (value !== undefined && (!Number.isSafeInteger(value) || value < 1 || value > 2147483647)) {
     throw new TypeError('InvalidLocalValuesRowLimit');
   }
 }
