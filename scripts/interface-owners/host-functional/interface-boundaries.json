@@ -119760,7 +119760,7 @@
     },
     {
       "module": "adapters/host-node/installed-host-services.mjs",
-      "sha256": "e5b5962076307cfda08f9180bc3c8ec73c787c9c550ee2dcc2227b3b494f40dc",
+      "sha256": "011103fcb4aabe0afc28f0ae4b159f100dd041249ea7a46d749fbb6e8e638440",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -119791,7 +119791,15 @@
             "declared",
             "environment",
             "providerReader",
-            "mappings"
+            "mappings",
+            "commands"
+          ],
+          "async": false
+        },
+        {
+          "name": "assertInstalledSourceConstruction/empty/empty",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -119838,6 +119846,42 @@
           "async": false
         },
         {
+          "name": "beginInstalledSourceInitialization/context/init:prepareDeclaredCommands/init:prepareDeclaredCommands",
+          "parameters": [
+            "viewsWire",
+            "projection",
+            "expectedCatalogCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "beginInstalledSourceInitialization/context/init:prepareDeclaredCommands/init:prepareDeclaredCommands/init:prepareDeclaredCommands",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "beginInstalledSourceInitialization/context/init:prepareDeclaredCommands/init:prepareDeclaredCommands/init:prepareDeclaredCommands/init:prepareDeclaredCommands",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "beginInstalledSourceInitialization/context/init:prepareDeclaredCommands/init:prepareDeclaredCommands/init:prepareDeclaredCommands#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "beginInstalledSourceInitialization/context/init:prepareDeclaredCommands/init:prepareDeclaredCommands/init:prepareDeclaredCommands#3",
+          "parameters": [
+            "declaration",
+            "declaredWire"
+          ],
+          "async": false
+        },
+        {
           "name": "beginInstalledSourceInitialization/context/init:prepareMappings/init:prepareMappings",
           "parameters": [
             "writesJson",
@@ -119881,7 +119925,8 @@
             "originalInput",
             "basis",
             "makeWire",
-            "expectedCatalogCid"
+            "expectedCatalogCid",
+            "finish"
           ],
           "async": false
         },
@@ -120338,6 +120383,36 @@
           "async": false
         },
         {
+          "name": "requireSynchronousSourceConstruction",
+          "parameters": [
+            "material",
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "requireSynchronousSourceConstruction/joined/joined",
+          "parameters": [
+            "result"
+          ],
+          "async": false
+        },
+        {
+          "name": "requireSynchronousSourceConstruction/joined/joined#2",
+          "parameters": [
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "requireSynchronousSourceConstruction/settle/settle",
+          "parameters": [
+            "result",
+            "failed"
+          ],
+          "async": false
+        },
+        {
           "name": "reserveInstalledSourceEnvironment",
           "parameters": [
             "services",
@@ -120475,6 +120550,15 @@
             "material",
             "name",
             "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceCapacityQuote",
+          "parameters": [
+            "original",
+            "material",
+            "values"
           ],
           "async": false
         },
@@ -120884,7 +120968,18 @@
             "slackImplementationReaderLimits/original/original",
             "slackImplementationReaderLimits/sequence/sequence",
             "slackImplementationReaderLimits/slackImplementationReaderLimits",
-            "slackImplementationReaderLimits/slackImplementationReaderLimits#2"
+            "slackImplementationReaderLimits/slackImplementationReaderLimits#2",
+            "assertInstalledSourceConstruction/empty/empty",
+            "beginInstalledSourceInitialization/context/init:prepareDeclaredCommands/init:prepareDeclaredCommands",
+            "beginInstalledSourceInitialization/context/init:prepareDeclaredCommands/init:prepareDeclaredCommands/init:prepareDeclaredCommands",
+            "beginInstalledSourceInitialization/context/init:prepareDeclaredCommands/init:prepareDeclaredCommands/init:prepareDeclaredCommands/init:prepareDeclaredCommands",
+            "beginInstalledSourceInitialization/context/init:prepareDeclaredCommands/init:prepareDeclaredCommands/init:prepareDeclaredCommands#2",
+            "beginInstalledSourceInitialization/context/init:prepareDeclaredCommands/init:prepareDeclaredCommands/init:prepareDeclaredCommands#3",
+            "requireSynchronousSourceConstruction",
+            "requireSynchronousSourceConstruction/joined/joined",
+            "requireSynchronousSourceConstruction/joined/joined#2",
+            "requireSynchronousSourceConstruction/settle/settle",
+            "sourceCapacityQuote"
           ],
           "exports": [
             "assertInstalledSourceConstruction",

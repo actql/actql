@@ -21,6 +21,7 @@ import {checkSheetsGridConfiguration, checkSheetsTarget, prepareSheetsAppend,
 import {createSheetsRangeDriver, sheetsRangeCommand, sheetsRangeReference,
   withSheetsRangeCommand} from './sheets-range-command.mjs';
 import {createSheetsClearDriver, sheetsClearCommand} from './sheets-clear-command.mjs';
+import {sheetsOwnedResult} from '../site/sheets-owned-request.mjs';
 
 export const SHEETS_SITE_VERSION = 'actql-installed-sheets-site/0.1';
 export const SHEETS_SOURCE_VERSION = 'actql-installed-sheets-source/0.1';
@@ -99,6 +100,40 @@ async function readSite(path, providerMoon, configurationReader) {
     : await (readers === undefined ? readFile(caPath) : readers.readOriginalBytes(caPath))});
 }
 
+// The SAME original native command/catalog builders remain the semantic
+// owners. Capture all methods before the Source reserve/current boundary;
+// retain their returned canonical wires instead of serializing the projection
+// again merely to estimate or assemble its one Environment.
+function prepareInitializedSheetsCommandDeclaration(sourceInitialization, providerMoon, profile, site, viewsWire, expectedCatalogCid) {
+  const constructor = Object.getOwnPropertyDescriptor(sourceInitialization, 'prepareDeclaredCommands');
+  if (!constructor || !Object.hasOwn(constructor, 'value') || typeof constructor.value !== 'function') {
+    fail('InstalledSheetsInitializationUnavailable');
+  }
+  const commandName = profile.rangeCommand === 'clear' ? 'sheetsClearCommandJson' : 'sheetsRangeCommandJson';
+  const names = [commandName, 'sheetsRangeCatalogJson', 'sheetsRangeFailureJson', 'sheetsRangeDeclarationConstructionCapacity'];
+  const originals = Object.fromEntries(names.map(name => [name, checkedSourceMethod(providerMoon, name)]));
+  const native = Object.freeze(Object.fromEntries(names.map(name => [name,
+    (...args) => Reflect.apply(originals[name], providerMoon, args)])));
+  const columnsWire = JSON.stringify(site.columns), rangeWire = JSON.stringify(site.gridRange);
+  const connectorId = profile.connectorId;
+  const limits = [SHEETS_LIMITS.maxResponseBytes, SHEETS_LIMITS.maxNodes, SHEETS_LIMITS.maxDepth, SHEETS_LIMITS.maxCells];
+  const projection = Object.freeze({
+    capacity(declaredWire) {
+      return native.sheetsRangeDeclarationConstructionCapacity(Buffer.byteLength(columnsWire), site.columns.length,
+        Buffer.byteLength(rangeWire), Buffer.byteLength(connectorId), Buffer.byteLength(declaredWire));
+    },
+    project(declaredWire) {
+      const definitionWire = sheetsOwnedResult(native,
+        native[commandName](connectorId, columnsWire, rangeWire, ...limits));
+      const wire = sheetsOwnedResult(native, native.sheetsRangeCatalogJson(declaredWire, definitionWire, ...limits));
+      const definition = Object.freeze(JSON.parse(definitionWire));
+      return Object.freeze({declared: Object.freeze(JSON.parse(wire)), wire,
+        commands: Object.freeze([definition.installed]), definition});
+    },
+  });
+  return Reflect.apply(constructor.value, sourceInitialization, [viewsWire, projection, expectedCatalogCid]);
+}
+
 function restore(moon, providerMoon, profile, site, expectedCatalogCid, sourceInitialization) {
   if (profile.rangeCommand) {
     const schema = Object.fromEntries(site.columns.map(({name, type, nullable}) =>
@@ -108,8 +143,12 @@ function restore(moon, providerMoon, profile, site, expectedCatalogCid, sourceIn
     const views = {views: [view('rows', 'sheet_rows', schema),
       view('range_target', 'sheet_range', {
         target: {type: 'resource_ref', resource_kind: 'sheet_range', nullable: false}})]};
+    const viewsWire = JSON.stringify(views);
+    if (sourceInitialization !== undefined) {
+      return prepareInitializedSheetsCommandDeclaration(sourceInitialization, providerMoon, profile, site, viewsWire, expectedCatalogCid);
+    }
     const declaration = checked(moon.clientProgramRowSourceRestoreRelationDeclaration(
-      profile.connectorId, registration, revision, JSON.stringify(views), undefined));
+      profile.connectorId, registration, revision, viewsWire, undefined));
     const rangeCommand = (profile.rangeCommand === 'clear' ? sheetsClearCommand : sheetsRangeCommand)(
       profile.connectorId, site, providerMoon);
     const declared = withSheetsRangeCommand(
@@ -383,7 +422,8 @@ async function load(profile, options, effect) {
       () => fail('InstalledSheetsConfigurationReaderUnavailable'));
   const site = await readSite(profile.siteProfilePath, providerMoon, readers);
   const restored = restore(moon, providerMoon, profile, site, undefined, sourceInitialization);
-  const {declaration, declared, rangeCommand} = restored;
+  const {declaration, declared} = restored;
+  const rangeCommand = restored.commandDefinition ?? restored.rangeCommand;
   const publication = await readPublication(profile, site, declared, readers?.readJson);
   const prepared = effect && rangeCommand === undefined
     ? mappingOf(moon, profile, site, declaration, sourceInitialization) : undefined;
@@ -391,14 +431,14 @@ async function load(profile, options, effect) {
     ? [{resource: 'append_rows', mappingRef: prepared.mappingRef,
       mappingCid: prepared.mappingCid, body: prepared.body}] : prepared.mappings : undefined;
   const mapping = mappings?.[0];
-  const environment = sourceInitialization === undefined || rangeCommand !== undefined
+  const environment = sourceInitialization === undefined
     ? rowSourceCheckEnvironment(baseEnvironmentWire, declared, mapping === undefined ? [] : [mapping.body])
-    : effect ? prepared.environment : restored.environment;
+    : effect && rangeCommand === undefined ? prepared.environment : restored.environment;
   if (!effect && rangeCommand === undefined && sourceInitialization !== undefined) {
     return loadManagedSheetsGridSource(profile, options, site, publication, restored);
   }
   const opened = await openSite(profile, site, options, publication,
-    effect && rangeCommand === undefined ? options.installationServices : undefined);
+    options.installationServices);
   let closed = false;
   const target = rangeCommand === undefined ? undefined : sheetsRangeReference({site,
     catalogCid: declared.catalog_cid, bindingCid: opened.bindingCid, moon: providerMoon});
@@ -434,7 +474,8 @@ async function load(profile, options, effect) {
         close() { closed = true; return adapter.close(); }});
     }
     if (rangeCommand !== undefined) return await createInstalledRowEffect({moon,
-      commands: [rangeCommand.installed], environmentWire: environment.wire,
+      commands: restored.commands ?? [rangeCommand.installed],
+      declaration, declared, environment, sourceInitialization, environmentWire: environment.wire,
       connectorId: profile.connectorId, connectorRegistration: registration, connectorRevision: revision,
       connection: opened.connection, site: {...opened.site,
         close() { closed = true; return opened.site.close(); }}, authorization: opened.authorization,

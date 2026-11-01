@@ -69,6 +69,27 @@ pub fn installed_source_construction_capacity(
 }
 
 ///|
+/// Same Source constructor aggregate with selected original native recipes.
+/// Native peak DATA remains conservatively retained until the Source owner
+/// retires: success/throw alone never releases its constructor backing. This
+/// only composes the shared quantities; it issues no owner or permission.
+pub fn compose_installed_source_construction_capacity(
+  original : @execution.ExecutionCapacity,
+  providers : Array[@execution.ExecutionCapacity],
+) -> @execution.ExecutionCapacity? {
+  let mut result = original
+  for provider in providers {
+    let peak = @execution.execution_capacity_execution_bytes(provider)
+    guard @execution.execution_capacity(peak, peak) is Some(retained) &&
+      @execution.add_execution_capacity(result, retained) is Some(composed) else {
+      return None
+    }
+    result = composed
+  }
+  Some(result)
+}
+
+///|
 /// Fund the complete next constructor peak on its original live reservation.
 /// An already sufficient debit still crosses the same original current fence;
 /// it does not resize solely to observe currentness or issue another budget.

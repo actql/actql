@@ -4093,7 +4093,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "b3a9d11f11819e13cf88c20f569568561a468651c120bbc849246ca98f4450bd",
+      "sha256": "ddee5a7518169fc1c0684d3570eb7913872bd05ab67bee27ee27129e930e1529",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",

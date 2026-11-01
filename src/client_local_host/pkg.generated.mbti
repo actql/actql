@@ -325,6 +325,8 @@ pub fn[I] complete_request_program_preparation(ClientRequestPreparation[I], I, C
 
 pub fn[I] complete_request_serialization_preparation(ClientRequestPreparation[I], I, ClientInstalledManagedSerializationPreparation) -> Result[Unit, ClientRequestPreparationIssue]
 
+pub fn compose_installed_source_construction_capacity(@execution_relation.ExecutionCapacity, Array[@execution_relation.ExecutionCapacity]) -> @execution_relation.ExecutionCapacity?
+
 pub fn configure_source_free_effect_local_retained_host(@run_publication_host.PreparedClientEffectRun, @physical_strategy_host.CapturedEffectRunDAG, ClientInstalledSequenceContracts, String, String?, String?) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]?
 
 pub fn[I, P] construct_program_json_preparation(ClientProgramJsonPreparation[I, P]) -> Result[Unit, ClientProgramJsonPreparationIssue]

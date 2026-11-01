@@ -1017,3 +1017,114 @@ for (const rangeCommand of [true, 'clear']) {
     assert.deepEqual(calls,['environment',rangeCommand==='clear'?'clear':'range']);
   });
 }
+
+for (const selectedClear of [false, true]) {
+  test(`initialized Sheets ${selectedClear ? 'clear' : 'range'} declaration stays under the SAME Source constructor before original Native projection`, async () => {
+    const source = readFileSync(new URL('../connectors/sheets/host/installed-sheets.mjs', import.meta.url), 'utf8');
+    const tree = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
+    const names = ['restore', 'checkedSourceMethod', 'prepareInitializedSheetsCommandDeclaration'];
+    const bodies = tree.body.filter(node => node.type === 'FunctionDeclaration' && names.includes(node.id.name))
+      .map(node => source.slice(node.start, node.end)).join('\n');
+    const {sheetsOwnedResult} = await import('../connectors/sheets/site/sheets-owned-request.mjs');
+    const {sheetsRangeCommand, withSheetsRangeCommand} = await import('../connectors/sheets/host/sheets-range-command.mjs');
+    const {sheetsClearCommand} = await import('../connectors/sheets/host/sheets-clear-command.mjs');
+    const columns = Object.freeze([Object.freeze({name: 'label', type: 'string', nullable: false})]);
+    const gridRange = Object.freeze({sheetId: 0, startRow: 0, endRow: 2, startColumn: 0, endColumn: 1});
+    const site = Object.freeze({columns, gridRange}), declaration = {}, environment = {}, quantity = {};
+    const commandBody = {contract_cid: providerCid}, installed = {resource: 'range_target', body: JSON.stringify(commandBody)};
+    const base = {catalog_cid: boundaryCid}, declared = {catalog_cid: providerCid, command_bodies: [installed.body]};
+    const command = {command: commandBody, contracts: [], installed};
+    const profile = {connectorId: 'sheet', rangeCommand: selectedClear ? 'clear' : true};
+    let baseFunded = false, nativeFunded = false, prepared, captured, calls = [];
+    const moon = {
+      clientProgramRowSourceRestoreRelationDeclaration(...args) {
+        assert.equal(baseFunded, true, 'original declaration must be under Source before Native construction');
+        assert.equal(args[0], 'sheet');assert.equal(JSON.parse(args[3]).views.length, 2);return {$tag: 1, _0: declaration};
+      },
+      clientProgramRowSourceDeclarationJson(value) {assert.equal(value, declaration);return JSON.stringify(base);},
+    };
+    const providerMoon = {
+      sheetsRangeDeclarationConstructionCapacity(schemaBytes, count, rangeBytes, connectorBytes, declaredBytes) {
+        assert.equal(this, providerMoon);assert.equal(count, 1);assert.equal(connectorBytes, 5);
+        assert.equal(schemaBytes, Buffer.byteLength(JSON.stringify(columns)));
+        assert.equal(rangeBytes, Buffer.byteLength(JSON.stringify(gridRange)));
+        assert.equal(declaredBytes, Buffer.byteLength(JSON.stringify(base)));calls.push('quantity');
+        // Original methods must already be captured across the following
+        // reserve/current boundary; a changed namespace is not a new choice.
+        providerMoon[selectedClear ? 'sheetsClearCommandJson' : 'sheetsRangeCommandJson'] = () => assert.fail('replaced Native method');
+        return quantity;
+      },
+      [selectedClear ? 'sheetsClearCommandJson' : 'sheetsRangeCommandJson'](...args) {
+        assert.equal(this, providerMoon);assert.equal(nativeFunded, true);
+        assert.equal(args[0], 'sheet');assert.deepEqual(JSON.parse(args[1]), columns);
+        assert.deepEqual(JSON.parse(args[2]), gridRange);calls.push('command');return {$tag: 1, _0: JSON.stringify(command)};
+      },
+      sheetsRangeCatalogJson(original, selected) {
+        assert.equal(this, providerMoon);assert.equal(nativeFunded, true);
+        assert.deepEqual(JSON.parse(original), base);assert.deepEqual(JSON.parse(selected), command);
+        calls.push('catalog');return {$tag: 1, _0: JSON.stringify(declared)};
+      },
+      sheetsRangeFailureJson() {assert.fail('No failure projection in this original-method positive');},
+    };
+    const context = Object.freeze({prepareDeclaredCommands(viewsWire, projection, expected) {
+      assert.equal(this, context);assert.equal(expected, undefined);assert.equal(Object.isFrozen(projection), true);
+      baseFunded = true;moon.clientProgramRowSourceRestoreRelationDeclaration('sheet', 'sheets', 'sheets/0.1', viewsWire);
+      assert.equal(projection.capacity(JSON.stringify(base)), quantity);nativeFunded = true;
+      captured = projection.project(JSON.stringify(base));
+      assert.deepEqual(captured.declared, declared);assert.equal(captured.commands[0], captured.definition.installed);
+      prepared = Object.freeze({declaration, declared: captured.declared, environment,
+        commands: captured.commands, commandDefinition: captured.definition});return prepared;
+    }});
+    const restore = Function('checked', 'canonicalJson', 'contentCid', 'registration', 'revision', 'fail',
+      'nodeTypes', 'sheetsRangeCommand', 'sheetsClearCommand', 'withSheetsRangeCommand', 'sheetsOwnedResult', 'SHEETS_LIMITS', bodies + '\nreturn restore;')(
+      checked, canonicalJson, contentCid, 'sheets', 'sheets/0.1', code => {throw Object.assign(new Error(code), {code});},
+      nodeTypes, sheetsRangeCommand, sheetsClearCommand, withSheetsRangeCommand, sheetsOwnedResult, SHEETS_LIMITS);
+    assert.equal(restore(moon, providerMoon, profile, site, undefined, context), prepared);
+    assert.deepEqual(calls, ['quantity', 'command', 'catalog']);assert.equal(captured.commands.length, 1);
+  });
+}
+
+for (const rangeCommand of [true, 'clear']) {
+  test(`initialized Sheets ${rangeCommand === true ? 'range' : 'clear'} load retains original Command Environment through SAME installed Site service`, async () => {
+    const source = readFileSync(new URL('../connectors/sheets/host/installed-sheets.mjs', import.meta.url), 'utf8');
+    const ast = parse(source, {ecmaVersion:'latest', sourceType:'module'});
+    const bodies = ast.body.filter(node => node.type === 'FunctionDeclaration' && ['load','openSite'].includes(node.id.name) ||
+      node.type === 'VariableDeclaration' && node.declarations.some(value => value.id.name === 'bindingFacts'))
+      .map(node => source.slice(node.start,node.end)).join('\n');
+    const sourceInitialization = {}, declaration = {}, command = {}, installed = {}, target = {}, adapter = {};
+    const commands = Object.freeze([installed]), environment = Object.freeze({wire:'same-original-command-environment'});
+    const declared = {}, configurationReader = {}, installation = {}, events = [];
+    const site = {apiOrigin:'https://sheets.invalid',spreadsheetId:'book',gridRange:{sheetId:0,startRow:0,endRow:1,startColumn:0,endColumn:1},
+      columns:[{name:'label',type:'string',nullable:false}],appendSheetId:7,siteKey:'sheet',siteGeneration:1,namespaceId:'sheet',environment:'fixture',
+      credentialAuthorityId:'fixture-authority',credentialKeyId:'fixture-key'};
+    const authorization = {context:{contextCid:providerCid}}, ownedSite = {close(){events.push('close');return true;}};
+    const services = Object.freeze({async openRowSite(input) {
+      assert.equal(this,services);assert.equal(input.sourceInitialization,sourceInitialization);
+      assert.equal(input.installation,installation);assert.equal(input.accountConfiguration,'original-account');
+      assert.equal(input.connection,'sheets:sheets.invalid/book');events.push('same-site');
+      return {authorization,site:ownedSite};
+    }});
+    const forbidden = () => assert.fail('No legacy Environment, Site or Mapping producer for initialized Command');
+    const ports = {registration:'sheets',revision:'sheets/0.1',targetVersion:'actql-sheets-source-target/0.1',
+      fail:code=>{throw Object.assign(new Error(code),{code});},canonicalJson,contentCid,text:()=>true,
+      captureConfigurationReaders(value){assert.equal(value,configurationReader);return value;},
+      readSite:async()=>site,restore(...args){assert.equal(args[5],sourceInitialization);return {declaration,declared,
+        commandDefinition:{command,installed},commands,environment};},
+      readPublication:async()=>({catalogCid:providerCid}),rowSourceCheckEnvironment:forbidden,mappingOf:forbidden,
+      installRowSourceAuthorization:forbidden,openRowSourceCredentialSite:forbidden,
+      sheetsRangeReference:()=>target,
+      createSheetsRangeDriver(input){assert.equal(input.target,target);events.push('range-driver');return {};},
+      createSheetsClearDriver(input){assert.equal(input.target,target);events.push('clear-driver');return {};},
+      async createInstalledRowEffect(input) {
+        assert.equal(input.sourceInitialization,sourceInitialization);assert.equal(input.commands,commands);
+        assert.equal(input.declaration,declaration);assert.equal(input.declared,declared);assert.equal(input.environment,environment);
+        assert.equal(input.environmentWire,environment.wire);assert.equal(input.authorization,authorization);
+        assert.equal(input.site.close(),true);events.push('same-adapter');return adapter;
+      },retainInstalledHostInitializationFailure:async cause=>{throw cause;}};
+    const load = Function(...Object.keys(ports),bodies+'\nreturn load;')(...Object.values(ports));
+    assert.equal(await load({rangeCommand,connectorId:'sheet',siteProfilePath:'/unopened/site',publicationPath:'/unopened/publication',
+      accountConfigurationWire:'original-account'}, {moon:{},providerMoon:{},sourceInitialization,configurationReader,installationServices:services,
+      installation,baseEnvironmentWire:'original-base',principalId:'fixture',root:'/unopened/root',runtimeBundleCid:providerCid},true),adapter);
+    assert.deepEqual(events,['same-site',rangeCommand==='clear'?'clear-driver':'range-driver','close','same-adapter']);
+  });
+}

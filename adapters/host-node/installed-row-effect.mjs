@@ -818,7 +818,7 @@ export async function createInstalledRowEffect({moon, providerMoon, mappings = [
   ledgerRoot, installation, continuationBinding = bindingCid,
   limits: suppliedLimits, effectResources, issueOriginalCollectionReference, managedPlanDefinition, managedPlanRecipe}) {
   if (sourceInitialization !== undefined) {
-    assertInstalledSourceConstruction(sourceInitialization, declaration, declared, environment, undefined, mappings);
+    assertInstalledSourceConstruction(sourceInitialization, declaration, declared, environment, undefined, mappings, commands);
     if (environment?.wire !== environmentWire) fail('ForeignInstalledSourceConstruction');
   }
   const resources = captureEffectResources(effectResources);
@@ -914,7 +914,7 @@ export async function createInstalledRowEffect({moon, providerMoon, mappings = [
   if (sourceInitialization !== undefined) {
     // The await may retire the installer. This local association check does
     // not invoke current or repeat Mapping/Environment admission.
-    assertInstalledSourceConstruction(sourceInitialization, declaration, declared, environment, undefined, mappings);
+    assertInstalledSourceConstruction(sourceInitialization, declaration, declared, environment, undefined, mappings, commands);
   }
   const adapter = createRowEffectStage([Object.freeze({moon, limits, owned, profile,
     installed, installedCommands, storeMappings, environmentWire, connectorId,

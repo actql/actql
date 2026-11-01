@@ -62,6 +62,8 @@ pub fn range_catalog_json(String, String, Limits) -> Result[String, RangeFailure
 
 pub fn range_command_json(String, String, String, Limits) -> Result[String, RangeFailure]
 
+pub fn range_declaration_construction_bounds(Int, Int, Int) -> RangeDeclarationConstructionBounds?
+
 pub fn range_failure_code(RangeFailure) -> String
 
 pub fn range_failure_refusal(RangeFailure) -> Issue?
@@ -174,6 +176,12 @@ pub struct RangeBinding {
   binding_cid : String
   target_wire : String
   limits : Limits
+}
+
+pub(all) struct RangeDeclarationConstructionBounds {
+  bundle_bytes : Int
+  bundle_nodes : Int
+  bundle_depth : Int
 }
 
 pub struct RangeFailure {

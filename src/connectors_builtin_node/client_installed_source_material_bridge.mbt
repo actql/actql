@@ -85,6 +85,21 @@ pub fn client_program_installed_source_construction_capacity(
 }
 
 ///|
+#export_name("clientProgramComposeInstalledSourceConstructionCapacity")
+pub fn client_program_compose_installed_source_construction_capacity(
+  original : @execution.ExecutionCapacity,
+  providers : Array[@execution.ExecutionCapacity],
+) -> Result[@execution.ExecutionCapacity, @resources.PreparationCapacityIssue] {
+  match
+    @client_local_host.compose_installed_source_construction_capacity(
+      original, providers,
+    ) {
+    Some(value) => Ok(value)
+    None => Err(@resources.InvalidExtent)
+  }
+}
+
+///|
 #export_name("clientProgramReserveInstalledSourceConstruction")
 pub fn client_program_reserve_installed_source_construction(
   owner : @resources.PreparationCapacity[

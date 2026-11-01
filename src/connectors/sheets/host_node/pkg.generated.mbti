@@ -50,6 +50,8 @@ pub fn sheets_range_catalog_json(String, String, Int, Int, Int, Int) -> Result[S
 
 pub fn sheets_range_command_json(String, String, String, Int, Int, Int, Int) -> Result[String, @catalog.RangeFailure]
 
+pub fn sheets_range_declaration_construction_capacity(Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
+
 pub fn sheets_range_failure_json(@catalog.RangeFailure) -> String
 
 pub fn sheets_range_prepare(@catalog.RangeBinding, String, String) -> Result[@catalog.RangeRequest, @catalog.RangeFailure]

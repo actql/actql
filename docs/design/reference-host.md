@@ -1837,6 +1837,29 @@ Environment. Range and clear keep distinct original contracts and requests.
 This projection does not issue a ResourceRef, permission, approval, claim or
 physical cleanup acknowledgement.
 
+Initialized range and clear run their existing declaration projection inside
+the original Source constructor. The initial parent backs the Source-only base
+before its Common restore; the selected native quantity is retained before the
+same Command/Catalog builders run. Their fixed document shapes are shared with
+the quantity's template geometry, including exact role names and unchanged
+identity domains. Original schema/connector text supplies only variable extent,
+never a second semantic declaration or caller-chosen allowance. Native parse,
+index, canonical-identity workspace, escaped outputs and Host output parsing
+remain backed together with prior Source material and failed prefixes. The
+shared quantity fold conservatively keeps the whole native peak retained until
+this same Source retires; it does not refund on callback return or infer GC.
+
+The completed original Command array, full declared Catalog and one Environment
+stay associated with that context. The installer forwards them unchanged to
+the same Site service and Effect owner. Default empty Mappings are merely the
+absent family; copied/nonempty Mappings or copied Commands cannot join another
+context. A failed native reservation never enters the provider projection or
+reissues its original declaration. Reentry and a second construction refuse;
+an invalid native Promise remains held until its actual computation settles,
+without turning its later result into an admitted construction. Original Site
+close, physical stop, Request admission and unfinished managed driver/reader
+connection remain distinct obligations.
+
 A synchronous request constructor returning a native Promise is invalid, but
 its original task stays in the same capture child until settlement. Observation
 uses the captured native Promise method before any replaceable public `then`.

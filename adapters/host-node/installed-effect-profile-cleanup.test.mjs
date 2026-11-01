@@ -8,7 +8,8 @@ import * as loader from './installed-effect.mjs';
 import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
 import {createInstalledConnectorTable} from './installed-connectors.mjs';
 import {createInstalledHostServices, retainInstalledHostServiceInstallation,
-  retireInstalledSourceInitialization} from './installed-host-services.mjs';
+  retireInstalledSourceInitialization, beginInstalledSourceInitialization, finishInstalledSourceInitialization,
+  assertInstalledSourceConstruction} from './installed-host-services.mjs';
 import {pathToFileURL} from 'node:url';
 import {createHash} from 'node:crypto';
 import {createInstalledRowEffect} from './installed-row-effect.mjs';
@@ -467,4 +468,103 @@ test('GitHub Effect installer forwards original declaration Mapping and Site con
     ledgerRoot: '/UNOPENED/ledger', installation, installationServices: services,
     sourceInitialization: initialization, configurationReader: reader}), cause => cause === stop);
   assert.deepEqual(events, ['native-http-limits', 'site-json', 'publication-json', 'source-views.json', 'declaration', 'writes.json', 'mappings', 'Site']);
+});
+
+
+// Actual existing Source material/context and Environment assembler. Only
+// native Core capacities/projection and current/retirement ports are explicit;
+// this exercises ownership/order, not numeric backing or a physical ACK.
+function commandConstructionFixture({refuseReserve = false, failProjection, duringReserve} = {}) {
+  const ok = value => ({$tag: 1, _0: value});
+  const initial = {}, input = {}, unit = {}, capacity = {}, declaration = {}, native = {};
+  const installed = Object.freeze({registration: 'sheets', revision: 'sheets/0.1', effect: {}});
+  const cid = 'sha256:' + 'a'.repeat(64), commands = Object.freeze([Object.freeze({body: '{}'})]);
+  const base = {catalog_cid: cid, catalog: '{}', contracts: [], view_bodies: [],
+    evidence_schemas: [], evidence_capabilities: [], manifest_entry: '{}'};
+  const declared = {...base, command_bodies: ['{}']};
+  const events = [], quotes = [], refusal = new Error('original command reservation refused');
+  let reserveCalls = 0, retired = 0, context, pending;
+  const moon = Object.fromEntries(['ReconcileInstalledSourceConstruction','CompleteInstalledSourceMaterial',
+    'BorrowInstalledSourceMaterial','BorrowedInstalledSourceEnvironment','ReturnInstalledSourceMaterial',
+    'AbortUncontinuedSourceMaterial','BeginInstalledSourceIo','ChargeInstalledSourceIo',
+    'MarkInstalledSourceIoTransferUncertain','FinishInstalledSourceIoAfterCleanup'].map(name => ['clientProgram' + name, () => ok()]));
+  Object.assign(moon, {
+    clientProgramTakeHostInitializationSourceCapacity(value) {assert.equal(value, initial);return ok({_0: input, _1: unit});},
+    clientProgramContinueInstalledSourceMaterial(value, original) {assert.equal(value, unit);assert.equal(original, input);return ok(capacity);},
+    clientProgramInstalledSourceConstructionCapacity(...values) {return ok(Object.freeze({values}));},
+    clientProgramComposeInstalledSourceConstructionCapacity(original, selected) {
+      assert.deepEqual(selected, [native]);quotes.push({original, selected: [...selected]});return ok(Object.freeze({original, selected}));
+    },
+    clientProgramReserveInstalledSourceConstruction(value, original) {
+      assert.equal(value, capacity);assert.equal(original, input);reserveCalls++;events.push('reserve');
+      if (reserveCalls === 2) {duringReserve?.(context);if (refuseReserve) throw refusal;}return ok();
+    },
+    clientProgramRetireInstalledSourceMaterial(value, original) {assert.equal(value, capacity);assert.equal(original, input);retired++;return ok(true);},
+    clientProgramRowSourceRestoreRelationDeclaration(...args) {assert.equal(events.at(-1), 'reserve');events.push('restore');assert.equal(args[4], undefined);return ok(declaration);},
+    clientProgramRowSourceDeclarationJson(value) {assert.equal(value, declaration);return JSON.stringify(base);},
+  });
+  const services = createInstalledHostServices({root: '/unopened-original-command-construction', principalId: 'fixture', moon,
+    initialPreparation: initial, assertCurrent() {}});
+  retainInstalledHostServiceInstallation(services, installed, cid);
+  const environment = JSON.stringify({version:'actql-check-environment/0.1',connector_catalogs:[],schema_snapshots:[],
+    connector_capabilities:[],mapping_contracts:[],command_contracts:[]});
+  context = beginInstalledSourceInitialization(services, installed, 'sheets', environment, 'effect');
+  const projection = Object.freeze({capacity(wire) {
+    assert.deepEqual(JSON.parse(wire), base);events.push('native-quantity');return native;
+  }, project(wire) {
+    assert.deepEqual(JSON.parse(wire), base);assert.equal(events.at(-1), 'reserve');events.push('project');
+    if (failProjection === 'undefined') throw undefined;
+    if (failProjection === 'async') return new Promise(resolve => {pending = resolve;});
+    return Object.freeze({declared, commands, definition: Object.freeze({installed:commands[0]}), wire:JSON.stringify(declared)});
+  }});
+  return {context,services,projection,commands,declared,declaration,quotes,events,refusal,
+    prepare:expected=>context.prepareDeclaredCommands('{"views":[]}',projection,expected),
+    finish:()=>finishInstalledSourceInitialization(context, undefined, new Error('original unit terminal'), true),
+    retire:()=>retireInstalledSourceInitialization(services), retired:()=>retired,
+    // Native Promise settlement is independent of constructor refusal.
+    getPending:()=>pending};
+}
+
+test('Command Source initialization retains same final Environment and original commands after one parent reserve', () => {
+  const f = commandConstructionFixture(), prepared = f.prepare();
+  assert.equal(prepared.declaration, f.declaration);assert.equal(prepared.declared, f.declared);
+  assert.equal(prepared.commands, f.commands);assert.deepEqual(JSON.parse(prepared.environment.wire).command_contracts, [{}]);
+  assert.deepEqual(f.events, ['reserve','restore','native-quantity','reserve','project','reserve']);
+  assert(f.quotes.length >= 2);assert(f.quotes.every(value => value.selected[0] === f.quotes[0].selected[0]));
+  assert.doesNotThrow(()=>assertInstalledSourceConstruction(f.context,f.declaration,f.declared,prepared.environment,undefined,[],f.commands));
+  assert.throws(()=>assertInstalledSourceConstruction(f.context,f.declaration,f.declared,prepared.environment,undefined,[],[...f.commands]),{code:'ForeignInstalledSourceConstruction'});
+  assert.throws(()=>assertInstalledSourceConstruction(f.context,f.declaration,f.declared,prepared.environment,undefined,[{}],f.commands),{code:'ForeignInstalledSourceConstruction'});
+  assert.throws(()=>f.context.prepareMappings('{}',Object.freeze([])),{code:'ForeignInstalledSourceInitialization'});
+  assert.throws(()=>f.prepare(),{code:'ForeignInstalledSourceInitialization'});
+  f.finish();assert.equal(f.retire(),true);assert.equal(f.retired(),1);
+});
+
+test('Command native backing refusal never enters original projection or reissues declaration', () => {
+  const f = commandConstructionFixture({refuseReserve:true});
+  assert.throws(()=>f.prepare(),error=>error===f.refusal);
+  assert.deepEqual(f.events,['reserve','restore','native-quantity','reserve']);
+  assert.throws(()=>f.prepare(),{code:'ForeignInstalledSourceInitialization'});
+  assert.equal(f.retire(),false);f.finish();assert.equal(f.retire(),true);
+});
+
+test('Command projection keeps thrown undefined sticky and rejects reentrant original construction', () => {
+  const f = commandConstructionFixture({failProjection:'undefined',duringReserve(context) {
+    assert.throws(()=>context.prepareDeclaration([]),{code:'ForeignInstalledSourceInitialization'});
+  }});
+  let thrown=false;try {f.prepare();}catch(cause){thrown=true;assert.equal(cause,undefined);}assert.equal(thrown,true);
+  assert.throws(()=>f.prepare(),{code:'ForeignInstalledSourceInitialization'});
+  f.finish();assert.equal(f.retire(),true);
+});
+
+test('invalid async Command projection stays with same Source until original settlement without becoming success', async () => {
+  const f = commandConstructionFixture({failProjection:'async'});
+  assert.throws(()=>f.prepare(),{code:'InstalledSourceConstructorNotSynchronous'});
+  f.finish();assert.equal(f.retire(),false);assert.equal(f.retired(),0);
+  // The fixture keeps the original resolver separately; no replacement
+  // callback is used as a physical or semantic acknowledgement.
+  const resolve = f.getPending();
+  assert.equal(typeof resolve, 'function');resolve({original:'late-invalid-result'});
+  await Promise.resolve();await Promise.resolve();
+  assert.equal(f.retire(),true);assert.equal(f.retired(),1);
+  assert.throws(()=>f.prepare(),{code:'ForeignInstalledSourceInitialization'});
 });

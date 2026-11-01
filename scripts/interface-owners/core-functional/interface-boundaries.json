@@ -48901,7 +48901,7 @@
     },
     {
       "module": "src/client_local_host/installed_source_material.mbt",
-      "sha256": "f51e7a68d6b09a8a8e7534d12b5bd21b8e1bb97bb5e7a3711d5aef251cf1fa7c",
+      "sha256": "1e851af1e50988e803458b8ef9c226f929fa970f51a7b0f744c44b66a0d07b99",
       "exports": [],
       "operations": [
         {
@@ -48923,6 +48923,10 @@
         {
           "name": "[S]borrowed_installed_source_environment",
           "declaration": "[ S ] borrowed_installed_source_environment ( holder : @ resources . PreparationBodyBorrow [ ( S , @ source_publication . PreparedPublishedQueryEnvironment ) , ] , source_original : S , ) - > Result [ @ source_publication . PreparedPublishedQueryEnvironment , @ resources . PreparationCapacityIssue , ]"
+        },
+        {
+          "name": "compose_installed_source_construction_capacity",
+          "declaration": "compose_installed_source_construction_capacity ( original : @ execution . ExecutionCapacity , providers : Array [ @ execution . ExecutionCapacity ] , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "installed_source_construction_capacity",
@@ -49006,12 +49010,82 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "compose_installed_source_construction_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Initialized range and clear run their existing declaration projection inside"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/installed_source_material.mbt",
+                "anchor": "pub fn compose_installed_source_construction_capacity("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Initialized range and clear run their existing declaration projection inside"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Initialized range and clear run their existing declaration projection inside"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Pure shared quantity composition, no callbacks or current observation; the same Source reserves before Native work."
+            },
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Initialized range and clear run their existing declaration projection inside"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "This quote/bridge issues no cleanup, cancellation or physical acknowledgement."
+            },
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_source_material.mbt",
+                "anchor": "pub fn compose_installed_source_construction_capacity("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Initialized range and clear run their existing declaration projection inside"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Initialized range and clear run their existing declaration projection inside"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/installed_source_provider_capacity_wbtest.mbt",
+                "anchor": "test \"same Source native constructor quantities remain retained through original material retirement\""
+              },
+              {
+                "path": "src/connectors/sheets/host_node/declaration_construction_wbtest.mbt",
+                "anchor": "test \"range and clear native constructor quote composes onto original Source without issuing a declaration\""
+              }
+            ]
+          }
         }
       ]
     },
     {
       "module": "src/connectors_builtin_node/client_installed_source_material_bridge.mbt",
-      "sha256": "02112340e0401a899ddb600137bc44635f8df90aecf0f3fffd2a25df9761148b",
+      "sha256": "b49b6c7898cc40bc48d2f819dc97257182a7c10780cac9bf86b7c087d568d832",
       "exports": [],
       "operations": [
         {
@@ -49037,6 +49111,10 @@
         {
           "name": "client_program_complete_installed_source_material",
           "declaration": "client_program_complete_installed_source_material ( owner : @ resources . PreparationCapacity [ ClientLocalPreparationInputOriginal , ( ClientLocalPreparationInputOriginal , @ source_publication . PreparedPublishedQueryEnvironment , ) , ] , input : ClientLocalPreparationInputOriginal , source_original : ClientLocalPreparationInputOriginal , environment : @ source_publication . PreparedPublishedQueryEnvironment , quote : @ execution . ExecutionCapacity , ) - > Result [ Unit , @ resources . PreparationCapacityIssue ]"
+        },
+        {
+          "name": "client_program_compose_installed_source_construction_capacity",
+          "declaration": "client_program_compose_installed_source_construction_capacity ( original : @ execution . ExecutionCapacity , providers : Array [ @ execution . ExecutionCapacity ] , ) - > Result [ @ execution . ExecutionCapacity , @ resources . PreparationCapacityIssue ]"
         },
         {
           "name": "client_program_continue_installed_source_material",
@@ -49158,6 +49236,76 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "not nominal Core or normal acceptance"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_compose_installed_source_construction_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Initialized range and clear run their existing declaration projection inside"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors_builtin_node/client_installed_source_material_bridge.mbt",
+                "anchor": "pub fn client_program_compose_installed_source_construction_capacity("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Initialized range and clear run their existing declaration projection inside"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Initialized range and clear run their existing declaration projection inside"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Pure shared quantity composition, no callbacks or current observation; the same Source reserves before Native work."
+            },
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Initialized range and clear run their existing declaration projection inside"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "This quote/bridge issues no cleanup, cancellation or physical acknowledgement."
+            },
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_source_material.mbt",
+                "anchor": "pub fn compose_installed_source_construction_capacity("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Initialized range and clear run their existing declaration projection inside"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Initialized range and clear run their existing declaration projection inside"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/installed_source_provider_capacity_wbtest.mbt",
+                "anchor": "test \"same Source native constructor quantities remain retained through original material retirement\""
+              },
+              {
+                "path": "src/connectors/sheets/host_node/declaration_construction_wbtest.mbt",
+                "anchor": "test \"range and clear native constructor quote composes onto original Source without issuing a declaration\""
               }
             ]
           }

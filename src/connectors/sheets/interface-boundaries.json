@@ -2,7 +2,7 @@
   {
     "module": "adapters/connectors/sheets/host/installed-sheets.mjs",
     "responsibilityFacet": "primary",
-    "sha256": "b34b13bb76d70b974036b4318c1b0a67434ebb6c0922f034f68fcddacb0300b9",
+    "sha256": "71f282adb65e59b71c6da2c86033d3e75d5292a9500d0e1a581ef4a312d525b6",
     "exports": [
       "SHEETS_EFFECT_VERSION",
       "SHEETS_SITE_VERSION",
@@ -343,6 +343,53 @@
         "async": false
       },
       {
+        "name": "prepareInitializedSheetsCommandDeclaration",
+        "parameters": [
+          "sourceInitialization",
+          "providerMoon",
+          "profile",
+          "site",
+          "viewsWire",
+          "expectedCatalogCid"
+        ],
+        "async": false
+      },
+      {
+        "name": "prepareInitializedSheetsCommandDeclaration/native/native",
+        "parameters": [
+          "name"
+        ],
+        "async": false
+      },
+      {
+        "name": "prepareInitializedSheetsCommandDeclaration/native/native/native",
+        "parameters": [
+          "args"
+        ],
+        "async": false
+      },
+      {
+        "name": "prepareInitializedSheetsCommandDeclaration/originals/originals",
+        "parameters": [
+          "name"
+        ],
+        "async": false
+      },
+      {
+        "name": "prepareInitializedSheetsCommandDeclaration/projection/init:capacity/init:capacity",
+        "parameters": [
+          "declaredWire"
+        ],
+        "async": false
+      },
+      {
+        "name": "prepareInitializedSheetsCommandDeclaration/projection/init:project/init:project",
+        "parameters": [
+          "declaredWire"
+        ],
+        "async": false
+      },
+      {
         "name": "publish",
         "parameters": [
           "profile",
@@ -489,6 +536,7 @@
       "../../../host-node/source-profile-json.mjs",
       "../site/sheets-exchange.mjs",
       "../site/sheets-grid-pages.mjs",
+      "../site/sheets-owned-request.mjs",
       "./sheets-clear-command.mjs",
       "./sheets-range-command.mjs",
       "node:crypto",
@@ -691,7 +739,13 @@
           "loadManagedSheetsGridSource/init:physicalTarget/init:physicalTarget",
           "loadManagedSheetsGridSource/init:preparePageReader/init:preparePageReader",
           "loadManagedSheetsGridSource/loadManagedSheetsGridSource",
-          "loadManagedSheetsGridSource/services/services"
+          "loadManagedSheetsGridSource/services/services",
+          "prepareInitializedSheetsCommandDeclaration",
+          "prepareInitializedSheetsCommandDeclaration/native/native",
+          "prepareInitializedSheetsCommandDeclaration/native/native/native",
+          "prepareInitializedSheetsCommandDeclaration/originals/originals",
+          "prepareInitializedSheetsCommandDeclaration/projection/init:capacity/init:capacity",
+          "prepareInitializedSheetsCommandDeclaration/projection/init:project/init:project"
         ],
         "exports": [
           "loadInstalledSheetsEffect",
@@ -2448,7 +2502,7 @@
   {
     "module": "src/connectors/sheets/catalog/pkg.generated.mbti",
     "responsibilityFacet": "primary",
-    "sha256": "d45e1c02994c9f6dd4f8fcf0b2659e9e2d0afb3af4a28cd645c45e4c56e3397f",
+    "sha256": "d893fc332f096c677ec51cf67452347b35d5ec580814e3c3d66a305b6ce66aef",
     "exports": [
       "pub fn admit_clear_range_binding(String, String, String, String, Limits) -> Result[ClearRangeBinding, RangeFailure]",
       "pub fn admit_clear_range_request(ClearRangeBinding, ClearRangeRequest) -> Result[Unit, RangeFailure]",
@@ -2478,6 +2532,7 @@
       "pub fn project_sheet_tabs(Bytes, String, SheetTabsLimits) -> Result[SheetTabsPage, SheetTabsIssue]",
       "pub fn range_catalog_json(String, String, Limits) -> Result[String, RangeFailure]",
       "pub fn range_command_json(String, String, String, Limits) -> Result[String, RangeFailure]",
+      "pub fn range_declaration_construction_bounds(Int, Int, Int) -> RangeDeclarationConstructionBounds?",
       "pub fn range_failure_code(RangeFailure) -> String",
       "pub fn range_failure_refusal(RangeFailure) -> Issue?",
       "pub fn range_recovery_entry(RangeBinding, String) -> Result[String, RangeFailure]",
@@ -2618,6 +2673,10 @@
         "declaration": "pub fn range_command_json(String, String, String, Limits) -> Result[String, RangeFailure]"
       },
       {
+        "name": "range_declaration_construction_bounds",
+        "declaration": "pub fn range_declaration_construction_bounds(Int, Int, Int) -> RangeDeclarationConstructionBounds?"
+      },
+      {
         "name": "range_failure_code",
         "declaration": "pub fn range_failure_code(RangeFailure) -> String"
       },
@@ -2714,7 +2773,8 @@
           "recover_range_requests",
           "append_request_identity",
           "append_request_document",
-          "literal_cell_document"
+          "literal_cell_document",
+          "range_declaration_construction_bounds"
         ],
         "exports": [
           "pub fn admit_range_binding(String, String, String, String, Limits) -> Result[RangeBinding, RangeFailure]",
@@ -2742,7 +2802,8 @@
           "pub fn append_request_identity(String, String, String) -> Result[String, RangeFailure]",
           "pub fn append_request_document(Int, Array[Json]) -> Json",
           "pub fn literal_cell_document(CellType, Json) -> Json?",
-          "pub fn read_request_document(GridRange) -> Json"
+          "pub fn read_request_document(GridRange) -> Json",
+          "pub fn range_declaration_construction_bounds(Int, Int, Int) -> RangeDeclarationConstructionBounds?"
         ],
         "attributes": {
           "responsibility": [
@@ -3193,31 +3254,51 @@
   {
     "module": "src/connectors/sheets/catalog/range_declaration.mbt",
     "responsibilityFacet": "primary",
-    "sha256": "c293f344417155bf2b591c3116eb824dd65c24b20d1c8ddbaa6d7dc2096d26cf",
+    "sha256": "65b974df4601ed6f08a5714d36b3d346efacb345326ec31711eba61badea30b7",
     "operations": [
       {
         "name": "range_catalog_json",
         "declaration": "range_catalog_json ( declared_wire : String , range_command_wire : String , limits : Limits , ) - > Result [ String , RangeFailure ]"
       },
       {
-        "name": "range_command_json",
-        "declaration": "range_command_json ( connector_id : String , columns_wire : String , range_wire : String , limits : Limits , ) - > Result [ String , RangeFailure ]"
+        "name": "range_command_bundle_document",
+        "declaration": "range_command_bundle_document ( command : Json , input : Json , output : Json , command_id : String , cid : String , body : String , ) - > Json"
       },
       {
-        "name": "range_contract",
-        "declaration": "range_contract ( connector_id : String , kind : String , fields : Json , limits : Limits , ) - > Result [ Json , RangeFailure ]"
+        "name": "range_command_document",
+        "declaration": "range_command_document ( connector_id : String , command_id : String , input : Json , output : Json , input_fields : Json , operation : String , ) - > Json"
+      },
+      {
+        "name": "range_command_json",
+        "declaration": "range_command_json ( connector_id : String , columns_wire : String , range_wire : String , limits : Limits , ) - > Result [ String , RangeFailure ]"
       },
       {
         "name": "range_contract_cid",
         "declaration": "range_contract_cid ( value : Json ) - > String"
       },
       {
+        "name": "range_contract_document",
+        "declaration": "range_contract_document ( id : String , kind : String , fields : Json ) - > Json"
+      },
+      {
         "name": "range_contract_ref",
         "declaration": "range_contract_ref ( value : Json ) - > Json"
       },
       {
+        "name": "range_declaration_names",
+        "declaration": "range_declaration_names ( connector_id : String , clear : Bool , ) - > ( String , String , String , String )"
+      },
+      {
+        "name": "range_input_fields_document",
+        "declaration": "range_input_fields_document ( fields : Map [ String , Json ] , row_count : Int , ) - > Json"
+      },
+      {
         "name": "range_named_contract",
         "declaration": "range_named_contract ( id : String , kind : String , fields : Json , limits : Limits , ) - > Result [ Json , RangeFailure ]"
+      },
+      {
+        "name": "range_output_fields_document",
+        "declaration": "range_output_fields_document ( clear : Bool ) - > Json"
       }
     ],
     "exports": [],
@@ -3230,10 +3311,15 @@
           "<module>",
           "range_catalog_json",
           "range_command_json",
-          "range_contract",
           "range_contract_cid",
           "range_contract_ref",
-          "range_named_contract"
+          "range_named_contract",
+          "range_command_bundle_document",
+          "range_command_document",
+          "range_contract_document",
+          "range_declaration_names",
+          "range_input_fields_document",
+          "range_output_fields_document"
         ],
         "exports": [],
         "attributes": {
@@ -3920,7 +4006,7 @@
   {
     "module": "src/connectors/sheets/host_node/pkg.generated.mbti",
     "responsibilityFacet": "primary",
-    "sha256": "8904cf4c0d3feb02e7ff0682a8f77364dab4e913e78c806ee727602118d9d269",
+    "sha256": "5cfc9067cf7c8731d39901f8d6719298833b13abdb510801cef36728d0885fb9",
     "exports": [
       "pub fn sheets_append_construction_profile(Int, Int, Int, Int, Int, Int, Int) -> Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?",
       "pub fn sheets_append_outcome_json(Int, Bytes, String, Int, Int, Int, Int) -> String",
@@ -3943,6 +4029,7 @@
       "pub fn sheets_range_binding(String, String, String, String, Int, Int, Int, Int) -> Result[@catalog.RangeBinding, @catalog.RangeFailure]",
       "pub fn sheets_range_catalog_json(String, String, Int, Int, Int, Int) -> Result[String, @catalog.RangeFailure]",
       "pub fn sheets_range_command_json(String, String, String, Int, Int, Int, Int) -> Result[String, @catalog.RangeFailure]",
+      "pub fn sheets_range_declaration_construction_capacity(Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?",
       "pub fn sheets_range_failure_json(@catalog.RangeFailure) -> String",
       "pub fn sheets_range_prepare(@catalog.RangeBinding, String, String) -> Result[@catalog.RangeRequest, @catalog.RangeFailure]",
       "pub fn sheets_range_recover(@catalog.RangeBinding, String, String, Int, Int, Int, Int) -> Result[Array[Array[@catalog.RangeRequest]], @catalog.RangeFailure]",
@@ -4045,6 +4132,10 @@
         "declaration": "pub fn sheets_range_command_json(String, String, String, Int, Int, Int, Int) -> Result[String, @catalog.RangeFailure]"
       },
       {
+        "name": "sheets_range_declaration_construction_capacity",
+        "declaration": "pub fn sheets_range_declaration_construction_capacity(Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?"
+      },
+      {
         "name": "sheets_range_failure_json",
         "declaration": "pub fn sheets_range_failure_json(@catalog.RangeFailure) -> String"
       },
@@ -4125,7 +4216,8 @@
           "sheets_range_request_json",
           "sheets_range_target_matches",
           "sheets_append_request_identity",
-          "sheets_append_construction_profile"
+          "sheets_append_construction_profile",
+          "sheets_range_declaration_construction_capacity"
         ],
         "exports": [
           "pub fn sheets_range_binding(String, String, String, String, Int, Int, Int, Int) -> Result[@catalog.RangeBinding, @catalog.RangeFailure]",
@@ -4142,7 +4234,8 @@
           "pub fn sheets_range_target_matches(@catalog.RangeBinding, String) -> Bool",
           "pub fn sheets_append_request_identity(String, String, String) -> Result[String, @catalog.RangeFailure]",
           "pub fn sheets_append_construction_profile(Int, Int, Int, Int, Int, Int, Int) -> Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?",
-          "pub fn sheets_grid_read_construction_capacity(Int, Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?"
+          "pub fn sheets_grid_read_construction_capacity(Int, Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?",
+          "pub fn sheets_range_declaration_construction_capacity(Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?"
         ],
         "attributes": {
           "responsibility": [
@@ -5301,7 +5394,7 @@
   },
   {
     "module": "src/connectors/sheets/catalog/clear_declaration.mbt",
-    "sha256": "7b51c075c3feb52d026d892614eee72044d10c34283fb3603f2d257e170d1286",
+    "sha256": "bc21be7755daa43828945bd5b81785489e7faa2115824cb5fd7cbe3ff03b4f7f",
     "exports": [],
     "operations": [
       {
@@ -6553,7 +6646,7 @@
   {
     "module": "src/connectors/sheets/host_node/append_construction.mbt",
     "responsibilityFacet": "primary",
-    "sha256": "a8ad9fb1a74ee3b5c2e74223b33bc7d78f4b529ad00738f304c2657f8213595c",
+    "sha256": "8e5853e2d49159f66762990fd49b13de2b801b16d32df18197719ede8a767c46",
     "operations": [
       {
         "name": "sheets_append_construction_profile",
@@ -6578,6 +6671,10 @@
       {
         "name": "sheets_grid_read_construction_capacity",
         "declaration": "sheets_grid_read_construction_capacity ( schema_bytes : Int , columns : Int , sheet_id : Int , start_row : Int , end_row : Int , start_column : Int , end_column : Int , ) - > @ execution . ExecutionCapacity ?"
+      },
+      {
+        "name": "sheets_range_declaration_construction_capacity",
+        "declaration": "sheets_range_declaration_construction_capacity ( schema_bytes : Int , columns : Int , range_bytes : Int , connector_bytes : Int , declared_bytes : Int , ) - > @ execution . ExecutionCapacity ?"
       },
       {
         "name": "sheets_target_projection_construction",
@@ -6720,6 +6817,175 @@
             {
               "path": "src/connectors/sheets/host_node/source_read_construction_wbtest.mbt",
               "anchor": "test \"Sheets standard Source request constructor composes through same Core reader without an HTTP grant\""
+            }
+          ]
+        }
+      },
+      {
+        "operations": [
+          "sheets_range_declaration_construction_capacity"
+        ],
+        "exports": [],
+        "attributes": {
+          "responsibility": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Initialized range and clear run their existing declaration projection inside"
+            }
+          ],
+          "inputsOutputs": [
+            {
+              "path": "src/connectors/sheets/host_node/append_construction.mbt",
+              "anchor": "pub fn sheets_range_declaration_construction_capacity("
+            }
+          ],
+          "identity": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Initialized range and clear run their existing declaration projection inside"
+            }
+          ],
+          "ownership": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Initialized range and clear run their existing declaration projection inside"
+            }
+          ],
+          "synchronization": {
+            "notApplicable": "Pure shared quantity composition, no callbacks or current observation; the same Source reserves before Native work."
+          },
+          "failure": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Initialized range and clear run their existing declaration projection inside"
+            }
+          ],
+          "cancellation": {
+            "notApplicable": "This quote/bridge issues no cleanup, cancellation or physical acknowledgement."
+          },
+          "resources": [
+            {
+              "path": "src/client_local_host/installed_source_material.mbt",
+              "anchor": "pub fn compose_installed_source_construction_capacity("
+            },
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Initialized range and clear run their existing declaration projection inside"
+            }
+          ],
+          "extension": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Initialized range and clear run their existing declaration projection inside"
+            }
+          ],
+          "verification": [
+            {
+              "path": "src/client_local_host/installed_source_provider_capacity_wbtest.mbt",
+              "anchor": "test \"same Source native constructor quantities remain retained through original material retirement\""
+            },
+            {
+              "path": "src/connectors/sheets/host_node/declaration_construction_wbtest.mbt",
+              "anchor": "test \"range and clear native constructor quote composes onto original Source without issuing a declaration\""
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "module": "src/connectors/sheets/catalog/declaration_construction.mbt",
+    "responsibilityFacet": "primary",
+    "sha256": "badc0d7ab4c56390718ffaa4e669158b193b6088c2b566dbd7d271eec1831143",
+    "operations": [
+      {
+        "name": "range_declaration_construction_bounds",
+        "declaration": "range_declaration_construction_bounds ( schema_bytes : Int , columns : Int , connector_bytes : Int , ) - > RangeDeclarationConstructionBounds ?"
+      },
+      {
+        "name": "range_declaration_template",
+        "declaration": "range_declaration_template ( clear : Bool , one_field : Bool ) - > Json"
+      },
+      {
+        "name": "range_template_depth",
+        "declaration": "range_template_depth ( value : Json ) - > Int"
+      },
+      {
+        "name": "range_template_nodes",
+        "declaration": "range_template_nodes ( value : Json ) - > Int"
+      }
+    ],
+    "exports": [],
+    "package": "connectors/sheets/catalog",
+    "role": "connector-semantics",
+    "owner": "Sheets original Command constructor geometry",
+    "contracts": [
+      {
+        "operations": [
+          "<module>",
+          "range_declaration_construction_bounds",
+          "range_declaration_template",
+          "range_template_depth",
+          "range_template_nodes"
+        ],
+        "exports": [],
+        "attributes": {
+          "responsibility": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Initialized range and clear run their existing declaration projection inside"
+            }
+          ],
+          "inputsOutputs": [
+            {
+              "path": "src/connectors/sheets/catalog/declaration_construction.mbt",
+              "anchor": "pub fn range_declaration_construction_bounds("
+            }
+          ],
+          "identity": [
+            {
+              "path": "src/connectors/sheets/catalog/range_declaration.mbt",
+              "anchor": "fn range_command_document("
+            }
+          ],
+          "ownership": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Initialized range and clear run their existing declaration projection inside"
+            }
+          ],
+          "synchronization": {
+            "notApplicable": "Pure fixed template geometry; no I/O, callbacks, Run/Account/current or implicit admission."
+          },
+          "failure": [
+            {
+              "path": "src/connectors/sheets/catalog/declaration_construction.mbt",
+              "anchor": "if schema_bytes < 1 || columns < 1 || columns > 64 || connector_bytes < 1 {"
+            }
+          ],
+          "cancellation": {
+            "notApplicable": "Quantity DATA issues no cancellation, stop, release or physical acknowledgement."
+          },
+          "resources": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Initialized range and clear run their existing declaration projection inside"
+            },
+            {
+              "path": "src/connectors/sheets/host_node/append_construction.mbt",
+              "anchor": "pub fn sheets_range_declaration_construction_capacity("
+            }
+          ],
+          "extension": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Initialized range and clear run their existing declaration projection inside"
+            }
+          ],
+          "verification": [
+            {
+              "path": "src/connectors/sheets/catalog/declaration_construction_wbtest.mbt",
+              "anchor": "test \"same range and clear builders bound original variable names and complete exported wire\""
             }
           ]
         }

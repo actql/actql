@@ -408,3 +408,115 @@ pub fn sheets_grid_read_construction_capacity(
     },
   ])
 }
+
+///|
+/// Original range/clear declaration constructor only. The fixed document
+/// shapes come from their SAME Catalog builders; native Source/index, JSON
+/// trees, NFC identity copies, writers, escaped outputs and Host parser overlap
+/// are composed here before those original builders run. No Command, Catalog,
+/// permission, current observation or reservation is issued by this quote.
+#export_name("sheetsRangeDeclarationConstructionCapacity")
+pub fn sheets_range_declaration_construction_capacity(
+  schema_bytes : Int,
+  columns : Int,
+  range_bytes : Int,
+  connector_bytes : Int,
+  declared_bytes : Int,
+) -> @execution.ExecutionCapacity? {
+  if range_bytes < 1 || declared_bytes < 1 {
+    return None
+  }
+  guard @catalog.range_declaration_construction_bounds(
+      schema_bytes, columns, connector_bytes,
+    )
+    is Some(command) else {
+    return None
+  }
+  let d = declared_bytes.to_int64()
+  let c = command.bundle_bytes.to_int64()
+  // The old declaration embeds its Catalog/contracts as strings. Their
+  // aggregate decoded input is <=the original declared wire (including keys
+  // and escaping). Parse that whole inner forest conservatively as well.
+  // The final Catalog and the declared contract list both retain the added
+  // contracts. Two complete input forests cover that duplication. New
+  // Catalog/contract/Command strings add one JSON quoting layer: <=7 units
+  // per original UTF16 unit, including escaped control characters.
+  let result = 2L * 7L * (d + c) +
+    "{\"command_bodies\":[\"\"]}".length().to_int64()
+  let native_nodes = d + command.bundle_nodes.to_int64()
+  if result > 2147483647L ||
+    native_nodes > 2147483647L ||
+    8L * (d + c) > 2147483647L {
+    return None
+  }
+  let n = native_nodes.to_int()
+  // The native body parser itself rejects depths beyond32. An outer declared
+  // view adds no more than its own bounded envelope beside the inner forest.
+  let depth = 32
+  guard sheets_column_construction(schema_bytes, columns, depth) is Some(schema) &&
+    sheets_decoded_construction(range_bytes, 6, 1) is Some(range_input) &&
+    sheets_decoded_construction(declared_bytes, declared_bytes, depth)
+    is Some(declared) &&
+    sheets_decoded_construction(
+      command.bundle_bytes,
+      command.bundle_nodes,
+      command.bundle_depth,
+    )
+    is Some(bundle) &&
+    @canonical.nfc_lf_construction_extent((8L * (d + c)).to_int())
+    is Some(normalization) &&
+    sheets_writer_units(result.to_int(), n, depth) is Some(writer) &&
+    @source.json_literal_construction_extent(result.to_int(), n, depth)
+    is Some(host) &&
+    @shape.collection_construction_extent({
+      records: native_nodes,
+      record_references: 2L * native_nodes,
+      record_words: 2L * native_nodes,
+      reference_arrays: native_nodes,
+      reference_items: native_nodes,
+      scalar_arrays: 0L,
+      scalar_items: 0L,
+      maps: native_nodes,
+      map_entries: native_nodes,
+    })
+    is Some(native_json) else {
+    return None
+  }
+  sheets_constructor_capacity([
+    schema,
+    range_input,
+    // Outer declaration, embedded Catalog/contracts and parsed native bundle.
+    declared,
+    declared,
+    bundle,
+    sheets_collection_units(native_json),
+    // Original Json, its NFC identity Json and canonical-value projection
+    // overlap. One normalization cursor is enough; retain cumulative output
+    // text separately, never normalize schema/Command meaning here.
+    sheets_collection_units(native_json),
+    sheets_collection_units(native_json),
+    {
+      record_headers: normalization.record_headers,
+      reference_slots: normalization.reference_slots,
+      scalar_words: normalization.scalar_words,
+      owned_utf16_units: normalization.owned_utf16_units + 8L * (d + c),
+      owned_wire_bytes: 0L,
+    },
+    // Catalog identity, full Catalog wire, each contract wire, Command wire,
+    // final declaration and typed refusal exports are conservatively covered
+    // as co-live original writer families with the same whole-output bound.
+    writer,
+    writer,
+    writer,
+    writer,
+    writer,
+    writer,
+    {
+      record_headers: host.record_headers,
+      reference_slots: host.reference_slots,
+      scalar_words: host.scalar_words,
+      owned_utf16_units: host.owned_utf16_units + result,
+      owned_wire_bytes: d + c + schema_bytes.to_int64() + range_bytes.to_int64(),
+    },
+  ])
+}
