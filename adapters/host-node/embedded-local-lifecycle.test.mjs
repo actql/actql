@@ -536,7 +536,7 @@ test('prepared Request cancellation does not retire pending work and settled ind
 });
 
 test('prepared Client pending request index preserves original close drain and retirement order', async () => {
-  const registry = createEmbeddedHostRegistry(() => true), calls = [], gate = deferred();
+  const registry = createEmbeddedHostRegistry(() => true), calls = [], gate = deferred(), entered = deferred();
   const host = {}, installation = {}, alias = {};
   let actualRequest;
   Object.assign(host, {
@@ -545,7 +545,7 @@ test('prepared Client pending request index preserves original close drain and r
       if (operation === 'connect') return profile;
       assert.equal(operation, 'attach'); actualRequest = request;
       registry.bindSourceRequest(host, installation, host, request, alias);
-      calls.push('attach-entered'); await gate.promise; calls.push('attach-returned');
+      calls.push('attach-entered'); entered.resolve(); await gate.promise; calls.push('attach-returned');
       return {ref, durability: 'durable', revision: 1};
     }},
     checkpoints: {stop() {calls.push('stop');}, close() {calls.push('checkpoint');}},
@@ -557,7 +557,7 @@ test('prepared Client pending request index preserves original close drain and r
   const client = await registry.connect('/test/index-owned', 'same', async () => host,
     {mode: 'local', owner: 'local'}, host);
   const attached = client.attach(ref);
-  while (!calls.includes('attach-entered')) await Promise.resolve();
+  await Promise.race([entered.promise, attached.then(() => assert.fail('Original attach returned before its barrier'))]);
   assert.strictEqual(registry.originalSourceRequest(host, installation, host, alias), actualRequest);
   let closed = false;
   const closing = client.close().then(() => {closed = true;});
