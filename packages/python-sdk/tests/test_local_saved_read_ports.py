@@ -82,6 +82,32 @@ class SavedReadPortsTests(unittest.TestCase):
         self.assertIs(saved._record, record)
         self.assertFalse(saved._preparing)
 
+    def test_saved_record_frame_current_refusal_keeps_same_acquired_originals(self):
+        for stop in (1, 2, 3, 4):
+            with self.subTest(stop=stop):
+                saved, parent, record, error, _, events, currents, failure, _ = self._record_preparation_ports(deny_at=stop)
+                self.assertIs(error, failure)
+                self.assertEqual(len(currents), stop)
+                self.assertIs(saved._source, parent)
+                self.assertFalse(saved._preparing)
+                if stop >= 3: self.assertIs(saved._record, record)
+                else: self.assertIsNone(saved._record)
+                self.assertEqual(events.count('produce-record'), int(stop == 4))
+                self.assertEqual(events.count('validate-and-copy-record'), int(stop == 4))
+
+    def test_saved_record_producer_failure_cannot_copy_or_repeat_and_keeps_custody(self):
+        saved, parent, record, error, _, events, currents, _, failure = self._record_preparation_ports(fail_produce=True)
+        self.assertIs(error, failure)
+        self.assertIs(saved._source, parent)
+        self.assertIs(saved._record, record)
+        self.assertEqual(len(currents), 3)
+        self.assertEqual(events.count('produce-record'), 1)
+        self.assertNotIn('validate-and-copy-record', events)
+        self.assertFalse(saved._preparing)
+        # The same public preparation cannot retry the failed producer.
+        with self.assertRaises(ValueError): saved.prepare({}, 'answer', 'jsonl', 'original-attempt')
+        self.assertEqual(events.count('produce-record'), 1)
+
     def test_payload_output_uses_its_live_or_saved_original_parent_until_child_ack(self):
         for saved in (False, True):
             with self.subTest(saved=saved):
