@@ -3601,13 +3601,14 @@ async function openInstalledHost(originalInstallation, preparation) {
         assertCurrent() {
           assertProjectRuntime(); preparation.assertResultPublicationCurrent();
         },
-        async loadRunOriginal(view, signal) {
+        async loadRunOriginal(view, signal, consume) {
+          if (typeof consume !== 'function') throw clientOperationError('LocalSigningOriginalConflict');
           const ref = {namespaceId, authorityScopeCid, runDefinitionCid: view.runDefinitionCid};
           const retained = journal.lookupRunDefinition(ref, moon, control);
           if (retained === undefined || retained.cancellationRequested) {
             throw clientOperationError('LocalSigningOriginalConflict');
           }
-          const recovered = await recoverEffectCapture(ref, signal);
+          let recovered = await recoverEffectCapture(ref, signal);
           localSigningRecoveries.add(recovered);
           let originalFailure, failed = false;
           try {
@@ -3616,6 +3617,7 @@ async function openInstalledHost(originalInstallation, preparation) {
               throw clientOperationError('LocalSigningOriginalConflict');
             }
             const current = () => {
+              if (recovered === undefined) throw clientOperationError('LocalSigningOriginalConflict');
               assertProjectRuntime(); preparation.assertResultPublicationCurrent();
               recovered.originalSubmittedIntent.assertCurrent();
               recovered.assertUpdateSelectionCurrent?.();
@@ -3626,13 +3628,21 @@ async function openInstalledHost(originalInstallation, preparation) {
               }
             };
             current();
-            return Object.freeze({materials: recovered.materials,
+            // Consume while SAME original capture/Request backing remains live.
+            // Returning metadata and closing here would strand its consumer.
+            return await Reflect.apply(consume, undefined, [Object.freeze({materials: recovered.materials,
               requestIdentity: recovered.requestIdentity,
               referenceWire: recovered.originalSubmittedIntent.referenceWire,
-              invocation: recovered.computation.invocation, assertCurrent: current});
+              invocation: recovered.computation.invocation, assertCurrent: current})]);
           } catch (cause) {originalFailure = cause; failed = true; throw cause;}
           finally {
-            try {await releaseLocalSigningRecovery(recovered);}
+            let original = recovered;
+            recovered = undefined;
+            try {
+              const release = releaseLocalSigningRecovery(original);
+              original = undefined;
+              await release;
+            }
             catch (cleanup) {
               if (failed) throw Object.assign(new AggregateError([originalFailure, cleanup],
                 'Original signing capture and cleanup failed', {cause: originalFailure}),
