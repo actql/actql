@@ -626,6 +626,12 @@ or deletion; retained evidence and saved records are not relabeled. This is the
 Python byte store's closed physical format, not Native publication Store format
 interoperability.
 
+The physical connection selects its existing `temp_store = FILE` configuration
+before its first catalog or snapshot observation, including on reopen. Later
+TEMP configuration changes may discard the schema underneath prepared SQLite
+observations; the constructor does not change that configuration after any
+such observation has begun. This ordering adds no schema, Owner or authority.
+
 The existing one-time owned-file initializer selects private format 3 when the
 same SQLite library supports the existing Run-Definition expression. It adds
 only the actual UNIQUE index over the nested Run Definition CID, adapted from

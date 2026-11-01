@@ -59819,7 +59819,7 @@
           "parameters": []
         }
       ],
-      "sha256": "3a246b8955cf99e1648a9b9fddec3b92798a67f6b94ec002f8fdfd0387b44079",
+      "sha256": "19be6ecf123ccfe435fc5ca358317b90a4844c0d8e7c4bdf3451379e5bc5a67b",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -60544,6 +60544,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The physical connection selects its existing `temp_store = FILE` configuration"
               }
             ],
             "failure": [
@@ -60706,6 +60710,10 @@
               {
                 "path": "src/client_host_wasm/submission_targeted_lookup_wbtest.mbt",
                 "anchor": "test \"indexed saved cold lookup selects exact original without unrelated Run audit\""
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_owned_store.py",
+                "anchor": "def test_owned_indexed_journal_reopens_in_fresh_process_with_original_rows("
               }
             ]
           }
