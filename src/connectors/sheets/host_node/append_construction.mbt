@@ -131,8 +131,9 @@ fn sheets_column_construction(
 ///|
 // check_target's full supplied sheets Array, Cursor wrappers and IDs survive
 // beside its input tree. Every open_object Map borrows original fields. The
-// TOTAL nodes bound covers all maps/entries, including invalid response width;
-// no permitted-field count is substituted for supplied input. Indexed lookup
+// TOTAL nodes bound covers all entries, including invalid response width;
+// root/sheet/properties/grid are at most four live maps. Earlier loop maps do
+// not escape. No permitted-field count replaces arbitrary input fields. Lookup
 // and one failure path are sequential fixed controls, not N copied paths.
 fn sheets_target_projection_construction(
   nodes : Int,
@@ -149,7 +150,7 @@ fn sheets_target_projection_construction(
       reference_items: n,
       scalar_arrays: 1L,
       scalar_items: n,
-      maps: n,
+      maps: 4L,
       map_entries: n,
     })
     is Some(collections) &&
@@ -375,20 +376,39 @@ pub fn sheets_grid_read_construction_capacity(
     @source.json_literal_construction_extent(o, 5, 2) is Some(host) else {
     return None
   }
-  sheets_constructor_capacity([
-    schema,
-    schema,
-    validation,
-    body_writer,
-    output_writer,
-    {
-      record_headers: host.record_headers + 2L,
-      reference_slots: host.reference_slots,
-      scalar_words: host.scalar_words,
-      owned_utf16_units: host.owned_utf16_units + schema_bytes.to_int64(),
-      owned_wire_bytes: 2L * b.to_int64(),
-    },
-  ])
+  let envelope : @execution.PreparationRepresentationUnits = {
+    record_headers: host.record_headers + 2L,
+    reference_slots: host.reference_slots,
+    scalar_words: host.scalar_words,
+    owned_utf16_units: host.owned_utf16_units + schema_bytes.to_int64(),
+    owned_wire_bytes: 0L,
+  }
+  guard sheets_constructor_capacity([
+      schema,
+      schema,
+      validation,
+      body_writer,
+      output_writer,
+      { ..envelope, owned_wire_bytes: 2L * b.to_int64(), },
+    ])
+    is Some(peak) &&
+    sheets_constructor_capacity([
+      {
+        ..envelope,
+        // The page reader captures its schema wire and retains the request
+        // body/projection. Native columns/parser/Writer locals do not escape.
+        owned_utf16_units: envelope.owned_utf16_units +
+        b.to_int64() +
+        o.to_int64(),
+      },
+    ])
+    is Some(output) else {
+    return None
+  }
+  @execution.execution_capacity(
+    @execution.execution_capacity_retained_bytes(output),
+    @execution.execution_capacity_execution_bytes(peak),
+  )
 }
 
 ///|
@@ -653,26 +673,38 @@ pub fn sheets_range_read_construction_capacity(
     sheets_column_construction(schema_bytes, columns, depth) is Some(schema) &&
     sheets_target_projection_construction(nodes, depth) is Some(target) &&
     sheets_writer_units(reply_bytes, 5, 2) is Some(writer) &&
-    @source.json_literal_construction_extent(reply_bytes, 5, 2) is Some(host) &&
-    sheets_constructor_capacity([
+    @source.json_literal_construction_extent(reply_bytes, 5, 2) is Some(host) else {
+    return None
+  }
+  let envelope : @execution.PreparationRepresentationUnits = {
+    record_headers: host.record_headers + 2L,
+    reference_slots: host.reference_slots + 3L,
+    scalar_words: host.scalar_words,
+    owned_utf16_units: host.owned_utf16_units + schema_bytes.to_int64(),
+    owned_wire_bytes: 0L,
+  }
+  guard sheets_constructor_capacity([
       schema,
       target,
       writer,
+      { ..envelope, owned_wire_bytes: schema_bytes.to_int64(), },
+    ])
+    is Some(metadata) &&
+    sheets_constructor_capacity([
       {
-        record_headers: host.record_headers + 2L,
-        reference_slots: host.reference_slots + 3L,
-        scalar_words: host.scalar_words,
-        owned_utf16_units: host.owned_utf16_units + schema_bytes.to_int64(),
-        owned_wire_bytes: schema_bytes.to_int64(),
+        // Metadata returns no parsed sheet/maps/ID vector or new ResourceRef.
+        // The existing Source initializer already retains the original target.
+        ..envelope,
+        owned_utf16_units: envelope.owned_utf16_units + reply_bytes.to_int64(),
       },
     ])
-    is Some(metadata) else {
+    is Some(output) else {
     return None
   }
   @execution.execution_capacity(
     Int64::max(
       @execution.execution_capacity_retained_bytes(grid),
-      @execution.execution_capacity_retained_bytes(metadata),
+      @execution.execution_capacity_retained_bytes(output),
     ),
     Int64::max(
       @execution.execution_capacity_execution_bytes(grid),

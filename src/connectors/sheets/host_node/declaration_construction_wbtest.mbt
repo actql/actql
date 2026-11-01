@@ -629,3 +629,19 @@ test "range returned holding follows the original closed rectangle while arbitra
     )
   }
 }
+
+///|
+test "range Source reader keeps native metadata scratch out of its returned material" {
+  let narrow = sheets_range_read_construction_capacity(
+    147, 3, 7, 2, 4, 0, 3, 1000, 32,
+  ).unwrap()
+  let wide = sheets_range_read_construction_capacity(
+    147, 3, 7, 2, 4, 0, 3, 200000, 32,
+  ).unwrap()
+  let retained = @execution.execution_capacity_retained_bytes(wide)
+  let execution = @execution.execution_capacity_execution_bytes(wide)
+  println("READER_NATIVE retained=\{retained} execution=\{execution}")
+  assert_true(retained < execution)
+  assert_eq(retained, @execution.execution_capacity_retained_bytes(narrow))
+  assert_true(execution > @execution.execution_capacity_execution_bytes(narrow))
+}

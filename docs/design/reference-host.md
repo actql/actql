@@ -1931,6 +1931,17 @@ geometry describes emitted data; it does not replace a product guard, grant
 resources or signal physical cleanup. Fixed request controls keep their
 existing common envelope, with no new JS closure tariff or work-phase token.
 
+The range/clear Reader's native metadata callback returns only its bounded
+checked/refused reply. It retains no parsed sheets tree, Cursor array, ID
+vector or opened metadata maps. At most root/sheet/properties/grid maps are
+live in the original loop, while all supplied entries, sheet Cursors and IDs
+remain bounded by the unchanged total node limit. Grid request projection
+retains its schema wire and bounded body/result separately from native schema
+parsing and Writer scratch. Those native returned quantities compose with the
+existing shared Reader once. The original ResourceRef stays with its Source
+initializer; response data is not stop or release evidence. This changes no
+Reader mode, current boundary, byte/node guard or cleanup owner.
+
 A completed installation retains its immutable Environment on the SAME
 initial Source material while its original Source is held. A paired Command
 Effect can retain that exact Environment only with the same original

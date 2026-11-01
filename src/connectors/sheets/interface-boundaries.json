@@ -7063,7 +7063,7 @@
   {
     "module": "src/connectors/sheets/host_node/append_construction.mbt",
     "responsibilityFacet": "primary",
-    "sha256": "d19f99f5cd93f4bd05b6b337bbb91b1da03914ebd00258969458bcc5fc3a7d72",
+    "sha256": "4ddbf01148b2e567595499dc4338d4c0749ff8b4e9926dc33efc8e66814c6c0f",
     "operations": [
       {
         "name": "sheets_append_construction_profile",
