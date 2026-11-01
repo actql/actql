@@ -124052,7 +124052,7 @@
     {
       "module": "adapters/host-node/effect-capture-resources.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "445acd9e407cab8a35dca9264e491a05b5523ace0bf57b577251c4bed3a76b29",
+      "sha256": "f83b36c4845835552e50763471725198aec4d39011116ae8e5ae86c379d92686",
       "role": "physical-io",
       "owner": "Existing Request preparation and same adopted Effect Run resource/cleanup ownership through the installed Node Host; no independent grant, Ledger or semantic issuer",
       "exports": [

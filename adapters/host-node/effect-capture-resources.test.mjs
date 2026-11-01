@@ -6,7 +6,8 @@ import {prepareEffectCaptureResources} from './effect-capture-resources.mjs';
 // Existing actual Node Resource supplier and original child callbacks. Core
 // phase results are explicit ports, not a matching Common or quota proof.
 const ok = value => ({$tag:1, _0:value});
-function fixture({live = false, beginFailure, reserveFailure, retireFailure} = {}) {
+function fixture({live = false, beginFailure, reserveFailure, retireFailure,
+  retirementCurrent = false} = {}) {
   const events = [], request = {}, definition = {}, parent = {}, policy = {}, value = {};
   let view, admission, originalInput, retired = 0, failRetire = retireFailure, stopped = false;
   const stop = () => {
@@ -31,7 +32,18 @@ function fixture({live = false, beginFailure, reserveFailure, retireFailure} = {
       assert.equal(admission.ports.status(0), 0); return ok(parent);
     },
     clientProgramAbortRequestPreparation(actual) {
-      assert.equal(actual, parent); events.push('abort'); if (!stopped) stop();
+      assert.equal(actual, parent); events.push('abort');
+      if (!stopped) {
+        // Actual Core finish_preparation_retirement enters reservation_check,
+        // which calls check_imported_child_ledger's SINGLE original current.
+        // A consumed-return retry sees the already closed original instead.
+        if (retirementCurrent) {
+          const before = events.filter(value => value === 'current').length;
+          assert.equal(admission.ports.status(1), 0);
+          assert.equal(events.filter(value => value === 'current').length, before + 1);
+        }
+        stop();
+      }
       if (failRetire !== undefined) {const error = failRetire; failRetire = undefined; throw error;}
       return ok(undefined);
     },
@@ -178,4 +190,21 @@ test('schema returned during pending close is retained before the SAME reservati
   assert.equal(await view.close(), true);
   assert.equal(cleaned, 1); assert.equal(f.retired, 1);
   assert.throws(() => view.retainCleanup(() => {}), {code:'EffectCaptureResourceUnavailable'});
+});
+
+test('cold capture retirement retains original current until SAME Request settlement and consumed return retry', async () => {
+  const cause = new Error('same original consumed settlement return');
+  const f = fixture({retirementCurrent:true, retireFailure:cause}), view = f.open();
+  view.begin(); view.reserve(128); view.finish(false);
+  const before = f.events.filter(value => value === 'current').length;
+  await assert.rejects(view.close(), error => error === cause);
+  assert.equal(f.events.filter(value => value === 'current').length, before + 1);
+  assert.equal(view.status().pending, true); assert.equal(f.retired, 0);
+  assert.equal(await view.close(), true);
+  assert.equal(f.events.filter(value => value === 'current').length, before + 1,
+    'consumed original does not repeat its already spent current/settlement');
+  assert.equal(f.events.filter(value => value === 'parent').length, 1);
+  assert.equal(f.events.filter(value => value === 'abort').length, 2);
+  assert.deepEqual(f.events.filter(Array.isArray), [['cold-grow',0],['cold-grow',128]]);
+  assert.equal(f.retired, 1);
 });
