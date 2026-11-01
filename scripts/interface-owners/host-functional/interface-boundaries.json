@@ -27930,7 +27930,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -28093,7 +28093,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -28725,7 +28725,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -55529,7 +55529,7 @@
     },
     {
       "module": "adapters/host-node/initial-control-package-custody.cjs",
-      "sha256": "2914cdb608ee2bf4a72e770f8e5b76e481585c2775b8c6f8e5c73042cfa3f0fe",
+      "sha256": "00a0f7bdb2166f2967085e8aabd0e38545b473b3b6ee8df5ddf470a26a72fa3c",
       "exports": [
         "commonjs:captureInitialControlPackageCustody",
         "commonjs:captureOrdinaryInitialControlPackageCustody"
@@ -55761,6 +55761,10 @@
               {
                 "path": "adapters/host-node/initial-control-package-custody.cjs",
                 "anchor": "// Compile both actual public ESM namespaces before the Module handoff."
+              },
+              {
+                "path": "adapters/host-node/initial-control-package-custody.cjs",
+                "anchor": "// Use the already captured helper before compiling the static Host graph."
               }
             ],
             "failure": [
@@ -55921,6 +55925,10 @@
               {
                 "path": "adapters/host-node/initial-control-package-custody.cjs",
                 "anchor": "// Compile both actual public ESM namespaces before the Module handoff."
+              },
+              {
+                "path": "adapters/host-node/initial-control-package-custody.cjs",
+                "anchor": "// Use the already captured helper before compiling the static Host graph."
               }
             ],
             "failure": [
@@ -120474,7 +120482,7 @@
       "sha256": "5d457d7a60d36441fc1d32019d1a6dc189e3de2f659b4ba87a5d18b0a7c89489",
       "responsibilityFacet": "primary",
       "role": "physical-io",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "exports": [
         "createInstalledCredentialSourceReader",
         "installedJsonSourceReaderLimitNames",
@@ -121246,7 +121254,7 @@
       "sha256": "b316bbda6a28ab1c3feea0dadc964e01612d9085a0095f6a8a21abbc17ae5cc9",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "exports": [
         "finishInstalledEffectModelScope",
         "installedEffectModelPreparation",
@@ -121935,7 +121943,7 @@
       "sha256": "86f613556ff3048496fa65b9223ec5fc3bade0906aeb7dd2f2e1e6740da3e60a",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "exports": [
         "assertInstalledSourceConstruction",
         "beginInstalledSourceInitialization",
