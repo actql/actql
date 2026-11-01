@@ -1280,8 +1280,8 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
       const fields = Object.getOwnPropertyDescriptors(options ?? {});
       const standard = Object.hasOwn(fields, 'preparePageReader');
       const managedSequence = Object.hasOwn(fields, 'prepareReadSequence');
-      const readerField = managedSequence ? 'prepareReadSequence' : standard ? 'preparePageReader'
-        : Object.hasOwn(fields, 'readPages') ? 'readPages' : 'createReader';
+      if (standard === managedSequence) fail('InvalidInstalledSourceReaderSelection');
+      const readerField = managedSequence ? 'prepareReadSequence' : 'preparePageReader';
       if (Reflect.ownKeys(fields).length !== (standard ? 5 : 4) + (Object.hasOwn(fields, 'sourceInitialization') ? 1 : 0) ||
           ['installation', 'implementation', 'site', readerField, ...(standard ? ['operation'] : [])].some(name =>
             !Object.hasOwn(fields[name] ?? {}, 'value'))) fail('InvalidInstalledSourceReaderSelection');

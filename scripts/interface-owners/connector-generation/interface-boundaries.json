@@ -515,7 +515,7 @@
               },
               {
                 "path": "adapters/host-node/installed-credential-source-reader.mjs",
-                "anchor": "else if (standard) result = await readStandard(initialAuthorization, acquisition.credential);"
+                "anchor": "const result = await readSelected(initialAuthorization, acquisition.credential);"
               },
               {
                 "path": "docs/design/slack-user-pages.md",
