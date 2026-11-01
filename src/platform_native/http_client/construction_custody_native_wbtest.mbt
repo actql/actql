@@ -140,6 +140,9 @@ test "HTTP partial path acquisition retains original metadata through cleanup fa
   // Client metadata acknowledgement is not Library/global libcurl retirement.
   assert_true(physical_equal(original.original_library, library))
   assert_true(!library.version().is_empty())
+  library.close_checked().unwrap()
+  library.close_checked().unwrap()
+  assert_true(library.version().is_empty())
 }
 
 ///|
@@ -167,7 +170,45 @@ test "HTTP constructor cleanup reply loss observes the same retired metadata bef
     )
     .unwrap()
   assert_eq(positive.response_limit().unwrap(), 32L)
-  assert_true(positive.close())
+  positive.close_checked().unwrap()
   assert_false(positive.close())
   assert_true(positive.response_limit() is Err(Closed))
+  library.close_checked().unwrap()
+}
+
+///|
+test "ready HTTP Library retirement waits for its original Client and refuses new children" {
+  let library = required_http_custody_library()
+  let original = library
+    .create_authenticated_client_with_custody(
+      "/fixture/ca.pem",
+      Bearer("/fixture/token"),
+      32L,
+      10,
+      20,
+    )
+    .unwrap()
+  assert_eq(original.response_limit().unwrap(), 32L)
+  // A live original child prevents init/loader retirement. The pending parent
+  // also stops new acquisition and request entry without reading credentials.
+  assert_true(library.close_checked() is Err(Transport(_)))
+  assert_true(library.close_checked() is Err(Transport(_)))
+  assert_true(
+    library.create_authenticated_client_with_custody(
+      "/fixture/ca.pem",
+      Bearer("/fixture/token"),
+      32L,
+      10,
+      20,
+    )
+    is Err(RefusedBeforeAcquisition(Closed)),
+  )
+  assert_true(
+    original.post_json("https://example.invalid/unused", b"{}") is Err(Closed),
+  )
+  original.close_checked().unwrap()
+  original.close_checked().unwrap()
+  assert_true(original.response_limit() is Err(Closed))
+  library.close_checked().unwrap()
+  library.close_checked().unwrap()
 }

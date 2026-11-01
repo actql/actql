@@ -384,6 +384,9 @@ pub fn Library::create_client_with_custody(
     operation_timeout_ms < connect_timeout_ms {
     return Err(RefusedBeforeAcquisition(InvalidConfiguration))
   }
+  if !library_ready_ffi(self) {
+    return Err(RefusedBeforeAcquisition(Closed))
+  }
   let ca = @utf8.encode(ca_path)
   let certificate = @utf8.encode(certificate_path)
   let key = @utf8.encode(key_path)
@@ -458,6 +461,9 @@ pub fn Library::create_authenticated_client_with_custody(
     operation_timeout_ms <= 0 ||
     operation_timeout_ms < connect_timeout_ms {
     return Err(RefusedBeforeAcquisition(InvalidConfiguration))
+  }
+  if !library_ready_ffi(self) {
+    return Err(RefusedBeforeAcquisition(Closed))
   }
   let ca = @utf8.encode(ca_path)
   let certificate = @utf8.encode(certificate_path)
@@ -683,4 +689,43 @@ pub fn Client::cancel(self : Client) -> Bool {
 ///|
 pub fn Client::close(self : Client) -> Bool {
   client_close_ffi(self)
+}
+
+///|
+#borrow(library)
+extern "C" fn close_http_library_ffi(library : Library) -> Int = "actql_native_http_library_close_checked"
+
+///|
+/// Complete this original Library's init/loader retirement only after all
+/// actual Client metadata holders and original easy-handle cleanup calls have
+/// completed. Requests require ordinary resolver cleanup (QUICK_EXIT disabled),
+/// not detached workers. TLS backend retirement is a separate obligation; it
+/// uses the same component's per-thread cleanup and last-Library release,
+/// and remains pending when the selected image has no such physical result.
+/// Init/loader references retire only after both obligations; global cleanup
+/// alone is not a thread acknowledgement.
+/// A selected backed runtime also retains its same original Read through
+/// construction, failed children and native buffer retirement. The enclosing
+/// Read/domain's physical closure is separate from this reference return.
+/// Neither this result nor Client close is a whole Host stop.
+pub fn Library::close_checked(self : Library) -> Result[Unit, NativeHttpIssue] {
+  match close_http_library_ffi(self) {
+    0 => Ok(())
+    _ => Err(Transport("original HTTP Library retirement unconfirmed"))
+  }
+}
+
+///|
+#borrow(client)
+extern "C" fn close_http_client_checked_ffi(client : Client) -> Int = "actql_native_http_client_close_checked"
+
+///|
+/// Checked same-original metadata close. An in-flight request keeps its paths,
+/// response and Library holder until the actual request has unwound; cancel is
+/// only a request and cannot substitute that acknowledgement.
+pub fn Client::close_checked(self : Client) -> Result[Unit, NativeHttpIssue] {
+  match close_http_client_checked_ffi(self) {
+    0 => Ok(())
+    _ => Err(Transport("original HTTP Client retirement unconfirmed"))
+  }
 }

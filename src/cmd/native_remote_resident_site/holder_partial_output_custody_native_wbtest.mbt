@@ -126,11 +126,12 @@ test "partial holder rejects a competing Store without losing earlier Root custo
 }
 
 ///|
-test "logical HTTP close never discards original runtime or the outer holder Root" {
+test "partial holder returns its original Root only after checked HTTP constructor retirement" {
   let (outer, _) = holder_partial_root_fixture("partial-holder-library")
-  guard @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_LIBRARY") is Some(http_path) else {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_LIFETIME_LIBRARY")
+    is Some(http_path) else {
     fail(
-      "selected partial-holder HTTP case requires the pinned actual HTTP library",
+      "selected constructor-retirement case requires the pinned lifetime fixture library",
     )
     abort("missing partial-holder HTTP")
   }
@@ -152,19 +153,13 @@ test "logical HTTP close never discards original runtime or the outer holder Roo
   original.retained_root = Some(outer)
   original.control_library = Some(library)
   original.control = Some(client)
-  assert_false(retry_partial_holder_output_resources(original))
-  let first_observation = original.control_logical_close
-  assert_true(first_observation is Some(_))
-  assert_false(retry_partial_holder_output_resources(original))
-  assert_eq(original.control_logical_close, first_observation)
-  assert_true(original.control is Some(value) && physical_equal(value, client))
-  assert_true(
-    original.control_library is Some(value) && physical_equal(value, library),
-  )
-  assert_true(
-    original.retained_root is Some(value) && physical_equal(value, outer),
-  )
-  outer.create_directory("still-held").unwrap() |> ignore
-  // A missing formal Host/runtime lifetime ACK remains pending. The test does
-  // not synthesize it or count logical Client close as complete setup cleanup.
+  // The pinned lifetime fixture advertises thread-safe cleanup and this
+  // constructor never enters transport. This checks original loader/init
+  // reference retirement only, not resolver exit or a whole Host ACK.
+  assert_true(retry_partial_holder_output_resources(original))
+  assert_true(original.control is None)
+  assert_true(original.control_library is None)
+  assert_true(original.retained_root is None)
+  assert_true(retry_partial_holder_output_resources(original))
+  assert_true(outer.create_directory("retired") is Err(_))
 }

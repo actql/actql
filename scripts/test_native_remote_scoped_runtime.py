@@ -21,6 +21,8 @@ class RemoteScopedComposition(unittest.TestCase):
         self.stage = Path('/owned/derived-read-source')
         self.clang = Path('/selected/clang')
         self.sdk = Path('/selected/sdk')
+        self.source = 'a' * 40
+        self.header = Path('/owned/resident-initial-control.h')
         self.core = self.emission / 'native/release/build/cmd/native_remote_resident_site/native_remote_resident_site.c'
         self.exe = self.core.with_suffix('.exe')
         self.commands = [
@@ -29,6 +31,8 @@ class RemoteScopedComposition(unittest.TestCase):
             ['moonc', 'link-core', '-target', 'native', '-o', str(self.core)],
             ['/usr/bin/cc', '-o', str(self.emission / 'bootstrap.o'), '-I$MOON_HOME/include',
              '-c', './src/platform_native/host_bootstrap/bootstrap_stub.c'],
+            ['/usr/bin/cc', '-o', str(self.emission / 'entry.o'), '-I$MOON_HOME/include',
+             '-c', './src/cmd/native_remote_resident_site/initial_control_stub.c'],
             *[['/usr/bin/cc', '-o', str(self.emission / (name + '.o')), '-I$MOON_HOME/include',
                '-c', '$MOON_HOME/lib/runtime/' + name + '.c'] for name in sorted(MODULE.RUNTIME_NAMES)],
             ['/usr/bin/cc', '-o', str(self.exe), '-I$MOON_HOME/include', str(self.core),
@@ -37,7 +41,41 @@ class RemoteScopedComposition(unittest.TestCase):
 
     def plan(self, commands=None):
         return MODULE.commands_for('\n'.join(shlex.join(c) for c in (self.commands if commands is None else commands)),
-                                   self.home, self.emission, self.stage, self.clang, self.sdk)
+                                   self.home, self.emission, self.stage, self.clang, self.sdk,
+                                   source_sha=self.source, resident_control_header=self.header)
+
+    def test_resident_entry_is_required_once_and_pinned_in_its_original_c_step(self):
+        plan = self.plan()
+        selected = [c for c in plan if any(x.startswith('-DACTQL_RESIDENT_INITIAL_CONTROL_HEADER=') for x in c)]
+        self.assertEqual(len(selected), 1)
+        self.assertIn('./src/cmd/native_remote_resident_site/initial_control_stub.c', selected[0])
+        self.assertIn('-DACTQL_RESIDENT_INITIAL_CONTROL_HEADER="' + str(self.header) + '"', selected[0])
+        step = next(c for c in self.commands if './src/cmd/native_remote_resident_site/initial_control_stub.c' in c)
+        for commands in ([c for c in self.commands if c is not step], self.commands + [step]):
+            with self.subTest(commands=len(commands)), self.assertRaisesRegex(ValueError, 'Resident initial-control entrance'):
+                self.plan(commands)
+
+    def test_resident_recipe_requires_a_frozen_source_and_owned_header(self):
+        output = '\n'.join(shlex.join(c) for c in self.commands)
+        for source, header in ((None, self.header), ('not-a-source', self.header),
+                               (self.source, None), (self.source, Path('/foreign/control.h'))):
+            with self.subTest(source=source, header=header), self.assertRaisesRegex(ValueError, 'Resident source'):
+                MODULE.commands_for(output, self.home, self.emission, self.stage,
+                                    self.clang, self.sdk, source_sha=source,
+                                    resident_control_header=header)
+
+    def test_private_recipe_header_binds_source_and_exact_original_recipe(self):
+        import hashlib
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / 'control.h'
+            record = MODULE.resident_initial_control_header(self.source, path)
+            self.assertEqual(record['source'], self.source)
+            self.assertEqual(record['recipeSha256'], hashlib.sha256((MODULE.ROOT / MODULE.RESIDENT_RECIPE).read_bytes()).hexdigest())
+            self.assertIn('#define ACTQL_RESIDENT_SOURCE_SHA "' + self.source + '"', path.read_text())
+            self.assertFalse(record['permission'])
+            self.assertFalse(record['physicalAcquired'])
+            with self.assertRaises(FileExistsError):
+                MODULE.resident_initial_control_header(self.source, path)
 
     def test_same_header_runtime_and_single_provider(self):
         planned = self.plan()
@@ -64,7 +102,8 @@ class RemoteScopedComposition(unittest.TestCase):
         commands = [[str(driver), *c[1:]] if c[0] == '/usr/bin/cc' else c for c in self.commands]
         output = '\n'.join(shlex.join(c) for c in commands)
         plan = MODULE.commands_for(output, self.home, self.emission, self.stage,
-                                   self.clang, self.sdk, cc_driver=driver)
+                                   self.clang, self.sdk, cc_driver=driver,
+                                   source_sha=self.source, resident_control_header=self.header)
         self.assertEqual(plan, self.plan())
 
     def test_actual_moon_archive_flags_are_preserved(self):
@@ -72,13 +111,15 @@ class RemoteScopedComposition(unittest.TestCase):
                    str(self.emission / 'liboriginal.a'), str(self.emission / 'original.o')]
         output = '\n'.join(shlex.join(c) for c in self.commands + [archive])
         plan = MODULE.commands_for(output, self.home, self.emission, self.stage,
-                                   self.clang, self.sdk, ar_driver=Path('/owned/bin/ar'))
+                                   self.clang, self.sdk, ar_driver=Path('/owned/bin/ar'),
+                                   source_sha=self.source, resident_control_header=self.header)
         self.assertEqual(plan[-1], archive)
 
     def release_archive_plan(self, archive):
         output = '\n'.join(shlex.join(c) for c in self.commands + [archive])
         return MODULE.commands_for(output, self.home, self.emission, self.stage,
-                                   self.clang, self.sdk, ar_driver=Path('/owned/bin/ar'))
+                                   self.clang, self.sdk, ar_driver=Path('/owned/bin/ar'),
+                                   source_sha=self.source, resident_control_header=self.header)
 
     def release_archive(self):
         return ['/owned/bin/ar', '-r', '-c', '-s',
@@ -198,6 +239,126 @@ class RemoteScopedComposition(unittest.TestCase):
         commands = self.commands + [[str(self.exe), '-o', str(self.emission / 'not-a-build')]]
         with self.assertRaisesRegex(ValueError, 'tool'):
             self.plan(commands)
+
+
+    def test_resident_component_header_keeps_the_original_arena(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / 'control.h'
+            record = MODULE.resident_initial_control_header(self.source, path)
+            text = path.read_text()
+            self.assertIn('#define ACTQL_RESIDENT_SQLITE_HEAP 33554432\n', text)
+            self.assertIn('#define ACTQL_RESIDENT_CRYPTO_HEAP 16777216\n', text)
+            self.assertIn('#define ACTQL_RESIDENT_DIAGNOSTIC_BYTES 2048\n', text)
+            self.assertEqual(record['selected']['capacityBytes'], 268435456)
+            self.assertEqual(record['selected']['controlEnvelopeBytes'], 16777216)
+            self.assertNotIn('ACTQL_BUNDLE_MANAGED_PAYLOAD', text)
+            self.assertFalse(record['permission'])
+            self.assertFalse(record['physicalAcquired'])
+
+    def test_resident_component_selection_refuses_noncoexisting_or_unaligned_heaps(self):
+        original_root = MODULE.ROOT
+        recipe = json.loads((original_root / MODULE.ENTRY / 'initial_control_recipe.json').read_text())
+        for changed in [dict(sqliteHeapBytes=recipe['capacityBytes']), dict(cryptoHeapBytes=1)]:
+            with self.subTest(changed=changed), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                selected = root / MODULE.ENTRY / 'initial_control_recipe.json'
+                selected.parent.mkdir(parents=True)
+                selected.write_text(json.dumps({**recipe, **changed}))
+                try:
+                    MODULE.ROOT = root
+                    with self.assertRaisesRegex(ValueError, 'cannot coexist'):
+                        MODULE.command_initial_control_header(self.source, root / 'out.h', MODULE.ENTRY)
+                    self.assertFalse((root / 'out.h').exists())
+                finally:
+                    MODULE.ROOT = original_root
+
+
+class BundleInstallerComposition(unittest.TestCase):
+    def setUp(self):
+        # Same independently specified command forms as the existing Remote
+        # composition fixture, now selecting the distinct installer entrance.
+        previous = RemoteScopedComposition()
+        previous.setUp()
+        self.fixture = previous
+        self.commands = [[arg.replace('native_remote_resident_site',
+                                      'native_runtime_bundle') for arg in step]
+                         for step in previous.commands]
+        self.header = Path('/owned/bundle-initial-control.h')
+
+    def plan(self, commands=None, **changes):
+        f = self.fixture
+        return MODULE.commands_for('\n'.join(shlex.join(c) for c in
+                                   (self.commands if commands is None else commands)),
+                                   f.home, f.emission, f.stage, f.clang, f.sdk,
+                                   entry=MODULE.BUNDLE_ENTRY, source_sha=f.source,
+                                   **{'bundle_control_header': self.header, **changes})
+
+    def test_installer_has_one_own_header_entrance_without_changing_other_c_steps(self):
+        planned = self.plan()
+        selected = [c for c in planned if any(x.startswith('-DACTQL_BUNDLE_') for x in c)]
+        self.assertEqual(len(selected), 1)
+        self.assertIn('./src/cmd/native_runtime_bundle/initial_control_stub.c', selected[0])
+        self.assertIn('-DACTQL_BUNDLE_INITIAL_CONTROL_HEADER="' + str(self.header) + '"', selected[0])
+        self.assertFalse(any(x.startswith('-DACTQL_RESIDENT_') for c in planned for x in c))
+        self.assertEqual(sum(any(x.startswith('-DACTQL_SCOPED_READ_PROVIDER=') for x in c)
+                             for c in planned), 1)
+        step = next(c for c in self.commands if './src/cmd/native_runtime_bundle/initial_control_stub.c' in c)
+        for commands in ([c for c in self.commands if c is not step], self.commands + [step]):
+            with self.subTest(steps=len(commands)), self.assertRaisesRegex(ValueError, 'installer initial-control entrance'):
+                self.plan(commands)
+
+    def test_installer_cannot_borrow_a_resident_or_foreign_header_selection(self):
+        for header in (None, Path('/foreign/bundle-control.h')):
+            with self.subTest(header=header), self.assertRaisesRegex(ValueError, 'Bundle installer source'):
+                self.plan(bundle_control_header=header,
+                          resident_control_header=self.fixture.header)
+        commands = [c.copy() for c in self.commands]
+        commands[3].append('-DACTQL_RESIDENT_SOURCE_SHA="' + self.fixture.source + '"')
+        with self.assertRaisesRegex(ValueError, 'Duplicate Bundle installer'):
+            self.plan(commands)
+
+    def test_installer_private_recipe_is_distinct_and_exact(self):
+        import hashlib
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / 'bundle.h'
+            record = MODULE.command_initial_control_header(self.fixture.source, output, MODULE.BUNDLE_ENTRY)
+            recipe = MODULE.ROOT / MODULE.BUNDLE_ENTRY / 'initial_control_recipe.json'
+            self.assertEqual(record['recipe']['path'], str(recipe))
+            self.assertEqual(record['recipeSha256'], hashlib.sha256(recipe.read_bytes()).hexdigest())
+            self.assertEqual(record['selected']['kind'], 'private-runtime-bundle-command-initial-control')
+            self.assertIn('#define ACTQL_BUNDLE_MANAGED_PAYLOAD 67108864\n', output.read_text())
+            self.assertIn('#define ACTQL_BUNDLE_SQLITE_HEAP 33554432\n', output.read_text())
+            self.assertIn('#define ACTQL_BUNDLE_CRYPTO_HEAP 16777216\n', output.read_text())
+            self.assertIn('#define ACTQL_BUNDLE_DIAGNOSTIC_BYTES 2048\n', output.read_text())
+            self.assertFalse(record['permission'])
+            self.assertFalse(record['physicalAcquired'])
+
+    def test_installer_rejects_component_extents_that_cannot_coexist(self):
+        original_root = MODULE.ROOT
+        recipe = json.loads((original_root / MODULE.BUNDLE_ENTRY / 'initial_control_recipe.json').read_text())
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            selected = root / MODULE.BUNDLE_ENTRY / 'initial_control_recipe.json'
+            selected.parent.mkdir(parents=True)
+            recipe['sqliteHeapBytes'] = recipe['capacityBytes']
+            selected.write_text(json.dumps(recipe))
+            try:
+                MODULE.ROOT = root
+                with self.assertRaisesRegex(ValueError, 'cannot coexist'):
+                    MODULE.command_initial_control_header(self.fixture.source, root / 'out.h', MODULE.BUNDLE_ENTRY)
+                self.assertFalse((root / 'out.h').exists())
+            finally:
+                MODULE.ROOT = original_root
+
+    def test_only_the_selected_original_entry_recipe_changes(self):
+        f = self.fixture
+        for entry, strip in ((MODULE.ENTRY, True), (MODULE.LOCAL_ENTRY, False),
+                             (MODULE.BUNDLE_ENTRY, True)):
+            with self.subTest(entry=entry):
+                arguments = MODULE.moon_build_arguments(f.home, f.emission, entry)
+                self.assertEqual(arguments[-1], entry)
+                self.assertEqual('--strip' in arguments, strip)
+                self.assertEqual(arguments.count('--release'), 1)
 
 
 if __name__ == '__main__':

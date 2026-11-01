@@ -5,6 +5,9 @@ pkgtype(kind: "executable")
 import {
   "actql/actql/client_local_host" @local_values,
   "actql/actql/platform_native/remote_agent" @agent,
+  "actql/actql/platform_native/host_bootstrap" @bootstrap,
+  "actql/actql/physical_resources" @resources,
+  "moonbitlang/core/encoding/utf8",
   "actql/actql/check_environment" @environment,
   "actql/actql/client_local_host" @local_values,
   "actql/actql/decode_core" @decode,
@@ -49,3 +52,7 @@ import {
   "actql/actql/physical_manifest" @output_manifest,
   "moonbitlang/core/encoding/utf8",
 } for "wbtest"
+
+options(
+  "native-stub": [ "initial_control_stub.c" ],
+)
