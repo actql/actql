@@ -2544,3 +2544,21 @@ frame still retains a failed complete prefix until existing cleanup. Physical
 response work and other simultaneous constructor compositions keep their full
 allowances; this rule is neither a wider recovery grant nor a capacity-policy
 change. Checked retained and combined execution overflow still refuses.
+
+
+The optional checked value-node proof preserves closed Object fields and
+original Array max_items through the same prepared schema inventory. A row
+root, each collection root and every possible child contributes to its node
+bound. Nullable fields retain the non-null upper bound. This changes no text,
+wire-byte, value-depth, execution-work or Ledger ceiling. Original input and
+intermediate ports still contribute separately; no observed row or value is
+used to select a smaller policy.
+
+The proof borrows immutable indexed fields without copying a schema tree. Its
+visited contracts spend the existing proof work counter, and its borrowed
+frames use the original compilation value-depth limit and fixed trusted Host
+control allowance. The resulting original inventory is retained with the Plan;
+task consumers do not redo this schema walk. Missing Array bounds, opaque
+reference/JSON domains, arithmetic overflow, or exhausted proof work/depth
+select the existing general policy rather than a partial bound or a new
+acceptance restriction.

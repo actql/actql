@@ -58216,6 +58216,198 @@
           }
         }
       ]
+    },
+    {
+      "module": "src/client_local_host/value_node_demand.mbt",
+      "sha256": "38c597ea26fd862623619b7c667eaa335595d563a86c7d578a0ce8a348973c71",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "B — original prepared schema demand and installed Effect composition",
+      "referenceQualification": "Private checked source and focused Local component only; ordinary normal artifact and complete range/clear capacity remain unqualified.",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_local_json_contract_nodes",
+          "declaration": "client_local_json_contract_nodes ( contract : @ contract . Contract , work : Ref [ Int ] , depth : Int , ) - > Int64 ?"
+        },
+        {
+          "name": "client_local_json_schema_nodes",
+          "declaration": "client_local_json_schema_nodes ( schema : @ schema . Schema , max_work : Int , depth : Int , ) - > ( Int64 , Int ) ?"
+        },
+        {
+          "name": "client_local_value_node_demand",
+          "declaration": "client_local_value_node_demand ( original : ClientLocalSchemaProofInventory , rows : Int , ) - > ClientLocalValueNodeDemand ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_local_json_contract_nodes",
+            "client_local_json_schema_nodes",
+            "client_local_value_node_demand"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The optional checked value-node proof preserves closed Object fields and"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The optional checked value-node proof preserves closed Object fields and"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The optional checked value-node proof preserves closed Object fields and"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The optional checked value-node proof preserves closed Object fields and"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The optional checked value-node proof preserves closed Object fields and"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The optional checked value-node proof preserves closed Object fields and"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The optional checked value-node proof preserves closed Object fields and"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The optional checked value-node proof preserves closed Object fields and"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The optional checked value-node proof preserves closed Object fields and"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The optional checked value-node proof preserves closed Object fields and"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/schema_proof_inventory.mbt",
+      "sha256": "99a9cb2266ff70d952344176b3f8c71c842e534b274393e6b437e02e55671891",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "B — original prepared schema demand and installed Effect composition",
+      "referenceQualification": "Private checked source and focused Local component only; ordinary normal artifact and complete range/clear capacity remain unqualified.",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_local_inventory_nodes",
+          "declaration": "client_local_inventory_nodes ( inventory : ClientLocalSchemaProofInventory , max_rows : Int , ) - > Int ?"
+        },
+        {
+          "name": "client_local_schema_proof_inventory",
+          "declaration": "client_local_schema_proof_inventory ( sequences : Array [ @ execution . GeneratedSequence ] , max_work ? : Int"
+        },
+        {
+          "name": "client_local_schema_proof_work",
+          "declaration": "client_local_schema_proof_work ( ) - > Int"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_local_inventory_nodes",
+            "client_local_schema_proof_inventory",
+            "client_local_schema_proof_work"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The optional checked value-node proof preserves closed Object fields and"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The optional checked value-node proof preserves closed Object fields and"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The optional checked value-node proof preserves closed Object fields and"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The optional checked value-node proof preserves closed Object fields and"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The optional checked value-node proof preserves closed Object fields and"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The optional checked value-node proof preserves closed Object fields and"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The optional checked value-node proof preserves closed Object fields and"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The optional checked value-node proof preserves closed Object fields and"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The optional checked value-node proof preserves closed Object fields and"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The optional checked value-node proof preserves closed Object fields and"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }
