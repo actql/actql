@@ -47,6 +47,7 @@ export async function loadInstalledSalesforceEffectInstallation(checked,
       connectorRevision: effect.connectorRevision,
       targetReadInventory: effect.targetReadInventory,
       targetReadAuthorization: effect.targetReadAuthorization,
+      prepareManagedPlan: effect.prepareManagedPlan,
       prepareCaptured: effect.prepareCaptured,
       prepareRecovered: effect.prepareRecovered,
       close: () => effect.close()}));

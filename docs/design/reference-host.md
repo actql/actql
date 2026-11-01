@@ -1801,6 +1801,21 @@ schema decoding, request forest, writers and UTF8 buffers. The existing reader
 owns response parsing, projection and row work, so they are not counted again
 as another request parser. The grid retains no paging cursor or row-identity
 strings; those unused representation dimensions do not constrain cell values.
+The grid response selects the preserving Reader quote because its actual
+native parser and indexed admission retain exact keys without NFC. The generic
+normalizing Reader quote is unchanged. Literal parser construction already
+contains its key-map growth peak; the preserving quote replaces only that
+component using the same KeyAdmission constructor inventory. Parser frames and
+decoder ObjectNext frames retain at most min(nodes, depth) live map owners and
+at most nodes entries, including a pending key before refusal. Their depth
+checks precede map creation. Completed Source objects retain fields, not those
+maps; parsing and indexed admission are sequential, so one such peak covers
+both. Source/indexed trees, text, decoder controls, ancestry, buffers and
+failed-input backing remain composed independently. This changes neither
+implementation bounds nor the admitted Ledger policy and supplies no cleanup
+or physical-GC acknowledgement. The preserving implementation selection is
+immutable; missing native support or switching the selected parser recipe
+refuses rather than falling back to the generic quote.
 All declared cells remain admitted before requested-column projection. Site
 authorization, acquisition admission, before-send current checks, response
 charging and failed-child retirement remain with their original owners.

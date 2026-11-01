@@ -55591,7 +55591,7 @@
     },
     {
       "module": "src/client_local_host/installed_source_reader_capacity.mbt",
-      "sha256": "6a25530e58d1cfffddf94f7240815b94192f7bc251a3d1b4ca9b74c9c0021d16",
+      "sha256": "93c45c7a5468d92df752c276fa7edcb901632870f1787021523bdd8e4ca5d1f6",
       "operations": [
         {
           "name": "installed_gmail_thread_reader_capacity",
@@ -55602,8 +55602,16 @@
           "declaration": "installed_json_source_reader_capacity ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , ) - > @ execution . ExecutionCapacity ?"
         },
         {
+          "name": "installed_json_source_reader_capacity_with_decoder",
+          "declaration": "installed_json_source_reader_capacity_with_decoder ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , response_workspace : ( Int , Int , Int ) - > @ execution . PreparationRepresentationUnits ? , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
           "name": "installed_json_source_reader_capacity_with_request",
           "declaration": "installed_json_source_reader_capacity_with_request ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , request : @ execution . ExecutionCapacity ? , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "installed_preserving_json_source_reader_capacity_with_request",
+          "declaration": "installed_preserving_json_source_reader_capacity_with_request ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , request : @ execution . ExecutionCapacity ? , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "installed_slack_source_reader_capacity",
@@ -55612,6 +55620,10 @@
         {
           "name": "installed_source_reader_policy",
           "declaration": "installed_source_reader_policy ( ) - > Array [ Int ]"
+        },
+        {
+          "name": "installed_source_response_preserving_workspace",
+          "declaration": "installed_source_response_preserving_workspace ( bytes : Int , nodes : Int , depth : Int , ) - > @ execution . PreparationRepresentationUnits ?"
         },
         {
           "name": "installed_source_response_workspace",
@@ -55757,12 +55769,84 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "installed_source_response_preserving_workspace",
+            "installed_json_source_reader_capacity_with_decoder",
+            "installed_preserving_json_source_reader_capacity_with_request"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The grid response selects the preserving Reader quote because its actual"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/installed_source_reader_capacity.mbt",
+                "anchor": "pub fn installed_preserving_json_source_reader_capacity_with_request("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The grid response selects the preserving Reader quote because its actual"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/source_value/json_parser.mbt",
+                "anchor": "if frames.length() >= self.limits.max_depth {"
+              },
+              {
+                "path": "src/decode_core/admission.mbt",
+                "anchor": "if is_container && parent_depth >= limits.max_depth {"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Synchronous immutable recipe DATA. Parser and decoder workspaces are sequential, with no callbacks or current observations in quoting."
+            },
+            "failure": [
+              {
+                "path": "src/client_local_host/installed_source_reader_capacity.mbt",
+                "anchor": "literal.record_headers >= all_keys.record_headers"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "No grant, cancellation or physical release is issued by a constructor quote."
+            },
+            "resources": [
+              {
+                "path": "src/decode_shape/key_admission_construction.mbt",
+                "anchor": "pub fn key_admission_construction_extent("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The grid response selects the preserving Reader quote because its actual"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The grid response selects the preserving Reader quote because its actual"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/installed_preserving_source_reader_wbtest.mbt",
+                "anchor": "test \"Sheets existing response bounds use sequential active key maps without NFC or policy increase\""
+              }
+            ]
+          }
         }
       ]
     },
     {
       "module": "src/connectors_builtin_node/client_installed_source_reader_bridge.mbt",
-      "sha256": "8794ac88b314cd3cc20b2db225b9beab09066e940ad810272f43538bf69abb2a",
+      "sha256": "fb3c92b460b279e318bda9f380fff96f454dc2104b2eafd54f0dede843434511",
       "operations": [
         {
           "name": "client_program_installed_gmail_thread_reader_capacity",
@@ -55779,6 +55863,10 @@
         {
           "name": "client_program_installed_json_source_reader_profile",
           "declaration": "client_program_installed_json_source_reader_profile ( metadata_responses : Int , origin_units : Int , ) - > Array [ Int ] ?"
+        },
+        {
+          "name": "client_program_installed_preserving_json_source_reader_capacity_with_request",
+          "declaration": "client_program_installed_preserving_json_source_reader_capacity_with_request ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , request : @ execution . ExecutionCapacity ? , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "client_program_installed_slack_source_reader_capacity",
@@ -55925,6 +56013,76 @@
               {
                 "path": "src/connectors/sheets/host_node/source_read_construction_wbtest.mbt",
                 "anchor": "test \"Sheets standard Source request constructor composes through same Core reader without an HTTP grant\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_installed_preserving_json_source_reader_capacity_with_request"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The grid response selects the preserving Reader quote because its actual"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors_builtin_node/client_installed_source_reader_bridge.mbt",
+                "anchor": "pub fn client_program_installed_preserving_json_source_reader_capacity_with_request("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The grid response selects the preserving Reader quote because its actual"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/source_value/json_parser.mbt",
+                "anchor": "if frames.length() >= self.limits.max_depth {"
+              },
+              {
+                "path": "src/decode_core/admission.mbt",
+                "anchor": "if is_container && parent_depth >= limits.max_depth {"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Synchronous immutable recipe DATA. Parser and decoder workspaces are sequential, with no callbacks or current observations in quoting."
+            },
+            "failure": [
+              {
+                "path": "src/client_local_host/installed_source_reader_capacity.mbt",
+                "anchor": "literal.record_headers >= all_keys.record_headers"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "No grant, cancellation or physical release is issued by a constructor quote."
+            },
+            "resources": [
+              {
+                "path": "src/decode_shape/key_admission_construction.mbt",
+                "anchor": "pub fn key_admission_construction_extent("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The grid response selects the preserving Reader quote because its actual"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The grid response selects the preserving Reader quote because its actual"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/installed_preserving_source_reader_wbtest.mbt",
+                "anchor": "test \"Sheets existing response bounds use sequential active key maps without NFC or policy increase\""
               }
             ]
           }

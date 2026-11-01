@@ -873,6 +873,7 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
   const sourceProfile = moon.clientProgramInstalledJsonSourceReaderProfile;
   const sourceCapacity = moon.clientProgramInstalledJsonSourceReaderCapacity;
   const sourceRequestCapacity = moon.clientProgramInstalledJsonSourceReaderCapacityWithRequest;
+  const preservingSourceRequestCapacity = moon.clientProgramInstalledPreservingJsonSourceReaderCapacityWithRequest;
   const gmailThreadCapacity = moon.clientProgramInstalledGmailThreadReaderCapacity;
   const slackCapacity = moon.clientProgramInstalledSlackSourceReaderCapacity;
   const current = () => {
@@ -922,16 +923,19 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
       }
       const fields = Object.getOwnPropertyDescriptors(options ?? {});
       if (Reflect.ownKeys(fields).length !== (Object.hasOwn(fields, 'sourceInitialization') ? 4 : 3) +
-          (Object.hasOwn(fields, 'requestConstruction') ? 1 : 0) || ['installation', 'limits', 'columnCount'].some(name =>
+          (Object.hasOwn(fields, 'requestConstruction') ? 1 : 0) +
+          (Object.hasOwn(fields, 'preservingRequestConstruction') ? 1 : 0) ||
+          Object.hasOwn(fields, 'requestConstruction') && Object.hasOwn(fields, 'preservingRequestConstruction') || ['installation', 'limits', 'columnCount'].some(name =>
         !Object.hasOwn(fields[name] ?? {}, 'value'))) fail('InvalidInstalledSourceReaderSelection');
       if (nodeTypes.isProxy(fields.limits.value ?? {})) fail('InvalidInstalledSourceReaderSelection');
       const installation = fields.installation.value, runtimeBundleCid = selected.get(installation);
       if (runtimeBundleCid === undefined) fail('ForeignInstalledHostServiceInstallation');
       const selection = requireSourceConstructor(services, installation, fields);
       const columns = fields.columnCount.value;
+      const preservingResponse = Object.hasOwn(fields, 'preservingRequestConstruction');
       let requestConstruction;
-      if (Object.hasOwn(fields, 'requestConstruction')) {
-        const field = fields.requestConstruction;
+      if (Object.hasOwn(fields, 'requestConstruction') || preservingResponse) {
+        const field = preservingResponse ? fields.preservingRequestConstruction : fields.requestConstruction;
         if (!Object.hasOwn(field, 'value') || !field.value || nodeTypes.isProxy(field.value) ||
             !Object.isFrozen(field.value)) fail('InvalidInstalledSourceRequestConstruction');
         const original = Object.getOwnPropertyDescriptors(field.value);
@@ -982,7 +986,8 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
             !(nestedLimits !== undefined && name === 'maxPages') && supplied[name].value > profile.value[name]))) {
         fail('InstalledSourceReaderImplementationBoundsExceeded');
       }
-      if ([sourcePolicy, requestConstruction === undefined ? sourceCapacity : sourceRequestCapacity].some(port => typeof port !== 'function')) fail('InstalledSourceReaderRuntimeUnavailable');
+      const selectedRequestCapacity = preservingResponse ? preservingSourceRequestCapacity : sourceRequestCapacity;
+      if ([sourcePolicy, requestConstruction === undefined ? sourceCapacity : selectedRequestCapacity].some(port => typeof port !== 'function')) fail('InstalledSourceReaderRuntimeUnavailable');
       const policy = Reflect.apply(sourcePolicy, moon, []);
       if (!Array.isArray(policy) || policy.length !== 3 || policy.some(value =>
         !Number.isSafeInteger(value) || value < 1 || value > 2147483647) ||
@@ -991,7 +996,7 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
       const limits = Object.freeze(Object.fromEntries(names.map(name => [name, supplied[name].value])));
       const previous = sourceImplementations.get(selection);
       if (previous !== undefined) {
-        if (previous.requestConstruction !== requestConstruction ||
+        if (previous.requestConstruction !== requestConstruction || previous.preservingResponse !== preservingResponse ||
             previous.runtimeBundleCid !== runtimeBundleCid || previous.columns !== columns ||
             (previous.nestedLimits === undefined) !== (nestedLimits === undefined) ||
             nestedLimits !== undefined && Object.keys(nestedLimits.original).some(function sequenceSelectionChanged(name) {
@@ -1014,7 +1019,7 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
       }
       if (threadLimits !== undefined && typeof gmailThreadCapacity !== 'function') fail('InstalledSourceReaderRuntimeUnavailable');
       if (slackLimits !== undefined && typeof slackCapacity !== 'function') fail('InstalledSourceReaderRuntimeUnavailable');
-      const capacity = Reflect.apply(slackLimits !== undefined ? slackCapacity : threadLimits === undefined ? requestConstruction === undefined ? sourceCapacity : sourceRequestCapacity : gmailThreadCapacity, moon,
+      const capacity = Reflect.apply(slackLimits !== undefined ? slackCapacity : threadLimits === undefined ? requestConstruction === undefined ? sourceCapacity : selectedRequestCapacity : gmailThreadCapacity, moon,
         [nestedLimits?.quote ?? installedJsonSourceReaderLimitNames.map(name => limits[name]), columns, limits.maxSecretBytes,
           ...(slackLimits !== undefined ? [slackLimits.original.maxPages] : threadLimits === undefined
             ? requestConstruction === undefined ? [] : [requestConstruction.capacity]
@@ -1022,7 +1027,7 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
       if (capacity === undefined || capacity === null) fail('InstalledSourceReaderCapacityUnavailable');
       const value = Object.freeze({capacity, limits, runAcquisitionLimits: Object.freeze({
         maxBindings: policy[1], maxSecretBytes: limits.maxSecretBytes})});
-      current(); sourceImplementations.set(selection, Object.freeze({runtimeBundleCid, columns, calendarLimits, nestedLimits, threadLimits, slackLimits, requestConstruction, value}));
+      current(); sourceImplementations.set(selection, Object.freeze({runtimeBundleCid, columns, calendarLimits, nestedLimits, threadLimits, slackLimits, requestConstruction, preservingResponse, value}));
       return value;
     },
     createSourceReader(options) {

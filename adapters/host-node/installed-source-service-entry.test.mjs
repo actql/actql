@@ -323,3 +323,32 @@ test('actual standard Source factory forwards the selected constructor request b
   assert.throws(()=>method({installation,implementation,site,operation:'sheets:grid:read',preparePageReader}),
     {code:'InstalledSourceReaderAlreadyConstructed'});
 });
+
+test('Source service selects the original preserving constructor once without changing generic decoder choice', () => {
+  const original=Object.freeze({}),quantity=Object.freeze({}),calls=[];
+  const construction=Object.freeze({capacity:original,maxRequestBytes:512});
+  const f=fixture({clientProgramInstalledPreservingJsonSourceReaderCapacityWithRequest(limits,columns,secret,request) {
+    assert.equal(this,f.moon);assert.deepEqual(limits,values.slice(0,16));assert.equal(columns,3);
+    assert.equal(secret,65536);assert.equal(request,original);calls.push(request);return quantity;
+  },clientProgramInstalledJsonSourceReaderCapacityWithRequest(){assert.fail('No normalizing constructor for preserving decoder');}});
+  retainInstalledHostServiceInstallation(f.services,f.installation,'sha256:'+'a'.repeat(64));
+  const policy=f.services.sourceReaderImplementationProfile({installation:f.installation,metadataResponses:3,originUnits:20});
+  const input={installation:f.installation,limits:policy,columnCount:3,preservingRequestConstruction:construction};
+  const chosen=f.services.sourceReaderImplementation(input);
+  assert.equal(chosen.capacity,quantity);assert.equal(f.services.sourceReaderImplementation(input),chosen);
+  assert.deepEqual(calls,[original]);assert.deepEqual(f.counts(),[1,0]);
+  assert.throws(()=>f.services.sourceReaderImplementation({installation:f.installation,limits:policy,columnCount:3,
+    requestConstruction:construction}),{code:'InstalledSourceReaderSelectionChanged'});
+  assert.throws(()=>f.services.sourceReaderImplementation({...input,requestConstruction:construction}),
+    {code:'InvalidInstalledSourceReaderSelection'});
+  assert.deepEqual(calls,[original]);
+});
+
+test('Source preserving selection refuses missing native constructor instead of a cheaper or generic fallback', () => {
+  const f=fixture();retainInstalledHostServiceInstallation(f.services,f.installation,'sha256:'+'a'.repeat(64));
+  const policy=f.services.sourceReaderImplementationProfile({installation:f.installation,metadataResponses:3,originUnits:20});
+  assert.throws(()=>f.services.sourceReaderImplementation({installation:f.installation,limits:policy,columnCount:3,
+    preservingRequestConstruction:Object.freeze({capacity:{},maxRequestBytes:512})}),
+    {code:'InstalledSourceReaderRuntimeUnavailable'});
+  assert.deepEqual(f.counts(),[1,0]);
+});

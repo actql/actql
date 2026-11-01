@@ -8794,7 +8794,7 @@
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-effect-installation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "0206537351753ffdb51636258c69ae77c96b66d5e2969d9d3ce0795329a62c07",
+      "sha256": "382a7a17daf69b65f90da63a6e2e548342493f47b21b5c3ee8426476a85c41a0",
       "role": "connector-semantics",
       "owner": "Salesforce factory entries in the generated Host connector table, not an independent Effect runtime",
       "exports": [
@@ -8958,7 +8958,14 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../../../host-node/installed-row-effect.mjs",
+        "./installed-salesforce-effect.mjs",
+        "./salesforce-publication.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",

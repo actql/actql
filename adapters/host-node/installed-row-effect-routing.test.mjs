@@ -494,3 +494,19 @@ test('actual Salesforce loader projection retains the original registered Plan p
     .assertPrepared({moon:f.moon,compilation:program});
   assert.deepEqual(f.calls,[]);
 });
+
+test('actual Salesforce installation second projection preserves the same registered managed Plan function', async t => {
+  const f=await fixture(t),source=await readFile(new URL('../connectors/salesforce/host/installed-salesforce-effect-installation.mjs',import.meta.url),'utf8');
+  const fn=parse(source,{ecmaVersion:'latest',sourceType:'module'}).body.map(node=>node.declaration??node)
+    .find(node=>node.type==='FunctionDeclaration'&&node.id.name==='loadInstalledSalesforceEffectInstallation');
+  assert(fn);
+  const original=f.effects[0],checked={},providerMoon={},options={runtimeBundleCid:cid('a')};let factoryCalls=0;
+  const load=Function('loadInstalledSalesforceEffect','retainInstalledRowEffectAdapter',`return (${source.slice(fn.start,fn.end)});`)(
+    async(profile,input)=>{assert.equal(profile,checked);assert.equal(input.salesforceMoon,providerMoon);
+      assert.equal(input.runtimeBundleCid,options.runtimeBundleCid);factoryCalls++;return original;},retainInstalledRowEffectAdapter);
+  const selected=await load(checked,{providerMoon,...options});
+  assert.equal(factoryCalls,1);assert.equal(selected.prepareManagedPlan,original.prepareManagedPlan);
+  composeInstalledRowEffectOwners([selected,f.effects[1]],f.descriptors,'{}')
+    .assertPrepared({moon:f.moon,compilation:program});
+  assert.deepEqual(f.calls,[]);
+});

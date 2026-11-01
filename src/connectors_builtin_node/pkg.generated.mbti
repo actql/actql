@@ -1698,6 +1698,8 @@ pub fn client_program_installed_preparation_payload_severed(@client_local_host.C
 
 pub fn client_program_installed_preparation_usage_isolated(@client_local_host.ClientInstalledManagedRun, @run_publication_host.ClientRequestIdentity, @physical_strategy_host.CapturedDAG) -> Bool
 
+pub fn client_program_installed_preserving_json_source_reader_capacity_with_request(Array[Int], Int, Int, @execution_relation.ExecutionCapacity?) -> @execution_relation.ExecutionCapacity?
+
 pub fn client_program_installed_provider_row_capture_capacity(@client_row_source_host.RowAcquisition, @execution_relation.ExecutionCapacity?) -> @client_local_host.ClientInstalledCaptureCapacity?
 
 pub fn client_program_installed_provider_row_capture_capacity_matches(@client_local_host.ClientInstalledCaptureCapacity, @client_row_source_host.RowAcquisition, @execution_relation.ExecutionCapacity) -> Bool

@@ -338,7 +338,7 @@ async function loadManagedSheetsGridSource(profile, options, site, publication, 
   const limits=sheetsGridReaderLimits(site,publication,selected[0]);
   const requestConstruction=Object.freeze({capacity:requestCapacity,maxRequestBytes:SHEETS_LIMITS.maxRequestBytes});
   const implementation=services('sourceReaderImplementation',{installation,sourceInitialization,limits,
-    columnCount:site.columns.length,requestConstruction});
+    columnCount:site.columns.length,preservingRequestConstruction:requestConstruction});
   let opened,providerReader;
   try {
     opened=await openSite(profile,site,{...options,runAcquisitionLimits:implementation.runAcquisitionLimits},

@@ -959,7 +959,7 @@ test('actual managed Sheets Source selects same original request quantity before
   const services={sourceReaderImplementationProfile(){assert.fail('Existing Sheets bounds must not be substituted');},
     sourceReaderImplementation(input){assert.equal(this,services);calls.push('implementation');
       assert.equal(input.sourceInitialization,scope);assert.equal(input.installation,installation);
-      assert.equal(input.requestConstruction.capacity,quantity);assert.equal(input.requestConstruction.maxRequestBytes,300000);
+      assert.equal(input.preservingRequestConstruction.capacity,quantity);assert.equal(input.preservingRequestConstruction.maxRequestBytes,300000);
       assert.equal(input.limits.maxResponseBytes,2000000);assert.equal(input.limits.maxPages,1);
       assert.equal(input.limits.maxIdentityBytes,1);assert.equal(input.limits.maxCursorBytes,1);
       assert.equal(input.limits.maxValueTextBytes,2000000);return implementation;},
