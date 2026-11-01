@@ -9,6 +9,7 @@ import unittest
 from unittest.mock import patch
 
 from actql_sdk._local_files import LocalFileRoot, LocalFileError
+from actql_sdk._local_journal_port import _JournalCallbacks
 from actql_sdk._local_storage import ByteWrite, LocalByteStore, LocalStorageError
 from actql_sdk._local_submission import LocalSubmissionAuthority, LocalSubmissionIdentityError
 
@@ -112,6 +113,76 @@ class LocalOwnedStoreInitializationTests(unittest.TestCase):
                                       max_payload_bytes=32768)
             self.addCleanup(reopened.close)
             self.assertEqual(reopened._connection.execute('PRAGMA user_version').fetchone(), (2,))
+
+    def test_original_catalog_scalar_port_borrows_only_current_reader(self):
+        path, root, original = self.fixture()
+        store = self.open(path / original.name, root, original)
+        calls = []
+        def current(): calls.append(None)
+        callbacks = _JournalCallbacks(current, store)
+        def inspect(reader):
+            callbacks.reader = reader
+            before = len(calls)
+            self.assertEqual(callbacks.schema(), 1)
+            self.assertEqual(len(calls) - before, 2)
+        store.inspect_namespaces((), inspect=inspect, current=current)
+        before = len(calls)
+        self.assertEqual(callbacks.schema(), -41)
+        self.assertIsInstance(callbacks.failure, ValueError)
+        self.assertEqual(len(calls), before)
+
+    def test_unique_definition_domain_does_not_key_program_and_preserves_original_cas(self):
+        path, root, original = self.fixture()
+        store = self.open(path / original.name, root, original)
+        def body(cid, cancellation=False):
+            return json.dumps({'program': 'same-program', 'cancellation_requested': cancellation,
+                'run_definition': json.dumps({'run_definition_cid': 'sha256:' + cid * 64})}).encode()
+        first = store.namespaced_key('client_runs', 'first')
+        second = store.namespaced_key('client_runs', 'second')
+        self.assertEqual(store.compare_exchange(first, None, body('a')), 0)
+        self.assertEqual(store.compare_exchange(second, None, body('b')), 0)
+        self.assertEqual(store.compare_exchange(first, 0, body('a', True)), 1)
+        self.assertIsNone(store.compare_exchange(first, 0, body('b')))
+        with self.assertRaises(sqlite3.IntegrityError):
+            store.compare_exchange(first, 1, body('b'))
+        self.assertEqual((store.read(first).generation, store.read(first).payload), (1, body('a', True)))
+        self.assertEqual((store.read(second).generation, store.read(second).payload), (0, body('b')))
+
+    def test_actual_catalog_refuses_shadowing_and_changed_format_with_no_cache(self):
+        path, root, original = self.fixture()
+        store = self.open(path / original.name, root, original)
+        for change in ('CREATE TEMP VIEW core_bytes AS SELECT * FROM main.core_bytes',
+                       'PRAGMA main.user_version=4'):
+            with self.subTest(change=change):
+                store._physical.begin_read()
+                try:
+                    self.assertEqual(store._physical._journal_schema(), 1)
+                    store._connection.execute(change)
+                    with self.assertRaises(ValueError):
+                        store._physical._journal_schema()
+                finally:
+                    store._physical.finish_read()
+
+    def test_catalog_current_failure_poisoning_keeps_same_exception_without_retry(self):
+        for stop in (1, 2):
+            with self.subTest(stop=stop):
+                path, root, original = self.fixture()
+                store = self.open(path / original.name, root, original)
+                failure = PermissionError('original required current changed')
+                required_calls = []
+                def required():
+                    required_calls.append(None)
+                    if len(required_calls) == stop: raise failure
+                callbacks = _JournalCallbacks(required, store)
+                def inspect(reader):
+                    callbacks.reader = reader
+                    self.assertEqual(callbacks.schema(), -41)
+                    self.assertIs(callbacks.failure, failure)
+                    self.assertEqual(callbacks.schema(), -41)
+                with self.assertRaises(PermissionError) as caught:
+                    store.inspect_namespaces((), inspect=inspect, current=lambda: None)
+                self.assertIs(caught.exception, failure)
+                self.assertEqual(len(required_calls), stop)
 
     def test_original_file_generation_is_bound_before_sql_and_claimed_once(self):
         path, root, value = self.fixture()
