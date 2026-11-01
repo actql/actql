@@ -6,19 +6,9 @@ priv enum ClientInstalledManagedRunOriginal {
     @resources.NodeManagedRunAdmission[@publication_host.PreparedClientProgram],
     @publication_host.PreparedClientProgram
   )
-  EffectManaged(
-    @resources.NodeManagedRunAdmission[
-      @publication_host.PreparedClientEffectComputation,
-    ],
-    @publication_host.PreparedClientEffectComputation
-  )
   PlannedEffectManaged(
     @resources.NodeManagedRunAdmission[ClientInstalledEffectManagedPlan],
     ClientInstalledEffectManagedPlan
-  )
-  ContentManaged(
-    @resources.NodeManagedRunAdmission[@publication_host.PreparedClientProgram],
-    @publication_host.PreparedClientProgram
   )
   PreparationContentManaged(
     @resources.NodeManagedRunAdmission[@publication_host.PreparedClientProgram],
@@ -790,9 +780,7 @@ fn installed_managed_run_owner(
 ) -> Result[ClientLocalSequenceOwner, ClientInstalledManagedRunIssue] {
   match value.preparation {
     Some(PureManaged(_, prepared)) => Ok(Pure(prepared))
-    Some(EffectManaged(_, prepared)) => Ok(Effect(prepared))
     Some(PlannedEffectManaged(_, plan)) => Ok(Effect(plan.prepared))
-    Some(ContentManaged(_, prepared)) => Ok(Pure(prepared))
     Some(PreparationContentManaged(_, prepared)) => Ok(Pure(prepared))
     None => Err(Retired)
   }
@@ -827,9 +815,7 @@ fn new_installed_managed_run_owned(
         installed_managed_owner_graph(
           match preparation {
             PureManaged(_, prepared) => Pure(prepared)
-            EffectManaged(_, prepared) => Effect(prepared)
             PlannedEffectManaged(_, plan) => Effect(plan.prepared)
-            ContentManaged(_, prepared) => Pure(prepared)
             PreparationContentManaged(_, prepared) => Pure(prepared)
           },
         ),
@@ -870,19 +856,10 @@ fn require_installed_managed_run(
   let checked = match preparation {
     PureManaged(admission, prepared) =>
       check_installed_managed_run_admission(admission, prepared, ledger)
-    EffectManaged(admission, prepared) =>
-      check_installed_managed_run_admission(admission, prepared, ledger)
     PlannedEffectManaged(admission, plan) =>
       check_installed_managed_run_admission(admission, plan, ledger)
     PreparationContentManaged(admission, prepared) =>
       check_installed_managed_run_admission(admission, prepared, ledger)
-    ContentManaged(admission, prepared) =>
-      match
-        @resources.check_node_local_content_run_preparation(admission, prepared) {
-        Err(issue) => Err(issue)
-        Ok(_) =>
-          check_installed_managed_run_admission(admission, prepared, ledger)
-      }
   }
   match checked {
     // Preserve the original parked-inventory error boundary. The same Core
@@ -913,11 +890,7 @@ fn check_installed_managed_run_original(
   let same = match (preparation, current_preparation) {
     (PureManaged(a, p), PureManaged(b, q)) =>
       physical_equal(a, b) && physical_equal(p, q)
-    (EffectManaged(a, p), EffectManaged(b, q)) =>
-      physical_equal(a, b) && physical_equal(p, q)
     (PlannedEffectManaged(a, p), PlannedEffectManaged(b, q)) =>
-      physical_equal(a, b) && physical_equal(p, q)
-    (ContentManaged(a, p), ContentManaged(b, q)) =>
       physical_equal(a, b) && physical_equal(p, q)
     (PreparationContentManaged(a, p), PreparationContentManaged(b, q)) =>
       physical_equal(a, b) && physical_equal(p, q)
@@ -992,9 +965,7 @@ fn check_installed_managed_run_binding(
   guard value.preparation is Some(preparation) else { return Err(Retired) }
   let selected = match preparation {
     PureManaged(_, prepared) => Some(prepared)
-    ContentManaged(_, prepared) => Some(prepared)
     PreparationContentManaged(_, prepared) => Some(prepared)
-    EffectManaged(_, _) => None
     PlannedEffectManaged(_, _) => None
   }
   guard selected is Some(original) &&
@@ -1436,11 +1407,7 @@ pub fn retire_installed_managed_run(
   let cleaned = match preparation {
     PureManaged(admission, _) =>
       @resources.cleanup_node_managed_run_admission(admission)
-    EffectManaged(admission, _) =>
-      @resources.cleanup_node_managed_run_admission(admission)
     PlannedEffectManaged(admission, _) =>
-      @resources.cleanup_node_managed_run_admission(admission)
-    ContentManaged(admission, _) =>
       @resources.cleanup_node_managed_run_admission(admission)
     PreparationContentManaged(admission, _) =>
       @resources.cleanup_node_managed_run_admission(admission)

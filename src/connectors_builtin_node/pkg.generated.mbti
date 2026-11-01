@@ -1642,8 +1642,6 @@ pub fn client_program_installed_managed_keyed_content_prepare(@run_publication_h
 
 pub fn client_program_installed_managed_keyed_content_requirements(@client_local_host.ClientInstalledManagedKeyedPreparation) -> Array[Int64]
 
-pub fn client_program_installed_managed_keyed_content_run_begin(@physical_resources.NodeManagedRunAdmission[@run_publication_host.PreparedClientProgram], @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, @client_local_host.ClientInstalledManagedKeyedPreparation) -> Result[@client_local_host.ClientInstalledManagedRun, @client_local_host.ClientInstalledManagedRunIssue]
-
 pub fn client_program_installed_managed_keyed_serialization_prefix_cleanup(@client_local_host.ClientInstalledManagedRun, @client_local_host.ClientInstalledManagedKeyedPreparation) -> Result[Bool, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_managed_keyed_serialization_prefix_start(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @client_local_host.ClientInstalledManagedKeyedPreparation, @execution_query.CapturedInputSource, @run_publication_host.ClientKeyedLookupInput) -> Result[@client_local_host.ClientSerializationPrefix, @client_local_host.ClientInstalledManagedRunIssue]
