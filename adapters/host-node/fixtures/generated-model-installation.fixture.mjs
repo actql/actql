@@ -88,7 +88,7 @@ export function generatedContentModelProviders({root, task, expected, sourceWire
     const profile = runtimeCore(moon).publicationControl.readInstalledModelResponseProfile(
       profileWire, cid(profileBody), {maxWireBytes: 16384, maxNodes: 1000,
         maxDepth: 30, maxMembers: 1000, maxWork: 100000});
-    const installation = {...profileBody.adapter,
+    const installation = {...profileBody.adapter, sdk: undefined,
       endpoint: profileBody.operation.endpoint, http_method: profileBody.operation.method,
       streaming: false, validator_id: profileBody.completion.validator_id,
       validator_revision: profileBody.completion.validator_revision,
@@ -106,7 +106,10 @@ export function generatedContentModelProviders({root, task, expected, sourceWire
     const buffers = BigInt(limits.request_bytes + limits.response_bytes + limits.chunk_bytes +
       limits.header_bytes + limits.metadata_bytes + expected.length);
     const read = rows * (controls + 4n * buffers + 256n * BigInt(limits.parse_nodes + limits.metadata_nodes));
-    const runtimeArtifactCid = cid({adapter: profileBody.adapter, completion: profileBody.completion});
+    // This fixture pins the actual local adapter Source basis; it does not
+    // claim the hash of a newly linked formal Common/package artifact.
+    const runtimeArtifactCid = `sha256:${createHash('sha256').update(readFileSync(
+      new URL('../infer-operation.mjs', import.meta.url))).digest('hex')}`;
     const layoutArtifactCid = cid({profile: cid(profileBody), preparedRows: task.max_items,
       fixedControls: String(controls), nodeRetained: String(read), nodeExecution: String(read)});
     const originalReadRecipe = {
