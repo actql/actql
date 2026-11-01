@@ -270,7 +270,7 @@ pub fn[I] prepare_request_model_capture_module(
       }
       // The actual Query/material constructors and their protocol overlap
       // are backed before the first parse/Query call on this SAME Request.
-      // Both acquisitions borrow these SAME admitted protocol originals. Do
+      // Every acquisition borrows these SAME admitted protocol originals. Do
       // not parse/check the identical installation bodies for a second Source.
       let protocols = match
         @row_source_host.admit_row_acquisition_contracts(

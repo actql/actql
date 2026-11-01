@@ -42416,7 +42416,7 @@
     },
     {
       "module": "src/client_local_host/client_sequence.mbt",
-      "sha256": "832083def82600d96f16fa8927b2787aec26c1009a8f0ec2598891f3ffce625e",
+      "sha256": "367b18dc260f7857579835a70c5d740d3554c1d99aa6fa4a614c9962ef37517d",
       "exports": [],
       "operations": [
         {
@@ -42425,7 +42425,7 @@
         },
         {
           "name": "prepare_client_acquired_serialization_prefix",
-          "declaration": "prepare_client_acquired_serialization_prefix ( prepared : @ publication_host . PreparedClientProgram , task : Int , step : Int , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , ) - > @ execution . GeneratedSequence ?"
+          "declaration": "prepare_client_acquired_serialization_prefix ( prepared : @ publication_host . PreparedClientProgram , task : Int , step : Int , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , query_time ? : ( @ publication_host . ClientQueryTimePreparation , @ publication_host . ClientRequestIdentity , ) ?"
         },
         {
           "name": "prepare_client_composed_infer_prefix",
@@ -42530,54 +42530,90 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "verification": [
@@ -42592,6 +42628,14 @@
               {
                 "path": "adapters/host-node/request-preparation-parent.test.mjs",
                 "anchor": "test('normal first Request Plan keeps its original typed row refusal"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
+                "anchor": "same Request acquired Model prefix"
               }
             ]
           }
@@ -42600,7 +42644,7 @@
     },
     {
       "module": "src/client_local_host/installed_capture_plan.mbt",
-      "sha256": "1caced4dc94bf18e75c3c5ac82a4a9b4d9f3a68489311368f9cf05e95f33854f",
+      "sha256": "3d338f67af891c0d1b433112774726dee656857030b7ceae52de5191fd95f7bc",
       "exports": [],
       "operations": [
         {
@@ -42622,6 +42666,10 @@
         {
           "name": "prepare_installed_managed_capture_plan",
           "declaration": "prepare_installed_managed_capture_plan ( prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , captures : Array [ ClientInstalledCaptureCapacity ] , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , query_time ? : @ publication_host . ClientQueryTimePreparation ?"
+        },
+        {
+          "name": "prepare_installed_managed_capture_plan_owned",
+          "declaration": "prepare_installed_managed_capture_plan_owned ( prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , captures : Array [ ClientInstalledCaptureCapacity ] , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , model_purpose : Bool , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , query_time ? : @ publication_host . ClientQueryTimePreparation ?"
         },
         {
           "name": "prepare_retained_installed_capture_ledger",
@@ -42649,6 +42697,7 @@
             "open_installed_managed_capture_host",
             "open_installed_managed_capture_host_owned",
             "prepare_installed_managed_capture_plan",
+            "prepare_installed_managed_capture_plan_owned",
             "prepare_retained_installed_capture_ledger",
             "prepared_installed_managed_capture_acquisition",
             "prepared_installed_managed_capture_requirements"
@@ -42659,54 +42708,90 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "verification": [
@@ -42725,6 +42810,14 @@
               {
                 "path": "src/client_local_host/preparation_request_capture_body_js_wbtest.mbt",
                 "anchor": "test \"captured Request retains the same accounted compilation for publication without recompiling\""
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
+                "anchor": "same Request acquired Model prefix"
               }
             ]
           }
@@ -42981,7 +43074,7 @@
     },
     {
       "module": "src/client_local_host/installed_managed_run.mbt",
-      "sha256": "c1505518f7080d6a803ea4aa0b15920441b3bd9ec35b6de10b2eb9062b25dce6",
+      "sha256": "0244195be9a1adbcbb69a72fb7713ccf9ee4bdeb03a368e94da0fb32299e8ab7",
       "exports": [],
       "operations": [
         {
@@ -43185,54 +43278,90 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "verification": [
@@ -43251,6 +43380,14 @@
               {
                 "path": "src/client_local_host/preparation_request_capture_body_js_wbtest.mbt",
                 "anchor": "test \"captured Request retains the same accounted compilation for publication without recompiling\""
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
+                "anchor": "same Request acquired Model prefix"
               }
             ]
           }
@@ -50996,7 +51133,7 @@
     },
     {
       "module": "src/client_row_source_host/host.mbt",
-      "sha256": "6ffc688f20f61050a791fb87dc90e0190a38369998b9de71532a49d30a4cedbb",
+      "sha256": "96c0ef1f317aa0b7f8e855868ea39708c82bed8a8fa882a7bbc89545db96140d",
       "exports": [],
       "operations": [
         {
@@ -51234,60 +51371,104 @@
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "The existing RowRun has a complete-input alternative"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "same acquisition, request wire and provider"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "exact supplied-read"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "same original Request supplies the Run ledger"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "Current callbacks may reenter close"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "validation failure or cancellation retains them"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "Retirement invalidates new reads"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "existing capacity functions and units"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "native file listings require their different Resource"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "verification": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "focused Core and explicit-port Node cases"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
+                "anchor": "same Request acquired Model prefix"
               }
             ]
           }
@@ -52859,7 +53040,7 @@
     },
     {
       "module": "src/client_row_source_host/input_acquisition.mbt",
-      "sha256": "ec45b28a736523333340596fd07003f88ca20d13933cbc454dbd7f60dcfbbe4d",
+      "sha256": "ff59cc95bb096204e1b57a94000ba018d945f7a7f9bd74a4717c3e9ed03b718d",
       "exports": [],
       "operations": [
         {
@@ -52961,60 +53142,104 @@
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "The existing RowRun has a complete-input alternative"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "same acquisition, request wire and provider"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "exact supplied-read"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "same original Request supplies the Run ledger"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "Current callbacks may reenter close"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "validation failure or cancellation retains them"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "Retirement invalidates new reads"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "existing capacity functions and units"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "native file listings require their different Resource"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "verification": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "focused Core and explicit-port Node cases"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
+                "anchor": "same Request acquired Model prefix"
               }
             ]
           }
@@ -53029,54 +53254,90 @@
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "Whole-input publication binds the same adopted Run"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "typed Source evidence and the same native capture"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "exact Run association"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "same retained inventory and admitted row bound"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "before issuance and again before retaining the completed invocation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "one-shot invocation slot remains consumed on semantic failure"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "original provider/RowRun retirement confirms and the body borrow is returned"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "before capacity construction, so Result-publication reservation reuses that"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "the Query issuer keeps its original QueryRequirement array"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "verification": [
@@ -53087,6 +53348,14 @@
               {
                 "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
                 "anchor": "whole Source publication forwards the same native capture and never a Query requirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
+                "anchor": "same Request acquired Model prefix"
               }
             ]
           }

@@ -3394,7 +3394,7 @@
     },
     {
       "module": "src/client_row_source_host/provider_capacity.mbt",
-      "sha256": "7c3f16bfc4adae1703acf4120c6f952b381c8261ae8dd03b88155122bdc5be61",
+      "sha256": "f9d3ffff72c34ac7b244c3944b732bda41e08a2c7d971b671c7e37cd56646596",
       "operations": [
         {
           "name": "row_acquisition_provider_capacity",
@@ -3432,18 +3432,30 @@
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "### Supplementary provider overlap"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "src/client_row_source_host/provider_capacity.mbt",
                 "anchor": "pub fn start_accounted_provider_row_acquisition"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "identity": [
               {
                 "path": "src/client_row_source_host/response_borrow.mbt",
                 "anchor": "physical_equal(configuration, acquisition.configuration)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "ownership": [
@@ -3454,6 +3466,10 @@
               {
                 "path": "src/client_row_source_host/provider_capacity.mbt",
                 "anchor": "@resources.reserve_attempt"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "synchronization": [
@@ -3464,6 +3480,10 @@
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "Before any provider page or completion"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "failure": [
@@ -3474,6 +3494,10 @@
               {
                 "path": "src/query_integration/provider_capacity_wbtest.mbt",
                 "anchor": "provider envelope missing and one short refuse"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "cancellation": [
@@ -3484,6 +3508,10 @@
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "False retirement keeps the same debt for retry"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "resources": [
@@ -3494,12 +3522,20 @@
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "execution and remaining retention survive evidence generation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "extension": [
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "Ordinary and listing-report entries keep their existing selection semantics"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
               }
             ],
             "verification": [
@@ -3510,6 +3546,14 @@
               {
                 "path": "src/query_integration/provider_capacity_wbtest.mbt",
                 "anchor": "provider envelope requires the exact reader cleanup binding"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Model prefix on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
+                "anchor": "same Request acquired Model prefix"
               }
             ]
           }

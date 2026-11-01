@@ -4731,3 +4731,33 @@ refreshed. If cleanup wins while a prefix await unwinds, the same original Scope
 is retired and no subsequent read or fallback Model start is allowed. An adopted
 but never-entered Scope is closed by the existing Host retirement path before
 its native Run and input borrower; callback reentry keeps the same record.
+
+### Acquired Model prefix on the original Request
+
+An acquired serialized Model retains its Content prefix before constructing
+the Model module. The prefix keeps the existing acquired provider and sequence;
+the module creates and retains the original Query requirement, acquisition and
+capture capacity once. The same compiler retains the Model and serialization
+components. Scope selection and adoption bind that module and prefix to the
+same Request, rather than admitting a second Source or Content Run.
+
+The installed Source-read entrance borrows that adopted module's original
+inventory and Ledger. A Model prefix cannot use the empty-input start entrance.
+Its acquired entrance requires the actual accounted capture and the module's
+same Query requirement on that Ledger. The parent reserves and retains its
+single prefix child before producer-read/input construction or provider entry.
+Input liveness callbacks are followed by the same physical Run's current
+observation and callback-free Plan, capacity and child identity fences.
+
+Source and prefix work consume no Model quantities. Their existing attempts,
+transfer and byte reservations use the Resource owner's neutral quantity value
+when the shared Ledger has Model dimensions; they neither omit those dimensions
+nor reset, replace or spend the Model's actual quote. The normal reservation
+still validates the current configuration and every existing limit.
+
+The Source capture remains alive through prefix execution and original child
+cleanup. A refused input constructor keeps the retained prefix reservation for
+its original cleanup. Once provider entry has occurred, missing or failed child
+return remains pending; absence is not a Source or provider cleanup ACK. Only
+the existing Source-read owner closes its RowRun, and Scope and parent retirement
+remain separate duties after those actual children settle.
