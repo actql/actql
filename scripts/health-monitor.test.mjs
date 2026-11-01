@@ -10,7 +10,7 @@ import {compareReports, finishReport, markdown, summarize, exitStatus, digest, m
 import {parseArguments, requiredQuickMetrics, missingReleaseInputs, recordGuardExit, applyComparison, environmentIdentity, verifyPythonInstalledAfter, verifyNativeInstalledAfter} from './health-monitor.mjs';
 import {packDistributionPackages} from './measure-distribution-artifacts.mjs';
 import {formalCollectorVerdict, pythonRuntimeIdentity, assertPythonCollectorRuntime, pythonInstalledInventory} from './health-monitor-release.mjs';
-import {quickNodeMetrics} from './health-monitor-adapters.mjs';
+import {quickNodeMetrics,execute} from './health-monitor-adapters.mjs';
 import {nodeWarmSmallQueryFixtures} from './benchmark-node-operations.mjs';
 import * as releaseAdapters from './health-monitor-release.mjs';
 import {nativeOperationsData} from './fixtures/health-native-operations.mjs';
@@ -250,7 +250,7 @@ test('Quick latency requires both relative and absolute warning conditions; warn
     [true, 10, 40, 'pass'], [true, 100, 150, 'warning']]) {
     const base = fixture(), current = fixture();
     for (const [report, ms] of [[base, before], [current, after]]) {
-      const metric = report.metrics.find(row => row.id === (cold ? 'cold-host-initialization' : 'warm-select'));
+      const metric = report.metrics.find(row => row.id === (cold ? 'cold-new-state-public-open' : 'warm-select'));
       metric.samples = samples(ms, metric.requiredSamples);
     }
     const comparison = compareReports(base, current, policy); assert.equal(comparison.status, expected);
@@ -472,7 +472,7 @@ test('fixed Quick inventory cannot lose Aggregate or mark all required observati
   assert.equal(compareReports(fixture(), current, policy).comparable, false);
 });
 test('saved reports cannot reduce fixed ten warm or five cold samples to one', () => {
-  for (const id of ['warm-select', 'cold-process-first-result-close']) {
+  for (const id of ['warm-select', 'cold-new-state-process-first-result-close']) {
     const current = fixture(), metric = current.metrics.find(row => row.id === id);
     metric.samples = metric.samples.slice(0, 1); metric.requiredSamples = 1; metric.required = false;
     assert.equal(finishReport(current).status, 'incomplete');
@@ -982,4 +982,66 @@ test('Release reports malformed metric identity as error without bypassing the f
     assert.equal(checked.status, 'error');
     assert(checked.verdicts.some(row => row.reason === 'Invalid measurement identity'));
   }
+});
+
+
+// Real collector children around a synthetic public-port module. These are
+// clock/protocol tests, not ordinary ActQL performance or Source acceptance.
+async function coldCollectorFixture(t,{unknown=false}={}) {
+  const root=await mkdtemp(join(tmpdir(),'actql-health-cold-state-unit-'));
+  const consumer=join(root,'consumer'),module=join(consumer,'node_modules/@actql/node');await mkdir(module,{recursive:true});
+  const code=`import assert from 'node:assert/strict';import {mkdir,appendFile} from 'node:fs/promises';
+export async function open({stateDir}) {
+ await mkdir(stateDir,{recursive:true});const event=kind=>appendFile(stateDir+'/events',JSON.stringify({kind,pid:process.pid})+'\\n');
+ await event('open');
+ return {async startSource(text,options) {
+  assert.equal(text,'SELECT 1 AS id');await event('submit');
+  if(${unknown}&&options.requestId.startsWith('health-cold-existing-state-'))throw new Error('Synthetic Unknown; no resend');
+  return {ref:{id:process.pid+'-'+options.requestId},wait:async()=>({status:'succeeded'}),
+   status:async()=>({status:'succeeded',revision:1}),result:()=>({all:async()=>[{id:1}]})};
+ },attach(){assert.fail('No Saved-only cold existing');},
+ sql(text){return {all:async()=>text.includes('JOIN rhs')?[{id:1,label:'joined'}]:text.includes('SUM(amount)')?[{total:'4.00'}]:[{id:Number(text.match(/SELECT (\\d+) AS id/)?.[1]??1)}]};},
+ async close(){await event('close');}};
+}`;
+  await writeFile(join(module,'index.mjs'),code);
+  const commands=[],metrics=[];
+  const command=async(executable,args,options)=>{commands.push(JSON.parse(args[2]));return execute(executable,args,{...options,timeout:10000});};
+  return {root,commands,metrics,run:()=>quickNodeMetrics({root,prepared:{consumer},counts:{warmSamples:1,coldSamples:1},
+    command,onMetric:async metric=>metrics.push(structuredClone(metric))})};
+}
+
+test('Quick cold existing and new states use separate actual public children and parent clocks',async t=>{
+  const f=await coldCollectorFixture(t);await f.run();
+  assert.deepEqual(f.commands.map(x=>x.kind),['warm','prepare-existing-state','cold-existing-state','cold-new-state']);
+  const existing=f.metrics.find(x=>x.id==='cold-existing-state-process-first-result-close');
+  const fresh=f.metrics.find(x=>x.id==='cold-new-state-process-first-result-close');
+  assert.notEqual(existing.samples[0].pid,fresh.samples[0].pid);
+  const seed=JSON.parse(await readFile(join(f.root,'cold-existing-preparation.json')));
+  assert.equal(seed.cleanup.closed,true);assert.equal(existing.samples[0].stateDir,seed.stateDir);
+  assert.notEqual(existing.samples[0].originalRunSha256,seed.originalRunSha256);
+  assert.notEqual(fresh.samples[0].stateDir,seed.stateDir);
+  for(const row of [existing.samples[0],fresh.samples[0]]) {
+    assert.equal(row.verified,true);assert(row.firstResultNs>0&&row.firstResultNs<=row.wallNs);
+    assert.deepEqual(row.phaseSpans.map(x=>x.name),['product-import','public-open','new-run-submission',
+      'wait-execution-publication','all-result-rows','first-close']);
+    for(let n=0;n<row.phaseSpans.length;n++) {
+      const span=row.phaseSpans[n];assert(span.completed&&span.endNs>=span.startNs);
+      if(n)assert(span.startNs>=row.phaseSpans[n-1].endNs);
+    }
+    assert(row.phaseSpans.reduce((sum,x)=>sum+x.endNs-x.startNs,0)<=row.wallNs);
+    assert(row.unobservedHostPhases.includes('initial activation'));
+  }
+  assert.equal(measurementProfile('quick').filter(x=>x.id.endsWith('-process-first-result-close')).length,2);
+});
+
+test('Quick cold Unknown retains failed sample and unobserved first Result without a new-state retry',async t=>{
+  const f=await coldCollectorFixture(t,{unknown:true});await assert.rejects(f.run(),/exit 1/);
+  assert.deepEqual(f.commands.map(x=>x.kind),['warm','prepare-existing-state','cold-existing-state']);
+  const metric=f.metrics.find(x=>x.id==='cold-existing-state-process-first-result-close');
+  assert.equal(metric.samples.length,1);assert.equal(metric.samples[0].verified,false);
+  assert.equal(metric.samples[0].firstResultNs,null);
+  const first=f.metrics.find(x=>x.id==='cold-existing-state-process-first-result');
+  assert.equal(first.samples.length,0);assert.equal(first.status,'incomplete');
+  const failed=JSON.parse(await readFile(metric.samples[0].observation));
+  assert.equal(failed.cleanup.closed,true);assert.match(failed.failure.message,/Synthetic Unknown/);
 });

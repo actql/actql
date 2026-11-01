@@ -60,7 +60,8 @@ export function assessPublicLatencySamples(samples, minimum, operation) {
         : ['startNs', 'observedNs', 'endNs'];
     const allowed = operation.startsWith('warm-')
       ? [operation === 'warm-status' ? 'public-status' : 'public-result']
-      : ['process-result-close', 'cli-result-exit'];
+      : operation.endsWith('-process-first-result')?['process-first-result']
+        : ['process-result-close', 'cli-result-exit'];
     if (!allowed.includes(timing.kind) || names.some(name => !integer(timing[name])) ||
         names.some((name, index) => index > 0 && timing[name] < timing[names[index - 1]]) ||
         timing.endNs - timing.startNs > row.wallNs) {
