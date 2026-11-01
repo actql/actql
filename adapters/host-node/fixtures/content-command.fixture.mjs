@@ -20,11 +20,12 @@ export function contentCommandFixture({contentMime = 'application/pdf',
     destination: {type: 'resource_ref', resource_kind: 'file', nullable: false},
     name: {type: 'string', nullable: false},
   };
-  const declaration = checked(moon.clientProgramRowSourceRestoreRelationDeclaration(
-    'content-fixture', 'fixture', 'fixture/0.1', JSON.stringify({views: [{
+  const declarationViewsWire = JSON.stringify({views: [{
       resource: 'transfers', resource_kind: 'file', schema_wire: canonical(schema),
       schema_cid: cid(schema), facts_wire: '{}', data_classification: classification,
-    }]}), undefined));
+    }]});
+  const declaration = checked(moon.clientProgramRowSourceRestoreRelationDeclaration(
+    'content-fixture', 'fixture', 'fixture/0.1', declarationViewsWire, undefined));
   const declared = JSON.parse(moon.clientProgramRowSourceDeclarationJson(declaration));
   const sourceEnvironment = rowSourceCheckEnvironment(baseEnvironmentWire, declared);
   const {evidence_bundle_cid: _, ...environmentBody} = JSON.parse(sourceEnvironment.wire);
@@ -79,7 +80,7 @@ export function contentCommandFixture({contentMime = 'application/pdf',
       target: {field: 'destination'}, contract: 'command:files.upload.v1',
       input: {name: {field: 'name'}, content: {field: 'content'}}}}},
   }], results: {r: {from: {stage: 'save', result: 'r'}}}};
-  return {program, environment, environmentWire, command, declaration, declared, schema};
+  return {program, environment, environmentWire, command, declaration, declarationViewsWire, declared, schema};
 }
 
 // Generation and destination acquisition are distinct checked dependencies.

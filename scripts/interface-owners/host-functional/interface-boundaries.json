@@ -108731,7 +108731,8 @@
             "request",
             "occurrence",
             "execution",
-            "serializationGraph"
+            "serializationGraph",
+            "constructSerialized"
           ],
           "async": false
         },
@@ -110464,6 +110465,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Fixed Request controls and synchronous domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request serialized Model keeps the original Content graph"
               }
             ],
             "inputsOutputs": [
@@ -110482,6 +110487,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Fixed Request controls and synchronous domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request serialized Model keeps the original Content graph"
               }
             ],
             "identity": [
@@ -110496,6 +110505,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Fixed Request controls and synchronous domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request serialized Model keeps the original Content graph"
               }
             ],
             "ownership": [
@@ -110510,6 +110523,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Fixed Request controls and synchronous domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request serialized Model keeps the original Content graph"
               }
             ],
             "synchronization": [
@@ -110524,6 +110541,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Fixed Request controls and synchronous domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request serialized Model keeps the original Content graph"
               }
             ],
             "failure": [
@@ -110538,6 +110559,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Fixed Request controls and synchronous domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request serialized Model keeps the original Content graph"
               }
             ],
             "cancellation": [
@@ -110552,6 +110577,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Fixed Request controls and synchronous domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request serialized Model keeps the original Content graph"
               }
             ],
             "resources": [
@@ -110566,6 +110595,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Fixed Request controls and synchronous domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request serialized Model keeps the original Content graph"
               }
             ],
             "extension": [
@@ -110580,6 +110613,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Fixed Request controls and synchronous domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request serialized Model keeps the original Content graph"
               }
             ],
             "verification": [
@@ -110602,6 +110639,14 @@
               {
                 "path": "adapters/host-node/request-domain-preparation.test.mjs",
                 "anchor": "test('Request registration refuses every full or duplicate original before native adoption'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request serialized Model keeps the original Content graph"
+              },
+              {
+                "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
+                "anchor": "Request serialized Model preserves native Graph across actual facade Host and manager"
               }
             ]
           }
@@ -112463,7 +112508,7 @@
         }
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "e4bd5e2a73cc434953f11e63c2a61ff6516dc9427aab7ad1fd1d4f812d3b5c00"
+      "sha256": "d814602a0e35e965c2302cb1cbab20dd87a232c0795923cbbcdb053d6eda8326"
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",

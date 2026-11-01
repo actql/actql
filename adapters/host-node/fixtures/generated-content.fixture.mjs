@@ -35,7 +35,9 @@ export async function createGeneratedContentFixture(t, options = {}) {
     // Erasing the ownership record first is not successful release. Keep the
     // actual fixture/custody on failed close instead of hiding false cleanup.
     assert.equal(await store.close(), true);
-    if (options.directory === undefined) await rm(directory, {recursive: true, force: true});
+    if (options.directory === undefined && process.env.ACTQL_TEST_PRESERVE_SCRATCH !== '1') {
+      await rm(directory, {recursive: true, force: true});
+    }
   });
   const program = {version: 'actql/0.1', id: 'empty-content',
     stages: [{id: 'main', inputs: {}, steps: [

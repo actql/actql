@@ -53,7 +53,7 @@ test(`public ${entrance} acquired SERIALIZE feeds the same Run's typed Content I
     onPrepare: () => preparations++, onSend: () => calls++,
     onFailure: error => { physicalIssue = error; }});
   host = await openContentCommandHost({scratch, generated: original,
-    keys, entrance, modelInstallation: installation,
+    keys, entrance, installEffects: false, modelInstallation: installation,
     registerModelProviders, hostCapacityPolicy,
     modelApprovalRequired: scenario !== 'completed',
     faultInjection: step => { if (step === 'content_workspace_reserved') generations++; }});
