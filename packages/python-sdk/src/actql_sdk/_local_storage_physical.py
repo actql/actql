@@ -30,6 +30,11 @@ _RUN_DEFINITION_INDEX = (
     "AND key<'namespace:11:client_runs;'")
 
 
+_RUN_DEFINITION_PROBE = (
+    "SELECT json_extract(json_extract('{\"run_definition\":\"{\\\"run_definition_cid\\\":\\\"probe\\\"}\"}',"
+    "'$.run_definition'),'$.run_definition_cid')"
+)
+
 class _PhysicalCapacityCollision(RuntimeError):
     """A different exact reservation is present; no row was removed/reissued."""
 
@@ -128,6 +133,9 @@ class _SQLiteByteDatabase:
         expected.insert(1, ('actql_client_run_definition_unique', 'index',
                             'core_bytes', _RUN_DEFINITION_INDEX))
         if version == (3,) and rows == expected:
+            probe = self._connection.execute(_RUN_DEFINITION_PROBE).fetchone()
+            if probe != ('probe',) or self._snapshot_identity() != before:
+                raise ValueError('Original Journal index expression changed during observation')
             return 1
         raise ValueError('Original Journal physical format is missing or inconsistent')
 

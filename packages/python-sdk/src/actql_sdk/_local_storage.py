@@ -11,7 +11,7 @@ from ._local_files import LocalFileRoot, _PayloadFile
 from ._local_storage_physical import (
     _PhysicalByteDatabase, _SQLiteByteDatabase,
     _PhysicalCapacityCollision, _PhysicalCapacityExceeded, _RUN_DEFINITION_INDEX,
-    _APPLICATION_ID, _SCHEMA, _CAPACITY_SCHEMA)
+    _APPLICATION_ID, _SCHEMA, _CAPACITY_SCHEMA, _RUN_DEFINITION_PROBE)
 
 
 
@@ -178,13 +178,11 @@ class LocalByteStore:
                     self._connection.execute(f'PRAGMA application_id = {_APPLICATION_ID}')
                     version = 2
                     if _new_file is not None:
-                        # Probe only the original library before schema mutation.
+                        # Probe only the original library before index mutation.
                         # Missing optional JSON support keeps the existing full
                         # legacy route; unrelated failure is never a fallback.
                         try:
-                            probe = self._connection.execute(
-                                "SELECT json_extract(json_extract('{\"run_definition\":\"{\\\"run_definition_cid\\\":\\\"probe\\\"}\"}',"
-                                "'$.run_definition'),'$.run_definition_cid')").fetchone()
+                            probe = self._connection.execute(_RUN_DEFINITION_PROBE).fetchone()
                         except sqlite3.OperationalError as error:
                             if (getattr(error, 'sqlite_errorcode', None) != sqlite3.SQLITE_ERROR
                                     or str(error) != 'no such function: json_extract'):
