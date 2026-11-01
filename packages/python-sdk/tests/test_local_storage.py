@@ -42,6 +42,96 @@ class LocalPhysicalStorageTests(unittest.TestCase):
         return LocalByteStore(path, max_records=records, max_record_bytes=row,
                               max_payload_bytes=total)
 
+    def test_original_fence_set_requires_every_exact_row_and_indexed_lookup(self) -> None:
+        with TemporaryDirectory(prefix='actql-exact-fence-values-') as directory:
+            with self.store(Path(directory) / 'core.sqlite') as store:
+                self.assertEqual(store.compare_exchange('one', None, b'{"n":1}'), 0)
+                self.assertEqual(store.compare_exchange('two', None, b''), 0)
+                expected = (('one', 0, b'{"n":1}'), ('two', 0, b''))
+                trace = []
+                store._connection.set_trace_callback(trace.append)
+                database = store._physical
+                database.begin_read()
+                try:
+                    for wrong in ((('absent', 0, b''),),
+                                  (('one', 1, b'{"n":1}'),),
+                                  (('one', 0, b'{ "n":1}'),),
+                                  (('one', 0, b'{"n":1}'), ('absent', 0, b''))):
+                        self.assertFalse(database._match_rows(wrong))
+                    self.assertTrue(database._match_rows(expected))
+                    sql = next(s for s in reversed(trace) if s.startswith('WITH expected'))
+                    plan = store._connection.execute('EXPLAIN QUERY PLAN ' + sql).fetchall()
+                    self.assertTrue(any('SEARCH actual USING PRIMARY KEY (key=?)' in p[3]
+                                        for p in plan), plan)
+                    self.assertFalse(any('SCAN actual' in p[3] for p in plan), plan)
+                finally:
+                    database.finish_read()
+                    store._connection.set_trace_callback(None)
+
+    def test_original_fence_set_rejects_unbounded_or_forged_input_before_sql(self) -> None:
+        with TemporaryDirectory(prefix='actql-exact-fence-bounds-') as directory:
+            with self.store(Path(directory) / 'core.sqlite') as store:
+                trace = []
+                store._connection.set_trace_callback(trace.append)
+                rows = (('one', 0, b'a'),)
+                bad = ((), list(rows), (('one', True, b'a'),),
+                       (('one', -1, b'a'),), (('one', 2**63, b'a'),),
+                       (('one', 0, bytearray(b'a')),), rows + rows,
+                       tuple((str(i), 0, b'') for i in range(33)),
+                       (('one', 0, b'a' * 8192),))
+                for value in bad:
+                    with self.subTest(value_type=type(value).__name__):
+                        with self.assertRaises(ValueError):
+                            store._physical._match_rows(value)
+                self.assertEqual(trace, [])
+                with self.assertRaisesRegex(ValueError, 'snapshot is not active'):
+                    store._physical._match_rows(rows)
+                self.assertEqual(trace, [])
+                store._connection.set_trace_callback(None)
+
+    def test_original_fence_set_keeps_transaction_change_refusal_and_original_error(self) -> None:
+        with TemporaryDirectory(prefix='actql-exact-fence-current-') as directory:
+            with self.store(Path(directory) / 'core.sqlite') as store:
+                store.compare_exchange('one', None, b'original')
+                changed = False
+                def mutate(sql):
+                    nonlocal changed
+                    if sql.startswith('WITH expected') and not changed:
+                        changed = True
+                        store._connection.execute('CREATE TEMP TABLE changed(value)')
+                database = store._physical
+                database.begin_read()
+                store._connection.set_trace_callback(mutate)
+                try:
+                    with self.assertRaisesRegex(ValueError, 'snapshot changed'):
+                        database._match_rows((('one', 0, b'original'),))
+                    self.assertTrue(changed)
+                    self.assertTrue(database.in_transaction)
+                finally:
+                    store._connection.set_trace_callback(None)
+                    database.finish_read()
+        failure = sqlite3.OperationalError('original fixed-read failure')
+        class FailedRead(sqlite3.Connection):
+            attempts = 0
+            def execute(self, sql, *args, **kwargs):
+                if sql.startswith('WITH expected'):
+                    self.attempts += 1
+                    raise failure
+                return super().execute(sql, *args, **kwargs)
+        from actql_sdk._local_storage_physical import _SQLiteByteDatabase
+        connection = sqlite3.connect(':memory:', factory=FailedRead, isolation_level=None)
+        try:
+            database = _SQLiteByteDatabase(connection)
+            database.begin_read()
+            with self.assertRaises(sqlite3.OperationalError) as error:
+                database._match_rows((('one', 0, b'original'),))
+            self.assertIs(error.exception, failure)
+            self.assertEqual(connection.attempts, 1)
+            self.assertTrue(database.in_transaction)
+            database.finish_read()
+        finally:
+            connection.close()
+
     def test_exact_bytes_survive_process_exit_and_reopen(self) -> None:
         # Independently fixed bytes preserve missing, NULL, decomposed keys,
         # CRLF, numeric spelling and order. The store does not parse JSON.
