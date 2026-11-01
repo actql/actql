@@ -63338,7 +63338,7 @@
       "module": "packages/python-sdk/src/actql_sdk/_local_wasm_abi.py",
       "responsibilityFacet": "primary",
       "operations": [],
-      "sha256": "cc9ac13ba660c1faeb86343a919cd223921c950557a49b693530c2c594af41a5",
+      "sha256": "daff3328c9253fde5e1db74686a615e1b5a368d6b989bdc871c9cb3254bb062e",
       "role": "generated-binding",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
