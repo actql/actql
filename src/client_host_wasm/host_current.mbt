@@ -199,7 +199,7 @@ fn host_current_observe_original(
       )
     }
     // Raw/test callbacks keep their independent second physical sample. They
-    // may change only on that call and cannot supply the closed Guest proof.
+    // may change only on that call and cannot supply the closed Guest liveness check.
     match checked_operation() {
       Ok(after) if after == operation =>
         return Ok(

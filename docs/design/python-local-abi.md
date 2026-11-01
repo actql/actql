@@ -2007,6 +2007,33 @@ inspection returns. A changed file or failed ordinal therefore rolls back the
 whole group. A failed COMMIT still retains the same Unknown attempt and child
 cleanup responsibility. No fact observation is reused by another transaction.
 
+### Closed Guest current observation
+
+The existing Guest current record retains the same adopted material, original
+Account and adoption bytes, actual original row, Store and generation. Its
+physical operation observation remains fresh on every protected decision.
+Physical callbacks may retire the Instance or record: liveness is checked both
+before and after the actual callback, and retirement clears the observed
+operation before refusing. A returned operation number is DATA, not authority.
+
+Only the closed Guest adapter can share that fresh observation with the adjacent
+synchronous projection of already-admitted originals. It checks the same
+Instance after the callback and compares the original Account, bytes, material,
+row, Store value, generation, operation and record state across that callback.
+Replacement, reentry changes, retirement or failure refuses; equal copied bytes
+or an equal operation number cannot supply another original. There is no query,
+external callback or await between the final field checks and the projection.
+Common still validates the complete original observation and evaluates Account
+Allow or Deny separately for each protected operation.
+
+Raw independent callback ports retain their second physical sample, including
+callbacks that fail or change only on that sample. A zero or newly observed
+operation retains both actual row queries, physical current and the final
+physical sample. This is not an Account/current-success cache, a new phase
+carrier, a public author callback or a new capacity allowance. The existing
+Guest Instance/current/buffer and imported parent remain the only owners;
+retirement and failed cleanup retain their original pending responsibility.
+
 ### Original file observation groups
 
 An original saved reader retains the immutable EOF digest/snapshot value it
