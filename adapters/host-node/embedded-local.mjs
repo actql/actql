@@ -173,6 +173,7 @@ export {
 } from '../store-local/publication-store.mjs';
 import {prepareHostJournalInstallation} from './node-host-journal-installation.mjs';
 import {prepareHostResultPublicationInstallation} from './node-host-result-installation.mjs';
+import {enableNodeCompileCache} from './compile-cache.mjs';
 import * as publicationStoreModule from '../store-local/publication-store.mjs';
 import {createLocalRetainedStore} from '../store-local/files.mjs';
 import {installLocalRetainedStore, installLocalSnapshotStore} from
@@ -7213,6 +7214,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
   // Discover only on the Local installation side. The same module instance
   // admits and later consumes these originals; Remote clients do no such I/O.
   const projectDirectory = process.cwd();
+  enableNodeCompileCache();
   moon = await import(runtimeUrl.href);
   assertInitialControlInstallationCurrent(control, originals);
   record.runtime = moon;
