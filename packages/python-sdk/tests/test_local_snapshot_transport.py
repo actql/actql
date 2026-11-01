@@ -452,6 +452,41 @@ class SnapshotTransportTests(unittest.TestCase):
                 self.assertEqual(sql, ['PRAGMA schema_version', 'PRAGMA temp.schema_version'] * 10)
             store.inspect_namespaces(fences, inspect=inspect, current=lambda: currents.append(True))
 
+    def test_same_original_fence_members_reuse_only_shape_admission(self):
+        with TemporaryDirectory(prefix='actql-original-fence-data-') as directory:
+            store = LocalByteStore(Path(directory) / 'original.sqlite', max_records=16,
+                max_record_bytes=4096, max_payload_bytes=16384)
+            self.addCleanup(store.close)
+            fences = tuple(ByteFence('original-' + str(i), 0, b'original-metadata') for i in range(7))
+            for fence in fences: store.compare_exchange(fence.key, None, fence.payload)
+            currents = []
+            retained = []
+            def inspect(reader):
+                retained.append(reader)
+                reader.read('original', 'absent', lambda row: self.assertIsNone(row))
+                sql = []
+                before = len(currents)
+                store._connection.set_trace_callback(sql.append)
+                try:
+                    for _ in range(5):
+                        # New tuple, SAME immutable members admitted at entry.
+                        required = tuple([*fences])
+                        self.assertIsNot(required, fences)
+                        reader.check_fences(reader, required)
+                finally:
+                    store._connection.set_trace_callback(None)
+                self.assertEqual(len(currents) - before, 5)
+                self.assertEqual(sql, ['PRAGMA schema_version', 'PRAGMA temp.schema_version'] * 10)
+            with patch.object(store, '_validate_metadata_fences',
+                              wraps=store._validate_metadata_fences) as validate:
+                store.inspect_namespaces(fences, inspect=inspect,
+                    current=lambda: currents.append(True))
+                self.assertEqual(validate.call_count, 1)
+            self.assertFalse(store._physical.in_transaction)
+            with self.assertRaises(ValueError):
+                retained[0].check_fences(retained[0], fences)
+            self.assertEqual(store.read(fences[0].key).payload, b'original-metadata')
+
     def test_schema_probe_failure_is_not_cached_success_or_permission(self):
         import sqlite3
         with TemporaryDirectory(prefix='actql-sql-schema-denied-') as directory:
