@@ -1,6 +1,6 @@
 {
   "source": "d5d66cd86ac2e153f31a511e7d37c78e0cc28ae3",
-  "syntaxProjectionSha256": "b4e2b588e31be95e2e97cbacfc133c4f6a0b24d40e734d2f781f0c1c672cd515",
+  "syntaxProjectionSha256": "56bce3b6b404461ef7133530cf01564cc161eec8a7df3bcd7208c699b173e32f",
   "qualification": "Source-reference coverage only; original Native/FFI/Python executions retain their own source, artifact and target qualifications. No normal funding, VM or installed product admission.",
   "generated": [
     {
@@ -5307,6 +5307,14 @@
         },
         {
           "async": false,
+          "name": "LocalCore/_input_copy_bytes",
+          "parameters": [
+            "self",
+            "payload"
+          ]
+        },
+        {
+          "async": false,
           "name": "LocalCore/_journal_begin",
           "parameters": [
             "self",
@@ -5456,6 +5464,14 @@
           "parameters": [
             "self",
             "wasmtime"
+          ]
+        },
+        {
+          "async": false,
+          "name": "LocalCore/_output_copy_bytes",
+          "parameters": [
+            "self",
+            "limit"
           ]
         },
         {
@@ -7898,7 +7914,7 @@
           ]
         }
       ],
-      "sha256": "3a340c902146b31001a8ff43469bcbd303e1551170606889cf15409872975b93",
+      "sha256": "faa90d722f32793574f24589c22706a378f1584b5a4ddc49817019555c16bde8",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -14052,8 +14068,10 @@
             "LocalCore/_bulk_memory",
             "LocalCore/_bulk_memory_current",
             "LocalCore/_input_copy",
+            "LocalCore/_input_copy_bytes",
             "LocalCore/_journal_copy",
             "LocalCore/_journal_query_copy",
+            "LocalCore/_output_copy_bytes",
             "LocalCore/_publisher_copy",
             "LocalCore/_read_output_block"
           ],
