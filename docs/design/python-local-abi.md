@@ -3154,6 +3154,22 @@ complete initial row bodies must agree before any write. The optional original
 is checked against the Run definition; legacy candidates keep their existing
 bytes, and retained lookup does not backfill missing originals.
 
+The SDK ready-row producer also projects the existing subordinate Run-reference
+locator from the same admitted Submission reference, original Request and Run
+Definition. Python saves its exact bounded key and reference wire with the Run,
+ready row, issuance CAS and task-material chunks in that original transaction.
+It neither derives a second identity nor interprets the locator as custody,
+current authority, an admission, a completeness witness or COMMIT acknowledgement.
+A locator insert conflict rolls back the same transaction; attempted-COMMIT
+uncertainty retains the same original output and never repeats the write.
+
+This retained DATA does not by itself select an indexed read or complete legacy
+coverage. The existing complete Python inventory route remains in force until
+its original format, coverage, ambiguity and atomic metadata duties are supplied.
+Absent historical locator DATA is not reconstructed on a read, interpreted as
+confirmed absence, or used to prepare another Run. Native's existing explicitly
+indexed route and maintenance retain their separate profile and qualifications.
+
 A saved Result read validates the complete stored publication graph and the
 selected manifest occurrence through the existing publication Owner. Its nominal
 read source retains the exact finite policy and stored view. The shared SDK read
