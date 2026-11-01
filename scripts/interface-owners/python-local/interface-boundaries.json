@@ -57597,7 +57597,6 @@
       ],
       "imports": [
         "__future__",
-        "collections.abc",
         "sqlite3",
         "typing"
       ],
@@ -57872,23 +57871,6 @@
         },
         {
           "async": false,
-          "name": "_SQLiteByteDatabase/read_fence_rows",
-          "parameters": [
-            "self",
-            "keys",
-            "max_bytes"
-          ]
-        },
-        {
-          "async": false,
-          "name": "_SQLiteByteDatabase/read_fence_rows/read_group",
-          "parameters": [
-            "start",
-            "group"
-          ]
-        },
-        {
-          "async": false,
           "name": "_SQLiteByteDatabase/read_header",
           "parameters": [
             "self",
@@ -57973,7 +57955,7 @@
           ]
         }
       ],
-      "sha256": "5d914b095e8741296a4ee2ffe83bd609cd8587a772b7d8391e915e4faa02f7d0",
+      "sha256": "4ff471dd5883f0f6161db0fc3826284f8606668ffade56a55a15377d9ce15842",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -58667,119 +58649,6 @@
               }
             ]
           }
-        },
-        {
-          "operations": [
-            "_SQLiteByteDatabase/read_fence_rows",
-            "_SQLiteByteDatabase/read_fence_rows/read_group"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "### Fresh query metadata groups"
-              },
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_local_storage_physical.py",
-                "anchor": "def read_fence_rows("
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "### Fresh query metadata groups"
-              },
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_local_storage_physical.py",
-                "anchor": "def read_fence_rows("
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "### Fresh query metadata groups"
-              },
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_local_storage_physical.py",
-                "anchor": "def read_fence_rows("
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "### Fresh query metadata groups"
-              },
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_local_storage_physical.py",
-                "anchor": "def read_fence_rows("
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "### Fresh query metadata groups"
-              },
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_local_storage_physical.py",
-                "anchor": "def read_fence_rows("
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "### Fresh query metadata groups"
-              },
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_local_storage_physical.py",
-                "anchor": "def read_fence_rows("
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "### Fresh query metadata groups"
-              },
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_local_storage_physical.py",
-                "anchor": "def read_fence_rows("
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "### Fresh query metadata groups"
-              },
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_local_storage_physical.py",
-                "anchor": "def read_fence_rows("
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "### Fresh query metadata groups"
-              },
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_local_storage_physical.py",
-                "anchor": "def read_fence_rows("
-              }
-            ],
-            "verification": [
-              {
-                "path": "packages/python-sdk/tests/test_local_snapshot_transport.py",
-                "anchor": "def test_current_query_groups_each_complete_fence_without_skipping_physical_current(self):"
-              },
-              {
-                "path": "packages/python-sdk/tests/test_local_snapshot_transport.py",
-                "anchor": "def test_fresh_grouped_query_refuses_metadata_change_at_each_current_boundary(self):"
-              },
-              {
-                "path": "packages/python-sdk/tests/test_local_snapshot_transport.py",
-                "anchor": "def test_grouped_fence_releases_observed_payload_before_stepping_next_row(self):"
-              }
-            ]
-          }
         }
       ]
     },
@@ -58895,14 +58764,6 @@
         },
         {
           "async": false,
-          "name": "LocalByteStore/_checked_physical_bytes",
-          "parameters": [
-            "self",
-            "row"
-          ]
-        },
-        {
-          "async": false,
           "name": "LocalByteStore/_close_descriptor",
           "parameters": [
             "self"
@@ -58942,8 +58803,7 @@
           "parameters": [
             "self",
             "fences",
-            "successors",
-            "group_reads"
+            "successors"
           ]
         },
         {
@@ -58998,16 +58858,14 @@
           "name": "LocalByteStore/_inspect_namespace_locked/fence",
           "parameters": [
             "required_current",
-            "reuse_snapshot",
-            "group_reads"
+            "reuse_snapshot"
           ]
         },
         {
           "async": false,
           "name": "LocalByteStore/_inspect_namespace_locked/metadata_fence",
           "parameters": [
-            "reuse_snapshot",
-            "group_reads"
+            "reuse_snapshot"
           ]
         },
         {
@@ -59018,8 +58876,7 @@
             "after",
             "consume",
             "scan",
-            "required_current",
-            "group_reads"
+            "required_current"
           ]
         },
         {
@@ -59632,7 +59489,7 @@
           "parameters": []
         }
       ],
-      "sha256": "6b56be1dc00ef77f4dda8e97416ab5820afaa77b8fde3087ff18b288e419c6f8",
+      "sha256": "79af90361c7c2ca635d4b7f9116a3f6303e4c0cd1ae396696b8a80e18c0d8981",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -61354,118 +61211,6 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
                 "anchor": "\"\"\"Physical opaque-byte persistence; Core owns every Run meaning and decision.\"\"\""
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "LocalByteStore/_checked_physical_bytes"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "### Fresh query metadata groups"
-              },
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
-                "anchor": "def _checked_physical_bytes("
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "### Fresh query metadata groups"
-              },
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
-                "anchor": "def _checked_physical_bytes("
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "### Fresh query metadata groups"
-              },
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
-                "anchor": "def _checked_physical_bytes("
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "### Fresh query metadata groups"
-              },
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
-                "anchor": "def _checked_physical_bytes("
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "### Fresh query metadata groups"
-              },
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
-                "anchor": "def _checked_physical_bytes("
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "### Fresh query metadata groups"
-              },
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
-                "anchor": "def _checked_physical_bytes("
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "### Fresh query metadata groups"
-              },
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
-                "anchor": "def _checked_physical_bytes("
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "### Fresh query metadata groups"
-              },
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
-                "anchor": "def _checked_physical_bytes("
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/python-local-abi.md",
-                "anchor": "### Fresh query metadata groups"
-              },
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
-                "anchor": "def _checked_physical_bytes("
-              }
-            ],
-            "verification": [
-              {
-                "path": "packages/python-sdk/tests/test_local_snapshot_transport.py",
-                "anchor": "def test_current_query_groups_each_complete_fence_without_skipping_physical_current(self):"
-              },
-              {
-                "path": "packages/python-sdk/tests/test_local_snapshot_transport.py",
-                "anchor": "def test_fresh_grouped_query_refuses_metadata_change_at_each_current_boundary(self):"
-              },
-              {
-                "path": "packages/python-sdk/tests/test_local_snapshot_transport.py",
-                "anchor": "def test_grouped_fence_releases_observed_payload_before_stepping_next_row(self):"
               }
             ]
           }

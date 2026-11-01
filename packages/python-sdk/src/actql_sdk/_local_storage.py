@@ -357,10 +357,6 @@ class LocalByteStore:
         # oversized row. SQLite length(BLOB) reads its size, not its value.
         row = self._physical.read_row(key, self._max_record_bytes if max_bytes is None else
                                       min(self._max_record_bytes, max_bytes))
-        return self._checked_physical_bytes(row)
-
-    def _checked_physical_bytes(self, row: tuple[object, object, object, object] | None
-                                ) -> StoredBytes | None:
         if row is None:
             return None
         generation, payload, kind, length = row
@@ -914,7 +910,7 @@ class LocalByteStore:
                              if type(database) is _SQLiteByteDatabase else None)
         last_fenced_snapshot: tuple[object, int, int, int] | None = None
 
-        def metadata_fence(*, reuse_snapshot: bool, group_reads: bool = False) -> None:
+        def metadata_fence(*, reuse_snapshot: bool) -> None:
             nonlocal last_fenced_snapshot
             if self._physical is not database:
                 raise LocalStorageError('Original Local physical reader changed')
@@ -927,7 +923,7 @@ class LocalByteStore:
                     or snapshot[3] != original_snapshot[3]):
                 raise LocalStorageError('Original Local transaction or schema snapshot was replaced')
             if not reuse_snapshot or snapshot is None or snapshot != last_fenced_snapshot:
-                if not self._fences_match_locked(fences, successors, group_reads=group_reads):
+                if not self._fences_match_locked(fences, successors):
                     raise LocalStorageError('Original Local inventory metadata changed')
                 if (snapshot is not None and type(database) is _SQLiteByteDatabase
                         and database._snapshot_identity() != snapshot):
@@ -935,12 +931,12 @@ class LocalByteStore:
                 last_fenced_snapshot = snapshot
 
         def fence(required_current: Callable[[], object] | None = None, *,
-                  reuse_snapshot: bool = False, group_reads: bool = False) -> None:
-            metadata_fence(reuse_snapshot=reuse_snapshot, group_reads=group_reads)
+                  reuse_snapshot: bool = False) -> None:
+            metadata_fence(reuse_snapshot=reuse_snapshot)
             self._fenced_current(current)
             if required_current is not None and required_current is not current:
                 self._fenced_current(required_current)
-            metadata_fence(reuse_snapshot=reuse_snapshot, group_reads=group_reads)
+            metadata_fence(reuse_snapshot=reuse_snapshot)
 
         def check_frame(view: _NamespaceReader) -> None:
             nonlocal failure
@@ -992,8 +988,7 @@ class LocalByteStore:
                 raise
 
         def observe(namespace: str, after: str, consume: _NamespaceConsumer, *,
-                    scan: bool, required_current: Callable[[], object] | None = None,
-                    group_reads: bool = False) -> None:
+                    scan: bool, required_current: Callable[[], object] | None = None) -> None:
             nonlocal reading, reads, copied, failure
             entered = False
             try:
@@ -1012,7 +1007,7 @@ class LocalByteStore:
                 if reads >= self._max_inspection_queries:
                     raise LocalStorageError('Local inventory inspection capacity exceeded')
                 reading = entered = True
-                fence(required_current, group_reads=group_reads)
+                fence(required_current)
                 # A malformed empty logical key must be observed and refused,
                 # not silently excluded from the original namespace inventory.
                 row = self._physical.scan_range(lower, upper,
@@ -1031,13 +1026,13 @@ class LocalByteStore:
                     self._key(logical)
                     copied += len(payload)
                     observation = (logical, StoredBytes(generation, payload))
-                fence(required_current, group_reads=group_reads)
+                fence(required_current)
                 # The Host completes transfer into its reserved Core input and
                 # returns the same input/output loan before requesting a row.
                 if consume(observation) is not None:
                     raise ValueError('Invalid Local inventory consumer result')
                 del observation, row
-                fence(required_current, group_reads=group_reads)
+                fence(required_current)
             except BaseException as error:
                 failure = error
                 raise
@@ -1057,7 +1052,7 @@ class LocalByteStore:
                 # Equal-looking callbacks are not merged; only this exact
                 # original observer is already included by the enclosing fence.
                 observe(namespace, key, consume, scan=mode == 0,
-                        required_current=required_current, group_reads=True)
+                        required_current=required_current)
             except BaseException as error:
                 failure = error
                 raise
@@ -1580,32 +1575,7 @@ class LocalByteStore:
                     raise ValueError('Local physical write has another metadata generation')
 
     def _fences_match_locked(self, fences: tuple[ByteFence, ...],
-                             successors: tuple[ByteWrite, ...] = (), *, group_reads: bool = False) -> bool:
-        if group_reads and type(self._physical) is _SQLiteByteDatabase:
-            rows = self._physical.read_fence_rows(tuple(fence.key for fence in fences), self._max_record_bytes)
-            seen = 0
-            try:
-                for position, present, generation, payload, kind, length in rows:
-                    if (type(position) is not int or not 0 <= position < len(fences)
-                            or seen & (1 << position) or type(present) is not int or present not in (0, 1)):
-                        raise LocalStorageError('Invalid original Local grouped fence row')
-                    seen |= 1 << position
-                    if present == 0:
-                        return False
-                    original = self._checked_physical_bytes((generation, payload, kind, length))
-                    fence = fences[position]
-                    expected_generation, expected_payload = fence.generation, fence.payload
-                    for write in successors:
-                        if write.key == fence.key:
-                            expected_generation = fence.generation + 1
-                            expected_payload = write.payload
-                            break
-                    if original != StoredBytes(expected_generation, expected_payload):
-                        return False
-                    del original, generation, payload, kind, length
-                return seen == (1 << len(fences)) - 1
-            finally:
-                rows.close()
+                             successors: tuple[ByteWrite, ...] = ()) -> bool:
         for fence in fences:
             generation, payload = fence.generation, fence.payload
             for write in successors:

@@ -7,7 +7,6 @@ callback loans and failure custody. These observations issue none of those.
 from __future__ import annotations
 
 import sqlite3
-from collections.abc import Generator as _Generator
 from typing import Protocol, cast
 
 
@@ -116,66 +115,6 @@ class _SQLiteByteDatabase:
             typeof(payload), length(payload)
             FROM core_bytes WHERE key = ?''', (max_bytes, key)).fetchone()
         return cast(tuple[object, object, object, object] | None, raw)
-
-    def read_fence_rows(self, keys: tuple[str, ...], max_bytes: int
-                        ) -> _Generator[tuple[object, object, object, object, object, object], None, None]:
-        """Fresh complete observations, one bounded row at a time in this TX.
-
-        The key values plus SQL text fit the existing 4096-byte key-input
-        envelope. A full-length individual key keeps the original scalar read.
-        There is no payload sort, fetchall, retained row table or second DB.
-        """
-        if not self._connection.in_transaction:
-            raise ValueError('Original SQLite fence transaction is unavailable')
-        prefix = 'WITH requested(position,key) AS (VALUES '
-        suffix = ''') SELECT requested.position, actual.key IS NOT NULL,
-            actual.generation,
-            CASE WHEN length(actual.payload) <= ? THEN actual.payload ELSE NULL END,
-            typeof(actual.payload), length(actual.payload)
-            FROM requested LEFT JOIN core_bytes AS actual ON actual.key = requested.key'''
-
-        def read_group(start: int, group: list[str]
-                       ) -> _Generator[tuple[object, object, object, object, object, object], None, None]:
-            values = ','.join('(' + str(start + index) + ',?)' for index in range(len(group)))
-            query = prefix + values + suffix
-            if len(query.encode()) + sum(len(key.encode()) for key in group) > 4096:
-                raise ValueError('Original SQLite key-input envelope exceeded')
-            cursor = self._connection.execute(query, (*group, max_bytes))
-            try:
-                for row in cursor:
-                    yield cast(tuple[object, object, object, object, object, object], row)
-                    del row
-            finally:
-                cursor.close()
-
-        pending: list[str] = []
-        start = 0
-        key_bytes = 0
-        values_bytes = 0
-        framing_bytes = len((prefix + suffix).encode())
-        for index, key in enumerate(keys):
-            # Include actual SQL framing and ordinal text, not an object-size
-            # estimate or a new capacity allowance. No key is normalized.
-            item_bytes = len(('(' + str(index) + ',?)').encode())
-            size = framing_bytes + values_bytes + (1 if pending else 0) + item_bytes + key_bytes + len(key.encode())
-            if pending and size > 4096:
-                yield from read_group(start, pending)
-                pending = []
-                start = index
-                key_bytes = 0
-                values_bytes = 0
-                size = framing_bytes + item_bytes + len(key.encode())
-            if size > 4096:
-                row = self.read_row(key, max_bytes)
-                yield (index, 0, None, None, 'null', None) if row is None else (index, 1, *row)
-                del row
-                start = index + 1
-                continue
-            values_bytes += (1 if pending else 0) + item_bytes
-            pending.append(key)
-            key_bytes += len(key.encode())
-        if pending:
-            yield from read_group(start, pending)
 
     def read_header(self, key: str) -> tuple[int, int] | None:
         return cast(tuple[int, int] | None, self._connection.execute(

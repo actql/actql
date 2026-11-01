@@ -2007,34 +2007,6 @@ inspection returns. A changed file or failed ordinal therefore rolls back the
 whole group. A failed COMMIT still retains the same Unknown attempt and child
 cleanup responsibility. No fact observation is reused by another transaction.
 
-### Fresh query metadata groups
-
-The existing typed physical query keeps its three current boundaries: before
-query, after physical query and after the original consumer. Both sides of each
-current still make a fresh complete metadata observation. On the exact stdlib
-SQLite adapter those observations may group the original keys into a parameterized
-LEFT JOIN on the same original connection and transaction. Every original
-key/generation/byte payload, including an existing successor, must still match;
-missing, malformed, foreign, duplicated or incomplete rows refuse. This groups
-SQL calls, not Account decisions, current success or transaction snapshots.
-
-The SQL text and key bytes of a group fit the existing 4096-byte key-input
-envelope. Large key sets split, and a single full-length key keeps its original
-scalar read. The existing CASE bounds each observed BLOB before it reaches
-Python. Results have no payload sort or fetchall: the matcher and generator
-release each completed observed BLOB before stepping the next row. The cursor
-closes on success, mismatch, refusal and unwinding, under the same Store's
-transaction cleanup. There is no new connection, resource owner, permission,
-phase token, allowance or SQL-string execution interface for another backend.
-These row/input bounds are not a claim about total interpreter/SQLite memory.
-
-The existing connection/transaction/schema/mutation checks still surround the
-complete observation. A caught query/current/consumer failure remains latched;
-read cleanup, write/COMMIT Unknown and explicit original retirement are unchanged.
-Raw reader methods, standalone fences and other physical/Native adapters retain
-their existing scalar checks. Generated row positions are mechanical DATA for
-matching this bounded result, never a semantic original row or authority.
-
 ### Closed Guest current observation
 
 The existing Guest current record retains the same adopted material, original
