@@ -1242,7 +1242,7 @@ export async function openRowSourceCredentialSite({profile, principalId,
 // observation remain the installed driver's responsibility; this is no grant.
 // ordinary rows use consumePage. Completion is never the driver's return alone;
 // `physicalTarget(resource, fields)` the exact target an approval covers.
-export async function createInstalledRowSource({moon, declaration,
+export async function createInstalledRowSource({moon, declaration, commands,
   declared, environmentWire, environment, sourceInitialization, connectorId, connectorRegistration,
   connectorRevision, site, authorization, readOperation, physicalTarget,
   readPages, bindingCid, limits, referenceIssuer, listingPolicy, captureContent,
@@ -1251,7 +1251,7 @@ export async function createInstalledRowSource({moon, declaration,
   prepareSourceRead, closeSourceRead, prepareKeyedSourceRead, closeKeyedSourceRead,
   originalKeyedTransport, readAsset, originalPageLimits}) {
   const readerDemand = sourceInitialization === undefined ? undefined
-    : assertInstalledSourceConstruction(sourceInitialization, declaration, declared, environment, providerReader);
+    : assertInstalledSourceConstruction(sourceInitialization, declaration, declared, environment, providerReader, undefined, commands);
   const retainedAcquisitionContracts = sourceInitialization !== undefined && prepareAcquisition === undefined;
   const prepareWithContracts = !retainedAcquisitionContracts ? undefined
     : moon.clientProgramRowSourcePrepareAcquisitionWithContracts;

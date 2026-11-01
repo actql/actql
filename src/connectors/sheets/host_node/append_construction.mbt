@@ -520,3 +520,110 @@ pub fn sheets_range_declaration_construction_capacity(
     },
   ])
 }
+
+///|
+/// The original Source Reference constructor outlives individual Readers.
+/// Its full native/Host peak is retained on the original Source initializer;
+/// the per-Run Reader quote never supplies this installation lifetime.
+#export_name("sheetsRangeReferenceConstructionCapacity")
+pub fn sheets_range_reference_construction_capacity(
+  origin_bytes : Int,
+  spreadsheet_bytes : Int,
+) -> @execution.ExecutionCapacity? {
+  guard @catalog.range_reference_construction_bounds(origin_bytes, spreadsheet_bytes)
+    is Some(bounds) else {
+    return None
+  }
+  let bytes = bounds.identity_bytes
+  let nodes = bounds.identity_nodes
+  let depth = bounds.identity_depth
+  guard @canonical.nfc_lf_construction_extent(bytes) is Some(normalization) &&
+    sheets_writer_units(bytes, nodes, depth) is Some(identity_writer) &&
+    sheets_writer_units(bounds.reference_bytes, bounds.reference_nodes, 1) is Some(reference_writer) &&
+    @source.json_literal_construction_extent(bounds.reference_bytes, bounds.reference_nodes, 1)
+    is Some(host) &&
+    @shape.collection_construction_extent({
+      records: nodes.to_int64(),
+      record_references: nodes.to_int64(),
+      record_words: nodes.to_int64(),
+      reference_arrays: nodes.to_int64(),
+      reference_items: nodes.to_int64(),
+      scalar_arrays: 0L,
+      scalar_items: 0L,
+      maps: nodes.to_int64(),
+      map_entries: nodes.to_int64(),
+    }) is Some(identity_json) else {
+    return None
+  }
+  sheets_constructor_capacity([
+    // Original identity Json, NFC copy and canonical-value projection coexist.
+    sheets_collection_units(identity_json),
+    sheets_collection_units(identity_json),
+    sheets_collection_units(identity_json),
+    {
+      record_headers: normalization.record_headers,
+      reference_slots: normalization.reference_slots,
+      scalar_words: normalization.scalar_words,
+      owned_utf16_units: normalization.owned_utf16_units + bytes.to_int64(),
+      // Both original identity hash inputs, digest buffers and prefixed CIDs
+      // coexist conservatively with the complete bounded identity spelling.
+      owned_wire_bytes: 2L * bytes.to_int64() + 2L * 32L + 4L * 71L,
+    },
+    sheets_collection_units(identity_json),
+    identity_writer,
+    identity_writer,
+    reference_writer,
+    {
+      record_headers: host.record_headers + 4L,
+      reference_slots: host.reference_slots + bounds.reference_nodes.to_int64(),
+      scalar_words: host.scalar_words,
+      owned_utf16_units: host.owned_utf16_units + bounds.reference_bytes.to_int64() + bytes.to_int64() + 4L * 71L,
+      owned_wire_bytes: bounds.reference_bytes.to_int64() + bytes.to_int64(),
+    },
+  ])
+}
+
+///|
+/// The installed range/clear Source supports BOTH the original grid rows and
+/// the one-reference metadata read. Those native callbacks are alternatives in
+/// one Reader, so take their per-dimension maximum, not two live full parses.
+/// The common preserving Reader still supplies received Bytes, Source/index,
+/// provider page/output and failed-response overlap at the unchanged bounds.
+#export_name("sheetsRangeReadConstructionCapacity")
+pub fn sheets_range_read_construction_capacity(
+  schema_bytes : Int,
+  columns : Int,
+  sheet_id : Int,
+  start_row : Int,
+  end_row : Int,
+  start_column : Int,
+  end_column : Int,
+  nodes : Int,
+  depth : Int,
+) -> @execution.ExecutionCapacity? {
+  if nodes < 1 || depth < 1 || depth == 2147483647 {
+    return None
+  }
+  let reply_bytes = ({ "refused": issue_json(BudgetExceeded) } : Json).stringify().length()
+  guard sheets_grid_read_construction_capacity(schema_bytes, columns, sheet_id,
+      start_row, end_row, start_column, end_column) is Some(grid) &&
+    sheets_column_construction(schema_bytes, columns, depth) is Some(schema) &&
+    sheets_target_projection_construction(nodes, depth) is Some(target) &&
+    sheets_writer_units(reply_bytes, 5, 2) is Some(writer) &&
+    @source.json_literal_construction_extent(reply_bytes, 5, 2) is Some(host) &&
+    sheets_constructor_capacity([schema, target, writer, {
+      record_headers: host.record_headers + 2L,
+      reference_slots: host.reference_slots + 3L,
+      scalar_words: host.scalar_words,
+      owned_utf16_units: host.owned_utf16_units + schema_bytes.to_int64(),
+      owned_wire_bytes: schema_bytes.to_int64(),
+    }]) is Some(metadata) else {
+    return None
+  }
+  @execution.execution_capacity(
+    Int64::max(@execution.execution_capacity_retained_bytes(grid),
+      @execution.execution_capacity_retained_bytes(metadata)),
+    Int64::max(@execution.execution_capacity_execution_bytes(grid),
+      @execution.execution_capacity_execution_bytes(metadata)),
+  )
+}

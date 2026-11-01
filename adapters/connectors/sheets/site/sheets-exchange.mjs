@@ -1,5 +1,7 @@
 // Physical Sheets I/O only. The provider MoonBit projects typed cells and
 // acknowledgements; the common Effect owner decides approval and settlement.
+import {prepareSheetsTargetRequest} from './sheets-grid-pages.mjs';
+export {prepareSheetsTargetRequest} from './sheets-grid-pages.mjs';
 import {invokeScopedCredentialOperation} from
   '../../../host-common/owned-invocation-context.mjs';
 import {refusedEffectPreparation} from
@@ -19,7 +21,6 @@ export const SHEETS_LIMITS = Object.freeze({maxRequestBytes: 300_000,
 // Content type and credentials belong to the physical resource owner.
 const headers = Object.freeze([['accept', 'application/json']]);
 const fields = 'spreadsheetId,sheets(properties(sheetId),data(startRow,startColumn,rowData(values(effectiveValue,userEnteredValue))))';
-const metadataFields = 'spreadsheetId,sheets(properties(sheetId,sheetType,gridProperties(rowCount,columnCount)))';
 const fail = (code, cause) => { throw Object.assign(new Error(code, {cause}), {code}); };
 const basePath = id => {
   if (typeof id !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/u.test(id)) {
@@ -49,11 +50,6 @@ async function exchange({authorization, credential, callResource, operation,
     callResource, operation, method, path, body, headers,
     responseHeaders: [], maxRequestBytes: SHEETS_LIMITS.maxRequestBytes,
     maxResponseBytes: SHEETS_LIMITS.maxResponseBytes, signal});
-}
-
-export function prepareSheetsTargetRequest(spreadsheetId) {
-  return Object.freeze({method: 'GET',
-    path: `${basePath(spreadsheetId)}?fields=${encodeURIComponent(metadataFields)}`});
 }
 
 export function projectSheetsTarget({moon, spreadsheetId, columns, range,
@@ -149,8 +145,7 @@ export async function readSheetsRangeTarget({moon, spreadsheetId, columns, range
   target, authorizationFor, credential, callResource, chargePage, consumePage, signal}) {
   const authorization = await authorizationFor(0);
   const response = await exchange({authorization, credential, callResource,
-    operation: SHEETS_READ_OPERATION, method: 'GET',
-    path: `${basePath(spreadsheetId)}?fields=${encodeURIComponent(metadataFields)}`, signal});
+    operation: SHEETS_READ_OPERATION, ...prepareSheetsTargetRequest(spreadsheetId), signal});
   const charge = await chargePage(response.body);
   if (!response.accepted || response.statusCode !== 200) fail('SheetsTargetUnverified');
   decoded(moon.sheetsTargetJson(response.body, spreadsheetId, JSON.stringify(columns),

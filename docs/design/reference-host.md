@@ -1857,8 +1857,33 @@ context. A failed native reservation never enters the provider projection or
 reissues its original declaration. Reentry and a second construction refuse;
 an invalid native Promise remains held until its actual computation settles,
 without turning its later result into an admitted construction. Original Site
-close, physical stop, Request admission and unfinished managed driver/reader
-connection remain distinct obligations.
+close, physical stop, Request admission and managed driver Plan construction
+remain distinct obligations.
+
+A range/clear Source uses the same managed Reader for both grid rows and its
+single metadata-verified range reference. Metadata GET construction is shared
+with the existing Effect metadata check; callback return is not response charge
+or physical completion. The original metadata codec sees every declared column
+before that same original reference is emitted. The initialized normal entrance
+has no parallel `readPages` transport factory.
+
+The reference itself has the installation's lifetime, beyond any individual
+Run's Reader. Its original native constructor therefore runs only after the
+same Source initializer reserves its separate full peak. The exact returned
+reference, declaration, Command and Environment stay retained there, including
+failed and invalid asynchronous construction. Per-Run reader construction uses
+the maximum of its mutually exclusive grid and metadata callback quantities;
+it does not combine two simultaneous full native parses. Source/index, received
+response, projected output and failed-child overlap remain in the same common
+preserving Reader recipe. Native optional quantities pass unchanged through
+the Host; typed Core consumes their Options before composing allowances.
+
+The exact installed Source adapter is returned, not a copied close facade.
+Reference currentness uses the original Site's captured synchronous method and
+receiver, so requested close denies later reference use while physical cleanup
+continues under the existing owners. Source initialization completion still
+requires the same retained adapter; no reference or close callback supplies a
+new admission, permission or cleanup acknowledgement.
 
 A synchronous request constructor returning a native Promise is invalid, but
 its original task stays in the same capture child until settlement. Observation

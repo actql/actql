@@ -88,11 +88,21 @@ pub fn client_program_installed_source_construction_capacity(
 #export_name("clientProgramComposeInstalledSourceConstructionCapacity")
 pub fn client_program_compose_installed_source_construction_capacity(
   original : @execution.ExecutionCapacity,
-  providers : Array[@execution.ExecutionCapacity],
+  providers : Array[@execution.ExecutionCapacity?],
 ) -> Result[@execution.ExecutionCapacity, @resources.PreparationCapacityIssue] {
+  // Native constructor quotes return this original Option. Consume it in
+  // typed Core; the Host forwards it unchanged and never guesses/reboxes its
+  // compiler representation or uses an absent quote as an allowance.
+  let selected = []
+  for provider in providers {
+    guard provider is Some(provider) else {
+      return Err(@resources.InvalidExtent)
+    }
+    selected.push(provider)
+  }
   match
     @client_local_host.compose_installed_source_construction_capacity(
-      original, providers,
+      original, selected,
     ) {
     Some(value) => Ok(value)
     None => Err(@resources.InvalidExtent)

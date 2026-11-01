@@ -220,6 +220,15 @@ function requireSynchronousSourceConstruction(material, value) {
   fail('InstalledSourceConstructorNotSynchronous');
 }
 
+function sourceProjectionMethods(projection) {
+  if (!projection || nodeTypes.isProxy(projection) || !Object.isFrozen(projection)) fail('InvalidInstalledSourceCommandProjection');
+  const fields = Object.getOwnPropertyDescriptors(projection);
+  if (Reflect.ownKeys(fields).length !== 2 || ['capacity','project'].some(name =>
+      !Object.hasOwn(fields[name] ?? {}, 'value') || typeof fields[name].value !== 'function' ||
+      nodeTypes.isProxy(fields[name].value) || nodeTypes.isAsyncFunction(fields[name].value))) fail('InvalidInstalledSourceCommandProjection');
+  return Object.freeze({capacity: fields.capacity.value, project: fields.project.value});
+}
+
 function freezeSourceProjection(value) {
   // The original JSON graph has already been funded and parsed. Freeze that
   // graph in place; do not emit/reparse or mint a second declaration holder.
@@ -472,13 +481,10 @@ export function beginInstalledSourceInitialization(services, installation, conne
         fail('ForeignInstalledSourceInitialization');
       }
       if (material.busy) fail('InstalledSourceInitializationReentry');
-      if (typeof viewsWire !== 'string' || expectedCatalogCid !== undefined && typeof expectedCatalogCid !== 'string' ||
-          !projection || nodeTypes.isProxy(projection) || !Object.isFrozen(projection)) fail('InvalidInstalledSourceCommandProjection');
-      const fields = Object.getOwnPropertyDescriptors(projection);
-      if (Reflect.ownKeys(fields).length !== 2 || ['capacity','project'].some(name =>
-        !Object.hasOwn(fields[name] ?? {}, 'value') || typeof fields[name].value !== 'function' ||
-        nodeTypes.isProxy(fields[name].value) || nodeTypes.isAsyncFunction(fields[name].value))) fail('InvalidInstalledSourceCommandProjection');
-      const capacityFor = fields.capacity.value, project = fields.project.value;
+      if (typeof viewsWire !== 'string' || expectedCatalogCid !== undefined && typeof expectedCatalogCid !== 'string') {
+        fail('InvalidInstalledSourceCommandProjection');
+      }
+      const {capacity: capacityFor, project} = sourceProjectionMethods(projection);
       if (typeof material.methods.ComposeInstalledSourceConstructionCapacity !== 'function') fail('InstalledSourceInitializationRuntimeUnavailable');
       scope.commandAttempted = true;
       const units = BigInt(scope.connectorId.length) + BigInt(scope.baseEnvironmentWire.length) + BigInt(viewsWire.length);
@@ -529,6 +535,40 @@ export function beginInstalledSourceInitialization(services, installation, conne
           } finally {material.busy = false;}
           return prepared;
         });
+    },
+    prepareReadTarget(projection) {
+      if (this !== context || scope.role !== 'source' || !scope.active || scope.prepared === undefined ||
+          scope.source !== undefined || scope.targetAttempted || material.phase !== 'working') {
+        fail('ForeignInstalledSourceInitialization');
+      }
+      if (material.busy) fail('InstalledSourceInitializationReentry');
+      const {capacity: capacityFor, project} = sourceProjectionMethods(projection);
+      if (typeof material.methods.ComposeInstalledSourceConstructionCapacity !== 'function') fail('InstalledSourceInitializationRuntimeUnavailable');
+      const prepared = scope.prepared;
+      scope.targetAttempted = true;
+      let quantity;
+      material.busy = true;
+      try {quantity = requireSynchronousSourceConstruction(material, Reflect.apply(capacityFor, projection, []));}
+      finally {material.busy = false;}
+      if (!quantity || typeof quantity !== 'object' || nodeTypes.isProxy(quantity)) fail('InstalledSourceCommandConstructionUnavailable');
+      // A Source-issued reference outlives any one Run's Reader. Its complete
+      // original constructor peak therefore belongs to this SAME initializer,
+      // not a borrowed Reader reservation or an inferred spare allowance.
+      material.providers.push(quantity); material.inputs.push(projection);
+      reserveSource(original, material);
+      if (!scope.active || material.phase !== 'working' || scope.prepared !== prepared || scope.source !== undefined) {
+        fail('ForeignInstalledSourceInitialization');
+      }
+      let target;
+      material.busy = true;
+      try {
+        target = requireSynchronousSourceConstruction(material, Reflect.apply(project, projection, []));
+        if (!target || typeof target !== 'object' || nodeTypes.isProxy(target)) fail('InvalidInstalledSourceReadTarget');
+        material.inputs.push(target);
+        freezeSourceProjection(target);
+      } finally {material.busy = false;}
+      reconcileSource(original, material);
+      return target;
     },
     prepareAuthoredDeclaration(viewsWire, expectedCatalogCid) {
       if (this !== context || !scope.active || scope.prepared !== undefined || scope.commandAttempted) {

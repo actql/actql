@@ -474,7 +474,7 @@ test('GitHub Effect installer forwards original declaration Mapping and Site con
 // Actual existing Source material/context and Environment assembler. Only
 // native Core capacities/projection and current/retirement ports are explicit;
 // this exercises ownership/order, not numeric backing or a physical ACK.
-function commandConstructionFixture({refuseReserve = false, failProjection, duringReserve} = {}) {
+function commandConstructionFixture({refuseReserve = false, failProjection, duringReserve, role = 'effect', reserveAt = 2, additionalNative = []} = {}) {
   const ok = value => ({$tag: 1, _0: value});
   const initial = {}, input = {}, unit = {}, capacity = {}, declaration = {}, native = {};
   const installed = Object.freeze({registration: 'sheets', revision: 'sheets/0.1', effect: {}});
@@ -493,11 +493,11 @@ function commandConstructionFixture({refuseReserve = false, failProjection, duri
     clientProgramContinueInstalledSourceMaterial(value, original) {assert.equal(value, unit);assert.equal(original, input);return ok(capacity);},
     clientProgramInstalledSourceConstructionCapacity(...values) {return ok(Object.freeze({values}));},
     clientProgramComposeInstalledSourceConstructionCapacity(original, selected) {
-      assert.deepEqual(selected, [native]);quotes.push({original, selected: [...selected]});return ok(Object.freeze({original, selected}));
+      assert.equal(selected[0], native);assert.deepEqual(selected.slice(1), selected.length === 1 ? [] : additionalNative);quotes.push({original, selected: [...selected]});return ok(Object.freeze({original, selected}));
     },
     clientProgramReserveInstalledSourceConstruction(value, original) {
       assert.equal(value, capacity);assert.equal(original, input);reserveCalls++;events.push('reserve');
-      if (reserveCalls === 2) {duringReserve?.(context);if (refuseReserve) throw refusal;}return ok();
+      if (reserveCalls === reserveAt) {duringReserve?.(context);if (refuseReserve) throw refusal;}return ok();
     },
     clientProgramRetireInstalledSourceMaterial(value, original) {assert.equal(value, capacity);assert.equal(original, input);retired++;return ok(true);},
     clientProgramRowSourceRestoreRelationDeclaration(...args) {assert.equal(events.at(-1), 'reserve');events.push('restore');assert.equal(args[4], undefined);return ok(declaration);},
@@ -508,7 +508,7 @@ function commandConstructionFixture({refuseReserve = false, failProjection, duri
   retainInstalledHostServiceInstallation(services, installed, cid);
   const environment = JSON.stringify({version:'actql-check-environment/0.1',connector_catalogs:[],schema_snapshots:[],
     connector_capabilities:[],mapping_contracts:[],command_contracts:[]});
-  context = beginInstalledSourceInitialization(services, installed, 'sheets', environment, 'effect');
+  context = beginInstalledSourceInitialization(services, installed, 'sheets', environment, role);
   const projection = Object.freeze({capacity(wire) {
     assert.deepEqual(JSON.parse(wire), base);events.push('native-quantity');return native;
   }, project(wire) {
@@ -567,4 +567,48 @@ test('invalid async Command projection stays with same Source until original set
   await Promise.resolve();await Promise.resolve();
   assert.equal(f.retire(),true);assert.equal(f.retired(),1);
   assert.throws(()=>f.prepare(),{code:'ForeignInstalledSourceInitialization'});
+});
+
+test('Source read target is constructed only after SAME parent funds its retained original native peak',()=>{
+  const quantity={},target={original:'reference'},f=commandConstructionFixture({role:'source',additionalNative:[quantity]});
+  const prepared=f.prepare();let capacityCalls=0,projectCalls=0;
+  const result=f.context.prepareReadTarget(Object.freeze({capacity(){capacityCalls++;return quantity;},project(){
+    assert.equal(f.events.at(-1),'reserve');projectCalls++;return target;
+  }}));
+  assert.equal(result,target);assert.equal(Object.isFrozen(target),true);assert.equal(capacityCalls,1);assert.equal(projectCalls,1);
+  assert.equal(f.quotes.at(-1).selected[1],quantity);
+  assert.doesNotThrow(()=>assertInstalledSourceConstruction(f.context,f.declaration,f.declared,prepared.environment,undefined,undefined,f.commands));
+  assert.throws(()=>f.context.prepareReadTarget(Object.freeze({capacity(){assert.fail('No reissue');},project(){assert.fail('No reconstruction');}})),
+    {code:'ForeignInstalledSourceInitialization'});
+  f.finish();assert.equal(f.retire(),true);
+});
+
+test('Source read target backing refusal retains original obligation without entering or retrying the native constructor',()=>{
+  const quantity={},f=commandConstructionFixture({role:'source',additionalNative:[quantity],refuseReserve:true,reserveAt:4});
+  f.prepare();let calls=0;
+  const projection=Object.freeze({capacity(){return quantity;},project(){calls++;return {};}});
+  assert.throws(()=>f.context.prepareReadTarget(projection),error=>error===f.refusal);
+  assert.equal(calls,0);assert.equal(f.quotes.at(-1).selected[1],quantity);
+  assert.throws(()=>f.context.prepareReadTarget(projection),{code:'ForeignInstalledSourceInitialization'});
+  f.finish();assert.equal(f.retire(),true);
+});
+
+test('Source read target preserves thrown undefined and rejects original reentrant preparation',()=>{
+  const quantity={},f=commandConstructionFixture({role:'source',additionalNative:[quantity]});f.prepare();
+  const projection=Object.freeze({capacity(){return quantity;},project(){
+    assert.throws(()=>f.context.prepareReadTarget(projection),{code:'ForeignInstalledSourceInitialization'});throw undefined;
+  }});
+  let caught=false;try{f.context.prepareReadTarget(projection);}catch(cause){caught=true;assert.equal(cause,undefined);}
+  assert.equal(caught,true);assert.throws(()=>f.context.prepareReadTarget(projection),{code:'ForeignInstalledSourceInitialization'});
+  f.finish();assert.equal(f.retire(),true);
+});
+
+test('invalid async Source target remains refused and retained until SAME original settles',async()=>{
+  const quantity={},f=commandConstructionFixture({role:'source',additionalNative:[quantity]});f.prepare();let resolve;
+  const pending=new Promise(done=>{resolve=done;});
+  assert.throws(()=>f.context.prepareReadTarget(Object.freeze({capacity(){return quantity;},project(){return pending;}})),
+    {code:'InstalledSourceConstructorNotSynchronous'});
+  f.finish();assert.equal(f.retire(),false);assert.equal(f.retired(),0);
+  resolve({original:'late invalid reference'});await Promise.resolve();await Promise.resolve();
+  assert.equal(f.retire(),true);assert.equal(f.retired(),1);
 });

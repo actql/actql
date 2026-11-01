@@ -130,3 +130,51 @@ pub fn range_declaration_construction_bounds(
     bundle_depth: depth,
   })
 }
+
+///|
+/// Fixed shape DATA from the SAME original reference/identity builders. The
+/// supplied byte counts describe checked installation strings; no identity is
+/// hashed, no original reference is created, and no authorization is issued.
+pub(all) struct RangeReferenceConstructionBounds {
+  identity_bytes : Int
+  identity_nodes : Int
+  identity_depth : Int
+  reference_bytes : Int
+  reference_nodes : Int
+}
+
+///|
+pub fn range_reference_construction_bounds(
+  origin_bytes : Int,
+  spreadsheet_bytes : Int,
+) -> RangeReferenceConstructionBounds? {
+  if origin_bytes < 1 || spreadsheet_bytes < 1 {
+    return None
+  }
+  let provider = range_provider_identity_document("", "")
+  let identity = range_identity_document({
+    sheet_id: 2147483647,
+    start_row: 2147483647,
+    end_row: 2147483647,
+    start_column: 2147483647,
+    end_column: 2147483647,
+  })
+  // NFC output expands by <=8 UTF16 units per original decoded unit. JSON
+  // spelling then needs <=6; input bytes bound the original UTF16 units.
+  // This is constructor geometry, not a changed configuration text policy.
+  let bytes = provider.stringify().length().to_int64() +
+    identity.stringify().length().to_int64() +
+    48L * (origin_bytes.to_int64() + spreadsheet_bytes.to_int64())
+  if bytes > 2147483647L {
+    return None
+  }
+  let cid = "sha256:" + "0".repeat(64)
+  let reference = range_reference_document(cid, cid, cid, cid)
+  Some({
+    identity_bytes: bytes.to_int(),
+    identity_nodes: range_template_nodes(provider) + range_template_nodes(identity),
+    identity_depth: Int::max(range_template_depth(provider), range_template_depth(identity)),
+    reference_bytes: reference.stringify().length(),
+    reference_nodes: range_template_nodes(reference),
+  })
+}

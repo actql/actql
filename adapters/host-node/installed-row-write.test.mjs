@@ -1128,3 +1128,56 @@ for (const rangeCommand of [true, 'clear']) {
     assert.deepEqual(events,['same-site',rangeCommand==='clear'?'clear-driver':'range-driver','close','same-adapter']);
   });
 }
+
+for(const rangeCommand of [true,'clear']){
+  test(`managed Sheets ${rangeCommand===true?'range':'clear'} Source retains original target before Reader and routes metadata without legacy I/O`,async()=>{
+    const source=readFileSync(new URL('../connectors/sheets/host/installed-sheets.mjs',import.meta.url),'utf8');
+    const names=new Set(['loadManagedSheetsGridSource','sheetsGridReaderLimits','checkedSourceMethod','prepareInitializedSheetsReadTarget']);
+    const bodies=parse(source,{ecmaVersion:'latest',sourceType:'module'}).body.filter(node=>node.type==='FunctionDeclaration'&&names.has(node.id.name))
+      .map(node=>source.slice(node.start,node.end)).join('\n');
+    const {captureInstalledSourceServices}=await import('./installed-host-services.mjs');
+    const {prepareSheetsGridPages,prepareSheetsRangeTargetPages}=await import('../connectors/sheets/site/sheets-grid-pages.mjs');
+    const quantity={},sourceQuantity={},capacity={},installation={},calls=[],site=initializedSheetsSite(),
+      target=Object.freeze({original:'provider-reference'}),commands=Object.freeze([{}]),environment={wire:'same-env'},declaration={},declared={catalog_cid:providerCid};
+    let selectedPage,issuer,closed=0,siteClosing=false;
+    const physicalSite={referenceCurrent(){return !siteClosing;},close(){siteClosing=true;return true;}};
+    const adapter={close(){closed++;return physicalSite.close();}};
+    const sourceInitialization=Object.freeze({prepareReadTarget(projection){calls.push('source-target-reserve');
+      assert.equal(projection.capacity(),sourceQuantity);return projection.project();}});
+    const moon={clientProgramInstalledSourceReaderPolicy:()=>[65536,100000,100],
+      clientProgramResourceReferenceIssuer(admit,current){issuer={admit,current};return issuer;}};
+    const native={sheetsRangeReadConstructionCapacity(...args){assert.equal(this,native);calls.push('reader-quantity');
+      assert.deepEqual(args,[Buffer.byteLength(JSON.stringify(site.columns)),1,0,0,1,0,1,200000,32]);return quantity;},
+      sheetsRangeReferenceConstructionCapacity(...args){assert.equal(this,native);calls.push('reference-quantity');
+        assert.deepEqual(args,[Buffer.byteLength(site.apiOrigin),Buffer.byteLength(site.spreadsheetId)]);return sourceQuantity;},
+      sheetsRangeReferenceJson(){assert.equal(this,native);calls.push('reference');return target;},
+      sheetsRangeFailureJson(){assert.fail('No failure projection');},
+      sheetsTargetJson(){assert.equal(this,native);calls.push('metadata');return '{"checked":true}';}};
+    const runAcquisitionLimits={},implementation={capacity,runAcquisitionLimits},reader={capacity};
+    const authorization={};
+    const services={sourceReaderImplementationProfile(){assert.fail('No substituted policy');},openRowSite(){assert.fail('Original Site is a port');},
+      sourceReaderImplementation(input){calls.push('implementation');assert.equal(input.sourceInitialization,sourceInitialization);
+        assert.equal(input.preservingRequestConstruction.capacity,quantity);return implementation;},
+      createSourceReader(input){calls.push('reader');assert.equal(input.site,physicalSite);assert.equal(input.operation,SHEETS_READ_OPERATION);
+        assert.equal(Object.hasOwn(input,'readPages'),false);selectedPage=input.preparePageReader;return reader;}};
+    const load=Function('nodeTypes','captureInstalledSourceServices','SHEETS_LIMITS','SHEETS_READ_OPERATION','registration','revision','targetVersion',
+      'bindingFacts','fail','canonicalJson','openSite','createInstalledRowSource','prepareSheetsGridPages','prepareSheetsRangeTargetPages','sheetsRangeReference',
+      'retainInstalledHostInitializationFailure',bodies+'\nreturn loadManagedSheetsGridSource;')(
+      nodeTypes,captureInstalledSourceServices,SHEETS_LIMITS,SHEETS_READ_OPERATION,'sheets','sheets/0.1','target',
+      value=>({columns:value.columns}),code=>{throw Object.assign(new Error(code),{code});},canonicalJson,
+      async()=>{calls.push('site');return{site:physicalSite,authorization,bindingCid:providerCid};},
+      async input=>{calls.push('adapter');assert.equal(input.providerReader,reader);assert.equal(input.commands,commands);
+        assert.equal(input.environment,environment);assert.equal(input.referenceIssuer,issuer);return adapter;},
+      prepareSheetsGridPages,prepareSheetsRangeTargetPages,({moon})=>moon.sheetsRangeReferenceJson(),async cause=>{throw cause;});
+    const result=await load({rangeCommand,connectorId:'sheets'},{moon,providerMoon:native,sourceInitialization,installation,installationServices:services},
+      site,{catalogCid:providerCid},{declaration,declared,environment,commands});
+    assert.equal(result,adapter,'Return SAME nominal Source adapter');
+    assert.deepEqual(calls,['reader-quantity','implementation','site','source-target-reserve','reference-quantity','reference','reader','adapter']);
+    const page=selectedPage({resource:'range_target',columns:['target']},Reflect.apply);
+    assert.equal(page.fetchPage({pageIndex:0,rowCount:0}).method,'GET');
+    assert.equal(page.decodePage({accepted:true,statusCode:200,body:new Uint8Array()}, {pageIndex:0,rowCount:0}).rows[0].target,target);
+    assert.equal(issuer.admit('sheet_range',canonicalJson(target)),true);assert.equal(issuer.current(),true);
+    assert.equal(result.close(),true);assert.equal(closed,1);assert.equal(issuer.current(),false);
+    assert.equal(issuer.admit('sheet_range',canonicalJson(target)),false);
+  });
+}
