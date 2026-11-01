@@ -25,6 +25,7 @@ assert.ok([physicalBoundary,dispatchBoundary,submissionBoundary,sourcePublicatio
 const fixtureModes = Object.freeze({
   'contract': 'actual artifact shape; synthetic entry refusal only',
   'buffer': 'unmetered transfer/cleanup custody',
+  'buffer-packed': 'unmetered raw Wasmtime i64 transport; no Run or physical ACK',
   'preparation': 'unmetered positive; separate metered5k interruption',
   'runtime': '100M instances; separate5k transfer trap and explicit cleanup funding',
   'workspace': '100M instance; reservation/stop/cleanup',
@@ -104,6 +105,10 @@ if(process.argv.includes('--build-and-consume')){
   const result=JSON.parse(output);
   assert.equal(result.success,true);
   assert.equal(result.module_sha256,digest);
+  const packed=JSON.parse(run(python,['scripts/fixtures/python-local-buffer-packed-abi.py',module]));
+  assert.equal(packed.success,true);
+  assert.equal(packed.module_sha256,digest);
+  assert.deepEqual(packed.cases,['original_wasmtime_i64_packed_transport']);
   if(resultPublicationBoundary){
     const library=process.env.ACTQL_PYTHON_DUCKDB_LIBRARY;
     const libraryDigest=process.env.ACTQL_PYTHON_DUCKDB_SHA256;

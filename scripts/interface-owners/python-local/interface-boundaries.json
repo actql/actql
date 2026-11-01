@@ -10662,6 +10662,10 @@
               {
                 "path": "src/client_host_wasm/packed_output_transport_wbtest.mbt",
                 "anchor": "test \"packed output transport retains original buffer guards and exact scalar byte order\""
+              },
+              {
+                "path": "scripts/fixtures/python-local-buffer-packed-abi.py",
+                "anchor": "assert packed == (0xC32F80989FF022, 0x0A0D22A9)"
               }
             ]
           }

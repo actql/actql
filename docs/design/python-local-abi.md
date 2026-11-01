@@ -1636,6 +1636,11 @@ output loan through complete copying and physical cleanup. This changes no
 wire bytes, parser, authority, pool allowance or per-operation fuel. It exposes
 no raw address or memory view and supplies no legacy-module fallback.
 
+The focused raw Wasmtime consumer also checks the external signed Int64 ABI
+with independently authored UTF-8/CRLF bytes and a packed value above 2^53.
+This unmetered diagnostic establishes neither ordinary Run funding nor a
+physical cleanup acknowledgement.
+
 
 Fixed identity fields use the existing output Owner with their original 71-byte
 SHA-256 CID or 64-byte index-key bound. Full contract bodies keep the existing
