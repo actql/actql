@@ -3182,6 +3182,16 @@ state admission. Cancellation still runs before confirmed absence is returned,
 and all current, publication-row and physical Reader fences remain independent.
 Initial, incomplete and cold holders cannot select original-data reobservation.
 
+The synchronous saved-record producer and its immediately following validated
+copy share one original Source/current frame. Core still executes its existing
+record producer and independent read validator in order; no File or Store I/O,
+callback or await separates these two facade calls. The record is retained on
+the same operation carrier before either call, and Source/current is checked
+before production and after copying. A producer or final-current failure keeps
+that same Source, projection and record for cleanup, without copying after a
+failed producer, repeating it or creating a replacement record. Standalone
+record methods retain their original checks.
+
 The Host registers its operation carrier before acquiring children. It restores
 the saved allocation directory and opens the committed generation in the
 installation's Result Root with no-follow, identity, size and digest checks. It
