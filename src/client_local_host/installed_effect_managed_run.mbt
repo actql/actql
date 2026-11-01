@@ -58,6 +58,18 @@ pub fn installed_effect_mock_model_run_requirements(
 }
 
 ///|
+fn installed_effect_managed_request_matches(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+) -> Bool {
+  let identity = @publication_host.prepared_client_effect_identity(prepared)
+  identity.program_definition_cid ==
+  @publication_host.client_request_program_cid(request) &&
+  identity.parameter_values_cid ==
+  @publication_host.client_request_parameters_cid(request)
+}
+
+///|
 pub fn check_installed_effect_managed_run(
   value : ClientInstalledManagedRun,
   prepared : @publication_host.PreparedClientEffectComputation,
