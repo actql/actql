@@ -7,7 +7,7 @@ test "same-stage acquired serialized Model preserves original capture module inp
   let declaration = request_model_module_declaration()
   let (environment, _) = effect_model_plan_source(declaration=Some(declaration))
   let document =
-    #|{"version":"actql/0.1","id":"same-stage-acquired-serialized-model","stages":[{"id":"main","inputs":{"remote":{"connector":"model/source-fixture","resource":"r"}},"steps":[{"from":"remote","filter":"id >= 0","as":"scan"},{"select":["id"],"as":"captured"},{"assert_rows":{"unique_by":["id"]},"as":"unique_input"},{"serialize":{"format":"jsonl","fields":["id"],"name":"out.jsonl","preserve_order":true,"bounds":{"max_rows":1,"max_bytes":128}},"as":"attachment"},{"assert_rows":{"unique_by":["name"]},"as":"unique_attachment"},{"infer":{"contract":"model-task:risk-score.v1","key":"name","input":{"text":{"field":"name"}}},"as":"inferred"}],"results":{"answer":{"from":"inferred","fields":["name","outcome","value"]}}}],"results":{"answer":{"from":{"stage":"main","result":"answer"}}}}
+    #|{"version":"actql/0.1","id":"same-stage-acquired-serialized-model","stages":[{"id":"main","inputs":{"remote":{"connector":"model/source-fixture","resource":"r","view":"records"}},"steps":[{"from":"remote","filter":"id >= 0","as":"scan"},{"select":["id"],"as":"captured"},{"assert_rows":{"unique_by":["id"]},"as":"unique_input"},{"serialize":{"format":"jsonl","fields":["id"],"name":"out.jsonl","preserve_order":true,"bounds":{"max_rows":1,"max_bytes":128}},"as":"attachment"},{"assert_rows":{"unique_by":["name"]},"as":"unique_attachment"},{"infer":{"contract":"model-task:risk-score.v1","key":"name","input":{"text":{"field":"name"}}},"as":"inferred"}],"results":{"answer":{"from":"inferred","fields":["name","outcome","value"]}}}],"results":{"answer":{"from":{"stage":"main","result":"answer"}}}}
   let ordinary = client_local_preparation_initial_limits(
     client_local_resource_policy(),
   ).unwrap()
@@ -53,7 +53,14 @@ test "same-stage acquired serialized Model preserves original capture module inp
         @checked.Source(@checked.Registration(_)) => "Source.Registration"
         @checked.Source(@checked.Declarations(_)) => "Source.Declarations"
         @checked.Source(@checked.Checks(_)) => "Source.Checks"
-        @checked.Source(@checked.SourceView(_)) => "Source.SourceView"
+        @checked.Source(@checked.SourceView(@context.InvalidLimits)) =>
+          "Source.SourceView.InvalidLimits"
+        @checked.Source(@checked.SourceView(@context.Program(_))) =>
+          "Source.SourceView.Program"
+        @checked.Source(@checked.SourceView(@context.Binding(_))) =>
+          "Source.SourceView.Binding"
+        @checked.Source(@checked.SourceView(@context.Context(_))) =>
+          "Source.SourceView.Context"
         @checked.Source(@checked.RequestForm(reason)) =>
           "Source.RequestForm/" + @debug.to_string(reason)
         @checked.Source(@checked.Identity(_)) => "Source.Identity"
