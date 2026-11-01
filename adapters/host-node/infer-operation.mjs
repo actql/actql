@@ -148,7 +148,6 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     if (provider === undefined || acquiredInput !== undefined || keyedInput !== undefined ||
         restoredInput !== undefined || savedCapture !== undefined || savedSlots !== undefined ||
         originalPreparation === null || typeof originalPreparation !== 'object' ||
-        composedInput !== undefined && Object.hasOwn(originalPreparation, 'nodeInstallation') ||
         typeof originalPreparation.readRetainedBytes !== 'bigint' ||
         originalPreparation.readRetainedBytes <= 0n ||
         typeof originalPreparation.readExecutionBytes !== 'bigint' ||
@@ -173,30 +172,35 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     }
     // The original read owner retains the issued ticket if a later constructor
     // fails. No JS ownership map, claim reset or unowned-start fallback exists.
-    if (composedInput !== undefined) {
+    if (composedInput !== undefined &&
+        typeof originalPreparation.control?.startCheckedClientOriginalComposedInferExecution !== 'function') {
+      throw new TypeError('InferOriginalComposedControlUnavailable');
+    }
+    if (Object.hasOwn(originalPreparation, 'nodeInstallation')) {
+      const selected = originalPreparation.nodeInstallation;
+      if (selected === null || typeof selected !== 'object' ||
+          Object.keys(selected).sort().join(',') !==
+            'installation,layout,layoutArtifactCid,probability,runtimeArtifactCid' ||
+          typeof originalPreparation.control?.claimCheckedClientInferNodePreparationLayout !== 'function' ||
+          composedInput === undefined &&
+            typeof originalPreparation.control?.startCheckedClientInferOriginalPreparation !== 'function') {
+        throw new TypeError('InvalidInferOriginalPreparationLayout');
+      }
+      // The same installed layout claim supplies the one original consumer
+      // for both single-stage and composed input. A rejected claim never uses
+      // the private envelope or an unowned start as a replacement.
+      originalConsumer = originalPreparation.control.claimCheckedClientInferNodePreparationLayout(
+        originalPreparation.compiled, originalPreparation.runDefinition, graph,
+        originalRead, selected);
+    } else if (composedInput !== undefined) {
       const control = originalPreparation.control;
-      if (typeof control?.claimCheckedClientInferOriginalComposedPreparation !== 'function' ||
-          typeof control?.startCheckedClientOriginalComposedInferExecution !== 'function') {
+      if (typeof control?.claimCheckedClientInferOriginalComposedPreparation !== 'function') {
         throw new TypeError('InferOriginalComposedControlUnavailable');
       }
       originalConsumer = control.claimCheckedClientInferOriginalComposedPreparation(
         originalPreparation.compiled, originalPreparation.runDefinition, graph,
         originalRead, originalPreparation.readRetainedBytes,
         originalPreparation.readExecutionBytes);
-    } else if (Object.hasOwn(originalPreparation, 'nodeInstallation')) {
-      const selected = originalPreparation.nodeInstallation;
-      if (selected === null || typeof selected !== 'object' ||
-          Object.keys(selected).sort().join(',') !==
-            'installation,layout,layoutArtifactCid,probability,runtimeArtifactCid' ||
-          typeof originalPreparation.control?.claimCheckedClientInferNodePreparationLayout !== 'function' ||
-          typeof originalPreparation.control?.startCheckedClientInferOriginalPreparation !== 'function') {
-        throw new TypeError('InvalidInferOriginalPreparationLayout');
-      }
-      // Installation-owned selection only. Never retry a rejected layout with
-      // the older private envelope seam, or derive grants from support bounds.
-      originalConsumer = originalPreparation.control.claimCheckedClientInferNodePreparationLayout(
-        originalPreparation.compiled, originalPreparation.runDefinition, graph,
-        originalRead, selected);
     } else {
       // Explicit existing private envelope caller; no production supplier or
       // physical adequacy is implied by this older diagnostic interface.
@@ -1119,7 +1123,8 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
 // installing Run retains physical custody before binding current admissions.
 export function openNodeComposedInferProvider({moon, selected, sources,
   control, plan, principalId, now, signal, retainOperation, retainCompleted,
-  durableCalls = false, restoredInput, generatedInput, originalPreparation, deferred = false}) {
+  durableCalls = false, restoredInput, generatedInput, originalPreparation, deferred = false,
+  inputPrefix = selected?.computePrefix}) {
   if (selected?.occurrence === undefined ||
       typeof deferred !== 'boolean' || !deferred && typeof retainOperation !== 'function' ||
       deferred && (generatedInput !== undefined || originalPreparation !== undefined || retainOperation !== undefined)) {
@@ -1139,7 +1144,9 @@ export function openNodeComposedInferProvider({moon, selected, sources,
     if (!failureRecorded) {failure = cause; failureRecorded = true;}
   };
   let bound = !deferred, attempted = false;
-  const computePrefix = selected.computePrefix;
+  // A Request module can supply its already-backed original before this
+  // native component selects input-dependent capacity. Never reprepare it.
+  const computePrefix = inputPrefix;
   const selectProvider = generatedInput === undefined
     ? moon.clientProgramComposedInferLocalProvider : moon.clientProgramGeneratedInferLocalProvider;
   const provider = selectProvider(
