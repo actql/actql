@@ -161,6 +161,23 @@ class OriginalBulkTransferTests(unittest.TestCase):
                                      inspect=inspect, current=lambda: None)
             self.assertEqual(store.read(physical_key).payload, payload)
 
+    def test_bulk_payload_overlap_is_reserved_before_copy_without_enlarging_wire_limits(self):
+        import sys
+        core, _, _ = self.bridge()
+        for size in (0, 1, 64, 71, 16384, 16385, 65536):
+            with self.subTest(size=size):
+                payload = b'x' * size
+                self.assertEqual(core._input_copy_bytes(payload),
+                    sys.getsizeof(payload) + min(16384, size) + sys.getsizeof(bytearray()))
+                final = 2 * size + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
+                block = (size + 2 * min(16384, size)
+                         + 2 * sys.getsizeof(bytearray()) + sys.getsizeof(b''))
+                self.assertEqual(core._output_copy_bytes(size), max(final, block))
+                core._ordinary_host = False
+                self.assertEqual(core._input_copy_bytes(payload), sys.getsizeof(payload))
+                self.assertEqual(core._output_copy_bytes(size), final)
+                core._ordinary_host = True
+
     def test_journal_current_change_cannot_replace_original_query_or_row(self):
         from actql_sdk._local_storage import StoredBytes
         for mode in ('query', 'row'):

@@ -753,6 +753,25 @@ class LocalCore:
         except BaseException:
             return 1
 
+    def _input_copy_bytes(self, payload: bytes) -> int:
+        original = sys.getsizeof(payload)
+        if not getattr(self, '_ordinary_host', False):
+            return original
+        # Memory.write receives a bytearray, so it makes no hidden second
+        # payload copy. The temporary is bounded and charged before fill.
+        return original + min(16384, len(payload)) + sys.getsizeof(bytearray())
+
+    def _output_copy_bytes(self, limit: int) -> int:
+        complete = 2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
+        if not getattr(self, '_ordinary_host', False):
+            return complete
+        # At small bounds, Memory.read's bytearray and its immutable block can
+        # overlap the destination. Charge that actual peak, not just two full
+        # outputs; large outputs already have the larger final-copy allowance.
+        block = (limit + 2 * min(16384, limit)
+                 + 2 * sys.getsizeof(bytearray()) + sys.getsizeof(b''))
+        return max(complete, block)
+
     def _bulk_memory_current(self, memory: Any) -> None:
         # This is the same entered instance's fixed linear memory. No address
         # or view escapes the synchronous copy or replaces its original loan.
@@ -789,7 +808,8 @@ class LocalCore:
             if (type(start) is not int or start < 0 or start > len(original)
                     or length > len(original) - start):
                 return -5
-            copied = memory.write(caller, original[start:start + length], offset)
+            payload = bytearray(memoryview(original)[start:start + length])
+            copied = memory.write(caller, payload, offset)
             self._bulk_memory_current(memory)
             if (self._inputs.get(ticket) is not physical or physical.payload is not original
                     or copied != length):
@@ -1310,7 +1330,7 @@ class LocalCore:
             # physical ticket to disappear while the Core may still own it.
             self._inputs[ticket] = _PhysicalInput(payload, cleanup, stopped)
             handle = self._call('buffer', 'reserve', ticket, len(payload),
-                                sys.getsizeof(payload))
+                                self._input_copy_bytes(payload))
             if handle <= 0:
                 del self._inputs[ticket]
                 raise LocalCoreError('reserve', handle)
@@ -1396,7 +1416,7 @@ class LocalCore:
             family = ('submission_append' if kind == 3 else
                       'submission_lookup' if kind in (4, 5, 6, 7, 8) else 'submission')
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
-            physical_bytes = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
+            physical_bytes = (self._output_copy_bytes(limit)
                               + sys.getsizeof(_Output(self._identity, ticket, 0, limit, family)))
             handle = self._call('submission', 'reserve', configuration, source.handle,
                                 kind, ticket, physical_bytes)
@@ -1422,7 +1442,7 @@ class LocalCore:
             self._next_ticket += 1
             limit = 1_048_576
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
-            allowance = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
+            allowance = (self._output_copy_bytes(limit)
                          + sys.getsizeof(_Output(self._identity, ticket, 0, limit, 'check')))
             handle = self._call('check', 'reserve', environment, configuration,
                                 source.handle, kind, ticket, allowance)
@@ -1479,7 +1499,7 @@ class LocalCore:
             self._next_ticket += 1
             limit = 1_048_576
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
-            physical_bytes = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
+            physical_bytes = (self._output_copy_bytes(limit)
                               + sys.getsizeof(_Output(self._identity, ticket, 0, limit, 'bootstrap')))
             handle = self._call('bootstrap', 'reserve', source.handle, ticket, physical_bytes)
             if handle <= 0:
@@ -1506,7 +1526,7 @@ class LocalCore:
             self._next_ticket += 1
             limit = 65536
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
-            physical_bytes = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
+            physical_bytes = (self._output_copy_bytes(limit)
                               + sys.getsizeof(_Output(self._identity, ticket, 0, limit, 'original')))
             handle = self._call('original', 'reserve', source.handle, kind, ticket, physical_bytes)
             if handle <= 0:
@@ -1653,7 +1673,7 @@ class LocalCore:
             self._next_ticket += 1
             limit = 65_536
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
-            physical_bytes = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
+            physical_bytes = (self._output_copy_bytes(limit)
                               + sys.getsizeof(_Output(self._identity, ticket, 0, limit, family)))
             handle = self._call(family, operation, compute.handle, source.handle,
                                 ticket, physical_bytes)
@@ -1749,7 +1769,7 @@ class LocalCore:
             self._next_ticket += 1
             limit = 1_048_576
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
-            physical_bytes = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
+            physical_bytes = (self._output_copy_bytes(limit)
                               + sys.getsizeof(_Output(self._identity, ticket, 0, limit, 'publication_preflight')))
             handle = self._call('publication_preflight', 'reserve', source.handle,
                                 request.handle, ticket, physical_bytes)
@@ -1813,7 +1833,7 @@ class LocalCore:
             self._next_ticket += 1
             limit = 1_048_576
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
-            physical_bytes = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
+            physical_bytes = (self._output_copy_bytes(limit)
                               + sys.getsizeof(_Output(self._identity, ticket, 0, limit, 'publication')))
             handle = self._call('publication', 'reserve', source.handle, request.handle,
                                 ticket, physical_bytes)
@@ -1909,7 +1929,7 @@ class LocalCore:
             self._next_ticket += 1
             limit = 65536
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
-            physical_bytes = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
+            physical_bytes = (self._output_copy_bytes(limit)
                               + sys.getsizeof(_Output(self._identity, ticket, 0, limit, 'result_binding')))
             handle = self._call('result_binding', 'reserve', publication.handle,
                                 index, observations.handle, ticket, physical_bytes)
@@ -2094,7 +2114,7 @@ class LocalCore:
             self._next_ticket += 1
             limit = maximum
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
-            physical_bytes = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
+            physical_bytes = (self._output_copy_bytes(limit)
                               + sys.getsizeof(_Output(self._identity, ticket, 0, limit,
                                                       'publication_commit_export')))
             handle = (self._call('publication_commit_export', 'reserve',
@@ -2747,7 +2767,7 @@ class LocalCore:
             self._next_ticket += 1
             limit = 65_536
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
-            physical_bytes = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
+            physical_bytes = (self._output_copy_bytes(limit)
                               + sys.getsizeof(_Output(self._identity, ticket, 0, limit,
                                                       'payload_request')))
             handle = self._call('payload_request', 'reserve', publication.handle, index,
@@ -2799,7 +2819,7 @@ class LocalCore:
             self._next_ticket += 1
             limit = 65_536
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
-            physical_bytes = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
+            physical_bytes = (self._output_copy_bytes(limit)
                               + sys.getsizeof(_Output(self._identity, ticket, 0, limit,
                                                       'payload_chunk')))
             handle = self._call('payload_chunk', 'reserve', request.handle,
@@ -2862,7 +2882,7 @@ class LocalCore:
             self._next_ticket += 1
             limit = 65_536
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
-            physical_bytes = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
+            physical_bytes = (self._output_copy_bytes(limit)
                               + sys.getsizeof(_Output(self._identity, ticket, 0, limit,
                                                       'payload_record')))
             handle = self._call('payload_record', 'reserve', request.handle, ticket, physical_bytes)
@@ -2952,7 +2972,7 @@ class LocalCore:
             self._next_ticket += 1
             limit = 65_536
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
-            physical_bytes = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
+            physical_bytes = (self._output_copy_bytes(limit)
                               + sys.getsizeof(_Output(self._identity, ticket, 0, limit,
                                                       'payload_reservation')))
             handle = self._call('payload_reservation', 'reserve', request.handle, ticket, physical_bytes)
@@ -3026,7 +3046,7 @@ class LocalCore:
             self._next_ticket += 1
             limit = 65_536
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
-            physical_bytes = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
+            physical_bytes = (self._output_copy_bytes(limit)
                               + sys.getsizeof(_Output(self._identity, ticket, 0, limit,
                                                       'payload_writing')))
             handle = self._call('payload_writing', 'reserve', request.handle, kind, ticket, physical_bytes)
@@ -3099,7 +3119,7 @@ class LocalCore:
             self._next_ticket += 1
             limit = 1024
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
-            physical_bytes = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
+            physical_bytes = (self._output_copy_bytes(limit)
                               + sys.getsizeof(_Output(self._identity, ticket, 0, limit,
                                                       'payload_names')))
             handle = self._call('payload_names', 'reserve', record.handle, ticket, physical_bytes)
@@ -3146,7 +3166,7 @@ class LocalCore:
             self._next_ticket += 1
             limit = 65536
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
-            physical_bytes = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
+            physical_bytes = (self._output_copy_bytes(limit)
                               + sys.getsizeof(_Output(self._identity, ticket, 0, limit,
                                                       'payload_binding')))
             handle = self._call('payload_binding', 'reserve', record.handle, ticket, physical_bytes)
@@ -3196,7 +3216,7 @@ class LocalCore:
             self._next_ticket += 1
             limit = 65_536
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
-            physical_bytes = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
+            physical_bytes = (self._output_copy_bytes(limit)
                               + sys.getsizeof(_Output(self._identity, ticket, 0, limit,
                                                       'payload_allocation')))
             handle = self._call('payload_allocation', 'reserve', request.handle, kind, ticket, physical_bytes)
@@ -3275,8 +3295,7 @@ class LocalCore:
             # Register physical custody before entering Wasm, but allocate
             # the large destination only after Core reserves its capacity.
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
-            physical_bytes = (2 * limit + sys.getsizeof(bytearray()) +
-                              sys.getsizeof(b'') +
+            physical_bytes = (self._output_copy_bytes(limit) +
                               sys.getsizeof(_Output(self._identity, ticket, 0, limit)))
             handle = self._call('material', 'reserve', run, kind, ticket,
                                 physical_bytes)
@@ -3307,7 +3326,7 @@ class LocalCore:
             self._next_ticket += 1
             limit = 1_048_576
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
-            physical_bytes = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
+            physical_bytes = (self._output_copy_bytes(limit)
                               + sys.getsizeof(_Output(self._identity, ticket, 0, limit)))
             handle = self._call('material', 'reserve_submitted_rows', run, current,
                                 source.handle, ticket, physical_bytes)
@@ -3547,8 +3566,7 @@ class LocalCore:
             self._next_ticket += 1
             limit = 100_000
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
-            physical_bytes = (2 * limit + sys.getsizeof(bytearray()) +
-                              sys.getsizeof(b'') + sys.getsizeof(
+            physical_bytes = (self._output_copy_bytes(limit) + sys.getsizeof(
                                   _Output(self._identity, ticket, 0, limit, 'source')))
             handle = self._call('source', 'reserve_command', attempt.handle, kind,
                                 account.handle, ticket, physical_bytes)
@@ -3640,7 +3658,7 @@ class LocalCore:
             self._next_ticket += 1
             limit = 65_536
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
-            physical_bytes = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
+            physical_bytes = (self._output_copy_bytes(limit)
                               + sys.getsizeof(_Output(self._identity, ticket, 0, limit, 'result')))
             handle = self._call('result', 'reserve_chunk', result.handle, ticket, physical_bytes)
             if handle <= 0:
