@@ -219,6 +219,14 @@ function localProjectFilesystem() {
       return require('../../packages/local-node/_build/native/directory-darwin-x64.node');
     }
   }
+  if (process.platform === 'linux' && process.arch === 'x64') {
+    if (existsSync(new URL('../../_build/native/local-files-linux-x64.node', import.meta.url))) {
+      return require('../../_build/native/local-files-linux-x64.node');
+    }
+    if (existsSync(new URL('../../packages/local-node/_build/native/local-files-linux-x64.node', import.meta.url))) {
+      return require('../../packages/local-node/_build/native/local-files-linux-x64.node');
+    }
+  }
   throw clientOperationError('LocalFilesNativeUnavailable');
 }
 const runtimeUrl = new URL('../../_build/js/release/build/' +

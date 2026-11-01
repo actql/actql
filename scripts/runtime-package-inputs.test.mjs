@@ -160,24 +160,29 @@ test('ordinary Local source binds its finite native delivery images to the actua
     npmInterfaceRoots(process.cwd()).filter(value => value.name === '@actql/local-node')});
   assert.equal(result.qualification, 'source-input-coverage-only');
   const native = result.artifacts.filter(value => value.module.endsWith('.node'));
-  assert.equal(native.length, 4);
+  assert.equal(native.length, 6);
   for (const artifact of native) {
     assert.equal(artifact.build, 'scripts/build-node-directory-native.mjs');
     assert.deepEqual(artifact.sourcePackages, []);
-    assert.deepEqual(artifact.sourceFiles, ['adapters/host-node/native/directory-darwin.c',
+    assert.deepEqual(artifact.sourceFiles, [artifact.target.startsWith('linux-')
+      ? 'adapters/host-node/native/local-files-linux.c' : 'adapters/host-node/native/directory-darwin.c',
+      'adapters/host-node/native/napi-filesystem-helpers.inc',
+      'adapters/connectors/local/site/root-filesystem-platform.inc',
       'adapters/connectors/local/site/root-filesystem.inc',
       'adapters/connectors/local/site/root-file-writer.inc']);
     assert.equal(artifact.qualification, 'native-build-input-reference-only');
     assert.equal(artifact.sha256, undefined, 'Source coverage is not native artifact acceptance');
   }
-  for (const path of [...native[0].sourceFiles, native[0].build]) {
+  assert.deepEqual([...new Set(native.map(value => value.target))].sort(),
+    ['darwin-arm64/node-napi8', 'darwin-x64/node-napi8', 'linux-x64/node-napi8']);
+  for (const path of new Set(native.flatMap(value => [...value.sourceFiles, value.build]))) {
     assert(result.assets.some(value => value.module === path && value.qualification === 'compiled-native-build-source'));
   }
   const builder = readFileSync(native[0].build, 'utf8');
-  for (const path of native[0].sourceFiles) assert(builder.includes(`'${path}'`));
+  for (const path of new Set(native.flatMap(value => value.sourceFiles))) assert(builder.includes(`'${path}'`));
   const host = result.modules.find(value => value.module === 'adapters/host-node/embedded-local.mjs');
   assert.deepEqual(host.unresolvedSyntax, []);
-  assert.equal(host.imports.filter(path => path.endsWith('.node')).length, 4);
+  assert.equal(host.imports.filter(path => path.endsWith('.node')).length, 6);
   assert(result.modules.every(value => !value.module.endsWith('.node')));
 });
 

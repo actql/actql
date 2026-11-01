@@ -40,7 +40,7 @@ test('ordinary Host native filesystem fallbacks retain only the exact package-lo
   const path = 'adapters/host-node/embedded-local.mjs';
   const source = readFileSync(path, 'utf8');
   const copied = rewriteLocalNodePackageImports(source, path);
-  assert.equal((source.match(/\.\.\/\.\.\/packages\/local-node\/_build\/native\//gu) ?? []).length, 4);
+  assert.equal((source.match(/\.\.\/\.\.\/packages\/local-node\/_build\/native\//gu) ?? []).length, 6);
   const expected = source
     .replaceAll("'../../packages/client-wire/index.mjs'", "'@actql/client-wire'")
     .replaceAll("'../../packages/sdk/host-port.mjs'", "'@actql/sdk/host-port'")
@@ -48,9 +48,9 @@ test('ordinary Host native filesystem fallbacks retain only the exact package-lo
     .replaceAll('../../packages/local-node/_build/native/', '../../_build/native/');
   assert.equal(copied, expected);
   assert.doesNotMatch(copied, /(?:\.\.\/)+packages\//u);
-  for (const arch of ['arm64', 'x64']) {
+  for (const asset of ['_build/native/directory-darwin-arm64.node',
+    '_build/native/directory-darwin-x64.node', '_build/native/local-files-linux-x64.node']) {
     for (const prefix of ['../../', '../../../../']) {
-      const asset = `_build/native/directory-darwin-${arch}.node`;
       const original = `const file = new URL('${prefix}packages/local-node/${asset}', import.meta.url);\n` +
         `const binding = require("${prefix}packages/local-node/${asset}");`;
       assert.equal(rewriteLocalNodePackageImports(original, path),
@@ -59,6 +59,7 @@ test('ordinary Host native filesystem fallbacks retain only the exact package-lo
     }
   }
   for (const asset of ['directory-darwin-foreign.node', 'directory-darwin-arm64.node.js',
+    'local-files-linux-arm64.node', 'local-files-linux-x64.node.js',
     '../native/directory-darwin-arm64.node', 'directory-original.json']) {
     assert.throws(() => rewriteLocalNodePackageImports(
       `require('../../packages/local-node/_build/native/${asset}');`, path),

@@ -142,19 +142,21 @@ test('ordinary rendered adapter and runtime bytes produce one deterministic priv
   // Only generated Source/data has been read. No preload, Host or issuer ran.
 });
 
-test('the private native directory image stays separate from UTF8 Source images', t => {
-  const f = fixture(t);
-  const path = '_build/native/directory-darwin-arm64.node';
-  const native = Buffer.from([0xfe, 0xed, 0xfa, 0xcf, 0xff, 0x00]);
-  const descriptor = '_build/native/directory-original.json';
-  f.options.nativeOutputs = new Map([[path, native], [descriptor, Buffer.from('{"original":"DATA only"}\n')]]);
-  const value = f.read(f.render());
-  assert.deepEqual(value.nativeImages, [{path, bytes: native.length, sha256: sha(native)}]);
-  assert.equal(value.images.some(item => item.path === path), false);
-  assert.equal(value.images.some(item => item.path === descriptor), true);
-  f.options.nativeOutputs.set('_build/native/arbitrary.txt', Buffer.from('not a module'));
-  assert.throws(f.render, /InvalidInitialControlNativeImage/);
-});
+for (const path of ['_build/native/directory-darwin-arm64.node',
+  '_build/native/local-files-linux-x64.node']) {
+  test(`the private native image ${path} stays separate from UTF8 Source images`, t => {
+    const f = fixture(t);
+    const native = Buffer.from([0xfe, 0xed, 0xfa, 0xcf, 0xff, 0x00]);
+    const descriptor = '_build/native/directory-original.json';
+    f.options.nativeOutputs = new Map([[path, native], [descriptor, Buffer.from('{"original":"DATA only"}\n')]]);
+    const value = f.read(f.render());
+    assert.deepEqual(value.nativeImages, [{path, bytes: native.length, sha256: sha(native)}]);
+    assert.equal(value.images.some(item => item.path === path), false);
+    assert.equal(value.images.some(item => item.path === descriptor), true);
+    f.options.nativeOutputs.set('_build/native/arbitrary.txt', Buffer.from('not a module'));
+    assert.throws(f.render, /InvalidInitialControlNativeImage/);
+  });
+}
 
 test('a missing runtime or package manifest preserves source-only issuer absence', t => {
   const f = fixture(t);

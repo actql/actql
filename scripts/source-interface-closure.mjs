@@ -39,15 +39,22 @@ export async function sourceInterfaceClosure(root, {distributionRoots = npmInter
   // Keep missing images as source-qualified build references, never parse a
   // binary as JavaScript or pretend that source discovery executed its build.
   // Both prefixes are the actual package-relative/source-checkout entrances.
-  if (includesLocal) for (const arch of ['arm64', 'x64']) {
+  const nativeTargets = [
+    ...['arm64', 'x64'].map(arch => ({name: `directory-darwin-${arch}.node`,
+      source: 'adapters/host-node/native/directory-darwin.c', target: `darwin-${arch}/node-napi8`})),
+    {name: 'local-files-linux-x64.node', source: 'adapters/host-node/native/local-files-linux.c',
+      target: 'linux-x64/node-napi8'},
+  ];
+  if (includesLocal) for (const {name, source, target} of nativeTargets) {
     for (const prefix of ['', 'packages/local-node/']) {
-      const module = `${prefix}_build/native/directory-darwin-${arch}.node`;
+      const module = `${prefix}_build/native/${name}`;
       artifacts.set(resolve(root, module), {module, sourcePackages: [],
-        sourceFiles: ['adapters/host-node/native/directory-darwin.c',
+        sourceFiles: [source, 'adapters/host-node/native/napi-filesystem-helpers.inc',
+          'adapters/connectors/local/site/root-filesystem-platform.inc',
           'adapters/connectors/local/site/root-filesystem.inc',
           'adapters/connectors/local/site/root-file-writer.inc'],
         build: 'scripts/build-node-directory-native.mjs', package: 'local-node',
-        target: `darwin-${arch}/node-napi8`, qualification: 'native-build-input-reference-only'});
+        target, qualification: 'native-build-input-reference-only'});
     }
   }
   for (const [name, pkg] of productionRuntimeModules) {
