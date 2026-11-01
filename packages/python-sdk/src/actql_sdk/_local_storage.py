@@ -164,6 +164,10 @@ class LocalByteStore:
             database = _SQLiteByteDatabase(self._connection)
             self._physical = database
             self._observe_generation()
+            # Select TEMP storage before the first catalog/snapshot statement.
+            # Changing it later discards TEMP while SQLite may retain prepared
+            # schema observations from this same connection's constructor.
+            self._connection.execute('PRAGMA temp_store = FILE')
             self._connection.execute('BEGIN IMMEDIATE')
             try:
                 schema = self._connection.execute('''SELECT 1 FROM main.sqlite_schema
@@ -210,7 +214,6 @@ class LocalByteStore:
             self._connection.execute('PRAGMA synchronous = FULL')
             self._connection.execute('PRAGMA cache_size = -64')
             self._connection.execute('PRAGMA mmap_size = 0')
-            self._connection.execute('PRAGMA temp_store = FILE')
             self._observe_generation()
             self._ready = True
         except BaseException as original:
