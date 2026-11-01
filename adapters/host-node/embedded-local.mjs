@@ -1330,7 +1330,8 @@ async function openInstalledHost(originalInstallation, preparation) {
     // The existing registry/Run retirement calls this fixed Host alias cut.
     // A retained Prepared key must not retain its Model graph/provider/Plan.
     // Physical Model and Effect selections keep their separate owners.
-    if (inferSelections.get(prepared)?.localMock !== true) return;
+    if (inferSelections.get(prepared)?.localMock !== true &&
+        earlyMockInferPlans.get(prepared)?.model === undefined) return;
     inferSelections.delete(prepared);
     earlyMockInferPlans.delete(prepared);
   }
@@ -3143,10 +3144,15 @@ async function openInstalledHost(originalInstallation, preparation) {
       : preparedSource === undefined ? {} : {acquisition: acquisitionDescriptor(preparedSource)}),
   });
   const planFor = ({preparedProgram, requestId},
-    retainedDefinitionWire, requestIdentity, keyedOriginal) => {
+    retainedDefinitionWire, requestIdentity, keyedOriginal, constructingModel) => {
     prepareSubmit.assertOwned(preparedProgram);
     const earlyMock = earlyMockInferPlans.get(preparedProgram);
-    if (earlyMock !== undefined) {
+    if (constructingModel !== undefined && (earlyMock !== constructingModel ||
+        !constructingModel.selecting || constructingModel.plan !== undefined)) {
+      throw clientOperationError('ForeignInstalledModelPreparation');
+    }
+    if (earlyMock !== undefined && earlyMock !== constructingModel) {
+      if (earlyMock.plan === undefined) throw clientOperationError('InstalledModelPlanSelectionPending');
       if (earlyMock.requestId !== requestId || retainedDefinitionWire !== undefined &&
           retainedDefinitionWire !== earlyMock.plan.runDefinition.wire) {
         throw clientOperationError('ForeignInstalledMockModelRun');
@@ -3314,10 +3320,72 @@ async function openInstalledHost(originalInstallation, preparation) {
       return sourceProfile.managedContentLedger(prepared, request, recipe, direct, keyed, capacity);
     },
     faultInjection: authorization?.faultInjection});
+  function prepareInstalledRequestModelRun(submission, requested, selection) {
+    const prepared = submission.preparedProgram;
+    if (preparation === undefined || typeof preparation.prepareManagedModelRun !== 'function' ||
+        inferSelections.get(prepared) !== selection || selection.localMock ||
+        selection.originalReadInstallation === undefined || selection.occurrence === undefined ||
+        selection.components !== undefined || moon.clientProgramAcquisitionCount(prepared) !== 0) {
+      throw clientOperationError('HostResultPublicationPurposeUnavailable');
+    }
+    let early = earlyMockInferPlans.get(prepared);
+    if (early !== undefined) {
+      if (Object.hasOwn(early, 'failure')) throw early.failure;
+      if (early.selecting) throw clientOperationError('InstalledModelPlanSelectionPending');
+      if (early.requestId !== submission.requestId || early.requested !== requested ||
+          early.model?.graph !== selection.graph || early.model?.originalReadInstallation !== selection.originalReadInstallation ||
+          early.model?.closed || early.managed === undefined) throw clientOperationError('ForeignInstalledModelPreparation');
+      if (preparation.prepareManagedModelRun(moon, prepared, requested, early.model) !== early.managed) {
+        throw clientOperationError('ForeignInstalledModelPreparation');
+      }
+      return early.model;
+    }
+    early = {requestId: submission.requestId, requested, plan: undefined, model: undefined,
+      managed: undefined, selecting: true, aliasesReleased: false};
+    const model = {prepared, control, compiled: undefined, runDefinition: undefined,
+      graph: selection.graph, occurrence: selection.occurrence, serializationGraph: selection.serializationGraph,
+      originalReadInstallation: selection.originalReadInstallation, scope: undefined, read: undefined,
+      releaseAliases() {
+        if (this !== model) throw clientOperationError('ForeignInstalledModelPreparation');
+        if (early.aliasesReleased) return;
+        if (earlyMockInferPlans.get(prepared) !== early || early.model !== model ||
+            model.scope !== undefined && model.scopeFinished !== true || model.read !== undefined) {
+          throw clientOperationError('InstalledModelCleanupPending');
+        }
+        // Called only after checked same-Run retirement, or original failed
+        // Request cleanup. No physical child or Scope is released by this cut.
+        for (const key of Object.keys(model)) model[key] = undefined;
+        model.closed = true;
+        early.requested = early.plan = early.managed = undefined;
+        early.aliasesReleased = true;
+      }};
+    early.model = model;
+    earlyMockInferPlans.set(prepared, early); // Retain before compiler/Definition/Plan can fail.
+    try {
+      early.plan = planFor(submission, undefined, requested, undefined, early);
+      model.compiled = early.plan.compiled; model.runDefinition = early.plan.runDefinition;
+      model.queryTimePreparation = early.plan.queryTimePreparation;
+      if (model.serializationGraph !== undefined) {
+        runContent.prepareModelRun({preparedProgram: prepared, plan: early.plan, request: requested, model});
+        early.managed = model.contentPreparation?.managed;
+      } else early.managed = preparation.prepareManagedModelRun(moon, prepared, requested, model);
+      if (early.managed === undefined) throw clientOperationError('NodeManagedRunAdmissionUnavailable');
+      return model;
+    } catch (cause) {early.failure = cause; throw cause;}
+    finally {early.selecting = false;}
+  }
   const runInfer = installNodeInferRun({moon, core: runtimeCore(moon), fragment, ordered,
     registry, values, selections: inferSelections, namespaceId, authorityScopeCid,
     storeAuthorityCid, now, modelController, inferEvidence: evidenceConfiguration,
     checkpoints, prepareAcquisition, runContent,
+    prepareOriginalModelRun(prepared, plan, selection) {
+      const early = earlyMockInferPlans.get(prepared);
+      if (early === undefined || early.plan !== plan || early.model === undefined) {
+        throw clientOperationError('InstalledModelOperationalAdmissionUnavailable');
+      }
+      return prepareInstalledRequestModelRun({preparedProgram: prepared, requestId: early.requestId},
+        early.requested, selection);
+    },
     prepareOriginalMockRun(prepared, plan) {
       const early = earlyMockInferPlans.get(prepared);
       if (early === undefined || early.plan !== plan ||
@@ -3874,6 +3942,10 @@ async function openInstalledHost(originalInstallation, preparation) {
       sourceProfile.prepareManagedMockModelRun(submission.preparedProgram, requested,
         control, early.plan, selectedModel,
         () => preparation.modelPublicationCapacity(submission.preparedProgram));
+    } else if (selectedModel !== undefined) {
+      const model = prepareInstalledRequestModelRun(submission, requested, selectedModel);
+      managedSourceRun = earlyMockInferPlans.get(submission.preparedProgram).managed;
+      if (managedSourceRun.model !== model) throw clientOperationError('ForeignInstalledModelPreparation');
     } else if (acquisitionCount > 0 &&
         moon.clientProgramSerializationOccurrences(submission.preparedProgram).length !== 0) {
       const early = earlyContentPlans.get(submission.preparedProgram);
@@ -4272,7 +4344,13 @@ async function openInstalledHost(originalInstallation, preparation) {
           return;
         }
         if (selection !== undefined && !selection.localMock) {
-          throw clientOperationError('HostResultPublicationPurposeUnavailable');
+          preparation.admitResultPublicationRun(submission.preparedProgram);
+          const retained = journal.resolveDefinition(requested, {namespaceId}, moon, control);
+          // Saved physical work keeps its original recovery owner. Do not
+          // allocate another Model Scope for a previously started Run.
+          if (retained?.physicalStartReserved === true) return;
+          prepareInstalledRequestModelRun(submission, requested, selection);
+          return;
         }
         if (moon.clientProgramSerializationOccurrences(submission.preparedProgram).length !== 0) {
           // Content has its own pre-admitted prefix and real Store writers. A
@@ -6314,13 +6392,17 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       // predicate, not by a terminal result projection or handler completion.
       const contentRetirement = run.preparationKind === 'serialization-plan' || run.preparationKind === 'keyed-content-plan' ||
         run.preparationKind === 'model-plan' && run.contentPreparation !== undefined;
+      const modelRetirement = run.preparationKind === 'model-plan';
+      const modelOriginal = run.model;
       const mockSourceRetirement = run.mockSourceReads !== undefined;
       const effectRetirement = run.preparationKind === 'effect-plan';
       const effectValue = run.value, effectRequest = run.request, effectOriginal = run.original,
         effectPlan = run.operationPlan;
+      if (modelRetirement && run.retiringModel) throw clientOperationError('InstalledModelCleanupPending');
       if (contentRetirement && run.retiringContent) throw clientOperationError('InstalledContentRunCleanupPending');
       if (mockSourceRetirement && run.retiringMockSources) throw clientOperationError('InstalledMockSourceCleanupPending');
       if (effectRetirement && run.retiringEffect) throw clientOperationError('InstalledEffectRunCleanupPending');
+      if (modelRetirement) run.retiringModel = true;
       if (contentRetirement) run.retiringContent = true;
       if (mockSourceRetirement) run.retiringMockSources = true;
       if (effectRetirement) run.retiringEffect = true;
@@ -6351,6 +6433,21 @@ export async function connectEmbeddedLocal(options, initialEntry) {
           for (const key of Object.keys(run)) run[key] = undefined;
           run.closed = true;
           return;
+        }
+        if (modelRetirement && modelOriginal.originalReadInstallation !== undefined &&
+            !modelOriginal.taken && modelOriginal.read === undefined &&
+            modelOriginal.scope !== undefined && modelOriginal.scopeFinished !== true) {
+          if (modelOriginal.control.finishCheckedClientInferOriginalReadScope(modelOriginal.compiled,
+            modelOriginal.runDefinition, modelOriginal.graph, modelOriginal.scope, true) !== true) {
+            throw clientOperationError('InstalledModelCleanupPending');
+          }
+          modelOriginal.scopeFinished = true;
+          if (record.computeRuns.get(prepared) !== run || !record.computeLiveRuns.has(run) ||
+              run.prepared !== prepared || run.runtime !== moon || run.closed || run.model !== modelOriginal ||
+              run.preparationKind !== 'model-plan' || run.value !== effectValue ||
+              run.request !== effectRequest || run.original !== effectOriginal) {
+            throw clientOperationError('ForeignInstalledModelPreparation');
+          }
         }
         finishInstalledEffectModelScope(run, true, checked);
         if (effectRetirement && (record.computeRuns.get(prepared) !== run || !record.computeLiveRuns.has(run) ||
@@ -6387,6 +6484,12 @@ export async function connectEmbeddedLocal(options, initialEntry) {
               run.original !== effectOriginal || run.operationPlan !== effectPlan)) {
             throw clientOperationError('ForeignInstalledEffectManagedRun');
           }
+          if (modelRetirement && (record.computeRuns.get(prepared) !== run ||
+              !record.computeLiveRuns.has(run) || run.prepared !== prepared || run.runtime !== moon ||
+              run.closed || run.model !== modelOriginal || run.preparationKind !== 'model-plan' ||
+              run.value !== sameValue || run.request !== sameRequest || run.original !== sameOriginal)) {
+            throw clientOperationError('ForeignInstalledModelPreparation');
+          }
           if (mockSourceRetirement) {
             // Native retirement and physical close are separate duties. Cut
             // only this installation's SAME acknowledged read records before
@@ -6419,7 +6522,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
           if (run.preparationKind === 'model-plan' && !run.modelAliasesReleased) {
             // The original receiver must survive its own alias release. Spend
             // that managed retirement before returning a consumed parent borrow.
-            Reflect.apply(run.releaseModelAliases, run.model, []);
+            Reflect.apply(run.releaseModelAliases, modelOriginal, []);
             run.releaseModelSelection(prepared);
             run.modelAliasesReleased = true;
           }
@@ -6452,6 +6555,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
         record.computeLiveRuns.delete(run);
         for (const key of Object.keys(run)) run[key] = undefined;
       } finally {
+        if (modelRetirement) run.retiringModel = false;
         if (contentRetirement) run.retiringContent = false;
         if (mockSourceRetirement) run.retiringMockSources = false;
         if (effectRetirement) run.retiringEffect = false;

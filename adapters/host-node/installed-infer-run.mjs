@@ -144,7 +144,9 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
     // The current installed read/layout supplier has no adopted Content overlap.
     // Refuse before generation/recovery or keyed input construction; support
     // checks and a visible child Ledger are not original funding authority.
-    if (keyed || selected.serializationGraph !== undefined || acquiredContent !== undefined) {
+    if (keyed || acquiredContent !== undefined ||
+        selected.serializationGraph !== undefined && (requestModel === undefined ||
+          requestModel.serializationGraph !== selected.serializationGraph || requestModel.contentPreparation?.managed === undefined)) {
       throw new TypeError('InstalledInferContentOriginalPreparationUnavailable');
     }
     if (modelController === undefined) throw new Error('InstalledModelJournalRequired');
@@ -176,7 +178,7 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
             {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 100}));
     } catch (error) { modelController.release(token); throw error; }
     let operation, captureOwner, continuation, evidenceCopy, contentChild, keyedContentChild,
-      serializedInput, restoredReferenceIssuer, keyedInput, receivingKeyed;
+      serializedInput, restoredReferenceIssuer, keyedInput, receivingKeyed, prepareDeferredOriginalRead;
     let captureCloseAttempted = false, captureReleased = false;
     let continuationCloseAttempted = false, continuationReleased = false;
     // These are phases of the same existing retained custody, not another
@@ -238,6 +240,9 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
       }
       if (originalPreparation !== undefined && captureReleased &&
           (continuation === undefined || continuationReleased)) {
+        // Cleanup wins over a prefix still unwinding. It cannot later issue
+        // a read or start a Model from the same retired Scope.
+        prepareDeferredOriginalRead = undefined;
         if (originalPreparation.read === undefined) {
           // The original scope was issued, but read admission refused before
           // an Execution/physical child existed. Only the original census can
@@ -346,30 +351,45 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
           close: () => operation === undefined ? true : operation.close(),
           cleanup: () => operation === undefined ? true : operation.cleanup(),
           cleanupPending: () => operation?.cleanupPending() ?? false})};
+      const prepareRead = () => {
+        try {
+          if (originalScopeReleased || originalReadStopped || originalPreparation === undefined) {
+            throw new TypeError('InstalledInferOriginalPreparationRetired');
+          }
+          assertOriginalRuntime();
+          if (requestModel !== undefined) requestModel.readAttempted = true;
+          originalPreparation.read = control.prepareCheckedClientInferNodeReadLayout(
+            plan.compiled, plan.runDefinition, selected.graph, scope,
+            originalInstallation.nodeInstallation);
+          if (requestModel !== undefined) {
+            requestModel.read = originalPreparation.read;
+            assertOriginalRuntime();
+            if (requestModel.scope !== scope || requestModel.compiled !== plan.compiled ||
+                requestModel.runDefinition !== plan.runDefinition || requestModel.graph !== selected.graph ||
+                requestModel.read !== originalPreparation.read || requestModel.scopeFinished || requestModel.closed) {
+              throw new TypeError('InvalidInstalledRequestModelPreparation');
+            }
+          }
+        } catch (cause) {
+          if (requestModel !== undefined) requestModel.readFailure = cause;
+          throw cause;
+        } finally {if (originalPreparation !== undefined) Object.freeze(originalPreparation);}
+      };
       try {
-        // Retain the SAME existing Scope on both its Request carrier and
-        // execution custody before either runtime binding or read can fail.
+        // Retain this SAME Scope before runtime binding. The read snapshot
+        // must follow an overlapping Content prefix's Ledger changes.
         if (requestModel !== undefined) assertOriginalRuntime();
         runtimeBorrow = selected.bindTrustedRuntimeScope(scope, plan.compiled,
           plan.runDefinition, selected.graph);
         assertOriginalRuntime();
-        if (requestModel !== undefined) requestModel.readAttempted = true;
-        originalPreparation.read = control.prepareCheckedClientInferNodeReadLayout(
-          plan.compiled, plan.runDefinition, selected.graph, scope,
-          originalInstallation.nodeInstallation);
-        if (requestModel !== undefined) {
-          requestModel.read = originalPreparation.read;
-          assertOriginalRuntime();
-          if (requestModel.scope !== scope || requestModel.compiled !== plan.compiled ||
-              requestModel.runDefinition !== plan.runDefinition || requestModel.graph !== selected.graph ||
-              requestModel.read !== originalPreparation.read || requestModel.scopeFinished || requestModel.closed) {
-            throw new TypeError('InvalidInstalledRequestModelPreparation');
-          }
-        }
+        if (requestModel !== undefined && selected.serializationGraph !== undefined) {
+          prepareDeferredOriginalRead = prepareRead;
+        } else prepareRead();
       } catch (cause) {
         if (requestModel !== undefined) requestModel.readFailure = cause;
+        Object.freeze(originalPreparation);
         throw cause;
-      } finally { Object.freeze(originalPreparation); }
+      }
     }
     if (restoredInput?.capturedContent !== undefined) {
       if (typeof prepareKeyedRecovery !== 'function' || typeof runContent?.recoverKeyed !== 'function') {
@@ -421,6 +441,13 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
         capturedRecovery: generated.capturedContentRecovery,
         capturedBinding: generated.capturedContentBinding,
         recovery: generated.recovery};
+    }
+    if (originalInstallation !== undefined && (originalScopeReleased || originalReadStopped ||
+        originalPreparation === undefined)) throw new TypeError('InstalledInferOriginalPreparationRetired');
+    if (prepareDeferredOriginalRead !== undefined) {
+      const prepareRead = prepareDeferredOriginalRead;
+      prepareDeferredOriginalRead = undefined;
+      prepareRead();
     }
     operation = openNodeInferOperation({moon, preparedProgram,
       step: selected.step, graph: selected.graph, registry, values, fragment, ordered, signal,
