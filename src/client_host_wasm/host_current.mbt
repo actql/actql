@@ -63,9 +63,7 @@ fn host_current_checked_operation_original(
   instance_closed : () -> Bool,
   physical : () -> Int64,
 ) -> Result[Int64, Int] {
-  if instance_closed() ||
-    record.closing ||
-    record.output_closed {
+  if instance_closed() || record.closing || record.output_closed {
     record.observed_operation = 0L
     return Err(-5)
   }
@@ -173,7 +171,8 @@ fn host_current_observe_original(
       }
       Ok(_) => ()
     }
-    if record.closing || record.output_closed ||
+    if record.closing ||
+      record.output_closed ||
       !physical_equal(record.account, account_before) ||
       !physical_equal(record.account_original, original_before) ||
       !physical_equal(record.adoption_original, adoption_before) ||
@@ -184,7 +183,8 @@ fn host_current_observe_original(
       record.store.val != store_before ||
       record.principal != principal_before ||
       record.connection != connection_before ||
-      record.invoked != invoked_before || record.produced != produced_before {
+      record.invoked != invoked_before ||
+      record.produced != produced_before {
       record.observed_operation = 0L
       return Err(-41)
     }

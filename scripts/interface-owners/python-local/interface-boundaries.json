@@ -72314,7 +72314,7 @@
     },
     {
       "module": "src/client_host_wasm/host_current.mbt",
-      "sha256": "8b8a3b0c98ef24309196ef6b506dc867b5cc84bfbf38705434a53eade1988262",
+      "sha256": "8b3c7f7ace1db5d03482fc9792a4fba38ff2cdcdfa8a95380c7e2d1adb2e66ea",
       "exports": [],
       "operations": [
         {
