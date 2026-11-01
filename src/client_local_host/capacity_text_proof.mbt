@@ -60,6 +60,8 @@ fn client_local_text_free_scalar_sequences(
       guard @lower.sequence_step(original, index) is Some(step) else {
         return false
       }
+      // Count groups only copy checked scalar keys and emit Number counts.
+      // Schemas and typed children remain checked across the complete original sequence.
       let supported = match step {
         @lower.ValuesStep(_) | @lower.AppendStep(_) => true
         @lower.RowStep(kernel) =>
@@ -74,6 +76,7 @@ fn client_local_text_free_scalar_sequences(
             | @lower.TopK(_, _)
             | @lower.DistinctRows
             | @lower.DedupeRows
+            | @lower.CountGroups(_)
             | @lower.StableSort(_) => true
             _ => false
           }
