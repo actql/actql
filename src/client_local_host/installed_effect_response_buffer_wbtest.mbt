@@ -400,3 +400,71 @@ test "driver row input follows its original body while fixed capture keeps the o
     )
   }
 }
+
+///|
+test "response input construction returns original NFC scratch while preserving input and output backing" {
+  let provider = @execution.execution_capacity(17L, 23L).unwrap()
+  for (bytes, nodes, depth) in [(256, 16, 4), (1000000, 64, 4)] {
+    let actual = installed_json_effect_response_construction_capacity(
+      provider, bytes, nodes, depth,
+    ).unwrap()
+    let original = installed_source_response_workspace(bytes, nodes, depth).unwrap()
+    let scratch = @canonical.nfc_lf_construction_scratch_extent(bytes).unwrap()
+    let old = @execution.preparation_execution_capacity({
+      retained: original,
+      workspace: {
+        record_headers: 0L,
+        reference_slots: 0L,
+        scalar_words: 0L,
+        owned_utf16_units: 0L,
+        owned_wire_bytes: 0L,
+      },
+      retained_nodes: 0L,
+      workspace_nodes: 0L,
+      retained_bytes: 0L,
+      workspace_bytes: 0L,
+    }).unwrap()
+    let temporary = @execution.preparation_execution_capacity({
+      retained: {
+        record_headers: scratch.record_headers,
+        reference_slots: scratch.reference_slots,
+        scalar_words: scratch.scalar_words,
+        owned_utf16_units: scratch.owned_utf16_units,
+        owned_wire_bytes: 0L,
+      },
+      workspace: {
+        record_headers: 0L,
+        reference_slots: 0L,
+        scalar_words: 0L,
+        owned_utf16_units: 0L,
+        owned_wire_bytes: 0L,
+      },
+      retained_nodes: 0L,
+      workspace_nodes: 0L,
+      retained_bytes: 0L,
+      workspace_bytes: 0L,
+    }).unwrap()
+    // All old Source/index/normalized output and original provider backing
+    // remain. Only the SAME Unicode Owner's returned-away scratch changes
+    // lifetime, and the complete constructor/refusal peak stays exact.
+    assert_eq(
+      @execution.execution_capacity_execution_bytes(actual),
+      @execution.execution_capacity_execution_bytes(provider) +
+      @execution.execution_capacity_execution_bytes(old),
+    )
+    assert_eq(
+      @execution.execution_capacity_retained_bytes(actual),
+      @execution.execution_capacity_retained_bytes(provider) +
+      @execution.execution_capacity_retained_bytes(old) -
+      @execution.execution_capacity_retained_bytes(temporary),
+    )
+    assert_true(
+      @execution.execution_capacity_retained_bytes(actual) >
+      @execution.execution_capacity_retained_bytes(provider),
+    )
+    assert_true(
+      @execution.execution_capacity_retained_bytes(actual) <
+      @execution.execution_capacity_execution_bytes(actual),
+    )
+  }
+}

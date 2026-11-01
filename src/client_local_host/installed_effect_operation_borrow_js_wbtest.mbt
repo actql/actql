@@ -948,3 +948,88 @@ test "Effect construction completion cannot dispose a physical operation or reen
   assert_false(owner.effect_operation_opening)
   retire_installed_managed_run(owner).unwrap()
 }
+
+///|
+test "actual response normalization completes scratch on the original Effect token while its Cursor remains readable" {
+  let (prepared, request, contracts) = effect_operation_plan_inputs()
+  let before_plan = effect_operation_plan_fixture(prepared, request, contracts)
+  let capacity = installed_json_effect_response_construction_capacity(
+    @execution.execution_capacity(17L, 23L).unwrap(),
+    256,
+    16,
+    4,
+  ).unwrap()
+  let rows = before_plan.operations[0].row_extents.copy()
+  rows[2] = prepare_installed_effect_operation_extent(
+    "operation", capacity, 0L, false,
+  ).unwrap()
+  let demand = prepare_installed_effect_operation_demand(
+    prepared,
+    0,
+    "save",
+    before_plan.operations[0].member_extents,
+    rows,
+  ).unwrap()
+  let plan = prepare_installed_effect_managed_plan(
+    prepared,
+    request,
+    [],
+    "",
+    "",
+    [],
+    [],
+    contracts,
+    source_query_original_values,
+    Some(source_query_original_fragment),
+    None,
+    [demand],
+    provider_factory=_ => [],
+  ).unwrap()
+  let calls = Ref(0)
+  let (input, initial, _, admitted) = effect_parent_test_preparation(
+    plan,
+    prepared_installed_effect_managed_requirements(plan),
+    current=() => calls.val += 1,
+  )
+  let owner = begin_preparation_owned_installed_effect_managed_run(
+    initial, input, admitted, prepared, request, plan,
+  ).unwrap()
+  let ledger = owner.ledger.unwrap()
+  let child = borrow_installed_effect_operation(
+    owner, prepared, request, plan, 0, true, 2, 0, "operation",
+  ).unwrap()
+  // These are the actual Source byte parser and indexed decoder, after the
+  // original occurrence debit. The decomposed key uses the real NFC path.
+  {
+    let source = @source.parse_json_bytes(
+      @utf8.encode("{\"é\":\"東京\"}"),
+      { max_input_bytes: 256, max_nodes: 16, max_depth: 4, },
+    ).unwrap()
+    let cursor = @decode.admit(source, {
+      max_nodes: 16,
+      max_depth: 4,
+      max_string_bytes: 256,
+      max_total_string_bytes: 256,
+    }).unwrap()
+    let before = @resources.ledger_usage(ledger)
+    let observed = calls.val
+    complete_installed_effect_operation_construction(child).unwrap()
+    assert_eq(calls.val, observed + 1)
+    assert_eq(@resources.ledger_usage(ledger), {
+      ..before,
+      reserved_execution_bytes: before.reserved_execution_bytes -
+      (
+        @execution.execution_capacity_execution_bytes(capacity) -
+        @execution.execution_capacity_retained_bytes(capacity)
+      ),
+    })
+    let object = @decode.open_object(cursor).unwrap()
+    assert_eq(@decode.text(@decode.lookup(object, "é").unwrap()), Ok("東京"))
+    assert_true(retire_installed_effect_operation(child, false) is Ok(false))
+    assert_true(retire_installed_managed_run(owner) is Err(CleanupPending))
+  }
+  // No Source/Cursor output escapes this block. The existing original cleanup
+  // can now retire that same token; no physical operation/ACK is involved.
+  assert_true(retire_installed_effect_operation(child, true).unwrap())
+  retire_installed_managed_run(owner).unwrap()
+}

@@ -46449,7 +46449,7 @@
     },
     {
       "module": "src/client_local_host/installed_effect_request_construction.mbt",
-      "sha256": "59536b7afd798739f83cf0aaf9353492bd153643cf20df5288b2e170be8c0890",
+      "sha256": "396b217ae09296ad1ce07555c2c264260b9083b6e718e2976648d0f4d4bcd297",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "D — original Kintone native protocol constructors and same Request Effect composition",

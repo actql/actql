@@ -74,14 +74,30 @@ pub fn installed_json_effect_response_construction_capacity(
   guard installed_source_response_workspace(
       max_response_bytes, max_nodes, max_depth,
     )
-    is Some(retained) &&
+    is Some(decoded) &&
+    @canonical.nfc_lf_construction_scratch_extent(max_response_bytes)
+    is Some(scratch) &&
+    decoded.record_headers >= scratch.record_headers &&
+    decoded.reference_slots >= scratch.reference_slots &&
+    decoded.scalar_words >= scratch.scalar_words &&
+    decoded.owned_utf16_units >= scratch.owned_utf16_units &&
     @execution.preparation_execution_capacity({
-      retained,
+      // Keep every original Source/index/key/output backing. The Unicode
+      // Owner alone identifies the scalar arrays and intermediate text that
+      // cannot escape its synchronous normalization. Failed construction
+      // still retains this SAME complete execution peak until cleanup.
+      retained: {
+        record_headers: decoded.record_headers - scratch.record_headers,
+        reference_slots: decoded.reference_slots - scratch.reference_slots,
+        scalar_words: decoded.scalar_words - scratch.scalar_words,
+        owned_utf16_units: decoded.owned_utf16_units - scratch.owned_utf16_units,
+        owned_wire_bytes: 0L,
+      },
       workspace: {
-        record_headers: 0L,
-        reference_slots: 0L,
-        scalar_words: 0L,
-        owned_utf16_units: 0L,
+        record_headers: scratch.record_headers,
+        reference_slots: scratch.reference_slots,
+        scalar_words: scratch.scalar_words,
+        owned_utf16_units: scratch.owned_utf16_units,
         owned_wire_bytes: 0L,
       },
       retained_nodes: 0L,

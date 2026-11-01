@@ -2424,3 +2424,13 @@ the range's cell ceiling remains its independent rejection guard and is not a
 request count. Metadata canonical equality still precedes NFC. The public
 recipe positions and physical attempts/transfers are unchanged; the per-row
 term is temporary constructor workspace, not another grant or cleanup owner.
+
+
+The standard response-input constructor separates only the Unicode Owner's
+existing nonescaping normalization scratch from its returned holding. Its
+Source/index/normalized-key material and original provider output stay retained.
+The old complete execution/refusal peak is unchanged. Successful synchronous
+construction completes through the existing original operation token, returning
+only that scratch; failure or invalid asynchronous construction keeps its full
+backing until original cleanup. No permission, input bound, physical status,
+byte tariff or additional memory owner follows from this lifetime split.
