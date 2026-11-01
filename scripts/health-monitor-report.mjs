@@ -3,7 +3,7 @@ import {createHash} from 'node:crypto';
 import {mkdir, writeFile} from 'node:fs/promises';
 import {readFileSync} from 'node:fs';
 import {join} from 'node:path';
-import {latencySummary} from './operation-performance.mjs';
+import {latencySummary, assessPublicLatencySamples, resourceSummary} from './operation-performance.mjs';
 
 export const digest = value => createHash('sha256').update(value).digest('hex');
 export const jsonDigest = value => digest(JSON.stringify(value));
@@ -18,9 +18,13 @@ export function summarize(samples, minimum) {
   // wall time only. Absent child CPU stays absent in the retained observation.
   const summary = latencySummary(samples.map(row => ({...row,
     cpuUserUs: row.cpuUserUs ?? 0, cpuSystemUs: row.cpuSystemUs ?? 0})), minimum);
-  return {...summary, referenceRangeMs: samples.length
+  return {...summary, ...resourceSummary(samples, minimum), referenceRangeMs: samples.length
     ? [Math.min(...samples.map(row => row.wallNs / 1e6)), summary.maxMs] : null};
 }
+
+const publicLatencyMetric = metric => metric.kind === 'latency' &&
+  (metric.id.startsWith('warm-') || ['first-init', 'cold-existing', 'cold-new-run', 'cold-result',
+    'cold-process-first-result-close'].includes(metric.id));
 
 export function assessMeasurements(report) {
   if (!Array.isArray(report.metrics) || report.metrics.length === 0) return [{target: 'report', metric: 'required-measurements',
@@ -28,6 +32,7 @@ export function assessMeasurements(report) {
   return report.metrics.map(metric => {
     let status = metric.status ?? 'pass', reason = metric.reason ?? 'Observed required measurement';
     if (!statuses.includes(status)) {status = 'error'; reason = 'Invalid collector status';}
+    if (typeof metric.id !== 'string' || !metric.id.length) {status = 'error'; reason = 'Invalid measurement identity';}
     if (status === 'pass') {
       if (metric.kind === 'latency') {
         if (!Array.isArray(metric.samples) || !metric.samples.length ||
@@ -36,6 +41,18 @@ export function assessMeasurements(report) {
           status = 'error'; reason = 'Collector did not verify every public sample';
         } else if (metric.samples.length !== metric.requiredSamples) {
           status = 'incomplete'; reason = `Required ${metric.requiredSamples} samples; observed ${metric.samples.length}`;
+        } else if (report.mode === 'release' && publicLatencyMetric(metric)) {
+          try {
+            const checked = assessPublicLatencySamples(metric.samples, metric.requiredSamples, metric.id);
+            if (checked.failures.length) {status = 'regression'; reason = checked.failures.join('; ');}
+            else if (checked.missing.length) {status = 'incomplete'; reason = checked.missing.join('; ');}
+            else {
+              const resources = resourceSummary(metric.samples, metric.requiredSamples);
+              if (!resources.cpu.available || !resources.rss.available) {
+                status = 'incomplete'; reason = 'Actual scoped CPU/peak RSS observations missing';
+              }
+            }
+          } catch (error) {status = 'error'; reason = error.message;}
         }
       } else if (!Number.isFinite(metric.value) || metric.value < 0) {
         status = 'incomplete'; reason = 'Actual nonnegative measurement missing';
@@ -63,9 +80,9 @@ export function measurementProfile(mode, environment = {}) {
     ...['warm-select', 'warm-join', 'warm-aggregate', 'warm-saved', 'warm-status'].map(id => latency(id)),
     ...['cold-process-first-result-close', 'cold-host-initialization', 'cold-first-query', 'cold-first-close', 'mock-workflow'].map(id => latency(id, true))];
   if (mode !== 'release') return [];
-  rows.push(...['warm-select', 'warm-result', 'warm-status', 'warm-join', 'warm-union', 'warm-decimal-sum'].map(id => latency(id)),
+  rows.push(...['warm-select', 'warm-result', 'warm-status', 'warm-join', 'warm-union', 'warm-decimal-sum', 'warm-parameters', 'warm-unicode'].map(id => latency(id)),
     ...['first-init', 'cold-existing', 'mock-workflow'].map(id => latency(id, true)));
-  for (const target of ['native', 'python']) rows.push(...['warm-select', 'warm-result', 'warm-status', 'warm-join', 'warm-decimal-sum'].map(id => latency(id, false, target)));
+  for (const target of ['native', 'python']) rows.push(...['warm-select', 'warm-result', 'warm-status', 'warm-join', 'warm-union', 'warm-decimal-sum', 'warm-parameters', 'warm-unicode'].map(id => latency(id, false, target)));
   rows.push(...['first-init', 'cold-existing'].map(id => latency(id, true, 'python')));
   rows.push(...['cold-new-run', 'cold-result'].map(id => ({...latency(id, true, 'native'), requiredSamples: 100})),
     ...['init-separate', 'first-query-separate'].map(id => ({id, target: 'native', kind: 'reference', unit: 'ms', required: true})));
@@ -103,9 +120,9 @@ function profileAssessment(report) {
       output.push({metric: expected.id, target: expected.target, required: true, status: 'incomplete',
         reason: 'Saved measurement does not match fixed command profile/counts', evidence: metric.evidence}); continue;
     }
-    output.push(...assessMeasurements({metrics: [{...metric, ...expected}]}));
+    output.push(...assessMeasurements({mode, metrics: [{...metric, ...expected}]}));
   }
-  output.push(...assessMeasurements({metrics: metrics.filter(row => !keys.has(row.target + ':' + row.id))}).filter(row => row.metric !== 'required-measurements'));
+  output.push(...assessMeasurements({mode, metrics: metrics.filter(row => !keys.has(row.target + ':' + row.id))}).filter(row => row.metric !== 'required-measurements'));
   if (mode === 'release') {
     const platformKey = {'darwin-arm64': 'darwin-arm64', 'linux-x64': 'linux-x64-gnu'}[
       report.environment?.platform + '-' + report.environment?.architecture];
@@ -208,8 +225,16 @@ export function compareReports(base, current, policy) {
         previous.fixtureSha256 !== metric.fixtureSha256 || previous.unit !== metric.unit) {
       verdicts.push({metric: metric.id, target: metric.target, status: 'incomplete', reason: 'No compatible baseline metric'}); continue;
     }
-    const before = metric.kind === 'latency' ? summarize(previous.samples, previous.requiredSamples).medianMs : previous.value;
-    const after = metric.kind === 'latency' ? summarize(metric.samples, metric.requiredSamples).medianMs : metric.value;
+    const beforeSummary = metric.kind === 'latency' ? summarize(previous.samples, previous.requiredSamples) : null;
+    const afterSummary = metric.kind === 'latency' ? summarize(metric.samples, metric.requiredSamples) : null;
+    if (current.mode === 'release' && beforeSummary &&
+        (jsonDigest(beforeSummary.cpu.scopes) !== jsonDigest(afterSummary.cpu.scopes) ||
+         jsonDigest(beforeSummary.rss.scopes) !== jsonDigest(afterSummary.rss.scopes))) {
+      verdicts.push({metric: metric.id, target: metric.target, status: 'incomplete',
+        reason: 'CPU/RSS observation scopes differ; do not compare unlike measurements'}); continue;
+    }
+    const before = beforeSummary ? beforeSummary.medianMs : previous.value;
+    const after = afterSummary ? afterSummary.medianMs : metric.value;
     if (!Number.isFinite(before) || before <= 0 || !Number.isFinite(after)) {
       verdicts.push({metric: metric.id, target: metric.target, status: 'incomplete', reason: 'No positive measured baseline denominator'}); continue;
     }
@@ -223,11 +248,22 @@ export function compareReports(base, current, policy) {
       if (!threshold) reason = 'Reference size delta; no configured gate for this artifact kind';
     } else if (metric.kind === 'latency') {
       const threshold = metric.temperature === 'cold' ? policy.performance.cold : policy.performance.warm;
-      if (relativeDelta >= threshold.relative && absoluteDelta >= threshold.absoluteMs) status = 'warning';
-      reason = 'Reference median only; formal performance acceptance remains separate';
+      const statistics = current.mode === 'release' ? ['medianMs', 'p95Ms', 'maxMs'] : ['medianMs'];
+      const regressed = statistics.filter(key => Number.isFinite(beforeSummary[key]) && beforeSummary[key] > 0 &&
+        (afterSummary[key] - beforeSummary[key]) / beforeSummary[key] >= threshold.relative &&
+        afterSummary[key] - beforeSummary[key] >= threshold.absoluteMs);
+      if (regressed.length) status = current.mode === 'release' ? 'regression' : 'warning';
+      reason = current.mode === 'release'
+        ? `Matched median/p95/max comparison${regressed.length ? ': regressed ' + regressed.join(', ') : ''}`
+        : 'Reference median only; formal performance acceptance remains separate';
     } else if (metric.kind === 'rss' && relativeDelta >= policy.performance.rssRelative) status = 'warning';
     verdicts.push({metric: metric.id, target: metric.target, status, reason,
       before, after, absoluteDelta, relativeDelta, unit: metric.kind === 'latency' ? 'ms' : metric.unit,
+      ...(beforeSummary ? {statistics: Object.fromEntries(['medianMs', 'p95Ms', 'maxMs'].map(key => [key,
+        {before: beforeSummary[key], after: afterSummary[key],
+          absoluteDelta: beforeSummary[key] === null || afterSummary[key] === null ? null : afterSummary[key] - beforeSummary[key]}])),
+      cpu: {before: beforeSummary.cpu, after: afterSummary.cpu},
+      rss: {before: beforeSummary.rss, after: afterSummary.rss}} : {}),
       evidence: metric.evidence});
   }
   return {available: true, comparable: true, baselineId: base.baseline.id, status: worst(verdicts), reasons: [], verdicts};
@@ -235,6 +271,11 @@ export function compareReports(base, current, policy) {
 
 export function finishReport(report) {
   report.verdicts = profileAssessment(report);
+  if ((report.mode === 'release' || report.mode === 'compare' && report.measuredMode === 'release') &&
+      (!report.comparison?.available || report.comparison.comparable !== true)) {
+    report.verdicts.push({metric: 'matched-performance-baseline', target: 'report', required: true,
+      status: 'incomplete', reason: 'Final performance requires an actual reviewed comparable baseline; absence is not a pass'});
+  }
   const required = report.verdicts.filter(row => row.required || row.status === 'error');
   const rows = [...required, ...(report.errors ?? []).map(error => ({status: 'error', ...error}))];
   if (report.comparison?.available) rows.push({status: report.comparison.status});
@@ -254,7 +295,7 @@ export function markdown(report) {
   for (const row of report.verdicts ?? []) {
     const metric = report.metrics.find(metric => metric.id === row.metric && metric.target === row.target);
     const summary = metric?.kind === 'latency' && metric.samples?.length ? summarize(metric.samples, metric.requiredSamples) : null;
-    const value = summary ? `${summary.count}/${metric.requiredSamples}; median ${summary.medianMs.toFixed(3)} ms; range ${summary.referenceRangeMs.map(n => n.toFixed(3)).join('–')} ms`
+    const value = summary ? `${summary.count}/${metric.requiredSamples}; median ${summary.medianMs.toFixed(3)} ms; p95 ${summary.p95Ms === null ? 'unverified' : summary.p95Ms.toFixed(3) + ' ms'}; max ${summary.maxMs.toFixed(3)} ms; CPU ${summary.cpu.available ? summary.cpu.medianMs.toFixed(3) + ' ms median' : 'unavailable'}`
       : metric?.value == null ? 'unmeasured' : `${metric.value} ${metric.unit}`;
     lines.push(`| ${escape(row.target)} | ${escape(row.metric)} | ${value} | ${row.status} | ${escape(row.reason)} |`);
   }

@@ -32,7 +32,8 @@ export async function open({stateDir}) {
    ${fail === 'unknown' ? "throw new Error('Unknown; no resend');" : ''}
    ${fail === 'exit' ? 'process.exit(7);' : ''}
    return run;},
-  sql:text=>({all:async()=>text.includes('JOIN rhs')?[{id:1,label:'joined'}]
+  sql:(text,options)=>({all:async()=>text==='SELECT @id AS id'?(assert.deepEqual(options,{parameters:{id:7},parameterDeclarations:{id:{type:'number'}}}),[{id:7}])
+    :text==="SELECT 'é😀' AS label"?[{label:'é😀'}]:text.includes('JOIN rhs')?[{id:1,label:'joined'}]
     :text.includes('SUM(amount)')?[{total:'4.00'}]
     :text.includes('UNION ALL')?[{id:1},{id:2}]:[{id:1}]}),
   close:async()=>{await event('close');${fail === 'close' ? "throw new Error('cleanup pending');" : ''}}};

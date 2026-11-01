@@ -33,13 +33,18 @@ export async function open({stateDir}) {
  await mkdir(stateDir); let closed=false;
  const run={ref:{id:'same'}, wait:async()=>({status:'succeeded'}),
    result:()=>({all:async()=>{${slow ? 'await delay(110);' : ''}return [{id:1}];}}),status:async()=>({status:'succeeded',revision:1})};
- return {startSource:async()=>run,sql:text=>({all:async()=>{
+ return {startSource:async()=>run,sql:(text,options)=>({all:async()=>{
   await appendFile(stateDir+'/queries',JSON.stringify(text)+'\\n');
   ${fail ? "throw new Error('Unknown; no resend');" : ''}
   ${slow ? 'await delay(110);' : 'await Promise.resolve();'}
   if(text.includes('JOIN rhs'))return ${wrong === 'join' ? "[{id:1,label:'foreign'}]" : "[{id:1,label:'joined'}]"};
   if(text.includes('SUM(amount)'))return ${wrong === 'decimal' ? '[{total:4}]' : "[{total:'4.00'}]"};
   if(text.includes('UNION ALL'))return ${wrong === 'union' ? '[{id:1}]' : '[{id:1},{id:2}]'};
+  if(text==='SELECT @id AS id') {
+    if(JSON.stringify(options)!==JSON.stringify({parameters:{id:7},parameterDeclarations:{id:{type:'number'}}}))throw new Error('Parameter options lost');
+    return ${wrong === 'parameters' ? '[{id:8}]' : '[{id:7}]'};
+  }
+  if(text==="SELECT 'é😀' AS label")return ${wrong === 'unicode' ? "[{label:'foreign'}]" : "[{label:'é😀'}]"};
   return [{id:1}];}}),
  close:async()=>{if(closed)throw new Error('close twice');closed=true;await writeFile(stateDir+'/closed','yes');}};
 }`);
@@ -69,11 +74,11 @@ test('public warm adapter verifies output, awaits close, retains samples without
   await writeFile(options.controlsPath, JSON.stringify(controls));
   const report = await runNodeWarmBenchmark(options);
   assert.equal(report.cleanup.closed, true); assert.equal(report.installedPayloadsUnchanged, true);
-  assert.equal(report.latency.length, 6);
+  assert.equal(report.latency.length, 8);
   assert(report.assessments.every(row => row.status === 'incomplete' && row.summary.p95Ms === null));
   assert.equal(report.fullAcceptance, false);
   assert.equal(await readFile(join(options.output, 'new-state/closed'), 'utf8'), 'yes');
-  assert.equal(report.functional.rows.length, 6);
+  assert.equal(report.functional.rows.length, 8);
   assert(report.functional.rows.every(row => row.completed && row.expectedSha256 === row.actualSha256));
   assert.deepEqual(report.comparison, controls.comparison);
   assert.deepEqual(report.latency[0].comparisonMatch, controls.comparisonMatches['warm-select']);
@@ -118,7 +123,7 @@ test('the earlier three-family protocol cannot silently qualify the expanded exp
 test('slow successful diagnostic families stay failed/incomplete but do not hide other family costs', async t => {
   const options = await fixture(t, false, true);
   const report = await runNodeWarmBenchmark(options);
-  assert.equal(report.latency.length, 6);
+  assert.equal(report.latency.length, 8);
   assert.equal(report.latency[0].samples.length, 1);
   assert.equal(report.latency[1].samples.length, 1);
   assert(report.latency.every(row => row.samples.every(sample => sample.verified)));
@@ -134,14 +139,16 @@ test('small public SQL is fixed in the experiment and uses distinct independent 
     ['warm-join', [{id: 1, label: 'joined'}]],
     ['warm-union', [{id: 1}, {id: 2}]],
     ['warm-decimal-sum', [{total: '4.00'}]],
+    ['warm-parameters', [{id: 7}]],
+    ['warm-unicode', [{label: 'é😀'}]],
   ]);
   assert.deepEqual(report.historyProtocol.smallQueries, nodeWarmSmallQueryFixtures);
   const calls = (await readFile(join(options.output, 'new-state/queries'), 'utf8')).trim().split('\n').map(JSON.parse);
   assert.deepEqual(calls, ['SELECT 1 AS id', 'SELECT 1 AS id', 'SELECT 1 AS id',
     ...nodeWarmSmallQueryFixtures.flatMap(row => [row.text, row.text, row.text])]);
   const small = report.latency.slice(3);
-  assert.deepEqual(small.map(row => row.operation), ['warm-join', 'warm-union', 'warm-decimal-sum']);
-  assert.equal(new Set(small.map(row => row.fixtureSha256)).size, 3);
+  assert.deepEqual(small.map(row => row.operation), ['warm-join', 'warm-union', 'warm-decimal-sum', 'warm-parameters', 'warm-unicode']);
+  assert.equal(new Set(small.map(row => row.fixtureSha256)).size, 5);
   for (const series of small) {
     assert.equal(series.fixtureSha256, hash(Buffer.from(JSON.stringify(series.query))));
     assert(series.samples.every(row => row.verified && row.hostId === series.hostId && row.fixtureSha256 === series.fixtureSha256));
@@ -160,7 +167,8 @@ test('final collector refuses a missing comparison before importing or opening t
   await assert.rejects(readFile(join(options.output, 'new-state/closed')), {code: 'ENOENT'});
   await assert.rejects(readFile(join(options.output, 'new-state/queries')), {code: 'ENOENT'});
 });
-for (const [wrong, operation] of [['join', 'warm-join'], ['union', 'warm-union'], ['decimal', 'warm-decimal-sum']]) {
+for (const [wrong, operation] of [['join', 'warm-join'], ['union', 'warm-union'], ['decimal', 'warm-decimal-sum'],
+  ['parameters', 'warm-parameters'], ['unicode', 'warm-unicode']]) {
   test(`${operation} refuses a wrong materialized result without retry or later families`, async t => {
     const options = await fixture(t, false, false, wrong), report = await runNodeWarmBenchmark(options);
     assert.equal(report.firstFailure.operation, operation); assert.equal(report.stoppedAt, operation);

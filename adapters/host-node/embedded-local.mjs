@@ -27,6 +27,7 @@ import {createRequire} from 'node:module';
 import {existsSync} from 'node:fs';
 import {validClientConnection} from '../../packages/client-wire/index.mjs';
 import {createEmbeddedHostRegistry, installedHostShutdown} from './embedded-local-lifecycle.mjs';
+import {installHttpRequestPreparation} from './http-request-preparation.mjs';
 import {openClientRequestJournal, observeOriginalClientRequestJournalCustody,
   assertOriginalClientRequestJournalFacilityCurrent}
   from './client-request-journal.mjs';
@@ -235,7 +236,7 @@ const profiles = createEmbeddedHostRegistry(sameEmbeddedInstallation);
 // It checks the existing registry's original candidate/Host, not a caller
 // callback, DATA/CID, eight-reference view or capacity/authority declaration.
 export function assertInitialControlHostPreparation(originals) {
-  if (originals?.supplier !== connectEmbeddedLocal ||
+  if (originals?.supplier !== openPreparedInstalledHost ||
       originals?.moduleLifetime !== import.meta) {
     throw clientOperationError('InstalledHostPreparationChanged');
   }
@@ -246,7 +247,7 @@ export function assertInitialControlHostPreparation(originals) {
 // manager must establish its exact adopted Run before using this identity
 // projection; closing ingress does not retire that original Host generation.
 export function assertRetainedSourceManagedHost(originals) {
-  if (originals?.supplier !== connectEmbeddedLocal ||
+  if (originals?.supplier !== openPreparedInstalledHost ||
       originals?.moduleLifetime !== import.meta) {
     throw clientOperationError('InstalledHostPreparationChanged');
   }
@@ -5171,9 +5172,9 @@ async function openInstalledHost(originalInstallation, preparation) {
       }
       return activationFlight;
     };
-    // Every selected Host defers these services, including ordinary open
-    // without a Source profile. Only the legacy unprepared entry is eager.
-    if (preparation === undefined) return await activate();
+    // Local retains its deferred services. Remote preserves its existing
+    // eager construction, now under the SAME selected preparation owner.
+    if (preparation === undefined || mode === 'remote') return await activate();
     const bootstrapIngress = createNodeInProcessClientHost({
       authenticate: () => principalId,
       authorizeConnection: hostConnection,
@@ -5300,31 +5301,13 @@ async function openInstalledHost(originalInstallation, preparation) {
 // execution. `faultInjection(step, detail)` is an explicit awaited test hook;
 // `beforeDispatch` remains a required execution barrier. Without a
 // configuration the Missing account denies every request; nothing allows it.
-export async function openInstalledRemoteHttpHost({directory,
-  authenticate, beforeDispatch, authorization, workspaceId, connectorTable,
-  sourceProfilePath, sourceProfilePaths, sourceNamespace, sourceSelectorNamespace,
-  loopbackHttp = false,
-  resolveSourceSecret, effectProfilePath, effectProfilePaths, resolveEffectSecret,
-  effectInstallation, modelInstallation, registerModelProviders, calendarArtifact,
-  resultDataPolicy, inferEvidence, retainedRelationOutput, hostCapacityPolicy,
-  hostLookupExecutionPolicy, verifyRequestValuePolicy, valuesMaxRows, observation}) {
-  calendarArtifact = snapshotInstalledCalendar(calendarArtifact);
-  hostCapacityPolicy = snapshotHostCapacityPolicy(hostCapacityPolicy);
-  hostLookupExecutionPolicy = snapshotHostLookupExecutionPolicy(hostLookupExecutionPolicy);
-  if (typeof directory !== 'string' || !directory ||
-      typeof authenticate !== 'function' ||
-      typeof loopbackHttp !== 'boolean' ||
-      beforeDispatch !== undefined && typeof beforeDispatch !== 'function') {
-    throw new TypeError('InvalidInstalledRemoteHost');
-  }
-  const host = await openInstalledHost({root: resolve(directory), mode: 'remote',
-    workspaceId,
-    beforeDispatch, authorization, connectorTable, sourceProfilePath, sourceProfilePaths, sourceNamespace, sourceSelectorNamespace, resolveSourceSecret,
-    effectProfilePath, effectProfilePaths, resolveEffectSecret, effectInstallation,
-    modelInstallation, registerModelProviders, calendarArtifact, resultDataPolicy, inferEvidence,
-    retainedRelationOutput, hostCapacityPolicy, hostLookupExecutionPolicy, verifyRequestValuePolicy, valuesMaxRows, observation});
+export function openInstalledRemoteHttpHost(options) {
+  return openPreparedInstalledHost(options, 'remote');
+}
+
+function installedRemoteHttpTransport(host, {authenticate, loopbackHttp}, shutdown, prepareRequest) {
   const handle = createClientHttpHandler({
-    ...host.hostOperations, authenticate, maxRequestBytes: 65536, loopbackHttp,
+    ...host.hostOperations, authenticate, maxRequestBytes: 65536, loopbackHttp, prepareRequest,
   });
   // A request's handling can outlive its response: a Result read records
   // its delivery attempt after the last bytes are sent. Close waits for
@@ -5332,7 +5315,6 @@ export async function openInstalledRemoteHttpHost({directory,
   // refused before they touch the Store.
   const handling = new Set();
   let closing = false;
-  const shutdown = installedHostShutdown(host);
   return Object.freeze({
     handler(request, response) {
       if (closing) {
@@ -5417,14 +5399,20 @@ export function connectInitialControlHostPreparation(kind, rawInput) {
   return connectEmbeddedLocal(rawInput, 'open');
 }
 
-export async function connectEmbeddedLocal(options, initialEntry) {
+export function connectEmbeddedLocal(options, initialEntry) {
+  return openPreparedInstalledHost(options, initialEntry);
+}
+
+// The same original Host, prior control and preparation bundle serve Local and
+// Remote entry. Only Local discovers a Project or leases an in-process Client.
+async function openPreparedInstalledHost(options, initialEntry) {
   // The actual Host generation and original installation are allocated here,
   // not reconstructed from a later view, Project DATA or current config. Their
   // minimal candidate record belongs to the selected prior startup envelope.
   const host = {};
   let originalInstallation = {};
   let originals = Object.freeze({host, installation: originalInstallation,
-    generation: host, supplier: connectEmbeddedLocal, moduleLifetime: import.meta});
+    generation: host, supplier: openPreparedInstalledHost, moduleLifetime: import.meta});
   profiles.registerPreparation(host, originalInstallation, host);
   let control, controlClose, duty, observedClose, referenceRetirement;
   let moon, project, projectProfile, mockPreparation, projectSourcePreparation, sourceManaged, sourceManagedClose;
@@ -6778,6 +6766,48 @@ export async function connectEmbeddedLocal(options, initialEntry) {
   options = readInitialControlInstallationInput(control, originals);
   record.input = options;
   if (record.openPathFailure !== undefined) throw record.openPathFailure.cause;
+  if (initialEntry === 'remote') {
+    let {directory, authenticate, beforeDispatch, authorization, workspaceId, connectorTable,
+      sourceProfilePath, sourceProfilePaths, sourceNamespace, sourceSelectorNamespace,
+      loopbackHttp = false, resolveSourceSecret, effectProfilePath, effectProfilePaths,
+      resolveEffectSecret, effectInstallation, modelInstallation, registerModelProviders,
+      calendarArtifact, resultDataPolicy, inferEvidence, retainedRelationOutput,
+      hostCapacityPolicy, hostLookupExecutionPolicy, verifyRequestValuePolicy,
+      valuesMaxRows, observation} = options;
+    calendarArtifact = snapshotInstalledCalendar(calendarArtifact);
+    hostCapacityPolicy = snapshotHostCapacityPolicy(hostCapacityPolicy);
+    hostLookupExecutionPolicy = snapshotHostLookupExecutionPolicy(hostLookupExecutionPolicy);
+    if (typeof directory !== 'string' || !directory ||
+        typeof authenticate !== 'function' || typeof loopbackHttp !== 'boolean' ||
+        beforeDispatch !== undefined && typeof beforeDispatch !== 'function') {
+      throw new TypeError('InvalidInstalledRemoteHost');
+    }
+    Object.assign(originalInstallation, {root: resolve(directory), mode: 'remote',
+      initialControl: control, workspaceId, beforeDispatch, authorization, connectorTable,
+      sourceProfilePath, sourceProfilePaths, sourceNamespace, sourceSelectorNamespace,
+      resolveSourceSecret, effectProfilePath, effectProfilePaths, resolveEffectSecret,
+      effectInstallation, modelInstallation, registerModelProviders, calendarArtifact,
+      resultDataPolicy, inferEvidence,
+      retainedRelationOutput: retainedRelationOutput === undefined ? false : retainedRelationOutput,
+      hostCapacityPolicy, hostLookupExecutionPolicy, verifyRequestValuePolicy, valuesMaxRows, observation});
+    record.installation = originalInstallation;
+    moon = await import(runtimeUrl.href);
+    record.runtime = moon;
+    originalInstallation.projectRuntime = moon;
+    assertInitialControlInstallationCurrent(control, originals);
+    // No cwd, Project read, Local profile selection or in-process SDK Client.
+    const opened = await openInstalledHost(originalInstallation, preparation);
+    const shutdown = installedHostShutdown(opened);
+    try {
+      return installedRemoteHttpTransport(opened, {authenticate, loopbackHttp}, shutdown,
+        installHttpRequestPreparation(preparation, profiles, originals));
+    } catch (cause) {
+      // No transport was returned. The SAME Host shutdown owns all acquired
+      // children, including a failed close; initial control is its last duty.
+      throw await retainInstalledHostInitializationFailure(cause, {initialControl: shutdown});
+    }
+  }
+
   if (initialEntry === 'open') {
     // Omission still corresponds to the same original empty packet. An
     // explicit open packet uses that supplier's immutable snapshot, never a

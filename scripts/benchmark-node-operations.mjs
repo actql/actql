@@ -80,6 +80,10 @@ export const nodeWarmSmallQueryFixtures = Object.freeze([
       + "UNION ALL SELECT CAST('0.25' AS DECIMAL(8,2)) AS amount) "
       + 'SELECT SUM(amount) AS total FROM items',
     expected: [{total: '4.00'}]},
+  {operation: 'warm-parameters', text: 'SELECT @id AS id',
+    options: Object.freeze({parameters: Object.freeze({id: 7}),
+      parameterDeclarations: Object.freeze({id: Object.freeze({type: 'number'})})}), expected: [{id: 7}]},
+  {operation: 'warm-unicode', text: "SELECT 'é😀' AS label", expected: [{label: 'é😀'}]},
 ].map(fixture => Object.freeze({...fixture,
   expected: Object.freeze(fixture.expected.map(row => Object.freeze(row)))})));
 export function nodeBenchmarkInstrumentation({execArgv = process.execArgv,
@@ -96,7 +100,7 @@ export function nodeWarmProtocol(mode) {
     operationOrder: ['warm-select', 'warm-result', 'warm-status', ...nodeWarmSmallQueryFixtures.map(row => row.operation)],
     smallQueries: nodeWarmSmallQueryFixtures, samplesPerOperation: mode === 'final' ? 100 : 3,
     diagnosticContinuation: mode === 'diagnostic' ? 'verified success only; stop each slow family' : 'none',
-    newShortQueries: 'one per SELECT/JOIN/UNION/Decimal SUM sample', savedReads: 'same original seed Run',
+    newShortQueries: 'one per SELECT/JOIN/UNION/Decimal SUM/Parameters/Unicode sample', savedReads: 'same original seed Run',
     status: 'same original revision after initial status observation', close: 'await original Client in finally'};
 }
 // One explicit experiment definition lets warm and process measurements share
@@ -216,9 +220,9 @@ export async function runNodeWarmBenchmark({manifestPath, consumer, output, cont
     // This observation lacks close, so it is not a first-init percentile.
     // Diagnostic mode may still locate the separate saved-Result/status cost
     // after a slow SUCCESS. It never repeats an unknown or failed submission.
-    report.initialLatencyExceeded = report.initialOpenAndResultNs > 5e9;
-    if (report.initialLatencyExceeded) report.diagnosticFindings.push('initial operation exceeded 5s');
-    if (report.initialLatencyExceeded && mode === 'final') report.stoppedAt = 'initial operation exceeded 5s; final sampling not started';
+    report.initialLatencyExceeded = report.initialOpenAndResultNs > 200e6;
+    if (report.initialLatencyExceeded) report.diagnosticFindings.push('initial operation exceeded 200ms; separate close/process evidence still required');
+    if (report.initialLatencyExceeded && mode === 'final') report.stoppedAt = 'initial operation exceeded 200ms; final sampling not started';
     else {
       const baseline = await original.status();
       for (const operation of nodeWarmProtocol(mode).operationOrder) {
@@ -234,7 +238,7 @@ export async function runNodeWarmBenchmark({manifestPath, consumer, output, cont
         const execute = async () => {
           try {
             if (query || operation === 'warm-select') {
-              observed = await client.sql(query?.text ?? 'SELECT 1 AS id').all();
+              observed = await client.sql(query?.text ?? 'SELECT 1 AS id', query?.options).all();
               assert.deepEqual(observed, expected);
             } else if (operation === 'warm-result') {
               observed = await original.result('main').all(); assert.deepEqual(observed, expected);

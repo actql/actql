@@ -23,6 +23,10 @@ function series(operation = 'warm-select', count = operationTargets[operation].s
     environmentSha256: environment, historyProtocolSha256: protocol, profiled: false, load: 'isolated', samples: Array.from({length: count}, (_, iteration) => ({
       iteration, cohortSha256: cohort, fixtureSha256: fixtureIdentity, wallNs: ms * 1e6,
       cpuUserUs: 1000, cpuSystemUs: 200, cpuScope: 'measured-process', pid: 1, hostId: 'host1', stateId: 'state1',
+      peakRssBytes: 1024, rssScope: 'synthetic oracle RSS',
+      publicTiming: operation.startsWith('warm-')
+        ? {kind: operation === 'warm-status' ? 'public-status' : 'public-result', startNs: 1, observedNs: 2, endNs: 3}
+        : {kind: 'process-result-close', startNs: 1, observedNs: 2, closeStartNs: 3, closeEndNs: 4, endNs: 5},
       completed: true, verified: true,
     }))};
 }
@@ -62,7 +66,7 @@ test('one successful sample has no acceptance p95', () => {
 });
 test('diagnostic SQLite limits never become unmatched public SDK thresholds', () => {
   assert.equal(assessLatency(series('warm-select', 100, 6)).status, 'incomplete');
-  assert.equal(assessLatency(series('warm-select', 100, 968)).status, 'incomplete');
+  assert.equal(assessLatency(series('warm-select', 100, 968)).status, 'failed');
   assert.equal(rawAssessLatency(series()).status, 'incomplete');
   assert.equal(assessLatency(series('warm-decimal-sum')).status, 'incomplete');
   assert.equal(assessLatency(series('warm-result')).status, 'incomplete');
@@ -73,7 +77,7 @@ test('comparison retains public total, ratio and absolute delta without a false 
   assert.equal(result.status, 'incomplete');
   assert.deepEqual(result.diagnosticComparison.medianMs, {publicMs: 9, engineMs: 2,
     ratio: 4.5, deltaMs: 7, diagnosticLimitMs: 9, publicAcceptance: 'unmatched'});
-  assert.equal(result.target.p95Ms, undefined);
+  assert.equal(result.target.p95Ms, 200);
 });
 test('a diagnostic or profiled/loaded run cannot become final acceptance', () => {
   for (const patch of [{mode: 'diagnostic'}, {profiled: true}, {load: 'concurrent'}, {stoppedEarly: true}]) {
@@ -83,7 +87,8 @@ test('a diagnostic or profiled/loaded run cannot become final acceptance', () =>
 test('functional failures are retained, not filtered into a faster passed population', () => {
   const rows = series(); rows.samples[40].verified = false;
   const result = assessLatency(rows); assert.equal(result.status, 'failed');
-  assert.equal(result.summary.count, 99); assert.equal(result.summary.p95Ms, null);
+  assert.equal(result.summary.count, 100); assert.equal(result.summary.p95Ms, 4);
+  assert.equal(result.verifiedSummary.count, 99); assert.equal(result.verifiedSummary.p95Ms, null);
 });
 test('rejects mixed artifacts, fixtures, duplicate samples and impossible durations', () => {
   for (const mutate of [r => {r.cohortSha256 = 'd'.repeat(64);}, r => {r.fixtureSha256 = cohort;},
@@ -94,14 +99,14 @@ test('rejects mixed artifacts, fixtures, duplicate samples and impossible durati
 test('warm Host identity and cold process boundaries are different requirements', () => {
   const warm = series(); warm.samples[1].hostId = 'reopened';
   assert.equal(assessLatency(warm).status, 'failed');
-  const cold = series('cold-existing', 30, 2000);
+  const cold = series('cold-existing', 30, 200);
   assert.equal(assessLatency(cold).status, 'failed');
   cold.samples.forEach((r, n) => {r.pid = n + 1;});
   assert.equal(assessLatency(cold).status, 'passed');
   cold.samples.pop(); assert.equal(assessLatency(cold).status, 'incomplete');
 });
 test('first-init requires independent states, not thirty opens of existing state', () => {
-  const rows = series('first-init', 30, 5000); assert.equal(assessLatency(rows).status, 'failed');
+  const rows = series('first-init', 30, 200); assert.equal(assessLatency(rows).status, 'failed');
   rows.samples.forEach((r, n) => {r.stateId = `fresh${n}`;}); assert.equal(assessLatency(rows).status, 'passed');
 });
 test('missing counters are incomplete and not silently zero', () => {
@@ -424,7 +429,10 @@ function nativeReport(count = 100, ms = 80) {
       publicRunId: runId, runRefSha256: nativeHash({runId}), resultRefSha256: nativeHash(selected),
       querySha256: nativeHash(`SELECT ${id} AS id`), expectedSha256: nativeHash([{id}]), actualSha256: nativeHash([{id}]),
       completed: true, verified: true, wallNs: ms * 1e6, childWallNs: (ms - 1) * 1e6,
-      cpuUserUs: 1000, cpuSystemUs: 200, cpuScope: 'synthetic child', command: {pid: index + 3, code: 0, wallNs: (ms - 1) * 1e6, cwd: '/synthetic/project',
+      cpuUserUs: 1000, cpuSystemUs: 200, cpuScope: 'synthetic child',
+      peakRssBytes: 1024, rssScope: 'synthetic child RSS',
+      publicTiming: {kind: 'cli-result-exit', startNs: 1, exitNs: 2, observedNs: 3, endNs: 4},
+      command: {pid: index + 3, code: 0, wallNs: (ms - 1) * 1e6, cwd: '/synthetic/project',
         args: ['run', `new-${index}.aql`, '--output', `new-${index}.jsonl`, '--json']},
       publicResponse: {run: {run_id: runId, status: 'succeeded'}, delivery_status: 'delivered',
         deliveries: [{run_id: runId, status: 'delivered', request: {result: 'answer', result_cid: selected.resultCid, format: 'jsonl', path: `/synthetic/project/new-${index}.jsonl`}}]}};
@@ -443,6 +451,8 @@ function nativeReport(count = 100, ms = 80) {
         ...Object.fromEntries(['publicRunId', 'runRefSha256', 'resultRefSha256', 'expectedSha256', 'actualSha256'].map(key => [key, original[key]])),
         completed: true, verified: true, wallNs: ms * 1e6, childWallNs: (ms - 1) * 1e6,
         cpuUserUs: 1000, cpuSystemUs: 200, cpuScope: 'synthetic child',
+        peakRssBytes: 1024, rssScope: 'synthetic child RSS',
+        publicTiming: {kind: 'cli-result-exit', startNs: 1, exitNs: 2, observedNs: 3, endNs: 4},
         command: {pid, code: 0, wallNs: (ms - 1) * 1e6, cwd: '/synthetic/project', args: ['result', original.publicRunId, '--result', 'answer', '--format', 'jsonl']}};
     });
     const workload = operation === 'cold-new-run' ? {kind: 'new-durable-run-result-file-rows',

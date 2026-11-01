@@ -30,7 +30,7 @@ class LocalDistributionTests(unittest.TestCase):
         self.enterContext(patch('actql_sdk._local_distribution.sys.platform', 'darwin'))
         self.enterContext(patch('actql_sdk._local_distribution.platform.machine', return_value='arm64'))
         self.body = {'source_sha': 'a' * 40, 'package_version': '0.0.0.dev0',
-                     'platform': 'darwin-arm64', 'core_abi': 78, 'wasmtime_version': '38.0.0',
+                     'platform': 'darwin-arm64', 'core_abi': 83, 'wasmtime_version': '38.0.0',
                      'duckdb_version': 'v1.4.3', 'notices': {}}
         for name, key in [('client_host_wasm.wasm', 'module'), ('libduckdb.dylib', 'duckdb')]:
             value = b'fixture component ' + name.encode()
@@ -271,7 +271,7 @@ class LocalDistributionTests(unittest.TestCase):
                 installed_local_components()
 
     def test_installed_resolver_uses_matching_cohort_and_optional_dependency(self):
-        binding = {'source_sha': 'a' * 40, 'package_version': '0.0.0.dev0', 'core_abi': 78,
+        binding = {'source_sha': 'a' * 40, 'package_version': '0.0.0.dev0', 'core_abi': 83,
                    'artifact_sha256': hashlib.sha256((self.directory / 'artifact.json').read_bytes()).hexdigest(),
                    'host_capacity_sha256': 'c' * 64}
         (self.directory / '_local_release_binding.json').write_text(json.dumps(binding))
@@ -294,7 +294,7 @@ class LocalDistributionTests(unittest.TestCase):
     def test_runtime_manifest_cannot_rebind_same_version_sdk_and_missing_binding_has_no_fallback(self):
         versions = {'actql': '0.0.0.dev0', 'actql-sdk': '0.0.0.dev0',
                     'actql-local-runtime': '0.0.0.dev0', 'wasmtime': '38.0.0'}
-        binding = {'source_sha': 'a' * 40, 'package_version': '0.0.0.dev0', 'core_abi': 78,
+        binding = {'source_sha': 'a' * 40, 'package_version': '0.0.0.dev0', 'core_abi': 83,
                    'artifact_sha256': hashlib.sha256((self.directory / 'artifact.json').read_bytes()).hexdigest(),
                    'host_capacity_sha256': 'c' * 64}
         path = self.directory / '_local_release_binding.json'
@@ -323,7 +323,7 @@ class LocalDistributionTests(unittest.TestCase):
         self.body['engine_recipe'].update(bytes=len(encoded), sha256=hashlib.sha256(encoded).hexdigest())
         self.body['compiled_image'].update(runtime_allocation='platform', provider_library_sha256=None)
         self.write_manifest()
-        binding = {'source_sha': 'a' * 40, 'package_version': '0.0.0.dev0', 'core_abi': 78,
+        binding = {'source_sha': 'a' * 40, 'package_version': '0.0.0.dev0', 'core_abi': 83,
                    'artifact_sha256': hashlib.sha256((self.directory / 'artifact.json').read_bytes()).hexdigest(),
                    'runtime_allocation': 'platform'}
         path = self.directory / '_local_release_binding.json'

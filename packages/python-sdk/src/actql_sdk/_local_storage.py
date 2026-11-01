@@ -905,14 +905,38 @@ class LocalByteStore:
         reads = copied = 0
         failure: BaseException | None = None
 
-        def fence(required_current: Callable[[], object] | None = None) -> None:
-            if not self._fences_match_locked(fences, successors):
-                raise LocalStorageError('Original Local inventory metadata changed')
+        database = self._physical
+        original_snapshot = (database._snapshot_identity()
+                             if type(database) is _SQLiteByteDatabase else None)
+        last_fenced_snapshot: tuple[object, int, int, int] | None = None
+
+        def metadata_fence(*, reuse_snapshot: bool) -> None:
+            nonlocal last_fenced_snapshot
+            if self._physical is not database:
+                raise LocalStorageError('Original Local physical reader changed')
+            # Only the exact stdlib adapter supplies SQLite's own mutation
+            # counter. Other existing physical suppliers keep full SQL checks.
+            snapshot = (database._snapshot_identity()
+                        if type(database) is _SQLiteByteDatabase else None)
+            if snapshot is not None and (original_snapshot is None
+                    or snapshot[0] is not original_snapshot[0] or snapshot[1] != original_snapshot[1]
+                    or snapshot[3] != original_snapshot[3]):
+                raise LocalStorageError('Original Local transaction or schema snapshot was replaced')
+            if not reuse_snapshot or snapshot is None or snapshot != last_fenced_snapshot:
+                if not self._fences_match_locked(fences, successors):
+                    raise LocalStorageError('Original Local inventory metadata changed')
+                if (snapshot is not None and type(database) is _SQLiteByteDatabase
+                        and database._snapshot_identity() != snapshot):
+                    raise LocalStorageError('Original Local snapshot changed during metadata read')
+                last_fenced_snapshot = snapshot
+
+        def fence(required_current: Callable[[], object] | None = None, *,
+                  reuse_snapshot: bool = False) -> None:
+            metadata_fence(reuse_snapshot=reuse_snapshot)
             self._fenced_current(current)
             if required_current is not None and required_current is not current:
                 self._fenced_current(required_current)
-            if not self._fences_match_locked(fences, successors):
-                raise LocalStorageError('Original Local inventory metadata changed')
+            metadata_fence(reuse_snapshot=reuse_snapshot)
 
         def check_frame(view: _NamespaceReader) -> None:
             nonlocal failure
@@ -928,7 +952,7 @@ class LocalByteStore:
             nonlocal failure
             try:
                 check_frame(reader)
-                fence()
+                fence(reuse_snapshot=True)
             except BaseException as error:
                 failure = error
                 raise

@@ -28,6 +28,36 @@ class LocalHostFilePinsTests(unittest.TestCase):
         self.addCleanup(lambda: pins.close())
         return path, root, store, pins
 
+    def test_complete_file_group_checks_directory_twice_and_every_original_fd_and_name(self):
+        with TemporaryDirectory(prefix='actql-group-directory-') as directory:
+            path = Path(directory)
+            for i in range(5):
+                name = path / ('original-' + str(i))
+                name.write_bytes(b'original'); name.chmod(0o600)
+            root = LocalFileRoot(path, max_files=8, max_chunk_bytes=8)
+            self.addCleanup(root.close)
+            store = LocalByteStore(path / 'client.sqlite3', max_records=8,
+                                  max_record_bytes=256, max_payload_bytes=1024)
+            self.addCleanup(store.close)
+            pins = LocalHostFiles(root, store, max_files=5, max_bytes=64)
+            self.addCleanup(pins.close)
+            originals = tuple(pins.read_original('original-' + str(i), max_bytes=8) for i in range(5))
+            root_fd = root._open()
+            real_fstat, real_stat = os.fstat, os.stat
+            observed, named = [], []
+            def fstat(fd):
+                observed.append(fd)
+                return real_fstat(fd)
+            def stat(*args, **kwargs):
+                if kwargs.get('dir_fd') == root_fd: named.append(args[0])
+                return real_stat(*args, **kwargs)
+            with patch('actql_sdk._local_files.os.fstat', side_effect=fstat), \
+                    patch('actql_sdk._local_files.os.stat', side_effect=stat):
+                pins.require_current_originals(originals)
+            self.assertEqual(observed.count(root_fd), 2)
+            self.assertEqual([observed.count(value.reader.descriptor) for value in originals], [1] * 5)
+            self.assertEqual(named, ['original-' + str(i) for i in range(5)])
+
     def test_exact_original_bytes_and_current_preserve_files_store_and_no_scope(self):
         path, root, store, pins = self.fixture()
         changes = store._connection.total_changes

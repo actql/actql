@@ -51,37 +51,56 @@ class _SQLiteByteDatabase:
     Only LocalByteStore owns the connection and closes it. No second connection,
     implicit transaction completion, schema conversion or fallback is created.
     """
-    __slots__ = ('_connection',)
+    __slots__ = ('_connection', '_transaction_sequence')
 
     def __init__(self, connection: sqlite3.Connection) -> None:
         self._connection = connection
+        self._transaction_sequence = 0
+
+    def _snapshot_identity(self) -> tuple[sqlite3.Connection, int, int, int]:
+        """Same live transaction plus SQLite's actual mutation counter, DATA only."""
+        if not self._connection.in_transaction:
+            raise ValueError('Original SQLite snapshot is not active')
+        # DDL does not advance total_changes. Read the actual bounded schema
+        # counter too; a row-mutation counter alone cannot fence that boundary.
+        schema = self._connection.execute('PRAGMA schema_version').fetchone()
+        if type(schema) is not tuple or len(schema) != 1 or type(schema[0]) is not int:
+            raise ValueError('Original SQLite schema snapshot is unavailable')
+        return self._connection, self._transaction_sequence, self._connection.total_changes, schema[0]
 
     @property
     def in_transaction(self) -> bool:
         return self._connection.in_transaction
 
     def begin_read(self) -> None:
+        self._transaction_sequence += 1
         self._connection.execute('BEGIN')
 
     def finish_read(self) -> None:
         # The original read must stop before any complete observation escapes.
         # This never acknowledges a previous write or issues another BEGIN.
+        self._transaction_sequence += 1
         self._connection.execute('ROLLBACK')
 
     def cleanup_read(self) -> None:
         if self._connection.in_transaction:
+            self._transaction_sequence += 1
             self._connection.execute('ROLLBACK')
 
     def begin_immediate(self) -> None:
+        self._transaction_sequence += 1
         self._connection.execute('BEGIN IMMEDIATE')
 
     def commit(self) -> None:
+        self._transaction_sequence += 1
         self._connection.execute('COMMIT')
 
     def rollback(self) -> None:
+        self._transaction_sequence += 1
         self._connection.execute('ROLLBACK')
 
     def close(self) -> None:
+        self._transaction_sequence += 1
         self._connection.close()
 
     def has_records_or_capacity(self) -> bool:

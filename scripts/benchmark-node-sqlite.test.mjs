@@ -13,8 +13,8 @@ test('real SQLite comparator materializes literal rows and commits a distinct mi
   const report = await runSQLiteBaseline({output, warmSamples: 2, coldSamples: 0, load: 'concurrent'});
   assert.equal(report.kind, 'local-sqlite-comparator'); assert.equal(report.productAcceptance, false);
   assert.equal(report.cleanup.closed, true); assert.equal(report.settings.synchronous, 2);
-  assert.equal(report.settings.journal_mode, 'wal'); assert.equal(report.warm.length, 9);
-  assert.equal(sqliteQueryFixtures.length, 3);
+  assert.equal(report.settings.journal_mode, 'wal'); assert.equal(report.warm.length, 13);
+  assert.equal(sqliteQueryFixtures.length, 5);
   for (const fixture of sqliteQueryFixtures) for (const mode of ['prepared', 'one-shot']) {
     const series = report.warm.find(row => row.operation === fixture.operation && row.mode === mode);
     assert.deepEqual(series.fixture, fixture); assert.equal(series.samples.length, 2);

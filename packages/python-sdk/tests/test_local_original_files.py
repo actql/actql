@@ -21,6 +21,85 @@ class LocalOriginalFileTests(unittest.TestCase):
         file.chmod(0o600)
         return file
 
+    def test_repeated_eof_observation_reuses_only_immutable_snapshot_after_each_physical_check(self):
+        with TemporaryDirectory(prefix='actql-eof-observation-') as directory:
+            path = Path(directory)
+            self.saved(path, body=b'one')
+            root = self.root(path)
+            self.addCleanup(root.close)
+            reader = root.open_original('account', max_bytes=3)
+            self.addCleanup(lambda: root.close_original(reader))
+            chunk = root.read_original(reader); root.release_original_chunk(reader, chunk)
+            original = root.observe_original(reader)
+            with patch.object(root, '_validate_original', wraps=root._validate_original) as current:
+                for _ in range(5): self.assertIs(root.observe_original(reader), original)
+                self.assertEqual(current.call_count, 5)
+            (path / 'account').write_bytes(b'two')
+            with self.assertRaises(LocalFileError): root.observe_original(reader)
+            self.assertTrue(reader.invalid)
+
+    def test_group_directory_change_after_last_member_refuses_and_keeps_original_fds(self):
+        with TemporaryDirectory(prefix='actql-original-group-directory-') as directory:
+            path = Path(directory)
+            root = LocalFileRoot(path, max_files=4, max_chunk_bytes=4)
+            self.addCleanup(root.close)
+            readers = []
+            for i in range(3):
+                self.saved(path, 'original-' + str(i), b'one')
+                reader = root.open_original('original-' + str(i), max_bytes=3)
+                self.addCleanup(lambda value=reader: root.close_original(value))
+                chunk = root.read_original(reader); root.release_original_chunk(reader, chunk)
+                readers.append(reader)
+            real_stat = os.stat
+            def change_after_last(name, *args, **kwargs):
+                result = real_stat(name, *args, **kwargs)
+                if name == 'original-2' and kwargs.get('dir_fd') == root._open():
+                    path.chmod(0o755)
+                return result
+            try:
+                with patch('actql_sdk._local_files.os.stat', side_effect=change_after_last):
+                    with self.assertRaises(LocalFileError): root._observe_originals(tuple(readers))
+                self.assertTrue(all(reader.invalid for reader in readers))
+                self.assertTrue(all(os.fstat(reader.descriptor).st_size == 3 for reader in readers))
+            finally:
+                path.chmod(0o700)
+
+    def test_group_member_mutation_refuses_before_any_success_is_exposed(self):
+        with TemporaryDirectory(prefix='actql-original-group-change-') as directory:
+            path = Path(directory)
+            root = self.root(path); self.addCleanup(root.close)
+            readers = []
+            for i in range(2):
+                self.saved(path, 'original-' + str(i), b'one')
+                reader = root.open_original('original-' + str(i), max_bytes=3)
+                self.addCleanup(lambda value=reader: root.close_original(value))
+                chunk = root.read_original(reader); root.release_original_chunk(reader, chunk)
+                readers.append(reader)
+            real_stat = os.stat
+            def change_next(name, *args, **kwargs):
+                result = real_stat(name, *args, **kwargs)
+                if name == 'original-0' and kwargs.get('dir_fd') == root._open():
+                    (path / 'original-1').write_bytes(b'two')
+                return result
+            with patch('actql_sdk._local_files.os.stat', side_effect=change_next):
+                with self.assertRaises(LocalFileError): root._observe_originals(tuple(readers))
+            self.assertTrue(all(reader.invalid for reader in readers))
+            self.assertTrue(all(os.fstat(reader.descriptor).st_size == 3 for reader in readers))
+
+    def test_group_foreign_copied_duplicate_and_closing_members_refuse_before_stat(self):
+        with TemporaryDirectory(prefix='actql-original-group-ownership-') as directory:
+            path = Path(directory); self.saved(path)
+            root = self.root(path); self.addCleanup(root.close)
+            reader = root.open_original('account', max_bytes=11)
+            self.addCleanup(lambda: root.close_original(reader))
+            for members in ([reader], (copy.copy(reader),), (reader, reader)):
+                with self.subTest(members=type(members).__name__), \
+                        patch('actql_sdk._local_files.os.fstat', side_effect=AssertionError('foreign I/O')):
+                    with self.assertRaises(ValueError): root._observe_originals(members)
+            reader.closing = True
+            with patch('actql_sdk._local_files.os.fstat', side_effect=AssertionError('closing I/O')):
+                with self.assertRaises(LocalFileError): root._observe_originals((reader,))
+
     def test_exact_raw_chunks_and_snapshot_preserve_unicode_crlf_and_null(self):
         with TemporaryDirectory(prefix='actql-originals-') as directory:
             path = Path(directory)

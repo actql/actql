@@ -226,13 +226,20 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
     sourceManaged.assertCurrent();
     if(preparation.originalsForRuntime(moon)!==bundle)fail('ForeignLocalFilesPreparation');
   };
-  const sameRun=prepared=>{
+  const sameRun=(prepared,request)=>{
     current();const run=sharedRuns.get(prepared);
     if(run?.retired)fail('LocalFilesPreparationRetired');
     if(run?.failed)throw run.failure;
     if(run===undefined||run.value===undefined)fail('LocalFilesManagedReadUnavailable');
+    const value=run.value,originalRequest=run.request,effectful=run.effectful;
     checked((run.effectful?moon.clientProgramInstalledEffectManagedRunCheck:moon.clientProgramInstalledManagedRunCheck)
-      (run.value,prepared,run.request));return run;
+      (value,prepared,request===undefined?originalRequest:request));
+    // The Core current callback may reenter the Host. Keep this original
+    // lookup after it without issuing another current observation.
+    if(sharedRuns.get(prepared)!==run||run.retired||run.value!==value||run.request!==originalRequest||run.effectful!==effectful)
+      fail('ForeignLocalFilesPreparation');
+    if(run.failed)throw run.failure;
+    return run;
   };
   function prepareRun(prepared,request,prepareInvocation){
     current();
@@ -274,9 +281,11 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
     if(typeof prepareManagedContentRun!=='function')fail('ForeignLocalFilesContentPreparation');
     const prior=sharedRuns.get(prepared);
     if(prior!==undefined){
-      if(prior.retired||prior.recipe!==recipe||prior.graph!==graph)fail('ForeignLocalFilesContentPreparation');
-      sameRun(prepared);
-      checked(moon.clientProgramInstalledManagedRunCheck(prior.value,prepared,request));return prior.hostRun;
+      if(request===undefined||prior.retired||prior.recipe!==recipe||prior.graph!==graph)fail('ForeignLocalFilesContentPreparation');
+      const hostRun=prior.hostRun;
+      if(sameRun(prepared,request)!==prior||prior.recipe!==recipe||prior.graph!==graph||prior.hostRun!==hostRun)
+        fail('ForeignLocalFilesContentPreparation');
+      return hostRun;
     }
     if(contentPreparation?.prepared!==prepared||contentPreparation.inputHolder===undefined||contentPreparation.localPreparation!==undefined)
       fail('ForeignLocalFilesContentPreparation');

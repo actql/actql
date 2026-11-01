@@ -23,6 +23,8 @@ export function nativeOperationsData(sourceSha, cohortSha256, milliseconds = 80)
       expectedSha256: hash([{id: value}]), actualSha256: hash([{id: value}]), completed: true, verified: true,
       wallNs: milliseconds * 1e6, childWallNs: (milliseconds - 1) * 1e6,
       cpuUserUs: 100, cpuSystemUs: 50, cpuScope: 'synthetic distinct CLI child',
+      peakRssBytes: 1024, rssScope: 'synthetic child RSS',
+      publicTiming: {kind: 'cli-result-exit', startNs: 1, exitNs: 2, observedNs: 3, endNs: 4},
       command: {pid, code: 0, wallNs: (milliseconds - 1) * 1e6, cwd: state,
         args: ['run', name + '.aql', '--output', name + '.jsonl', '--json']},
       publicResponse: {run: {run_id: publicRunId, status: 'succeeded'}, delivery_status: 'delivered',
@@ -40,6 +42,8 @@ export function nativeOperationsData(sourceSha, cohortSha256, milliseconds = 80)
       ...Object.fromEntries(['publicRunId', 'runRefSha256', 'resultRefSha256', 'expectedSha256', 'actualSha256'].map(key => [key, original[key]])),
       completed: true, verified: true, wallNs: milliseconds * 1e6, childWallNs: (milliseconds - 1) * 1e6,
       cpuUserUs: 100, cpuSystemUs: 50, cpuScope: 'synthetic distinct CLI child',
+      peakRssBytes: 1024, rssScope: 'synthetic child RSS',
+      publicTiming: {kind: 'cli-result-exit', startNs: 1, exitNs: 2, observedNs: 3, endNs: 4},
       command: {pid, code: 0, wallNs: (milliseconds - 1) * 1e6, cwd: state,
         args: ['result', original.publicRunId, '--result', 'answer', '--format', 'jsonl']}};
   });

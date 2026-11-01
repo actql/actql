@@ -30,6 +30,8 @@ async function sample(config) {
     if (config.operation === 'cold-existing') assert.deepEqual(run.ref, config.originalRun);
     else assert.equal((await run.wait()).status, 'succeeded');
     assert.deepEqual(await run.result('main').all(), expected);
+    row.publicTiming = {kind: 'process-result-close', startNs: Number(started),
+      observedNs: Number(process.hrtime.bigint())};
     assert(run.ref !== null && typeof run.ref === 'object', 'Public Run reference is required');
     row.originalRun = run.ref;
     row.actualSha256 = hash(Buffer.from(JSON.stringify(expected)));
@@ -39,17 +41,22 @@ async function sample(config) {
   } finally {
     if (client) {
       const closeStart = process.hrtime.bigint();
+      if (row.publicTiming) row.publicTiming.closeStartNs = Number(closeStart);
       try { await client.close(); row.cleanup.closed = true; }
       catch (error) {
         failure ??= error;
         row.cleanup.failure = {name: error.name, code: error.code ?? null, message: error.message};
       }
       row.cleanup.wallNs = Number(process.hrtime.bigint() - closeStart);
+      if (row.publicTiming) row.publicTiming.closeEndNs = Number(process.hrtime.bigint());
     }
     const cpu = process.cpuUsage(), operationCpu = process.cpuUsage(cpuStart);
     row.cpuUserUs = cpu.user; row.cpuSystemUs = cpu.system;
     row.operationCpuUserUs = operationCpu.user; row.operationCpuSystemUs = operationCpu.system;
     row.operationWallNs = Number(process.hrtime.bigint() - started);
+    row.peakRssBytes = process.resourceUsage().maxRSS * 1024;
+    row.rssScope = 'actual child process high-water RSS; not allocation or other-process memory';
+    if (row.publicTiming) row.publicTiming.endNs = Number(started) + row.operationWallNs;
     row.completed = row.verified = !failure && row.cleanup.closed;
     await new Promise((resolve, reject) => process.send(row, error => error ? reject(error) : resolve()));
     process.disconnect();
@@ -98,6 +105,8 @@ async function runChild(config, output, name) {
     cpuScope: valid ? 'actual-child-startup-through-close; other processes and post-close reporting/exit excluded'
       : 'collector-process-only; child CPU unavailable',
     childCpuAvailable: valid,
+    ...(actual?.peakRssBytes ? {peakRssBytes: actual.peakRssBytes, rssScope: actual.rssScope} : {}),
+    ...(actual?.publicTiming ? {publicTiming: actual.publicTiming} : {}),
     ...(!verified ? {error: actual?.firstFailure?.message ?? actual?.cleanup?.failure?.message ??
       'Child did not supply a valid verified public completion and awaited close'} : {})};
   await writeFile(join(output, `${name}.json`), JSON.stringify(observation, null, 2) + '\n', {mode: 0o600, flag: 'wx'});
