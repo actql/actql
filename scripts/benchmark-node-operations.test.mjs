@@ -33,7 +33,7 @@ export async function open({stateDir}) {
  await mkdir(stateDir); let closed=false;
  const run={ref:{id:'same'}, wait:async()=>({status:'succeeded'}),
    result:()=>({all:async()=>{${slow ? 'await delay(110);' : ''}return [{id:1}];}}),status:async()=>({status:'succeeded',revision:1})};
- return {startSource:async()=>run,sql:(text,options)=>({all:async()=>{
+ return {startSource:async()=>run,sql:(text,parameters,options)=>({all:async()=>{
   await appendFile(stateDir+'/queries',JSON.stringify(text)+'\\n');
   ${fail ? "throw new Error('Unknown; no resend');" : ''}
   ${slow ? 'await delay(110);' : 'await Promise.resolve();'}
@@ -41,7 +41,8 @@ export async function open({stateDir}) {
   if(text.includes('SUM(amount)'))return ${wrong === 'decimal' ? '[{total:4}]' : "[{total:'4.00'}]"};
   if(text.includes('UNION ALL'))return ${wrong === 'union' ? '[{id:1}]' : '[{id:1},{id:2}]'};
   if(text==='SELECT @id AS id') {
-    if(JSON.stringify(options)!==JSON.stringify({parameters:{id:7},parameterDeclarations:{id:{type:'number'}}}))throw new Error('Parameter options lost');
+    if(JSON.stringify(parameters)!==JSON.stringify({id:7}) ||
+       JSON.stringify(options)!==JSON.stringify({parameterDeclarations:{id:{type:'number'}}}))throw new Error('Public parameter arguments lost');
     return ${wrong === 'parameters' ? '[{id:8}]' : '[{id:7}]'};
   }
   if(text==="SELECT 'é😀' AS label")return ${wrong === 'unicode' ? "[{label:'foreign'}]" : "[{label:'é😀'}]"};
@@ -155,6 +156,16 @@ test('small public SQL is fixed in the experiment and uses distinct independent 
   }
   assert(report.assessments.slice(3).every(row => row.target.comparison === 'local-sqlite' &&
     row.summary.p95Ms === null && row.missing.includes('measured fixed SQLite comparison profile')));
+});
+test('parameter fixture follows the public sql(text, parameters, options) contract', async t => {
+  const options = await fixture(t), report = await runNodeWarmBenchmark(options);
+  assert.equal(report.firstFailure, undefined);
+  const parameter = report.latency.find(row => row.operation === 'warm-parameters');
+  assert.equal(parameter.samples.length, 3);
+  assert(parameter.samples.every(row => row.verified));
+  assert.deepEqual(parameter.query.parameters, {id: 7});
+  assert.deepEqual(parameter.query.options, {parameterDeclarations: {id: {type: 'number'}}});
+  assert.equal(report.cleanup.closed, true);
 });
 test('final collector refuses a missing comparison before importing or opening the public product', async t => {
   const options = await fixture(t, false, false, '', true);
