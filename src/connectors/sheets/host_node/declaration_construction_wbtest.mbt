@@ -513,3 +513,44 @@ test "clear capture normalization follows closed original metadata rather than u
   // Necessary native member slice; no full Plan/ordinary acceptance implied.
   assert_true(execution <= original.execution_bytes, msg=execution.to_string())
 }
+
+///|
+test "range request retains its nominal request and Host facts without keeping parser and writer scratch" {
+  let metadata = recovery_guard_test_metadata(300000)
+  for clear in [false, true] {
+    let original = sheets_range_request_capacity(
+      metadata, 100000, 10000, 16, clear,
+    ).unwrap()
+    let retained = @execution.execution_capacity_retained_bytes(original)
+    let execution = @execution.execution_capacity_execution_bytes(original)
+    println(
+      "REQUEST_RETURNED clear=\{clear} retained=\{retained} execution=\{execution}",
+    )
+    assert_true(retained > 0L)
+    assert_true(retained < execution)
+  }
+}
+
+///|
+test "range returned holding follows the original closed rectangle while arbitrary failed input still grows the peak" {
+  let metadata = recovery_guard_test_metadata(300000)
+  for clear in [false, true] {
+    let narrow = sheets_range_request_capacity(
+      metadata, 100000, 10000, 16, clear,
+    ).unwrap()
+    let wide = sheets_range_request_capacity(metadata, 100000, 20000, 16, clear).unwrap()
+    assert_eq(
+      @execution.execution_capacity_retained_bytes(wide),
+      @execution.execution_capacity_retained_bytes(narrow),
+    )
+    assert_true(
+      @execution.execution_capacity_execution_bytes(wide) >
+      @execution.execution_capacity_execution_bytes(narrow),
+    )
+    let text = sheets_range_request_capacity(metadata, 200000, 10000, 16, clear).unwrap()
+    assert_true(
+      @execution.execution_capacity_retained_bytes(text) >
+      @execution.execution_capacity_retained_bytes(narrow),
+    )
+  }
+}

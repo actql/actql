@@ -172,6 +172,25 @@ fn sheets_range_request_capacity(
     facts_nodes > 2147483647L {
     return None
   }
+  // A successful update has exactly the declared rectangle and scalar cells.
+  // Its write document has at least as many value nodes as the returned input
+  // rows. Clear returns an empty value. The original target is immutable JSON;
+  // its node/text population is bounded by its original UTF16 spelling.
+  let returned_nodes = Int64::min(n.to_int64(), output.body_nodes.to_int64()) +
+    metadata.target_units.to_int64() +
+    16L
+  let returned_text = b.to_int64() +
+    metadata.target_units.to_int64() +
+    metadata.origin_units.to_int64() +
+    metadata.spreadsheet_units.to_int64() +
+    1024L
+  let request_controls : @execution.PreparationRepresentationUnits = {
+    record_headers: 3L,
+    reference_slots: 14L,
+    scalar_words: 4L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }
   guard sheets_range_parsed_construction(b, n, d) is Some(input) &&
     sheets_range_parsed_construction(
       Int::min(target_bytes.to_int(), metadata.limits.max_bytes),
@@ -188,6 +207,8 @@ fn sheets_range_request_capacity(
     sheets_range_json_inventory(b, n) is Some(native_input) &&
     sheets_range_json_inventory(facts_bytes.to_int(), facts_nodes.to_int())
     is Some(native_output) &&
+    sheets_range_json_inventory(returned_text.to_int(), returned_nodes.to_int())
+    is Some(returned_facts) &&
     sheets_writer_units(output.body_bytes, output.body_nodes, output.body_depth)
     is Some(body_writer) &&
     sheets_writer_units(
@@ -198,42 +219,72 @@ fn sheets_range_request_capacity(
     is Some(facts_writer) else {
     return None
   }
-  sheets_constructor_capacity([
-    // Original value, selector and facts can overlap through projection. The
-    // original target fast path still keeps the full changed-input refusal.
-    input,
-    input,
-    target,
-    target,
-    validation,
-    native_input,
-    native_input,
-    native_output,
-    native_output,
-    {
-      // Payload/target facts use range_canonical(data_keys=true), preserving
-      // original keys and values. Request identity hashes the framed original
-      // UTF8 parts. Neither path invokes range_configuration_value or NFC;
-      // installation/recovery configuration identity has its separate quote.
-      record_headers: 3L,
-      reference_slots: 14L,
-      scalar_words: 4L,
-      owned_utf16_units: 2L * input_bytes.to_int64() +
-      target_bytes +
-      facts_bytes +
-      output.body_bytes.to_int64(),
-      // Value/selector UTF8 inputs, both pre-refusal outgoing encodings and
-      // original request-identity preimages remain independently bounded.
-      owned_wire_bytes: 2L * input_bytes.to_int64() +
-      target_bytes +
-      3L * output.body_bytes.to_int64() +
-      metadata.origin_units.to_int64() * 3L +
-      128L,
-    },
-    body_writer,
-    facts_writer,
-    facts_writer,
-  ])
+  guard sheets_constructor_capacity([
+      // Original value, selector and facts can overlap through projection. The
+      // original target fast path still keeps the full changed-input refusal.
+      input,
+      input,
+      target,
+      target,
+      validation,
+      native_input,
+      native_input,
+      native_output,
+      native_output,
+      {
+        // Payload/target facts use range_canonical(data_keys=true), preserving
+        // original keys and values. Request identity hashes the framed original
+        // UTF8 parts. Neither path invokes range_configuration_value or NFC;
+        // installation/recovery configuration identity has its separate quote.
+        ..request_controls,
+        owned_utf16_units: 2L * input_bytes.to_int64() +
+        target_bytes +
+        facts_bytes +
+        output.body_bytes.to_int64(),
+        // Value/selector UTF8 inputs, both pre-refusal outgoing encodings and
+        // original request-identity preimages remain independently bounded.
+        owned_wire_bytes: 2L * input_bytes.to_int64() +
+        target_bytes +
+        3L * output.body_bytes.to_int64() +
+        metadata.origin_units.to_int64() * 3L +
+        128L,
+      },
+      body_writer,
+      facts_writer,
+      facts_writer,
+    ])
+    is Some(peak) &&
+    sheets_constructor_capacity([
+      // The Host projection owns its returned facts tree. Native parser,
+      // original input Json, canonical frames and Writer locals do not escape.
+      // The existing fixed request envelope also retains the original handle;
+      // its immutable binding remains borrowed from the installation.
+      returned_facts,
+      {
+        ..request_controls,
+        owned_utf16_units: Int64::min(
+          output.body_bytes.to_int64(),
+          metadata.limits.max_bytes.to_int64(),
+        ) +
+        (if clear {
+          @catalog.clear_marker_text_units().to_int64()
+        } else {
+          Int64::min(facts_bytes, metadata.limits.max_bytes.to_int64())
+        }) +
+        metadata.spreadsheet_units.to_int64() +
+        128L,
+        owned_wire_bytes: 0L,
+      },
+    ])
+    is Some(returned) else {
+    return None
+  }
+  // Reuse exactly the existing constructor peak. This quantity alone does not
+  // dispose a live child or reconcile its original operation reservation.
+  @execution.execution_capacity(
+    @execution.execution_capacity_retained_bytes(returned),
+    @execution.execution_capacity_execution_bytes(peak),
+  )
 }
 
 ///|

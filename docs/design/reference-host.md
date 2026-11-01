@@ -1918,6 +1918,18 @@ prefixes remain independently backed. These quantities do not reconcile an
 operation reservation merely because a placeholder preparation returned; the
 actual later constructor and its retained aliases keep their original duties.
 
+A native range/clear request retains its original nominal request, successful
+body/value wires and the Host's projected facts. Its parser/index, temporary
+native Json trees, canonical frames and Writer backing remain construction
+workspace. The returned value has the original checked rectangle and scalar
+cell shape; the immutable target contributes its original spelling/geometry.
+An arbitrary invalid input still uses the full input-node/parser/Writer peak,
+including failed prefixes. The original fixed request envelope is shared by
+both projections; it is not another JS closure/field tariff. Reducing this
+returned-material quantity never settles a live operation token or signals
+physical disposal. Its existing enclosing caller must separately reconcile the
+actual constructor lifetime and every still-retained alias.
+
 A completed installation retains its immutable Environment on the SAME
 initial Source material while its original Source is held. A paired Command
 Effect can retain that exact Environment only with the same original
