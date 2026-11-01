@@ -626,6 +626,30 @@ or deletion; retained evidence and saved records are not relabeled. This is the
 Python byte store's closed physical format, not Native publication Store format
 interoperability.
 
+The existing one-time owned-file initializer selects private format 3 when the
+same SQLite library supports the existing Run-Definition expression. It adds
+only the actual UNIQUE index over the nested Run Definition CID, adapted from
+the Native physical index to `core_bytes`. It is not uniqueness by Program or
+user-supplied Run name. A distinct Definition remains distinct; SQL NULL or an
+index entry is never typed Run admission. Fresh writes still pass the complete
+existing Core registration checks before their original transaction.
+
+The raw constructor and existing format-2 files retain their closed legacy
+format. A known missing optional `json_extract` function selects that existing
+format before any index mutation; other probe errors propagate unchanged and
+never select a fallback. Reopen performs no index installation, metadata repair,
+backfill or migration. Missing or colliding format-3 catalog entries refuse.
+
+A same-reader catalog observation compares the original application identity,
+version, complete bounded main catalog, required expression and absence of TEMP
+shadowing. It retains the same physical transaction, thread, original current
+callbacks, query-work ceiling and failure latch. Its scalar selects an existing
+read algorithm; it is not an Account Allow, custody proof, reusable current token
+or a substitute for selected nested-original validation. Unknown observations
+refuse rather than imply legacy absence. Private ABI84 adds this physical scalar
+import and keeps exact generated Python and compiler-C declarations; older
+installed modules are refused through the existing ABI/source binding.
+
 The private `reserve_capacity`, `read_capacity`, `capacity_usage` and
 `release_capacity` port preserves the Native physical contract: namespace and
 material key remain exact UTF-8 strings, amounts are nonnegative signed 64-bit
@@ -3141,12 +3165,13 @@ Missing historical state remains unavailable, and refused validation retains
 the same output/input loans. The live Run status/observation path stays separate.
 
 A durable Client reference identifies saved originals, rather than a process-local
-Run object. The original installation binding reads the complete submitted-row
-inventory in one current Store snapshot. Core validates the saved observation
-originals, Run and submission identities, current authorization, and original
-adoption scope before exposing attach or lookup. Missing older observation
-originals remain unavailable; they are not backfilled from a newly compiled
-Program, current defaults or another Run.
+Run object. The original installation binding observes one current Store
+snapshot. The legacy format retains its complete submitted-row inventory;
+the indexed owned format uses the existing selected-original reader. Both
+validate the saved observation originals, Run and submission identities, current
+authorization, cancellation and original adoption scope before exposing attach
+or lookup. Missing older observation originals remain unavailable; they are not
+backfilled from a newly compiled Program, current defaults or another Run.
 
 First acceptance supplies the same captured observation originals to both the
 submitted-row Owner and the same-transaction Run inventory/CAS candidate. Their
@@ -3164,11 +3189,17 @@ A locator insert conflict rolls back the same transaction; attempted-COMMIT
 uncertainty retains the same original output and never repeats the write.
 
 This retained DATA does not by itself select an indexed read or complete legacy
-coverage. The existing complete Python inventory route remains in force until
-its original format, coverage, ambiguity and atomic metadata duties are supplied.
-Absent historical locator DATA is not reconstructed on a read, interpreted as
-confirmed absence, or used to prepare another Run. Native's existing explicitly
-indexed route and maintenance retain their separate profile and qualifications.
+coverage. The actual original format-3 catalog and same-source mandatory atomic
+writer supply that connection; an expired reference still selects its saved
+original and never renews admission. A cold Run reference reads the exact tuple
+locator, original Submission and linked Run, including their bounded task
+materials and complete selected nested validator. Missing, ambiguous, corrupt or
+foreign locators refuse; an indexed-read error never falls through to a scan,
+fresh preparation, reissue or resend. Explicit unrelated integrity inspection
+is separate from this selected read. The existing complete Python route remains
+unchanged for legacy format 2 and private physical suppliers without the new
+catalog port. Absent historical locators are not reconstructed on a read.
+Native's explicitly indexed route and maintenance keep their separate profile.
 
 A saved Result read validates the complete stored publication graph and the
 selected manifest occurrence through the existing publication Owner. Its nominal
