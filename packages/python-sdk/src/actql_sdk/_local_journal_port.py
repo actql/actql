@@ -1,7 +1,7 @@
 """Bounded physical query transport; original Core Owners decide inventory facts."""
 from dataclasses import dataclass
 from collections.abc import Callable
-import json
+import json as _json
 from ._local_storage import _NamespaceReader, StoredBytes, LocalByteStore
 
 _QUERY_BYTES = 8192
@@ -178,7 +178,7 @@ class _JournalCallbacks:
                     # No row I/O occurred. An independent physical adapter's
                     # absent batch primitive selects its existing scalar path.
                     return 2
-                packet = json.loads(key)
+                packet = _json.loads(key)
                 if type(packet) is not list or not 1 <= len(packet) <= 32:
                     raise ValueError('Invalid original publication fence packet')
                 rows = []
