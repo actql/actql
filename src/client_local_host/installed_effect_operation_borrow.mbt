@@ -41,7 +41,9 @@ fn installed_effect_operation_control_capacity(
   // current fence, and pending binding close. Native settlement wrappers use
   // fewer Promise/closure alternatives than the former then/finally chains;
   // retain that existing record upper. One cleanup retirement cursor is a
-  // scalar in the same fixed capture/cleanup frame, not another owner. The
+  // scalar in the same fixed capture/cleanup frame, not another owner. Each
+  // original token also retains its captured Int64 execution upper, one word
+  // until retirement even while its constructor workspace is inactive. The
   // corresponding child/payload wrapper's synchronous flight-opening latch
   // occupies one more scalar; it starts before any original release callback.
   guard @shape.collection_construction_extent({
@@ -65,7 +67,7 @@ fn installed_effect_operation_control_capacity(
   let retained : @execution.PreparationRepresentationUnits = {
     record_headers: 9L + shared.record_headers + 11L * count,
     reference_slots: 11L + slots + shared.reference_slots + 17L * count,
-    scalar_words: 19L + shared.scalar_words + 28L * count,
+    scalar_words: 19L + shared.scalar_words + 29L * count,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }

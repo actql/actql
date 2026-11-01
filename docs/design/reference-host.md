@@ -2453,6 +2453,8 @@ complete input/output backing before Source or Preview work. Its existing
 capacity reservation initially holds that retained quantity. Typed constructor
 entry grows this SAME reservation to the original immutable execution upper
 immediately before invocation. It issues no new slot, attempt, grant or Root.
+The token's captured limit remains one scalar word in the existing per-child
+control inventory until original retirement, including inactive workspace.
 The Node child is already retained before that fallible entry, captures the
 original methods/receiver once, and fences its original Run record after Core's
 single current observation. This replaces its separate callbackful Plan getter.
