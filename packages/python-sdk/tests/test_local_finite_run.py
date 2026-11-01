@@ -145,6 +145,81 @@ class FiniteRunSQLiteTests(unittest.TestCase):
                 self.assertIsNone(self.rows(host)[1])
                 self.assertTrue(host.close())
 
+    def test_original_reference_locator_commits_with_same_ready_rows(self):
+        with TemporaryDirectory(prefix='actql-original-locator-') as directory:
+            host, _, output, validations, _, candidate = self.host(Path(directory))
+            # This is original Core DATA supplied by an explicit scalar port.
+            # Python does not derive a locator or authenticate this fixture.
+            key = '7' * 64
+            body = '{"original":"reference é/~"}'
+            candidate['reference_locator'] = {'key': key, 'body': body}
+            host._commit_original_run_rows(output)
+            store = host._installation._store
+            saved = store.read(store.namespaced_key('client_run_reference_index', key))
+            self.assertEqual((saved.payload, saved.generation), (body.encode(), 0))
+            count, run, submitted = self.rows(host)
+            self.assertEqual((count.payload, count.generation), (b'1', 1))
+            self.assertEqual(run.payload, RUN_BODY)
+            self.assertEqual(submitted.payload, READY)
+            self.assertEqual(len(validations), 2)
+            self.assertTrue(host.close())
+
+    def test_original_reference_locator_refusal_rolls_back_and_unknown_never_replays(self):
+        for lost_reply in (False, True):
+            with self.subTest(lost_reply=lost_reply), TemporaryDirectory(prefix='actql-locator-stop-') as directory:
+                host, core, output, _, statuses, candidate = self.host(Path(directory))
+                key = '8' * 64
+                body = '{"original":"retained reference"}'
+                candidate['reference_locator'] = {'key': key, 'body': body}
+                store = host._installation._store
+                original = store.compare_exchange_many_inspected
+                if lost_reply:
+                    def lose(*args, **kwargs):
+                        original(*args, **kwargs)
+                        raise LocalStorageCommitUnknown(store)
+                    with patch.object(store, 'compare_exchange_many_inspected', side_effect=lose) as write:
+                        with self.assertRaises(LocalStorageCommitUnknown):
+                            host._commit_original_run_rows(output)
+                        with self.assertRaisesRegex(LocalStorageError, 'transport replay'):
+                            host._commit_original_run_rows(output)
+                        self.assertEqual(write.call_count, 1)
+                    self.assertEqual(self.rows(host)[1].payload, RUN_BODY)
+                    self.assertEqual(store.read(store.namespaced_key('client_run_reference_index', key)).payload,
+                                     body.encode())
+                else:
+                    statuses[2] = -32
+                    with self.assertRaises(LocalCoreError):
+                        host._commit_original_run_rows(output)
+                    self.assertIsNone(self.rows(host)[1])
+                    self.assertIsNone(store.read(store.namespaced_key('client_run_reference_index', key)))
+                self.assertIs(core._loans[output.ticket], output)
+                self.assertIs(host._pending_run_write, output)
+                self.assertTrue(host.close())
+
+    def test_sdk_ready_material_without_original_locator_refuses_before_transaction(self):
+        with TemporaryDirectory(prefix='actql-missing-original-locator-') as directory:
+            host, _, output, _, _, candidate = self.host(Path(directory))
+            del candidate['reference_locator']
+            store = host._installation._store
+            with patch.object(store, 'compare_exchange_many_inspected', wraps=store.compare_exchange_many_inspected) as write:
+                with self.assertRaises(ValueError):
+                    host._commit_original_run_rows(output)
+                self.assertEqual(write.call_count, 0)
+            self.assertIsNone(self.rows(host)[1])
+            self.assertTrue(host.close())
+
+    def test_original_reference_locator_shape_refuses_before_write(self):
+        for locator in ({}, {'key': 'a' * 64, 'body': 'x', 'extra': None},
+                        {'key': 'a' * 63, 'body': 'x'}, {'key': 'A' * 64, 'body': 'x'},
+                        {'key': 'a' * 64, 'body': ''}, {'key': 'a' * 64, 'body': 'é' * 32769}):
+            with self.subTest(locator=locator), TemporaryDirectory(prefix='actql-locator-shape-') as directory:
+                host, _, output, _, _, candidate = self.host(Path(directory))
+                candidate['reference_locator'] = locator
+                with self.assertRaises(ValueError):
+                    host._commit_original_run_rows(output)
+                self.assertIsNone(self.rows(host)[1])
+                self.assertTrue(host.close())
+
     def host(self, path):
         host, core, calls, _ = append_fixture.LocalSubmissionAppendTests().host(path)
         reference = {'epoch': host.profile()['submissionEpoch'], 'nonce': 'original'}
@@ -158,7 +233,8 @@ class FiniteRunSQLiteTests(unittest.TestCase):
         original = core._call
         candidate = {'run_key': RUN_KEY, 'submission_key': append_fixture.REQUEST,
             'preparing': append_fixture.PREPARING.decode(), 'run': RUN_BODY.decode(),
-            'submitted': READY.decode(), 'issued_revision': '0', 'issued_body': '1'}
+            'submitted': READY.decode(), 'issued_revision': '0', 'issued_body': '1',
+            'reference_locator': {'key': '6' * 64, 'body': '{"opaque":"same original locator DATA"}'}}
         validations = []
         statuses = {}
         output_handle = []
@@ -206,7 +282,7 @@ class FiniteRunSQLiteTests(unittest.TestCase):
             ('client_run_custody', 'issued'), ('client_runs', RUN_KEY),
             ('client_submitted_intents', append_fixture.REQUEST)))
 
-    def test_core_candidate_three_writes_commit_in_one_original_transaction(self):
+    def test_core_candidate_ready_writes_commit_in_one_original_transaction(self):
         with TemporaryDirectory(prefix='actql-finite-run-') as directory:
             host, core, output, validations, _, _ = self.host(Path(directory))
             host._commit_original_run_rows(output)
@@ -237,7 +313,7 @@ class FiniteRunSQLiteTests(unittest.TestCase):
             self.assertIn(output, host._row_outputs)
             self.assertFalse(host._journal_outputs)
 
-    def test_same_transaction_core_refusal_rolls_back_all_three_writes(self):
+    def test_same_transaction_core_refusal_rolls_back_all_ready_writes(self):
         with TemporaryDirectory(prefix='actql-finite-run-') as directory:
             host, core, output, validations, statuses, _ = self.host(Path(directory))
             statuses[2] = -32

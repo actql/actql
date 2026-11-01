@@ -1,6 +1,6 @@
 {
   "source": "d5d66cd86ac2e153f31a511e7d37c78e0cc28ae3",
-  "syntaxProjectionSha256": "4b6eea3a336d3050604eef2670da26b532446c756733e46c80a5d1a3757e087b",
+  "syntaxProjectionSha256": "79a55b31aa4ddc939b44340161c534dec8e4c53b7a227dc93a05660be859302e",
   "qualification": "Source-reference coverage only; original Native/FFI/Python executions retain their own source, artifact and target qualifications. No normal funding, VM or installed product admission.",
   "generated": [
     {
@@ -65,7 +65,7 @@
     },
     {
       "module": "packages/python-sdk/src/actql_sdk/_local_wasm_abi.py",
-      "sha256": "cc9ac13ba660c1faeb86343a919cd223921c950557a49b693530c2c594af41a5",
+      "sha256": "daff3328c9253fde5e1db74686a615e1b5a368d6b989bdc871c9cb3254bb062e",
       "generator": {
         "path": "scripts/generate-local-wasm-abi.py",
         "anchor": "def render("
@@ -5429,6 +5429,14 @@
         },
         {
           "async": false,
+          "name": "LocalCore/_journal_schema",
+          "parameters": [
+            "self",
+            "ticket"
+          ]
+        },
+        {
+          "async": false,
           "name": "LocalCore/_native_cleaned",
           "parameters": [
             "self",
@@ -7932,7 +7940,7 @@
           ]
         }
       ],
-      "sha256": "ae440913b5efbcea07a8ef222abad68d3bc5687fc211332d0b9e1e2f44be9985",
+      "sha256": "4349697bfd8e776415b6c0ad3ab2d8a8928eca6b515c0cef1fb1669604a13b34",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -7960,6 +7968,7 @@
             "LocalCore/_journal_query_byte",
             "LocalCore/_journal_release",
             "LocalCore/_journal_revision",
+            "LocalCore/_journal_schema",
             "LocalCore/_native_cleaned",
             "LocalCore/_native_fact",
             "LocalCore/_native_scope",
@@ -9383,6 +9392,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
               }
             ],
             "inputsOutputs": [
@@ -10565,6 +10578,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
               }
             ],
             "identity": [
@@ -10591,6 +10608,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
               }
             ],
             "ownership": [
@@ -10617,6 +10638,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
               }
             ],
             "synchronization": [
@@ -10639,6 +10664,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
               }
             ],
             "failure": [
@@ -10665,6 +10694,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
               }
             ],
             "cancellation": [
@@ -10687,6 +10720,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
               }
             ],
             "resources": [
@@ -10713,6 +10750,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
               }
             ],
             "extension": [
@@ -10735,6 +10776,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
               }
             ],
             "verification": [
@@ -10777,6 +10822,22 @@
               {
                 "path": "scripts/fixtures/python-local-buffer-packed-abi.py",
                 "anchor": "assert packed == (0xC32F80989FF022, 0x0A0D22A9)"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_owned_store.py",
+                "anchor": "def test_original_catalog_scalar_port_borrows_only_current_reader("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_owned_store.py",
+                "anchor": "def test_owned_journal_format_keeps_unique_definition_in_original_transaction("
+              },
+              {
+                "path": "src/client_host_wasm/submission_targeted_lookup_wbtest.mbt",
+                "anchor": "test \"indexed saved cold lookup selects exact original without unrelated Run audit\""
               }
             ]
           }
@@ -29925,9 +29986,16 @@
             "index",
             "length"
           ]
+        },
+        {
+          "async": false,
+          "name": "_JournalCallbacks/schema",
+          "parameters": [
+            "self"
+          ]
         }
       ],
-      "sha256": "b2929eb576e3abcbc7e7b2bd1d5ca8a804f488bd0acb3ffe46b24b2cc0bef47c",
+      "sha256": "78ec4eaa1ccbda1709c0c354d4907ea5a71a6a3a1001b3dbf4f6ffd28e50a71e",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -29944,7 +30012,8 @@
             "_JournalCallbacks/query/consume",
             "_JournalCallbacks/release",
             "_JournalCallbacks/revision",
-            "_JournalCallbacks/row_byte"
+            "_JournalCallbacks/row_byte",
+            "_JournalCallbacks/schema"
           ],
           "exports": [],
           "attributes": {
@@ -29956,6 +30025,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Original saved-journal physical port"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
               }
             ],
             "inputsOutputs": [
@@ -29966,6 +30039,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Original saved-journal physical port"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
               }
             ],
             "identity": [
@@ -29980,6 +30057,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Handles are never serialized Client references"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
               }
             ],
             "ownership": [
@@ -29994,6 +30075,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Failed stop or cleanup retains the same"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
               }
             ],
             "synchronization": [
@@ -30004,6 +30089,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_journal_port.py",
                 "anchor": "class _JournalCallbacks:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
               }
             ],
             "failure": [
@@ -30018,6 +30107,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Interrupted physical bridge calls"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
               }
             ],
             "cancellation": [
@@ -30028,6 +30121,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_journal_port.py",
                 "anchor": "class _JournalCallbacks:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
               }
             ],
             "resources": [
@@ -30042,6 +30139,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Transfer custody"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
               }
             ],
             "extension": [
@@ -30052,6 +30153,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_journal_port.py",
                 "anchor": "class _JournalCallbacks:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
               }
             ],
             "verification": [
@@ -30070,6 +30175,22 @@
               {
                 "path": "packages/python-sdk/tests/test_local_snapshot_transport.py",
                 "anchor": "class SnapshotTransportTests(unittest.TestCase):"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_owned_store.py",
+                "anchor": "def test_original_catalog_scalar_port_borrows_only_current_reader("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_owned_store.py",
+                "anchor": "def test_owned_journal_format_keeps_unique_definition_in_original_transaction("
+              },
+              {
+                "path": "src/client_host_wasm/submission_targeted_lookup_wbtest.mbt",
+                "anchor": "test \"indexed saved cold lookup selects exact original without unrelated Run audit\""
               }
             ]
           }
@@ -50687,7 +50808,7 @@
           ]
         }
       ],
-      "sha256": "c7fe8b61df909030640d1a3e43b2f6dafae1b960abb61e1be8a951960e4ff665",
+      "sha256": "dc685c7ecc5ac6d953dc6a6acbbed2a6be6061e554de2fb06d45bd287d2df2f9",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -50784,6 +50905,9 @@
             "InstalledLocalHost/_reserve_original_payload_capacity",
             "InstalledLocalHost/_reserve_original_payload_capacity/inspect",
             "InstalledLocalHost/_reserve_original_payload_capacity/inspect/validate",
+            "InstalledLocalHost/_restore_original_run",
+            "InstalledLocalHost/_restore_original_run/install",
+            "InstalledLocalHost/_restore_original_run/observe",
             "InstalledLocalHost/_retain_intent",
             "InstalledLocalHost/_retain_intent/inspect",
             "InstalledLocalHost/_retain_intent/observe",
@@ -50810,10 +50934,7 @@
             "InstalledLocalHost/open",
             "InstalledLocalHost/profile",
             "_ordinary_core_limits",
-            "_state_directory_option",
-            "InstalledLocalHost/_restore_original_run",
-            "InstalledLocalHost/_restore_original_run/install",
-            "InstalledLocalHost/_restore_original_run/observe"
+            "_state_directory_option"
           ],
           "exports": [
             "InstalledLocalHost"
@@ -50847,6 +50968,14 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Public Local Check reporting"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The SDK ready-row producer also projects the existing subordinate Run-reference"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
               }
             ],
             "inputsOutputs": [
@@ -50877,6 +51006,14 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Public Local Check reporting"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The SDK ready-row producer also projects the existing subordinate Run-reference"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
               }
             ],
             "identity": [
@@ -50911,6 +51048,14 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Public Local Check reporting"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The SDK ready-row producer also projects the existing subordinate Run-reference"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
               }
             ],
             "ownership": [
@@ -50945,6 +51090,14 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Public Local Check reporting"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The SDK ready-row producer also projects the existing subordinate Run-reference"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
               }
             ],
             "synchronization": [
@@ -50975,6 +51128,14 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Public Local Check reporting"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The SDK ready-row producer also projects the existing subordinate Run-reference"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
               }
             ],
             "failure": [
@@ -51009,6 +51170,14 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Public Local Check reporting"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The SDK ready-row producer also projects the existing subordinate Run-reference"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
               }
             ],
             "cancellation": [
@@ -51039,6 +51208,14 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Public Local Check reporting"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The SDK ready-row producer also projects the existing subordinate Run-reference"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
               }
             ],
             "resources": [
@@ -51073,6 +51250,14 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Public Local Check reporting"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The SDK ready-row producer also projects the existing subordinate Run-reference"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
               }
             ],
             "extension": [
@@ -51103,6 +51288,14 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Public Local Check reporting"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The SDK ready-row producer also projects the existing subordinate Run-reference"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
               }
             ],
             "verification": [
@@ -51145,6 +51338,34 @@
               {
                 "path": "packages/python-sdk/tests/test_local_submission_lookup.py",
                 "anchor": "def test_original_selector_restores_same_saved_input_without_ordinary_preparation(self):"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The SDK ready-row producer also projects the existing subordinate Run-reference"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_finite_run.py",
+                "anchor": "def test_original_reference_locator_commits_with_same_ready_rows("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_finite_run.py",
+                "anchor": "def test_original_reference_locator_refusal_rolls_back_and_unknown_never_replays("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_owned_store.py",
+                "anchor": "def test_original_catalog_scalar_port_borrows_only_current_reader("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_owned_store.py",
+                "anchor": "def test_owned_journal_format_keeps_unique_definition_in_original_transaction("
+              },
+              {
+                "path": "src/client_host_wasm/submission_targeted_lookup_wbtest.mbt",
+                "anchor": "test \"indexed saved cold lookup selects exact original without unrelated Run audit\""
               }
             ]
           }
@@ -57791,6 +58012,13 @@
         },
         {
           "async": false,
+          "name": "_SQLiteByteDatabase/_journal_schema",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
           "name": "_SQLiteByteDatabase/_snapshot_identity",
           "parameters": [
             "self"
@@ -57955,7 +58183,7 @@
           ]
         }
       ],
-      "sha256": "9b4c8a82bbe75dfe5758ad6b549a040f52be57e33fbef5c2d9612d79c52056da",
+      "sha256": "1d72d09d685f00b0bce773fb6959fe2fb319b828f7d42bf4b5ea4fecc29be337",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -58354,6 +58582,7 @@
           "operations": [
             "_SQLiteByteDatabase",
             "_SQLiteByteDatabase/__init__",
+            "_SQLiteByteDatabase/_journal_schema",
             "_SQLiteByteDatabase/_snapshot_identity",
             "_SQLiteByteDatabase/begin_immediate",
             "_SQLiteByteDatabase/begin_read",
@@ -58389,6 +58618,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Within that same live reader, the exact stdlib SQLite adapter can retain a"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
               }
             ],
             "inputsOutputs": [
@@ -58403,6 +58636,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Within that same live reader, the exact stdlib SQLite adapter can retain a"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
               }
             ],
             "identity": [
@@ -58421,6 +58658,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Within that same live reader, the exact stdlib SQLite adapter can retain a"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
               }
             ],
             "ownership": [
@@ -58439,6 +58680,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Within that same live reader, the exact stdlib SQLite adapter can retain a"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
               }
             ],
             "synchronization": [
@@ -58453,6 +58698,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Within that same live reader, the exact stdlib SQLite adapter can retain a"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
               }
             ],
             "failure": [
@@ -58471,6 +58720,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Within that same live reader, the exact stdlib SQLite adapter can retain a"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
               }
             ],
             "cancellation": [
@@ -58485,6 +58738,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Within that same live reader, the exact stdlib SQLite adapter can retain a"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
               }
             ],
             "resources": [
@@ -58503,6 +58760,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Within that same live reader, the exact stdlib SQLite adapter can retain a"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
               }
             ],
             "extension": [
@@ -58517,6 +58778,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Within that same live reader, the exact stdlib SQLite adapter can retain a"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
               }
             ],
             "verification": [
@@ -58571,6 +58836,22 @@
               {
                 "path": "packages/python-sdk/tests/test_local_snapshot_transport.py",
                 "anchor": "def test_raw_and_other_physical_queries_keep_complete_metadata_reads("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_owned_store.py",
+                "anchor": "def test_original_catalog_scalar_port_borrows_only_current_reader("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_owned_store.py",
+                "anchor": "def test_owned_journal_format_keeps_unique_definition_in_original_transaction("
+              },
+              {
+                "path": "src/client_host_wasm/submission_targeted_lookup_wbtest.mbt",
+                "anchor": "test \"indexed saved cold lookup selects exact original without unrelated Run audit\""
               }
             ]
           }
@@ -58883,6 +59164,14 @@
           "parameters": [
             "required_current",
             "reuse_snapshot"
+          ]
+        },
+        {
+          "async": false,
+          "name": "LocalByteStore/_inspect_namespace_locked/journal_schema",
+          "parameters": [
+            "view",
+            "required_current"
           ]
         },
         {
@@ -59530,7 +59819,7 @@
           "parameters": []
         }
       ],
-      "sha256": "425d420c2e082f24f87b01f10406bcfe7ee3eca358a8d0f969ddd2dc4f93b5ee",
+      "sha256": "19be6ecf123ccfe435fc5ca358317b90a4844c0d8e7c4bdf3451379e5bc5a67b",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -60091,6 +60380,7 @@
             "LocalByteStore/_inspect_namespace_locked/check_frame",
             "LocalByteStore/_inspect_namespace_locked/current_snapshot",
             "LocalByteStore/_inspect_namespace_locked/fence",
+            "LocalByteStore/_inspect_namespace_locked/journal_schema",
             "LocalByteStore/_inspect_namespace_locked/metadata_fence",
             "LocalByteStore/_inspect_namespace_locked/observe",
             "LocalByteStore/_inspect_namespace_locked/query_current",
@@ -60170,6 +60460,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Within that same live reader, the exact stdlib SQLite adapter can retain a"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
               }
             ],
             "inputsOutputs": [
@@ -60184,6 +60478,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Within that same live reader, the exact stdlib SQLite adapter can retain a"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
               }
             ],
             "identity": [
@@ -60202,6 +60500,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Within that same live reader, the exact stdlib SQLite adapter can retain a"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
               }
             ],
             "ownership": [
@@ -60220,6 +60522,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Within that same live reader, the exact stdlib SQLite adapter can retain a"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
               }
             ],
             "synchronization": [
@@ -60234,6 +60540,14 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Within that same live reader, the exact stdlib SQLite adapter can retain a"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The physical connection selects its existing `temp_store = FILE` configuration"
               }
             ],
             "failure": [
@@ -60252,6 +60566,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Within that same live reader, the exact stdlib SQLite adapter can retain a"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
               }
             ],
             "cancellation": [
@@ -60266,6 +60584,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Within that same live reader, the exact stdlib SQLite adapter can retain a"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
               }
             ],
             "resources": [
@@ -60284,6 +60606,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Within that same live reader, the exact stdlib SQLite adapter can retain a"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
               }
             ],
             "extension": [
@@ -60298,6 +60624,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Within that same live reader, the exact stdlib SQLite adapter can retain a"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
               }
             ],
             "verification": [
@@ -60364,6 +60694,26 @@
               {
                 "path": "packages/python-sdk/tests/test_local_snapshot_transport.py",
                 "anchor": "def test_raw_and_other_physical_queries_keep_complete_metadata_reads("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_owned_store.py",
+                "anchor": "def test_original_catalog_scalar_port_borrows_only_current_reader("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_owned_store.py",
+                "anchor": "def test_owned_journal_format_keeps_unique_definition_in_original_transaction("
+              },
+              {
+                "path": "src/client_host_wasm/submission_targeted_lookup_wbtest.mbt",
+                "anchor": "test \"indexed saved cold lookup selects exact original without unrelated Run audit\""
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_owned_store.py",
+                "anchor": "def test_owned_indexed_journal_reopens_in_fresh_process_with_original_rows("
               }
             ]
           }
@@ -62996,7 +63346,7 @@
       "module": "packages/python-sdk/src/actql_sdk/_local_wasm_abi.py",
       "responsibilityFacet": "primary",
       "operations": [],
-      "sha256": "cc9ac13ba660c1faeb86343a919cd223921c950557a49b693530c2c594af41a5",
+      "sha256": "daff3328c9253fde5e1db74686a615e1b5a368d6b989bdc871c9cb3254bb062e",
       "role": "generated-binding",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -72792,6 +73142,606 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed Guest current observation"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_host_wasm/materials.mbt",
+      "sha256": "9f521599d5d4d5c177a4481a96d548a1f44d1aa5c5c74ec807d29ec8b6cff79f",
+      "exports": [],
+      "operations": [
+        {
+          "name": "close_material",
+          "declaration": "close_material ( nonce : Int64 , handle : Int ) - > Int"
+        },
+        {
+          "name": "material_length",
+          "declaration": "material_length ( nonce : Int64 , handle : Int ) - > Int"
+        },
+        {
+          "name": "produce_material",
+          "declaration": "produce_material ( nonce : Int64 , handle : Int ) - > Int"
+        },
+        {
+          "name": "reserve_material",
+          "declaration": "reserve_material ( nonce : Int64 , run : Int , kind : Int , physical_ticket : Int , physical_copy_bytes : Int64 , ) - > Int"
+        },
+        {
+          "name": "reserve_material_record",
+          "declaration": "reserve_material_record ( value : Instance , run : Int , kind : Int , physical_ticket : Int , physical_copy_bytes : Int64 , ) - > Int"
+        },
+        {
+          "name": "reserve_submitted_rows_material",
+          "declaration": "reserve_submitted_rows_material ( nonce : Int64 , run : Int , current_configuration : Int , input : Int , physical_ticket : Int , physical_copy_bytes : Int64 , ) - > Int"
+        },
+        {
+          "name": "retire_material_output",
+          "declaration": "retire_material_output ( nonce : Int64 , handle : Int ) - > Int"
+        },
+        {
+          "name": "submitted_rows_material_wire",
+          "declaration": "submitted_rows_material_wire ( value : Instance , material : StoredMaterial , plan : @ local_run . LocalRunPlan , preparation : StoredPreparation , ) - > Result [ String , Int ]"
+        },
+        {
+          "name": "validate_submitted_rows_material",
+          "declaration": "validate_submitted_rows_material ( nonce : Int64 , handle : Int ) - > Int"
+        }
+      ],
+      "role": "common-semantics",
+      "owner": "D / existing Local material, submitted-row, Run and buffer Owners",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "close_material",
+            "material_length",
+            "produce_material",
+            "reserve_material",
+            "reserve_material_record",
+            "reserve_submitted_rows_material",
+            "retire_material_output",
+            "submitted_rows_material_wire",
+            "validate_submitted_rows_material"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_host_wasm/materials.mbt",
+                "anchor": "/// Invocation custody and an existing Ledger reservation, never durable Run"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_host_wasm/materials.mbt",
+                "anchor": "fn submitted_rows_material_wire("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_host_wasm/materials.mbt",
+                "anchor": "@host.client_saved_run_reference_locator("
+              },
+              {
+                "path": "src/run_publication_host/client_saved_run_reference_locator.mbt",
+                "anchor": "pub fn client_saved_run_reference_locator("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_host_wasm/materials.mbt",
+                "anchor": "fn reserve_material_record("
+              },
+              {
+                "path": "src/client_host_wasm/materials.mbt",
+                "anchor": "pub fn retire_material_output("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_host_wasm/materials.mbt",
+                "anchor": "pub fn validate_submitted_rows_material("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _commit_original_run_rows("
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_host_wasm/materials.mbt",
+                "anchor": "fn submitted_rows_material_wire("
+              },
+              {
+                "path": "src/client_host_wasm/materials.mbt",
+                "anchor": "pub fn close_material("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_host_wasm/materials.mbt",
+                "anchor": "pub fn close_material("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Failed stop or cleanup retains the same"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_host_wasm/materials.mbt",
+                "anchor": "/// Reserve the complete wire allowance before encoding."
+              },
+              {
+                "path": "src/client_host_wasm/materials.mbt",
+                "anchor": "@encode.writer(1048576, 24, 3)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "This retained DATA does not by itself select an indexed read or complete legacy"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/tests/test_local_finite_run.py",
+                "anchor": "def test_original_reference_locator_commits_with_same_ready_rows("
+              },
+              {
+                "path": "src/run_publication_host/client_saved_run_reference_locator_wbtest.mbt",
+                "anchor": "test \"saved Run reference locator reads one selected original without unrelated inventory\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_host_wasm/journal_observation.mbt",
+      "sha256": "80a50493fd6d7ca91bd13851c80bfcd91360a268d79e847c617a0f9db1878427",
+      "exports": [],
+      "operations": [
+        {
+          "name": "close_journal_observation",
+          "declaration": "close_journal_observation ( nonce : Int64 , handle : Int ) - > Int"
+        },
+        {
+          "name": "inspect_journal_observation",
+          "declaration": "inspect_journal_observation ( nonce : Int64 , handle : Int ) - > Int"
+        },
+        {
+          "name": "journal_admission_length",
+          "declaration": "journal_admission_length ( nonce : Int64 , handle : Int ) - > Int"
+        },
+        {
+          "name": "journal_bytes_offset",
+          "declaration": "journal_bytes_offset ( bytes : Bytes ) - > Int"
+        },
+        {
+          "name": "journal_current",
+          "declaration": "journal_current ( value : Instance , child : StoredJournalObservation , plan : @ local_run . LocalRunPlan , ) - > Result [ Unit , Int ]"
+        },
+        {
+          "name": "journal_observation_revision",
+          "declaration": "journal_observation_revision ( nonce : Int64 , handle : Int , field : Int , ) - > Int64"
+        },
+        {
+          "name": "journal_query_row",
+          "declaration": "journal_query_row ( value : Instance , child : StoredJournalObservation , plan : @ local_run . LocalRunPlan , mode : Int , table_name : String , key : String , ) - > Result [ @ host . ClientJournalPhysicalRow ? , Int ]"
+        },
+        {
+          "name": "physical_journal_begin",
+          "declaration": "physical_journal_begin ( ticket : Int , mode : Int , namespace_bytes : Int , key_bytes : Int , ) - > Int"
+        },
+        {
+          "name": "physical_journal_copy",
+          "declaration": "physical_journal_copy ( ticket : Int , field : Int , index : Int , offset : Int , length : Int , ) - > Int"
+        },
+        {
+          "name": "physical_journal_current",
+          "declaration": "physical_journal_current ( ticket : Int ) - > Int"
+        },
+        {
+          "name": "physical_journal_current_operation",
+          "declaration": "physical_journal_current_operation ( ticket : Int ) - > Int64"
+        },
+        {
+          "name": "physical_journal_length",
+          "declaration": "physical_journal_length ( ticket : Int , field : Int ) - > Int"
+        },
+        {
+          "name": "physical_journal_query",
+          "declaration": "physical_journal_query ( ticket : Int ) - > Int"
+        },
+        {
+          "name": "physical_journal_query_copy",
+          "declaration": "physical_journal_query_copy ( ticket : Int , index : Int , offset : Int , length : Int , ) - > Int"
+        },
+        {
+          "name": "physical_journal_release",
+          "declaration": "physical_journal_release ( ticket : Int ) - > Int"
+        },
+        {
+          "name": "physical_journal_revision",
+          "declaration": "physical_journal_revision ( ticket : Int ) - > Int64"
+        },
+        {
+          "name": "physical_journal_row",
+          "declaration": "physical_journal_row ( physical : Int , current : ( ) - > Result [ Unit , Int ] , mode : Int , table_name : String , key : String , ) - > Result [ @ host . ClientJournalPhysicalRow ? , Int ]"
+        },
+        {
+          "name": "physical_journal_schema",
+          "declaration": "physical_journal_schema ( ticket : Int ) - > Int"
+        },
+        {
+          "name": "reserve_journal_observation",
+          "declaration": "reserve_journal_observation ( nonce : Int64 , material : Int , configuration : Int , physical_ticket : Int , physical_copy_bytes : Int64 , ) - > Int"
+        }
+      ],
+      "role": "physical-io",
+      "owner": "D / existing Local current, original Submission/Run, physical Journal and buffer Owners",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "close_journal_observation",
+            "inspect_journal_observation",
+            "journal_admission_length",
+            "journal_bytes_offset",
+            "journal_current",
+            "journal_observation_revision",
+            "journal_query_row",
+            "physical_journal_begin",
+            "physical_journal_copy",
+            "physical_journal_current",
+            "physical_journal_current_operation",
+            "physical_journal_length",
+            "physical_journal_query",
+            "physical_journal_query_copy",
+            "physical_journal_release",
+            "physical_journal_revision",
+            "physical_journal_row",
+            "physical_journal_schema",
+            "reserve_journal_observation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_host_wasm/journal_observation.mbt",
+                "anchor": "/// Shared physical transfer for an original scoped namespace-reader loan."
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_host_wasm/journal_observation.mbt",
+                "anchor": "fn physical_journal_row("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/run_publication_host/client_saved_run_reference_locator.mbt",
+                "anchor": "pub fn[E] read_client_saved_run_reference("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_host_wasm/submission_lookup.mbt",
+                "anchor": "fn observe_submission_lookup("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "def _journal_schema("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
+                "anchor": "def journal_schema("
+              },
+              {
+                "path": "src/client_host_wasm/submission_lookup.mbt",
+                "anchor": "let physical_schema = physical_journal_schema(current.physical)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_host_wasm/submission_lookup.mbt",
+                "anchor": "if physical_schema != 0 && physical_schema != 1"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_journal_port.py",
+                "anchor": "def _fail("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_host_wasm/submission_lookup.mbt",
+                "anchor": "return match cancellation() {"
+              },
+              {
+                "path": "src/client_host_wasm/submission_lookup.mbt",
+                "anchor": "fn submission_lookup_current("
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
+                "anchor": "if reads >= self._max_inspection_queries:"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_storage_physical.py",
+                "anchor": "ORDER BY name LIMIT 4"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              },
+              {
+                "path": "src/client_host_wasm/version.mbt",
+                "anchor": "pub fn host_abi_version()"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_host_wasm/submission_targeted_lookup_wbtest.mbt",
+                "anchor": "test \"indexed saved cold lookup selects exact original without unrelated Run audit\""
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_owned_store.py",
+                "anchor": "def test_catalog_observation_uses_existing_query_budget_and_rejects_boolean_permission("
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_host_wasm/submission_lookup.mbt",
+      "sha256": "8311d9382d2dedf284359c75a7072b071b1a9c4aab22ca7e76e36e381f343845",
+      "exports": [],
+      "operations": [
+        {
+          "name": "observe_submission_lookup",
+          "declaration": "observe_submission_lookup ( value : Instance , record : StoredSubmissionProjection , configuration : StoredRunConfiguration , original ? : @ host . ClientSavedSubmissionSnapshot ?"
+        },
+        {
+          "name": "produce_submission_lookup",
+          "declaration": "produce_submission_lookup ( value : Instance , record : StoredSubmissionProjection , configuration : StoredRunConfiguration , ) - > Int"
+        },
+        {
+          "name": "saved_sdk_original_descriptor_wire",
+          "declaration": "saved_sdk_original_descriptor_wire ( snapshot : @ host . ClientSavedSubmissionSnapshot ? , ) - > Result [ Bytes , Int ]"
+        },
+        {
+          "name": "submission_lookup_current",
+          "declaration": "submission_lookup_current ( value : Instance , record : StoredSubmissionProjection , configuration : StoredRunConfiguration , ) - > Result [ Unit , Int ]"
+        },
+        {
+          "name": "submission_lookup_wire",
+          "declaration": "submission_lookup_wire ( snapshot : @ host . ClientSavedSubmissionSnapshot ? , ) - > Result [ Bytes , Int ]"
+        },
+        {
+          "name": "submission_run_reference_snapshot",
+          "declaration": "submission_run_reference_snapshot ( namespace : String , scope : String , definition : String , original : @ host . ClientSavedSubmissionSnapshot ? , scan : ( String , String ) - > Result [ @ host . ClientJournalPhysicalRow ? , Int ] , read : ( String , String ) - > Result [ @ host . ClientJournalPhysicalRow ? , Int ] , inspect_run : ( @ host . ClientJournalPhysicalRow ) - > Result [ @ host . ClientRunJournalInspection , Int , ] , cancellation : ( ) - > Result [ Unit , Int ] , original_identity ? : ( @ host . ClientRequestIdentity , @ publication . PublicationContract , ) ?"
+        },
+        {
+          "name": "validate_submission_lookup",
+          "declaration": "validate_submission_lookup ( nonce : Int64 , handle : Int , current : Int , ) - > Int"
+        }
+      ],
+      "role": "physical-io",
+      "owner": "D / existing Local current, original Submission/Run, physical Journal and buffer Owners",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "observe_submission_lookup",
+            "produce_submission_lookup",
+            "saved_sdk_original_descriptor_wire",
+            "submission_lookup_current",
+            "submission_lookup_wire",
+            "submission_run_reference_snapshot",
+            "validate_submission_lookup"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_host_wasm/submission_lookup.mbt",
+                "anchor": "fn observe_submission_lookup("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_host_wasm/submission_lookup.mbt",
+                "anchor": "fn submission_run_reference_snapshot("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/run_publication_host/client_saved_run_reference_locator.mbt",
+                "anchor": "pub fn[E] read_client_saved_run_reference("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_host_wasm/submission_lookup.mbt",
+                "anchor": "fn observe_submission_lookup("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "def _journal_schema("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
+                "anchor": "def journal_schema("
+              },
+              {
+                "path": "src/client_host_wasm/submission_lookup.mbt",
+                "anchor": "let physical_schema = physical_journal_schema(current.physical)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_host_wasm/submission_lookup.mbt",
+                "anchor": "if physical_schema != 0 && physical_schema != 1"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_journal_port.py",
+                "anchor": "def _fail("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_host_wasm/submission_lookup.mbt",
+                "anchor": "return match cancellation() {"
+              },
+              {
+                "path": "src/client_host_wasm/submission_lookup.mbt",
+                "anchor": "fn submission_lookup_current("
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
+                "anchor": "if reads >= self._max_inspection_queries:"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_storage_physical.py",
+                "anchor": "ORDER BY name LIMIT 4"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              },
+              {
+                "path": "src/client_host_wasm/version.mbt",
+                "anchor": "pub fn host_abi_version()"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_host_wasm/submission_targeted_lookup_wbtest.mbt",
+                "anchor": "test \"indexed saved cold lookup selects exact original without unrelated Run audit\""
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_owned_store.py",
+                "anchor": "def test_catalog_observation_uses_existing_query_budget_and_rejects_boolean_permission("
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_host_wasm/version.mbt",
+      "sha256": "62c4f4a51185c05fa06e27828731b27381f4781da38fd03f3ec0e03dfb6f01f0",
+      "exports": [],
+      "operations": [
+        {
+          "name": "host_abi_version",
+          "declaration": "host_abi_version ( ) - > Int"
+        }
+      ],
+      "role": "common-semantics",
+      "owner": "D / existing Local current, original Submission/Run, physical Journal and buffer Owners",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "host_abi_version"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_host_wasm/version.mbt",
+                "anchor": "/// Private scalar ABI version, independent of Client wire and package versions."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_host_wasm/version.mbt",
+                "anchor": "pub fn host_abi_version() -> Int {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "scripts/generate-local-wasm-abi.py",
+                "anchor": "def render("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "def _validate_core_module("
+              }
+            ],
+            "ownership": {
+              "notApplicable": "The literal query owns no resource or loan; its consuming module/current/reader Owners retain all original custody."
+            },
+            "synchronization": {
+              "notApplicable": "Pure synchronous fixed integer query; no callback, await, mutable state or transfer."
+            },
+            "failure": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "def _validate_core_module("
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "No operation, current decision, physical IO or cancellation is performed by the literal query."
+            },
+            "resources": {
+              "notApplicable": "No inputs or allocation; returns only the fixed private scalar version and issues no capacity."
+            },
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              },
+              {
+                "path": "scripts/generate-local-wasm-abi.py",
+                "anchor": "def render_compiler_header("
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/generate-local-wasm-abi.py",
+                "anchor": "if args.check:"
+              },
+              {
+                "path": "packages/python-sdk/tests/local_abi_declaration_fixture.py",
+                "anchor": "def assert_current_local_abi("
               }
             ]
           }
