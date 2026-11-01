@@ -109,9 +109,6 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
         store.storeAuthorityCid !== storeAuthorityCid || typeof retainExecution !== 'function') {
       throw new TypeError('InvalidInstalledContentRun');
     }
-    if (intermediate && acquiredContent !== undefined) {
-      throw new TypeError('InstalledModelCapturedContentPreparationUnavailable');
-    }
     const {task, step} = plan.serializationGraph;
     const compiledLimits = publications.checkedClientSerializationGenerationLimits(
       plan.compiled, plan.serializationGraph);
@@ -126,7 +123,7 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
     if (!live()) throw new Error('InstalledContentAuthorityUnavailable');
     const source = acquiredContent?.captured.capture.source();
     let ledger, managed, capacity, selectedKeyed;
-    if (acquiredContent === undefined) {
+    if (acquiredContent === undefined || intermediate) {
       const original = preparedRuns.get(preparedProgram);
       if (original === undefined || original.retired || original.plan !== plan || original.attempted ||
           original.failure !== undefined || original.managed === undefined || original.managed.closed) {
@@ -134,9 +131,16 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
       }
       // Consume before fallible currentness or prefix construction. Failure
       // remains attached to this Run, never a new scalar-ledger fallback.
+      if (acquiredContent !== undefined && (original.model === undefined ||
+          original.acquiredLedger !== acquiredContent.ledger ||
+          typeof acquiredContent.captured?.capture?.originalRowCapture !== 'function' ||
+          typeof control.startRequestAcquiredPrefix !== 'function')) {
+        throw new TypeError('InstalledModelCapturedContentPreparationUnavailable');
+      }
       original.attempted = true;
       assertRunCurrent();
       managed = original.managed; capacity = original.capacity;
+      if (acquiredContent !== undefined) ledger = acquiredContent.ledger;
     } else if (preparedRunRequired) {
       const original = preparedKeyedRuns.get(preparedProgram);
       if (original === undefined || original.retired || original.plan !== plan || original.attempted ||
@@ -240,6 +244,7 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
             ? control.cleanupRequestPrefix(managed.value, managed.serialization)
             : control.cleanupRequestKeyedPrefix(managed.value, selectedKeyed);
           if (acknowledged !== true) return false;
+          if (ledger !== undefined) acquiredLedgers.delete(ledger);
         } else if (prefix !== undefined) {
           if (!stopGeneratedContentPrefix({control, prefix, chargeWork})) return false;
           prefix = undefined;
@@ -263,7 +268,10 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
         ? control.prefix(preparedProgram, task, step, bodies, prefixLimits, ledger, workspace,
           source, acquiredContent?.keyedLookup)
         : selectedKeyed === undefined
-          ? control.startRequestPrefix(managed.value, preparedProgram, managed.serialization)
+          ? acquiredContent === undefined
+            ? control.startRequestPrefix(managed.value, preparedProgram, managed.serialization)
+            : control.startRequestAcquiredPrefix(managed.value, preparedProgram, managed.serialization,
+              acquiredContent.captured.capture.originalRowCapture())
           : control.startRequestKeyedPrefix(managed.value, preparedProgram, selectedKeyed,
             source, acquiredContent.keyedLookup);
       await faultInjection?.('content_workspace_reserved', {capacity});
@@ -379,8 +387,9 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
         request === undefined) throw new TypeError('InstalledContentRunPreparationUnavailable');
     assertRunCurrent();
     publications.checkClientCompiledRunOwner(plan.compiled, preparedProgram);
+    const acquisitions = moon.clientProgramAcquisitionCount(preparedProgram);
     if (plan.kind !== 'infer' || plan.serializationGraph === undefined ||
-        moon.clientProgramAcquisitionCount(preparedProgram) !== 0 ||
+        (acquisitions !== 0 && acquisitions !== 1) ||
         model?.compiled !== plan.compiled || model.runDefinition !== plan.runDefinition ||
         model.graph !== plan.inferGraph || model.serializationGraph !== plan.serializationGraph) {
       throw new TypeError('InstalledContentRunPreparationUnsupported');
@@ -548,6 +557,48 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
   // opaque and requirement-bound in the common owner, never estimated from rows.
   run.prepareAcquiredLedger = ({preparedProgram, plan, sourceCapacity}) => {
     publications.checkClientCompiledRunOwner(plan.compiled, preparedProgram);
+    if (preparedRunRequired) {
+      const original = preparedRuns.get(preparedProgram), managed = original?.managed;
+      if (original === undefined || original.retired || original.failed || original.attempted ||
+          original.acquiredLedgerAttempted || original.plan !== plan || original.model === undefined ||
+          managed === undefined || managed.closed || managed.value === undefined ||
+          sourceCapacity.managedRun !== managed.value ||
+          typeof moon.clientProgramInstalledManagedRunPrepareLedger !== 'function') {
+        throw new TypeError('InstalledContentRunPreparationUnavailable');
+      }
+      original.acquiredLedgerAttempted = true;
+      const parent = managed.value, request = original.request;
+      try {
+        assertRunCurrent();
+        if (preparedRuns.get(preparedProgram) !== original || original.retired || original.failed ||
+            original.plan !== plan || original.request !== request ||
+            original.managed !== managed || managed.closed || managed.value !== parent) {
+          throw new TypeError('ForeignInstalledContentRun');
+        }
+        const ledger = checked(moon.clientProgramInstalledManagedRunPrepareLedger(parent,
+          preparedProgram, request, [sourceCapacity.capacity], [sourceCapacity.transferBytes],
+          [sourceCapacity.executionBytes], registry, values, fragment, ordered));
+        // This getter borrows the existing Ledger, so a callback that retired
+        // the record creates no new child. Never resurrect its spent aliases.
+        if (preparedRuns.get(preparedProgram) !== original || original.retired || original.failed ||
+            original.plan !== plan || original.request !== request ||
+            original.managed !== managed || managed.closed || managed.value !== parent) {
+          throw new TypeError('ForeignInstalledContentRun');
+        }
+        original.acquiredLedger = ledger;
+        assertRunCurrent();
+        if (preparedRuns.get(preparedProgram) !== original || original.retired || original.failed ||
+            original.plan !== plan || original.request !== request ||
+            original.managed !== managed || managed.closed || managed.value !== parent) {
+          throw new TypeError('ForeignInstalledContentRun');
+        }
+        acquiredLedgers.set(ledger, plan.compiled);
+        return ledger;
+      } catch (cause) {
+        if (!original.retired) {original.failed = true; original.failure = cause;}
+        throw cause;
+      }
+    }
     const {task, step} = plan.serializationGraph;
     const prefix = control.prefixCapacity(preparedProgram, task, step,
       bodies, prefixLimits, workspace, true);

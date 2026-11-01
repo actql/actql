@@ -239,3 +239,11 @@ test('Request acquired Node Model refuses absent original provider and keeps par
   assert.equal(f.run.preparedSequences, f.module); assert.equal(f.run.serialization, f.prefix);
   assert.equal(f.run.modelPlan, undefined);
 });
+
+
+test('Request acquired Node Model does not retain provider DATA after its original current callback refuses', () => {
+  const f = fixture({count: 1, physical: true, serialized: true, expireProvider: true});
+  assert.throws(f.construct, cause => cause === f.primary);
+  assert.equal(f.run.modelSourceSelection, undefined);
+  assert.equal(f.run.serialization, undefined); assert.equal(f.run.preparedSequences, undefined);
+});

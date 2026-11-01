@@ -6645,6 +6645,11 @@ export function contentGenerationControl(moon, publications) {
       const prefix = checked(moon.clientProgramInstalledManagedSerializationPrefixStart(run, program, selected));
       prefixes.add(prefix); return prefix;
     },
+    startRequestAcquiredPrefix(run, program, selected, capture) {
+      const prefix = checked(moon.clientProgramInstalledManagedAcquiredSerializationPrefixStart(
+        run, program, selected, capture));
+      prefixes.add(prefix); return prefix;
+    },
     cleanupRequestPrefix(run, selected) {
       return checked(moon.clientProgramInstalledManagedSerializationPrefixCleanup(run, selected));
     },

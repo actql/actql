@@ -579,7 +579,7 @@ test('Request Model Graph keeps constructor failure or changed Content on the sa
 });
 
 
-function installedModelRequestFixture({serialized = false, refusePlan, refuseScope} = {}) {
+function installedModelRequestFixture({serialized = false, refusePlan, refuseScope, acquisitions = 0} = {}) {
   let constructor;
   const walk = n => {
     if (!n || typeof n !== 'object') return;
@@ -592,7 +592,7 @@ function installedModelRequestFixture({serialized = false, refusePlan, refuseSco
   const plan = {compiled: compilation, runDefinition: definition, inferGraph: graph,
     serializationGraph: selected.serializationGraph, queryTimePreparation: queryTime};
   const inferSelections = new WeakMap([[prepared, selected]]), earlyMockInferPlans = new WeakMap();
-  const control = {}, moon = {clientProgramAcquisitionCount: () => 0};
+  const control = {}, moon = {clientProgramAcquisitionCount: () => acquisitions};
   let invoke, managed, saved = false;
   const clientOperationError = code => Object.assign(new Error(code), {code});
   const preparation = {admitResultPublicationRun(p) {assert.equal(p, prepared); calls.push('publication');},
@@ -633,7 +633,7 @@ function installedModelRequestFixture({serialized = false, refusePlan, refuseSco
   };
   findAdmission(parse(hostSource, {ecmaVersion: 'latest', sourceType: 'module'})); assert(admission);
   const failures = new WeakMap(), admissionPorts = {...ports,
-    requestOf: () => ({requested: request, acquisitionCount: 0, effectful: false}),
+    requestOf: () => ({requested: request, acquisitionCount: acquisitions, effectful: false}),
     journal: {resolveDefinition: () => saved ? {physicalStartReserved: true} : undefined}, namespaceId: 'fixture',
     prepareInstalledRequestModelRun: construct, admissionFailures: failures};
   const admit = Function(...Object.keys(admissionPorts), 'return (' + hostSource.slice(admission.start, admission.end) + ');')(...Object.values(admissionPorts));
@@ -783,4 +783,17 @@ test('Host unadopted Model Scope cleanup keeps original thrown causes and pendin
     assert.notEqual(f.model.scopeFinished, true);
     assert.equal(f.selectionHeld(), true); assert.equal(f.calls.includes('aliases'), false);
   }
+});
+
+
+test('actual acquired Model admission retains one Request compiler prefix and Scope and refuses an unbacked plain acquired Model', () => {
+  const f = installedModelRequestFixture({serialized: true, acquisitions: 1});
+  f.admit(); f.admit();
+  assert.equal(f.early().model.scope, f.scope); assert.equal(f.early().managed, f.managed);
+  assert.equal(f.calls.filter(v => v === 'compile/Definition').length, 1);
+  assert.equal(f.calls.filter(v => v === 'construct').length, 1);
+  assert.equal(f.calls.filter(v => v === 'same prefix').length, 1);
+  const plain = installedModelRequestFixture({acquisitions: 1});
+  assert.throws(plain.invoke, {code: 'HostResultPublicationPurposeUnavailable'});
+  assert.equal(plain.early(), undefined);
 });

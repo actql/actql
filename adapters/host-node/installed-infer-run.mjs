@@ -145,7 +145,8 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
     // The current installed read/layout supplier has no adopted Content overlap.
     // Refuse before generation/recovery or keyed input construction; support
     // checks and a visible child Ledger are not original funding authority.
-    if (keyed || acquiredContent !== undefined ||
+    if (keyed || acquiredContent !== undefined && (requestModel === undefined ||
+          requestModel.contentPreparation?.managed === undefined || selected.serializationGraph === undefined) ||
         selected.serializationGraph !== undefined && (requestModel === undefined ||
           requestModel.serializationGraph !== selected.serializationGraph || requestModel.contentPreparation?.managed === undefined)) {
       throw new TypeError('InstalledInferContentOriginalPreparationUnavailable');

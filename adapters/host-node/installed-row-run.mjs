@@ -281,6 +281,13 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
         source();
         return captured;
       }} : {}),
+      ...(!wholeInput && !effectful ? {originalRowCapture() {
+        if (this !== captureAccess || closed) fail('ForeignInstalledSourceCapture');
+        // This is the SAME accounted capture retained above, not a second
+        // capture, permission, Source observation or cleanup acknowledgement.
+        source();
+        return captured;
+      }} : {}),
       originalRead: () => {
         if (closed) fail('InstalledSourceClosed');
         return moon.clientProgramRowSourceOriginalRead(captured);

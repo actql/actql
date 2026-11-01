@@ -695,16 +695,16 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
     if (typeof adapter?.managedEffectPlanSelection !== 'function') {
       throw clientOperationError('InstalledModelSourcePreparationUnavailable');
     }
-    // Retain the original installed declaration/provider before another
-    // callback. This selection is DATA, never a new grant or Resource owner.
-    run.modelSourceSelection = adapter.managedEffectPlanSelection();
+    // A pure selection has no child to recover. Do not attach returned DATA
+    // to a bag retired by its current callback; retain only the live original.
+    const original = adapter.managedEffectPlanSelection();
     current();
-    const original = run.modelSourceSelection;
     if (original?.declaration === undefined || original.provider === undefined ||
         typeof original.transferBytes !== 'bigint' || original.transferBytes < 0n ||
         typeof original.executionBytes !== 'bigint' || original.executionBytes < 0n) {
       throw clientOperationError('InstalledModelSourcePreparationUnavailable');
     }
+    run.modelSourceSelection = original;
   }
   if (count === 0 && typeof moon.clientProgramPrepareRequestModelSourceFreeModule !== 'function') {
     throw clientOperationError('NodeManagedRunRuntimeUnavailable');
@@ -3363,10 +3363,12 @@ async function openInstalledHost(originalInstallation, preparation) {
     faultInjection: authorization?.faultInjection});
   function prepareInstalledRequestModelRun(submission, requested, selection) {
     const prepared = submission.preparedProgram;
+    const acquisitionCount = moon.clientProgramAcquisitionCount(prepared);
     if (preparation === undefined || typeof preparation.prepareManagedModelRun !== 'function' ||
         inferSelections.get(prepared) !== selection || selection.localMock ||
         selection.originalReadInstallation === undefined || selection.occurrence === undefined ||
-        selection.components !== undefined || moon.clientProgramAcquisitionCount(prepared) !== 0) {
+        selection.components !== undefined || acquisitionCount > 1 ||
+        acquisitionCount === 1 && selection.serializationGraph === undefined) {
       throw clientOperationError('HostResultPublicationPurposeUnavailable');
     }
     let early = earlyMockInferPlans.get(prepared);
@@ -6268,18 +6270,20 @@ export async function connectEmbeddedLocal(options, initialEntry) {
         : assertSourceManagedInstallationCurrent)(manager, originals);
       const runs = record.computeRuns ??= new WeakMap(), liveRuns = record.computeLiveRuns ??= new Set();
       originalInstallation.computeRuns = runs;
+      const sourceProfile = model.originalReadInstallation === undefined
+        ? record.mockSourceProfile : record.managedSourceProfile;
       const prior = runs.get(prepared);
       if (prior !== undefined) {
         if (Object.hasOwn(prior, 'failure')) throw prior.failure;
         if (prior.closed || prior.runtime !== runtime || prior.model !== model || prior.request !== request ||
-            prior.manager !== manager || prior.sourceProfile !== record.mockSourceProfile) {
+            prior.manager !== manager || prior.sourceProfile !== sourceProfile) {
           throw clientOperationError('ForeignInstalledModelPreparation');
         }
         checked(Reflect.apply(prior.check, runtime, [prior.value, prepared, request]));
         return prior;
       }
       if (liveRuns.size === 4096) throw clientOperationError('InstalledComputeRunLimit');
-      const run = {runtime, prepared, request, model, manager, sourceProfile: record.mockSourceProfile,
+      const run = {runtime, prepared, request, model, manager, sourceProfile,
         preparationKind: 'model-plan', original: undefined, value: undefined, closed: false, selecting: true,
         queryTimePreparation: model.queryTimePreparation};
       runs.set(prepared, run); liveRuns.add(run);

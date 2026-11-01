@@ -471,3 +471,38 @@ test('Request acquired prefix facade forwards same opaque capture and retains on
   fail = true; assert.throws(() => start(run, program, selected, capture), cause => cause === primary);
   assert.equal(calls, 2);
 });
+
+
+test('Request acquired Model Ledger projection cannot resurrect retired Content aliases across its original callback', () => {
+  const source = readFileSync(new URL('./installed-content-run.mjs', import.meta.url), 'utf8');
+  let selected;
+  const walk = node => {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'AssignmentExpression' && node.left?.object?.name === 'run' &&
+        node.left?.property?.name === 'prepareAcquiredLedger') {assert(!selected); selected = node.right;}
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(walk); else if (value && typeof value === 'object') walk(value);
+    }
+  };
+  walk(parse(source, {ecmaVersion: 'latest', sourceType: 'module'})); assert(selected);
+  const preparedProgram = {}, plan = {compiled: {}}, ledger = {}, parent = {}, original = {
+    prepared: preparedProgram, plan, request: {}, model: {}, managed: {value: parent, closed: false}};
+  const preparedRuns = new WeakMap([[preparedProgram, original]]), acquiredLedgers = new WeakMap();
+  let calls = 0;
+  const ports = {publications: {checkClientCompiledRunOwner() {}}, preparedRunRequired: true, preparedRuns,
+    acquiredLedgers, assertRunCurrent() {}, checked: value => value._0,
+    registry: {}, values: {}, fragment: {}, ordered: {},
+    moon: {clientProgramInstalledManagedRunPrepareLedger() {
+      calls++;
+      for (const key of Object.keys(original)) original[key] = undefined;
+      original.retired = true;
+      return {$tag: 1, _0: ledger};
+    }}};
+  const project = Function(...Object.keys(ports), 'return (' + source.slice(selected.start, selected.end) + ')')(...Object.values(ports));
+  assert.throws(() => project({preparedProgram, plan, sourceCapacity: {managedRun: {}}}), /InstalledContentRunPreparationUnavailable/);
+  assert.equal(calls, 0);
+  assert.throws(() => project({preparedProgram, plan, sourceCapacity: {managedRun: parent,
+    capacity: {}, transferBytes: 1n, executionBytes: 1n}}), /ForeignInstalledContentRun/);
+  assert.equal(original.retired, true); assert.equal(original.acquiredLedger, undefined);
+  assert.equal(acquiredLedgers.has(ledger), false); assert.equal(calls, 1);
+});
