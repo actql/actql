@@ -62,15 +62,19 @@ test('fresh Journal initialization shares one actual directory ACK after every o
 test('existing legacy Journal upgrades keep each original marker directory ACK', async t => {
   const directory = await mkdtemp(join(tmpdir(), 'actql-journal-upgrade-sync-'));
   const exec = DatabaseSync.prototype.exec, boundary = new Error('legacy schema fixture boundary');
-  let legacyDatabase, journal;
+  let legacyDatabase, legacySql, journal;
   DatabaseSync.prototype.exec = function(sql) {
     const result = Reflect.apply(exec, this, [sql]);
-    if (/CREATE TABLE IF NOT EXISTS client_requests/u.test(sql)) {legacyDatabase = this; throw boundary;}
+    if (/CREATE TABLE IF NOT EXISTS client_requests/u.test(sql)) {legacyDatabase = this; legacySql = sql; throw boundary;}
     return result;
   };
   try {assert.throws(() => openClientRequestJournal(directory), error => error === boundary);}
   finally {DatabaseSync.prototype.exec = exec;}
   assert.equal(legacyDatabase.isOpen, false);
+  // The failed fresh transaction rolled back the base table too. Build this
+  // older-format fixture from its captured original DDL, outside product open.
+  const legacy = new DatabaseSync(join(directory, 'client-requests.sqlite3'));
+  try {legacy.exec(legacySql);} finally {legacy.close();}
   // A complete base-format fixture, before any submission authority or
   // additive feature ever existed; not a relabelled adopted Journal.
   fs.writeFileSync(join(directory, 'journal-format.json'), JSON.stringify({
