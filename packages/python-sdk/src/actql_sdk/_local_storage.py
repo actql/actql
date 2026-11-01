@@ -1602,6 +1602,7 @@ class LocalByteStore:
                             break
                     if original != StoredBytes(expected_generation, expected_payload):
                         return False
+                    del original, generation, payload, kind, length
                 return seen == (1 << len(fences)) - 1
             finally:
                 rows.close()

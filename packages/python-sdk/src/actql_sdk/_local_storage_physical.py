@@ -144,6 +144,7 @@ class _SQLiteByteDatabase:
             try:
                 for row in cursor:
                     yield cast(tuple[object, object, object, object, object, object], row)
+                    del row
             finally:
                 cursor.close()
 
@@ -167,6 +168,7 @@ class _SQLiteByteDatabase:
             if size > 4096:
                 row = self.read_row(key, max_bytes)
                 yield (index, 0, None, None, 'null', None) if row is None else (index, 1, *row)
+                del row
                 start = index + 1
                 continue
             values_bytes += (1 if pending else 0) + item_bytes
