@@ -41758,7 +41758,7 @@
     {
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "283349c38a03b9c8c89f0f0bfee1413c7f61ecf1549bca642e6f47b682c81959",
+      "sha256": "034130ec078715a06d0c058f5b012b0062ce2bfd7b162b95a7bf111411c77399",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -47903,6 +47903,10 @@
               {
                 "path": "adapters/host-node/content-preparation-retirement.test.mjs",
                 "anchor": "retired keyed Content does not exhaust the unchanged 4096 live-preparation limit"
+              },
+              {
+                "path": "adapters/host-node/embedded-managed-compute-projection.test.mjs",
+                "anchor": "test('open borrows the one installed AoA projection through the same sequence original'"
               }
             ]
           }
@@ -51369,6 +51373,10 @@
               {
                 "path": "adapters/host-node/content-preparation-retirement.test.mjs",
                 "anchor": "retired keyed Content does not exhaust the unchanged 4096 live-preparation limit"
+              },
+              {
+                "path": "adapters/host-node/embedded-managed-compute-projection.test.mjs",
+                "anchor": "test('open borrows the one installed AoA projection through the same sequence original'"
               }
             ]
           }

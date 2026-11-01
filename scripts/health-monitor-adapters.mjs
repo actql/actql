@@ -12,7 +12,7 @@ import {inventory, unpack} from './package-release.mjs';
 import {CLIENT_PACKAGES} from './packed-client-packages.mjs';
 import {verifyNodeBenchmarkPackages, nodeWarmSmallQueryFixtures, nodeBenchmarkFailure} from './benchmark-node-operations.mjs';
 import {projectTemplateFiles} from '../packages/native-cli/lib/project-template.mjs';
-import {digest, jsonDigest} from './health-monitor-report.mjs';
+import {digest, jsonDigest, nodeColdStateKinds, nodeColdPublicPhases} from './health-monitor-report.mjs';
 
 const self = fileURLToPath(import.meta.url);
 export const healthFixtures = Object.freeze({
@@ -23,10 +23,14 @@ export const healthFixtures = Object.freeze({
   workflow: 'adapters/host-node/fixtures/mock-project-effect-public.mjs',
 });
 
-export async function execute(command, args, {cwd, raw, name, timeout = 600_000, env = process.env} = {}) {
+export async function execute(command, args, {cwd, raw, name, timeout = 600_000, env = process.env, observeFirstResult = false} = {}) {
   const start = process.hrtime.bigint();
   let stdout = '', stderr = '', overflow = false;
-  const child = spawn(command, args, {cwd, env, stdio: ['ignore', 'pipe', 'pipe']});
+  const child = spawn(command, args, {cwd, env, stdio: ['ignore', 'pipe', 'pipe',...(observeFirstResult?['ipc']:[])]});
+  const firstResults=[];
+  if(observeFirstResult)child.on('message',value=>{
+    if(value?.event==='first-result'&&value.pid===child.pid)firstResults.push(Number(process.hrtime.bigint()-start));
+  });
   const collect = key => chunk => {
     if (Buffer.byteLength(stdout) + Buffer.byteLength(stderr) + chunk.length > 8 * 1024 ** 2) overflow = true;
     else if (key === 'stdout') stdout += chunk.toString(); else stderr += chunk.toString();
@@ -43,7 +47,9 @@ export async function execute(command, args, {cwd, raw, name, timeout = 600_000,
     });
   } finally {if (timer) clearTimeout(timer);}
   const result = {...terminal, pid: child.pid, timedOut, overflow,
-    wallNs: Number(process.hrtime.bigint() - start), stdout, stderr};
+    wallNs: Number(process.hrtime.bigint() - start),
+    ...(observeFirstResult?{firstResultNs:firstResults.length===1?firstResults[0]:null,firstResultNotifications:firstResults.length}:{}),
+    stdout, stderr};
   if (raw) {
     await writeFile(join(raw, name + '.stdout'), stdout, {flag: 'wx', mode: 0o600});
     await writeFile(join(raw, name + '.stderr'), stderr, {flag: 'wx', mode: 0o600});
@@ -148,24 +154,42 @@ const usage = () => ({peakRssBytes: process.resourceUsage().maxRSS * 1024,
   rssScope: 'Node resourceUsage.maxRSS high-water mark of this actual Node process; KiB converted to bytes; children excluded'});
 export async function publicNodeSample(config) {
   let client, primary;
-  const report = {pid: process.pid, kind: config.kind, metrics: [], cleanup: {closed: false}};
+  assert(['warm','prepare-existing-state',...nodeColdStateKinds].includes(config.kind));
+  const report = {pid: process.pid, kind: config.kind, stateDir:config.stateDir, metrics: [], cleanup: {closed: false},
+    phaseSpans:[],unobservedHostPhases:['initial activation','Request prepare/check/compile/Plan','execution','durable publication'],
+    phaseScope:'Public boundaries; activation/preparation inside submission, execution/publication inside wait/all-rows are unresolved, never exclusive sums'};
+  const begin=name=>{const span={name,clock:'child-monotonic',parent:['product-import','public-open','first-close'].includes(name)?'public-lifecycle':'first-new-query',startNs:Number(process.hrtime.bigint()),endNs:null,completed:false};report.phaseSpans.push(span);return span;};
+  const end=span=>{span.endNs=Number(process.hrtime.bigint());span.completed=true;};
   const save = () => writeFile(config.output, JSON.stringify({...report, ...usage(),
     processCpu: process.cpuUsage()}, null, 2) + '\n', {mode: 0o600});
   // Every state is created by the actual public Host, never seeded from an old Run.
   globalThis.fetch = async () => {throw new Error('UnexpectedNetworkInHealthFixture');};
   const started = process.hrtime.bigint();
   try {
-    const {open} = await import(pathToFileURL(join(config.consumer, 'node_modules/@actql/node/index.mjs')).href);
-    client = await open({stateDir: config.stateDir});
+    const importing=begin('product-import');
+    const {open} = await import(pathToFileURL(join(config.consumer, 'node_modules/@actql/node/index.mjs')).href);end(importing);
+    const opening=begin('public-open');client = await open({stateDir: config.stateDir});end(opening);
     report.importAndOpenNs = Number(process.hrtime.bigint() - started);
-    const first = process.hrtime.bigint();
-    const original = await client.startSource(healthFixtures.select.text, {format: 'sql'});
-    assert.equal((await original.wait()).status, 'succeeded');
-    assert.deepEqual(await original.result('main').all(), healthFixtures.select.expected);
+    const first = process.hrtime.bigint(),submitting=begin('new-run-submission');
+    const original = await client.startSource(healthFixtures.select.text, {format: 'sql',
+      requestId:`health-${config.kind}-${config.iteration??0}`});end(submitting);
+    report.originalRunSha256 = jsonDigest(original.ref); // Actual original before wait.
+    if(config.kind==='cold-existing-state') {
+      assert.match(config.seedRunSha256,/^[0-9a-f]{64}$/u);
+      assert.notEqual(report.originalRunSha256,config.seedRunSha256,'Cold-existing must submit a NEW query');
+    }
+    const waiting=begin('wait-execution-publication');
+    assert.equal((await original.wait()).status, 'succeeded');end(waiting);
+    const materializing=begin('all-result-rows');
+    assert.deepEqual(await original.result('main').all(), healthFixtures.select.expected);end(materializing);
     report.publicTiming = {kind: 'process-result-close', startNs: Number(started),
       observedNs: Number(process.hrtime.bigint())};
     report.firstQueryNs = Number(process.hrtime.bigint() - first);
-    report.originalRunSha256 = jsonDigest(original.ref);
+    report.firstQueryTiming={clock:'child-monotonic',parent:'public-lifecycle',startNs:Number(first),endNs:report.publicTiming.observedNs};
+    if(config.notifyFirstResult===true) {
+      assert(process.send,'Selected child must retain the original parent IPC');
+      process.send({event:'first-result',pid:process.pid});
+    }
     if (config.kind === 'warm') {
       const state = await original.status();
       for (const [id, fixture] of [['warm-select', healthFixtures.select], ['warm-join', healthFixtures.join],
@@ -200,9 +224,10 @@ export async function publicNodeSample(config) {
   } catch (error) {primary = error; report.failure = nodeBenchmarkFailure(error);}
   finally {
     if (client) {
+      const closing=begin('first-close');
       const close = process.hrtime.bigint();
       if (report.publicTiming) report.publicTiming.closeStartNs = Number(close);
-      try {await client.close(); report.cleanup.closed = true;}
+      try {await client.close(); report.cleanup.closed = true;end(closing);}
       catch (error) {primary ??= error; report.cleanup.failure = nodeBenchmarkFailure(error);}
       report.closeNs = Number(process.hrtime.bigint() - close);
       if (report.publicTiming) report.publicTiming.closeEndNs = Number(process.hrtime.bigint());
@@ -233,30 +258,71 @@ export async function quickNodeMetrics({prepared, root, repository, command, cou
   }
   if (originalFailure) throw originalFailure;
   assert(warm.cleanup.closed);
-  const cold = {id: 'cold-process-first-result-close', kind: 'latency', target: 'node-local', temperature: 'cold',
-    required: true, unit: 'ms', requiredSamples: counts.coldSamples, fixtureSha256: jsonDigest(healthFixtures.select), samples: [], evidence: root};
   const peaks = [warm.peakRssBytes];
-  const phases = ['cold-host-initialization', 'cold-first-query', 'cold-first-close'].map(id => ({...cold, id,
-    samples: [], scope: { 'cold-host-initialization': 'inside actual child: module import plus first public open',
-      'cold-first-query': 'inside actual child: first new public SQL through materialized rows',
-      'cold-first-close': 'inside actual child: first awaited public Client.close'}[id]}));
-  for (let iteration = 0; iteration < counts.coldSamples; iteration++) {
-    const output = join(root, `cold-${iteration}.json`);
-    const observation = await command(process.execPath, [self, '--sample', JSON.stringify({kind: 'cold',
-      consumer: prepared.consumer, stateDir: join(root, `cold-state-${iteration}`), output})], {cwd: root, name: `node-cold-${iteration}`});
-    const child = JSON.parse(await readFile(output)); assert(child.cleanup.closed);
-    cold.samples.push({iteration, pid: child.pid, wallNs: observation.wallNs,
-      cpuUserUs: child.processCpu.user, cpuSystemUs: child.processCpu.system,
-      cpuScope: 'actual Node child through awaited close; excludes reporting and final process exit',
-      peakRssBytes: child.peakRssBytes, rssScope: child.rssScope,
-      publicTiming: child.publicTiming,
-      completed: true, verified: true, moduleImportAndOpenNs: child.importAndOpenNs,
-      firstQueryNs: child.firstQueryNs, observation: output});
-    peaks.push(child.peakRssBytes); await onMetric(cold);
-    for (const [index, wallNs] of [child.importAndOpenNs, child.firstQueryNs, child.closeNs].entries()) {
-      phases[index].samples.push({iteration, pid: child.pid, wallNs, cpuAvailable: false,
-        completed: true, verified: true, observation: output});
-      await onMetric(phases[index]);
+  // Preparation is an untimed setup for existing-state samples, by the SAME
+  // installed candidate and its public open/query/all-rows/first-close path.
+  // Cold-new below independently retains normal first initialization cost.
+  const existingState=join(root,'cold-existing-state'),seedOutput=join(root,'cold-existing-preparation.json');
+  let seedFailure,seedCommand;
+  try {seedCommand=await command(process.execPath,[self,'--sample',JSON.stringify({kind:'prepare-existing-state',
+    consumer:prepared.consumer,stateDir:existingState,output:seedOutput})],{cwd:root,name:'node-cold-existing-preparation'});}
+  catch(error) {seedFailure=error;seedCommand=error.commandResult;}
+  let seed;try {seed=JSON.parse(await readFile(seedOutput));}catch(error) {throw seedFailure??error;}
+  await onMetric({id:'cold-existing-state-preparation',kind:'reference',target:'node-local',required:false,
+    value:seedCommand?.wallNs===undefined?null:seedCommand.wallNs/1e6,unit:'ms',fixtureSha256:jsonDigest(healthFixtures.select),evidence:seedOutput,
+    scope:'Same-candidate public preparation/close; excluded only from existing-state population, not from cold-new',
+    ...((seedFailure||!seed.cleanup.closed)?{status:'error',reason:'Existing-state preparation or first close failed'}:{})});
+  if(seedFailure)throw seedFailure;
+  assert(seed.cleanup.closed&&seed.originalRunSha256&&seed.stateDir===existingState);
+  peaks.push(seed.peakRssBytes);
+  const pids=new Set([warm.pid,seed.pid]);
+  for(const kind of nodeColdStateKinds) {
+    const base={kind:'latency',target:'node-local',temperature:'cold',stateKind:kind,required:true,unit:'ms',
+      requiredSamples:counts.coldSamples,fixtureSha256:jsonDigest({fixture:healthFixtures.select,stateKind:kind}),evidence:root};
+    const cold={...base,id:`${kind}-process-first-result-close`,samples:[],
+      scope:'Parent launch -> natural child exit, including public all rows and first close; collector setup/IPC/report overhead retained'};
+    const firstResult={...base,id:`${kind}-process-first-result`,samples:[],
+      scope:'Parent launch -> received actual all-rows notification; IPC delivery is included, not subtracted'};
+    const phases=nodeColdPublicPhases.map(phase=>({...base,id:`${kind}-${phase}`,samples:[],
+      scope:`Child public ${phase}; nested in parent whole-process time, not an exclusive CPU/work partition`}));
+    for(let iteration=0;iteration<counts.coldSamples;iteration++) {
+      const output=join(root,`${kind}-${iteration}.json`);
+      let commandFailure,observation;
+      try {observation=await command(process.execPath,[self,'--sample',JSON.stringify({kind,iteration,
+        consumer:prepared.consumer,stateDir:kind==='cold-existing-state'?existingState:join(root,`cold-new-state-${iteration}`),
+        ...(kind==='cold-existing-state'?{seedRunSha256:seed.originalRunSha256}:{}),notifyFirstResult:true,output})],
+        {cwd:root,name:`node-${kind}-${iteration}`,observeFirstResult:true});}
+      catch(error) {commandFailure=error;observation=error.commandResult;}
+      let child;try {child=JSON.parse(await readFile(output));}catch(error) {throw commandFailure??error;}
+      const valid=!commandFailure&&child.cleanup.closed&&child.pid===observation?.pid&&!pids.has(child.pid)&&
+        child.kind===kind&&Number.isSafeInteger(observation.firstResultNs)&&observation.firstResultNs>=0&&
+        observation.firstResultNs<=observation.wallNs&&observation.firstResultNotifications===1;
+      pids.add(child.pid);
+      assert(Number.isSafeInteger(observation?.wallNs),'Original parent process clock unavailable; raw child report retained');
+      const sample={iteration,pid:child.pid,wallNs:observation.wallNs,
+        cpuUserUs:child.processCpu.user,cpuSystemUs:child.processCpu.system,
+        cpuScope:'Actual Node child through public close; final report write/exit excluded',
+        peakRssBytes:child.peakRssBytes,rssScope:child.rssScope,publicTiming:child.publicTiming,
+        completed:valid,verified:valid,firstResultNs:observation?.firstResultNs??null,
+        stateKind:kind,stateDir:child.stateDir,preparation:kind==='cold-existing-state'?seedOutput:null,
+        originalRunSha256:child.originalRunSha256,observation:output,
+        phaseSpans:child.phaseSpans,firstQueryTiming:child.firstQueryTiming,unobservedHostPhases:child.unobservedHostPhases,
+        ...(!valid?{error:child.failure??nodeBenchmarkFailure(commandFailure??new Error('Incomplete original child observation'))}:{})};
+      cold.samples.push(sample);await onMetric(cold);peaks.push(child.peakRssBytes);
+      if(Number.isSafeInteger(observation?.firstResultNs)) {
+        firstResult.samples.push({...sample,wallNs:observation.firstResultNs,
+          publicTiming:valid?{kind:'process-first-result',startNs:0,observedNs:observation.firstResultNs,endNs:observation.firstResultNs}:undefined});
+      }else {firstResult.status='incomplete';firstResult.reason='No original all-rows notification; first Result unobserved';}
+      await onMetric(firstResult);
+      for(const [index,name] of nodeColdPublicPhases.entries()) {
+        const span=child.phaseSpans?.find(span=>span.name===name);
+        if(span?.completed===true)phases[index].samples.push({iteration,pid:child.pid,
+          wallNs:span.endNs-span.startNs,completed:true,verified:true,cpuAvailable:false,observation:output});
+        else {phases[index].status=span?'error':'incomplete';
+          phases[index].reason=span?'Original phase did not complete':'Phase unexecuted after earlier original failure';}
+        await onMetric(phases[index]);
+      }
+      if(!valid)throw commandFailure??new Error('Incomplete original cold observation');
     }
   }
   await onMetric({id: 'peak-rss', kind: 'rss', target: 'node-local', value: Math.max(...peaks), unit: 'bytes',
@@ -309,4 +375,5 @@ if (process.argv[1] && resolve(process.argv[1]) === self) {
   assert.equal(process.argv[2], '--sample');
   try {await publicNodeSample(JSON.parse(process.argv[3]));}
   catch (error) {console.error(JSON.stringify(nodeBenchmarkFailure(error))); process.exitCode = 1;}
+  finally {if(process.connected)process.disconnect();}
 }

@@ -27826,7 +27826,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -27989,7 +27989,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -28621,7 +28621,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -28749,7 +28749,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1a30d6ee152f71bd770ef06d60ccdf1969b5dc1efb0a0ab7daf28d8bd1aa14c2",
+      "sha256": "3e1924dc55dc08645ea6f452a73326d9eb5783c50bef608eba4a05973c9a7f3d",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -28817,8 +28817,9 @@
           "name": "adoptSubmissionUsageStorage",
           "parameters": [
             "database",
-            "transaction",
-            "previousMarker"
+            "transact",
+            "previousMarker",
+            "fresh"
           ],
           "async": false
         },
@@ -28831,34 +28832,6 @@
           "name": "adoptSubmissionUsageStorage/adoptSubmissionUsageStorage/adoptSubmissionUsageStorage",
           "parameters": [
             "n"
-          ],
-          "async": false
-        },
-        {
-          "name": "adoptSubmissionUsageStorage/adoptSubmissionUsageStorage/adoptSubmissionUsageStorage#2",
-          "parameters": [
-            "sql"
-          ],
-          "async": false
-        },
-        {
-          "name": "adoptSubmissionUsageStorage/adoptSubmissionUsageStorage/adoptSubmissionUsageStorage#3",
-          "parameters": [
-            "sql"
-          ],
-          "async": false
-        },
-        {
-          "name": "adoptSubmissionUsageStorage/adoptSubmissionUsageStorage/adoptSubmissionUsageStorage#4",
-          "parameters": [
-            "sql"
-          ],
-          "async": false
-        },
-        {
-          "name": "adoptSubmissionUsageStorage/adoptSubmissionUsageStorage/adoptSubmissionUsageStorage#5",
-          "parameters": [
-            "sql"
           ],
           "async": false
         },
@@ -29080,6 +29053,50 @@
           "name": "cid/cid",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalRowUsageStorage",
+          "parameters": [
+            "database",
+            "retainedRows"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalRowUsageStorage/createJournalRowUsageStorage",
+          "parameters": [
+            "sql"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalRowUsageStorage/createJournalRowUsageStorage#2",
+          "parameters": [
+            "sql"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSubmissionUsageStorage",
+          "parameters": [
+            "database",
+            "retained"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSubmissionUsageStorage/createSubmissionUsageStorage",
+          "parameters": [
+            "sql"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSubmissionUsageStorage/createSubmissionUsageStorage#2",
+          "parameters": [
+            "sql"
           ],
           "async": false
         },
@@ -29755,6 +29772,72 @@
           "async": false
         },
         {
+          "name": "openClientRequestJournal/initializeFeature/initializeFeature",
+          "parameters": [
+            "action"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/initializeSchema/initializeSchema",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/initializeSchema/initializeSchema/initializeSchema",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/initializeSchema/initializeSchema/initializeSchema/initializeSchema",
+          "parameters": [
+            "sql"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/initializeSchema/initializeSchema/initializeSchema/initializeSchema#2",
+          "parameters": [
+            "sql"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/initializeSchema/initializeSchema/initializeSchema#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/initializeSchema/initializeSchema/initializeSchema#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/initializeSchema/initializeSchema/initializeSchema#4",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/initializeSchema/initializeSchema/initializeSchema#5",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/initializeSchema/initializeSchema/initializeSchema#6",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/initializeSchema/initializeSchema/initializeSchema#7",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/initializeSchema/initializeSchema/initializeSchema#8",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openClientRequestJournal/inspectEpoch/inspectEpoch",
           "parameters": [
             "epoch",
@@ -30398,61 +30481,7 @@
           "async": false
         },
         {
-          "name": "openClientRequestJournal/openClientRequestJournal/openClientRequestJournal",
-          "parameters": [
-            "sql"
-          ],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/openClientRequestJournal/openClientRequestJournal#2",
-          "parameters": [
-            "sql"
-          ],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/openClientRequestJournal#10",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "openClientRequestJournal/openClientRequestJournal#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/openClientRequestJournal#3",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/openClientRequestJournal#4",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/openClientRequestJournal#5",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/openClientRequestJournal#6",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/openClientRequestJournal#7",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/openClientRequestJournal#8",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/openClientRequestJournal#9",
           "parameters": [],
           "async": false
         },
@@ -30469,6 +30498,14 @@
           "name": "openClientRequestJournal/ownedCancellationRef/ownedCancellationRef",
           "parameters": [
             "ref"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/publishFormatMarker/publishFormatMarker",
+          "parameters": [
+            "name",
+            "bytes"
           ],
           "async": false
         },
@@ -30705,6 +30742,14 @@
             "epoch",
             "fields",
             "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/writeFormatMarker/writeFormatMarker",
+          "parameters": [
+            "name",
+            "bytes"
           ],
           "async": false
         },
@@ -30995,6 +31040,11 @@
             "openClientRequestJournal/ensureOpen/ensureOpen",
             "openClientRequestJournal/epochClock/epochClock",
             "openClientRequestJournal/epochHandle/epochHandle",
+            "openClientRequestJournal/initializeSchema/initializeSchema/initializeSchema",
+            "openClientRequestJournal/initializeSchema/initializeSchema/initializeSchema#2",
+            "openClientRequestJournal/initializeSchema/initializeSchema/initializeSchema#3",
+            "openClientRequestJournal/initializeSchema/initializeSchema/initializeSchema#4",
+            "openClientRequestJournal/initializeSchema/initializeSchema/initializeSchema#5",
             "openClientRequestJournal/inspectEpoch/inspectEpoch",
             "openClientRequestJournal/journal/init:accept/init:accept",
             "openClientRequestJournal/journal/init:admitOrLookupDefinition/init:admitOrLookupDefinition",
@@ -31065,11 +31115,6 @@
             "openClientRequestJournal/journal/init:verifySubmissionEpoch/init:verifySubmissionEpoch",
             "openClientRequestJournal/lookupRecord/lookupRecord",
             "openClientRequestJournal/openClientRequestJournal",
-            "openClientRequestJournal/openClientRequestJournal#2",
-            "openClientRequestJournal/openClientRequestJournal#3",
-            "openClientRequestJournal/openClientRequestJournal#4",
-            "openClientRequestJournal/openClientRequestJournal#5",
-            "openClientRequestJournal/openClientRequestJournal#6",
             "openClientRequestJournal/originalIntent/originalIntent",
             "openClientRequestJournal/ownedCancellationRef/ownedCancellationRef",
             "openClientRequestJournal/readRunDefinitionRow/readRunDefinitionRow",
@@ -31910,13 +31955,13 @@
             "inspectNameStorage/fields/fields",
             "openClientRequestJournal/assertNameCustody/assertNameCustody",
             "openClientRequestJournal/authenticateName/authenticateName",
+            "openClientRequestJournal/initializeSchema/initializeSchema/initializeSchema#6",
+            "openClientRequestJournal/initializeSchema/initializeSchema/initializeSchema/initializeSchema",
+            "openClientRequestJournal/initializeSchema/initializeSchema/initializeSchema/initializeSchema#2",
             "openClientRequestJournal/journal/init:resolveNamedSubmissionAttempt/init:resolveNamedSubmissionAttempt",
             "openClientRequestJournal/journal/init:resolveNamedSubmissionAttempt/init:resolveNamedSubmissionAttempt/init:resolveNamedSubmissionAttempt",
             "openClientRequestJournal/journal/init:resolveOrBindSubmittedName/init:resolveOrBindSubmittedName",
             "openClientRequestJournal/journal/init:resolveOrBindSubmittedName/init:resolveOrBindSubmittedName/result/result",
-            "openClientRequestJournal/openClientRequestJournal#7",
-            "openClientRequestJournal/openClientRequestJournal/openClientRequestJournal",
-            "openClientRequestJournal/openClientRequestJournal/openClientRequestJournal#2",
             "openClientRequestJournal/recordIntentLocked/recordIntentLocked"
           ],
           "exports": [],
@@ -32133,10 +32178,10 @@
         },
         {
           "operations": [
+            "openClientRequestJournal/initializeSchema/initializeSchema/initializeSchema#7",
             "openClientRequestJournal/journal/init:lookupOriginalSourceOperation/init:lookupOriginalSourceOperation",
             "openClientRequestJournal/journal/init:reservePhysicalStart/init:reservePhysicalStart/started/started",
             "openClientRequestJournal/journal/init:reservePhysicalStart/init:reservePhysicalStart/started/started#2",
-            "openClientRequestJournal/openClientRequestJournal#8",
             "openClientRequestJournal/sourceOperations/sourceOperations"
           ],
           "exports": [],
@@ -32243,7 +32288,7 @@
             "openClientRequestJournal/captureDatabaseCleanup/captureDatabaseCleanup",
             "openClientRequestJournal/captureObservationCleanup/captureObservationCleanup",
             "openClientRequestJournal/initializationCleanup/init:close/init:close",
-            "openClientRequestJournal/openClientRequestJournal#9",
+            "openClientRequestJournal/initializeSchema/initializeSchema/initializeSchema#8",
             "originalJournalFacilityField",
             "selectJournalTemporaryStorage",
             "snapshotPrimaryExecutionLimits",
@@ -32492,12 +32537,12 @@
             "adoptSubmissionUsageStorage",
             "adoptSubmissionUsageStorage/adoptSubmissionUsageStorage",
             "adoptSubmissionUsageStorage/adoptSubmissionUsageStorage/adoptSubmissionUsageStorage",
-            "adoptSubmissionUsageStorage/adoptSubmissionUsageStorage/adoptSubmissionUsageStorage#2",
-            "adoptSubmissionUsageStorage/adoptSubmissionUsageStorage/adoptSubmissionUsageStorage#3",
-            "adoptSubmissionUsageStorage/adoptSubmissionUsageStorage/adoptSubmissionUsageStorage#4",
-            "adoptSubmissionUsageStorage/adoptSubmissionUsageStorage/adoptSubmissionUsageStorage#5",
             "adoptSubmissionUsageStorage/adoptSubmissionUsageStorage/retained/retained",
             "adoptSubmissionUsageStorage/adoptSubmissionUsageStorage/retainedRows/retainedRows",
+            "createJournalRowUsageStorage/createJournalRowUsageStorage",
+            "createJournalRowUsageStorage/createJournalRowUsageStorage#2",
+            "createSubmissionUsageStorage/createSubmissionUsageStorage",
+            "createSubmissionUsageStorage/createSubmissionUsageStorage#2",
             "inspectJournalRowUsage",
             "inspectJournalRowUsage/inspectJournalRowUsage",
             "inspectJournalRowUsage/inspectJournalRowUsage/inspectJournalRowUsage",
@@ -32530,7 +32575,7 @@
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "function adoptSubmissionUsageStorage(database, transaction, previousMarker)"
+                "anchor": "function adoptSubmissionUsageStorage(database, transact, previousMarker, fresh)"
               }
             ],
             "identity": [
@@ -32611,7 +32656,7 @@
           "operations": [
             "inspectJournalNativeStorage",
             "inspectJournalNativeStorage/fields/fields",
-            "openClientRequestJournal/openClientRequestJournal#10",
+            "openClientRequestJournal/openClientRequestJournal#2",
             "readJournalFormatFeatures"
           ],
           "exports": [],
@@ -33590,6 +33635,115 @@
               {
                 "path": "adapters/host-node/client-dispatch-observation.test.mjs",
                 "anchor": "test('actual installed failed Compute observes stop across public observation publication'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createJournalRowUsageStorage",
+            "createSubmissionUsageStorage",
+            "openClientRequestJournal/initializeFeature/initializeFeature",
+            "openClientRequestJournal/initializeSchema/initializeSchema",
+            "openClientRequestJournal/publishFormatMarker/publishFormatMarker",
+            "openClientRequestJournal/writeFormatMarker/writeFormatMarker"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "A fresh request Journal builds the current tables, indexes, triggers, initial"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "const initializeSchema=()=>{"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "function createSubmissionUsageStorage(database, retained) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "if (current !== existed)"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "assertOriginalPreparedLocalPublicationStoreOwnership(ownedOriginal,"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "originalDatabaseClose ??= connection.close;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "transaction.run(initializeSchema);"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "database.exec('PRAGMA synchronous = FULL');"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "throwSqliteInitializationFailure(initializationCleanup, error,"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "refuses without deleting, resetting or reconstructing its original database."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "primaryCurrent?.();"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "const initializationCleanup = {close() {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "boundJournalDatabaseExtent(database, maxDatabaseBytes"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "boundedPrimarySql(connection, primarySqlLimits"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "initializeFeature(() => database.exec(sourceOperationTable));"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "An existing database's additive format adoption retains its immediate per-marker"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-request-journal-fresh-schema.test.mjs",
+                "anchor": "test('fresh Journal commits its complete current schema once"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-fresh-schema.test.mjs",
+                "anchor": "test('abrupt fresh initialization at '"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-fresh-schema.test.mjs",
+                "anchor": "test('actual older base format adopts the same DDL"
               }
             ]
           }
@@ -119034,7 +119188,7 @@
       "sha256": "2ee6349eeab84f91d0d34d24031d6a62e801babd48758632fee7e6b4297e115a",
       "responsibilityFacet": "primary",
       "role": "physical-io",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "exports": [
         "createInstalledCredentialSourceReader",
         "installedJsonSourceReaderLimitNames",
@@ -119773,7 +119927,7 @@
       "sha256": "b316bbda6a28ab1c3feea0dadc964e01612d9085a0095f6a8a21abbc17ae5cc9",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "exports": [
         "finishInstalledEffectModelScope",
         "installedEffectModelPreparation",
@@ -120462,7 +120616,7 @@
       "sha256": "9297b27b6811b4aa2b0e6b3e03707674afbf1592f757eed0cc6195f537be0c29",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "exports": [
         "assertInstalledSourceConstruction",
         "beginInstalledSourceInitialization",
@@ -124944,10 +125098,10 @@
     "Whole-distribution or installed-cohort completion"
   ],
   "counts": {
-    "modules": 185,
-    "operations": 4776,
-    "exports": 1121,
-    "explicitContractGroups": 495
+    "modules": 187,
+    "operations": 4873,
+    "exports": 1131,
+    "explicitContractGroups": 503
   },
   "scope": "The original supplied modules and explicitly added Project Task/profile installation modules are source/reference facets, not a reassignment of Coordinator/Transfer, process, Connector, Credential, Store or semantic implementation ownership."
 }
