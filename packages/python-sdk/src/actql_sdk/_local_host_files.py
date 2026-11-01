@@ -145,7 +145,7 @@ class LocalHostFiles:
             originals = tuple(self._files.values())
             observed = self._root._observe_originals(tuple(value.reader for value in originals))
             for value, snapshot in zip(originals, observed, strict=True):
-                if snapshot != value.snapshot:
+                if snapshot is not value.snapshot and snapshot != value.snapshot:
                     raise ValueError('Original Local Host saved file changed')
 
     def close(self) -> bool:
