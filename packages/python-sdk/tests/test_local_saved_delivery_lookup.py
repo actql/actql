@@ -9,6 +9,7 @@ from actql_sdk._local_core import LocalCoreError
 from actql_sdk._local_files import LocalFileRoot
 from actql_sdk._local_sdk_delivery_storage import OriginalSDKDeliveryStore
 import test_local_submission_lookup as fixture
+from local_abi_declaration_fixture import original_byte_fixture_port
 
 
 class SavedDeliveryLookupTests(unittest.TestCase):
@@ -52,7 +53,7 @@ class SavedDeliveryLookupTests(unittest.TestCase):
             if family == 'buffer' and name == 'byte' and args[0] in children:
                 return wire[args[1]]
             return base(family, name, *args)
-        core._call = call
+        core._call = original_byte_fixture_port(call)
         return host, reference, observed, state, counts
 
     def test_public_saved_lookup_is_same_snapshot_read_without_payload_grant_or_write(self):

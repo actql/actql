@@ -40,44 +40,12 @@ async function fixture(source = true, project = false) {
   return {view, prepared, selected, declarations, dataPath, receipt, quotes, setCurrent(value) {current = value;}};
 }
 
-test('ordinary Content owns one purpose and retains the same keyed physical close through current refusal', async () => {
+test('ordinary Project Content exposes only its original Request constructor, not another Root', async () => {
   const f = await fixture(true, true);
-  const original = f.view.prepareContentRun(f.prepared, f.selected);
-  assert.strictEqual(f.view.prepareContentRun(f.prepared, f.selected), original);
-  assert.throws(() => f.view.prepareRun(f.prepared), {code: 'ForeignInstalledModelPreparation'});
-  assert.throws(() => f.view.prepareContentRun(f.prepared, {}), {code: 'ForeignInstalledModelPreparation'});
-  const ports = runtime.prepareOriginalLocalContentRunPorts(original, f.prepared);
-  assert.equal(ports.status(0), 0);
-  const request = {}, child = f.view.prepareKeyedRead(f.prepared, f.declarations[0], original, request);
-  assert.throws(() => f.view.prepareKeyedRead(f.prepared, {}, original, {}), {code: 'InstalledSourcePreparationMismatch'});
-  assert.throws(() => f.view.prepareKeyedRead(f.prepared, f.declarations[0], {}, {}), {code: 'InstalledSourcePreparationMismatch'});
-  assert.throws(() => f.view.prepareKeyedRead(f.prepared, f.declarations[0], original, request), {code: 'InstalledSourcePreparationMismatch'});
-  let pending = true, calls = 0;
-  const physical = {close() {assert.strictEqual(this, physical); calls++; return {pending};}, status() {return {pending};}};
-  child.retainChild(physical);
-  physical.close = () => assert.fail('replacement close must not be adopted');
-  f.view.finishSourceProducer(f.receipt, 'returned');
-  f.setCurrent(false);
-  assert.throws(() => f.view.assertCurrent(), /original-current/);
-  assert.equal(ports.report(0, 0, 0, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0, 0, 0), 0);
-  assert.equal(ports.status(2), -42);
-  assert.equal((await child.close()).pending, true);
-  pending = false;
-  assert.equal((await child.close()).pending, false);
-  assert.equal(calls, 2);
-  assert.equal(ports.status(2), 0);
-  assert.equal((await f.view.close()).pending, false);
-});
-
-test('ordinary keyed physical child history is not refilled by close', async () => {
-  const f = await fixture(true, true);
-  const original = f.view.prepareContentRun(f.prepared, f.selected);
-  for (let index = 0; index < 2; index++) {
-    const child = f.view.prepareKeyedRead(f.prepared, f.declarations[0], original, {});
-    assert.equal((await child.close()).pending, false);
-  }
-  assert.throws(() => f.view.prepareKeyedRead(f.prepared, f.declarations[0], original, {}),
-    {code: 'InstalledSourcePreparationMismatch'});
+  assert.equal(f.view.prepareContentRun, undefined);
+  assert.equal(typeof f.view.prepareKeyedContentRun, 'function');
+  assert.throws(() => f.view.prepareKeyedContentRun(f.prepared, {}, {}, {}, () => {}, () => {}),
+    {code: 'ForeignInstalledSourceProducer'});
   f.view.finishSourceProducer(f.receipt, 'failed');
   assert.equal((await f.view.close()).pending, false);
 });

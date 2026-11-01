@@ -1,6 +1,7 @@
 // The portable provider retains original requests; the installed Effect owner
 // retains approval, durable claims, current installation and cleanup custody.
 import {randomUUID} from 'node:crypto';
+import {sheetsRangeDriverConstruction,sheetsRangeConfiguration} from './sheets-range-command.mjs';
 import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
 import {prepareSheetsClear, projectSheetsClear, sendSheetsClear,
   SHEETS_CLEAR_OPERATION, SHEETS_LIMITS} from '../site/sheets-exchange.mjs';
@@ -19,10 +20,12 @@ export function sheetsClearCommand(connectorId, site, moon) {
 }
 
 export function createSheetsClearDriver({moon, site, command, bindingCid, target, isCurrent}) {
-  const binding = sheetsOwnedResult(moon, moon.sheetsClearBinding(JSON.stringify({
-    origin: site.apiOrigin, spreadsheetId: site.spreadsheetId,
-    range: site.gridRange, columns: site.columns,
-  }), command.commandCid, bindingCid, wire(target), ...limits(SHEETS_LIMITS.maxRequestBytes)));
+  const configurationWire = JSON.stringify(sheetsRangeConfiguration(site));
+  const targetWire = wire(target);
+  const binding = sheetsOwnedResult(moon, moon.sheetsClearBinding(configurationWire,
+    command.commandCid, bindingCid, targetWire, ...limits(SHEETS_LIMITS.maxRequestBytes)));
+  const managed = sheetsRangeDriverConstruction({moon,binding,site,command,bindingCid,targetWire,
+    operation:SHEETS_CLEAR_OPERATION,profileName:'sheetsClearConstructionProfile'});
   const boundaryCid = target.boundary_cid;
   const current = () => { if (!isCurrent()) fail('SheetsRangeReferenceUnavailable'); };
   const admitTarget = target => {
@@ -30,12 +33,24 @@ export function createSheetsClearDriver({moon, site, command, bindingCid, target
     if (!moon.sheetsClearTargetMatches(binding, wire(target))) fail('SheetsRangeReferenceUnavailable');
   };
   const admitRequest = request => {
-    admitTarget(request.target);
-    return ownedSheetsClearRequestCid(request, binding);
+    current();
+    try {
+      // The private projection retains the SAME native request and binding;
+      // its immutable target was admitted by that original constructor. Do
+      // not parse/canonicalize it again on each CID/read/send boundary.
+      return ownedSheetsClearRequestCid(request, binding);
+    } catch (cause) {
+      // Preserve the existing target-first refusal for foreign/copied input.
+      // This failed path never upgrades a projection to an original request.
+      admitTarget(request.target);
+      throw cause;
+    }
   };
-  return Object.freeze({kinds: ['command'], writeOperation: () => SHEETS_CLEAR_OPERATION,
+  return Object.freeze({...managed,kinds: Object.freeze(['command']), writeOperation: () => SHEETS_CLEAR_OPERATION,
     prepareRequest({member, value, selector}) {
       if (member.resource !== 'range_target') fail('UndeclaredSheetsResource');
+      // Preserve target refusal before value encoding or marker creation.
+      // Native matches the original canonical spelling without re-parsing it.
       admitTarget(selector);
       // A marker is generated exactly once for this original request. Restore
       // reads the captured original marker instead of preparing another send.

@@ -560,6 +560,6 @@ test "actual shared JS constructor child retains the original native Kintone req
     ),
   )
   assert_eq(owner.effect_operations.length(), 1)
-  assert_true(owner.effect_operations[0].retired)
+  assert_true(owner.effect_operations[0] is None)
   retire_installed_managed_run(owner).unwrap()
 }

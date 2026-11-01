@@ -78,6 +78,7 @@ priv struct LocalCommandPreparationOriginal {
   mut read_inventory_recorded : Bool
   mut business_inventory_recorded : Bool
   mut run_observation : LocalCommandRunObservationOriginal?
+  cancellation_recovery : Ref[String?]
   mut host : @initial_arena.InstalledArenaHost?
   mut backing_scope : @initial_arena.InstalledArenaBackingBorrow?
   mut backing_entered : Bool
@@ -187,6 +188,7 @@ fn prepare_local_command_preparation_original(
     read_inventory_recorded: false,
     business_inventory_recorded: false,
     run_observation: None,
+    cancellation_recovery: Ref(None),
     business: business.map(candidate => {
       profile: candidate,
       selected_profile: None,
@@ -1293,7 +1295,10 @@ fn LocalCommandPreparationOriginal::prepare_adopted_journal(
       let crypto = command_preparation_value(self.library(true))
       let material = command_preparation_value(
         session
-        .create_initial_signing_material(crypto)
+        .create_initial_signing_material(
+          crypto,
+          host_signing_subject=options.initial_host_signing,
+        )
         .map_err(original => CommandAdoption(original.issue())),
       )
       command_preparation_value(

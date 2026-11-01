@@ -21,7 +21,7 @@ const fail = code => {
 // Current apply admission remains a separate step after evidence recovery.
 export async function recoverAdmittedEffectRun({
   requests, store, key, principalId, authorizeEvidenceRead, contractLimits,
-  signal, restoreOriginal,
+  signal, restoreOriginal, prepareRecoveryResources, retainRecoveryResources,
 }, loadRuntime) {
   if (typeof requests?.lookupOwnedDefinition !== 'function' ||
       typeof store?.storeAuthorityCid !== 'string' ||
@@ -30,6 +30,8 @@ export async function recoverAdmittedEffectRun({
       !cid(key?.runDefinitionCid) ||
       typeof authorizeEvidenceRead !== 'function' ||
       typeof loadRuntime !== 'function' ||
+      (prepareRecoveryResources !== undefined && typeof prepareRecoveryResources !== 'function') ||
+      (retainRecoveryResources !== undefined && typeof retainRecoveryResources !== 'function') ||
       (restoreOriginal !== undefined && typeof restoreOriginal !== 'function') ||
       !['maxWireBytes', 'maxNodes', 'maxDepth'].every(name =>
         Number.isSafeInteger(contractLimits?.[name]) &&
@@ -92,14 +94,38 @@ export async function recoverAdmittedEffectRun({
     }
   };
   assertOriginalCurrent();
-  let computation;
+  let computation, recoveryResources;
   try {
+    if (prepareRecoveryResources !== undefined) {
+      const selected = prepareRecoveryResources({moon, control, requestIdentity,
+        runDefinition: retained.runDefinition, contractLimits: limits,
+        assertOriginalCurrent, retain(original) {
+          if (recoveryResources !== undefined && recoveryResources !== original) {
+            fail('EffectRecoveryResourcesUnavailable');
+          }
+          recoveryResources = original;
+          retainRecoveryResources?.(original);
+        }});
+      if (typeof selected?.then === 'function') {
+        void Promise.resolve(selected).catch(() => {});
+        fail('EffectRecoveryResourcesUnavailable');
+      }
+      if (selected !== recoveryResources) fail('EffectRecoveryResourcesUnavailable');
+      if (!['begin', 'reserve', 'finish', 'retainCleanup', 'close'].every(name =>
+          typeof recoveryResources?.[name] === 'function')) fail('EffectRecoveryResourcesUnavailable');
+    }
+    signal?.throwIfAborted();
     computation = await recoverCompletedEffectfulComputation({
       store, control, runDefinition: retained.runDefinition,
       contractLimits: limits,
-    });
+    }, recoveryResources);
+    signal?.throwIfAborted();
     assertOriginalCurrent();
   } catch (error) {
+    // The original resource frame is already in the Host bag. Dispose only
+    // its actual constructed children; a pending/failed close stays there for
+    // that same Host's existing retry without replacing the primary cause.
+    try {await recoveryResources?.close();} catch { /* Same retained cleanup. */ }
     // Only a Store's confirmed missing/corrupt object, after exact request
     // and evidence-read admission, is a definitive custody refusal. EIO,
     // timeouts and caller-created code strings carry no such conclusion.
@@ -111,5 +137,6 @@ export async function recoverAdmittedEffectRun({
   return Object.freeze({requestIdentity,
     ...original,
     requestScope: moon.clientRequestLogicalScope(requestIdentity),
-    runDefinition: retained.runDefinition, computation});
+    runDefinition: retained.runDefinition, computation,
+    ...(recoveryResources === undefined ? {} : {recoveryResources})});
 }

@@ -26,6 +26,8 @@ priv struct LedgerOriginalInventory {
   reservations : OriginalTokenSlots[Reservation]
   holdings : OriginalTokenSlots[Holding]
   delegations : OriginalTokenSlots[ExecutionDelegation]
+  // Counts only SAME original live holdings, never consumed work/attempts.
+  mut holding_counts : Map[Int, Int]
   // One checked Run binding may be installed after preparation, before reads.
   // The same scalar also selects existing bootstrap settlement custody. A
   // preparation census never becomes an independent owner of its reservation.
@@ -123,6 +125,7 @@ fn begin_original_ledger_inventory_owned(
     delegations: original_token_slots(
       capacity=if binding == PreparationUnbound { max_delegations } else { 0 },
     ),
+    holding_counts: Map([]),
     binding,
     preparation_attempt_base: -1,
     descriptor_issued: false,
@@ -354,7 +357,7 @@ fn record_original_reservation(
     if !preparation_input || !original_inventory_preparation_unbound(inventory) {
       record_original_non_preparation_token(inventory)
     }
-    inventory.reservations.push(value)
+    inventory.reservations.push(value, value.serial)
   }
 }
 
@@ -362,7 +365,11 @@ fn record_original_reservation(
 fn record_original_holding(ledger : Ledger, value : Holding) -> Unit {
   if ledger.original_inventory is Some(inventory) {
     record_original_non_preparation_token(inventory)
-    inventory.holdings.push(value)
+    inventory.holdings.push(value, value.serial)
+    inventory.holding_counts[value.reservation_serial] = inventory.holding_counts
+      .get(value.reservation_serial)
+      .unwrap_or(0) +
+      1
   }
 }
 
@@ -373,7 +380,7 @@ fn record_original_delegation(
 ) -> Unit {
   if ledger.original_inventory is Some(inventory) {
     record_original_non_preparation_token(inventory)
-    inventory.delegations.push(value)
+    inventory.delegations.push(value, value.reservation.serial)
   }
 }
 
@@ -382,35 +389,32 @@ fn retire_original_reservation(ledger : Ledger, value : Reservation) -> Unit {
   if ledger.original_inventory is Some(inventory) {
     // A retained output still requires the original closed reservation binding.
     // This is live custody, unlike an expired identity retained only as history.
-    if inventory.holdings.any(holding => {
-        holding.live && holding.reservation_serial == value.serial
-      }) {
+    if inventory.holding_counts.get(value.serial).unwrap_or(0) != 0 {
       return
     }
-    for index in 0..<inventory.reservations.length() {
-      if physical_equal(inventory.reservations[index], value) {
-        inventory.reservations.remove(index) |> ignore
-        break
-      }
-    }
+    inventory.reservations.remove_original(value.serial, value) |> ignore
   }
 }
 
 ///|
 fn retire_original_holding(ledger : Ledger, value : Holding) -> Unit {
   if ledger.original_inventory is Some(inventory) {
-    for index in 0..<inventory.holdings.length() {
-      if physical_equal(inventory.holdings[index], value) {
-        inventory.holdings.remove(index) |> ignore
-        break
-      }
+    if !inventory.holdings.remove_original(value.serial, value) {
+      return
     }
-    for index in 0..<inventory.reservations.length() {
-      let reservation = inventory.reservations[index]
-      if reservation.serial == value.reservation_serial && !reservation.open {
-        retire_original_reservation(ledger, reservation)
-        break
-      }
+    let remaining = inventory.holding_counts
+      .get(value.reservation_serial)
+      .unwrap_or(0) -
+      1
+    if remaining > 0 {
+      inventory.holding_counts[value.reservation_serial] = remaining
+      return
+    }
+    inventory.holding_counts.remove(value.reservation_serial)
+    if inventory.reservations.by_serial(value.reservation_serial)
+      is Some(reservation) &&
+      !reservation.open {
+      retire_original_reservation(ledger, reservation)
     }
   }
 }
@@ -421,12 +425,8 @@ fn retire_original_delegation(
   value : ExecutionDelegation,
 ) -> Unit {
   if ledger.original_inventory is Some(inventory) {
-    for index in 0..<inventory.delegations.length() {
-      if physical_equal(inventory.delegations[index], value) {
-        inventory.delegations.remove(index) |> ignore
-        break
-      }
-    }
+    inventory.delegations.remove_original(value.reservation.serial, value)
+    |> ignore
   }
 }
 
@@ -515,6 +515,8 @@ pub fn finish_original_ledger_inventory(
   value.holdings.shrink_to_fit()
   value.delegations.clear()
   value.delegations.shrink_to_fit()
+  value.holding_counts.clear()
+  value.holding_counts = Map([])
   ledger.original_inventory = None
   settle_capacity(ledger, value.bootstrap)
   .map(_ => true)

@@ -67,6 +67,33 @@ test "Model limit controls preserve original vector and selected census fields" 
 }
 
 ///|
+test "retained Model bounds project the same stored consumer fields before a Run" {
+  let selected = selected_model_limits_composition_fixture(11L)
+  let selected = {
+    ..selected,
+    input: {
+      ..selected.input,
+      rows: {
+        ..selected.input.rows,
+        operation_entries: 17,
+        retained_entries: 19,
+        metadata_entries: 23,
+      },
+    },
+  }
+  // These are deliberately different from the consumer's read/Model pairs.
+  // A projection must not replace the existing allowances with Ledger totals.
+  assert_eq(selected.model.ledger.retained_bytes, 10L)
+  assert_eq(selected.model.ledger.execution_bytes, 20L)
+  let fields = client_program_composed_infer_retained_limits(selected)
+  assert_eq(fields, [11L, 13L, 11L, 13L, 11L, 13L, 17L, 19L, 23L])
+  fields[0] = 999L
+  assert_eq(client_program_composed_infer_retained_limits(selected), [
+    11L, 13L, 11L, 13L, 11L, 13L, 17L, 19L, 23L,
+  ])
+}
+
+///|
 test "Model limit controls admit exact Int64 overlap without cross-dimension restriction" {
   let selected = selected_model_limits_composition_fixture(4611686018427387903L)
   let selected = {

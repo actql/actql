@@ -114,30 +114,29 @@ whole graph independently of the finite decoder and request bounds.
 
 ## Original installed thread reader binding
 
-The private thread factory receives the existing installed caller's original
-RowRun acquisition, run, request identity and Run/dispatch binding. It captures
-the provider methods, Site methods and current/charge/row callbacks with their
-receivers before asynchronous work. The same original container and opaque
-values must remain selected after every Account await. Preparing another reader
-for that acquisition or starting the same reader twice is refused.
+The installed thread route retains the same original Source initialization,
+selected implementation and credential Site as labels. Its declaration and
+reader are constructed by that Source's services; no `readerCapacity` port or
+profile amount creates the original capacity. Captured provider methods and
+receivers stay selected across configuration and Account awaits.
 
-The original Host LIST authorization remains a LIST authorization. For the first
-dependent get, the factory requires the Common reader's actual pending request,
-then obtains a separate GET grant from the same Site using its original current
-Account decision. The grant retains the original Run and dispatch, and is bounded
-by the original get extent. Each subsequent get uses a distinct original use ID;
-it does not refresh or replace the grant. The membership assertion exposes no
-Common control and cannot itself issue Account permission or physical custody.
+The original Host LIST authorization remains a LIST authorization. The existing
+RowRun caller keeps the list grant bounded by P list pages and obtains a separate
+GET grant, bounded by T threads, from the same Site's current Account decision.
+Each dependent get retains the Common control's actual pending request and a
+distinct use ID. Reentry or a repeated nominal request cannot restore an already
+consumed occurrence. Neither matching operation text nor token visibility grants
+a use.
 
-The factory retains the child reader, pending-request references, original
-RowRun, captured receivers, credential binding, grant and failure graph. Actual
-transport close remains separate from raw/row/callback retirement. Completion
-of the typed rows does not supply a physical cleanup acknowledgement or release
-the original capture reservation. Stop and failure keep the original attempts;
-there is no replacement reader, grant retry or resend.
+The same shared reader retains the original credential binding, raw responses,
+charges and provider callbacks. The Gmail sequence cannot retire its control
+while its read or an observation consumer is pending. Protocol retirement then
+joins actual binding close and the original binding-retirement duty; completed
+rows or a stopped socket cannot acknowledge the whole graph's cleanup. Stop and
+failure retain spent attempts and cannot create another read or resend.
 
 The installed Source profile explicitly selects `resource: "threads"` to bind
-this factory. An absent selector keeps the original labels profile and identity;
+this sequence. An absent selector keeps the original labels profile and identity;
 unknown selectors and mixed limit sets refuse rather than falling back. The
 Gmail Catalog supplies the same thread schema and original ID candidate-key
 facts to Common's ordinary declaration and Source alias admission. The selected
@@ -145,17 +144,32 @@ thread target and binding remain distinct from the label target even at the
 same mailbox, Site and runtime. Neither declaration facts nor target DATA issue
 Account permission.
 
-The existing Host/Resource supplier must cover both list and dependent-get
-response transfers and their overlapping retained/workspace inventory. With
-list bound P, get bound T and per-response byte cap B, the original RowRun raw
-response envelope is (P + T) × B, one checked row per get and at most T captured
-rows. A thin same-Site delegate retains the original issuer method/receiver and
-keeps the list grant's P-use bound; the reader's separate original get grant
-retains its T-use bound. It does not create a second issuer or retarget a grant.
-The configured total-response byte check remains independent, including failure
-after charge. Finite decoder bounds are not a capacity issuer. Missing normal
-supplies remain unavailable rather than borrowing the labels-only reservation
-or treating a final ticket as proof of the whole prefix.
+The existing Host/Resource supplier covers both list and dependent-get
+responses and their overlapping retained/workspace inventory. With P list pages,
+T threads, response byte bound B and total bound L, there are at most P + T
+responses, one checked row per get and T captured rows. The retained raw prefix
+is bounded by min((P + T) × B, L + B): the same owner charges one offending body
+before refusing the aggregate, and no later request can follow that refusal.
+`installed_gmail_thread_reader_capacity` separately composes the original pages,
+ID/token maps, nominal requests, checked values and current JSON/request/failed
+child workspace with the existing shared representation tariff. Byte ceilings
+alone do not account for those holdings or admit a parent reservation. The
+ordinary caller still needs its actual same-Plan funding and retirement.
+
+The former installed thread factory is retired. The installed loader and its
+existing Account/Site tests consume the shared managed reader and the original
+Host's operation-authorization callbacks. The Host keeps the immutable Run tuple;
+a mutable caller container cannot retarget it. A second data preparation cannot
+bind the same consumed original Site authorization to another acquisition.
+
+`gmail-thread-limits.mjs` owns the existing list/get limit names and pure DATA
+validation used by the installed loader and explicit protocol reader. The
+loader freezes its selected snapshot before provider construction. These
+synchronous predicates preserve the existing finite bounds and refusal names;
+they issue no reader capacity, permission, current observation or cleanup ACK.
+They introduce no await or cancellation boundary. The shared reader retains
+the original transport and failed-child retirement duties, and explicit test
+parent reservations remain separate from normal Request-owned backing.
 
 ## Installed label preparation
 
@@ -174,31 +188,38 @@ selected TLS authority; configuration normalization cannot collapse distinct
 mailboxes. The original Common schema/key declaration and checked Source alias
 publication remain the only query inputs.
 
-The trusted installer supplies the existing same-runtime opaque reader capacity;
+The trusted Host service selects the existing same-runtime opaque reader capacity;
 neither a public profile amount nor transfer/page ceilings issue this declaration.
-Absence is `GmailReaderCapacityUnavailable`, and missing original Credential
-material is unavailable before opening a Site. A normally discovered factory is
-not evidence that these independent supplies exist. In particular a test's
-explicit capacity declaration is not an adopted normal quantity.
+Labels retain the same original Source initialization, selected installation,
+checked declaration/environment and provider implementation. Missing that original
+constructor is unavailable before configuration or Site work. The fixed single
+complete response supplies both the total-response and one-page bounds. Its
+admitted value-text limit also covers the declared id String. The unused positive
+cursor field is only the existing non-paginated grammar sentinel; it creates no
+cursor, request or permission. These DATA select a recipe that the checked
+original Run still funds before reader construction.
 
-The factory uses the existing generic provider-reader path, which reserves on
-the original Run Ledger and installs its response-borrow cleanup observation
-before the synchronous I/O-free reader factory. One private wrapper obtains the
-already selected original read grant before creating its child reader, binding
-the original resource, mailbox, fields and request occurrence. It forwards
-current checks and cancellation around those awaits without retry or fallback
-to an ordinary reader. Whole-page charging and row admission use that same
-original RowRun. Copied preparations and foreign capacities cannot create a
-replacement acquisition.
+The factory uses the existing generic managed provider-reader path, which
+reserves on the original Run Ledger and installs its response-borrow cleanup
+observation before preparation. One pure request/page constructor is shared
+with the original explicit physical reader. It keeps exact mailbox encoding,
+all declared cells, whole-page refusal and the original Catalog projection;
+no second provider JSON interpretation or label transport owner is introduced.
+The Source-owned response holder reaches the physical Credential Resource
+unchanged through the scoped invoker, before late current/Journal/outcome
+checks. A received body remains accounted even if those checks refuse, and
+cannot supply a row or another read. Copied preparations and foreign capacities
+cannot create a replacement acquisition.
 
-The wrapper retains its child, original binding, signal, close failure, Promise
-and callbacks along with the original reader inventory. Closing the physical
-transport does not settle raw/callback/capture aliases. Failed close cannot
-replace the original read failure, and observation remains unconfirmed until
-the existing custody Owner supplies an actual original transfer/retirement
-receipt. The enclosing capture therefore keeps its reservation and recovery
-responsibility. No factory-local ledger, cleanup acknowledgement or token-based
-mailbox identity is introduced.
+The shared managed reader retains the original binding, signal, response,
+charge and callback/Promise custody. Stop closes admission to further reads;
+actual same-reader and binding retirement, rather than Promise completion or
+physical-close DATA alone, acknowledges release. Failed close cannot replace
+the original read failure. Durable Credential-use Unknown remains a separate
+Journal duty even after the same physical child has retired. No factory-local
+ledger, cleanup acknowledgement or token-based mailbox identity is introduced.
+The thread route selects its separate complete list/get recipe under this same
+reader Owner; it cannot borrow the label-only preparation.
 
 ## Original authentication dependency
 

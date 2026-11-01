@@ -4,14 +4,14 @@ import {createHash} from 'node:crypto';
 import {isAbsolute} from 'node:path';
 import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
-import {readSourceProfileJson,readBoundedConfigurationText} from '../../../host-node/source-profile-json.mjs';
+import {captureConfigurationReaders} from '../../../host-node/source-profile-json.mjs';
 import {retainInstalledHostInitializationFailure} from '../../../host-node/installed-host-cleanup.mjs';
-import {createInstalledRowSource,installRowSourceAuthorization,openRowSourceCredentialSite,
-  rowSourceCheckEnvironment} from '../../../host-node/installed-row-source.mjs';
-import {openHttpsCredentialBinding,closeHttpsCredentialBinding} from '../../../site-node/https-credential-resource.mjs';
-import {createGmailLabelListReader,GMAIL_LABEL_LIST_OPERATION} from '../site/gmail-label-list-read.mjs';
-import {createGmailThreadReaderFactory,checkGmailThreadReaderLimits} from './thread-reader.mjs';
-import {GMAIL_THREAD_LIST_OPERATION} from '../site/gmail-thread-read.mjs';
+import {createInstalledRowSource} from '../../../host-node/installed-row-source.mjs';
+import {types as nodeTypes} from 'node:util';
+import {captureInstalledSourceServices} from '../../../host-node/installed-host-services.mjs';
+import {prepareGmailLabelListPages,GMAIL_LABEL_LIST_OPERATION} from '../site/gmail-label-list-read.mjs';
+import {checkGmailThreadReaderLimits,gmailThreadReaderLimitNames} from '../site/gmail-thread-limits.mjs';
+import {prepareGmailThreadReadSequence,GMAIL_THREAD_LIST_OPERATION} from '../site/gmail-thread-read.mjs';
 
 export const INSTALLED_GMAIL_SOURCE_VERSION='actql-installed-gmail-source/0.1';
 export const INSTALLED_GMAIL_SITE_VERSION='actql-installed-gmail-site/0.1';
@@ -23,10 +23,7 @@ const readLimitKeys=['maxResponseBytes','maxNodes','maxDepth','maxRows','maxMail
   'maxValueNodes','maxValueTextBytes','maxRowsWireBytes','maxRowsWireNodes','maxRowsWireDepth'];
 const extraLimitKeys=['maxDeclarationBytes','maxDeclarationNodes','maxSecretBytes','maxCaBytes'];
 const limitKeys=[...readLimitKeys,...extraLimitKeys];
-const threadLimitKeys=['maxResponseBytes','maxTotalResponseBytes','maxNodes','maxDepth','pageSize','maxPages',
-  'maxThreads','maxMailboxBytes','maxTargetBytes','maxIdBytes','maxTokenBytes','maxMessages','maxLabels',
-  'maxHeaders','maxHeaderUnits','maxCommentDepth','maxValueNodes','maxValueTextBytes',
-  'maxRowsWireBytes','maxRowsWireNodes','maxRowsWireDepth',...extraLimitKeys];
+const threadLimitKeys=[...gmailThreadReaderLimitNames,...extraLimitKeys];
 const fail=code=>{throw Object.assign(new Error(code),{code});};
 const text=value=>typeof value==='string'&&value.length>0&&value.isWellFormed()&&!/[\u0000-\u001f\u007f]/u.test(value);
 const absolute=value=>text(value)&&isAbsolute(value);
@@ -67,15 +64,17 @@ function checkSite(site){
   return Object.freeze({...rest,...(caPath===undefined?{}:{caPath})});
 }
 
-async function readInputs(profile){
+async function readInputs(profile,configurationReader,readJson){
   const installed=checkInstalledGmailSourceProfile(profile);
-  const site=checkSite(await readSourceProfileJson(installed.siteProfilePath));
+  const reads=captureConfigurationReaders(configurationReader,readJson,
+    ()=>fail('InstalledGmailConfigurationReaderUnavailable'));
+  const site=checkSite(await reads.readJson(installed.siteProfilePath));
   let ca;
   if(site.caPath!==undefined){
     // This private Site accepts bounded PEM text, not an unbounded file read
     // or lenient UTF-8 identity. Non-ASCII/replacement input is refused rather
     // than re-encoding different authority bytes before hashing/native TLS.
-    const pem=await readBoundedConfigurationText(site.caPath,{maxBytes:installed.limits.maxCaBytes});
+    const pem=await reads.readText(site.caPath,{maxBytes:installed.limits.maxCaBytes});
     if(/[^\x09\x0a\x0d\x20-\x7e]/u.test(pem)||!pem.includes('-----BEGIN CERTIFICATE-----')||
         !pem.includes('-----END CERTIFICATE-----'))fail('InvalidInstalledGmailTlsAuthority');
     ca=Buffer.from(pem,'ascii');
@@ -87,113 +86,156 @@ async function readInputs(profile){
   return{installed,site,ca,binding};
 }
 
-export async function installedGmailSourceIdentityParts(profile,providerProfile){
-  const{site,binding}=await readInputs(providerProfile);
+export async function installedGmailSourceIdentityParts(profile,providerProfile,read,_installation,context){
+  const{site,binding}=await readInputs(providerProfile,context?.configurationReader,read);
   return[{...profile,accountConfigurationWire:JSON.parse(profile.accountConfigurationWire)},site,binding];
 }
 
-// A synchronous, I/O-free factory is required by the original RowRun caller.
-// Its read obtains the already selected grant before constructing one child;
-// every failure retains that same child/binding/Promise graph for recovery.
-function originalReaderFactory({provider,site,installed,capacity}){
-  return Object.freeze({capacity,prepare(options){
-    const stop=new AbortController();
-    const signal=options.signal===undefined?stop.signal:AbortSignal.any([options.signal,stop.signal]);
-    let phase='ready',child,binding,closed=false,originalFailure,transportFailure;
-    const closeTransport=()=>{if(binding!==undefined&&!closed)closed=closeHttpsCredentialBinding(binding)==='closed';};
-    const handle=Object.freeze({
-      async read(){
-        if(this!==handle)fail('ForeignInstalledGmailReader');
-        if(phase!=='ready')fail('InstalledGmailReaderAlreadyStarted');
-        phase='reading';
-        try{
-          signal.throwIfAborted();await options.verifyRead();signal.throwIfAborted();
-          const original=await options.authorizationFor(0);
-          signal.throwIfAborted();await options.verifyRead();signal.throwIfAborted();
-          binding=openHttpsCredentialBinding({...site.credential,scope:original.scope,
-            maxSecretBytes:installed.limits.maxSecretBytes});
-          child=createGmailLabelListReader({moon:provider,mailbox:installed.mailbox,names:options.columns,
-            initialAuthorization:original,credential:{...site.credential,binding},
-            authorizationFor:async({index})=>{if(index!==0)fail('ForeignInstalledGmailRead');return original;},
-            current:async operation=>{if(operation!==GMAIL_LABEL_LIST_OPERATION)fail('ForeignInstalledGmailRead');
-              return options.verifyRead();},
-            chargeResponse:options.chargePage,consumePage:options.consumePage,
-            limits:installed.limits,signal,callResource:site.callResource});
-          const result=await child.read();phase='succeeded';return result;
-        }catch(cause){phase='failed';originalFailure=cause;throw cause;}
-        finally{
-          try{closeTransport();}
-          catch(cause){transportFailure=cause;if(originalFailure===undefined)throw cause;}
-        }
-      },
-      requestStop(reason){
-        if(this!==handle)fail('ForeignInstalledGmailReader');
-        stop.abort(reason);child?.requestStop(reason);closeTransport();
-      },
-      observe(){
-        if(this!==handle)fail('ForeignInstalledGmailReader');
-        // Closing transport does not retire raw, row, callback, error or
-        // Promise aliases. No transfer/retirement receipt is currently issued.
-        return Object.freeze({phase,transportClosed:closed,transportFailure:transportFailure!==undefined,
-          child:child?.observe(),cleanupConfirmed:false});
-      },
-    });
-    return handle;
-  }});
-}
-
 export async function loadInstalledGmailSource(profile,{root,principalId,moon,providerMoon:provider,
-  baseEnvironmentWire,runtimeBundleCid,resolveSecret,readerCapacity}={}){
-  const{installed,site:siteProfile,ca,binding}=await readInputs(profile);
-  // The existing trusted installer must supply its same-runtime declaration.
-  // Public profile amounts, page/transfer limits and fixed spare constants are
-  // not a full reader retained/workspace supplier. Never choose legacy readPages.
-  if(readerCapacity===undefined||readerCapacity===null)fail('GmailReaderCapacityUnavailable');
+  baseEnvironmentWire,runtimeBundleCid,resolveSecret,configurationReader,
+  sourceInitialization,installationServices,installation}={}){
+  const resource=profile?.resource??'labels';
+  if(resource==='labels')return loadInstalledGmailLabels(profile,{moon,providerMoon:provider,runtimeBundleCid,
+    resolveSecret,configurationReader,sourceInitialization,installationServices,installation});
+  if(!sourceInitialization||typeof sourceInitialization!=='object'||nodeTypes.isProxy(sourceInitialization)||
+      installation===undefined)fail('GmailSourceInitializationUnavailable');
+  const constructor=Object.getOwnPropertyDescriptor(sourceInitialization,'prepareDeclaration');
+  if(!constructor||!Object.hasOwn(constructor,'value')||typeof constructor.value!=='function'||
+      nodeTypes.isAsyncFunction(constructor.value))fail('GmailSourceInitializationUnavailable');
+  const prepareDeclaration=constructor.value;
+  const services=captureInstalledSourceServices(installationServices,()=>Object.assign(
+    new Error('InstalledGmailSourceServicesUnavailable'),{code:'InstalledGmailSourceServicesUnavailable'}));
   if(typeof resolveSecret!=='function')fail('GmailCredentialMaterialUnavailable');
-  const{limits}=installed,resource=installed.resource??'labels',threads=resource==='threads';
-  const wire=checked(threads?provider.gmailThreadSchemaWire(limits.maxDeclarationBytes,
-    limits.maxDeclarationNodes,limits.maxDepth):provider.gmailLabelListSchemaWire(limits.maxDeclarationBytes,
-    limits.maxDeclarationNodes,limits.maxDepth));
-  const declaration=checked(moon.clientProgramRowSourceRestoreRelationDeclaration(installed.connectorId,
-    registration,revision,JSON.stringify({views:[{resource,resource_kind:threads?'gmail_threads':'gmail_labels',schema_wire:wire,
-      schema_cid:sha(wire),facts_wire:threads?provider.gmailThreadRelationFactsWire():provider.gmailLabelListRelationFactsWire()}]}),undefined));
-  const declared=JSON.parse(moon.clientProgramRowSourceDeclarationJson(declaration));
-  const environment=rowSourceCheckEnvironment(baseEnvironmentWire,declared);
-  const authorization=await installRowSourceAuthorization({root,principalId,connectorRegistration:registration,
-    accountConfiguration:installed.accountConfigurationWire});
-  const connection=`gmail:${installed.connectorId}`;
-  const target=(selected,fields)=>Object.freeze({version:threads?'actql-installed-gmail-thread-target/0.1':'actql-installed-gmail-label-target/0.1',
+  if(provider===null||!['object','function'].includes(typeof provider)||nodeTypes.isProxy(provider))fail('InstalledGmailProviderUnavailable');
+  const originalProvider=provider;
+  provider=Object.freeze(Object.fromEntries(['gmailThreadSchemaWire','gmailThreadRelationFactsWire','gmailThreadColumnNames',
+    'gmailPrepareThreadRead','gmailNextThreadRequest','gmailThreadRequestJson','gmailThreadRequestMatches',
+    'gmailAcceptThreadList','gmailAcceptThread','gmailThreadProjectionMatchesRequest','gmailThreadReadCompleted',
+    'gmailCloseThreadRead','gmailThreadRowsWire'].map(name=>{
+      const field=Object.getOwnPropertyDescriptor(originalProvider,name);
+      if(!field||!Object.hasOwn(field,'value')||typeof field.value!=='function')fail('InstalledGmailProviderUnavailable');
+      return[name,(...args)=>Reflect.apply(field.value,originalProvider,args)];
+    })));
+  const{installed,site:siteProfile,ca,binding}=await readInputs(profile,configurationReader),{limits}=installed;
+  // Dependent gets are existing protocol occurrences, not extra user knobs or
+  // metadata permission. The profile accounts for both original operation arms.
+  const policy=services('sourceReaderImplementationProfile',{installation,sourceInitialization,
+    metadataResponses:limits.maxThreads,originUnits:siteProfile.apiOrigin.length});
+  if(limits.maxDeclarationBytes>policy.maxDeclarationBytes||limits.maxDeclarationNodes>policy.maxDeclarationNodes){
+    fail('InstalledGmailImplementationBoundsExceeded');
+  }
+  const implementation=services('sourceReaderImplementation',{installation,sourceInitialization,limits,
+    columnCount:provider.gmailThreadColumnNames().length});
+  const wire=checked(provider.gmailThreadSchemaWire(limits.maxDeclarationBytes,limits.maxDeclarationNodes,limits.maxDepth));
+  const{declaration,declared,environment}=Reflect.apply(prepareDeclaration,sourceInitialization,
+    [[{resource:'threads',resource_kind:'gmail_threads',schema_wire:wire,schema_cid:sha(wire),
+      facts_wire:provider.gmailThreadRelationFactsWire()}],undefined]);
+  const target=(resource,fields)=>Object.freeze({version:'actql-installed-gmail-thread-target/0.1',
     apiOrigin:siteProfile.apiOrigin,mailbox:installed.mailbox,mailboxBytesCid:binding.mailboxBytesCid,
-    resource:selected,fields:Object.freeze([...fields])});
-  const admitsApprovalTarget=(value,selected)=>selected===resource&&value?.mailbox===installed.mailbox&&
+    resource,fields:Object.freeze([...fields])});
+  const admitsApprovalTarget=(value,resource)=>resource==='threads'&&value?.mailbox===installed.mailbox&&
     Array.isArray(value?.fields)&&new Set(value.fields).size===value.fields.length&&
     value.fields.every(name=>declared.views[0].fields.includes(name))&&
-    canonicalJson(value)===canonicalJson(target(selected,value.fields));
-  const site=await openRowSourceCredentialSite({profile:{...siteProfile,resourceOrigin:siteProfile.apiOrigin},
-    principalId,authorization,connection,connectorRegistration:registration,connectorRevision:revision,
-    runtimeBundleCid,commonMoon:moon,ca,admitsApprovalTarget,responseHeaders:[],resolveSecret});
+    canonicalJson(value)===canonicalJson(target(resource,value.fields));
+  let opened,providerReader;
   try{
-    // Every list and dependent get response is charged under the same RowRun.
-    // The list grant remains bounded by the selected list-page limit, while
-    // the existing factory obtains a separate operation grant for original gets.
-    const maxExchanges=threads?limits.maxPages+limits.maxThreads:1;
-    const originalIssueReadGrant=site.issueReadGrant;
-    const readerSite=threads?Object.freeze({...site,issueReadGrant(input){
-      if(input.operation!==GMAIL_THREAD_LIST_OPERATION)return Reflect.apply(originalIssueReadGrant,site,[input]);
-      if(input.maxUses!==maxExchanges)fail('ForeignInstalledGmailThreadGrant');
-      return Reflect.apply(originalIssueReadGrant,site,[{...input,maxUses:limits.maxPages}]);
-    }}):site;
-    return await createInstalledRowSource({moon,declaration,declared,environmentWire:environment.wire,
-      connectorId:installed.connectorId,connectorRegistration:registration,connectorRevision:revision,
-      authorization,site:readerSite,readOperation:threads?GMAIL_THREAD_LIST_OPERATION:GMAIL_LABEL_LIST_OPERATION,physicalTarget:target,
-      bindingCid:cid({version:threads?'actql-installed-gmail-thread-binding/0.1':'actql-installed-gmail-label-binding/0.1',connectorId:installed.connectorId,
+    opened=await services('openRowSite',{installation,sourceInitialization,
+      profile:Object.freeze({...siteProfile,resourceOrigin:siteProfile.apiOrigin}),
+      accountConfiguration:installed.accountConfigurationWire,connection:`gmail:${installed.connectorId}`,ca,
+      admitsApprovalTarget,responseHeaders:[],resolveSecret,runAcquisitionLimits:implementation.runAcquisitionLimits});
+    const{authorization,site}=opened;
+    providerReader=services('createSourceReader',{installation,sourceInitialization,implementation,site,
+      prepareReadSequence({resource,columns},applySynchronousProjection){
+        if(resource!=='threads')fail('UndeclaredGmailResource');
+        return prepareGmailThreadReadSequence({moon:provider,mailbox:installed.mailbox,names:columns,limits},applySynchronousProjection);
+      }});
+    if(providerReader.capacity!==implementation.capacity)fail('InstalledGmailReaderImplementationMismatch');
+    return await createInstalledRowSource({moon,declaration,declared,environment,environmentWire:environment.wire,
+      sourceInitialization,connectorId:installed.connectorId,connectorRegistration:registration,connectorRevision:revision,
+      authorization,site,readOperation:GMAIL_THREAD_LIST_OPERATION,physicalTarget:target,
+      bindingCid:cid({version:'actql-installed-gmail-thread-binding/0.1',connectorId:installed.connectorId,
         connectorRegistration:registration,connectorRevision:revision,contextCid:authorization.context.contextCid,
         runtimeBundleCid,mailbox:installed.mailbox,...binding,site:siteProfile}),
-      limits:{maxPages:maxExchanges,maxPageBytes:limits.maxResponseBytes,
-        maxPageRows:threads?1:limits.maxRows,maxCaptureRows:threads?limits.maxThreads:limits.maxRows},
-      providerReader:threads?createGmailThreadReaderFactory({moon:provider,site:readerSite,capacity:readerCapacity,
-        mailbox:installed.mailbox,limits,maxSecretBytes:limits.maxSecretBytes})
-        :originalReaderFactory({provider,site,installed,capacity:readerCapacity}),
-      readPages(){fail('InstalledGmailLegacyReaderUnavailable');}});
-  }catch(cause){throw await retainInstalledHostInitializationFailure(cause,{sourceProfile:site});}
+      limits:{maxPages:limits.maxPages+limits.maxThreads,maxPageBytes:limits.maxResponseBytes,
+        maxPageRows:1,maxCaptureRows:limits.maxThreads},providerReader});
+  }catch(cause){throw await retainInstalledHostInitializationFailure(cause,
+    {sourceReader:providerReader,sourceProfile:opened?.site});}
+}
+
+
+// The single-response labels reader uses the same original Source constructor,
+// service implementation and managed reader as other standard JSON pages.
+// Threads use their original list/get protocol under the same reader owner.
+async function loadInstalledGmailLabels(profile,{moon,providerMoon,runtimeBundleCid,resolveSecret,
+  configurationReader,sourceInitialization,installationServices,installation}){
+  if(!sourceInitialization||typeof sourceInitialization!=='object'||nodeTypes.isProxy(sourceInitialization)||
+      installation===undefined)fail('GmailSourceInitializationUnavailable');
+  const constructor=Object.getOwnPropertyDescriptor(sourceInitialization,'prepareDeclaration');
+  if(!constructor||!Object.hasOwn(constructor,'value')||typeof constructor.value!=='function'||
+      nodeTypes.isAsyncFunction(constructor.value))fail('GmailSourceInitializationUnavailable');
+  const prepareDeclaration=constructor.value;
+  const services=captureInstalledSourceServices(installationServices,()=>Object.assign(
+    new Error('InstalledGmailSourceServicesUnavailable'),{code:'InstalledGmailSourceServicesUnavailable'}));
+  if(configurationReader===undefined||configurationReader===null)fail('InstalledGmailConfigurationReaderUnavailable');
+  if(typeof resolveSecret!=='function')fail('GmailCredentialMaterialUnavailable');
+  if(providerMoon===null||!['object','function'].includes(typeof providerMoon)||nodeTypes.isProxy(providerMoon)){
+    fail('InstalledGmailProviderUnavailable');
+  }
+  const provider=Object.freeze(Object.fromEntries(['gmailLabelListSchemaWire','gmailLabelListRelationFactsWire',
+    'gmailLabelListColumnNames','gmailProjectLabelList','gmailLabelListRowsWire','gmailLabelListMetadataJson'].map(name=>{
+    const field=Object.getOwnPropertyDescriptor(providerMoon,name);
+    if(!field||!Object.hasOwn(field,'value')||typeof field.value!=='function')fail('InstalledGmailProviderUnavailable');
+    return[name,(...args)=>Reflect.apply(field.value,providerMoon,args)];
+  })));
+  const{installed,site:siteProfile,ca,binding}=await readInputs(profile,configurationReader),{limits}=installed;
+  const policy=services('sourceReaderImplementationProfile',{installation,sourceInitialization,
+    metadataResponses:0,originUnits:siteProfile.apiOrigin.length});
+  if(limits.maxDeclarationBytes>policy.maxDeclarationBytes||limits.maxDeclarationNodes>policy.maxDeclarationNodes){
+    fail('InstalledGmailImplementationBoundsExceeded');
+  }
+  // Exactly one complete response; no cursor is constructed. The positive
+  // cursor sentinel occupies only the existing generic non-paginated field.
+  // Original admitted value-text bounds include the label id's String.
+  const implementation=services('sourceReaderImplementation',{installation,sourceInitialization,
+    columnCount:provider.gmailLabelListColumnNames().length,limits:{
+      maxResponseBytes:limits.maxResponseBytes,maxTotalResponseBytes:limits.maxResponseBytes,
+      maxNodes:limits.maxNodes,maxDepth:limits.maxDepth,maxRows:limits.maxRows,maxTotalRows:limits.maxRows,
+      maxPages:1,pageSize:limits.maxRows,maxCursorBytes:1,maxIdentityBytes:limits.maxValueTextBytes,
+      maxTargetBytes:limits.maxTargetBytes,maxValueNodes:limits.maxValueNodes,maxValueTextBytes:limits.maxValueTextBytes,
+      maxRowsWireBytes:limits.maxRowsWireBytes,maxRowsWireNodes:limits.maxRowsWireNodes,
+      maxRowsWireDepth:limits.maxRowsWireDepth,maxSecretBytes:limits.maxSecretBytes}});
+  const wire=checked(provider.gmailLabelListSchemaWire(limits.maxDeclarationBytes,limits.maxDeclarationNodes,limits.maxDepth));
+  const{declaration,declared,environment}=Reflect.apply(prepareDeclaration,sourceInitialization,
+    [[{resource:'labels',resource_kind:'gmail_labels',schema_wire:wire,schema_cid:sha(wire),
+      facts_wire:provider.gmailLabelListRelationFactsWire()}],undefined]);
+  const target=(resource,fields)=>Object.freeze({version:'actql-installed-gmail-label-target/0.1',
+    apiOrigin:siteProfile.apiOrigin,mailbox:installed.mailbox,mailboxBytesCid:binding.mailboxBytesCid,
+    resource,fields:Object.freeze([...fields])});
+  const admitsApprovalTarget=(value,resource)=>resource==='labels'&&value?.mailbox===installed.mailbox&&
+    Array.isArray(value?.fields)&&new Set(value.fields).size===value.fields.length&&
+    value.fields.every(name=>declared.views[0].fields.includes(name))&&
+    canonicalJson(value)===canonicalJson(target(resource,value.fields));
+  let opened,providerReader;
+  try{
+    opened=await services('openRowSite',{installation,sourceInitialization,
+      profile:Object.freeze({...siteProfile,resourceOrigin:siteProfile.apiOrigin}),
+      accountConfiguration:installed.accountConfigurationWire,connection:`gmail:${installed.connectorId}`,ca,
+      admitsApprovalTarget,responseHeaders:[],resolveSecret,runAcquisitionLimits:implementation.runAcquisitionLimits});
+    const{authorization,site}=opened;
+    providerReader=services('createSourceReader',{installation,sourceInitialization,implementation,site,
+      operation:GMAIL_LABEL_LIST_OPERATION,preparePageReader({resource,columns},applySynchronousProjection){
+        if(resource!=='labels')fail('UndeclaredGmailResource');
+        return prepareGmailLabelListPages({moon:provider,mailbox:installed.mailbox,names:columns,limits},applySynchronousProjection);
+      }});
+    if(providerReader.capacity!==implementation.capacity)fail('InstalledGmailReaderImplementationMismatch');
+    return await createInstalledRowSource({moon,declaration,declared,environment,environmentWire:environment.wire,
+      sourceInitialization,connectorId:installed.connectorId,connectorRegistration:registration,connectorRevision:revision,
+      authorization,site,readOperation:GMAIL_LABEL_LIST_OPERATION,physicalTarget:target,
+      bindingCid:cid({version:'actql-installed-gmail-label-binding/0.1',connectorId:installed.connectorId,
+        connectorRegistration:registration,connectorRevision:revision,contextCid:authorization.context.contextCid,
+        runtimeBundleCid,mailbox:installed.mailbox,...binding,site:siteProfile}),
+      limits:{maxPages:1,maxPageBytes:limits.maxResponseBytes,maxPageRows:limits.maxRows,maxCaptureRows:limits.maxRows},
+      providerReader});
+  }catch(cause){throw await retainInstalledHostInitializationFailure(cause,
+    {sourceReader:providerReader,sourceProfile:opened?.site});}
 }

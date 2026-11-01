@@ -1,4 +1,19 @@
 ///|
+test "common constructor controls cover both original closed protocol String exports" {
+  // The superseded per-provider fixed-control vectors at6ff5d8b5 cover the
+  // complete co-held subject/mutation literal forests. Keep them only as
+  // regression minima here, not another production header/reference table.
+  // Two actual stringify calls share this existing conservative envelope;
+  // operation/row multiplicity and their String backing remain with callers.
+  for (nodes, h, r, w) in [(6, 107L, 253L, 162L), (7, 117L, 274L, 179L)] {
+    let original = text_writer_construction_inventory(0, nodes, 2).unwrap()
+    assert_true(2L * original.record_headers >= h)
+    assert_true(2L * original.reference_slots >= r)
+    assert_true(2L * original.scalar_words >= w)
+  }
+}
+
+///|
 test "shared frame construction preserves original hash inventory vectors" {
   for
     (keys, depth, h, r, words) in [

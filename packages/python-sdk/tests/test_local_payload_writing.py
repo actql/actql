@@ -4,6 +4,7 @@ from threading import RLock
 import unittest
 
 from actql_sdk._local_core import LocalCore, LocalCoreError, _Input, _Output
+from local_abi_declaration_fixture import original_byte_fixture_port
 
 
 class PayloadWritingCustodyTests(unittest.TestCase):
@@ -38,7 +39,7 @@ class PayloadWritingCustodyTests(unittest.TestCase):
                 return 0 if core._cleanup(8) == 0 else -9
             return state[name]
 
-        core._call = call
+        core._call = original_byte_fixture_port(call)
         return core, request, observation, calls, state, wire
 
     def test_original_request_current_context_and_physical_input_are_forwarded(self):
@@ -67,7 +68,7 @@ class PayloadWritingCustodyTests(unittest.TestCase):
                 self.assertEqual(args[:3], (23, 2, 8))
                 return 29
             return original_call(family, name, *args)
-        core._call = call
+        core._call = original_byte_fixture_port(call)
         record = core.reserve_payload_writing(request, 2, cleanup=lambda: True)
         core.produce_payload_writing(record, observation, 31)
         self.assertIn(('payload_writing', 'produce', (29, 11, 31)), calls)
@@ -92,7 +93,7 @@ class PayloadWritingCustodyTests(unittest.TestCase):
                 return 29
             return original_call(family, name, *args)
 
-        core._call = call
+        core._call = original_byte_fixture_port(call)
         record = core.reserve_payload_writing(request, 3, cleanup=lambda: True)
         core.produce_payload_writing(record, observation, 31)
         self.assertIn(('payload_writing', 'produce', (29, 11, 31)), calls)

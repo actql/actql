@@ -303,7 +303,8 @@ fn[P] retire_preparation_owned_installed_run(
   value.source_free_preparation = None
   value.captured_preparation = None
   value.source_free_captured = None
-  value.keyed = None
+  value.content = NoContent
+  value.serialization_prefix = None
   value.reads.clear()
   value.keyed_reads.clear()
   if original.holder is Some(holder) {
@@ -397,11 +398,66 @@ pub fn[I] begin_preparation_owned_installed_content_run(
     @publication_host.client_request_parameters_cid(request) {
     return Err(ForeignOriginal)
   }
+  adopt_preparation_owned_content_original(
+    initial,
+    input,
+    capacity,
+    prepared,
+    request,
+    KeyedContent(selected, None),
+    selected.limits,
+  )
+}
+
+///|
+/// The existing terminal Serialization purpose adopts its same parent and
+/// compiler, without a keyed input, Pure module or independent Content Ledger.
+pub fn[I] begin_preparation_owned_installed_serialization_run(
+  initial : @resources.NodePreparationAdmission[I],
+  input : I,
+  capacity : @resources.PreparationCapacity[
+    I,
+    @publication_host.PreparedClientProgram,
+  ],
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  selected : ClientInstalledManagedSerializationPreparation,
+) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue] {
+  if !physical_equal(selected.prepared, prepared) ||
+    !physical_equal(selected.request, request) {
+    return Err(ForeignOriginal)
+  }
+  adopt_preparation_owned_content_original(
+    initial,
+    input,
+    capacity,
+    prepared,
+    request,
+    SerializationContent(selected),
+    selected.limits,
+  )
+}
+
+///|
+// Both original Content constructors share the SAME transfer and retirement
+// engine. Numeric compatibility neither allocates backing nor authorizes IO.
+fn[I] adopt_preparation_owned_content_original(
+  initial : @resources.NodePreparationAdmission[I],
+  input : I,
+  capacity : @resources.PreparationCapacity[
+    I,
+    @publication_host.PreparedClientProgram,
+  ],
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  content : ClientInstalledContentPreparation,
+  required : @resources.LedgerLimits,
+) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue] {
   let limits = match @resources.node_local_preparation_limits(initial, input) {
     Err(issue) => return Err(Resource(issue))
     Ok(value) => value
   }
-  if !installed_effect_limits_fit(selected.limits, limits) {
+  if !installed_effect_limits_fit(required, limits) {
     return Err(InsufficientCapacity)
   }
   // This actual Content constructor excludes Model. Retire only its unused
@@ -423,7 +479,7 @@ pub fn[I] begin_preparation_owned_installed_content_run(
     request,
     ledger,
   )
-  run.keyed = Some(selected)
+  run.content = content
   run.preparation_retirement = Some(
     PurePreparation({ retirement, admission, holder: Some(holder), }),
   )

@@ -5,22 +5,66 @@ import {parse} from 'acorn';
 import {prepareInstalledEffectManagedPlanRun, readInstalledEffectManagedPlanRun}
   from './installed-effect-managed-run.mjs';
 import {bindInstalledManagedSources} from './installed-managed-source.mjs';
-import {selectAcquiredEffectSources} from './acquired-effect-sources.mjs';
+import {selectAcquiredEffectSources, selectAcquiredEffectPlanInputs} from './acquired-effect-sources.mjs';
 import {openAcquiredEffectComputation} from './acquired-effect-computation.mjs';
 
 // Original runtime/admission ports are explicit. These tests exercise the real
 // Node owner/consumers, not actual Common funding, vendor work or normal support.
 const ok = value => ({$tag: 1, _0: value});
 const checked = result => {if (result.$tag !== 1) throw result._0; return result._0;};
+
+test('Effect Plan source inputs follow original checked occurrence order without a second Query preparation', () => {
+  const prepared = {}, request = {}, selections = [{}, {}], declarations = [{}, {}], providers = [{}, {}];
+  const calls = [];
+  const sources = [0, 1].map(index => Object.freeze({admitsSource: ref => ref === `source-${index}`,
+    managedEffectPlanSelection() {
+      assert.strictEqual(this, sources[index]); calls.push(`original-${index}`);
+      return Object.freeze({declaration: declarations[index], provider: providers[index],
+        transferBytes: BigInt(20 + index), executionBytes: BigInt(10 + index)});
+    }}));
+  const moon = {clientProgramEffectAcquisitionCount: () => 2,
+    clientProgramSelectInstalledEffectSourceInput(p, identity, stage, input) {
+      assert.strictEqual(this, moon); assert.strictEqual(p, prepared); assert.strictEqual(identity, request);
+      assert.equal(input, 0); calls.push(`select-${stage}`); return ok(selections[stage]);
+    }, clientProgramSelectedSourceInputKind: () => 'query',
+    clientProgramSelectedSourceInputRef: selected => `source-${1 - selections.indexOf(selected)}`,
+    clientProgramEffectPrepareLocalQueryRequirement() {assert.fail('the Plan constructs its requirement once');}};
+  const input = selectAcquiredEffectPlanInputs({moon, preparedEffect: prepared, requestIdentity: request,
+    sourceProfile: {sources}, queryContract: 'original-query', evidenceContract: 'original-evidence'});
+  assert.deepEqual(calls, ['select-0', 'original-1', 'select-1', 'original-0']);
+  assert.strictEqual(input.declarations[0], declarations[1]); assert.strictEqual(input.declarations[1], declarations[0]);
+  assert.strictEqual(input.providers[0], providers[1]); assert.strictEqual(input.providers[1], providers[0]);
+  assert.deepEqual(input.transferBytes, [21n, 20n]); assert.deepEqual(input.executionBytes, [11n, 10n]);
+  assert(Object.isFrozen(input)); assert(Object.isFrozen(input.declarations)); assert(Object.isFrozen(input.providers));
+});
+
+test('Effect preadmission selects the checked Source without preparing its Query requirement', () => {
+  const prepared = {}, request = {}, original = {}, adapter = {
+    admitsSource: ref => ref === 'original-source', prepare() {}, open() {},
+  };
+  let selections = 0;
+  const moon = {clientProgramEffectAcquisitionCount: () => 1,
+    clientProgramSelectInstalledEffectSourceInput(p, identity, stage, input) {
+      same([p, identity, stage, input], [prepared, request, 0, 0]); selections++; return ok(original);
+    }, clientProgramSelectedSourceInputKind: value => {assert.strictEqual(value, original); return 'query';},
+    clientProgramSelectedSourceInputRef: value => {assert.strictEqual(value, original); return 'original-source';},
+    clientProgramEffectPrepareLocalQueryRequirement() {assert.fail('one retained Plan owns Query preparation');}};
+  const same = (actual, expected) => actual.forEach((value, index) => assert.strictEqual(value, expected[index]));
+  const selected = selectAcquiredEffectSources({moon, preparedEffect: prepared,
+    requestIdentity: request, sourceProfile: adapter});
+  assert.strictEqual(selected[0].adapter, adapter); assert.equal(selections, 1);
+});
+
 function fixture() {
   const prepared = {}, request = {}, plan = {}, parent = {}, original = {};
-  const facts = {prepared, identity: request, compilation: {}, allowed: {}, definition: {}};
+  const facts = Object.freeze({prepared, identity: request, compilation: {}, allowed: {}, definition: {},
+    queryTimePreparation: undefined, modelCompiled: undefined});
   const runs = new WeakMap(), liveRuns = new Set(), calls = [];
   const inputs = Object.freeze({}), sourceProfile = {};
   let current = true, checkCallback = () => {}, selected = plan;
   const failure = new Error('original-current');
   const runtime = {
-    clientProgramInstalledEffectOperationControlsBegin() {return ok();},
+    clientProgramInstalledEffectOperationControlsBegin() {return ok(plan);},
     clientProgramInstalledManagedRunRetire() {}, clientProgramNodeEffectManagedPlanCleanup() {},
     clientProgramInstalledEffectManagedRunCheck(value, p, r) {
       assert.strictEqual(this, runtime); assert.strictEqual(value, parent);

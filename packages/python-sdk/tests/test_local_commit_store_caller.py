@@ -12,6 +12,7 @@ from actql_sdk._local_core import LocalCore, LocalCoreError, _Output
 from actql_sdk._local_storage import (
     ByteFence, CapacityReservation, LocalByteStore, StoredBytes,
 )
+from local_abi_declaration_fixture import original_byte_fixture_port
 
 
 class OriginalCommitStoreCallerTests(unittest.TestCase):
@@ -50,9 +51,11 @@ class OriginalCommitStoreCallerTests(unittest.TestCase):
             if name == 'count':
                 self.assertEqual(args, (23, 31))
                 return state['count']
-            if name == 'reserve':
+            if name in ('reserve', 'reserve_bounded'):
                 self.assertEqual(args[0], 23)
-                self.assertGreaterEqual(args[2], 2 * 1048576)
+                maximum, physical = ((1048576, args[2]) if name == 'reserve' else args[2:])
+                self.assertGreaterEqual(physical, 2 * maximum)
+                self.assertTrue(type(maximum) is int and 1 <= maximum <= 1048576)
                 self.assertLessEqual(len(handles), 1)
                 if args[1] == state['reserve_fail_at']:
                     return -4
@@ -96,9 +99,56 @@ class OriginalCommitStoreCallerTests(unittest.TestCase):
                 return 0
             self.fail(f'Unexpected Core operation: {name}')
 
-        core._call = call
+        core._call = original_byte_fixture_port(call)
         caller = OriginalCommitProjection(core, parent, 31, cleanup=lambda: state['cleanup'])
         return core, parent, publisher, caller, calls, state, identities, wires, key
+
+    def test_original_identity_and_full_body_keep_pair_with_bounded_wire_overlap(self):
+        core, parent, _, caller, _, state, identities, wires, _ = self.bridge()
+        original_call = core._call
+        capacities = {}
+        limit = 6 * 1048576
+        peak = 0
+
+        def call(family, name, *args):
+            nonlocal peak
+            if family == 'publication_commit_export' and name in ('reserve', 'reserve_bounded'):
+                if name == 'reserve':
+                    selected_parent, ticket, physical_bytes = args
+                    wire_limit = 1048576
+                else:
+                    selected_parent, ticket, wire_limit, physical_bytes = args
+                self.assertEqual(selected_parent, parent.handle)
+                charge = physical_bytes + 2 * wire_limit
+                if sum(capacities.values()) + charge > limit:
+                    return -4
+                # This is an explicit physical buffer port, not an installed
+                # Core/Store or a claim about E's unrecorded numeric usage.
+                result = original_call(family, 'reserve', selected_parent, ticket,
+                                       max(physical_bytes, 2 * 1048576))
+                capacities[result] = charge
+                peak = max(peak, sum(capacities.values()))
+                return result
+            result = original_call(family, name, *args)
+            if family == 'publication_commit_export' and name == 'close' and result == 0:
+                capacities.pop(args[0], None)
+            return result
+
+        core._call = original_byte_fixture_port(call)
+        delivered = []
+        def consume(write):
+            self.assertEqual(len(caller.pending_outputs), 2)
+            self.assertEqual([value.limit for value in caller.pending_outputs], [71, 1048576])
+            self.assertEqual(write.key, 'namespace:20:publication_contract:' + identities[0].decode())
+            self.assertEqual(write.payload, wires[0])
+            self.assertEqual(state['close_calls'], [])
+            delivered.append(True)
+        caller.project_contract(0, consume)
+        self.assertEqual(delivered, [True])
+        self.assertLessEqual(peak, limit)
+        self.assertEqual(capacities, {})
+        self.assertEqual(caller.pending_outputs, ())
+        self.assertIs(core._loans[parent.ticket], parent)
 
     def test_contract_consumes_original_identity_and_bytes_while_both_loans_are_live(self):
         core, parent, _, caller, calls, _, identities, wires, _ = self.bridge()
@@ -206,7 +256,7 @@ class OriginalCommitStoreCallerTests(unittest.TestCase):
         self.assertEqual((pending[0].ticket, pending[0].handle), (8, 208))
         self.assertNotIn(9, core._inputs)
         self.assertTrue(caller.close())
-        self.assertEqual(len([c for c in calls if c[1] == 'reserve']), 2)
+        self.assertEqual(len([c for c in calls if c[1] in ('reserve', 'reserve_bounded')]), 2)
 
     def test_consumer_error_and_cancel_propagate_with_original_pair_retained(self):
         for error in (OSError('Physical consumer failed'), asyncio.CancelledError()):
@@ -364,7 +414,7 @@ class OriginalCommitStoreCallerTests(unittest.TestCase):
                 self.assertEqual(issue.exception.code, -35)
                 self.assertIsNone(store.read('namespace:20:publication_contract:' + identities[0].decode()))
                 self.assertEqual(store.read('payload'), StoredBytes(0, b'original'))
-                self.assertEqual(len([c for c in calls if c[1] == 'reserve']), 2)
+                self.assertEqual(len([c for c in calls if c[1] in ('reserve', 'reserve_bounded')]), 2)
                 self.assertEqual(caller.pending_outputs, ())
 
     def test_schema_uses_original_receipt_pair_and_separate_physical_namespace(self):

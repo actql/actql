@@ -134,24 +134,6 @@ pub fn client_program_installed_managed_run_source_read(
 }
 
 ///|
-/// The existing configured Host already retains its CapturedDAG. Project it
-/// directly; no Node wrapper or additional Run/cleanup holder is required.
-#export_name("clientProgramOpenInstalledManagedCaptureHost")
-pub fn client_program_open_installed_managed_capture_host(
-  value : @client_local_host.ClientInstalledManagedRun,
-  prepared : @publication_host.PreparedClientProgram,
-  request : @publication_host.ClientRequestIdentity,
-  sources : Array[@query.CapturedInputSource],
-) -> Result[
-  @builtin.ConfiguredComputeHost[@strategy.RunIssue],
-  @client_local_host.ClientInstalledCaptureHostIssue,
-] {
-  @client_local_host.open_installed_managed_capture_host(
-    value, prepared, request, sources,
-  ).map(original => original.0)
-}
-
-///|
 #export_name("clientProgramInstalledManagedRunRequirements")
 pub fn client_program_installed_managed_run_requirements(
   prepared : @publication_host.PreparedClientProgram,
@@ -225,9 +207,7 @@ pub fn client_program_installed_mock_model_managed_run_requirements(
     return Err(ForeignOriginal)
   }
   let selected = match
-    @infer_host.original_composed_bounds(
-      compiled, definition, occurrence, graph,
-    ) {
+    original_composed_model_limits(compiled, definition, occurrence, graph) {
     Err(_) => return Err(ForeignOriginal)
     Ok(value) => value
   }
@@ -301,21 +281,35 @@ fn combine_installed_mock_model_run_requirements(
   // The private tuple also carries the selected reservation/census bounds;
   // JS never reaches into compiler-owned Limits fields or invents a second
   // numeric profile. Bootstrap, read and Model remain separate same-Run tokens.
-  for
-    value in [
-      read_retained,
-      read_execution,
-      read_retained,
-      read_execution,
-      read_retained,
-      read_execution,
-      selected.input.rows.operation_entries.to_int64(),
-      selected.input.rows.retained_entries.to_int64(),
-      selected.input.rows.metadata_entries.to_int64(),
-    ] {
+  for value in client_program_composed_infer_retained_limits(selected) {
     base.push(value)
   }
   Ok(base)
+}
+
+///|
+/// Project only the already selected Limits retained by the same preparation.
+/// This is the existing private requirement suffix, without recomputing the
+/// Model/Source quote or consulting a Run. Bootstrap/read/Model byte pairs and
+/// the three live inventory bounds keep their existing order and meaning.
+/// These DATA neither reserve resources nor establish current authority.
+#export_name("clientProgramComposedInferRetainedLimits")
+pub fn client_program_composed_infer_retained_limits(
+  selected : @infer_host.Limits,
+) -> Array[Int64] {
+  let retained = selected.mapping.logical.max_live_value_bytes
+  let execution = selected.identity.wire.max_bytes.to_int64()
+  [
+    retained,
+    execution,
+    retained,
+    execution,
+    retained,
+    execution,
+    selected.input.rows.operation_entries.to_int64(),
+    selected.input.rows.retained_entries.to_int64(),
+    selected.input.rows.metadata_entries.to_int64(),
+  ]
 }
 
 ///|

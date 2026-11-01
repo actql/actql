@@ -92,6 +92,29 @@ pub fn InstalledArenaHost::prepare_domain_retained_execution(
 fn InstalledArenaRetainedExecution::prepare_original(
   self : InstalledArenaRetainedExecution,
 ) -> Result[Unit, InstalledArenaRetainedExecutionIssue] {
+  match self.prepare_original_frame() {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  let frame = self.frame.unwrap()
+  match @resources.start_imported_child_ledger(frame) {
+    Err(issue) => return Err(Child(issue))
+    Ok(_) => self.child_started = true
+  }
+  match @resources.take_imported_original_child_ledger(frame) {
+    Err(issue) => return Err(Child(issue))
+    Ok(ledger) => self.ledger = Some(ledger)
+  }
+  Ok(())
+}
+
+///|
+// Retain the same actual Native frame before start/take. This private boundary
+// creates no preparation admission or second resource owner. Its caller owns
+// the original pending cleanup even when acquisition or admission refuses.
+fn InstalledArenaRetainedExecution::prepare_original_frame(
+  self : InstalledArenaRetainedExecution,
+) -> Result[Unit, InstalledArenaRetainedExecutionIssue] {
   let domain = self.domain
   let host = domain.host
   let backing = domain.backing
@@ -119,14 +142,6 @@ fn InstalledArenaRetainedExecution::prepare_original(
     Ok(value) => value
   }
   self.frame = Some(frame)
-  match @resources.start_imported_child_ledger(frame) {
-    Err(issue) => return Err(Child(issue))
-    Ok(_) => self.child_started = true
-  }
-  match @resources.take_imported_original_child_ledger(frame) {
-    Err(issue) => return Err(Child(issue))
-    Ok(ledger) => self.ledger = Some(ledger)
-  }
   Ok(())
 }
 

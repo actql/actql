@@ -140,3 +140,44 @@ must separately resolve original connection evidence and issue an original
 reference; a file name, returned JSON envelope or equal CID cannot stand in for
 that authority. Source reads, Content custody, Plan funding and terminal cleanup
 remain with their existing owners.
+
+## Original JSON page envelopes
+
+`project_row_source_json_page` validates one complete original UTF-8 document
+with the existing preserving JSON parser, then selects an array of row objects
+through exact object-key paths. It returns opaque envelope DATA containing the
+original array byte span as a String, its actual count and an optional cursor.
+It never emits parsed numbers, normalizes keys, selects columns, admits a row or
+issues Source evidence. The existing RowRun remains responsible for complete
+schema/value admission and the original response's charge.
+
+Every present JSON value, including unselected envelope fields, is parsed under
+the supplied byte/node/depth bounds before output. Duplicate keys, invalid UTF-8,
+missing/non-array items, non-object rows and excess rows refuse the whole page.
+Paths use the same exact decoded keys and bounded scalar-text admission. Numeric
+lexemes, whitespace, Unicode and CRLF inside the selected array remain exact.
+A canonical Signed64 String remains text; a numeric token is never rounded into
+an Int64 by this projection. Its eventual typed admission remains unchanged.
+
+A declared cursor path that is missing or null has no next cursor. A present
+non-object ancestor or non-text leaf refuses. An empty text cursor is present,
+not EOF, and has its actual UTF-8 extent checked. The Common bridge exposes a
+real Bool for presence and a Result[String] getter; callers do not inspect an
+Option layout. A disabled cursor accepts only an empty cursor path.
+
+Projection is synchronous and has no callbacks, I/O, authority, Ledger, grant,
+retry or retirement operation. The shared Reader retains and charges the actual
+response before decoding. The parser's original construction inventory and the
+selected JSON reader's existing projection/row-wire workspace cover distinct
+representations: original bytes, parsed document, exact selected String and later
+row admission. The selected String is bounded by the original response extent;
+no extra limit, VM price or permission follows from those DATA quantities. The
+actual initial/Request/Plan must still admit constructor, retained prefix,
+output and failed-child overlap before use. Same-Common page accessors add no
+physical cleanup acknowledgement or normal execution claim.
+
+Verification is defined by `json_page_projection_wbtest.mbt`, including original
+span preservation, cursor state and whole-document refusal, and by the existing
+physical row and Signed64 admission cases it calls. Node and RelA use the same
+thin `client_row_json_page_bridge.mbt` body. Provider pagination and transformed
+page handling remain with the existing REST page callback and shared Reader.

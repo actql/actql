@@ -30,7 +30,7 @@ export function originalInitialControlClose(original) {
 }
 
 export async function retainInstalledHostInitializationFailure(cause,
-  {journal, closeJournal, closeInitializationJournal, store, checkpoints, dispatchOwner, sourceProfile,
+  {journal, closeJournal, closeInitializationJournal, store, checkpoints, dispatchOwner, sourceReader, sourceProfile, authorization,
     installedEffect, observation, ownerViews, initialControl, publicationOwnership}) {
   const closeInitialControl = initialControl === undefined ? undefined :
     originalInitialControlClose(initialControl);
@@ -62,7 +62,9 @@ export async function retainInstalledHostInitializationFailure(cause,
   const pending = new Set(['initialization']);
   if (checkpoints !== undefined) pending.add('checkpoint-stop');
   if (dispatchOwner !== undefined) pending.add('dispatch');
+  if (sourceReader !== undefined) pending.add('source-reader');
   if (sourceProfile !== undefined) pending.add('source-profile');
+  if (authorization !== undefined) pending.add('authorization');
   if (installedEffect !== undefined) pending.add('effect-profile');
   if (checkpoints !== undefined) pending.add('checkpoints');
   if (journal !== undefined) pending.add('journal');
@@ -71,6 +73,38 @@ export async function retainInstalledHostInitializationFailure(cause,
   if (ownerViews !== undefined) pending.add('owner-views');
   if (initialControl !== undefined) pending.add('initial-control');
   if (publicationOwnership !== undefined) pending.add('publication-ownership');
+  let originalSourceReaderRetire, sourceReaderRetireCaptured = false;
+  function captureOriginalSourceReaderRetirement() {
+    if (!sourceReaderRetireCaptured) {
+      const field = Object.getOwnPropertyDescriptor(sourceReader, 'retire');
+      if (!field || !Object.hasOwn(field, 'value') || typeof field.value !== 'function') {
+        throw new TypeError('InstalledSourceReaderRetirementMissing');
+      }
+      originalSourceReaderRetire = field.value;
+      sourceReaderRetireCaptured = true;
+    }
+  }
+  let originalAuthorizationClose, authorizationCloseCaptured = false;
+  function captureOriginalAuthorizationClose() {
+    if (!authorizationCloseCaptured) {
+      const field = Object.getOwnPropertyDescriptor(authorization, 'close');
+      if (!field || !Object.hasOwn(field, 'value') || typeof field.value !== 'function') {
+        throw new TypeError('InstalledSourceAuthorizationCleanupMissing');
+      }
+      originalAuthorizationClose = field.value;
+      authorizationCloseCaptured = true;
+    }
+  }
+  // The same constructed factory/Account must survive the first cleanup
+  // await. Only their own synchronous true acknowledges retirement.
+  if (sourceReader !== undefined) {
+    try { captureOriginalSourceReaderRetirement(); }
+    catch { /* Retry only the still-unobserved original method. */ }
+  }
+  if (authorization !== undefined) {
+    try { captureOriginalAuthorizationClose(); }
+    catch { /* Retain the original Account when method capture fails. */ }
+  }
   const errors = [];
   let primaryFailure = cause;
   try { primaryFailure = cause?.primaryFailure ?? cause; }
@@ -155,7 +189,29 @@ export async function retainInstalledHostInitializationFailure(cause,
     if (!pending.has('initialization') && !pending.has('checkpoint-stop')) {
       await attempt('dispatch', () => dispatchOwner.drain());
       if (!pending.has('dispatch')) {
-        await attempt('source-profile', () => sourceProfile.close());
+        await attempt('source-reader', async function retireSourceReader() {
+          captureOriginalSourceReaderRetirement();
+          const completed = Reflect.apply(originalSourceReaderRetire, sourceReader, []);
+          if (completed !== true) {
+            if (typeof completed?.then === 'function') await completed;
+            throw new TypeError('InstalledSourceReaderRetirementPending');
+          }
+          sourceReader = originalSourceReaderRetire = undefined;
+        });
+        if (!pending.has('source-reader')) {
+          await attempt('source-profile', () => sourceProfile.close());
+          if (!pending.has('source-profile')) {
+            await attempt('authorization', async function closeAuthorization() {
+              captureOriginalAuthorizationClose();
+              const completed = Reflect.apply(originalAuthorizationClose, authorization, []);
+              if (completed !== true) {
+                if (typeof completed?.then === 'function') await completed;
+                throw new TypeError('InstalledSourceAuthorizationCleanupPending');
+              }
+              authorization = originalAuthorizationClose = undefined;
+            });
+          }
+        }
         await attempt('effect-profile', () => installedEffect.close());
         await attempt('checkpoints', () => checkpoints.close());
         if (!pending.has('checkpoints')) {

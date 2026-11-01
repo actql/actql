@@ -1,18 +1,24 @@
+import {ledgerUsageFieldsFor} from '../../../host-node/fixtures/ledger-usage.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFile,writeFile} from 'node:fs/promises';
 import {createPublicKey} from 'node:crypto';
-import {checkInstalledSlackSourceProfile,installedSlackSourceIdentityParts} from '../host/installed-slack-source.mjs';
-import {createSlackUserSourceReaderFactory} from '../host/user-source-reader.mjs';
-import {installedSlackFixture} from './installed-slack.fixture.mjs';
+import {checkInstalledSlackSourceProfile,installedSlackSourceIdentityParts,loadInstalledSlackSource} from '../host/installed-slack-source.mjs';
+import {createInstalledCredentialSourceReader} from '../../../host-node/installed-credential-source-reader.mjs';
+import {installedSlackFixture,assertRetiredSlackCapture} from './installed-slack.fixture.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {loadInstalledSource} from '../../../host-node/installed-source.mjs';
 import {join} from 'node:path';
 import {openSqliteCredentialJournal} from '../../../site-node/sqlite-credential-journal.mjs';
 
-test('installed Slack refuses absent capacity and credential material without legacy fallback or I/O',async t=>{
+test('installed Slack refuses absent original Source constructor and credential material without legacy fallback or I/O',async t=>{
   const f=await installedSlackFixture(t);
-  await assert.rejects(f.load({readerCapacity:undefined}),{code:'SlackReaderCapacityUnavailable'});
+  // The actual fixture installer deliberately supplies its original constructor
+  // after options. Exercise absence at the provider boundary itself.
+  await assert.rejects(loadInstalledSlackSource(f.profile,{...f.options,
+    installation:f.initial.installation,installationServices:f.initial.installationServices,
+    configurationReader:f.initial.configurationReader,sourceInitialization:undefined}),
+  {code:'SlackSourceInitializationUnavailable'});
   await assert.rejects(f.load({resolveSecret:undefined}),{code:'SlackCredentialMaterialUnavailable'});
   assert.equal(f.state.requests.length,0);assert.equal(f.state.resolutions,0);
 });
@@ -39,7 +45,7 @@ test('installed Slack generation retains exact workspace bytes selected Site gen
   assert.equal(typeof next[2].caSha256,'string');assert.equal(f.state.requests.length,0);
 });
 
-test('installed Slack actual text Source retains one original reader capture and unconfirmed custody',async t=>{
+test('installed Slack actual text Source retains one original reader capture and acknowledged retirement',async t=>{
   for(const format of ['sql','aql']){
     const f=await installedSlackFixture(t),source=await f.load();
     const preparation=await f.prepare(source,{format});
@@ -54,9 +60,9 @@ test('installed Slack actual text Source retains one original reader capture and
     assert.equal(f.state.requests[0].path,'/api/auth.test');
     assert.equal(f.state.requests[1].path,'/api/users.list?limit=10');
     assert.equal(f.state.requests[2].path,'/api/users.list?limit=10&cursor=opaque%2B%2F%3D%20cursor');
-    const held=f.common.clientProgramMultiCapturedLedgerUsage(preparation.ledger);
-    await assert.rejects(async()=>opened.close(),{code:'MoonBitHostFailure'});
-    assert.deepEqual(f.common.clientProgramMultiCapturedLedgerUsage(preparation.ledger),held);
+    await opened.close();
+    assert.deepEqual(ledgerUsageFieldsFor(f.common.clientProgramMultiCapturedLedgerUsage(preparation.ledger),
+      ['reservedTransferBytes','heldBytes','reservedRetentionBytes','reservedExecutionBytes']),[0n,0n,0n,0n]);
     assert.equal(f.state.requests.length,3);
   }
 });
@@ -77,7 +83,8 @@ test('ordinary installed Slack entrance discovers the real factory and refuses m
   await writeFile(path,JSON.stringify(f.profile));
   await assert.rejects(loadInstalledSource(path,{...f.options,
     runtimeUrl:new URL('../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js',import.meta.url)}),
-  {code:'SlackReaderCapacityUnavailable'});
+  error=>error.code==='InstalledHostInitializationFailed'&&
+    error.primaryFailure?.code==='SlackSourceInitializationUnavailable'&&error.cause===error.primaryFailure);
   assert.equal(f.state.requests.length,0);assert.equal(f.state.resolutions,0);
 });
 
@@ -109,13 +116,12 @@ test('installed Slack lost original reply keeps same recovery and journal Unknow
   const f=await installedSlackFixture(t),source=await f.load(),preparation=await f.prepare(source);
   f.state.beforeResponse=request=>request.socket.destroy();let original;
   await assert.rejects(source.openCapture(preparation),error=>{
-    original=error;return error.outcome==='unknown'&&error.recovery?.cleanupPending()===true;
+    original=error;let cause=error;
+    for(let depth=0;cause!==undefined&&depth<8;depth++,cause=cause.cause){if(cause.code==='ECONNRESET')return true;}
+    return false;
   });
-  await f.retain(original.recovery,preparation.ledger);
-  const held=f.common.clientProgramMultiCapturedLedgerUsage(preparation.ledger);
-  await original.recovery.close();assert.equal(await original.recovery.cleanup(),false);
-  assert.equal(original.recovery.cleanupPending(),true);
-  assert.deepEqual(f.common.clientProgramMultiCapturedLedgerUsage(preparation.ledger),held);
+  await f.retain(original,preparation.ledger);
+  await assertRetiredSlackCapture(f,preparation,original);
   await source.close();
   const publicKey=createPublicKey(await readFile(join(f.root,'credential-authority.pub')));
   const journal=openSqliteCredentialJournal(f.site.journalRoot,{credentialAuthorities:new Map([
@@ -138,40 +144,45 @@ test('installed Slack profile rejects accessor and inherited originals without i
 
 test('installed Slack original workspace observation refuses foreign workspace before users request',async t=>{
   const f=await installedSlackFixture(t),source=await f.load(),preparation=await f.prepare(source);
-  f.state.identity={...f.state.identity,team_id:'T-foreign'};let recovery;
-  await assert.rejects(source.openCapture(preparation),error=>{recovery=error.recovery;let cause=error;while(cause&&cause.code!=='ForeignSlackWorkspace')cause=cause.cause;return cause?.code==='ForeignSlackWorkspace';});
-  await f.retain(recovery,preparation.ledger);
+  f.state.identity={...f.state.identity,team_id:'T-foreign'};let original;
+  await assert.rejects(source.openCapture(preparation),error=>{original=error;let cause=error;while(cause&&cause.code!=='ForeignSlackWorkspace')cause=cause.cause;return cause?.code==='ForeignSlackWorkspace';});
+  await f.retain(original,preparation.ledger);
   assert.equal(f.state.requests.length,1);assert.equal(f.state.requests[0].path,'/api/auth.test');
-  assert.equal(recovery.cleanupPending(),true);
+  await assertRetiredSlackCapture(f,preparation,original);
 });
 
 
 test('installed Slack stop during original resolver refuses the first physical send and preserves recovery',async t=>{
   const f=await installedSlackFixture(t),source=await f.load(),preparation=await f.prepare(source),stop=new AbortController();
-  f.state.resolved=()=>stop.abort(new Error('OriginalSlackStop'));let recovery;
-  await assert.rejects(source.openCapture({...preparation,signal:stop.signal}),error=>{recovery=error.recovery;return recovery!==undefined;});
-  await f.retain(recovery,preparation.ledger);
+  const reason=new Error('OriginalSlackStop');f.state.resolved=()=>stop.abort(reason);let original;
+  await assert.rejects(source.openCapture({...preparation,signal:stop.signal}),error=>{original=error;return error.cause===reason;});
+  await f.retain(original,preparation.ledger);
   assert.equal(f.state.requests.length,0);assert.equal(f.state.resolutions,1);
-  assert.equal(recovery.cleanupPending(),true);
+  await assertRetiredSlackCapture(f,preparation,original);
 });
 
 
-test('installed Slack adapter snapshots original callbacks and rejects copied receivers and reprepare',async t=>{
-  const f=await installedSlackFixture(t);let originalCalls=0,replacementCalls=0;
-  const site={credential:f.options.credential,issueReadGrant(){assert.fail('current refusal precedes grant issuance');}};
-  const factory=createSlackUserSourceReaderFactory({provider:f.options.providerMoon,site,
-    capacity:f.capacity,workspaceId:f.profile.workspaceId,limits:f.profile.limits,maxSecretBytes:128});
-  // Actual provider ports, explicit sequencing-only acquisition and callbacks.
-  const acquisition={},options={resource:'users',operation:'slack:users:list',columns:['id'],signal:undefined,
-    rowRun:{acquisition,run:{},requestId:'original',runInvocationCid:f.scope.runInvocationCid,dispatchRequestCid:f.scope.dispatchRequestCid},
+test('installed Slack shared reader snapshots original callbacks and rejects copied receivers or repeated start',async()=>{
+  let originalCalls=0,replacementCalls=0,constructors=0;
+  // Actual shared managed reader, explicit original Site/current ports. No
+  // Resource, Account or capacity admission is claimed by this component.
+  const originalSite={site:{},referenceCurrent(){return true;},authorizationPurpose(){return{kind:'read'};},
+    bindRunAcquisition(){assert.fail('current refusal precedes original binding');},
+    readChildCredential(){assert.fail('no credential after refused current');},callResource(){assert.fail('no send');}};
+  const factory=createInstalledCredentialSourceReader({capacity:{},originalSite,assertCurrent(){},
+    maxResponses:1,maxResponseBytes:8192,maxTotalResponseBytes:8192,
+    prepareReadSequence(){constructors++;return Object.freeze({
+      read(){assert.fail('no provider read after refused current');},retire(){return true;}});}});
+  const options={resource:'users',operation:'slack:users:list',columns:['id'],signal:undefined,
+    originalAuthorization:{},
     verifyRead(){assert.equal(this,options);originalCalls++;throw Object.assign(new Error('OriginalCurrentRefusal'),{code:'OriginalCurrentRefusal'});},
-    authorizationFor(){assert.fail('no authorization after refused current');},chargePage(){},consumeObservation(){},consumePage(){}};
+    authorizationFor(){assert.fail('no authorization after refused current');},authorizeReadChild(){},
+    chargePage(){},consumeObservation(){},consumePage(){}};
   const reader=factory.prepare(options);options.verifyRead=()=>{replacementCalls++;};
-  await assert.rejects(reader.read.call({...reader}),{code:'ForeignInstalledSlackReader'});
+  await assert.rejects(reader.read.call({...reader}),{code:'ForeignInstalledCredentialSourceReader'});
   await assert.rejects(reader.read(),{code:'OriginalCurrentRefusal'});
-  await assert.rejects(reader.read(),{code:'InstalledSlackReaderAlreadyStarted'});
-  assert.throws(()=>factory.prepare(options),{code:'InstalledSlackReaderAlreadyPrepared'});
-  assert.throws(()=>factory.prepare.call({...factory},options),{code:'ForeignInstalledSlackReaderFactory'});
-  assert.equal(reader.observe().cleanupConfirmed,false);
-  assert.equal(originalCalls,1);assert.equal(replacementCalls,0);assert.equal(f.state.requests.length,0);
+  await assert.rejects(reader.read(),{code:'InstalledSourceReaderAlreadyStarted'});
+  assert.throws(()=>factory.prepare.call({...factory},options),{code:'ForeignInstalledCredentialSourceReader'});
+  assert.equal(originalCalls,1);assert.equal(replacementCalls,0);assert.equal(constructors,1);
+  reader.requestStop();assert.equal(reader.observe().cleanupConfirmed,true);assert.equal(factory.retire(),true);
 });

@@ -44,6 +44,12 @@ pub fn[P, C, R] backed_execution_live_limits(BackedExecutionLiveProjection[P, C,
 
 pub fn[P, C, R] backed_execution_live_state(BackedExecutionLiveProjection[P, C, R], R) -> Result[BackedExecutionLiveState, BackedExecutionIssue]
 
+pub fn[I] backed_initialization_ledger_published(BackedInitializationAdmission[I], I) -> Result[Bool, ImportedChildLedgerIssue]
+
+pub fn[I] backed_initialization_original_frame(BackedInitializationAdmission[I], I) -> Result[ImportedChildLedger, ImportedChildLedgerIssue]
+
+pub fn[I] begin_node_preparation_inventory(NodePreparationAdmission[I], I, Int64, Int64, Int, Int, Int) -> Result[OriginalLedgerIdentity, ImportedChildLedgerIssue]
+
 pub fn begin_original_ledger_inventory(Ledger, CapacityReservation, Int, Int, Int) -> Result[OriginalLedgerIdentity, OriginalReadIssue]
 
 pub fn[T] begin_original_resource_invalidation(OriginalResourcePark[T], T) -> Result[OriginalResourceInvalidationRequest[T], OriginalReadIssue]
@@ -102,6 +108,8 @@ pub fn charge_transfer(Ledger, Reservation, Int64) -> Result[Unit, LedgerIssue]
 
 pub fn[P, C] check_backed_execution_delegation_current(BackedExecutionRegion[P, C], P, C, BackedExecutionDelegation[P, C]) -> Result[Unit, BackedExecutionIssue]
 
+pub fn[I] check_backed_initialization_input(BackedInitializationAdmission[I], I) -> Result[Unit, ImportedChildLedgerIssue]
+
 pub fn check_imported_original_child_ledger(ImportedChildLedger, Ledger) -> Result[Unit, ImportedChildLedgerIssue]
 
 pub fn check_ledger_continuation_current(Ledger, LedgerContinuationState) -> Result[Unit, LedgerContinuationIssue]
@@ -139,6 +147,8 @@ pub fn[T] claim_model_io_admission(ModelIoAdmission[T], T, OriginalLedgerIdentit
 pub fn[T] claim_model_io_for_owned_ledger(ModelIoAdmission[T], T, Ledger, Reservation, Int, Int) -> Result[ModelIoTicket[T], ModelIoAdmissionIssue]
 
 pub fn claim_original_ledger_run_binding(OriginalLedgerIdentity, Ledger) -> Result[Unit, OriginalReadIssue]
+
+pub fn[I] cleanup_backed_initialization_admission(BackedInitializationAdmission[I]) -> Result[Unit, ImportedChildLedgerIssue]
 
 pub fn[P] cleanup_node_managed_run_admission(NodeManagedRunAdmission[P]) -> Result[Unit, ImportedChildLedgerIssue]
 
@@ -342,6 +352,8 @@ pub fn preparation_phase_work_continuation64_construction_inventory() -> Prepara
 
 pub fn preparation_phase_work_continuation64_retained_inventory() -> PreparationWorkConstructionInventory
 
+pub fn[P, C, I] prepare_backed_initialization_admission(BackedExecutionLiveProjection[P, C, I], I) -> Result[BackedInitializationAdmission[I], ImportedChildLedgerIssue]
+
 pub fn[P, C, R] prepare_backed_original_child_ledger(BackedExecutionLiveProjection[P, C, R], R) -> Result[ImportedChildLedger, ImportedChildLedgerIssue]
 
 pub fn prepare_imported_child_ledger(Int64) -> Result[ImportedChildLedger, ImportedChildLedgerIssue]
@@ -403,6 +415,12 @@ pub fn[P, C] reserve_backed_execution_delegation(BackedExecutionRegion[P, C], P,
 pub fn reserve_capacity(Ledger, Int64, Int64) -> Result[CapacityReservation, LedgerIssue]
 
 pub fn reserve_execution_delegation(Ledger, LedgerLimits, Int64, Int64) -> Result[ExecutionDelegation, LedgerIssue]
+
+pub fn[P] reserve_node_managed_run_attempt(NodeManagedRunAdmission[P], P, Ledger, Int64, Int64, Int64) -> Result[Reservation, ImportedChildLedgerIssue]
+
+pub fn[P, E] reserve_node_managed_run_operation(NodeManagedRunAdmission[P], P, Ledger, () -> Result[Unit, E], CapacityReservation?, Int64, Int64, Bool, Int64, Int64, Int64) -> Result[(CapacityReservation, Result[NodeManagedRunOperationBacking, LedgerIssue]), NodeManagedRunOperationIssue[E]]
+
+pub fn[P, E] reserve_node_managed_run_operation_controls(NodeManagedRunAdmission[P], P, Ledger, () -> Result[Unit, E], CapacityReservation?, Int64, Int64) -> Result[CapacityReservation, NodeManagedRunOperationIssue[E]]
 
 pub fn[P] reserve_node_managed_run_read_bootstrap(NodeManagedRunAdmission[P], P, Ledger, Int64, Int64) -> Result[CapacityReservation, ImportedChildLedgerIssue]
 
@@ -500,6 +518,8 @@ pub fn spend_preparation_phase_work64(PreparationPhaseWork64, Int64) -> Result[U
 
 pub fn spend_preparation_phase_work_continuation64(PreparationPhaseWorkContinuation64, Int64) -> Result[Unit, PreparationWorkIssue]
 
+pub fn[I] start_backed_initialization_admission(BackedInitializationAdmission[I]) -> Result[Ledger, ImportedChildLedgerIssue]
+
 pub fn start_imported_child_ledger(ImportedChildLedger) -> Result[Unit, ImportedChildLedgerIssue]
 
 pub fn[P] start_node_managed_run_admission(NodeManagedRunAdmission[P]) -> Result[Ledger, ImportedChildLedgerIssue]
@@ -531,6 +551,8 @@ pub fn[T] stop_funded_read_consumer(FundedReadConsumer[T]) -> Result[Unit, Origi
 pub fn stop_imported_child_ledger(ImportedChildLedger) -> Result[Unit, ImportedChildLedgerIssue]
 
 pub fn[P] stop_node_managed_run_admission(NodeManagedRunAdmission[P]) -> Result[Unit, ImportedChildLedgerIssue]
+
+pub fn[I] take_backed_initialization_admission(BackedInitializationAdmission[I], I) -> Result[Ledger, ImportedChildLedgerIssue]
 
 pub fn take_imported_child_ledger(ImportedChildLedger) -> Result[(Ledger, SharedCapacity, SharedCapacity), ImportedChildLedgerIssue]
 
@@ -665,6 +687,8 @@ pub struct BackedExecutionRegion[P, C] {
   mut closing : Bool
 }
 
+type BackedInitializationAdmission[I]
+
 type CapacityReservation
 
 type ExecutionDelegation
@@ -794,6 +818,17 @@ pub struct ModelIoTicket[T] {
 }
 
 type NodeManagedRunAdmission[P]
+
+pub(all) enum NodeManagedRunOperationBacking {
+  Construction(CapacityReservation)
+  Physical(Reservation)
+}
+
+pub(all) enum NodeManagedRunOperationIssue[E] {
+  Admission(ImportedChildLedgerIssue)
+  Original(E)
+  Control(LedgerIssue)
+}
 
 type NodePreparationAdmission[I]
 
@@ -1009,6 +1044,8 @@ pub(all) enum PreparationWorkPhase {
   LowerAndGraph
   ExecutionPlan
   PublicationProof
+  RequestValuePolicyCheck
+  RequestPolicySubjectPreparation
 } derive(Eq, @debug.Debug)
 
 pub(all) struct QuantityAmounts {

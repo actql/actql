@@ -34,11 +34,13 @@ async function fixture(t,empty=false){
   const prepared=await prepare({kind:'aql',input:{text,format:'sql'},parameters:null});
   prepare.assertOwned(prepared);
   const aoa=JSON.parse(await read('spec/contracts/actql-aoa.json'));
+  const registry=await read('spec/dependencies/aoa-pipeline-registry.json');
+  const values=JSON.stringify(aoa.execution_contracts['REL.values']);
+  const fragment=JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']);
+  const ordered=JSON.stringify(aoa.execution_contracts['REL.derive.ordered']);
+  const contracts=checked(moon.clientPrepareInstalledSequenceContracts(registry,values,fragment,ordered));
   const requirement=checked(moon.clientProgramPrepareLocalQueryRequirement(prepared,0,0,
-    await read('spec/dependencies/aoa-pipeline-registry.json'),
-    JSON.stringify(aoa.execution_contracts['REL.values']),
-    JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
-    JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])));
+    contracts,values,fragment,ordered));
   const acquisition=checked(moon.clientProgramRowSourcePrepareAcquisition(value.declaration,
     requirement,await read('spec/contracts/actql-query-acquisition.json'),
     await read('spec/contracts/actql-query-process-evidence.json')));
@@ -53,8 +55,21 @@ async function fixture(t,empty=false){
     const charge=checked(moon.clientProgramRowSourceChargePage(run,body));
     return listing.consumePage(body,{charge});
   };
-  return{...value,base,environment,publication,requirement,acquisition,run,consume};
+  return{...value,base,environment,publication,prepared,requirement,acquisition,run,consume};
 }
+
+test('native listing capture binds the same checked task and logical Source input',async t=>{
+  const f=await fixture(t);
+  assert.equal(await f.consume([nativeRow]),1);
+  checked(moon.clientProgramRowSourceFinish(f.run));
+  const captured=checked(moon.clientProgramRowSourceCapture(f.run));
+  const source=checked(moon.clientProgramRowSourceCaptureSource(captured));
+  assert.equal(moon.clientProgramCapturedTaskSourceMatches(f.prepared,source,0),true);
+  const identity=checked(moon.clientProgramIdentifyCapturedSourceRelation(source));
+  const logical=checked(moon.clientProgramIssueCapturedTaskSourceLogical(
+    f.prepared,source,identity,f.requirement,0));
+  assert.notEqual(logical,undefined);
+});
 
 for(const empty of [false,true])test(`native listing ${empty?'empty schema':'full typed row'} survives original capture and restore`,async t=>{
   const f=await fixture(t,empty);

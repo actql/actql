@@ -75,6 +75,15 @@ pub fn prepare_installed_effect_model_demand(
 }
 
 ///|
+/// The original selected per-read window. This projects retained DATA only;
+/// it neither selects bounds again nor issues a Scope or resource allowance.
+pub fn installed_effect_model_read_window(
+  model : ClientInstalledEffectModelDemand,
+) -> Array[Int64] {
+  [model.bootstrap_retained_bytes, model.bootstrap_execution_bytes]
+}
+
+///|
 // One existing Model/read overlap definition for Pure and Effect Plans. The
 // original selected domain supplies its bounds; this creates no allowance.
 fn installed_model_demand_limits(

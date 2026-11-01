@@ -64,7 +64,7 @@ fn retained_consumer_holder_case(
   }
   let environment = @host.admit_client_check_environment(
     resident_effect_source_environment,
-    "sha256:c110639082170812464555ae57368f5fc5a8ffa2edb159b2433dd3fc36f56227",
+    resident_effect_source_bundle_cid,
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
   ).unwrap()
@@ -169,8 +169,7 @@ fn retained_consumer_holder_case(
       resident_provider_environment()
     } else {
       (
-        resident_effect_source_environment, "sha256:c110639082170812464555ae57368f5fc5a8ffa2edb159b2433dd3fc36f56227",
-        resident_native_effect_document,
+        resident_effect_source_environment, resident_effect_source_bundle_cid, resident_native_effect_document,
       )
     }
     let effect_environment_owner = @host.admit_client_check_environment(

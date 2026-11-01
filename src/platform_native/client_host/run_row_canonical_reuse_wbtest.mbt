@@ -14,6 +14,7 @@ test "Native Run admission consumes the canonical Common row without rebuilding 
     publication_binding: None,
     publication_policy_originals: None,
     effect_material_originals: None,
+    task_materials_cid: None,
     local_run_policy_originals: None,
     run_observation_originals: None,
     observation_original: None,
@@ -62,6 +63,7 @@ test "Native Run admission consumes the canonical Common row without rebuilding 
     publication_binding: None,
     publication_policy_originals: None,
     effect_material_originals: None,
+    task_materials_cid: None,
     checkpoint: Some("{}"),
   }
   let invalid_checkpoint = @host.client_run_journal_row_body(physical).unwrap()

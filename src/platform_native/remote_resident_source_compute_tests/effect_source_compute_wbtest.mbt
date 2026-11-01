@@ -9,7 +9,7 @@ let resident_native_effect_document : String =
 fn resident_native_effect_prepared() -> @host.PreparedClientEffectComputation {
   let environment = @host.admit_client_check_environment(
     resident_effect_source_environment,
-    "sha256:c110639082170812464555ae57368f5fc5a8ffa2edb159b2433dd3fc36f56227",
+    resident_effect_source_bundle_cid,
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
   ).unwrap()
@@ -75,7 +75,7 @@ fn resident_native_effect_bound_run() -> @host.PreparedClientEffectRun {
   // materials and dispatch admission, rather than the sender's local handle.
   let environment = @host.admit_client_check_environment(
     resident_effect_source_environment,
-    "sha256:c110639082170812464555ae57368f5fc5a8ffa2edb159b2433dd3fc36f56227",
+    resident_effect_source_bundle_cid,
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
   ).unwrap()

@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {readFileSync} from 'node:fs';
+import {parse} from 'acorn';
 import {installNodeClientEffectRun} from './client-effect-run.mjs';
 
 const ok = value => ({$tag:1,_0:value});
@@ -73,14 +75,41 @@ function fixture({required=true,legacy=false,race,commitFailure}={}) {
     reservePhysicalStart(){state.events.push('claim');state.claims++;return true;},
     originalSubmittedIntent:()=>undefined,
   };
-  const install=({prepareDefinition}={})=>installNodeClientEffectRun({moon,publicationControl:control,journal,
-    prepareDefinition,
+  const install=({prepareDefinition,requestIdentityFor}={})=>installNodeClientEffectRun({moon,publicationControl:control,journal,
+    prepareDefinition,requestIdentityFor,
     authorizeRequest:async()=>policy,authorizeRunStart:async()=>true,
     now:()=> '2026-10-19T00:00:00.000Z',
     prepareExecution(facts){state.events.push('prepare');state.preparations.push(facts);return {};},
     execute:async facts=>{state.events.push('execute');state.executions.push(facts);return {};}});
-  return {state,request,moon,install,policy,ref};
+  return {state,request,moon,install,policy,ref,identity};
 }
+
+test('ordinary Effect admission and winning issuer consume one original Request identity', async () => {
+  const source = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
+  let original;
+  const walk = node => {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'VariableDeclarator' && node.id?.name === 'originalSourceFreeRequest') original = node.init;
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(walk); else if (value && typeof value === 'object') walk(value);
+    }
+  };
+  walk(parse(source, {ecmaVersion: 'latest', sourceType: 'module'})); assert(original);
+  const f = fixture(); let nativeIdentities = 0;
+  f.moon.clientProgramEffectRequestIdentity = (prepared, scope, id) => {
+    assert.strictEqual(prepared, f.request.prepared); assert.equal(scope, cid); assert.equal(id, f.request.requestId);
+    nativeIdentities++; return f.identity;
+  };
+  const select = Function('moon', 'authorityScopeCid', 'sourceFreeRequestIdentities', 'clientOperationError',
+    'return (' + source.slice(original.start, original.end) + ');')(
+    f.moon, cid, new WeakMap(), code => Object.assign(new Error(code), {code}));
+  assert.strictEqual(select(f.request.prepared, f.request.requestId, true), f.identity);
+  const run = f.install({requestIdentityFor({prepared, authorityScopeCid, requestId}) {
+    assert.equal(authorityScopeCid, cid); return select(prepared, requestId, true);
+  }});
+  await run.accept(f.request); await run.accept(f.request);
+  assert.equal(nativeIdentities, 1); assert.equal(f.state.issued.length, 1); assert.equal(f.state.samples.length, 1);
+});
 
 test('new query-time Run samples once after lookup and before compilation instead of reusing policy creation',async()=>{
   const f=fixture(),run=f.install();run.checkSupported(f.request.prepared);

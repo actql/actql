@@ -37,6 +37,7 @@ fn LocalCommandPreparationOriginal::prepare_original_result(
   child : @argparse.Matches,
   publication? : LocalCommandBusinessPreparation? = None,
   configuration? : LocalCommandConfiguration? = None,
+  retained? : @local_host.NativeClientSavedRunStateSelection? = None,
 ) -> LocalCommandResultOriginal raise ClientStop {
   native_timing_begin(6)
   defer native_timing_end(6)
@@ -113,15 +114,24 @@ fn LocalCommandPreparationOriginal::prepare_original_result(
     "authority",
   )
   let id = required(child, "run")
-  let saved = local_result_host_value(
-    capture.lookup_submitted_run_state_by_id_in_original_read(
-      settings.principal,
-      settings.connection,
-      id,
-      @env.now().to_double(),
-    ),
-    "saved Run",
-  ).unwrap_or_else(() => stop("LocalOriginalRunStateUnavailable"))
+  let saved = match retained {
+    Some(value) => {
+      if @publication.run_definition_run_id(value.definition()) != Ok(id) {
+        stop("LocalOriginalRunReferenceMismatch")
+      }
+      value
+    }
+    None =>
+      local_result_host_value(
+        capture.lookup_submitted_run_state_by_id_in_original_read(
+          settings.principal,
+          settings.connection,
+          id,
+          @env.now().to_double(),
+        ),
+        "saved Run",
+      ).unwrap_or_else(() => stop("LocalOriginalRunStateUnavailable"))
+  }
   // State restoration selected and authenticated this exact original already.
   // No callback or mutation intervenes; consume it without another indexed
   // identity transaction or comparing reconstructed copies of the same fields.
@@ -194,12 +204,27 @@ fn LocalCommandPreparationOriginal::prepare_original_result(
   // Restore only the existing Store. Missing path/DB/custody cannot initialize
   // another namespace, schema, key or Run merely to obtain a public result.
   let store = match publication {
-    None => {
-      command_preparation_result(
-        operation.activate().map_err(issue => CommandStoreOperation(issue)),
-      )
-      self.open_business_store(sqlite, managed, run, existing=true)
-    }
+    None =>
+      match business.store {
+        None => {
+          command_preparation_result(
+            operation.activate().map_err(issue => CommandStoreOperation(issue)),
+          )
+          self.open_business_store(sqlite, managed, run, existing=true)
+        }
+        Some(store) => {
+          // The retained receipt already opened this same original Store.
+          // Keep independent Result policy/current admission above; do not
+          // acquire another physical Store or treat receipt visibility as Allow.
+          let bridge = operation
+            .sqlite_original()
+            .unwrap_or_else(() => stop("LocalReadOriginalCustodyUnavailable"))
+          if !store.matches_original_operation(bridge) {
+            stop("LocalReadOriginalCustodyUnavailable")
+          }
+          store
+        }
+      }
     Some(published) => {
       // A quick query reads the Store that published this exact request. It
       // neither opens a second DB nor retires the still-owned Values children.

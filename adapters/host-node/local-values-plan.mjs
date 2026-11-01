@@ -24,6 +24,66 @@ function bindQueryInvocation(control, original, prepared, compiled, definition) 
     queryTime:control.bindClientQueryTime(original.preparation,prepared,compiled,definition,original.request)});
 }
 
+// Called only by the existing timed Request adoption constructor. Its parent
+// already retains the compiler artifact; the returned Option is a Core original.
+export function prepareTimedClientInvocation({control, preparedProgram, requestIdentity,
+  compilationOriginal, kind, authorityScopeCid, namespaceId, now, retainedDefinitionWire, retainedInvocation}) {
+  if (!['values', 'tasks'].includes(kind) || compilationOriginal === undefined || requestIdentity === undefined ||
+      retainedInvocation === null || typeof retainedInvocation !== 'object' || Object.isFrozen(retainedInvocation)) {
+    throw new TypeError('OriginalClientQueryInvocationRequired');
+  }
+  const fields = Object.getOwnPropertyDescriptors(retainedInvocation);
+  if (fields.preparedProgram?.value !== preparedProgram || fields.requestIdentity?.value !== requestIdentity ||
+      ['compiled', 'runDefinition', 'createdAt', 'validUntil', 'queryTimePreparation', 'queryTime']
+        .some(name => fields[name]?.writable !== true || !Object.hasOwn(fields[name] ?? {}, 'value') ||
+          fields[name].value !== undefined)) throw new TypeError('OriginalClientQueryInvocationRequired');
+  // Existing native Definition admission permits at most100000 wire bytes.
+  // Fence the earlier JS parse too; this cannot admit a looser native body.
+  if (retainedDefinitionWire !== undefined &&
+      (typeof retainedDefinitionWire !== 'string' || retainedDefinitionWire.length > 100000)) {
+    throw new TypeError('OriginalClientQueryInvocationRequired');
+  }
+  const at = Date.parse(now());
+  if (!Number.isFinite(at)) throw new TypeError('InvalidLocalClock');
+  const retained = retainedDefinitionWire === undefined ? undefined : JSON.parse(retainedDefinitionWire);
+  const queryInvocation = retained === undefined
+    ? {request: requestIdentity, createdAt: sampleOriginalQueryTime(), preparation: undefined}
+    : {request: requestIdentity};
+  if (retained === undefined) {
+    retainedInvocation.createdAt = queryInvocation.createdAt;
+    retainedInvocation.queryTimePreparation = queryInvocation.preparation = control.prepareClientQueryTime(
+      preparedProgram, requestIdentity, queryInvocation.createdAt);
+  }
+  const createdAt = retainedInvocation.createdAt = retained?.created_at ?? queryInvocation.createdAt;
+  const validUntil = retainedInvocation.validUntil = retained?.valid_until ?? instant(at + 24 * 60 * 60 * 1000);
+  const contextCid = kind === 'values' ? valuesExecutionContextCid(authorityScopeCid)
+    : cid({version: 'actql-installed-local-context/0.1', authority_scope_cid: authorityScopeCid});
+  const compiled = retainedInvocation.compiled = control.prepareCheckedClientCompiledRun(preparedProgram, kind,
+    {executionContextCid: contextCid,
+      hostPolicyCid: policyCid(kind === 'values' ? 'source-free-values' : 'checked-tasks'),
+      expiresAt: validUntil}, undefined, compilationOriginal);
+  const runDefinition = retainedInvocation.runDefinition = control.defineCheckedClientCompiledRun(compiled,
+    {namespaceId, runId: randomUUID(), createdAt, validUntil, retainedDefinitionWire});
+  const queryTime = bindQueryInvocation(control, queryInvocation, preparedProgram, compiled, runDefinition);
+  retainedInvocation.queryTimePreparation = queryTime.queryTimePreparation;
+  retainedInvocation.queryTime = queryTime.queryTime;
+  const invocationOriginal = control.clientQueryTimeInvocationOriginal(queryTime.queryTimePreparation, preparedProgram);
+  Object.freeze(retainedInvocation);
+  return Object.freeze({original: invocationOriginal, retained: retainedInvocation});
+}
+
+function checkedOriginalQueryInvocation(original, control, prepared, request, kind, retainedWire) {
+  if (original.preparedProgram !== prepared || original.requestIdentity !== request ||
+      original.compiled?.kind !== kind || original.queryTimePreparation === undefined ||
+      original.queryTime === undefined || retainedWire !== undefined &&
+        original.runDefinition?.wire !== retainedWire) {
+    throw new TypeError('ForeignClientQueryInvocationOriginal');
+  }
+  control.checkClientCompiledRunOwner(original.compiled, prepared);
+  control.checkClientCompiledRunDefinition(original.compiled, original.runDefinition);
+  return original;
+}
+
 // Contract and evidence issuance bounds only. Captured Named Result snapshots
 // consume the same original logical output policy as durable publication,
 // including its relation wrapper; these metadata bounds do not cap row data.
@@ -68,11 +128,17 @@ const policyCid = name => cid({version: 'actql-installed-local-policy/0.1',
 const valuesAdmissions = new WeakMap();
 const originalPlans = new WeakMap();
 const originalPlanLimits = Object.freeze({maxWireBytes: 65536, maxNodes: 4096, maxDepth: 64});
-export function sourceFreePlanOriginal(plan) {return originalPlans.get(plan);}
+export function sourceFreePlanOriginal(plan) {return originalPlans.get(plan)?.original;}
 
-function retainOriginalPlan(plan, compiled, preparedProgram, control) {
-  originalPlans.set(plan, control.captureOriginalClientRunPlan(
-    compiled, preparedProgram, plan.runDefinition, originalPlanLimits));
+function retainOriginalPlan(plan, compiled, preparedProgram, control, queryTime) {
+  // Keep lifetime links in the existing private association, outside the
+  // closed publication data bag. This replaces the larger timed Plan clone.
+  originalPlans.set(plan, Object.freeze({
+    original: control.captureOriginalClientRunPlan(
+      compiled, preparedProgram, plan.runDefinition, originalPlanLimits),
+    queryTimePreparation: queryTime?.queryTimePreparation,
+    queryTime: queryTime?.queryTime,
+  }));
   return plan;
 }
 // The ordinary Effect-free INFER Host profile explicitly binds unknown
@@ -503,28 +569,33 @@ export function acquiredInferEffectPublicationPlan({acquired, sources,
 
 export function sourceFreeValuesPlan({moon, control, preparedProgram,
   authorityScopeCid, namespaceId, storeAuthorityCid, now,
-  retainedDefinitionWire, requestIdentity, publicationOriginal, compilationOriginal, publicationPreparation}) {
-  const at = Date.parse(now());
-  if (!Number.isFinite(at)) throw new TypeError('InvalidLocalClock');
+  retainedDefinitionWire, requestIdentity, publicationOriginal, compilationOriginal, publicationPreparation, invocationOriginal}) {
+  const original = invocationOriginal === undefined ? undefined : checkedOriginalQueryInvocation(
+    invocationOriginal, control, preparedProgram, requestIdentity, 'values', retainedDefinitionWire);
+  const at = original === undefined ? Date.parse(now()) : undefined;
+  if (original === undefined && !Number.isFinite(at)) throw new TypeError('InvalidLocalClock');
   const retained = retainedDefinitionWire === undefined ? undefined :
     JSON.parse(retainedDefinitionWire);
-  const queryInvocation=prepareQueryInvocation(control,preparedProgram,requestIdentity,retained);
-  const createdAt = retained?.created_at ?? queryInvocation?.createdAt ?? instant(at);
-  const validUntil = retained?.valid_until ??
+  const queryInvocation=original === undefined && publicationPreparation === undefined
+    ? prepareQueryInvocation(control,preparedProgram,requestIdentity,retained) : undefined;
+  const createdAt = original?.createdAt ?? retained?.created_at ?? queryInvocation?.createdAt ?? instant(at);
+  const validUntil = original?.validUntil ?? retained?.valid_until ??
     instant(at + 24 * 60 * 60 * 1000);
   // The original checked plan and installed publication owner enforce row,
   // cell and byte demand. Authored/output counts are not a new Host profile.
   const hostPolicyCid = policyCid('source-free-values');
   const contextCid = valuesExecutionContextCid(authorityScopeCid);
-  const compiled = control.prepareCheckedClientCompiledRun(preparedProgram,
+  const compiled = original?.compiled ?? control.prepareCheckedClientCompiledRun(preparedProgram,
     'values', {executionContextCid: contextCid,
       hostPolicyCid, expiresAt: validUntil}, undefined, compilationOriginal);
   const {admission, compiledPlan} = compiled;
-  const runDefinition = control.defineCheckedClientCompiledRun(compiled, {
+  const runDefinition = original?.runDefinition ?? control.defineCheckedClientCompiledRun(compiled, {
     namespaceId, runId: randomUUID(), createdAt, validUntil,
     retainedDefinitionWire,
   });
-  const queryTime=bindQueryInvocation(control,queryInvocation,preparedProgram,compiled,runDefinition);
+  const queryTime=original === undefined
+    ? bindQueryInvocation(control,queryInvocation,preparedProgram,compiled,runDefinition)
+    : {queryTimePreparation:original.queryTimePreparation,queryTime:original.queryTime};
   const dataPolicyCid = policyCid('local-result-data');
   const {observation, invocation} = control.issueCheckedClientCompiledInvocation(
     compiled, runDefinition, {dataPolicyCid}, limits, publicationPreparation, preparedProgram);
@@ -540,12 +611,11 @@ export function sourceFreeValuesPlan({moon, control, preparedProgram,
     // the adapter does not infer workspace or field bounds from output rows.
     outputLimits: checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal),
   });
-  const selectedPlan=Object.keys(queryTime).length===0?plan:Object.freeze({...plan,...queryTime});
-  valuesAdmissions.set(selectedPlan, Object.freeze({
+  valuesAdmissions.set(plan, Object.freeze({
     prepared: compiled.preparedEvidence.wire,
     authorization: compiled.authorization.wire,
   }));
-  return retainOriginalPlan(selectedPlan, compiled, preparedProgram, control);
+  return retainOriginalPlan(plan, compiled, preparedProgram, control, queryTime);
 }
 
 // Admit the complete checked task graph, including acquired sources, to the
@@ -588,7 +658,7 @@ export function restoreInferTaskRunAdmission({control, preparedProgram, restored
 // or a pure Values fallback. Physical generation must still supply its actual
 // input/generation observations before publication can issue an Invocation.
 export function serializationTaskRunAdmission(options) {
-  const serializationGraph = selectInstalledSerializationGraph(options);
+  const serializationGraph = options.serializationGraph ?? selectInstalledSerializationGraph(options);
   return checkedTaskRunAdmission({...options, serializationGraph}, 'serialization');
 }
 
@@ -604,6 +674,9 @@ export function selectInstalledSerializationGraph(options, component = false) {
   const selected = {task: runtimeField(occurrence, 0), step: runtimeField(occurrence, 1),
       maxRows: localOutputLimits.maxRows, maxBytes: localOutputLimits.maxWireBytes,
       resultDataPolicy: options.resultDataPolicy ?? inferResultPolicy};
+  if (options.prepareSerializationGraph !== undefined) {
+    return options.prepareSerializationGraph(selected, component);
+  }
   const serializationGraph = moon.clientProgramAcquisitionCount(preparedProgram) === 0
     ? component
       ? control.prepareCheckedClientSerializationComponent(preparedProgram, selected)
@@ -684,18 +757,21 @@ export function inferTaskPublicationPlan({moon, control, preparedProgram,
 }
 
 function checkedTaskRunAdmission({control, preparedProgram, inferGraph, serializationGraph,
-  authorityScopeCid, namespaceId, now, retainedDefinitionWire, resultDataPolicy, requestIdentity, compilationOriginal, publicationPreparation}, kind) {
-  const at = Date.parse(now());
-  if (!Number.isFinite(at)) throw new TypeError('InvalidLocalClock');
+  authorityScopeCid, namespaceId, now, retainedDefinitionWire, resultDataPolicy, requestIdentity, compilationOriginal, publicationPreparation, invocationOriginal}, kind) {
+  const original = invocationOriginal === undefined ? undefined : checkedOriginalQueryInvocation(
+    invocationOriginal, control, preparedProgram, requestIdentity, kind, retainedDefinitionWire);
+  const at = original === undefined ? Date.parse(now()) : undefined;
+  if (original === undefined && !Number.isFinite(at)) throw new TypeError('InvalidLocalClock');
   const retained = retainedDefinitionWire === undefined ? undefined :
     JSON.parse(retainedDefinitionWire);
-  const queryInvocation=prepareQueryInvocation(control,preparedProgram,requestIdentity,retained);
-  const createdAt = retained?.created_at ?? queryInvocation?.createdAt ?? instant(at);
-  const validUntil = retained?.valid_until ??
+  const queryInvocation=original === undefined && !(kind === 'tasks' && publicationPreparation !== undefined)
+    ? prepareQueryInvocation(control,preparedProgram,requestIdentity,retained) : undefined;
+  const createdAt = original?.createdAt ?? retained?.created_at ?? queryInvocation?.createdAt ?? instant(at);
+  const validUntil = original?.validUntil ?? retained?.valid_until ??
     instant(at + 24 * 60 * 60 * 1000);
   const contextCid = cid({version: 'actql-installed-local-context/0.1',
     authority_scope_cid: authorityScopeCid});
-  const compiled = control.prepareCheckedClientCompiledRun(preparedProgram,
+  const compiled = original?.compiled ?? control.prepareCheckedClientCompiledRun(preparedProgram,
     kind, {executionContextCid: contextCid,
       hostPolicyCid: policyCid(kind === 'infer' ? 'checked-infer'
         : kind === 'serialization' ? 'checked-content' : 'checked-tasks'),
@@ -703,16 +779,18 @@ function checkedTaskRunAdmission({control, preparedProgram, inferGraph, serializ
       ...(kind === 'infer' ? {resultDataPolicy: resultDataPolicy ?? inferResultPolicy} : {})},
     kind === 'serialization' ? serializationGraph : inferGraph, compilationOriginal);
   const {admission, compiledPlan} = compiled;
-  const runDefinition = control.defineCheckedClientCompiledRun(compiled, {
+  const runDefinition = original?.runDefinition ?? control.defineCheckedClientCompiledRun(compiled, {
     namespaceId, runId: randomUUID(), createdAt, validUntil,
     retainedDefinitionWire,
   });
-  const queryTime=bindQueryInvocation(control,queryInvocation,preparedProgram,compiled,runDefinition);
+  const queryTime=original === undefined
+    ? bindQueryInvocation(control,queryInvocation,preparedProgram,compiled,runDefinition)
+    : {queryTimePreparation:original.queryTimePreparation,queryTime:original.queryTime};
   const admitted = Object.freeze({...compiled, compiled, runDefinition, createdAt, publicationPreparation,
     ...queryTime,
     ...(kind === 'infer' ? {inferGraph} : {}),
     ...(kind === 'serialization' ? {serializationGraph} : {})});
-  return kind === 'tasks' ? retainOriginalPlan(admitted, compiled, preparedProgram, control) : admitted;
+  return kind === 'tasks' ? retainOriginalPlan(admitted, compiled, preparedProgram, control, queryTime) : admitted;
 }
 
 // Multi-task source-free Programs use the common task compiler and the same
@@ -734,12 +812,10 @@ export function sourceFreeTaskPlan(options) {
     resultCount: moon.clientProgramResultCount(preparedProgram),
     compiled: acquired.compiled, preparedProgram,
     outputLimits: checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal)});
-  const selectedPlan=acquired.queryTime===undefined?plan:Object.freeze({...plan,
-    queryTimePreparation:acquired.queryTimePreparation,queryTime:acquired.queryTime});
-  valuesAdmissions.set(selectedPlan, Object.freeze({prepared: acquired.preparedEvidence.wire,
+  valuesAdmissions.set(plan, Object.freeze({prepared: acquired.preparedEvidence.wire,
     authorization: acquired.authorization.wire}));
-  originalPlans.set(selectedPlan, sourceFreePlanOriginal(acquired));
-  return selectedPlan;
+  originalPlans.set(plan, originalPlans.get(acquired));
+  return plan;
 }
 
 // The connector/Acquisition owner supplies Source Evidence after completing

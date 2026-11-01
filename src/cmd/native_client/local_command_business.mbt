@@ -16,6 +16,14 @@ priv struct LocalCommandBusinessProfile {
 }
 
 ///|
+// One existing command slot retains either actual observation. Neither branch
+// manufactures a Publisher or an execution/publication acknowledgement.
+priv enum LocalRunReceiptObservation {
+  FreshRunReceipt(@local_host.NativeLocalObservedRunState)
+  RetainedRunReceipt(@local_host.NativeLocalRetainedRunReceipt)
+}
+
+///|
 // Caller retention only. The existing Host/domain/retained-execution Owners
 // keep every partial physical stage and their distinct acknowledgements.
 priv struct LocalCommandBusinessOriginal {
@@ -48,7 +56,7 @@ priv struct LocalCommandBusinessOriginal {
   mut _retained_publication_cleanup_failure : @local_publication.NativeCapturedRunPublicationCancellationIssue?
   mut publication_attempted : Bool
   mut publication_result : @local_publication.NativeRunPublicationResult?
-  mut run_receipt_original : @local_host.NativeLocalObservedRunState?
+  mut run_receipt_original : LocalRunReceiptObservation?
   mut publication_retired : Bool
   // Retain the original payload path before poll/return/close can fail.
   // These aliases do not acknowledge a Store, domain or delivery receipt.

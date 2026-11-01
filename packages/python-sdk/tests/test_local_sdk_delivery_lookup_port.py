@@ -5,6 +5,7 @@ import unittest
 from actql_sdk._local_core import LOCAL_CORE_ABI, LocalCoreError, _PUBLICATION_COMMIT_EXPORT_SIGNATURES
 import test_local_sdk_read_original as original_fixture
 import test_local_sdk_read_store as store_fixture
+from local_abi_declaration_fixture import original_byte_fixture_port
 
 
 class SDKDeliveryLookupPortTests(unittest.TestCase):
@@ -54,7 +55,7 @@ class SDKDeliveryLookupStoreTests(unittest.TestCase):
                 if family == 'buffer' and name == 'byte' and args[0] in outputs:
                     return outputs[args[0]][args[1]]
                 return previous(family, name, *args)
-            core._call = call
+            core._call = original_byte_fixture_port(call)
             before = store._connection.total_changes
             consumed = []
             def consume(raw):

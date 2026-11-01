@@ -3,10 +3,10 @@ fn receipt_limits_original(
   state : String,
 ) -> (EffectSetApplyReceiptEvidence, PublicationContract, PublicationContract) {
   let preview = effect_receipt_test_preview()
-  let member = partition_test_member(preview, 0, state)
+  let entry = partition_test_member(preview, 0, state)
   let set = issue_effect_set_apply_receipt_from_members(
     preview,
-    [member],
+    [entry],
     [false],
     16384,
     512,
@@ -15,18 +15,18 @@ fn receipt_limits_original(
   let original = admit_effect_set_apply_receipt_evidence(
     preview,
     set.wire,
-    [member.wire],
+    [entry.wire],
     16384,
     512,
     16,
   ).unwrap()
-  (original, set, member)
+  (original, set, entry)
 }
 
 ///|
-test "Set closure tighter limits include the original member beyond the Set envelope" {
-  let (original, set, member) = receipt_limits_original("applied")
-  let bytes = @utf8.encode(member.wire).length()
+test "Set closure tighter limits include the original entry beyond the Set envelope" {
+  let (original, set, entry) = receipt_limits_original("applied")
+  let bytes = @utf8.encode(entry.wire).length()
   // Independent closed shape: root + seven fields + row object + six fields.
   assert_eq(original.member_wire_usage, Some((bytes, 15, 3)))
   assert_true(bytes > @utf8.encode(set.wire).length())
@@ -34,7 +34,7 @@ test "Set closure tighter limits include the original member beyond the Set enve
     effect_set_apply_receipt_check_limits(original, bytes, 15, 3),
     Ok(()),
   )
-  // Both limits admit the Set envelope; only its larger member must refuse.
+  // Both limits admit the Set envelope; only its larger entry must refuse.
   assert_eq(publication_contract_check_limits(set, bytes - 1, 15, 3), Ok(()))
   assert_eq(
     effect_set_apply_receipt_check_limits(original, bytes - 1, 15, 3),
@@ -52,7 +52,7 @@ test "Set closure tighter limits include the original member beyond the Set enve
 }
 
 ///|
-test "Set closure usage includes every original member without retaining their trees" {
+test "Set closure usage includes every original entry without retaining their trees" {
   let preview = effect_receipt_test_two_member_preview()
   let first = partition_test_member(preview, 0, "applied")
   let second = partition_test_member(preview, 1, "rolled_back")

@@ -22,16 +22,16 @@ fn[T] issue_original_ledger_descriptor(
   // Production's recorded issuer borrows the existing slots directly and
   // allocates none of these fixture-only temporary collections.
   let selected_reservations = original_token_slots()
-  for token in reservations {
-    selected_reservations.push(token)
+  for index, token in reservations {
+    selected_reservations.push(token, index)
   }
   let selected_holdings = original_token_slots()
-  for token in holdings {
-    selected_holdings.push(token)
+  for index, token in holdings {
+    selected_holdings.push(token, index)
   }
   let selected_delegations = original_token_slots()
-  for token in delegations {
-    selected_delegations.push(token)
+  for index, token in delegations {
+    selected_delegations.push(token, index)
   }
   issue_original_ledger_descriptor_from_slots(
     ledger, origin, bootstrap, selected_reservations, selected_holdings, selected_delegations,

@@ -22,6 +22,12 @@ test "pre-module QueryTime bridge forwards its original Option into the same Req
       publication,
       None,
     ).unwrap(),
+    (),
+  )
+  assert_eq(
+    client_program_finish_request_computation(
+      parent, input, environment, publication,
+    ).unwrap(),
     "effect_free",
   )
   let held = client_program_borrow_request_program_plan_input(parent, input).unwrap()

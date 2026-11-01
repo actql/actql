@@ -50,11 +50,59 @@ struct RemoteCredentialUse {
 }
 
 ///|
+// One codec policy for the actual issuer, restoration and construction quote.
+// Returning its DATA below never exposes a mutable reference to this policy.
+let credential_grant_wire_bytes = 32768
+
+///|
+let credential_grant_nodes = 40
+
+///|
+let credential_grant_depth = 2
+
+///|
+let credential_grant_cid_units = 71
+
+///|
+let credential_signature_units = 86
+
+///|
+let credential_signature_domain = "actql-remote-credential-grant-signature/0.1"
+
+///|
+pub(all) struct CredentialGrantConstructionProfile {
+  grant : @source.ParseLimits
+  cid_units : Int
+  signature_units : Int
+  signature_preimage_prefix_units : Int
+} derive(Eq, Debug)
+
+///|
+/// Original codec bounds for constructor accounting only. No grant, scope,
+/// signature, current observation or capacity is issued by this projection.
+pub fn credential_grant_construction_profile() -> CredentialGrantConstructionProfile {
+  {
+    grant: {
+      max_input_bytes: credential_grant_wire_bytes,
+      max_nodes: credential_grant_nodes,
+      max_depth: credential_grant_depth,
+    },
+    cid_units: credential_grant_cid_units,
+    signature_units: credential_signature_units,
+    // Domain NUL + exact grant CID + NUL, before the canonical body.
+    signature_preimage_prefix_units: credential_signature_domain.length() +
+    credential_grant_cid_units +
+    2,
+  }
+}
+
+///|
 fn valid_cid(value : String) -> Bool {
-  if value.length() != 71 || !value.has_prefix("sha256:") {
+  if value.length() != credential_grant_cid_units ||
+    !value.has_prefix("sha256:") {
     return false
   }
-  for index = 7; index < 71; index = index + 1 {
+  for index = 7; index < credential_grant_cid_units; index = index + 1 {
     let unit = value[index].to_int()
     if !((unit >= 48 && unit <= 57) || (unit >= 97 && unit <= 102)) {
       return false
@@ -65,7 +113,7 @@ fn valid_cid(value : String) -> Bool {
 
 ///|
 fn valid_signature(value : String) -> Bool {
-  if value.length() != 86 {
+  if value.length() != credential_signature_units {
     return false
   }
   for character in value.iter() {
@@ -118,7 +166,9 @@ fn valid_grant_fields(grant : RemoteCredentialGrant) -> Bool {
 fn grant_body(
   grant : RemoteCredentialGrant,
 ) -> Result[String, RemoteCredentialIssue] {
-  let writer = @encode.writer(32768, 40, 2) catch {
+  let writer = @encode.writer(
+    credential_grant_wire_bytes, credential_grant_nodes, credential_grant_depth,
+  ) catch {
     _ => return Err(InvalidCredentialGrant)
   }
   try {
@@ -292,19 +342,19 @@ fn admit_grant_body(
   let bytes = @utf8.encode(body)
   let node = match
     @source.parse_json_bytes(bytes, {
-      max_input_bytes: 32768,
-      max_nodes: 40,
-      max_depth: 2,
+      max_input_bytes: credential_grant_wire_bytes,
+      max_nodes: credential_grant_nodes,
+      max_depth: credential_grant_depth,
     }) {
     Ok(value) => value
     Err(_) => raise RemoteCredentialDecodeStop
   }
   let cursor = credential_decoded(
     @decode.admit(node, {
-      max_nodes: 40,
-      max_depth: 2,
-      max_string_bytes: 32768,
-      max_total_string_bytes: 32768,
+      max_nodes: credential_grant_nodes,
+      max_depth: credential_grant_depth,
+      max_string_bytes: credential_grant_wire_bytes,
+      max_total_string_bytes: credential_grant_wire_bytes,
     }),
   )
   let object = credential_decoded(
@@ -420,7 +470,8 @@ pub fn credential_grant_signature_preimage(
   }
   Ok(
     @utf8.encode(
-      "actql-remote-credential-grant-signature/0.1\u{0000}" +
+      credential_signature_domain +
+      "\u{0000}" +
       grant.grant_cid +
       "\u{0000}" +
       body,
@@ -451,7 +502,7 @@ pub fn admit_credential_signature_envelope(
   body : String,
   signature : String,
 ) -> Result[RemoteCredentialSignatureEnvelope, RemoteCredentialIssue] {
-  if version != "actql-remote-credential-grant-signature/0.1" {
+  if version != credential_signature_domain {
     return Err(InvalidCredentialSignature)
   }
   let grant = match admit_grant_json(body, grant_cid) {
@@ -466,7 +517,7 @@ pub fn credential_signature_envelope_projection(
   envelope : RemoteCredentialSignatureEnvelope,
 ) -> Array[String] {
   [
-    "actql-remote-credential-grant-signature/0.1",
+    credential_signature_domain,
     envelope.key_id,
     envelope.grant.grant_cid,
     credential_grant_json(envelope.grant).unwrap(),

@@ -105,3 +105,18 @@ test('malformed or one-short binary calls do not reach the physical callback', a
   }
   assert.equal(calls, 0);
 });
+
+test('scoped Source invocation forwards its exact original response custody before a physical late refusal', async () => {
+  const primary = new Error('original physical post-response current refusal'), body = Buffer.from('original');
+  let observed, retained = 0;
+  const responseCustody = Object.freeze({retain(value) {assert.equal(this, responseCustody); observed = value; retained++;}});
+  await assert.rejects(async () => invokeScopedCredentialOperation({
+    authorization: {grant: {}, useId: 'original-source-use', scope: {operation: 'read'}},
+    credential: {}, operation: 'read', method: 'GET', path: '/records', maxResponseBytes: 64, responseCustody,
+    callResource(input) {
+      assert.strictEqual(input.responseCustody, responseCustody);
+      input.responseCustody.retain(Object.freeze({body}));
+      throw primary;
+    }}), error => error === primary);
+  assert.equal(retained, 1); assert.strictEqual(observed.body, body);
+});

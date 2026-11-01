@@ -13,10 +13,15 @@ assert(configurationPath && ['read', 'saved'].includes(phase),
   'Usage: consumer.mjs <fresh-own-configuration.json> read|saved');
 const configuration = JSON.parse(await readFile(configurationPath, 'utf8'));
 const consumerRoot = resolve(configuration.consumerRoot);
-const {connect, publicSdk, connectorTable, paths: productModules} = await loadExternalRestModules({consumerRoot,
+const {connect, publicSdk, connectorTable, paths: productModules,
+  loadedInstallationExports} = await loadExternalRestModules({consumerRoot,
   connectorPackage: configuration.connectorPackage});
 const outputRoot = resolve(configuration.outputRoot, phase);
 await mkdir(outputRoot, {recursive: true});
+await writeFile(join(outputRoot, 'installation-module.json'), JSON.stringify({
+  productModules, loadedInstallationExports, generatedInstallationLoaded: true,
+  HostOpened: false,
+}, null, 2) + '\n', {flag: 'wx'});
 const startedAt = new Date().toISOString(), started = performance.now();
 const sourceProfileKeys = ['authorization', 'directory', 'sourceProfilePath', 'sourceProfilePaths'];
 assert(configuration.installation && Object.keys(configuration.installation)

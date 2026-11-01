@@ -2,10 +2,120 @@
 // Core extents/Plan are DATA until the SAME Request completes and adopts them.
 import {types as nodeTypes} from 'node:util';
 import {checked} from '../host-common/runtime-result.mjs';
-import {httpsCredentialResponseWindowBytes} from '../site-node/https-credential-resource.mjs';
+import {httpsCredentialResponseWindowBytes, httpsCredentialResponseHeaderByteLimit, httpsCredentialAuthorizationPrefix}
+  from '../site-node/https-credential-resource.mjs';
+import {effectLedgerImplementationBounds} from './effect-ledger-implementation-bounds.mjs';
 import {credentialInvocationBindingKeys} from '../host-common/credential-scope-fields.generated.mjs';
+const NativePromise = Promise;
+const nativePromiseThen = Promise.prototype.then;
 const fail = code => {throw Object.assign(new Error(code), {code});};
 const text = value => typeof value === 'string' && value.length > 0;
+
+// Fixed installed implementation metadata, not caller tuning or a Resource
+// allowance. Capture the native method/receiver once; no fallback numeric table
+// can silently disagree with the mapper/projector's original implementation.
+export function captureInstalledStandardCreateLimits(providerMoon) {
+  if (providerMoon === null || !['object', 'function'].includes(typeof providerMoon) ||
+      nodeTypes.isProxy(providerMoon)) fail('InstalledStandardCreateRuntimeUnavailable');
+  const method = Object.getOwnPropertyDescriptor(providerMoon, 'installedStandardCreateHttpLimits');
+  if (!method || !Object.hasOwn(method, 'value') || typeof method.value !== 'function' ||
+      nodeTypes.isProxy(method.value) || nodeTypes.isAsyncFunction(method.value)) {
+    fail('InstalledStandardCreateRuntimeUnavailable');
+  }
+  const values = Reflect.apply(method.value, providerMoon, []);
+  if (!Array.isArray(values) || nodeTypes.isProxy(values)) fail('InvalidInstalledStandardCreateLimits');
+  const fields = Object.getOwnPropertyDescriptors(values);
+  if (Reflect.ownKeys(fields).length !== 5 || fields.length?.value !== 4) {
+    fail('InvalidInstalledStandardCreateLimits');
+  }
+  const names = ['maxRequestBytes', 'maxResponseBytes', 'maxNodes', 'maxDepth'];
+  const limits = {};
+  for (let index = 0; index < names.length; index++) {
+    const field = fields[index];
+    if (!field || !Object.hasOwn(field, 'value') || !Number.isSafeInteger(field.value) ||
+        field.value < 1 || field.value > 2147483647) fail('InvalidInstalledStandardCreateLimits');
+    limits[names[index]] = field.value;
+  }
+  return Object.freeze(limits);
+}
+
+// One selected standard implementation recipe from original Native/Host/Site
+// constructor facts. This is a private installing-code path, not user tuning,
+// a new Provider framework, a Run admission or a replacement cleanup owner.
+export function prepareInstalledStandardCreatePlanRecipe({moon, providerMoon, construction, credentialSite, limits,
+  resourceTextUnits, requestInput = limits}) {
+  if (construction === undefined || construction.check === null ||
+      credentialSite?.construction === undefined ||
+      !Number.isSafeInteger(resourceTextUnits) || resourceTextUnits < 0) {
+    fail('InstalledStandardCreateConstructionUnavailable');
+  }
+  const originalMethod = (receiver, name) => {
+    if (receiver === null || !['object','function'].includes(typeof receiver) || nodeTypes.isProxy(receiver)) {
+      fail('InstalledStandardCreateRuntimeUnavailable');
+    }
+    const field = Object.getOwnPropertyDescriptor(receiver, name);
+    if (!field || !Object.hasOwn(field,'value') || typeof field.value !== 'function' ||
+        nodeTypes.isProxy(field.value) || nodeTypes.isAsyncFunction(field.value)) {
+      fail('InstalledStandardCreateRuntimeUnavailable');
+    }
+    return (...args) => Reflect.apply(field.value, receiver, args);
+  };
+  const profile = originalMethod(providerMoon, 'installedStandardCreateConstructionProfile');
+  const captureField = Object.getOwnPropertyDescriptor(providerMoon, 'installedStandardDriverCaptureConstructionCapacity');
+  const captureProfile = captureField === undefined ? undefined
+    : originalMethod(providerMoon, 'installedStandardDriverCaptureConstructionCapacity');
+  const capacitiesFor = originalMethod(moon, captureProfile === undefined
+    ? 'clientProgramInstalledStandardCreateRecipeCapacities' : 'clientProgramInstalledStandardDriverRecipeCapacities');
+  const extentFor = originalMethod(moon, 'clientProgramInstalledEffectOperationExtentFromCapacityPrepare');
+  const captureFor = originalMethod(moon, 'clientProgramInstalledEffectCaptureExtentPrepare');
+  const {write, check} = construction;
+  const secret = credentialSite.construction;
+  if (![write.maxRequestBytes,write.maxResponseBytes,limits.maxWireBytes,limits.maxNodes,limits.maxDepth,
+    requestInput?.maxWireBytes,requestInput?.maxNodes,requestInput?.maxDepth,
+    secret.limits?.maxSecretBytes,httpsCredentialResponseHeaderByteLimit,
+    ...(check === undefined ? [] : [check.maxRequestBytes,check.maxResponseBytes])]
+    .every(value => Number.isSafeInteger(value) && value > 0 && value <= 2147483647)) {
+    fail('InstalledStandardCreateConstructionUnavailable');
+  }
+  // Immutable original metadata only. The issuer itself retains and consumes
+  // these same scope/issuer fields; do not query policy or sample grant time.
+  let units = BigInt(construction.metadataTextUnits) + BigInt(resourceTextUnits);
+  for (const value of Object.values(secret.scope)) if (typeof value === 'string') units += BigInt(value.length);
+  for (const value of Object.values(secret.issuer)) units += BigInt(value.length);
+  const capacities = checked(capacitiesFor(profile(requestInput.maxWireBytes, requestInput.maxNodes, requestInput.maxDepth),
+    ...(captureProfile === undefined ? [] : [captureProfile(limits.maxWireBytes,limits.maxNodes,limits.maxDepth,
+      requestInput.maxWireBytes,requestInput.maxNodes,requestInput.maxDepth)]), limits.maxWireBytes, limits.maxNodes, limits.maxDepth,
+    write.maxRequestBytes, write.maxResponseBytes, check?.maxRequestBytes ?? 0, check?.maxResponseBytes ?? 0,
+    check?.beforeSend === true, secret.limits.maxSecretBytes, httpsCredentialAuthorizationPrefix.length,
+    httpsCredentialResponseHeaderByteLimit, effectLedgerImplementationBounds.maxResponseBytes,
+    effectLedgerImplementationBounds.maxNodes, effectLedgerImplementationBounds.maxDepth, units));
+  if (!Array.isArray(capacities) || capacities.length !== (check === undefined ? 5 : 6)) {
+    fail('InstalledStandardCreateConstructionUnavailable');
+  }
+  const memberOperations = [Object.freeze({operation:write.operation,
+    extent:checked(captureFor(write.operation,capacities[0],capacities[1]))})];
+  const rowOperations = [Object.freeze({operation:write.operation,
+    extent:checked(extentFor(write.operation,capacities[2],0n,false))})];
+  const credentialOperations = [];
+  const physical = (phase, selected, capacity) => {
+    const operationIndex = rowOperations.length;
+    const transfer = BigInt(selected.maxRequestBytes) + httpsCredentialResponseWindowBytes(selected.maxResponseBytes);
+    rowOperations.push(Object.freeze({operation:selected.operation,
+      extent:checked(extentFor(selected.operation,capacity,transfer,true))}));
+    credentialOperations.push(Object.freeze({phase,operationIndex,
+      maxRequestBytes:selected.maxRequestBytes,maxResponseBytes:selected.maxResponseBytes}));
+  };
+  if (check !== undefined) {
+    for (const phase of ['capture-check','apply-check','resume-check']) physical(phase,check,capacities[5]);
+    if (check.beforeSend) physical('write-check',check,capacities[5]);
+  }
+  physical('write',write,capacities[3]);
+  return captureInstalledEffectPlanRecipe(Object.freeze({
+    memberOperations:Object.freeze(memberOperations),rowOperations:Object.freeze(rowOperations),
+    controlsPerRow:capacities[4],captureConstruction:Object.freeze({operationIndex:0}),
+    requestConstruction:Object.freeze({operationIndex:0}),credentialOperations:Object.freeze(credentialOperations),
+  }), rowOperations.length + memberOperations.length);
+}
 
 // The selected Host supplies original typed extents from its actual implementation
 // recipe. Names/limits alone cannot select a Plan. Preserve those same opaque
@@ -25,6 +135,7 @@ export function captureInstalledEffectPlanRecipe(recipe, maxOperations) {
     return fields;
   };
   const fields = own(recipe, ['memberOperations', 'rowOperations',
+    ...(Object.hasOwn(recipe, 'controlsPerRow') ? ['controlsPerRow'] : []),
     ...(Object.hasOwn(recipe, 'requestConstruction') ? ['requestConstruction'] : []),
     ...(Object.hasOwn(recipe, 'captureConstruction') ? ['captureConstruction'] : []),
     ...(Object.hasOwn(recipe, 'credentialOperations') ? ['credentialOperations'] : [])]);
@@ -43,6 +154,9 @@ export function captureInstalledEffectPlanRecipe(recipe, maxOperations) {
     }));
   };
   const memberOperations = operations('memberOperations'), rowOperations = operations('rowOperations');
+  const controlsPerRow = fields.controlsPerRow?.value;
+  if (fields.controlsPerRow !== undefined && (controlsPerRow === null || typeof controlsPerRow !== 'object' ||
+      nodeTypes.isProxy(controlsPerRow))) fail('InvalidInstalledEffectPlanRecipe');
   if (memberOperations.length + rowOperations.length === 0 ||
       memberOperations.length + rowOperations.length > maxOperations) fail('InvalidInstalledEffectPlanRecipe');
   let requestConstruction;
@@ -84,6 +198,7 @@ export function captureInstalledEffectPlanRecipe(recipe, maxOperations) {
     if (!phases.has('write')) fail('InvalidInstalledEffectPlanRecipe');
   }
   return Object.freeze({memberOperations, rowOperations,
+    ...(controlsPerRow === undefined ? {} : {controlsPerRow}),
     ...(requestConstruction === undefined ? {} : {requestConstruction}),
     ...(captureConstruction === undefined ? {} : {captureConstruction}),
     ...(credentialOperations === undefined ? {} : {credentialOperations})});
@@ -92,31 +207,59 @@ export function captureInstalledEffectPlanRecipe(recipe, maxOperations) {
 export function prepareInstalledEffectManagedPlan({moon, facts, inputs, unit, members, recipeFor}) {
   if (facts?.prepared === undefined || facts.identity === undefined ||
       inputs?.installedContracts === undefined ||
-      typeof inputs.values !== 'string' ||
-      typeof moon.clientProgramInstalledEffectOperationDemandPrepare !== 'function') {
+      typeof inputs.values !== 'string') {
     fail('InstalledEffectOperationDemandUnavailable');
   }
-  // Source acquisition originals cannot be inferred from profile DATA or
-  // prepared again under another parent. This first existing connection
-  // selects a Source-free Effect; Source/Model supply keeps its own owner.
-  if (moon.clientProgramEffectAcquisitionCount(facts.prepared) !== 0 ||
-      inputs.modelDemand !== undefined) fail('InstalledEffectPlanInputsUnavailable');
+  // The installing Source supplies its original declaration/reader bounds;
+  // Core constructs the acquisition once on this same checked Plan. Missing
+  // inputs cannot select a zero-Source or ordinary-purpose replacement.
+  const count = moon.clientProgramEffectAcquisitionCount(facts.prepared);
+  const sources = inputs.sourceInputs;
+  if (!Number.isSafeInteger(count) || count < 0 ||
+      count !== 0 && sources === undefined || sources !== undefined &&
+      (sources === null || typeof sources !== 'object' || !Object.isFrozen(sources) ||
+       !['declarations', 'transferBytes', 'executionBytes'].every(name =>
+         Array.isArray(sources[name]) && Object.isFrozen(sources[name]) && sources[name].length === count) ||
+       sources.providers !== undefined && (!Array.isArray(sources.providers) ||
+         !Object.isFrozen(sources.providers) || sources.providers.length !== count) ||
+       typeof sources.queryContract !== 'string' || typeof sources.evidenceContract !== 'string' ||
+       count !== 0 && (!sources.queryContract || !sources.evidenceContract) ||
+       [...sources.transferBytes, ...sources.executionBytes].some(value => typeof value !== 'bigint' || value < 0n))) {
+    fail('InstalledEffectPlanInputsUnavailable');
+  }
+  if (inputs.modelDemand !== undefined && (!Array.isArray(inputs.modelComponents) ||
+      !Object.isFrozen(inputs.modelComponents) || inputs.modelComponents.length === 0)) {
+    fail('InstalledEffectPlanInputsUnavailable');
+  }
   const demands = members.map(member => {
     const recipe = recipeFor(member);
     if (recipe === undefined) fail('InstalledEffectOperationDemandUnavailable');
-    return checked(moon.clientProgramInstalledEffectOperationDemandPrepare(
-      facts.prepared, unit.stageIndex, member.effectId,
-      recipe.memberOperations.map(entry => entry.extent),
-      recipe.rowOperations.map(entry => entry.extent)));
+    const construct = recipe.controlsPerRow === undefined
+      ? moon.clientProgramInstalledEffectOperationDemandPrepare
+      : moon.clientProgramInstalledEffectOperationDemandWithControlsPrepare;
+    if (typeof construct !== 'function') fail('InstalledEffectOperationDemandUnavailable');
+    return checked(Reflect.apply(construct, moon, [facts.prepared, unit.stageIndex, member.effectId,
+      recipe.memberOperations.map(entry => entry.extent), recipe.rowOperations.map(entry => entry.extent),
+      ...(recipe.controlsPerRow === undefined ? [] : [recipe.controlsPerRow])]));
   });
-  const construct = facts.queryTimePreparation === undefined
-    ? moon.clientProgramInstalledEffectManagedPlanPrepare
-    : moon.clientProgramInstalledEffectManagedPlanPrepareAtQueryTime;
+  const model = inputs.modelDemand !== undefined, providers = sources?.providers;
+  const construct = model ? providers === undefined
+    ? moon.clientProgramInstalledEffectModelManagedPlanPrepare
+    : moon.clientProgramInstalledEffectModelManagedProviderPlanPrepare
+    : providers !== undefined ? facts.queryTimePreparation === undefined
+      ? moon.clientProgramInstalledEffectManagedProviderPlanPrepare
+      : moon.clientProgramInstalledEffectManagedProviderPlanPrepareAtQueryTime
+    : facts.queryTimePreparation === undefined
+      ? moon.clientProgramInstalledEffectManagedPlanPrepare
+      : moon.clientProgramInstalledEffectManagedPlanPrepareAtQueryTime;
   if (typeof construct !== 'function') fail('InstalledEffectPlanRuntimeUnavailable');
   const original = [facts.prepared, facts.identity,
-    ...(facts.queryTimePreparation === undefined ? [] : [facts.queryTimePreparation]),
-    [], '', '', [], [], inputs.installedContracts,
-    inputs.values, inputs.fragment, inputs.ordered, demands];
+    ...(model || facts.queryTimePreparation === undefined ? [] : [facts.queryTimePreparation]),
+    sources?.declarations ?? [], ...(providers !== undefined ? [providers] : []),
+    sources?.queryContract ?? '', sources?.evidenceContract ?? '',
+    sources?.transferBytes ?? [], sources?.executionBytes ?? [], inputs.installedContracts,
+    inputs.values, inputs.fragment, inputs.ordered, demands,
+    ...(model ? [inputs.modelDemand, inputs.modelComponents, facts.queryTimePreparation] : [])];
   // Empty query/evidence strings are unused arguments only for zero Sources;
   // they issue no query contract. Existing Core validates the checked graph.
   return checked(Reflect.apply(construct, moon, original));
@@ -136,27 +279,32 @@ export function prepareInstalledEffectRequestChild({run, memberIndex, rowIndex,
   if (![borrow, retire, readPlan].every(method => typeof method === 'function')) {
     fail('InstalledEffectOperationRuntimeUnavailable');
   }
-  const current = () => {
-    if (Object.hasOwn(run, 'failure')) throw run.failure;
-    if (run.closed || run.runtime !== runtime || run.value !== parent || run.prepared !== prepared ||
-        run.request !== request || run.operationPlan !== plan || run.readPlan !== readPlan ||
-        checked(Reflect.apply(readPlan, runtime, [parent, prepared, request])) !== plan) {
-      fail('ForeignInstalledEffectManagedRun');
-    }
-    // The native current callback can invalidate its original Node record.
+  const originalRecord = () => {
     if (Object.hasOwn(run, 'failure')) throw run.failure;
     if (run.closed || run.runtime !== runtime || run.value !== parent || run.prepared !== prepared ||
         run.request !== request || run.operationPlan !== plan || run.readPlan !== readPlan) {
       fail('ForeignInstalledEffectManagedRun');
     }
   };
-  current();
+  const current = () => {
+    originalRecord();
+    if (checked(Reflect.apply(readPlan, runtime, [parent, prepared, request])) !== plan) {
+      fail('ForeignInstalledEffectManagedRun');
+    }
+    // Preserve the local reentry fence after the original current callback.
+    originalRecord();
+  };
+  // The atomic Core borrow checks this SAME Plan/current/reservation itself.
+  // No external operation lies between this callback-free local fence and it.
+  // The capture retains the returned child before prepare's current boundary.
+  originalRecord();
   let token = checked(Reflect.apply(borrow, runtime,
     [parent, prepared, request, plan, memberIndex, perRow, operationIndex, rowIndex, operation]));
   let construct = originalConstruct;
   originalConstruct = undefined;
   let state = 'fresh';
   let preparing = false;
+  let pendingConstructor;
   const drain = () => {
     if (state === 'retired') return true;
     if (preparing || requestsRetired() !== true) return false;
@@ -177,22 +325,35 @@ export function prepareInstalledEffectRequestChild({run, memberIndex, rowIndex,
       try {
         current();
         const value = construct();
-        const then = value !== null && (typeof value === 'object' || typeof value === 'function')
-          ? value.then : undefined;
-        if (typeof then === 'function') {
-          // Invalid async work remains joined to the SAME retained child until
-          // settlement. A rejected/fulfilled Promise is still not a sync value.
-          return new Promise((resolve, reject) => Reflect.apply(then, value, [resolve, reject]))
-            .then(() => {fail('InstalledEffectConstructorNotSynchronous');},
-              () => {fail('InstalledEffectConstructorNotSynchronous');})
-            .finally(() => {preparing = false; state = 'failed';});
+        if (nodeTypes.isPromise(value)) {
+          pendingConstructor = value;
+          // Observe the native original before any replaceable public then.
+          // Failed species/constructor observation rejects this wrapper, but
+          // leaves the SAME unjoined task and its body in this child's custody.
+          return new NativePromise((resolve, reject) => {
+            const settled = () => {
+              pendingConstructor = undefined;
+              preparing = false;
+              state = 'failed';
+              reject(Object.assign(new Error('InstalledEffectConstructorNotSynchronous'),
+                {code: 'InstalledEffectConstructorNotSynchronous'}));
+            };
+            Reflect.apply(nativePromiseThen, value, [settled, settled]);
+          });
+        }
+        if (value !== null && (typeof value === 'object' || typeof value === 'function')) {
+          pendingConstructor = value;
+          // A foreign thenable or throwing accessor cannot certify settlement.
+          // Do not start it merely to manufacture an asynchronous cleanup ACK.
+          if (typeof value.then === 'function') fail('InstalledEffectConstructorNotSynchronous');
+          pendingConstructor = undefined;
         }
         current();
         state = 'prepared';
         preparing = false;
         return value;
       } catch (error) {
-        preparing = false;
+        if (pendingConstructor === undefined) preparing = false;
         state = 'failed';
         throw error;
       }
@@ -239,34 +400,56 @@ export function prepareInstalledEffectCredentialChild({run, memberIndex, rowInde
   if (![readPlan,select,isPhysical,transfer,responseBackingFits,borrow,start,charge,retire].every(value=>typeof value==='function')) {
     fail('InstalledEffectOperationRuntimeUnavailable');
   }
-  const nativeCurrent=()=>{
+  const originalRecord=()=>{
     const same=()=>run.closed!==true && run.runtime===runtime && run.value===parent && run.prepared===prepared &&
       run.request===request && run.operationPlan===plan && run.readPlan===readPlan;
     if(Object.hasOwn(run,'failure'))throw run.failure;
-    if(!same()||checked(Reflect.apply(readPlan,runtime,[parent,prepared,request]))!==plan)fail('ForeignInstalledEffectManagedRun');
-    if(Object.hasOwn(run,'failure'))throw run.failure;
     if(!same())fail('ForeignInstalledEffectManagedRun');
   };
-  nativeCurrent();
-  const extent=checked(Reflect.apply(select,runtime,[plan,memberIndex,true,operationIndex,operation]));
-  const declaredTransfer=Reflect.apply(transfer,runtime,[extent]);
-  if(Reflect.apply(isPhysical,runtime,[extent])!==true || typeof declaredTransfer!=='bigint' ||
-      declaredTransfer<BigInt(maxRequestBytes)+httpsCredentialResponseWindowBytes(maxResponseBytes)) {
-    fail('InsufficientInstalledEffectOperationTransfer');
+  const nativeCurrent=()=>{
+    originalRecord();
+    if(checked(Reflect.apply(readPlan,runtime,[parent,prepared,request]))!==plan)fail('ForeignInstalledEffectManagedRun');
+    originalRecord();
+  };
+  originalRecord();
+  try {
+    // These original extent projections inspect immutable Plan DATA only.
+    // The atomic borrow below owns the successful current/reservation boundary.
+    const extent=checked(Reflect.apply(select,runtime,[plan,memberIndex,true,operationIndex,operation]));
+    const declaredTransfer=Reflect.apply(transfer,runtime,[extent]);
+    if(Reflect.apply(isPhysical,runtime,[extent])!==true || typeof declaredTransfer!=='bigint' ||
+        declaredTransfer<BigInt(maxRequestBytes)+httpsCredentialResponseWindowBytes(maxResponseBytes)) {
+      fail('InsufficientInstalledEffectOperationTransfer');
+    }
+    if(maxResponseBytes>2147483647 || !Number.isSafeInteger(httpsCredentialResponseHeaderByteLimit) ||
+        httpsCredentialResponseHeaderByteLimit<1 || httpsCredentialResponseHeaderByteLimit>2147483647 ||
+        Reflect.apply(responseBackingFits,runtime,[extent,maxResponseBytes,httpsCredentialResponseHeaderByteLimit])!==true) {
+      fail('InsufficientInstalledEffectResponseBacking');
+    }
+  } catch(error) {
+    // No borrow follows a metadata refusal. Preserve its original current and
+    // Unknown precedence, including an original failure whose value is undefined.
+    nativeCurrent();
+    throw error;
   }
-  if(maxResponseBytes>2147483647 ||
-      Reflect.apply(responseBackingFits,runtime,[extent,maxResponseBytes])!==true) {
-    fail('InsufficientInstalledEffectResponseBacking');
-  }
+  originalRecord();
   let token=checked(Reflect.apply(borrow,runtime,[parent,prepared,request,plan,memberIndex,true,operationIndex,rowIndex,operation]));
   let state='fresh',preparing=false,closing=false,accountingFailed=false,callStarted=false;
-  let acquisition,closeBinding,boundCredential,bindingClosed=false,pendingFence,closeFlight,physicalFlight;
+  let acquisition,closeBinding,boundCredential,bindingClosed=false,pendingFence,fenceFlight,pendingClose,closeFlight,physicalFlight;
   const retainFence=value=>{
-    const then=value!==null&&(typeof value==='object'||typeof value==='function')?value.then:undefined;
-    if(typeof then==='function')pendingFence=new Promise((yes,no)=>Reflect.apply(then,value,[yes,no])).then(()=>undefined,()=>undefined);
+    if(value===null||!['object','function'].includes(typeof value))return;
+    pendingFence=value;
+    if(nodeTypes.isPromise(value)){
+      fenceFlight=new NativePromise(resolve=>{
+        const settled=()=>{pendingFence=undefined;resolve();};
+        try{Reflect.apply(nativePromiseThen,value,[settled,settled]);}
+        catch{resolve();} // Observation failure is not settlement of the retained task.
+      });
+    }else if(typeof value.then!=='function')pendingFence=undefined;
   };
   const check=()=>{
     nativeCurrent();
+    if(pendingFence!==undefined)fail('InvalidInstalledEffectCurrentFence');
     const returned=assertCurrent();
     if(returned!==undefined){retainFence(returned);fail('InvalidInstalledEffectCurrentFence');}
     const current=Reflect.apply(referenceCurrent,site,[]);
@@ -315,17 +498,22 @@ export function prepareInstalledEffectCredentialChild({run, memberIndex, rowInde
     if(state==='retired')return true;
     closing=true;
     if(closeFlight!==undefined)return closeFlight;
-    if(pendingFence!==undefined)return false;
+    if(pendingFence!==undefined||pendingClose!==undefined)return false;
     if(acquisition!==undefined&&!bindingClosed){
       if(closeBinding===undefined)return false;
       const result=Reflect.apply(closeBinding,acquisition,[]);
       if(result==='closed')bindingClosed=true;
       else if(result!=='pending'){
-        const then=result!==null&&(typeof result==='object'||typeof result==='function')?result.then:undefined;
-        if(typeof then!=='function')fail('InvalidInstalledEffectBindingCleanup');
-        closeFlight=new Promise((yes,no)=>Reflect.apply(then,result,[yes,no])).then(()=>false,()=>false)
-          .finally(()=>{closeFlight=undefined;});
-        return closeFlight;
+        if(result!==null&&['object','function'].includes(typeof result))pendingClose=result;
+        if(nodeTypes.isPromise(result)){
+          closeFlight=new NativePromise(resolve=>{
+            const settled=()=>{pendingClose=undefined;closeFlight=undefined;resolve(false);};
+            try{Reflect.apply(nativePromiseThen,result,[settled,settled]);}
+            catch{resolve(false);} // Keep the unjoined original; never infer a close ACK.
+          });
+          return closeFlight;
+        }
+        fail('InvalidInstalledEffectBindingCleanup');
       }
     }
     if(preparing||accountingFailed||(acquisition!==undefined&&!bindingClosed)||requestsRetired()!==true)return false;
@@ -360,7 +548,7 @@ export function prepareInstalledEffectCredentialChild({run, memberIndex, rowInde
       }catch(error){primaryFailed=true;state='failed';throw error;}
       finally{
         const observed=physicalFlight===undefined?undefined:await physicalFlight;
-        if(pendingFence!==undefined){await pendingFence;pendingFence=undefined;}
+        if(fenceFlight!==undefined){await fenceFlight;fenceFlight=undefined;}
         preparing=false;
         if(!primaryFailed&&observed?.ok===false){state='failed';throw observed.error;}
       }

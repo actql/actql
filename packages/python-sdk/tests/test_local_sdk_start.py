@@ -10,6 +10,7 @@ from actql_sdk._local_core import LocalCoreError
 from actql_sdk._local_storage import LocalStorageCommitUnknown, LocalStorageError
 import test_local_finite_run as fixture
 import test_local_submission_append as append_fixture
+from local_abi_declaration_fixture import original_byte_fixture_port
 
 BINDING = b'{"opaque":"original Core publication binding e\xcc\x81/~","null":null}'
 DISPATCH = b'{"opaque":"original Core dispatch e\xcc\x81/~","null":null}'
@@ -84,7 +85,7 @@ class SDKStartAssemblyTests(unittest.TestCase):
                 if name == 'reserve_source_free': return 1600000
                 return 0
             return previous(family, name, *args)
-        core._call = call
+        core._call = original_byte_fixture_port(call)
         return host, core, run, events, failures
 
     def row(self, host):

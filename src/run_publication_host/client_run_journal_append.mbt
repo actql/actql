@@ -94,6 +94,8 @@ pub fn[E] prepare_client_run_journal_append(
   custody_lost : E,
   local_policy_original? : ClientLocalRunPolicyOriginal? = None,
   run_observation_originals? : ClientRunObservationOriginals? = None,
+  task_materials_cid? : String? = None,
+  publication_policy_originals? : String? = None,
 ) -> Result[ClientRunJournalAppendPlan, ClientRunJournalAppendIssue[E]] {
   match
     read_client_retained_run_journal(request, read, validate_run, custody_lost) {
@@ -185,6 +187,10 @@ pub fn[E] prepare_client_run_journal_append(
       }
     }
   }
+  if publication_policy_originals is Some(wire) &&
+    read_client_run_policy_originals(wire) is Err(_) {
+    return Err(InvalidOriginal)
+  }
   let record : ClientRunJournalEncoding = {
     request,
     definition,
@@ -192,8 +198,9 @@ pub fn[E] prepare_client_run_journal_append(
     physical_start_claimed: false,
     cancellation_requested: false,
     publication_binding: None,
-    publication_policy_originals: None,
+    publication_policy_originals,
     effect_material_originals: None,
+    task_materials_cid,
     checkpoint: None,
   }
   let body = match

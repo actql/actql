@@ -1,5 +1,6 @@
 // Public-only RFC 8032 vectors exercise the actual selected Library.
 // Injected callbacks cover getter refusal; no private key or signature is used.
+#define _DARWIN_C_SOURCE
 #define _POSIX_C_SOURCE 200809L
 #include <assert.h>
 #include <dlfcn.h>
@@ -14,6 +15,7 @@ static void *fixture_dlsym(void *handle, const char *name) {
   return dlsym(handle, name);
 }
 #define dlsym fixture_dlsym
+#define ACTQL_SIGNATURE_RAW_DIAGNOSTIC
 #include "../../src/platform_native/signature/signature_stub.c"
 #undef dlsym
 static const char *key_a = "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEA11qYAYKxCrfVS/7TyWQHOg7hcvPapiMlrwIaaPcHURo=\n-----END PUBLIC KEY-----\n";

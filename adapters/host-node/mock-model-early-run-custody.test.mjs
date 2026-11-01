@@ -5,12 +5,19 @@ import {parse} from 'acorn';
 
 // Execute the actual retained initialization functions with explicit ports.
 // This checks ordering/partial custody, not a Core issuer or physical grant.
+// Execute the unchanged shared retirement body with the existing explicit
+// completion-observer port; the private runtime marker is not manufactured.
+const retirementSource = readFileSync(new URL('./infer-operation.mjs', import.meta.url), 'utf8');
+const retirementNode = parse(retirementSource, {ecmaVersion: 'latest', sourceType: 'module'}).body
+  .find(node => node.declaration?.id?.name === 'retireNodeInferOriginalRead').declaration;
+const retirementFor = observer => Function('inferOriginalReadCleanupComplete',
+  'return ' + retirementSource.slice(retirementNode.start, retirementNode.end))(observer);
 const source=readFileSync(new URL('../local-node/installed-project-mock.mjs',import.meta.url),'utf8');
 const tree=parse(source,{ecmaVersion:'latest',sourceType:'module'});
 const outer=tree.body.find(node=>node.type==='ExportNamedDeclaration'&&
   node.declaration?.id?.name==='installPreparedProjectMockSources').declaration;
 const functions=['sameRun','prepareManagedRun','prepareManagedMockModelRun','modelPreparation','retireModelRead',
-  'closeSource','closeRead','close','retireRunRecord'];
+  'closeSource','closeRead','closePhysicalRead','close','retireRunRecord'];
 const slices=outer.body.body.flatMap(node=>{
   if(node.type==='FunctionDeclaration'&&functions.includes(node.id.name))return[source.slice(node.start,node.end)];
   if(node.type==='VariableDeclaration'&&['sameRun','close'].includes(node.declarations[0].id.name))return[source.slice(node.start,node.end)];
@@ -67,14 +74,26 @@ function fixture({afterFactoryFailure,readFailure,settleFailure,acquisitionCount
     settledReads.add(read);
   },
   finishCheckedClientInferOriginalReadScope(){calls.push('finish-scope');return !readIssued||settledReads.has(read);}};
-  const api=new Function('current','records','fail','checked','sourceManaged','moon','runtimeField','sources','closedSources','inferOriginalReadCleanupComplete',
-    'let closing=false;'+slices+';return {prepareManagedRun,prepareManagedMockModelRun,modelPreparation,close,closeSource};')(
+
+  let releaseRequestAliases;
+  const prepareRequestModel=(p,r,model)=>{
+    assert.strictEqual(p,prepared);assert.strictEqual(r,request);
+    assert.strictEqual(records.get(prepared).model,model);
+    // Existing trusted Host port, not the removed Local standalone issuer.
+    sourceManaged.prepareLocalMockModelRun(p,model);
+    model.scope=scope;calls.push('scope');
+    releaseRequestAliases=()=>Reflect.apply(model.releaseAliases,model,[]);
+    return{original,value};
+  };
+  const api=new Function('current','records','fail','checked','sourceManaged','moon','runtimeField','sources','closedSources','retireNodeInferOriginalRead','prepareRequestModel',
+    'let closing=false;const effectRuns=new WeakMap(),effectReads=new Set();'+slices+';return {prepareManagedRun,prepareManagedMockModelRun,modelPreparation,close,closeSource};')(
       current,records,fail,checked,sourceManaged,moon,(value,index)=>value[index],sources,closedSources,
-      value=>cleanedModelReads.has(value));
+      retirementFor(value=>cleanedModelReads.has(value)),prepareRequestModel);
   sources.push(...[0,1].map(index=>({close:()=>api.closeSource(index)})));
   const plan={compiled,runDefinition},selection={graph,occurrence};
   return{...api,calls,records,prepared,request,plan,selection,compilation,control,original,admission,value,scope,
     sourceReady,sourceCloseCalls,cleanup,setup,providers,
+    releaseRequestAliases:()=>releaseRequestAliases(),
     loseCurrent(error){afterFactoryFailure=error;},originalModelCleaned:()=>cleanedModelReads.add(read),
     begin(){api.prepareManagedMockModelRun(prepared,request,control,plan,selection);},
     attachSources(){
@@ -99,10 +118,7 @@ test('source-free Mock opens its Local driver on the same original Run and Scope
 
 test('source-free Mock driver entry does not replace a captured or Effect Run',()=>{
   for(const acquisitionCount of [2,0]){
-    const f=fixture({acquisitionCount});f.begin();
-    // An explicitly foreign classification still refuses; this is not an
-    // independent Effect admission or a fabricated managed parent.
-    if(acquisitionCount===0)f.records.get(f.prepared).effectful=true;
+    const f=fixture({acquisitionCount});f.begin();if(acquisitionCount===0)f.records.get(f.prepared).effectful=true;
     const preparation=f.modelPreparation(f.prepared,f.plan);
     preparation.retain();
     assert.throws(()=>preparation.openSourceFreeHost('registry','values','fragment','ordered',f.providers),
@@ -121,11 +137,11 @@ test('source-free Mock retains its original Scope when currentness refuses befor
 
 test('Mock installs its same original Run Scope before returning any Source preparation',()=>{
   const f=fixture();f.begin();
-  assert(f.calls.indexOf('original')<f.calls.indexOf('admission'));
-  assert(f.calls.indexOf('admission')<f.calls.indexOf('scope'));
+  assert(f.calls.indexOf('original')<f.calls.indexOf('scope'));
+  assert.equal(f.calls.includes('admission'),false);
   assert.equal(f.calls.includes('read'),false);
   const held=f.records.get(f.prepared);
-  assert.strictEqual(held.original,f.original);assert.strictEqual(held.admission,f.admission);
+  assert.strictEqual(held.original,f.original);assert.equal(held.admission,undefined);
   assert.strictEqual(held.value,f.value);assert.strictEqual(held.model.scope,f.scope);
   const preparation=f.modelPreparation(f.prepared,f.plan);
   preparation.retain();
@@ -138,14 +154,20 @@ test('Mock installs its same original Run Scope before returning any Source prep
     {...f.plan,compiled:{}},f.selection),{code:'ForeignInstalledModelPreparation'});
 });
 
-test('Mock current failure retains the returned original and never reissues it',()=>{
+test('legacy Effect Mock refuses before any independent admission or Scope',()=>{
+ const f=fixture();
+ assert.throws(()=>f.prepareManagedRun(f.prepared,f.request,undefined,true),{code:'InstalledEffectPlanUnavailable'});
+ assert.equal(f.records.size,0);assert.equal(f.calls.includes('original'),false);assert.equal(f.calls.includes('scope'),false);
+});
+
+test('Request Mock current failure retains the adopted original and Scope without reissuing',()=>{
   const failure=new Error('post-factory-current'),f=fixture({afterFactoryFailure:failure});
   assert.throws(()=>f.begin(),error=>error===failure);
   assert.strictEqual(f.records.get(f.prepared).original,f.original);
   assert.strictEqual(f.records.get(f.prepared).failure,failure);
   assert.throws(()=>f.begin(),error=>error===failure);
   assert.equal(f.calls.filter(call=>call==='original').length,1);
-  assert.equal(f.calls.includes('scope'),false);
+  assert.equal(f.calls.filter(x=>x==='scope').length,1);
 });
 
 test('Mock read refusal retains the already issued Scope and its original admission',()=>{
@@ -156,7 +178,7 @@ test('Mock read refusal retains the already issued Scope and its original admiss
   assert.throws(()=>preparation.prepareRead(),error=>error===failure);
   const held=f.records.get(f.prepared);
   assert.strictEqual(held.model.scope,f.scope);assert.strictEqual(held.value,f.value);
-  assert.strictEqual(held.admission,f.admission);assert.equal(held.model.read,undefined);
+  assert.equal(held.admission,undefined);assert.equal(held.model.read,undefined);
   assert.strictEqual(held.model.readFailure,failure);
   assert.throws(()=>preparation.prepareRead(),error=>error===failure);
   assert.equal(f.calls.filter(call=>call==='scope').length,1);
@@ -183,13 +205,16 @@ test('Mock close keeps both originals until Source and Model cleanup acknowledge
   assert.equal(await preparation.retire(),true);
   await f.close();
   assert.equal(f.records.size,0);
+  assert.strictEqual(record.original,f.original);assert.strictEqual(model.scope,f.scope);
+  // Only the later Host payload-sever continuation retires these aliases.
+  f.releaseRequestAliases();
   assert.equal(record.original,undefined);assert.equal(model.scope,undefined);
   assert.equal(model.closed,true);
   assert.throws(()=>preparation.retain(),{code:'ForeignInstalledModelPreparation'});
   assert.throws(()=>preparation.prepareRead(),{code:'ForeignInstalledModelPreparation'});
   await f.close();
   assert.deepEqual(f.sourceCloseCalls,[2,1]);
-  assert.equal(f.calls.filter(call=>call==='retire-parent').length,1);
+  assert.equal(f.calls.filter(call=>call==='retire-parent').length,0);
 });
 
 test('Mock retirement settles its separate original read after Model cleanup exactly once',async()=>{
@@ -203,7 +228,7 @@ test('Mock retirement settles its separate original read after Model cleanup exa
   assert.equal(f.calls.includes('stop-read'),false);
   assert.equal(f.calls.filter(value=>value==='settle-read').length,1);
   assert.equal(f.calls.filter(value=>value==='finish-scope').length,1);
-  assert.equal(f.calls.filter(value=>value==='retire-parent').length,1);
+  assert.equal(f.calls.filter(value=>value==='retire-parent').length,0);
   assert.equal(await preparation.retire(),true);
   assert.equal(f.calls.filter(value=>value==='settle-read').length,1);
   await f.close();
@@ -224,7 +249,7 @@ test('Mock read settlement refusal retains its same descriptor until original re
   assert.equal(await preparation.retire(),true);
   assert.equal(record.model.read,undefined);
   assert.equal(f.calls.filter(value=>value==='settle-read').length,2);
-  assert.equal(f.calls.filter(value=>value==='retire-parent').length,1);
+  assert.equal(f.calls.filter(value=>value==='retire-parent').length,0);
 });
 
 test('Mock pending Source custody prevents settlement of the separate original read',async()=>{

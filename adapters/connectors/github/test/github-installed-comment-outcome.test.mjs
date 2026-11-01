@@ -4,7 +4,7 @@ import test from 'node:test';
 import {compileFunction} from 'node:vm';
 import {parse} from 'acorn';
 
-// Execute the installed driver's actual project callback and the actual Site
+// Execute the installed standard write classifier and the actual Site
 // classifier with an explicit typed-provider port. No provider request, Account
 // grant, claim, confirming read or terminal receipt is supplied by this fixture.
 const load = relative => {
@@ -32,20 +32,20 @@ function declaration(module, name) {
 const callbacks = [];
 function visit(node) {
   if (!node || typeof node !== 'object') return;
-  if (node.type === 'Property' && node.key.name === 'project') callbacks.push(node.value);
+  if (node.type === 'Property' && node.key.name === 'classify') callbacks.push(node);
   for (const value of Object.values(node)) {
     if (Array.isArray(value)) value.forEach(visit);
     else if (value && typeof value === 'object') visit(value);
   }
 }
 visit(installed.ast);
-assert.equal(callbacks.length, 1, 'the installed comment driver has one project callback');
+assert.equal(callbacks.length, 1, 'the installed comment write has one classifier');
 const projectSource = installed.source.slice(callbacks[0].start, callbacks[0].end);
 const classify = compileFunction(['fail', 'count', 'pairs', 'checkLimits',
   'projectGitHubCommentObservation'].map(name => declaration(site, name)).join('\n') +
   '\nreturn projectGitHubCommentObservation;')();
 const installProject = compileFunction(declaration(installed, 'commentLimits') + '\n' +
-  declaration(installed, 'commentOutcome') + `\nreturn ${projectSource};`,
+  declaration(installed, 'commentOutcome') + `\nreturn ({${projectSource}}).classify;`,
 ['projectGitHubCommentObservation', 'providerMoon']);
 
 function fixture(outcome, {statusCode = 200, headers = [], failure} = {}) {

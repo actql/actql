@@ -2412,14 +2412,21 @@ fn client_host_project_site_run(
     Ok(value) => value
     Err(_) => return Err(())
   }
-  let terminal = match observation.execution {
-    Some(@remote.ExecutionFailed) => Some(@publication.RunOutcomeStatus::Failed)
-    Some(@remote.ExecutionCancelled) =>
-      Some(@publication.RunOutcomeStatus::Cancelled)
-    Some(@remote.NativeSettled) if cancellation_requested &&
-      observation.cleanup_complete =>
-      Some(@publication.RunOutcomeStatus::Cancelled)
-    _ => None
+  // Carry the admitted Coordinator's rejection into this same Run projection.
+  // It does not rewrite NativeSettled or acknowledge independent cleanup.
+  let terminal = if observation.evidence_rejected {
+    Some(@publication.RunOutcomeStatus::Failed)
+  } else {
+    match observation.execution {
+      Some(@remote.ExecutionFailed) =>
+        Some(@publication.RunOutcomeStatus::Failed)
+      Some(@remote.ExecutionCancelled) =>
+        Some(@publication.RunOutcomeStatus::Cancelled)
+      Some(@remote.NativeSettled) if cancellation_requested &&
+        observation.cleanup_complete =>
+        Some(@publication.RunOutcomeStatus::Cancelled)
+      _ => None
+    }
   }
   let state = match
     @publication.issue_effect_free_unpublished_run_state_wire(
@@ -2432,8 +2439,11 @@ fn client_host_project_site_run(
       10000,
       64,
       observed_terminal_outcome=terminal,
-      execution_unknown=observation.execution is Some(@remote.ExecutionUnknown) ||
-        (physical_start_claimed && observation.execution is None),
+      execution_unknown=terminal is None &&
+        (
+          observation.execution is Some(@remote.ExecutionUnknown) ||
+          (physical_start_claimed && observation.execution is None)
+        ),
     ) {
     Ok(value) => value
     Err(_) => return Err(())
@@ -2459,7 +2469,8 @@ fn client_host_project_site_run(
     } else {
       "cancel"
     }
-  } else if observation.execution is Some(@remote.NativeSettled) {
+  } else if observation.execution is Some(@remote.NativeSettled) &&
+    @remote.durable_coordinator_dispatch_record_evidence(durable) is Some(_) {
     "publication"
   } else {
     "reconcile"

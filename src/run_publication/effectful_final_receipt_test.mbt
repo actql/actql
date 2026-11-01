@@ -1893,3 +1893,98 @@ test "completion chain retains admitted Set outcomes with its original final Rec
   // The existing fixture has a complete empty row inventory, not an entered row.
   assert_true(effect_set_apply_receipt_all_unattempted(outcomes))
 }
+
+///|
+test "retained public Effect evidence snapshots the admitted chain without reissuing originals" {
+  let chain = captured_run_test_chain()
+  let preview = final_test_preview(chain)
+  let captured = final_test_captured(chain)
+  let (set_wire, members, set_cid) = final_test_receipts(preview)
+  let final_wire = final_test_receipt_wire(
+    chain.receipt,
+    preview,
+    set_cid,
+    captured,
+  )
+  let definitions = [chain.definition]
+  let artifacts = [chain.artifact]
+  let derivations = [result_ordering_derivation_contract(chain.evidence)]
+  let orderings = [result_ordering_evidence_contract(chain.evidence)]
+  let retentions = [chain.retention]
+  let retained = admit_retained_effectful_final_run_evidence(
+    chain.run,
+    chain.invocation,
+    definitions,
+    artifacts,
+    derivations,
+    orderings,
+    retentions,
+    chain.manifest,
+    chain.receipt,
+    captured,
+    preview,
+    set_wire,
+    members,
+    final_wire,
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  assert_eq(
+    publication_contract_json(effectful_final_run_evidence_receipt(retained)),
+    final_wire,
+  )
+  assert_true(
+    effectful_final_run_evidence_matches_definition(retained, chain.run),
+  )
+  assert_false(
+    effectful_final_run_evidence_matches_definition(retained, chain.artifact),
+  )
+  assert_true(
+    effectful_final_run_evidence_failed_state(
+      retained, "2026-09-18T00:00:00.000Z", 65536, 4096, 32,
+    )
+    is Err(ActionStatusMismatch),
+  )
+  // Caller container mutation cannot replace the admitted snapshot. No
+  // derivation, ordering, issuer, scope or final Receipt is issued by getters.
+  definitions[0] = chain.artifact
+  artifacts[0] = chain.definition
+  derivations.clear()
+  orderings.clear()
+  retentions.clear()
+  assert_eq(
+    publication_contract_json(effectful_final_run_evidence_receipt(retained)),
+    final_wire,
+  )
+  assert_true(
+    effectful_final_run_evidence_matches_definition(retained, chain.run),
+  )
+  for _ in 0..<10 {
+    let outcomes = effectful_final_run_evidence_outcomes(retained)
+    assert_eq(effect_set_apply_receipt_run_status(outcomes), "succeeded")
+    assert_true(effect_set_apply_receipt_all_unattempted(outcomes))
+  }
+  assert_true(
+    admit_retained_effectful_final_run_evidence(
+      chain.run,
+      chain.invocation,
+      [chain.definition],
+      [chain.artifact],
+      [],
+      [result_ordering_evidence_contract(chain.evidence)],
+      [chain.retention],
+      chain.manifest,
+      chain.receipt,
+      captured,
+      preview,
+      set_wire,
+      members,
+      final_wire,
+      65536,
+      4096,
+      32,
+    )
+    is Err(ResultEvidence(_)),
+  )
+}

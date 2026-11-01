@@ -8,6 +8,17 @@ struct NativeLocalInitialSigningMaterial {
   generation : @filesystem.NativeFileGeneration
   projection : @filesystem.PrivateFileProjection
   public_key_pem : String
+  host_attestation : NativeLocalInitialSigningFile
+  host_signing_subject : (String, String, String)?
+}
+
+///|
+// A second physical file in the same one-time initializer, never a replacement
+// key for a retained/partial installation or an operational signing permit.
+priv struct NativeLocalInitialSigningFile {
+  generation : @filesystem.NativeFileGeneration
+  projection : @filesystem.PrivateFileProjection
+  public_key_pem : String
 }
 
 ///|
@@ -80,6 +91,7 @@ fn NativeLocalAdoptionSession::initial_signing_refusal(
 pub fn NativeLocalAdoptionSession::create_initial_signing_material(
   self : NativeLocalAdoptionSession,
   crypto : @crypto.Library,
+  host_signing_subject? : (String, String, String)? = None,
 ) -> Result[NativeLocalInitialSigningMaterial, NativeLocalInitialSigningFailure] {
   if self.initial_signing_failure.val is Some(failure) {
     return Err(failure)
@@ -91,10 +103,15 @@ pub fn NativeLocalAdoptionSession::create_initial_signing_material(
   if !self.initial_signing_eligible.val {
     return Err(initial_signing_unavailable(AmbiguousInitialization))
   }
+  if host_signing_subject is Some(subject) &&
+    !initial_host_signing_subject_valid(subject) {
+    return Err(initial_signing_unavailable(InvalidInput))
+  }
   self.initial_signing_eligible.val = false
   for
     name in [
-      "local-signing-key.pem", "local-signing-key.pem.stage", "client.sqlite3", "journal-custody.json",
+      "local-signing-key.pem", "local-signing-key.pem.stage", "local-host-attestation-key.pem",
+      "local-host-attestation-key.pem.stage", "client.sqlite3", "journal-custody.json",
       "journal-initializing.json",
     ] {
     match self.root.inspect_generation(name) {
@@ -103,9 +120,42 @@ pub fn NativeLocalAdoptionSession::create_initial_signing_material(
       Err(issue) => return Err(self.initial_signing_refusal(Filesystem(issue)))
     }
   }
+  let reviewer = match
+    self.create_initial_signing_file(crypto, "local-signing-key.pem") {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let host = match
+    self.create_initial_signing_file(crypto, "local-host-attestation-key.pem") {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  // Both are actual freshly generated RFC8410 keys. Equal public originals
+  // cannot satisfy role separation and never trigger a generation retry.
+  if reviewer.public_key_pem == host.public_key_pem {
+    return Err(self.initial_signing_refusal(CustodyLost))
+  }
+  Ok({
+    origin: self.initial_signing_eligible,
+    root: self.root,
+    library: crypto,
+    generation: reviewer.generation,
+    projection: reviewer.projection,
+    public_key_pem: reviewer.public_key_pem,
+    host_attestation: host,
+    host_signing_subject,
+  })
+}
+
+///|
+fn NativeLocalAdoptionSession::create_initial_signing_file(
+  self : NativeLocalAdoptionSession,
+  crypto : @crypto.Library,
+  name : String,
+) -> Result[NativeLocalInitialSigningFile, NativeLocalInitialSigningFailure] {
   // Acquire/retain the actual exclusive Writer before creating secret material.
   let writer = match
-    self.root.create_writer_with_custody("local-signing-key.pem.stage", 119L) {
+    self.root.create_writer_with_custody(name + ".stage", 119L) {
     Ok(value) => value
     Err(failure) =>
       return Err(
@@ -137,7 +187,7 @@ pub fn NativeLocalAdoptionSession::create_initial_signing_material(
       )
     Ok(_) => ()
   }
-  let generation = match writer.seal("local-signing-key.pem") {
+  let generation = match writer.seal(name) {
     Err(issue) =>
       return Err(
         self.initial_signing_refusal(
@@ -151,19 +201,11 @@ pub fn NativeLocalAdoptionSession::create_initial_signing_material(
     Err(issue) => return Err(self.initial_signing_refusal(issue))
     Ok(_) => ()
   }
-  let projection = match
-    self.root.adopt_private_file_projection("local-signing-key.pem") {
+  let projection = match self.root.adopt_private_file_projection(name) {
     Err(issue) => return Err(self.initial_signing_refusal(Filesystem(issue)))
     Ok(value) => value
   }
-  Ok({
-    origin: self.initial_signing_eligible,
-    root: self.root,
-    library: crypto,
-    generation,
-    projection,
-    public_key_pem: public_pem,
-  })
+  Ok({ generation, projection, public_key_pem: public_pem, })
 }
 
 ///|
@@ -182,6 +224,10 @@ pub fn NativeLocalAdoptionSession::initial_signing_public_key(
     !self.root.verify_generation("local-signing-key.pem", material.generation) {
     return Err(CustodyLost)
   }
+  match self.initial_host_signing_public_key(material) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   let original = match material.projection.export_original() {
     Err(issue) => return Err(Filesystem(issue))
     Ok(value) => value
@@ -189,5 +235,33 @@ pub fn NativeLocalAdoptionSession::initial_signing_public_key(
   match self.root.restore_private_file_projection(original) {
     Err(issue) => Err(Filesystem(issue))
     Ok(_) => Ok(material.public_key_pem)
+  }
+}
+
+///|
+fn NativeLocalAdoptionSession::initial_host_signing_public_key(
+  self : NativeLocalAdoptionSession,
+  material : NativeLocalInitialSigningMaterial,
+) -> Result[String, NativeLocalAdoptionIssue] {
+  match self.check_original() {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  let selected = material.host_attestation
+  if !physical_equal(material.origin, self.initial_signing_eligible) ||
+    !physical_equal(material.root, self.root) ||
+    !self.root.verify_generation(
+      "local-host-attestation-key.pem",
+      selected.generation,
+    ) {
+    return Err(CustodyLost)
+  }
+  let exported = match selected.projection.export_original() {
+    Ok(value) => value
+    Err(issue) => return Err(Filesystem(issue))
+  }
+  match self.root.restore_private_file_projection(exported) {
+    Ok(_) => Ok(selected.public_key_pem)
+    Err(issue) => Err(Filesystem(issue))
   }
 }

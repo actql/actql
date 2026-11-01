@@ -2,6 +2,30 @@
 // Actual JSON/Parameters/check/compiler/Model Plan and ordinary Node admission.
 // Provider and Scope byte frames are explicit logical component ports, not a
 // complete physical Model/Host recipe, permission or normal runtime acceptance.
+fn expected_request_model_scope_controls(
+  reservations : Int,
+  holdings : Int,
+  delegations : Int,
+) -> Int64 {
+  let initial = @resources.preparation_inventory_initial_control_slots(6, 0, 0).unwrap()
+  let selected = @resources.preparation_inventory_initial_control_slots(
+    Int::max(6, reservations),
+    holdings,
+    delegations,
+  ).unwrap()
+  // Independent field inventory: Model origin has five borrowed references;
+  // Scope has three. Neither copies Program/Graph/CID backing. Resource owns
+  // its census-slot shape; its existing projection supplies that delta.
+  @execution.preparation_representation_cost({
+    record_headers: 2L + selected.0 - initial.0,
+    reference_slots: 8L + selected.1 - initial.1,
+    scalar_words: selected.2 - initial.2,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }).unwrap()
+}
+
+///|
 fn request_effect_model_plan_fixture(
   current? : () -> Bool = () => true,
   model_initial? : Bool = true,
@@ -60,16 +84,139 @@ fn request_effect_model_plan_fixture(
     prepared, request, contracts, model, calls,
   )
   assert_eq(calls.val, 1)
-  let (r, e) = @resources.preparation_capacity_working_extents(capacity, input).unwrap()
-  // This component supplies its selected Plan's logical Model/read overlap.
-  // Production must include the independently owned physical frames/material.
-  @resources.reserve_working_preparation_phase(
-    capacity,
-    input,
-    r + plan.limits.retained_bytes,
-    e + plan.limits.execution_bytes,
-  ).unwrap()
+  // Runtime children reserve their own bodies on this SAME Ledger later.
+  // They cannot prepay the Scope/census constructor or provide spare credit.
   (parent, input, plan, request, construction)
+}
+
+///|
+test "Effect Scope funds its new origin and original census before binding without reserving runtime Plan twice" {
+  let (parent, input, plan, request, construction) = request_effect_model_plan_fixture()
+  let selected = plan.model.unwrap()
+  let capacity = parent.effect_capacity.unwrap()
+  let before = @resources.preparation_capacity_working_extents(capacity, input).unwrap()
+  let increment = expected_request_model_scope_controls(
+    selected.max_reservations,
+    selected.max_holdings,
+    selected.max_delegations,
+  )
+  let scope = prepare_request_effect_model_read_scope(parent, input, plan).unwrap()
+  assert_eq(
+    @resources.preparation_capacity_working_extents(capacity, input),
+    Ok((before.0 + increment, before.1 + increment)),
+  )
+  complete_request_effect_preparation(parent, input, plan).unwrap()
+  @resources.return_preparation_body_borrow(construction).unwrap() |> ignore
+  let run = begin_request_effect_model_managed_run(parent, request, scope).unwrap()
+  assert_true(
+    @publication_host.finish_client_model_read_scope(
+      scope,
+      selected.compiled,
+      selected.definition,
+      selected.graph,
+      true,
+    ).unwrap(),
+  )
+  retire_installed_managed_run(run).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+test "Effect Scope one-short growth retains one absolute quote and original Plan until retry or abort" {
+  for retention in [true, false] {
+    let (parent, input, plan, request, construction) = request_effect_model_plan_fixture()
+    let selected = plan.model.unwrap()
+    let capacity = parent.effect_capacity.unwrap()
+    let before = @resources.preparation_capacity_working_extents(
+      capacity, input,
+    ).unwrap()
+    let increment = expected_request_model_scope_controls(
+      selected.max_reservations,
+      selected.max_holdings,
+      selected.max_delegations,
+    )
+    let limits = @resources.ledger_limits(parent.ledger)
+    let block = @resources.reserve_capacity(
+      parent.ledger,
+      if retention {
+        limits.retained_bytes - before.0 - increment + 1L
+      } else {
+        0L
+      },
+      if retention {
+        0L
+      } else {
+        limits.execution_bytes - before.1 - increment + 1L
+      },
+    ).unwrap()
+    assert_true(
+      prepare_request_effect_model_read_scope(parent, input, plan)
+      is Err(Preparation(Resource(_))),
+    )
+    let quote = parent.program_domain_quote
+    assert_eq(quote, Some((before.0 + increment, before.1 + increment)))
+    assert_true(parent.phase == EffectModelScopeQuoted)
+    assert_true(
+      parent.effect_plan is Some(original) && physical_equal(original, plan),
+    )
+    assert_eq(
+      @resources.preparation_capacity_working_extents(capacity, input),
+      Ok(before),
+    )
+    assert_true(
+      complete_request_effect_preparation(parent, input, plan)
+      is Err(WrongPhase),
+    )
+    let copied = { ..plan, rows: plan.rows, }
+    assert_true(
+      prepare_request_effect_model_read_scope(parent, input, copied)
+      is Err(ForeignOriginal),
+    )
+    assert_true(
+      prepare_request_effect_model_read_scope(parent, input, plan)
+      is Err(Preparation(Resource(_))),
+    )
+    assert_eq(parent.program_domain_quote, quote)
+    @resources.settle_capacity(parent.ledger, block).unwrap()
+    let scope = prepare_request_effect_model_read_scope(parent, input, plan).unwrap()
+    assert_true(parent.program_domain_quote is None)
+    assert_eq(
+      @resources.preparation_capacity_working_extents(capacity, input),
+      Ok((before.0 + increment, before.1 + increment)),
+    )
+    complete_request_effect_preparation(parent, input, plan).unwrap()
+    @resources.return_preparation_body_borrow(construction).unwrap() |> ignore
+    let run = begin_request_effect_model_managed_run(parent, request, scope).unwrap()
+    assert_true(
+      @publication_host.finish_client_model_read_scope(
+        scope,
+        selected.compiled,
+        selected.definition,
+        selected.graph,
+        true,
+      ).unwrap(),
+    )
+    retire_installed_managed_run(run).unwrap()
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  }
+  let (parent, input, plan, _, construction) = request_effect_model_plan_fixture()
+  let capacity = parent.effect_capacity.unwrap()
+  let before = @resources.preparation_capacity_working_extents(capacity, input).unwrap()
+  let limits = @resources.ledger_limits(parent.ledger)
+  let block = @resources.reserve_capacity(
+    parent.ledger,
+    limits.retained_bytes - before.0,
+    0L,
+  ).unwrap()
+  assert_true(
+    prepare_request_effect_model_read_scope(parent, input, plan)
+    is Err(Preparation(Resource(_))),
+  )
+  @resources.settle_capacity(parent.ledger, block).unwrap()
+  @resources.return_preparation_body_borrow(construction).unwrap() |> ignore
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_true(parent.program_domain_quote is None && parent.effect_plan is None)
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }
 
 ///|
@@ -108,10 +255,26 @@ test "same Request Effect Model retains original Scope Plan input history and bo
   let calls = currents.val
   let scope = prepare_request_effect_model_read_scope(parent, input, plan).unwrap()
   assert_eq(currents.val, calls + 1)
-  assert_eq(@resources.ledger_usage(ledger), before)
+  let increment = expected_request_model_scope_controls(
+    selected.max_reservations,
+    selected.max_holdings,
+    selected.max_delegations,
+  )
+  let after_scope = @resources.ledger_usage(ledger)
+  assert_eq(
+    after_scope.reserved_retention_bytes,
+    before.reserved_retention_bytes + increment,
+  )
+  assert_eq(
+    after_scope.reserved_execution_bytes,
+    before.reserved_execution_bytes + increment,
+  )
+  assert_eq(after_scope.planning_work, before.planning_work)
+  assert_eq(after_scope.attempts, before.attempts)
+  assert_eq(after_scope.live_reservations, before.live_reservations)
   assert_eq(
     @resources.preparation_capacity_working_extents(capacity, input),
-    Ok(extents),
+    Ok((extents.0 + increment, extents.1 + increment)),
   )
   assert_true(
     @publication_host.client_model_read_scope_original_inventory(

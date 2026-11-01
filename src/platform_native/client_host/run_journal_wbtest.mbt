@@ -192,6 +192,7 @@ fn journal_test_preparation_issue(
     Lowering(_) => "Lowering"
     Binding(_) => "Binding"
     Graph(_) => "Graph"
+    ValuesProfileUnsupported => "ValuesProfileUnsupported"
   }
 }
 

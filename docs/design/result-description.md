@@ -517,3 +517,13 @@ supplies current authority, physical availability, execution or cleanup ACK.
 Standalone Plan projections and the Values compilation path discard these
 continuation-only references before returning. They retain the original wire,
 identity and compilation material without keeping unused reader trees alive.
+
+## Writer startup failure custody
+
+The existing object writer observes its startup Promise rejection immediately,
+because the payload reader can yield before issuing its first append, seal or
+cancel. That observer does not replace the original Promise or its failure.
+Later operations retain the existing closed-writer and startup-failure results,
+including primitive thrown values. Failed open still releases its original
+reservation once. Successful open, pending FD close, custody and cancellation
+retain their existing physical acknowledgement requirements.

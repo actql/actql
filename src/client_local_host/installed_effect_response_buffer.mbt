@@ -65,18 +65,97 @@ pub fn installed_effect_response_buffer_construction_capacity(
 }
 
 ///|
+// Node's header counter charges field names/values, NOT CRLF/colon bytes;
+// a valid field's nonempty name therefore permits up to H pairs, not H/4.
+// It resets after initial headers, so header and trailer inventories coexist.
+// See pinned node v22.22.0 src/node_http_parser.cc TrackHeader and
+// on_headers_complete. No wrapper/VM/TLS tariff is defined here.
+fn installed_effect_response_headers_representation(
+  max_header_bytes : Int,
+) -> @execution.PreparationRepresentationUnits? {
+  if max_header_bytes < 1 {
+    return None
+  }
+  let h = max_header_bytes.to_int64()
+  // Two normalized dictionaries retain key/value references. Arrays include
+  // raw headers/trailers, their cookie-value alternatives, selected pairs and
+  // outer view, plus the two parser flush vectors. Co-count alternatives and
+  // use the existing collection owner for growth, never another slot price.
+  guard @shape.collection_construction_extent({
+      records: 2L,
+      record_references: 4L * h,
+      record_words: 0L,
+      reference_arrays: 7L + h,
+      reference_items: 13L * h,
+      scalar_arrays: 0L,
+      scalar_items: 0L,
+      maps: 0L,
+      map_entries: 0L,
+    })
+    is Some(headers) else {
+    return None
+  }
+  // Both raw blocks <=2H units. Co-count lowercase/prefixed/sliced names for
+  // both blocks (6H) and old/new joined values including duplicate separators
+  // (12H). Selected values borrow those same strings. Parser span/concatenation
+  // prefixes for both blocks add4H bytes. These are live constructor bounds,
+  // not a per-wrapper quota or a claim about engine rope/GC storage.
+  Some({
+    record_headers: headers.record_headers,
+    reference_slots: headers.reference_slots,
+    scalar_words: headers.scalar_words,
+    owned_utf16_units: (2L + 6L + 12L) * h,
+    owned_wire_bytes: 4L * h,
+  })
+}
+
+///|
+/// Body and both raw/normalized header blocks coexist until this SAME
+/// response owner severs them. This remains only response construction DATA;
+/// native/provider output, requests, secrets, saved/failed overlap and control
+/// backing must still be composed by the selected original implementation.
+pub fn installed_effect_http_response_construction_capacity(
+  max_response_bytes : Int,
+  max_header_bytes : Int,
+) -> @execution.ExecutionCapacity? {
+  guard installed_effect_response_buffer_representation(max_response_bytes)
+    is Some(body) &&
+    installed_effect_response_headers_representation(max_header_bytes)
+    is Some(headers) &&
+    @execution.compose_preparation_representation([body, headers])
+    is Some(retained) else {
+    return None
+  }
+  @execution.preparation_execution_capacity({
+    retained,
+    workspace: {
+      record_headers: 0L,
+      reference_slots: 0L,
+      scalar_words: 0L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    },
+    retained_nodes: 0L,
+    workspace_nodes: 0L,
+    retained_bytes: 0L,
+    workspace_bytes: 0L,
+  })
+}
+
+///|
 /// A necessary same-extent check before its original occurrence is borrowed
 /// or bound. Transfer/attempt declarations alone cannot fund these buffers.
 /// True says nothing about the remaining physical/Host/provider inventory.
 pub fn installed_effect_operation_response_backing_fits(
   original : ClientInstalledEffectOperationExtent,
   max_response_bytes : Int,
+  max_header_bytes : Int,
 ) -> Bool {
   if !original.physical_attempt {
     return false
   }
-  guard installed_effect_response_buffer_construction_capacity(
-      max_response_bytes,
+  guard installed_effect_http_response_construction_capacity(
+      max_response_bytes, max_header_bytes,
     )
     is Some(required) else {
     return false

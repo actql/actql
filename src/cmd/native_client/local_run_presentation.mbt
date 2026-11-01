@@ -104,7 +104,7 @@ fn LocalCommandPreparationOriginal::execute_original_run_presentation(
   try {
     if delivery.receipt is Some(path) {
       guard self.business is Some(business) &&
-        business.run_receipt_original is Some(observed) else {
+        business.run_receipt_original is Some(FreshRunReceipt(observed)) else {
         stop("LocalRunReceiptOriginalUnavailable")
       }
       let location = local_result_file_location(path)
@@ -151,6 +151,86 @@ fn LocalCommandPreparationOriginal::execute_original_run_presentation(
     let delivered = local_public_result(
       host,
       settings,
+      crypto,
+      sqlite,
+      result,
+      prepared=Some(selected),
+    )
+    if delivery.json {
+      delivered
+    } else {
+      original
+    }
+  } catch {
+    ClientStop(issue) => stop(issue + correlation)
+  }
+}
+
+///|
+// Deliver only from the retained Run and current independent read originals.
+// This is not another Program preparation, publication or execution attempt.
+fn LocalCommandPreparationOriginal::present_retained_run(
+  self : LocalCommandPreparationOriginal,
+  host : @local_host.NativeLocalHostConnection,
+  capture : @local_host.NativeLocalJournalCapture,
+  configuration : LocalCommandConfiguration,
+  runtime : LocalPackagedRuntime,
+  crypto : @local_crypto.Library,
+  child : @argparse.Matches,
+  retained : @local_host.NativeClientSavedRunStateSelection,
+) -> String raise ClientStop {
+  let original = retained.state().wire()
+  if !local_run_presentation_requested(child) {
+    return original
+  }
+  let directory = @env.current_dir().unwrap_or_else(() => {
+    stop("ProjectConfigurationDirectoryUnavailable")
+  })
+  let delivery = local_result_delivery_selection(
+    child,
+    directory,
+    run_presentation=true,
+  )
+  let root = @decode.open_object(local_input_cursor(original)).unwrap_or_else(() => {
+    stop("LocalOriginalRunStateUnavailable")
+  })
+  let correlation = " originalRunId=" +
+    encode_request_json(Json::string(run_text(root, "run_id")), 8192) +
+    " (observe this Run; do not repeat the Program submission)"
+  try {
+    command_preparation_result(self.prepare_saved_result_operation(capture))
+    let physical = self.host.unwrap_or_else(() => {
+      stop("LocalReadOriginalCustodyUnavailable")
+    })
+    let pair = self.pair.unwrap_or_else(() => {
+      stop("LocalReadOriginalCustodyUnavailable")
+    })
+    let sqlite = physical
+      .borrow_local_host_sqlite(pair)
+      .unwrap_or_else(() => stop("LocalReadOriginalCustodyUnavailable"))
+    if delivery.receipt is Some(path) {
+      self.export_retained_run_receipt(
+        host, capture, configuration, runtime, sqlite, crypto, retained, path,
+      )
+    }
+    if delivery.files.is_empty() {
+      return original
+    }
+    let (result, _) = local_run_presentation_result(child, delivery, original)
+    let selected = self.prepare_original_result(
+      host,
+      capture,
+      configuration.settings,
+      configuration.configuration_name,
+      runtime,
+      sqlite,
+      result,
+      configuration=Some(configuration),
+      retained=Some(retained),
+    )
+    let delivered = local_public_result(
+      host,
+      configuration.settings,
       crypto,
       sqlite,
       result,

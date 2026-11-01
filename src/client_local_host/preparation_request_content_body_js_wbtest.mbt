@@ -45,12 +45,12 @@ fn request_content_fixture(
     current~,
   )
   let borrowed = borrow_request_content_plan_input(parent, input).unwrap()
-  // Independent two-Some inventory under the pinned logical tariff: two
-  // headers16, two references8, two scalar tags8 =64 bytes in both extents.
+  // Independent Plan/Request/optional compiler link inventory under the
+  // pinned logical tariff: 3 headers16 + 4 references8 + 3 words8 =104 bytes.
   let quote = parent.program_plan_quote.unwrap()
   let funded = request_preparation_accounting(parent)
-  assert_eq(funded.4, quote.0 + 64L)
-  assert_eq(funded.5, quote.1 + 64L)
+  assert_eq(funded.4, quote.0 + 104L)
+  assert_eq(funded.5, quote.1 + 104L)
   let contracts = prepare_installed_sequence_contracts(
     source_query_original_registry,
     source_query_original_values,
@@ -196,8 +196,11 @@ test "Program inventory borrow can select Content without replacing its grown ex
   let capacity = parent.program_capacity.unwrap()
   let quote = parent.program_plan_quote.unwrap()
   let (r, e) = @resources.preparation_capacity_working_extents(capacity, input).unwrap()
-  // Independent occupied test extents, deliberately greater than the 64-byte
-  // link carrier. They do not stand in for a provider's full domain recipe.
+  // Independent Plan/Request/compiler link inventory:3 headers,4 refs,3 words
+  // at the pinned16/8/8-byte tariff, not a value read from the product quote.
+  let links = 3L * 16L + 4L * 8L + 3L * 8L
+  // Independent occupied test extents, deliberately greater than those links.
+  // They do not stand in for a provider's full domain recipe.
   @resources.reserve_working_preparation_phase(
     capacity,
     input,
@@ -212,7 +215,7 @@ test "Program inventory borrow can select Content without replacing its grown ex
   assert_eq(parent.program_plan_quote.unwrap(), quote)
   assert_eq(
     @resources.preparation_capacity_working_extents(capacity, input),
-    Ok((r + 129L + 64L, e + 257L + 64L)),
+    Ok((r + 129L + links, e + 257L + links)),
   )
   for holder in [program, content] {
     assert_true(
@@ -290,7 +293,8 @@ test "keyed Content keeps its actual checked Plan on the same Request through ad
   assert_eq(calls.val, before_complete + 1)
   assert_true(physical_equal(parent.program_capacity.unwrap(), original))
   assert_true(
-    parent.program_keyed is Some(plan) && physical_equal(plan, selected),
+    parent.program_content is KeyedContent(plan, _) &&
+    physical_equal(plan, selected),
   )
   assert_true(
     parent.program_source_free is None && parent.program_captured is None,
@@ -311,7 +315,9 @@ test "keyed Content keeps its actual checked Plan on the same Request through ad
   let run = begin_request_content_managed_run(parent, request).unwrap()
   assert_eq(calls.val, before_adoption + 1)
   assert_true(parent.phase == Selected && parent.input is None)
-  assert_true(run.keyed is Some(plan) && physical_equal(plan, selected))
+  assert_true(
+    run.content is KeyedContent(plan, _) && physical_equal(plan, selected),
+  )
   assert_true(
     run.preparation is Some(PreparationContentManaged(_, original)) &&
     physical_equal(original, prepared),
@@ -325,7 +331,7 @@ test "keyed Content keeps its actual checked Plan on the same Request through ad
     @resources.preparation_body_borrow_value(holder) is Some(original) &&
     physical_equal(original, prepared),
   )
-  assert_true(run.keyed is None)
+  assert_true(run.content is NoContent)
   assert_true(@resources.return_preparation_body_borrow(holder).unwrap())
   retire_installed_managed_run(run).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).reserved_retention_bytes, 0L)
@@ -347,7 +353,7 @@ test "keyed Content refuses foreign prepared Plan without consuming the original
   )
   assert_eq(request_preparation_accounting(parent), before)
   assert_true(
-    parent.phase == ContentPlanReserved && parent.program_keyed is None,
+    parent.phase == ContentPlanReserved && parent.program_content is NoContent,
   )
   complete_request_content_preparation(parent, input, request, selected).unwrap()
   assert_true(
@@ -380,7 +386,9 @@ test "keyed Content constructor borrows preserve its quoted link and keep cancel
     abort_request_preparation_after_cleanup(parent) is Err(WrongPhase),
   )
   assert_true(parent.phase == Retiring && parent.input is Some(_))
-  assert_true(parent.compiled_program is None && parent.program_keyed is None)
+  assert_true(
+    parent.compiled_program is None && parent.program_content is NoContent,
+  )
   assert_true(
     @resources.preparation_body_borrow_value(held) is Some(original) &&
     physical_equal(original, prepared),
@@ -424,7 +432,10 @@ test "keyed Content adoption fences current reentry once without selecting anoth
   action.val = None
   assert_eq(calls.val, before + 1)
   assert_eq(flags.val, 7)
-  assert_true(run.keyed is Some(original) && physical_equal(original, selected))
+  assert_true(
+    run.content is KeyedContent(original, _) &&
+    physical_equal(original, selected),
+  )
   retire_installed_managed_run(run).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).reserved_retention_bytes, 0L)
 }

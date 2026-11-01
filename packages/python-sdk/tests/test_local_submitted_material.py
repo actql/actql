@@ -8,6 +8,7 @@ from actql_sdk._local_core import (
     LOCAL_CORE_ABI, LocalCore, LocalCoreError, _Input, _PhysicalInput,
     _MATERIAL_SIGNATURES,
 )
+from local_abi_declaration_fixture import original_byte_fixture_port
 
 
 class SubmittedMaterialCustodyTests(unittest.TestCase):
@@ -43,7 +44,7 @@ class SubmittedMaterialCustodyTests(unittest.TestCase):
             if (family, name) == ('material', 'close'):
                 return -9 if pending[0] else core._cleanup(2)
             raise AssertionError('Unexpected ABI invocation')
-        core._call = call
+        core._call = original_byte_fixture_port(call)
         return core, source, calls, pending, payload
 
     def test_original_rows_use_same_material_loan_without_acceptance_or_dispatch(self):
@@ -86,7 +87,7 @@ class SubmittedMaterialCustodyTests(unittest.TestCase):
         loan = core.reserve_submitted_run_rows(7, 8, source, cleanup=lambda: True)
         def trapped(*_):
             raise RuntimeError('Independent interrupted producer')
-        core._call = trapped
+        core._call = original_byte_fixture_port(trapped)
         with self.assertRaises(RuntimeError):
             core.produce_material(loan)
         self.assertIs(core._loans[loan.ticket], loan)
@@ -95,7 +96,7 @@ class SubmittedMaterialCustodyTests(unittest.TestCase):
 
     def test_reservation_refusal_remains_refusal_without_success_payload(self):
         core, source, _, _, _ = self.bridge()
-        core._call = lambda *_: -31
+        core._call = original_byte_fixture_port(lambda *_: -31)
         with self.assertRaises(LocalCoreError) as failure:
             core.reserve_submitted_run_rows(7, 8, source, cleanup=lambda: True)
         self.assertEqual(failure.exception.code, -31)
@@ -114,7 +115,7 @@ class SubmittedMaterialCustodyTests(unittest.TestCase):
                 self.assertEqual(core._cleanup(loan.ticket), 0)
                 return 0 if stopped[0] else -9
             return original(family, name, *args)
-        core._call = call
+        core._call = original_byte_fixture_port(call)
         self.assertFalse(core.close_material(loan))
         self.assertEqual(cleanup, ['output'])
         self.assertIs(core._loans[loan.ticket], loan)

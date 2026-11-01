@@ -6,7 +6,7 @@ import {createHash} from 'node:crypto';
 import {chmod, copyFile, mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {checkoutState, CLIENT_PACKAGES} from './packed-client-packages.mjs';
+import {checkoutState, CLIENT_PACKAGES, normalNpmPackJsonArgs, parseNpmPackJson} from './packed-client-packages.mjs';
 import {inventory, unpack, publicationPlan} from './package-release.mjs';
 import {publishPackageRelease} from './publish-package-release.mjs';
 import {refuseUnconfiguredPublication} from './release-authority.mjs';
@@ -36,8 +36,9 @@ export function sharedRuntimeSourceDelta(root, hostSha, cliSha) {
 
 
 async function pack(directory, output, productMembers) {
-  const json = JSON.parse(execFileSync('npm', ['pack', '--ignore-scripts', '--json', '--pack-destination', output,
-    '--cache', join(output, '.npm-cache')], {cwd: directory, encoding: 'utf8', timeout: 60_000}));
+  const json = parseNpmPackJson(execFileSync('npm', normalNpmPackJsonArgs(['pack', '--json', '--pack-destination', output,
+    '--cache', join(output, '.npm-cache')]), {cwd: directory, encoding: 'utf8', timeout: 60_000,
+    env: {...process.env, npm_config_ignore_scripts: 'false'}}));
   const result = Array.isArray(json) ? json : Object.values(json); assert.equal(result.length, 1);
   const item = result[0], bytes = await readFile(join(output, item.filename));
   return {name: item.name, version: item.version, file: item.filename, bytes: bytes.length, sha256: hash(bytes),

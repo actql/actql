@@ -6,6 +6,15 @@ import {parse} from 'acorn';
 import {bindInstalledManagedSources} from './installed-managed-source.mjs';
 import {computePhysicalCapacity} from '../connectors/duckdb/node/physical-capacity.mjs';
 
+test('managed Source Plan selection captures the original declaration method and receiver', () => {
+  const selection = Object.freeze({declaration: {}, provider: {}, transferBytes: 1n, executionBytes: 2n});
+  const original = {managedCaptureCapacity() {}, prepare() {}, ledgerCapacity() {},
+    managedEffectPlanSelection() {assert.strictEqual(this, original); return selection;}};
+  const wrapped = bindInstalledManagedSources(original, () => ({}));
+  original.managedEffectPlanSelection = () => assert.fail('the later method is not the installing original');
+  assert.strictEqual(wrapped.managedEffectPlanSelection(), selection);
+});
+
 // Execute the actual Host boundary with explicit nominal service ports. This
 // does not supply a native database, Resource admission or physical close ACK.
 const source = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');

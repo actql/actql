@@ -501,6 +501,9 @@ class AsyncClient:
             raise
         except ClientError as failure:
             result = ClientError('SubmissionNotSent' if isinstance(failure, _ExchangeFailure) and not failure.sent else 'SubmissionUnknown', **context)
+            if self._local_host is not None:
+                # Retain the same Local failure for diagnosis, never as retry authority.
+                result.original_error = failure
         _submission_inputs[result] = freeze(snapshot(body))
         if isinstance(result, ClientError):
             raise result from None

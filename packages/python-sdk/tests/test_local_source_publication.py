@@ -4,6 +4,7 @@ from threading import RLock
 import unittest
 
 from actql_sdk._local_core import LocalCore, LocalCoreError, _Compute, _Input
+from local_abi_declaration_fixture import original_byte_fixture_port
 
 
 class SourcePublicationCustodyTests(unittest.TestCase):
@@ -41,7 +42,7 @@ class SourcePublicationCustodyTests(unittest.TestCase):
                 return len(wire)
             return 0
 
-        core._call = call
+        core._call = original_byte_fixture_port(call)
         return core, compute, source, calls, state, wire
 
     def test_quantum_and_current_configuration_are_explicit_without_execution(self):

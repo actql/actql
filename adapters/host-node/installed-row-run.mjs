@@ -8,7 +8,11 @@ import {setImmediate as yieldEventLoop} from 'node:timers/promises';
 const fail = code => { throw Object.assign(new Error(code), {code}); };
 
 export function startInstalledRowRun({moon, acquisition, nonce, ledger,
-  capacity, keyed = false, originalRead, originalKeyedRead}) {
+  capacity, keyed = false, originalRead, originalKeyedRead, wholeInput = false}) {
+  if (wholeInput && (keyed || originalRead === undefined || ledger === undefined ||
+      capacity?.provider === undefined || capacity?.listingReport !== undefined)) {
+    fail('InstalledWholeSourceReadUnavailable');
+  }
   if (keyed && ledger === undefined) fail('InstalledKeyedSourceLedgerRequired');
   const reportCapacity = capacity?.listingReport;
   const providerCapacity = capacity?.provider;
@@ -28,7 +32,8 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
       fail('InstalledSourceRunLedgerRequired');
     }
     if (['clientProgramInstalledSourceReadCheckLedger',
-      providerCapacity === undefined ? 'clientProgramInstalledSourceReadStartRows'
+      wholeInput ? 'clientProgramInstalledWholeSourceReadStartRows'
+      : providerCapacity === undefined ? 'clientProgramInstalledSourceReadStartRows'
         : 'clientProgramInstalledSourceReadStartProviderRows',
       'clientProgramInstalledSourceReadRetire']
       .some(name => typeof moon[name] !== 'function')) fail('InstalledSourceReadUnavailable');
@@ -39,9 +44,11 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
   if (providerCapacity !== undefined) {
     if (keyed || reportCapacity !== undefined) fail('InstalledProviderSourceProgramMismatch');
     if (ledger === undefined) fail('InstalledProviderSourceLedgerRequired');
-    if ([originalRead === undefined ? 'clientProgramRowSourceStartProviderAccounted'
+    if ([wholeInput ? 'clientProgramInstalledWholeSourceReadStartRows'
+      : originalRead === undefined ? 'clientProgramRowSourceStartProviderAccounted'
       : 'clientProgramInstalledSourceReadStartProviderRows',
-      'clientProgramRowSourceBorrowResponses', 'clientProgramRowSourceBindResponseCleanup']
+      wholeInput ? 'clientProgramWholeSourceBorrowResponses' : 'clientProgramRowSourceBorrowResponses',
+      'clientProgramRowSourceBindResponseCleanup']
       .some(name => typeof moon[name] !== 'function')) fail('InstalledProviderSourceUnavailable');
   }
   if (reportCapacity !== undefined) {
@@ -54,7 +61,10 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
   const settled = new Set();
   let transportStopped = false;
   let transportRecovery;
-  const run = checked(originalKeyedRead !== undefined
+  const run = checked(wholeInput
+    ? moon.clientProgramInstalledWholeSourceReadStartRows(originalRead, acquisition,
+      nonce, attempt => settled.has(attempt), capacity.transferBytes, capacity.executionBytes)
+    : originalKeyedRead !== undefined
     ? moon.clientProgramInstalledKeyedSourceReadStartRows(originalKeyedRead, acquisition,
       nonce, attempt => settled.has(attempt), capacity.transferBytes,
       capacity.executionBytes, () => transportStopped)
@@ -86,6 +96,7 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
   let closed = false;
   let sourceEvidenceOriginal, sourceEvidenceCapture;
   let sourceEvidencePreparing = false;
+  let nativeRecoveryCleanup, nativeRecoveryPending, nativeRecoveryFlight;
   let readerPrepared = false, readerStarted = false, readerReadPending = false;
   let readerStopRequested = false;
   let reader, readerRead, readerStop, readerObserve, readerRetry;
@@ -114,6 +125,7 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
   };
   const close = () => {
     if (closed) return;
+    if (!keyed && transportRecovery !== undefined && !transportStopped) fail('InstalledSourceCleanupPending');
     if (providerCapacity !== undefined) stopReader();
     if (ledger === undefined) moon.clientProgramRowSourceClose(run);
     else checked(moon.clientProgramRowSourceCloseAccounted(run));
@@ -125,6 +137,11 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
     closed = true;
     sourceEvidenceOriginal = sourceEvidenceCapture = undefined;
     reader = readerRead = readerStop = readerObserve = readerRetry = undefined;
+    if (!keyed) {
+      // Only after external ACK and Core capture/read retirement. A closed
+      // cleanup handle keeps terminal state, not the original native owner.
+      transportRecovery = nativeRecoveryCleanup = nativeRecoveryPending = nativeRecoveryFlight = undefined;
+    }
     if (readerStopFailure !== undefined) throw readerStopFailure;
   };
 
@@ -139,7 +156,8 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
     }
     if (closed || readerPrepared) fail('InstalledSourceReaderAlreadyPrepared');
     readerPrepared = true;
-    const borrow = checked(moon.clientProgramRowSourceBorrowResponses(run, acquisition));
+    const borrow = checked(wholeInput ? moon.clientProgramWholeSourceBorrowResponses(run, acquisition)
+      : moon.clientProgramRowSourceBorrowResponses(run, acquisition));
     checked(moon.clientProgramRowSourceBindResponseCleanup(borrow, readerRetired));
     reader = Reflect.apply(prepare, receiver, [options]);
     if (typeof reader?.then === 'function') {
@@ -223,7 +241,10 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
     const identity = checked(effectful
       ? moon.clientProgramIdentifyCapturedEffectSourceRelation(capturedSource)
       : moon.clientProgramIdentifyCapturedSourceRelation(capturedSource));
-    const logicalInput = checked(effectful
+    const logicalInput = checked(wholeInput
+      ? moon.clientProgramIssueWholeSourceInputLogical(checkedOwner,
+        capturedSource, identity, owner.providerCaptureCapacity)
+      : effectful
       ? occurrence.task === 0
         ? moon.clientProgramEffectIssueCapturedSourceLogical(checkedOwner,
           capturedSource, identity, owner.requirement)
@@ -250,8 +271,16 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
         inferStep === undefined && !composedInfer && setup === undefined) {
       fail('InstalledSourceHostUnavailable');
     }
-    const evidenceIssuer = moon.clientProgramRowSourceIssueSourceEvidenceOriginal;
+    const evidenceIssuer = wholeInput ? moon.clientProgramWholeSourceIssueSourceEvidenceOriginal
+      : moon.clientProgramRowSourceIssueSourceEvidenceOriginal;
     const captureAccess = Object.freeze({source,
+      ...(wholeInput ? {originalWholeInput() {
+        if (this !== captureAccess || closed) fail('ForeignInstalledSourceCapture');
+        // The same native capture owns its Run association and live input.
+        // This private view cannot create a Source observation or permission.
+        source();
+        return captured;
+      }} : {}),
       originalRead: () => {
         if (closed) fail('InstalledSourceClosed');
         return moon.clientProgramRowSourceOriginalRead(captured);
@@ -267,9 +296,10 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
         return original;
       },
       ...(ledger === undefined ? {} : {retainTask: (dag, task) => checked(
-        moon.clientProgramRowSourceRetainCapturedTask(captured, dag, task))})});
+        wholeInput ? moon.clientProgramWholeSourceCheckComputeBinding(captured, dag, task)
+          : moon.clientProgramRowSourceRetainCapturedTask(captured, dag, task))})});
     return Object.freeze({checkedSource: prepared.checkedSource, identity,
-      logicalInput, requirement: owner.requirement, setup, occurrence,
+      logicalInput, ...(wholeInput ? {} : {requirement: owner.requirement}), setup, occurrence,
       capturedSource, inferStep, composedInfer,
       capture: captureAccess,
       prepareSourceEvidenceOriginal: async ({authorityScopeCid, effectiveDataPolicyCid}) => {
@@ -293,9 +323,11 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
       },
       issueSourceEvidence: async ({authorityScopeCid, effectiveDataPolicyCid}) => {
         await currentRead();
-        return checked(moon.clientProgramRowSourceIssueSourceEvidence(
+        const issuer = wholeInput ? moon.clientProgramWholeSourceIssueSourceEvidence
+          : moon.clientProgramRowSourceIssueSourceEvidence;
+        return checked(Reflect.apply(issuer, moon, [
           acquisition, captured, identity, logicalInput, authorityScopeCid,
-          effectiveDataPolicyCid, new Date().toISOString()));
+          effectiveDataPolicyCid, new Date().toISOString()]));
       },
       close});
   }
@@ -326,6 +358,22 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
 
   async function cleanup() {
     if (closed) return true;
+    if (!keyed && transportRecovery !== undefined && !transportStopped) {
+      if (typeof nativeRecoveryCleanup !== 'function' || typeof nativeRecoveryPending !== 'function') return false;
+      if (nativeRecoveryFlight === undefined) {
+        // Keep the same operation before invoking an external cleanup. Other
+        // callers await it; a later retry is possible only after it settles.
+        nativeRecoveryFlight = Promise.resolve().then(async () => {
+          const stopped = await Reflect.apply(nativeRecoveryCleanup, transportRecovery, []);
+          if (stopped !== true || Reflect.apply(nativeRecoveryPending, transportRecovery, []) !== false) return false;
+          transportStopped = true; return true;
+        });
+      }
+      const work = nativeRecoveryFlight;
+      try {if (await work !== true) return false;}
+      finally {if (nativeRecoveryFlight === work) nativeRecoveryFlight = undefined;}
+      if (closed) return true;
+    }
     if (providerCapacity !== undefined) {
       stopReader();
       if (!readerRetired()) return false;
@@ -356,6 +404,17 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
 
   function closeAfterFailure(state, recovery) {
     if (keyed) transportRecovery = recovery;
+    else if (recovery !== undefined && transportRecovery === undefined) {
+      // The same RowRun owns the recovery and its Core retirement. Retain the
+      // original receiver before method getters can throw or reenter.
+      transportRecovery = recovery; transportStopped = false;
+      try {
+        nativeRecoveryCleanup = recovery.cleanup;
+        nativeRecoveryPending = recovery.cleanupPending;
+      } catch {
+        nativeRecoveryCleanup = nativeRecoveryPending = undefined;
+      }
+    }
     try { close(); }
     catch {
       state.closeFailed = true;

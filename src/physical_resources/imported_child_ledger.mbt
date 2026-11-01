@@ -408,6 +408,16 @@ pub fn check_imported_original_child_ledger(
     Err(issue) => return Err(Resource(issue))
     Ok(_) => ()
   }
+  check_imported_original_child_ledger_current(value, ledger)
+}
+
+///|
+// The same tuple after this owner's current boundary. The closed managed
+// operation uses it after its non-escaping Local original check too.
+fn check_imported_original_child_ledger_current(
+  value : ImportedChildLedger,
+  ledger : Ledger,
+) -> Result[Unit, ImportedChildLedgerIssue] {
   // Keep the post-callback original tuple fence local to this owner. The
   // callback can synchronously retire/change a child while returning current.
   match imported_child_original(value) {

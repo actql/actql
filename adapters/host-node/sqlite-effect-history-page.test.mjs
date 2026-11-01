@@ -95,3 +95,35 @@ test('bounded scope inventory lists only that logical request and binds a contin
   assert.deepEqual(f.ledger.currentScopePage(scope,{maxItems:1,maxWireBytes:1}),{kind:'limit_exceeded'});
   assert(!JSON.stringify(first).includes('foreign'));
 });
+
+for (const encoding of ['UTF-16le', 'UTF-16be']) {
+  for (const kind of ['history', 'scope']) {
+    test(`native-column page bounds keep valid64-byte ${encoding} ${kind} entries`, async t => {
+      const root = await mkdtemp(join(tmpdir(), 'actql-effect-native-page-'));
+      const setup = new DatabaseSync(join(root, 'effect-ledger.sqlite3'));
+      try {
+        setup.exec(`PRAGMA encoding = '${encoding}'`);
+        setup.exec('CREATE TABLE encoding_fixture (value TEXT) STRICT');
+      } finally {setup.close();}
+      const ledger = openSqliteEffectLedger(root, {authorityScopeCid:scope, maxEntryBytes:64});
+      t.after(async () => {ledger.close();await rm(root,{recursive:true,force:true});});
+      const exact = '"' + 'x'.repeat(62) + '"';
+      for (let index=0;index<2;index++) ledger.append({logicalRequestScopeCid:scope,
+        logicalItemLocatorCid:locator,expectedRevision:index,entryCid:cid(String(index+1)),entryJson:exact});
+      // Existing page budgets count native SQLite column bytes. Keep that
+      // metric and its exact boundary; only the per-entry UTF8 guard differs.
+      const bytes = kind === 'history' ? 256 : 128;
+      const read = maxWireBytes => kind === 'history'
+        ? ledger.historyPage(locator,{after:{generation:cid('1'),revision:1,entryCid:cid('1')},
+          maxEntries:1,maxWireBytes})
+        : ledger.currentScopePage(scope,{maxItems:1,maxWireBytes});
+      const page = read(bytes);
+      assert.equal(page.kind,'page');
+      assert.equal(page.entries.length,1);
+      assert.equal(page.entries[0].entryJson,exact);
+      assert.equal(page.entries[0].revision,2);
+      if (kind === 'history') assert.equal(page.previous.entryJson,exact);
+      assert.deepEqual(read(bytes-1),{kind:'limit_exceeded'});
+    });
+  }
+}

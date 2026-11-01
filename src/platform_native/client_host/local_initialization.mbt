@@ -70,6 +70,7 @@ fn initialize_native_local_client_rows(
       "client_submitted_intent_custody", "client_submitted_intents", "client_submission_names",
       "client_submission_name_custody", "client_local_read_custody", "client_local_read_evidence",
       "client_local_grant_custody", "client_local_grant_originals", "client_local_preparation_target_originals",
+      "client_local_signing_result_originals", "client_local_signing_candidate_originals",
       "client_local_installation_custody", "client_local_installation_originals",
       "client_worker_provisioning_custody", "client_worker_provisioning",
     ] {

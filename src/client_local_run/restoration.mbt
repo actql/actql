@@ -159,3 +159,54 @@ fn restore_local_run_from_materials(
     execution_context_cid,
   })
 }
+
+///|
+/// Attach only the policy body retained with this same saved material/Run.
+/// The codec's compiled Owner and original definition stay unchanged; no
+/// current default, replacement policy, invocation or lifetime is issued.
+pub fn restore_source_free_local_run_policy_original(
+  plan : LocalRunPlan,
+  original : @host.ClientSavedTaskMaterials,
+) -> Result[LocalRunPlan, LocalRunIssue] {
+  let retained = @host.client_saved_task_materials_input(original)
+  let snapshot = @host.client_saved_task_materials_snapshot(original)
+  guard physical_equal(
+      plan.prepared,
+      @host.client_task_run_materials_retained_program(retained),
+    ) &&
+    @host.client_saved_submission_run_row(snapshot) is Some(row) &&
+    @host.decode_client_run_journal_row_with_observation_originals(row.body)
+    is Ok((run, Some(_), Some(_))) &&
+    run.publication_policy_originals is Some(wire) else {
+    return Err(Materials(@host.RunMismatch))
+  }
+  if @host.client_request_identity_relation(run.request, plan.request) !=
+    @host.SameRequest ||
+    @publication.publication_contract_identity(run.definition) !=
+    @publication.publication_contract_identity(plan.definition) {
+    return Err(Materials(@host.RunMismatch))
+  }
+  let bodies = match @host.read_client_run_policy_originals(wire) {
+    Ok(value) => value
+    Err(_) => return Err(Admission(@host.InvalidResultPolicy))
+  }
+  guard bodies.length() > 0 else {
+    return Err(Admission(@host.InvalidResultPolicy))
+  }
+  let compiled = match
+    @host.with_client_source_free_result_policy(
+      plan.compiled,
+      @publication.captured_effect_dependency_body_cid(bodies[0]),
+      @publication.captured_effect_dependency_body_json(bodies[0]),
+      65536,
+      8192,
+      64,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Admission(issue))
+  }
+  match @host.check_client_compiled_run_definition(compiled, plan.definition) {
+    Ok(_) => Ok({ ..plan, compiled, })
+    Err(issue) => Err(Admission(issue))
+  }
+}

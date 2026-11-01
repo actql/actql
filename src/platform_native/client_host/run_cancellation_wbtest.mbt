@@ -553,3 +553,94 @@ test "Native original cancellation refuses a structurally valid immutable outcom
   )
   database.close_checked().unwrap()
 }
+
+///|
+// Actual SQLite with explicit private routing ports. This is not an installed
+// Read/Store positive or a physical cancellation acknowledgement.
+test "Native cancellation routes the same original through its actual Journal operations" {
+  let (database, journal, request) = cancellation_test_run(
+    "client-cancel-original-operations",
+  )
+  let calls : Array[String] = []
+  let operations = journal_test_operation_access(database, calls)
+  let recorded = journal
+    .cancel_operation_with_operations(
+      request,
+      "namespace-a",
+      "cancel-original",
+      1,
+      () => true,
+      { binding: None, observe: _ => Ok(false), },
+      operations=Some(operations),
+    )
+    .unwrap()
+  assert_eq(recorded.action, @host.AcceptCancellation)
+  assert_eq(recorded.observed_revision, 2L)
+  assert_true(calls.contains("begin"))
+  assert_true(calls.contains("commit"))
+  assert_true(
+    calls.contains(
+      "compare_exchange:client_runs:" + @host.client_request_scope_cid(request),
+    ),
+  )
+  assert_true(calls.contains("compare_exchange:client_cancel_custody:issued"))
+  assert_eq(
+    calls
+    .filter(value => value.has_prefix("insert:client_cancellations:"))
+    .length(),
+    1,
+  )
+  calls.clear()
+  let observed = journal
+    .lookup_cancellation_with_reads(
+      request,
+      "namespace-a",
+      "cancel-original",
+      1,
+      () => true,
+      reads=Some(operations.reads),
+    )
+    .unwrap()
+  guard observed is OriginalCancellation(original) else {
+    fail("original cancellation missing")
+  }
+  assert_eq(original.action, recorded.action)
+  assert_eq(original.observed_revision, recorded.observed_revision)
+  assert_true(calls.contains("begin"))
+  assert_true(calls.contains("commit"))
+  assert_false(
+    calls.any(value => {
+      value.has_prefix("insert:") || value.has_prefix("compare_exchange:")
+    }),
+  )
+  let foreign = epoch_test_database("client-cancel-original-operations-foreign")
+  let foreign_calls : Array[String] = []
+  let foreign_operations = journal_test_operation_access(foreign, foreign_calls)
+  assert_true(
+    journal.cancel_operation_with_operations(
+      request,
+      "namespace-a",
+      "cancel-foreign",
+      2,
+      () => true,
+      { binding: None, observe: _ => Ok(false), },
+      operations=Some(foreign_operations),
+    )
+    is Err(Physical(@sqlite.Collision)),
+  )
+  assert_eq(foreign_calls.length(), 0)
+  assert_true(
+    journal.lookup_cancellation_with_reads(
+      request,
+      "namespace-a",
+      "cancel-original",
+      1,
+      () => true,
+      reads=Some(foreign_operations.reads),
+    )
+    is Err(Physical(@sqlite.Collision)),
+  )
+  assert_eq(foreign_calls.length(), 0)
+  foreign.close_checked().unwrap()
+  database.close_checked().unwrap()
+}

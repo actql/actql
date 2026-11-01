@@ -1,6 +1,7 @@
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {openSqliteEffectLedger} from './sqlite-effect-ledger.mjs';
 import {realpathSync} from 'node:fs';
+import {effectLedgerImplementationBounds} from './effect-ledger-implementation-bounds.mjs';
 
 // Process-local observations of physical calls. Durable dispatch entries are
 // possible sends after restart, never proof that a call is still in progress.
@@ -17,16 +18,16 @@ export function openEffectLedger({
   root,
   authorityScopeCid,
   callerRequestId,
-  maxEntries = 100_000,
-  maxEntryBytes = 1_000_000,
-  maxResponseBytes = 1_000_000,
-  maxStoredBytes = 134_217_728,
-  maxBatchRows = 1000,
-  maxNodes = 64,
-  maxDepth = 4,
-  maxOutcomeNodes = 512,
-  maxOutcomeDepth = 16,
-  maxCallerBytes = 256,
+  maxEntries = effectLedgerImplementationBounds.maxEntries,
+  maxEntryBytes = effectLedgerImplementationBounds.maxEntryBytes,
+  maxResponseBytes = effectLedgerImplementationBounds.maxResponseBytes,
+  maxStoredBytes = effectLedgerImplementationBounds.maxStoredBytes,
+  maxBatchRows = effectLedgerImplementationBounds.maxBatchRows,
+  maxNodes = effectLedgerImplementationBounds.maxNodes,
+  maxDepth = effectLedgerImplementationBounds.maxDepth,
+  maxOutcomeNodes = effectLedgerImplementationBounds.maxOutcomeNodes,
+  maxOutcomeDepth = effectLedgerImplementationBounds.maxOutcomeDepth,
+  maxCallerBytes = effectLedgerImplementationBounds.maxCallerBytes,
 }) {
   if (!Number.isSafeInteger(maxBatchRows) ||
       maxBatchRows < 1 || maxBatchRows > 1000) {

@@ -15,6 +15,7 @@ from actql_sdk._local_journal_port import _JournalCallbacks
 from actql_sdk._local_storage import LocalByteStore, ByteWrite, ByteFence, StoredBytes, _NamespaceReader
 from actql_sdk import _wire as wire
 from actql_sdk._values import decode_json
+from local_abi_declaration_fixture import assert_current_local_abi, original_byte_fixture_port
 
 
 def scalar_reader_check(view, required, current):
@@ -231,7 +232,7 @@ class LocalJournalBridgeCustodyTests(unittest.TestCase):
             if name == 'close':
                 return 0 if core._cleanup(2) == 0 else -9
             raise AssertionError('Unexpected call')
-        core._call = invoke
+        core._call = original_byte_fixture_port(invoke)
         return core, material, calls, code
 
     def test_same_ticket_retains_callback_input_and_cleanup_failure_for_retry(self):
@@ -290,7 +291,7 @@ class LocalJournalBridgeCustodyTests(unittest.TestCase):
         def invoke(family, name, *args):
             core._journal_callbacks(2).failure = original
             return -41
-        core._call = invoke
+        core._call = original_byte_fixture_port(invoke)
         with self.assertRaises(OSError) as failed:
             core.inspect_journal_observation(loan, _NamespaceReader(lambda *a: None, lambda *a: None, self.store, lambda: None, check_fences=lambda *_: None, check_fences_and_current=scalar_reader_check))
         self.assertIs(failed.exception, original)
@@ -334,7 +335,7 @@ class LocalJournalBridgeCustodyTests(unittest.TestCase):
         callbacks.reader = None
 
     def test_private_loader_matches_changed_abi_imports_and_revision_width(self):
-        self.assertEqual(LOCAL_CORE_ABI, 74)
+        assert_current_local_abi(self, LOCAL_CORE_ABI)
         self.assertEqual(_JOURNAL_SIGNATURES, {
             'reserve': ('i64 i32 i32 i32 i64', 'i32'), 'inspect': ('i64 i32', 'i32'),
             'revision': ('i64 i32 i32', 'i64'), 'admission_length': ('i64 i32', 'i32'), 'close': ('i64 i32', 'i32')})
@@ -360,7 +361,7 @@ class LocalJournalBridgeCustodyTests(unittest.TestCase):
                 copied.append(args[1])
                 return raw[args[1]]
             raise AssertionError('Unexpected physical/semantic primitive')
-        core._call = invoke
+        core._call = original_byte_fixture_port(invoke)
         reader = _NamespaceReader(lambda *a: None, lambda *a: None, self.store,
                                   lambda: None, check_fences=lambda *_: None, check_fences_and_current=scalar_reader_check)
         return core, loan, reader, raw, copied, calls, code
@@ -429,7 +430,7 @@ class LocalJournalBridgeCustodyTests(unittest.TestCase):
                     core._journal_callbacks(loan.ticket).failure = original
                     return -41
             return invoke(family, name, *args)
-        core._call = change
+        core._call = original_byte_fixture_port(change)
         with self.assertRaises(PermissionError) as refused:
             core.read_journal_admission(loan, reader)
         self.assertIs(refused.exception, original)

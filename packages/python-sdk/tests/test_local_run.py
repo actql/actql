@@ -9,6 +9,55 @@ from actql_sdk._local_run import LocalRunCustody
 
 
 class RunCustodyTests(unittest.TestCase):
+    def test_restored_run_keeps_same_snapshot_and_children_until_original_close(self):
+        from dataclasses import replace
+        from test_local_finite_run import FiniteRunFacadeTests
+        core, custody, run, snapshot, calls, _ = FiniteRunFacadeTests().bridge()
+        snapshot = replace(snapshot, family='submission_lookup')
+        core._loans[snapshot.ticket] = snapshot
+        before = len(calls)
+        restored = custody.reserve_restoration(run.configuration, run.input, snapshot)
+        custody.restore_materials(restored)
+        custody.bind_restored_preparation(restored, run.preparation)
+        custody.restore_run(run, restored)
+        self.assertIs(custody._restorations[restored.handle], restored)
+        self.assertIs(custody._run_restorations[run.handle], restored)
+        self.assertIs(restored.input, run.input)
+        self.assertIs(restored.snapshot, snapshot)
+        self.assertFalse(any(family == 'program' and name == 'prepare'
+                             or family == 'run' and name in ('prepare', 'prepare_sdk', 'reserve_physical_start')
+                             for family, name, _ in calls[before:]))
+        self.assertEqual([name for family, name, _ in calls[before:] if family == 'material'],
+                         ['reserve_restoration', 'restore_sdk', 'restored'])
+        self.assertFalse(custody.close_restoration(restored))
+        self.assertTrue(custody.close_run(run))
+        self.assertTrue(custody.close_restoration(restored))
+        self.assertNotIn(restored.handle, custody._restorations)
+        self.assertIs(core._loans[snapshot.ticket], snapshot)
+
+    def test_restoration_refusal_preserves_same_parent_and_copies_cannot_reach_core(self):
+        from dataclasses import replace
+        from test_local_finite_run import FiniteRunFacadeTests
+        core, custody, run, snapshot, calls, codes = FiniteRunFacadeTests().bridge()
+        snapshot = replace(snapshot, family='submission_lookup')
+        core._loans[snapshot.ticket] = snapshot
+        restored = custody.reserve_restoration(run.configuration, run.input, snapshot)
+        codes['material', 'restore_sdk'] = -35
+        with self.assertRaises(LocalCoreError) as failed:
+            custody.restore_materials(restored)
+        self.assertEqual(failed.exception.code, -35)
+        self.assertIs(custody._restorations[restored.handle], restored)
+        self.assertIs(core._loans[snapshot.ticket], snapshot)
+        before = len(calls)
+        for action in (lambda: custody.restore_materials(copy.copy(restored)),
+                       lambda: custody.bind_restored_preparation(restored, copy.copy(run.preparation)),
+                       lambda: custody.restore_run(copy.copy(run), restored)):
+            with self.assertRaises(ValueError):
+                action()
+        self.assertEqual(len(calls), before)
+        self.assertTrue(custody.close_run(run))
+        self.assertTrue(custody.close_restoration(restored))
+
     def test_original_submitted_projection_uses_nominal_run_and_current_parents(self):
         core, _, custody, inputs, _, configuration, run, calls, _ = self.bridge()
         core._inputs = {}

@@ -19,7 +19,8 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
   signal, now, retainComputationOwner, infer, store, principalId, faultInjection,
   observe, sourceContinuation, computeConfigurations = {}, withComputePauseHandler, modelController,
   submission, existingModel, modelClaim, parentResume, modelJournalPort, contentRun,
-  assertUpdateSelectionCurrent, assertContinuationCurrent, originalPreparation, originalModelPlan}) {
+  assertUpdateSelectionCurrent, assertContinuationCurrent, originalPreparation, originalModelPlan,
+  originalModelComponent, originalModelSelection}) {
   const preparedOriginal = acquired.prepared, requestOriginal = acquired.requestIdentity;
   const count = moon?.clientProgramEffectAcquisitionCount?.(acquired.prepared);
   const sourceFree = count === 0;
@@ -307,7 +308,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
         sendMask: modelController.state(modelRecord.inventory).slots.map(slot => slot.state === 'Unsent'),
         savedScope: modelController.savedScope(plan, acquired.prepared, infer, modelToken),
       });
-      return openNodeComposedInferProvider({moon, selected: infer, sources: admittedSources,
+      const context = {moon, selected: originalModelSelection ?? infer, sources: admittedSources,
         originalPreparation,
         ...(contentFamily === undefined ? {} : {generatedInput: {
           generation: () => contentFamily.generation(),
@@ -329,7 +330,9 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
                 compiled, operation, issuance, modelEvidence,
                 captureStartedAt, captureCompletedAt})});
         },
-        retainCompleted: () => inferCapture.retainCompleted()});
+        retainCompleted: () => inferCapture.retainCompleted()};
+      return originalModelComponent === undefined ? openNodeComposedInferProvider(context)
+        : originalModelComponent.bindOriginal(context);
     };
     // The original plan already selected its configuration/Source capacities.
     // A provider family requiring a different scope cannot acquire a scalar

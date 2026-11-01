@@ -18,6 +18,20 @@ struct ClientInstalledManagedKeyedPreparation {
   direct_execution_bytes : Int64
   fragment_selected : Bool
   ordered_selected : Bool
+  serialization_task : Int
+  serialization_step : Int
+  prefix : ClientInstalledKeyedPrefixPreparation?
+}
+
+///|
+// Original generated prefix and bounded provider retained by this existing
+// Content Plan. These are constructor outputs, not another Run/cleanup owner.
+priv struct ClientInstalledKeyedPrefixPreparation {
+  sequence : @execution.GeneratedSequence
+  provider : @local.ManagedProvider
+  capacity : @execution.ExecutionCapacity
+  execution : @execution.SequenceExecutionLimits
+  measurement : @execution.FixedInputGuardMeasureLimits
 }
 
 ///|
@@ -39,6 +53,39 @@ pub fn prepare_installed_managed_keyed_content(
   step : Int,
   prefix_retained_bytes : Int64,
   prefix_execution_bytes : Int64,
+) -> Result[
+  ClientInstalledManagedKeyedPreparation,
+  ClientInstalledManagedRunIssue,
+] {
+  prepare_installed_managed_keyed_content_owned(
+    prepared, direct, keyed, declaration, row_limits, transport_bytes,
+    transport_execution_bytes, max_bytes, max_work, installed_contracts,
+    values_body, fragment_body, ordered_body, task, step,
+    prefix_retained_bytes, prefix_execution_bytes, None, None,
+  )
+}
+
+///|
+fn prepare_installed_managed_keyed_content_owned(
+  prepared : @publication_host.PreparedClientProgram,
+  direct : ClientInstalledCaptureCapacity,
+  keyed : @publication_host.ClientKeyedAcquisition,
+  declaration : @row_source_host.RowDeclaration,
+  row_limits : @row_source_host.RowKeyedLimits,
+  transport_bytes : Array[Int64],
+  transport_execution_bytes : Array[Int64],
+  max_bytes : Int,
+  max_work : Int,
+  installed_contracts : ClientInstalledSequenceContracts,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+  task : Int,
+  step : Int,
+  prefix_retained_bytes : Int64,
+  prefix_execution_bytes : Int64,
+  prefix : ClientInstalledKeyedPrefixPreparation?,
+  original_requirement : @planning.QueryRequirement?,
 ) -> Result[
   ClientInstalledManagedKeyedPreparation,
   ClientInstalledManagedRunIssue,
@@ -80,6 +127,7 @@ pub fn prepare_installed_managed_keyed_content(
         (task, step, prefix_retained_bytes, prefix_execution_bytes),
       ),
       captured_content=true,
+      original_requirement~,
     )
     is Some((limits, direct_stage, direct_input, requests)) &&
     requests >= 0L &&
@@ -101,6 +149,9 @@ pub fn prepare_installed_managed_keyed_content(
     direct_execution_bytes: transport_execution_bytes[0],
     fragment_selected: fragment_body is Some(_),
     ordered_selected: ordered_body is Some(_),
+    serialization_task: task,
+    serialization_step: step,
+    prefix,
   })
 }
 
@@ -211,7 +262,7 @@ pub fn begin_installed_managed_keyed_content_run(
     request,
     ledger,
   )
-  value.keyed = Some(selected)
+  value.content = KeyedContent(selected, None)
   require_installed_managed_run(value).map(_ => value)
 }
 
@@ -238,7 +289,7 @@ pub fn begin_installed_managed_keyed_source_read(
     Err(issue) => return Err(ManagedRun(issue))
     Ok(_) => ()
   }
-  guard value.keyed is Some(selected) &&
+  guard value.content is KeyedContent(selected, _) &&
     physical_equal(selected.keyed, keyed) &&
     physical_equal(selected.declaration, declaration) &&
     @publication_host.client_keyed_request_matches_acquisition(request, keyed) else {
@@ -306,7 +357,7 @@ fn require_installed_keyed_source_read(
   }
   guard value.parent is Some(parent) &&
     value.selected is Some(selected) &&
-    parent.keyed is Some(original) &&
+    parent.content is KeyedContent(original, _) &&
     physical_equal(original, selected) &&
     parent.keyed_reads.any(read => physical_equal(read, value)) else {
     return Err(ForeignOriginal)
@@ -465,7 +516,7 @@ fn prepare_retained_installed_keyed_content_ledger(
   ordered_body : String?,
   ledger : @resources.Ledger,
 ) -> Result[@resources.Ledger, ClientInstalledManagedRunIssue] {
-  guard run.keyed is Some(original) &&
+  guard run.content is KeyedContent(original, _) &&
     physical_equal(original, selected) &&
     run.ledger is Some(original_ledger) &&
     physical_equal(original_ledger, ledger) &&

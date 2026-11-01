@@ -288,7 +288,29 @@ pub fn issue_installed_client_composed_infer_plan_graph(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  construction? : ClientInferGraphConstruction? = None,
 ) -> Result[ClientInferPlanGraph, ClientInferPlanGraphIssue] {
+  if construction is Some(original) {
+    if @strategy.graph_program_has_effects(occurrence.owner.graph) ||
+      !prepared_client_serialization_occurrences(occurrence.owner).is_empty() {
+      return Err(UnsupportedProgram)
+    }
+    return issue_client_infer_plan_graph_for_occurrence(
+      occurrence,
+      execution,
+      prepared_client_check_environment_cid(occurrence.owner),
+      @environment.model_task_identity(
+        @environment.model_execution_task(execution),
+      ).2,
+      sequence_limits,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      1000000,
+      false,
+      construction=Some(original),
+    )
+  }
   if @strategy.graph_program_has_effects(occurrence.owner.graph) {
     let serialization = match
       issue_client_serialization_effect_plan(
@@ -452,11 +474,35 @@ fn issue_client_infer_plan_graph_for_occurrence(
   capacity_work : Int,
   include_results : Bool,
   serialization? : ClientSerializationPlanGraph? = None,
+  construction? : ClientInferGraphConstruction? = None,
+  prepare_mappings? : (
+    @infer.CheckedInfer,
+    @parameter.BoundValues?,
+    @lower.ExpressionLimits,
+  ) -> Result[@lower.PreparedInferInputs, @lower.InferInputIssue] = (
+    infer,
+    parameters,
+    limits,
+  ) => @lower.prepare_infer_inputs(infer, parameters, limits),
 ) -> Result[ClientInferPlanGraph, ClientInferPlanGraphIssue] {
   let value = occurrence.owner
   let owner = occurrence.preparation
   let step = occurrence.step
   let task = occurrence.task
+  if construction is Some(original) {
+    guard physical_equal(original.occurrence, occurrence) &&
+      physical_equal(original.execution, execution) &&
+      client_full_sequence_limits_match(
+        original.sequence_limits,
+        sequence_limits,
+      ) &&
+      original.max_wire_bytes == max_wire_bytes &&
+      original.max_nodes == max_nodes &&
+      original.max_depth == max_depth &&
+      serialization is None else {
+      return Err(UnsupportedProgram)
+    }
+  }
   guard client_infer_occurrence_output_step(occurrence) is Some(terminal) &&
     terminal >= step &&
     @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
@@ -511,21 +557,41 @@ fn issue_client_infer_plan_graph_for_occurrence(
         }
       }
       None =>
-        issue_client_infer_prefix_fragment_for_owner(
-          owner, task, step, sequence_limits, max_wire_bytes, max_nodes, max_depth,
-        )
+        match construction {
+          Some(original) => {
+            guard original.pipeline_inputs.get(0) is Some(input) else {
+              return Err(UnsupportedProgram)
+            }
+            issue_constructed_client_infer_fragment(
+              occurrence,
+              step - 1,
+              input,
+              max_wire_bytes,
+              max_nodes,
+              max_depth,
+            )
+          }
+          None =>
+            issue_client_infer_prefix_fragment_for_owner(
+              owner, task, step, sequence_limits, max_wire_bytes, max_nodes, max_depth,
+            )
+        }
     }) {
     Ok(value) => value
     Err(issue) => return Err(Input(issue))
   }
-  let mappings = match
-    @lower.prepare_infer_inputs(
-      infer,
-      @lower.parameter_bindings(owner),
-      sequence_limits.expressions,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(Mapping(issue))
+  let mappings = match construction {
+    Some(original) => original.mappings
+    None =>
+      match
+        prepare_mappings(
+          infer,
+          @lower.parameter_bindings(owner),
+          sequence_limits.expressions,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(Mapping(issue))
+      }
   }
   guard client_task_carrier_contract(
       @lower.node_output_carrier(node),
@@ -538,16 +604,9 @@ fn issue_client_infer_plan_graph_for_occurrence(
   }
   try {
     let request_writer = @encode.writer(max_wire_bytes, max_nodes, max_depth)
-    @encode.begin_object(request_writer)
-    for index in 0..<@infer.input_binding_count(infer) {
-      guard @infer.input_binding_at(infer, index) is Some(binding) &&
-        @lower.infer_input_expression_at(mappings, index) is Some(expression) else {
-        return Err(Encoding)
-      }
-      @encode.key(request_writer, @infer.input_binding_role(binding))
-      @lower.emit_expression(expression, request_writer)
+    if !emit_client_infer_request_body(infer, mappings, request_writer) {
+      return Err(Encoding)
     }
-    @encode.end_object(request_writer)
     guard parse_plan_identity_value(
         @encode.finish(request_writer),
         max_wire_bytes,
@@ -564,62 +623,20 @@ fn issue_client_infer_plan_graph_for_occurrence(
       request, max_wire_bytes, max_nodes, max_depth,
     )
     let barrier_writer = @encode.writer(max_wire_bytes, max_nodes, max_depth)
-    @encode.begin_object(barrier_writer)
-    @encode.key(barrier_writer, "egress_requirements_cid")
-    @encode.string_value(barrier_writer, egress_requirements_cid)
-    @encode.key(barrier_writer, "input_contract_cid")
-    @encode.string_value(barrier_writer, prefix.output_contract_cid)
-    @encode.key(barrier_writer, "input_fragment_cid")
-    @encode.string_value(barrier_writer, prefix.logical_cid)
-    @encode.key(barrier_writer, "input_roles")
-    @encode.begin_object(barrier_writer)
-    for index in 0..<@infer.input_binding_count(infer) {
-      let role = @infer.input_binding_role(
-        @infer.input_binding_at(infer, index).unwrap(),
-      )
-      @encode.key(barrier_writer, role)
-      @encode.string_value(
-        barrier_writer,
-        "/" + role.replace(old="~", new="~0").replace(old="/", new="~1"),
-      )
-    }
-    @encode.end_object(barrier_writer)
-    @encode.key(barrier_writer, "key_fields")
-    @encode.begin_array(barrier_writer)
-    for index in 0..<@infer.key_count(infer) {
-      @encode.string_value(
-        barrier_writer,
-        @schema.reference_name(@infer.key_at(infer, index).unwrap().field),
-      )
-    }
-    @encode.end_array(barrier_writer)
-    @encode.key(barrier_writer, "limits_cid")
-    @encode.string_value(barrier_writer, limits_cid)
-    @encode.key(barrier_writer, "model_execution_contract_cid")
-    @encode.string_value(
+    emit_client_infer_barrier_body(
       barrier_writer,
+      infer,
+      egress_requirements_cid,
+      prefix.output_contract_cid,
+      prefix.logical_cid,
+      limits_cid,
       @environment.model_execution_cid(execution),
-    )
-    @encode.key(barrier_writer, "model_task_contract_cid")
-    @encode.string_value(
-      barrier_writer,
       @environment.model_task_identity(@infer.model_task(infer)).2,
+      output_contract_cid,
+      request_cid,
+      None,
+      (cid, writer) => @encode.string_value(writer, cid),
     )
-    @encode.key(barrier_writer, "on_non_success")
-    @encode.string_value(
-      barrier_writer,
-      match @infer.result_mode(infer) {
-        Outcomes => "outcomes"
-        Fail => "fail"
-      },
-    )
-    @encode.key(barrier_writer, "output_contract_cid")
-    @encode.string_value(barrier_writer, output_contract_cid)
-    @encode.key(barrier_writer, "request_fragment_cid")
-    @encode.string_value(barrier_writer, request_cid)
-    @encode.key(barrier_writer, "version")
-    @encode.string_value(barrier_writer, "actql-inference-barrier/0.1")
-    @encode.end_object(barrier_writer)
     guard parse_plan_identity_value(
         @encode.finish(barrier_writer),
         max_wire_bytes,
@@ -764,37 +781,16 @@ fn issue_client_infer_plan_graph_for_occurrence(
       }
     }
     let node_writer = @encode.writer(max_wire_bytes, max_nodes, max_depth)
-    @encode.begin_object(node_writer)
-    @encode.key(node_writer, "barrier")
-    @canonical.emit_value(barrier, node_writer)
-    @encode.key(node_writer, "barrier_contract_cid")
-    @encode.string_value(
+    emit_client_infer_node_body(
       node_writer,
-      @environment.compiler_inference_barrier_contract_cid(),
+      barrier,
+      @canonical.emit_value,
+      barrier_id,
+      output_port,
+      prefix.output_contract_cid,
+      output_contract_cid,
+      (cid, writer) => @encode.string_value(writer, cid),
     )
-    @encode.key(node_writer, "input_contracts")
-    @encode.begin_object(node_writer)
-    @encode.key(node_writer, "input_0")
-    @encode.string_value(node_writer, prefix.output_contract_cid)
-    @encode.end_object(node_writer)
-    @encode.key(node_writer, "input_refs")
-    @encode.begin_array(node_writer)
-    @encode.string_value(node_writer, "input_0")
-    @encode.end_array(node_writer)
-    @encode.key(node_writer, "kind")
-    @encode.string_value(node_writer, "acquisition_barrier")
-    @encode.key(node_writer, "node_id")
-    @encode.string_value(node_writer, barrier_id)
-    @encode.key(node_writer, "output_contracts")
-    @encode.begin_object(node_writer)
-    @encode.key(node_writer, output_port)
-    @encode.string_value(node_writer, output_contract_cid)
-    @encode.end_object(node_writer)
-    @encode.key(node_writer, "output_ref")
-    @encode.string_value(node_writer, output_port)
-    @encode.key(node_writer, "profile_id")
-    @encode.string_value(node_writer, "actql-infer/0.1")
-    @encode.end_object(node_writer)
     let barrier_wire = @encode.finish(node_writer)
     guard parse_plan_identity_value(
         barrier_wire, max_wire_bytes, max_nodes, max_depth,
@@ -838,17 +834,28 @@ fn issue_client_infer_plan_graph_for_occurrence(
     }
     for next in (step + 1)..<(terminal + 1) {
       let fragment = match
-        issue_client_infer_compute_fragment(
-          owner,
-          task,
-          step,
-          next,
-          sequence_limits,
-          max_wire_bytes,
-          max_nodes,
-          max_depth,
-          serialization_boundary=serialization.map(value => value.step),
-        ) {
+        (match construction {
+          Some(original) => {
+            guard original.pipeline_inputs.get(next - step) is Some(input) else {
+              return Err(UnsupportedProgram)
+            }
+            issue_constructed_client_infer_fragment(
+              occurrence, next, input, max_wire_bytes, max_nodes, max_depth,
+            )
+          }
+          None =>
+            issue_client_infer_compute_fragment(
+              owner,
+              task,
+              step,
+              next,
+              sequence_limits,
+              max_wire_bytes,
+              max_nodes,
+              max_depth,
+              serialization_boundary=serialization.map(value => value.step),
+            )
+        }) {
         Ok(fragment) => fragment
         Err(issue) => return Err(Input(issue))
       }

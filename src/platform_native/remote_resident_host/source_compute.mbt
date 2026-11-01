@@ -338,6 +338,13 @@ fn open_resident_source_compute_owned(
     Ok(value) => value
     Err(issue) => return reject(Capacity(issue), () => true)
   }
+  let (dispatch_preparation, estimates) = match
+    prepare_resident_compute_dispatch(
+      prepared, graph, configuration, ledger, generated,
+    ) {
+    Ok(value) => value
+    Err(issue) => return reject(issue, () => true)
+  }
   guard @duckdb_host.configured_native_capacity(setup) is Some(capacity) else {
     return reject(UnsupportedGraph, () => true)
   }
@@ -414,7 +421,8 @@ fn open_resident_source_compute_owned(
       Some(captured),
       ledger,
       holding,
-      generated,
+      dispatch_preparation,
+      estimates,
       close_source,
       observe,
       acquired_source=Some({ requirement, capture, }),
@@ -679,7 +687,8 @@ fn open_resident_captured_compute(
   captured : @query.CapturedInputSource?,
   ledger : @resources.Ledger,
   holding : @resources.Holding,
-  generated : Array[@execution.GeneratedSequence],
+  dispatch_preparation : @standard.StrategyDispatchPreparation,
+  estimates : Array[@standard.DispatchEstimateProfile],
   close_source : () -> Bool,
   observe : ((ResidentSourceComputeEvent) -> Bool)?,
   retained_input? : (
@@ -721,12 +730,6 @@ fn open_resident_captured_compute(
       !@resources.holding_available(ledger, holding) ||
       @resources.release_allocation(ledger, holding) is Ok(_)
     )
-  }
-  // A single trusted profile applies uniformly; otherwise each original
-  // Compute task must have exactly its own profile, with none silently ignored.
-  if configuration.estimates.length() != 1 &&
-    configuration.estimates.length() != @strategy.graph_task_count(graph) - 1 {
-    return reject(UnsupportedGraph, close_unbound)
   }
   let opened : Result[
     (@strategy.CapturedDAG, @strategy.CapturedEffectRunDAG?),
@@ -791,47 +794,8 @@ fn open_resident_captured_compute(
       @strategy.captured_dag_ledger(run),
     )
   }
-  let registry = @connector.prepare_capability_registry(
-    [
-      { name: "local", acquisition: false, fixed_compute: true, effect: false, },
-      {
-        name: "duckdb",
-        acquisition: false,
-        fixed_compute: true,
-        effect: false,
-      },
-    ],
-    2,
-    100,
-  ).unwrap()
-  let view = @strategy.captured_dag_graph(run)
-  let selected : Array[@execution.GeneratedSequence] = []
-  let estimates : Array[@standard.DispatchEstimateProfile] = []
-  for task in 1..<@strategy.graph_task_count(view) {
-    guard @strategy.graph_task_original_index(view, task) is Some(original) &&
-      generated.get(original) is Some(sequence) else {
-      return reject(UnsupportedGraph, close_run)
-    }
-    let estimate = if configuration.estimates.length() == 1 {
-      configuration.estimates.get(0)
-    } else {
-      configuration.estimates.get(original - 1)
-    }
-    guard estimate is Some(profile) else {
-      return reject(UnsupportedGraph, close_run)
-    }
-    selected.push(sequence)
-    estimates.push(profile)
-  }
   let dispatch = match
-    @standard.configure_strategy_dispatch(
-      run,
-      registry,
-      @connector.capability_registration_at(registry, 0).unwrap(),
-      @connector.capability_registration_at(registry, 1).unwrap(),
-      selected,
-      configuration.dispatch,
-    ) {
+    @standard.bind_strategy_dispatch(run, dispatch_preparation) {
     Ok(value) => value
     Err(issue) => return reject(Dispatch(issue), close_run)
   }

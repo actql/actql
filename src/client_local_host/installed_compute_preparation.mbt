@@ -49,9 +49,10 @@ fn prepare_installed_compute_preparation(
       let configuration = client_local_capacity_plan(
         tail,
         max_rows,
-        // Retain the existing checked Pure leaf proof for both Compute and
-        // publication. Source presence does not erase its immutable schemas.
-        scalar_values=owner is Pure(_),
+        // Retain the same checked leaf proof for Compute and publication.
+        // Source or Effect purpose does not erase immutable input schemas.
+        // Nested/unproved fields still retain the existing general envelope.
+        scalar_values=true,
         graph=Some(graph),
         graph_offset=first,
       )

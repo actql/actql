@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {maxHeaderSize} from 'node:http';
 import {openHttpsExchangeFixture} from '../site-node/https-exchange-fixture.mjs';
 import {openHttpsCredentialBinding,closeHttpsCredentialBinding,callHttpsCredentialResource} from '../site-node/https-credential-resource.mjs';
 import {invokeScopedCredentialOperation} from '../host-common/owned-invocation-context.mjs';
@@ -88,8 +89,54 @@ async function operationFixture(t,{reply=()=>({body:'{}'})}={}){
   const create=(invoke=send,overrides={})=>implementation.prepareInstalledEffectCredentialChild({run,memberIndex:0,rowIndex:0,operationIndex:2,operation:'create',
     originalSite:site,originalAuthorization:raw,useId:'use',resource:'rows',purpose:'effect',runInvocationCid:'run',dispatchRequestCid:'dispatch',
     maxRequestBytes:1024,maxResponseBytes:64,assertCurrent(){},observeCurrent:async()=>{},requestsRetired:()=>controls.retiredAliases,invoke,...overrides});
-  return {server,run,raw,runtime,controls,create,send};
+  return {server,run,raw,runtime,controls,create,send,site};
 }
+
+test('physical atomic borrow owns current without a preceding callbackful Plan getter', async t => {
+  const f = await operationFixture(t);
+  let reads = 0;
+  const original = f.run.readPlan;
+  f.run.readPlan = function (...args) {reads++; return Reflect.apply(original, this, args);};
+  const child = f.create();
+  try {
+    assert.equal(reads, 0);
+    assert.equal(f.controls.borrows, 1);
+    assert.equal(f.controls.bindings, 0);
+    assert.equal(f.controls.starts, 0);
+    assert.equal(f.server.seen().length, 0);
+  } finally {
+    f.controls.retiredAliases = true;
+    assert.equal(await child.release(), true);
+  }
+});
+
+test('refused physical metadata retains current failure precedence without borrowing or binding', async t => {
+  for (const mode of ['current', 'foreign', 'undefined', 'extent']) {
+    const f = await operationFixture(t), cause = new Error('original current refused');
+    let reads = 0;
+    f.controls.responseBacking = false;
+    f.run.readPlan = () => {
+      reads++;
+      if (mode === 'current') return {$tag: 0, _0: cause};
+      if (mode === 'undefined') {f.run.failure = undefined; return {$tag: 1, _0: f.run.operationPlan};}
+      return {$tag: 1, _0: mode === 'foreign' ? {} : f.run.operationPlan};
+    };
+    let caught = false;
+    try {f.create();} catch (error) {
+      caught = true;
+      if (mode === 'current') assert.strictEqual(error.cause, cause);
+      else if (mode === 'undefined') assert.strictEqual(error, undefined);
+      else assert.equal(error.code, mode === 'foreign'
+        ? 'ForeignInstalledEffectManagedRun' : 'InsufficientInstalledEffectResponseBacking');
+    }
+    assert(caught);
+    assert.equal(reads, 1);
+    assert.equal(f.controls.borrows, 0);
+    assert.equal(f.controls.bindings, 0);
+    assert.equal(f.controls.starts, 0);
+    assert.equal(f.server.seen().length, 0);
+  }
+});
 
 test('a provider that omits its physical await cannot detach the same operation from capture',async t=>{
   let entered,finish;
@@ -162,6 +209,91 @@ test('an asynchronous current fence remains joined before binding or physical st
   assert.equal(await child.retry(),true);assert.equal(f.controls.settles,1);assert.equal(f.server.seen().length,0);
 });
 
+test('native current fence ignores hostile public then and retains the same capture until settlement', async t => {
+  for (const kind of ['getter', 'method']) {
+    const f = await operationFixture(t);
+    let finish, publicCalls = 0;
+    const original = new Promise(resolve => {finish = resolve;});
+    const hostile = () => {publicCalls++; throw new Error('not the original current task');};
+    Object.defineProperty(original, 'then', kind === 'getter' ? {get: hostile} : {value: hostile});
+    const child = f.create(undefined, {assertCurrent: () => original}), children = [];
+    const observed = prepareInstalledRowCaptureChild({children, create: () => child})
+      .then(value => ({value}), error => ({error}));
+    try {
+      await new Promise(setImmediate);
+      f.controls.retiredAliases = true;
+      assert.equal(await child.release(), false, kind);
+      await children[0].prepared.release();
+      assert.equal(children[0].prepared.status().pending, true);
+      assert.equal(f.controls.settles, 0); assert.equal(publicCalls, 0);
+    } finally {finish(); await observed;}
+    assert.equal((await observed).error?.code, 'InvalidInstalledEffectCurrentFence');
+    await children[0].prepared.retry();
+    assert.equal(children[0].prepared.status().pending, false);
+    assert.equal(f.controls.settles, 1); assert.equal(f.controls.bindings, 0);
+    assert.equal(f.server.seen().length, 0);
+  }
+});
+
+test('native binding close ignores hostile public then and cannot repeat or retire before its original settles', async t => {
+  for (const kind of ['getter', 'method']) {
+    const f = await operationFixture(t);
+    let finish, publicCalls = 0, closes = 0, settled = false;
+    const original = new Promise(resolve => {finish = () => {settled = true; resolve();};});
+    const hostile = () => {publicCalls++; throw new Error('not the original close task');};
+    Object.defineProperty(original, 'then', kind === 'getter' ? {get: hostile} : {value: hostile});
+    const primary = new Error('original provider prefix');
+    const site = Object.freeze({...f.site, bindRunAcquisition(...args) {
+      const binding = Reflect.apply(f.site.bindRunAcquisition, f.site, args);
+      return Object.freeze({credential: binding.credential, close() {
+        closes++; return settled ? binding.close() : original;
+      }});
+    }});
+    const child = f.create(() => {throw primary;}, {originalSite: site});
+    await assert.rejects(child.prepare(), error => error === primary);
+    f.controls.retiredAliases = true;
+    const observed = Promise.resolve().then(() => child.release()).then(value => ({value}), error => ({error}));
+    try {
+      await new Promise(setImmediate);
+      assert.equal(f.controls.settles, 0);
+      assert.equal(publicCalls, 0);
+      assert.equal(child.status().pending, true);
+      assert.equal(closes, 1);
+    } finally {finish(); await observed;}
+    assert.deepEqual(await observed, {value: false});
+    assert.equal(await child.retry(), true);
+    assert.equal(closes, 2); assert.equal(f.controls.settles, 1);
+    assert.equal(f.server.seen().length, 0);
+  }
+});
+
+test('unobservable native current and close tasks remain in the same original child custody', async t => {
+  for (const phase of ['current', 'close']) {
+    const f = await operationFixture(t);
+    let finish, closes = 0;
+    const original = new Promise(resolve => {finish = resolve;});
+    Object.defineProperty(original, 'constructor', {get() {throw new Error('unavailable original species');}});
+    const primary = new Error('original provider prefix');
+    const site = Object.freeze({...f.site, bindRunAcquisition(...args) {
+      const binding = Reflect.apply(f.site.bindRunAcquisition, f.site, args);
+      return Object.freeze({credential: binding.credential, close() {closes++; return original;}});
+    }});
+    const child = phase === 'current' ? f.create(undefined, {assertCurrent: () => original})
+      : f.create(() => {throw primary;}, {originalSite: site});
+    try {
+      await assert.rejects(child.prepare(), error => phase === 'current'
+        ? error.code === 'InvalidInstalledEffectCurrentFence' : error === primary);
+      f.controls.retiredAliases = true;
+      assert.equal(await child.release(), false);
+    } finally {finish();}
+    await new Promise(setImmediate);
+    assert.equal(await child.retry(), false);
+    assert.equal(child.status().pending, true); assert.equal(f.controls.settles, 0);
+    assert.equal(closes, phase === 'close' ? 1 : 0);
+    assert.equal(f.server.seen().length, 0);
+  }
+});
+
 
 // Capacity fit is an explicit native port here. The shared original child must
 // consume that exact extent check before any borrow, binding or physical use.
@@ -174,4 +306,19 @@ test('response backing shortage refuses the original physical extent before borr
     assert.equal(f.controls.bindings,0);assert.equal(f.controls.starts,0);
     assert.equal(f.controls.settles,0);assert.equal(f.server.seen().length,0);
   }finally{if(child!==undefined){f.controls.retiredAliases=true;await child.release();}}
+});
+
+test('response backing checks the same installed HTTP header bound before borrowing its original occurrence', async t => {
+  const f = await operationFixture(t);
+  let checks = 0;
+  f.runtime.clientProgramInstalledEffectOperationResponseBackingFits = (original, bytes, headerBytes) => {
+    assert.strictEqual(original, f.runtime.clientProgramInstalledEffectManagedPlanOperation()._0);
+    assert.equal(bytes, 64); assert.equal(headerBytes, maxHeaderSize); checks++;
+    return true;
+  };
+  const child = f.create();
+  assert.equal(checks, 1); assert.equal(f.controls.borrows, 1);
+  assert.equal(f.controls.bindings, 0); assert.equal(f.controls.starts, 0);
+  f.controls.retiredAliases = true;
+  assert.equal(await child.release(), true);
 });

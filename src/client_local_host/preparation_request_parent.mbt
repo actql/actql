@@ -16,11 +16,14 @@ priv enum ClientRequestPreparationPhase {
   EffectCompiled
   EffectPlanQuoted
   EffectPlanReserved
+  EffectModelScopeQuoted
   EffectBodyReady
   EffectBodyFailed
+  EffectCaptureRecovery
   ProgramPlanQuoted
   ProgramPlanReserved
   ModelPlanReserved
+  ModelScopeQuoted
   ContentPlanReserved
   ProgramBodyReady
   ProgramBodyFailed
@@ -28,6 +31,59 @@ priv enum ClientRequestPreparationPhase {
   Retiring
   Closed
 } derive(Eq)
+
+///|
+// Replace the former four-field Model input tuple in its existing resident
+// slot. Both selected compiler inputs have the same four original fields;
+// no additional parent, phase, retained controller or parameter cache exists.
+priv enum ClientRequestDomainCompilationInputs {
+  // Read-only recovery retains the existing journal-selected originals. It
+  // never continues into a compiler, Source/Model/Effect Plan or send owner.
+  RequestEffectCaptureRecovery(
+    @publication_host.ClientRequestIdentity,
+    @publication.PublicationContract
+  )
+  RequestModelCompilation(
+    @publication_host.ClientCompilationManifests,
+    @publication_host.ClientPureCompilationLimits,
+    ClientInstalledSequenceContracts,
+    @publication_host.ClientInferPlanGraph
+  )
+  // The original component is already backed before the caller can compile
+  // it. Reuse this same four-reference slot, then transfer it to that compiler.
+  // Same resident four-reference slot while the backed Graph constructor
+  // retains its original mappings/lowering through a failed issuer/current.
+  RequestModelGraphConstruction(
+    @publication_host.ClientCompilationManifests,
+    @publication_host.ClientPureCompilationLimits,
+    ClientInstalledSequenceContracts,
+    @publication_host.ClientInferGraphConstruction
+  )
+  RequestModelGraph(
+    @publication_host.ClientCompilationManifests,
+    @publication_host.ClientPureCompilationLimits,
+    ClientInstalledSequenceContracts,
+    @publication_host.ClientInferPlanGraph
+  )
+  RequestSerializationGraph(
+    @publication_host.ClientCompilationManifests,
+    @publication_host.ClientPureCompilationLimits,
+    ClientInstalledSequenceContracts,
+    @publication_host.ClientSerializationPlanGraph
+  )
+  RequestSerializationCompilation(
+    @publication_host.ClientCompilationManifests,
+    @publication_host.ClientPureCompilationLimits,
+    ClientInstalledSequenceContracts,
+    @publication_host.ClientSerializationPlanGraph
+  )
+  RequestKeyedSerializationCompilation(
+    @publication_host.ClientCompilationManifests,
+    @publication_host.ClientPureCompilationLimits,
+    ClientInstalledManagedKeyedPreparation,
+    @publication_host.ClientSerializationPlanGraph
+  )
+}
 
 ///|
 /// Request bootstrap on the original Node preparation child, before an output
@@ -73,8 +129,12 @@ struct ClientRequestPreparation[I] {
   mut program_data : @checked.ParsedCheckDataEstimate?
   mut program_plan_quote : (Int64, Int64)?
   mut program_measurement_quote : (Int64, Int64)?
+  // Graph, Model Scope and Content Plan are exclusive domain constructors. Retain
+  // their absolute target in the same prepaid slot across a declined grow.
+  mut program_domain_quote : (Int64, Int64)?
   mut program_artifact_geometry : @publication_host.ClientPureCompilationConstruction?
   mut program_artifact_quote : (Int64, Int64)?
+  mut program_invocation_quote : (Int64, Int64)?
   mut program_artifact_work : @resources.PreparationPhaseWork64?
   mut program_artifact_work_charged : Bool
   mut program_artifact_work_spent : Int64
@@ -87,19 +147,14 @@ struct ClientRequestPreparation[I] {
     Bool,
     (@execution.ExecutionCapacity) -> Array[@local.ManagedProvider],
   )?
-  mut program_model_compilation_inputs : (
-    @publication_host.ClientCompilationManifests,
-    @publication_host.ClientPureCompilationLimits,
-    ClientInstalledSequenceContracts,
-    @publication_host.ClientInferPlanGraph,
-  )?
+  mut program_domain_compilation_inputs : ClientRequestDomainCompilationInputs?
   // One existing resident output slot for either ordinary or Model emission.
   // Its original sum is moved to the selected Plan, never a parallel cache.
   mut program_compilation : @publication_host.ClientRunCompilation?
   mut program_source_free : ClientInstalledManagedSourceFreePreparation?
   mut program_captured : ClientInstalledManagedCapturePlan?
   mut program_model : ClientInstalledManagedModelPlan?
-  mut program_keyed : ClientInstalledManagedKeyedPreparation?
+  mut program_content : ClientInstalledContentPreparation
   mut program_content_request : @publication_host.ClientRequestIdentity?
   mut program_body_attempted : Bool
   mut phase : ClientRequestPreparationPhase
@@ -210,8 +265,12 @@ fn request_preparation_control_units() -> @execution.PreparationRepresentationUn
     // or B initial recipe is represented by these caller-only controls.
     // Shared compiler caller controls: original input tuple/Some, selected
     // argument/artifact carriers, component Array/backing and closures.
-    // This is 11H21R9W, not recursive measurement or provider backing.
-    record_headers: 11L +
+    // The closed domain variant replaces its former four-field tuple, adding
+    // one scalar tag. Keep it in this existing common fixed caller allowance,
+    // rather than introduce a per-domain control reservation.
+    // This is 11H21R10W, not recursive measurement or provider backing.
+    record_headers: request_model_scope_quote_controls.record_headers +
+    11L +
     inventory_headers +
     js_headers +
     import_headers +
@@ -224,7 +283,8 @@ fn request_preparation_control_units() -> @execution.PreparationRepresentationUn
     9L,
     // Resident Model Plan and Content Plan/Request links. Selected Some and
     // domain construction are separately funded before their allocation.
-    reference_slots: 21L +
+    reference_slots: request_model_scope_quote_controls.reference_slots +
+    21L +
     inventory_refs +
     3L +
     js_refs +
@@ -236,7 +296,8 @@ fn request_preparation_control_units() -> @execution.PreparationRepresentationUn
     5L +
     7L +
     11L,
-    scalar_words: 9L +
+    scalar_words: request_model_scope_quote_controls.scalar_words +
+    10L +
     inventory_words +
     js_words +
     import_words +
@@ -262,9 +323,15 @@ pub fn client_request_preparation_control_capacity(
     @execution.preparation_representation_cost(
       request_preparation_control_units(),
     )
+    is Some(original) &&
+    @execution.checked_preparation_add_product(original, 4096L, 1L)
     is Some(retained) else {
     return None
   }
+  // One trusted private control group: invocation sizing/Option/lean view, or
+  // the exclusive read-only capture-recovery quote/reader controls, or the
+  // pre-compiler Content Graph measurement/selection call frame. This is
+  // installed coarse control overhead, not variable wire/body admission.
   if retained > limits.retained_bytes {
     return None
   }
@@ -338,20 +405,22 @@ pub fn[I] begin_request_preparation(
     program_data: None,
     program_plan_quote: None,
     program_measurement_quote: None,
+    program_domain_quote: None,
     program_artifact_geometry: None,
     program_artifact_quote: None,
+    program_invocation_quote: None,
     program_artifact_work: None,
     program_artifact_work_charged: false,
     program_artifact_work_spent: 0L,
     program_artifact_plan_encoding_nodes: Ref(0L),
     program_artifact_work_issue: None,
     program_artifact_inputs: None,
-    program_model_compilation_inputs: None,
+    program_domain_compilation_inputs: None,
     program_compilation: None,
     program_source_free: None,
     program_captured: None,
     program_model: None,
-    program_keyed: None,
+    program_content: NoContent,
     program_content_request: None,
     program_body_attempted: false,
     phase: Open,
@@ -652,15 +721,17 @@ pub fn[I] abort_request_preparation_after_cleanup(
   owner.effect_plan = None
   owner.program_data = None
   owner.program_plan_quote = None
+  owner.program_domain_quote = None
   owner.program_artifact_geometry = None
   owner.program_artifact_quote = None
+  owner.program_invocation_quote = None
   owner.program_artifact_inputs = None
   owner.program_compilation = None
-  owner.program_model_compilation_inputs = None
+  owner.program_domain_compilation_inputs = None
   owner.program_source_free = None
   owner.program_captured = None
   owner.program_model = None
-  owner.program_keyed = None
+  owner.program_content = NoContent
   owner.program_content_request = None
 
   let retiring = owner.phase == Retiring

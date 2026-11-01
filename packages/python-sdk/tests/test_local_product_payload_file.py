@@ -9,6 +9,7 @@ from unittest.mock import patch
 from actql_sdk._local_files import LocalAreaAcquisitionError
 from actql_sdk._local_storage import LocalStorageCommitUnknown
 import test_local_product_payload_capacity as capacity_fixture
+from local_abi_declaration_fixture import original_byte_fixture_port
 
 
 OWNED = b'{"original":"Core Owned e\xcc\x81/~","null":null}'
@@ -94,7 +95,7 @@ class ProductPayloadFileTests(unittest.TestCase):
                 _, _, ticket = children.pop(args[0])
                 return core._cleanup(ticket)
             return 0
-        core._call = call
+        core._call = original_byte_fixture_port(call)
         return host, core, held, calls
 
     def test_saved_allocation_identity_precedes_open_and_owned_file_uses_core_stage_name(self):

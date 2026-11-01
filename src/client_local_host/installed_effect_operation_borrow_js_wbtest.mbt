@@ -22,6 +22,62 @@ fn effect_operation_borrow_fixture() -> (
 }
 
 ///|
+test "original implementation control material is debited before any grant or body constructor" {
+  let (prepared, request, contracts) = effect_operation_plan_inputs()
+  let baseline = effect_operation_plan_fixture(prepared, request, contracts)
+  let plan = effect_operation_plan_with_control_fixture(
+    prepared,
+    request,
+    contracts,
+    baseline,
+    @execution.execution_capacity(7L, 11L).unwrap(),
+  ).unwrap()
+  let (input, initial, _, capacity) = effect_parent_test_preparation(
+    plan,
+    prepared_installed_effect_managed_requirements(plan),
+  )
+  let owner = begin_preparation_owned_installed_effect_managed_run(
+    initial, input, capacity, prepared, request, plan,
+  ).unwrap()
+  let ledger = owner.ledger.unwrap()
+  let before = @resources.ledger_usage(ledger)
+  ignore(
+    begin_installed_effect_operation_controls(owner, prepared, request, plan).unwrap(),
+  )
+  let held = @resources.ledger_usage(ledger)
+  assert_eq(
+    held.reserved_retention_bytes - before.reserved_retention_bytes,
+    @execution.execution_capacity_retained_bytes(
+      plan.operation_control_capacity,
+    ),
+  )
+  assert_eq(
+    held.reserved_execution_bytes - before.reserved_execution_bytes,
+    @execution.execution_capacity_execution_bytes(
+      plan.operation_control_capacity,
+    ),
+  )
+  assert_eq(held.attempts, before.attempts)
+  assert_eq(held.reserved_attempts, before.reserved_attempts)
+  assert_eq(held.transferred_bytes, before.transferred_bytes)
+  assert_eq(held.reserved_transfer_bytes, before.reserved_transfer_bytes)
+  ignore(
+    begin_installed_effect_operation_controls(owner, prepared, request, plan).unwrap(),
+  )
+  assert_eq(@resources.ledger_usage(ledger), held)
+  let child = borrow_installed_effect_operation(
+    owner, prepared, request, plan, 0, true, 2, 0, "operation",
+  ).unwrap()
+  assert_true(retire_installed_effect_operation(child, true).unwrap())
+  assert_eq(
+    @resources.ledger_usage(ledger).reserved_retention_bytes,
+    held.reserved_retention_bytes,
+  )
+  retire_installed_managed_run(owner).unwrap()
+  assert_true(owner.effect_operation_controls is None)
+}
+
+///|
 test "Effect operation reserves original occurrence before construction and retains failed cleanup" {
   let (prepared, request, plan, owner, ledger) = effect_operation_borrow_fixture()
   let before = @resources.ledger_usage(ledger)
@@ -193,6 +249,66 @@ test "Effect operation constructor fences same-parent reentry before current cal
   assert_true(retire_installed_effect_operation(operation, true) is Ok(true))
   retire_installed_managed_run(owner).unwrap()
   owner_ref.val = None
+}
+
+///|
+test "one Effect operation borrow observes original current once for Plan and Ledger" {
+  let (prepared, request, contracts) = effect_operation_plan_inputs()
+  let plan = effect_operation_plan_fixture(prepared, request, contracts)
+  let calls : Ref[Int] = Ref(0)
+  let (input, initial, _, capacity) = effect_parent_test_preparation(
+    plan,
+    prepared_installed_effect_managed_requirements(plan),
+    current=() => calls.val += 1,
+  )
+  let owner = begin_preparation_owned_installed_effect_managed_run(
+    initial, input, capacity, prepared, request, plan,
+  ).unwrap()
+  let before = calls.val
+  let operation = borrow_installed_effect_operation(
+    owner, prepared, request, plan, 0, true, 2, 0, "operation",
+  ).unwrap()
+  assert_eq(calls.val - before, 1)
+  assert_true(retire_installed_effect_operation(operation, true).unwrap())
+  retire_installed_managed_run(owner).unwrap()
+}
+
+///|
+test "atomic Effect borrow refuses callback retirement before any operation reservation" {
+  let (prepared, request, contracts) = effect_operation_plan_inputs()
+  let plan = effect_operation_plan_fixture(prepared, request, contracts)
+  let selected : Ref[ClientInstalledManagedRun?] = Ref(None)
+  let invalidate : Ref[Bool] = Ref(false)
+  let (input, initial, _, capacity) = effect_parent_test_preparation(
+    plan,
+    prepared_installed_effect_managed_requirements(plan),
+    current=() => {
+      if invalidate.val && selected.val is Some(owner) {
+        owner.ledger = None
+      }
+    },
+  )
+  let owner = begin_preparation_owned_installed_effect_managed_run(
+    initial, input, capacity, prepared, request, plan,
+  ).unwrap()
+  selected.val = Some(owner)
+  let ledger = owner.ledger.unwrap()
+  let before = @resources.ledger_usage(ledger)
+  invalidate.val = true
+  assert_true(
+    borrow_installed_effect_operation(
+      owner, prepared, request, plan, 0, true, 2, 0, "operation",
+    )
+    is Err(Retired),
+  )
+  assert_true(owner.effect_operations.is_empty())
+  assert_eq(@resources.ledger_usage(ledger), before)
+  // The whitebox callback invalidated only this original owner's local link.
+  // Restore that same link solely to discharge the fixture's cleanup duties.
+  invalidate.val = false
+  owner.ledger = Some(ledger)
+  retire_installed_managed_run(owner).unwrap()
+  selected.val = None
 }
 
 ///|
@@ -375,7 +491,12 @@ test "original Effect controls are debited once before the consumer borrows a bo
     is Err(ForeignOriginal),
   )
   assert_eq(@resources.ledger_usage(ledger), before)
-  begin_installed_effect_operation_controls(owner, prepared, request, plan).unwrap()
+  assert_true(
+    physical_equal(
+      begin_installed_effect_operation_controls(owner, prepared, request, plan).unwrap(),
+      plan,
+    ),
+  )
   let original = owner.effect_operation_controls.unwrap()
   let debited = @resources.ledger_usage(ledger)
   assert_eq(
@@ -385,7 +506,12 @@ test "original Effect controls are debited once before the consumer borrows a bo
       plan.operation_control_capacity,
     ),
   )
-  begin_installed_effect_operation_controls(owner, prepared, request, plan).unwrap()
+  assert_true(
+    physical_equal(
+      begin_installed_effect_operation_controls(owner, prepared, request, plan).unwrap(),
+      plan,
+    ),
+  )
   assert_true(
     physical_equal(original, owner.effect_operation_controls.unwrap()),
   )
@@ -471,7 +597,12 @@ test "member capture and row constructor retain distinct original same Request r
     initial, input, capacity, prepared, request, plan,
   ).unwrap()
   let ledger = owner.ledger.unwrap()
-  begin_installed_effect_operation_controls(owner, prepared, request, plan).unwrap()
+  assert_true(
+    physical_equal(
+      begin_installed_effect_operation_controls(owner, prepared, request, plan).unwrap(),
+      plan,
+    ),
+  )
   let before = @resources.ledger_usage(ledger)
   let capture_prefix = borrow_installed_effect_operation(
     owner, prepared, request, plan, 0, false, 0, 0, "capture",
@@ -512,4 +643,215 @@ test "member capture and row constructor retain distinct original same Request r
   assert_eq(released.reserved_execution_bytes, before.reserved_execution_bytes)
   assert_eq(released.peak_retention_bytes, before.peak_retention_bytes + 100L)
   retire_installed_managed_run(owner).unwrap()
+}
+
+///|
+test "ordinary prepaid Effect operation controls still observe current once for a body borrow" {
+  let (prepared, request, contracts) = effect_operation_plan_inputs()
+  let plan = effect_operation_plan_fixture(prepared, request, contracts)
+  let calls = Ref(0)
+  let (input, initial, _, capacity) = effect_parent_test_preparation(
+    plan,
+    prepared_installed_effect_managed_requirements(plan),
+    current=() => calls.val += 1,
+  )
+  let owner = begin_preparation_owned_installed_effect_managed_run(
+    initial, input, capacity, prepared, request, plan,
+  ).unwrap()
+  assert_true(
+    physical_equal(
+      begin_installed_effect_operation_controls(owner, prepared, request, plan).unwrap(),
+      plan,
+    ),
+  )
+  let original = owner.effect_operation_controls.unwrap()
+  let before = calls.val
+  let operation = borrow_installed_effect_operation(
+    owner, prepared, request, plan, 0, true, 2, 0, "operation",
+  ).unwrap()
+  assert_eq(calls.val, before + 1)
+  assert_true(
+    owner.effect_operation_controls is Some(control) &&
+    physical_equal(control, original),
+  )
+  assert_true(retire_installed_effect_operation(operation, true).unwrap())
+  retire_installed_managed_run(owner).unwrap()
+}
+
+///|
+test "Effect control initialization returns the original Plan after one current and preserves reuse" {
+  let (prepared, request, contracts) = effect_operation_plan_inputs()
+  let plan = effect_operation_plan_fixture(prepared, request, contracts)
+  let calls = Ref(0)
+  let (input, initial, _, capacity) = effect_parent_test_preparation(
+    plan,
+    prepared_installed_effect_managed_requirements(plan),
+    current=() => calls.val += 1,
+  )
+  let owner = begin_preparation_owned_installed_effect_managed_run(
+    initial, input, capacity, prepared, request, plan,
+  ).unwrap()
+  let before = calls.val
+  let first = begin_installed_effect_operation_controls(
+    owner, prepared, request, plan,
+  ).unwrap()
+  assert_eq(calls.val, before + 1)
+  assert_true(physical_equal(first, plan))
+  let control = owner.effect_operation_controls.unwrap()
+  let debited = @resources.ledger_usage(owner.ledger.unwrap())
+  let before = calls.val
+  let again = begin_installed_effect_operation_controls(
+    owner, prepared, request, plan,
+  ).unwrap()
+  assert_eq(calls.val, before + 1)
+  assert_true(physical_equal(again, plan))
+  assert_true(
+    owner.effect_operation_controls is Some(original) &&
+    physical_equal(original, control),
+  )
+  assert_eq(@resources.ledger_usage(owner.ledger.unwrap()), debited)
+  retire_installed_managed_run(owner).unwrap()
+}
+
+///|
+test "zero Effect occurrences still retain the fixed control initialization frame" {
+  let capacity = installed_effect_operation_control_capacity(0).unwrap()
+  // Existing conservative Host-call upper:34 headers16 +145 refs8 +18 words8.
+  // This is the fixed call, not an invented operation or an attempt allowance.
+  let fixed_frame = 34L * 16L + 145L * 8L + 18L * 8L
+  let retained = @execution.execution_capacity_retained_bytes(capacity)
+  let execution = @execution.execution_capacity_execution_bytes(capacity)
+  assert_true(retained >= fixed_frame)
+  assert_true(execution >= retained)
+}
+
+///|
+// Actual checked Program/Compute/operation Plan; no physical grant or normal
+// runtime here. The same closed row fact supplies capture storage only once.
+test "standard capture extent resolves same checked zero and three rows before its original member borrow" {
+  let environment = @publication_host.admit_client_check_environment(
+    source_query_original_environment,
+    "sha256:05ee9059ef5f173069a3f3f1896e16ee62d34d0c842d81e9b0f8421db62e67a8",
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+  ).unwrap()
+  let contracts = prepare_installed_sequence_contracts(
+    source_query_original_registry,
+    source_query_original_values,
+    Some(source_query_original_fragment),
+    None,
+  ).unwrap()
+  for count in [0, 3] {
+    let rows = if count == 0 {
+      "[]"
+    } else {
+      "[{\"id\":1},{\"id\":2},{\"id\":3}]"
+    }
+    let document = "{\"version\":\"actql/0.1\",\"id\":\"standard-capture-rows\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"rows\":" +
+      rows +
+      "},\"as\":\"seed\"}],\"results\":{\"rows\":{\"from\":\"seed\",\"fields\":[\"id\"]}},\"effects\":{\"save\":{\"update\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"from\":{\"result\":\"rows\"},\"id\":\"id\",\"set\":{\"Name\":{\"field\":\"id\"}}}}}}],\"results\":{\"rows\":{\"from\":{\"stage\":\"main\",\"result\":\"rows\"}}}}"
+    let prepared = @publication_host.prepare_client_effect_computation(
+      document,
+      Json,
+      environment,
+      None,
+      [],
+      @publication_host.client_standard_effect_computation_limits(),
+    ).unwrap()
+    let request = @publication_host.prepare_client_effect_request_identity(
+      prepared,
+      "sha256:" + "a".repeat(64),
+      "standard-capture-rows",
+      "sha256:" + "b".repeat(64),
+    ).unwrap()
+    let template = prepare_installed_effect_capture_extent(
+      "capture",
+      @execution.execution_capacity(13L, 17L).unwrap(),
+      @execution.execution_capacity(37L, 61L).unwrap(),
+    ).unwrap()
+    let demand = prepare_installed_effect_operation_demand(
+      prepared,
+      0,
+      "save",
+      [template],
+      [],
+    ).unwrap()
+    let plan = prepare_installed_effect_managed_plan(
+      prepared,
+      request,
+      [],
+      "",
+      "",
+      [],
+      [],
+      contracts,
+      source_query_original_values,
+      Some(source_query_original_fragment),
+      None,
+      [demand],
+      provider_factory=_ => [],
+    ).unwrap()
+    assert_eq(plan.rows, count)
+    assert_true(
+      physical_equal(
+        plan.capacity_plan,
+        plan.source_free.unwrap().capacity_plan,
+      ),
+    )
+    let selected = prepared_installed_effect_managed_operation(
+      plan, 0, false, 0, "capture",
+    ).unwrap()
+    assert_eq(
+      @execution.execution_capacity_retained_bytes(selected.capacity),
+      13L + 37L * count.to_int64(),
+    )
+    assert_eq(
+      @execution.execution_capacity_execution_bytes(selected.capacity),
+      17L + 61L * count.to_int64(),
+    )
+    assert_true(selected.checked_row_capacity is None)
+    assert_true(template.checked_row_capacity is Some(_))
+    assert_eq(
+      @execution.execution_capacity_retained_bytes(template.capacity),
+      13L,
+    )
+    assert_eq(prepared_installed_effect_managed_capture_children(plan), 1)
+    assert_eq(plan.limits.attempts, plan._observed_compute_limits.attempts)
+    assert_eq(
+      plan.limits.transfer_bytes,
+      plan._observed_compute_limits.transfer_bytes,
+    )
+    let (input, initial, _, capacity) = effect_parent_test_preparation(
+      plan,
+      prepared_installed_effect_managed_requirements(plan),
+    )
+    let owner = begin_preparation_owned_installed_effect_managed_run(
+      initial, input, capacity, prepared, request, plan,
+    ).unwrap()
+    let ledger = owner.ledger.unwrap()
+    let before = @resources.ledger_usage(ledger)
+    let child = borrow_installed_effect_operation(
+      owner, prepared, request, plan, 0, false, 0, 0, "capture",
+    ).unwrap()
+    let during = @resources.ledger_usage(ledger)
+    assert_eq(
+      during.reserved_retention_bytes,
+      before.reserved_retention_bytes +
+      @execution.execution_capacity_retained_bytes(
+        plan.operation_control_capacity,
+      ) +
+      13L +
+      37L * count.to_int64(),
+    )
+    assert_true(retire_installed_effect_operation(child, false) is Ok(false))
+    assert_eq(@resources.ledger_usage(ledger), during)
+    assert_true(retire_installed_effect_operation(child, true) is Ok(true))
+    assert_true(
+      borrow_installed_effect_operation(
+        owner, prepared, request, plan, 0, false, 0, 0, "capture",
+      )
+      is Err(AlreadyBound),
+    )
+    retire_installed_managed_run(owner).unwrap()
+  }
 }

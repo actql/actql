@@ -13,13 +13,47 @@ let effect_model_plan_limits : @resources.LedgerLimits = {
 ///|
 // Real checked Model/Effect/Run originals with independently selected finite
 // test bounds. These component ports perform no Source/Model IO or permission.
-fn effect_model_plan_source() -> (@checked.CheckEnvironment, String) raise {
+fn effect_model_plan_source(
+  declaration? : @row_source_host.RowDeclaration? = None,
+) -> (@checked.CheckEnvironment, String) raise {
   let task =
     #|{"authored_model_selector":"fixture-risk-model","connector_id":"models/fixture","contract_cid":"sha256:cfb4c49389dd5ecbcd97d4b60276549dcf6fd2ce62584707b5c661d94dce4560","data_handling":{"accepted_classifications":["public","internal"],"allowed_regions":["fixture-region"],"contract_cid":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","retention":"none","training_use":"forbidden"},"generation_config":{"max_output_tokens":32,"seed_requested":-7,"temperature":0,"top_p":1},"input_contract":{"additional_properties":false,"fields":{"text":{"nullable":true,"type":"string"}},"nullable":false,"type":"object"},"input_schema_cid":"sha256:57887e29c270383ae1e005ba3476a81c8b0012a8b566db860c75abba9c786dd7","max_items":2,"output_contract":{"additional_properties":false,"fields":{"reason":{"nullable":true,"type":"string"},"risk":{"nullable":false,"type":"string"}},"nullable":false,"type":"object"},"output_schema_cid":"sha256:d67003c78c0eb8b7ab0499bbed57bc8d5895c43ed0b3ce27755b656a65fd49f3","prompt_template_cid":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","retrieval_policy":"none","schema":"actql.model_task/0.1","streaming":false,"task_id":"model-task:risk-score.v1","task_kind":"structured_generate","tool_policy":"none","version":"1"}
   let parsed = @json.parse(source_query_original_environment)
   guard parsed is Object(fields) else { fail("Model plan Environment") }
   fields.remove("evidence_bundle_cid")
   fields["model_task_contracts"] = @json.parse("[" + task + "]")
+  if declaration is Some(original) {
+    let (schemas, capabilities) = @row_source_host.row_declaration_evidence_members(
+      original,
+    )
+    fields["connector_catalogs"] = effect_plan_fixture_members(
+      fields["connector_catalogs"],
+      [original.catalog],
+    )
+    fields["contract_registry"] = effect_plan_fixture_members(
+      fields["contract_registry"],
+      original.contracts,
+    )
+    fields["source_views"] = effect_plan_fixture_members(
+      fields["source_views"],
+      original.view_bodies,
+    )
+    fields["schema_snapshots"] = effect_plan_fixture_members(
+      fields["schema_snapshots"],
+      schemas,
+    )
+    fields["connector_capabilities"] = effect_plan_fixture_members(
+      fields["connector_capabilities"],
+      capabilities,
+    )
+    guard fields["connector_manifest"] is Object(manifest) else {
+      fail("Model fixture manifest")
+    }
+    manifest["connectors"] = effect_plan_fixture_members(
+      manifest["connectors"],
+      [original.manifest_entry],
+    )
+  }
   let unsigned = @identity.stringify_value(
     @identity.from_json(parsed, 100000, 100, 1000000),
     1000000,
@@ -149,6 +183,15 @@ fn effect_model_plan_for_prepared(
     None,
   ).unwrap()
   (prepared, request, contracts, model)
+}
+
+///|
+test "Effect Model read window projects its original selected demand without another quote" {
+  let (_, _, _, model) = effect_model_plan_inputs()
+  let window = installed_effect_model_read_window(model)
+  assert_eq(window, [500L, 700L])
+  window[0] = 0L
+  assert_eq(installed_effect_model_read_window(model), [500L, 700L])
 }
 
 ///|

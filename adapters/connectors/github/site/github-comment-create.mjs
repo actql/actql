@@ -142,27 +142,27 @@ async function exchange({moon, authorization, credential, callResource,
   });
 }
 
-// Check, under a read authorization, that the subject is an Issue of the
-// published repository `{nodeId, databaseId, nameWithOwner}`. Returns the
-// Issue's `{nodeId, number}` or throws a coded refusal; nothing is sent.
-export async function checkGitHubCommentSubject({moon, subjectId, repository,
-  authorization, credential, limits,
-  callResource = callHttpsCredentialResource, signal}) {
+// Pure standard declaration hooks. The body hook validates the SAME original
+// repository/limits before native construction; the projection hook interprets
+// only its already-accounted reply. Neither hook acquires a credential, sends,
+// claims a write, creates a cleanup owner or returns an authorization result.
+export function prepareGitHubCommentSubjectRequest({moon, subjectId, repository, limits}) {
   if (!moon || typeof moon.githubCommentSubjectJson !== 'function' ||
       typeof repository?.nodeId !== 'string' ||
       !Number.isSafeInteger(repository.databaseId) ||
       typeof repository.nameWithOwner !== 'string') {
     fail('InvalidGitHubCommentSubjectCheck');
   }
-  const owned = checkLimits(limits);
+  checkLimits(limits);
   const request = JSON.parse(moon.githubCommentSubjectRequestJson(subjectId));
   if (request.refused !== undefined) {
     fail('InvalidGitHubCommentRequest', {refusal: request.refused});
   }
-  signal?.throwIfAborted();
-  const response = await exchange({moon, authorization, credential,
-    callResource, operation: GITHUB_GRAPHQL_READ_OPERATION,
-    body: request.body, limits: owned, signal});
+  return request.body;
+}
+
+export function projectGitHubCommentSubjectResponse({moon, subjectId, repository,
+  response, limits}) {
   // A refusal decided from an observed reply is definitive for the row; a
   // rate limit or an unclassified failure is not.
   const refuse = (code, details) => {
@@ -184,7 +184,7 @@ export async function checkGitHubCommentSubject({moon, subjectId, repository,
     refuse('GitHubCommentSubjectRejected', {failure});
   }
   const projected = JSON.parse(moon.githubCommentSubjectJson(response.body,
-    owned.maxResponseBytes, owned.maxNodes, owned.maxDepth, subjectId,
+    limits.maxResponseBytes, limits.maxNodes, limits.maxDepth, subjectId,
     repository.nodeId, repository.databaseId, repository.nameWithOwner));
   if (projected.refused !== undefined) {
     const {kind, type} = projected.refused;
@@ -197,6 +197,18 @@ export async function checkGitHubCommentSubject({moon, subjectId, repository,
   }
   return Object.freeze({nodeId: projected.subject.node_id,
     number: projected.subject.number});
+}
+
+// Compatibility for the existing direct Site caller. Normal installed CREATE
+// uses the SAME pure hooks with its original shared Host HTTP child instead.
+export async function checkGitHubCommentSubject({moon, subjectId, repository,
+  authorization, credential, limits,
+  callResource = callHttpsCredentialResource, signal}) {
+  const body = prepareGitHubCommentSubjectRequest({moon, subjectId, repository, limits});
+  signal?.throwIfAborted();
+  const response = await exchange({moon, authorization, credential,
+    callResource, operation: GITHUB_GRAPHQL_READ_OPERATION, body, limits, signal});
+  return projectGitHubCommentSubjectResponse({moon, subjectId, repository, response, limits});
 }
 
 // Send exactly once. The caller is the common Effect owner's `execute`; it

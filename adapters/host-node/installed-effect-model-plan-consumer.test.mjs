@@ -1,18 +1,49 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {readFileSync} from 'node:fs';
+import {parse} from 'acorn';
 import {prepareInstalledEffectManagedPlanRun, readInstalledEffectManagedPlanRun,
-  finishInstalledEffectModelScope} from './installed-effect-managed-run.mjs';
+  finishInstalledEffectModelScope, installedEffectModelPreparation} from './installed-effect-managed-run.mjs';
 
 // Actual JS owner; the nominal Common/Root/Model/Scope ports are explicit.
 // This does not issue an actual admission, Model permission or cleanup ACK.
 const ok = value => ({$tag: 1, _0: value});
 const checked = value => {if (value.$tag !== 1) throw value._0; return value._0;};
 const same = (actual, expected) => {assert.equal(actual.length, expected.length); actual.forEach((value, i) => assert.equal(value, expected[i]));};
+
+test('actual Effect Model control unwraps only its original compiled holder and definition token', () => {
+  const source = readFileSync(new URL('../host-common/runtime-core.mjs', import.meta.url), 'utf8');
+  let method;
+  const walk = node => {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'Property' && node.key?.name === 'prepareCheckedClientEffectModelDemand') method = node;
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(walk); else if (value && typeof value === 'object') walk(value);
+    }
+  };
+  walk(parse(source, {ecmaVersion: 'latest', sourceType: 'module'})); assert(method);
+  const prepared = {}, compiled = Object.freeze({kind: 'infer'}), native = {}, compilation = {},
+    definition = {}, definitionToken = {}, occurrence = {}, graph = {}, demand = {};
+  const originals = new WeakMap([[compiled, native]]); let calls = 0;
+  const moon = {clientProgramInstalledEffectModelDemandPrepare(...actual) {
+    same(actual, [prepared, native, compilation, definitionToken, occurrence, graph]); calls++; return ok(demand);
+  }};
+  const control = Function('moon', 'compiledRunTokens', 'token', 'checked',
+    'return ({' + source.slice(method.start, method.end) + '});')(
+    moon, originals, value => {assert.strictEqual(value, definition); return definitionToken;}, checked);
+  const prepare = value => control.prepareCheckedClientEffectModelDemand(prepared, value,
+    compilation, definition, occurrence, graph);
+  assert.strictEqual(prepare(compiled), demand);
+  assert.throws(() => prepare({...compiled}), /Foreign Client compiled Infer preparation/);
+  assert.throws(() => prepare(native), /Foreign Client compiled Infer preparation/);
+  assert.equal(calls, 1);
+});
+
 function fixture() {
   const prepared = {}, request = {}, plan = {}, parent = {}, scope = {}, demand = {}, admission = {}, original = {};
   const model = Object.freeze({kind: 'local-mock', compiled: {}, definition: {}, occurrence: {}, graph: {}});
-  const facts = {prepared, identity: request, compilation: {}, allowed: {},
-    definition: model.definition, modelCompiled: model.compiled};
+  const facts = Object.freeze({prepared, identity: request, compilation: {}, allowed: {},
+    definition: model.definition, modelCompiled: model.compiled, queryTimePreparation: undefined});
   const runs = new WeakMap(), liveRuns = new Set(), calls = [], registry = {};
   let pending = true, beginFailure, finishCallback;
   const runtime = {
@@ -37,7 +68,7 @@ function fixture() {
       assert.equal(this, runtime); same([p, value, r], [parent, prepared, request]); return ok();
     },
     clientProgramInstalledEffectManagedOperationPlan(p, value, r) {assert.equal(p, parent); assert.equal(value, prepared); assert.equal(r, request); return ok(plan);},
-    clientProgramInstalledEffectOperationControlsBegin() {return ok();},
+    clientProgramInstalledEffectOperationControlsBegin() {return ok(plan);},
     clientProgramInstalledManagedRunRetire() {calls.push('retire-parent'); return ok();},
     clientProgramNodeEffectManagedPlanCleanup(a) {assert.equal(a, admission); calls.push('cleanup-admission'); return ok();},
     clientProgramFinishInferOriginalReadScope(s, compiled, definition, graph, complete) {
@@ -65,10 +96,57 @@ function fixture() {
   }});
   const options = {runs, liveRuns, runtime, manager, prepared, request, requestInput: {}, selection,
     facts, inputs: Object.freeze({registry}), model, sourceProfile: {}, checked, assertCurrent() {}};
-  return {options, calls, scope, parent, model, admission, runs, prepared, runtime, plan,
+  return {options, calls, scope, parent, model, admission, runs, prepared, runtime, plan, demand,
     settle() {pending = false;}, failBegin(cause) {beginFailure = cause;},
     onFinish(fn) {finishCallback = fn;}};
 }
+
+test('Effect Model binds its JS compiled holder through the existing control before one native provider Plan', () => {
+  const f = fixture(), definition = {}, provider = {}, nativeRead = {};
+  f.options.facts = Object.freeze({...f.options.facts, runDefinition: definition});
+  const facts = f.options.facts;
+  f.options.modelSelection = Object.freeze({localMock: true, occurrence: f.model.occurrence, graph: f.model.graph});
+  let issuers = 0, reads = 0, settlements = 0;
+  f.runtime.clientProgramComposedInferLocalProvider = occurrence => {
+    assert.strictEqual(occurrence, f.model.occurrence); issuers++; return provider;
+  };
+  f.options.selection = Object.freeze({prepareManagedPlan(actual, input) {
+    assert.strictEqual(actual, facts); assert.strictEqual(input.modelDemand, f.demand);
+    assert.strictEqual(input.modelComponents[0], provider); return f.plan;
+  }});
+  f.runtime.clientProgramInstalledEffectModelDemandPrepare = () => assert.fail('a JS holder is not a native compiled Run');
+  f.runtime.clientProgramInstalledEffectModelReadWindow = demand => {
+    assert.strictEqual(demand, f.demand); return [23n, 29n];
+  };
+  const control = f.options.publicationControl = {
+    prepareCheckedClientEffectModelDemand(p, compiled, compilation, actualDefinition, occurrence, graph) {
+      assert.strictEqual(this, control); same([p, compiled, compilation, actualDefinition, occurrence, graph],
+        [f.prepared, f.model.compiled, facts.compilation, definition, f.model.occurrence, f.model.graph]); return f.demand;
+    },
+    prepareCheckedClientInferOriginalRead(compiled, actualDefinition, graph, scope, budget) {
+      same([compiled, actualDefinition, graph, scope], [f.model.compiled, definition, f.model.graph, f.scope]);
+      assert.deepEqual([budget.readRetainedBytes, budget.readExecutionBytes,
+        budget.modelRetainedBytes, budget.modelExecutionBytes], [23n, 29n, 23n, 29n]); reads++; return nativeRead;
+    },
+    stopCheckedClientInferOriginalReadPreparation(compiled, actualDefinition, graph, scope, read) {
+      same([compiled, actualDefinition, graph, scope, read], [f.model.compiled, definition, f.model.graph, f.scope, nativeRead]);
+    },
+    settleCheckedClientInferOriginalReadPreparation(compiled, actualDefinition, graph, read, complete) {
+      same([compiled, actualDefinition, graph, read, complete], [f.model.compiled, definition, f.model.graph, nativeRead, true]); settlements++;
+    },
+    finishCheckedClientInferOriginalReadScope(compiled, actualDefinition, graph, scope, complete) {
+      same([compiled, actualDefinition, graph, scope, complete], [f.model.compiled, definition, f.model.graph, f.scope, true]); return true;
+    },
+  };
+  prepareInstalledEffectManagedPlanRun(f.options);
+  const run = readInstalledEffectManagedPlanRun(f.options);
+  const view = installedEffectModelPreparation(run, () => ({}), () => {});
+  view.retain(); assert.strictEqual(view.prepareRead().read, nativeRead);
+  assert.throws(() => view.prepareRead(), {code: 'ForeignInstalledEffectModelScope'});
+  assert.equal(view.retire(), true); assert.equal(view.retire(), true);
+  finishInstalledEffectModelScope(run, true, checked);
+  assert.equal(issuers, 1); assert.equal(reads, 1); assert.equal(settlements, 1);
+});
 
 test('Model Effect retains one demand Plan parent and original Scope before Source work', () => {
   const f = fixture();

@@ -222,18 +222,26 @@ fn local_submission_start(
   let reference = selection.reference
   let attempt = selection.attempt
   let observe_original = () => {
-    if business is Some(_) {
-      // Saved-state recovery has its own original read admission. Do not
-      // enter an unscoped legacy lookup after a selected admission refusal.
-      stop("LocalOriginalRunStateUnavailable")
-    }
-    let reply = if selection.fresh {
-      local_submission_lookup_selected(host, settings, crypto, () => reference)
+    let capture = business.map(value => value.capture)
+    let reply = if selection.fresh || capture is Some(_) {
+      local_submission_lookup_selected(
+        host,
+        settings,
+        crypto,
+        () => reference,
+        capture~,
+      )
     } else {
       local_submission_lookup(host, settings, crypto, input_root, child)
     }
     local_public_run_state_reply(
-      host, settings, crypto, reference, public_run, reply,
+      host,
+      settings,
+      crypto,
+      reference,
+      public_run,
+      reply,
+      capture~,
     )
   }
   try {

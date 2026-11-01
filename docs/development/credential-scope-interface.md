@@ -659,10 +659,17 @@ Subjects: neither control nor use is converted between those purposes.
 - Response reader ownership: original request/socket and invalid callback
   borrowing remain with the existing binding. No result, error, callback
   settlement or numeric extent can supply a close acknowledgement.
+  If native callback registration fails, the first unresolved original and
+  cause stay in that same binding. Acquisition refuses before another claim
+  or send, even when no current callback was selected and close has not yet
+  been requested. Later failures cannot replace the retained original.
 - Response reader synchronization: a conforming callback returns only
   `undefined`. A returned Promise/thenable is refused, but remains joined to
   the same request promise until it settles and the actual socket/request
   close events arrive. No rejection is detached to make cleanup appear done.
+  Native registration precedes a replaceable public `then` observation. A
+  constructor/species refusal supplies no native settlement witness: socket
+  close or a caller-held resolver cannot acknowledge that unresolved duty.
 - Response reader failure: every consumed chunk, including the final offending
   byte, reaches the callback before protocol refusal. A callback throw remains
   the original failure and stops the same response; callers retain unresolved

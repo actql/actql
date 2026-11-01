@@ -21,6 +21,7 @@ pub fn Library::ed25519_public_key_raw32(Self, String) -> Result[Bytes, NativeSi
 pub fn Library::generate_ed25519_key_pair(Self) -> Result[(Bytes, String), NativeSignatureIssue]
 pub fn Library::hmac_sha256(Self, Bytes, Bytes) -> Result[Bytes, NativeSignatureIssue]
 pub fn Library::open_private_evidence(Self, Bytes, String, String, Bytes) -> Result[Bytes, NativePrivateEvidenceIssue]
+pub fn Library::prepare_original_key_signing_attempt(Self, @filesystem.PrivateFileProjection, Bytes, Bytes) -> Result[OriginalKeySigningAttempt, NativeSignatureIssue]
 pub fn Library::random_bytes(Self, Int) -> Result[Bytes, NativeSignatureIssue]
 pub fn Library::require_current(Self) -> Result[Unit, NativeSignatureIssue]
 pub fn Library::seal_private_evidence(Self, Bytes, String, String, Bytes) -> Result[Bytes, NativePrivateEvidenceIssue]
@@ -62,6 +63,13 @@ type OriginalCryptoComponent
 pub fn OriginalCryptoComponent::close_checked(Self) -> Result[Unit, NativeSignatureIssue]
 pub fn OriginalCryptoComponent::new_library(Self) -> Result[NativeCryptoLibraryAcquisition, NativeSignatureIssue]
 pub fn OriginalCryptoComponent::owns_library(Self, Library) -> Bool
+
+type OriginalKeySigningAttempt
+pub fn OriginalKeySigningAttempt::close_checked(Self) -> Result[Unit, NativeSignatureIssue]
+pub fn OriginalKeySigningAttempt::original_signature(Self) -> Result[String, NativeSignatureIssue]
+pub fn OriginalKeySigningAttempt::primary_issue(Self) -> NativeSignatureIssue?
+pub fn OriginalKeySigningAttempt::require_original_owner(Self) -> Result[Unit, NativeSignatureIssue]
+pub fn OriginalKeySigningAttempt::sign_once(Self) -> Result[String, NativeSignatureIssue]
 
 type Sha256Hasher
 pub fn Sha256Hasher::close_checked(Self) -> Result[Unit, NativeSignatureIssue]

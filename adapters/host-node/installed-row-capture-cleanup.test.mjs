@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {prepareInstalledRowCaptureChild, releaseInstalledRowCapture} from './installed-row-capture-cleanup.mjs';
+import {releasePreparedResults} from '../host-common/completed-run-publication.mjs';
 
 // Explicit Common progress-law doubles, matching the existing cleanup tests.
 // The actual prepared cleanup owner remains the production implementation.
@@ -25,6 +26,105 @@ function payload(name, events, failures = 0) {
   };
   return {prepared: {release, retry: release, status: () => ({pending})}};
 }
+
+test('retired original capture children are observed linearly across all dependent payloads', async () => {
+  const count = 12, children = [], events = [];
+  let observations = 0;
+  for (let index = 0; index < count; index++) {
+    let pending = true;
+    const release = () => {pending = false;};
+    await prepareInstalledRowCaptureChild({children, create: () => ({
+      prepare() {}, release, retry: release, status: () => ({pending})})});
+    const original = children[index].prepared;
+    await original.release();
+    children[index].prepared = Object.freeze({...original,
+      status() {observations++; return original.status();}});
+  }
+  const primary = new Error('original completed capture');
+  await assert.rejects(releaseInstalledRowCapture({children, control,
+    payloads: Array.from({length: count}, (_, index) => payload(`source:${index}`, events)),
+    releaseResults() {events.push('results');}, releaseInputs() {events.push('inputs');}}, primary),
+  error => error === primary);
+  assert.equal(events.length, count + 2);
+  assert.equal(observations, count * 3, 'one original retirement scan plus initial/final owner inspection');
+});
+
+test('one cleanup status and retry result each observe the original owner once per boundary', async () => {
+  const calls = [0, 0], owners = calls.map((_, index) => ({prepared: {
+    status() {calls[index]++; return {pending: true, outcome: 'retained', errors: []};},
+    release() {return false;}, retry() {return false;},
+  }}));
+  let failure;
+  await assert.rejects(releasePreparedResults(owners, new Error('original'), control), error => {
+    failure = error; return error.cleanupPending === true;
+  });
+  calls.fill(0);
+  assert.deepEqual(failure.cleanupHandle.status(), {pending: true, outcome: 'retained', errors: []});
+  assert.deepEqual(calls, [1, 1]);
+  calls.fill(0);
+  assert.equal((await failure.cleanupHandle.retry()).pending, true);
+  assert.deepEqual(calls, [2, 2], 'original inspection and one post-retry observation are separate boundaries');
+});
+
+test('retirement cursor retains a newly appended pending original before any parent release', async () => {
+  let appended = false, pending = true, released = false, failure;
+  const children = [{prepared: {status() {
+    if (!appended) {
+      appended = true;
+      children.push({prepared: {status: () => ({pending}), release() {}, retry() {}}});
+    }
+    return {pending: false};
+  }, release() {}, retry() {}}}];
+  const primary = new Error('original append during observation');
+  await assert.rejects(releaseInstalledRowCapture({children, control,
+    releaseInputs() {released = true;}}, primary), error => {failure = error; return error.cleanupPending;});
+  assert.equal(released, false); assert.equal(failure.cleanupHandle.status().pending, true);
+  pending = false;
+  assert.equal((await failure.cleanupHandle.retry()).pending, false);
+  assert.equal(released, true);
+});
+
+test('synchronous original child release reentry cannot start a second release before its flight is retained', async () => {
+  const children = [];
+  let calls = 0, pending = true, reentered;
+  await prepareInstalledRowCaptureChild({children, create: () => ({prepare() {},
+    release() {
+      calls++;
+      if (calls === 1) reentered = children[0].prepared.release();
+      pending = false;
+    }, retry() {assert.fail('No retry required');}, status: () => ({pending})})});
+  await children[0].prepared.release(); await reentered;
+  assert.equal(calls, 1); assert.equal(children[0].prepared.status().pending, false);
+});
+
+test('synchronous original parent release reentry keeps the same outer retry and pending result', async () => {
+  let calls = 0, failure, reentered;
+  const primary = new Error('original pending input');
+  await assert.rejects(releaseInstalledRowCapture({control, releaseInputs() {
+    calls++;
+    if (calls === 1) return false;
+    if (calls === 2) reentered = failure.cleanupHandle.retry();
+  }}, primary), error => {failure = error; return error.cleanupPending;});
+  assert.equal((await failure.cleanupHandle.retry()).pending, false);
+  await reentered;
+  assert.equal(calls, 2); assert.equal(failure.cleanupHandle.status().pending, false);
+});
+
+test('synchronous original payload release reentry cannot replace its retained callback receiver', async () => {
+  let calls = 0, pending = true, childPending = true, failure, reentered;
+  const original = {status: () => ({pending}), release() {
+    assert.equal(this, original); calls++;
+    if (calls === 1) reentered = failure.cleanupHandle.retry();
+    pending = false;
+  }, retry() {assert.fail('The first actual payload release is not a retry');}};
+  const children = [{prepared: {status: () => ({pending: childPending}), release() {}, retry() {}}}];
+  await assert.rejects(releaseInstalledRowCapture({control, children,
+    payloads: [{prepared: original}]}, new Error('original payload pending')),
+  error => {failure = error; return error.cleanupPending;});
+  assert.equal(calls, 0); childPending = false;
+  assert.equal((await failure.cleanupHandle.retry()).pending, false); await reentered;
+  assert.equal(calls, 1); assert.equal(failure.cleanupHandle.status().pending, false);
+});
 
 test('failed first payload does not skip siblings, public Results or input pins', async () => {
   const events = [], a = payload('a', events, 1), b = payload('b', events);

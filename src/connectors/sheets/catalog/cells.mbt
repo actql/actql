@@ -372,24 +372,30 @@ pub fn read_request(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  let body = (
-    {
-      "dataFilters": [
-        {
-          "gridRange": {
-            "sheetId": range.sheet_id.to_json(),
-            "startRowIndex": range.start_row.to_json(),
-            "endRowIndex": range.end_row.to_json(),
-            "startColumnIndex": range.start_column.to_json(),
-            "endColumnIndex": range.end_column.to_json(),
-          },
-        },
-      ],
-      "includeGridData": true,
-    } : Json).stringify()
+  let body = read_request_document(range).stringify()
   match admit(@utf8.encode(body), limits) {
     Ok(_) => Ok(body)
     Err(issue) => Err(issue)
+  }
+}
+
+///|
+/// Original immutable read document. Validation remains in read_request;
+/// constructor geometry shares this exact body, not another wire template.
+pub fn read_request_document(range : GridRange) -> Json {
+  {
+    "dataFilters": [
+      {
+        "gridRange": {
+          "sheetId": range.sheet_id.to_json(),
+          "startRowIndex": range.start_row.to_json(),
+          "endRowIndex": range.end_row.to_json(),
+          "startColumnIndex": range.start_column.to_json(),
+          "endColumnIndex": range.end_column.to_json(),
+        },
+      },
+    ],
+    "includeGridData": true,
   }
 }
 
@@ -529,18 +535,7 @@ pub fn append_request(
     Ok(cells) => cells
     Err(issue) => return Err(issue)
   }
-  let body = (
-    {
-      "requests": [
-        {
-          "appendCells": {
-            "sheetId": sheet_id.to_json(),
-            "rows": [{ "values": Json::array(cells) }],
-            "fields": "userEnteredValue",
-          },
-        },
-      ],
-    } : Json).stringify()
+  let body = append_request_document(sheet_id, cells).stringify()
   if @utf8.encode(body).length() > limits.max_bytes {
     return Err(BudgetExceeded)
   }
@@ -553,6 +548,24 @@ pub fn append_request(
 }
 
 ///|
+/// The original literal append document, after the caller has checked its
+/// cells. This pure document builder admits no row or write. Constructor
+/// geometry uses the same fixed document rather than a second wire template.
+pub fn append_request_document(sheet_id : Int, cells : Array[Json]) -> Json {
+  {
+    "requests": [
+      {
+        "appendCells": {
+          "sheetId": sheet_id.to_json(),
+          "rows": [{ "values": Json::array(cells) }],
+          "fields": "userEnteredValue",
+        },
+      },
+    ],
+  }
+}
+
+///|
 fn literal_cells(
   columns : Array[Column],
   values : Array[Json],
@@ -562,18 +575,28 @@ fn literal_cells(
   }
   let cells : Array[Json] = []
   for index, column in columns {
-    let extended : Json = match (column.cell_type, values[index]) {
-      (Text, String(value)) if !value.is_empty() =>
-        { "stringValue": value.to_json() }
-      (Number, Number(value, ..)) if !value.is_nan() && !value.is_inf() =>
-        { "numberValue": value.to_json() }
-      (Boolean, True) => { "boolValue": true }
-      (Boolean, False) => { "boolValue": false }
-      _ => return Err(UnrepresentableWrite(column.name))
+    match literal_cell_document(column.cell_type, values[index]) {
+      Some(cell) => cells.push(cell)
+      None => return Err(UnrepresentableWrite(column.name))
     }
-    cells.push({ "userEnteredValue": extended })
   }
   Ok(cells)
+}
+
+///|
+/// Original scalar cell representation, shared by the actual request builder
+/// and its constructor geometry. It carries no row identity or write grant.
+pub fn literal_cell_document(cell_type : CellType, value : Json) -> Json? {
+  let extended : Json = match (cell_type, value) {
+    (Text, String(value)) if !value.is_empty() =>
+      { "stringValue": value.to_json() }
+    (Number, Number(value, ..)) if !value.is_nan() && !value.is_inf() =>
+      { "numberValue": value.to_json() }
+    (Boolean, True) => { "boolValue": true }
+    (Boolean, False) => { "boolValue": false }
+    _ => return None
+  }
+  Some({ "userEnteredValue": extended })
 }
 
 ///|
@@ -602,24 +625,7 @@ pub fn update_request(
     }
     encoded_rows.push({ "values": Json::array(cells) })
   }
-  let body = (
-    {
-      "requests": [
-        {
-          "updateCells": {
-            "range": {
-              "sheetId": range.sheet_id.to_json(),
-              "startRowIndex": range.start_row.to_json(),
-              "endRowIndex": range.end_row.to_json(),
-              "startColumnIndex": range.start_column.to_json(),
-              "endColumnIndex": range.end_column.to_json(),
-            },
-            "rows": Json::array(encoded_rows),
-            "fields": "userEnteredValue",
-          },
-        },
-      ],
-    } : Json).stringify()
+  let body = update_request_document(range, encoded_rows).stringify()
   if @utf8.encode(body).length() > limits.max_bytes {
     return Err(BudgetExceeded)
   }
@@ -629,6 +635,32 @@ pub fn update_request(
     Err(issue) => return Err(issue)
   }
   Ok(body)
+}
+
+///|
+/// Exact original literal update document after cell checking. Constructor
+/// geometry borrows this fixed shape and never supplies accepted row data.
+pub fn update_request_document(
+  range : GridRange,
+  encoded_rows : Array[Json],
+) -> Json {
+  {
+    "requests": [
+      {
+        "updateCells": {
+          "range": {
+            "sheetId": range.sheet_id.to_json(),
+            "startRowIndex": range.start_row.to_json(),
+            "endRowIndex": range.end_row.to_json(),
+            "startColumnIndex": range.start_column.to_json(),
+            "endColumnIndex": range.end_column.to_json(),
+          },
+          "rows": Json::array(encoded_rows),
+          "fields": "userEnteredValue",
+        },
+      },
+    ],
+  }
 }
 
 ///|

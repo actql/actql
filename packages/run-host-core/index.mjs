@@ -1389,11 +1389,13 @@ export function issueUnpublishedRunStateWire(prepared, compilation,
 }
 
 export function issueSucceededRunStateWire(prepared, compilation,
-  admission, definition, observedAt, observations) {
+  admission, definition, observedAt, observations, effectFinalReceipt) {
   const task = taskCompilations.has(compilation);
-  const compiled = requireHandle(task ? taskCompilations : compilations, compilation);
-  const admitted = requireHandle(admissions, admission);
-  if (compiled.prepared !== prepared || admitted.prepared !== prepared) {
+  const effect = effectCompilations.has(compilation);
+  const compiled = requireHandle(effect ? effectCompilations : task ? taskCompilations : compilations, compilation);
+  const admitted = requireHandle(effect ? effectAllowedRuns : admissions, admission);
+  if (compiled.prepared !== prepared || admitted.prepared !== prepared ||
+      effect && admitted.compilation !== compilation) {
     throw new TypeError('ForeignRunHostCompilation');
   }
   if (typeof observedAt !== 'string' || !Array.isArray(observations) ||
@@ -1402,6 +1404,21 @@ export function issueSucceededRunStateWire(prepared, compilation,
         ['name', 'state', 'reason', 'observedAt'].every(key =>
           typeof value[key] === 'string'))) {
     throw new TypeError('InvalidRunHostStateObservation');
+  }
+  if (effect) {
+    const retained = retainedEffectFinal(effectFinalReceipt);
+    if (retained.validatedPublication === undefined) {
+      throw new TypeError('RunHostEffectPublicationEvidenceRequired');
+    }
+    const wire = owner.clientValuesHostIssueEffectSucceededRunStateWire(
+      requireHandle(effectPreparations, prepared), admitted.value,
+      requireHandle(definitions, definition), retained.value, observedAt,
+      observations.map(value => value.name), observations.map(value => value.state),
+      observations.map(value => value.reason), observations.map(value => value.observedAt));
+    if (typeof wire !== 'string') {
+      throw Object.assign(new Error('RunHostStateProjectionRejected'), {code:'RunHostStateProjectionRejected'});
+    }
+    return wire;
   }
   checkRunBinding(prepared, admission, definition);
   const issue = task ? owner.clientValuesHostIssueTaskSucceededRunStateWire
@@ -2313,6 +2330,29 @@ export function issueResultOccurrenceEvidence(definition, facts, limits) {
   return resultOccurrence(value);
 }
 
+/** Admit the original saved evidence against independently observed facts.
+ * This does not issue replacement scope, issuer, derivation or ordering. */
+export function admitOriginalResultOccurrenceEvidence(definition, artifact,
+  derivation, ordering, retention, facts) {
+  if (facts === null || typeof facts !== 'object' ||
+      Object.keys(facts).sort().join('\0') !==
+        'effectiveDataPolicyCid\0logicalValueCid\0resultSchemaCid') {
+    throw new TypeError('InvalidRunHostOriginalResultEvidence');
+  }
+  const selected = Object.getOwnPropertyDescriptors(facts);
+  const fields = ['logicalValueCid','resultSchemaCid','effectiveDataPolicyCid'].map(name => {
+    const field = selected[name];
+    if (!field?.enumerable || !Object.hasOwn(field,'value') || typeof field.value !== 'string') {
+      throw new TypeError('InvalidRunHostOriginalResultEvidence');
+    }
+    return field.value;
+  });
+  return resultOccurrence(checked(owner.clientValuesHostAdmitOriginalResultOccurrenceEvidence(
+    publicationToken(definition), publicationToken(artifact), publicationToken(derivation),
+    publicationToken(ordering), publicationToken(retention), ...fields),
+  'RunHostOriginalResultEvidenceRejected'));
+}
+
 function resultOccurrence(value) {
   const token = handle(resultOccurrences, value, 'result-occurrence');
   return Object.freeze({token,
@@ -2580,15 +2620,133 @@ export function issueEffectfulFinalRunReceipt(runDefinition, computationReceipt,
       maxWireBytes, maxNodes, maxDepth), 'RunHostEffectfulFinalReceiptRejected'));
 }
 
+function effectFinalOriginals(evidence) {
+  if (evidence === null || typeof evidence !== 'object' || Array.isArray(evidence)) {
+    throw new TypeError('InvalidRunHostEffectfulPublicationCommit');
+  }
+  const fields = Object.getOwnPropertyDescriptors(evidence), selected = {};
+  const own = name => {
+    const field = fields[name];
+    if (!field?.enumerable || !Object.hasOwn(field,'value')) {
+      throw new TypeError('InvalidRunHostEffectfulPublicationCommit');
+    }
+    return field.value;
+  };
+  for (const name of ['runDefinition','invocation','manifest','computationReceipt',
+    'capturedRun','preview','setReceiptWire','finalReceipt']) selected[name] = own(name);
+  for (const name of ['definitions','artifacts','derivations','orderings','retentions','memberReceiptWires']) {
+    const values = own(name), length = Object.getOwnPropertyDescriptor(values ?? {},'length');
+    if (!Array.isArray(values) || !Object.hasOwn(length ?? {},'value') ||
+        !Number.isSafeInteger(length.value) || length.value < 0 || length.value > 2147483647) {
+      throw new TypeError('InvalidRunHostEffectfulPublicationCommit');
+    }
+    const items = [];
+    for (let index = 0; index < length.value; index++) {
+      const field = Object.getOwnPropertyDescriptor(values,index);
+      if (!field?.enumerable || !Object.hasOwn(field,'value')) {
+        throw new TypeError('InvalidRunHostEffectfulPublicationCommit');
+      }
+      items.push(field.value);
+    }
+    selected[name] = Object.freeze(items);
+  }
+  return Object.freeze(selected);
+}
+
+/** Complete original computation/Result/Set admission once. The returned
+ * existing final Receipt retains that proof privately; it grants no action. */
+export function admitEffectfulFinalRunEvidence(evidence, limits) {
+  const {maxWireBytes,maxNodes,maxDepth} = publicationLimits(limits);
+  const original = effectFinalOriginals(evidence);
+  const preview = requireHandle(effectPreviewIdentities,original.preview);
+  const receipts = effectReceiptWires(preview,original.setReceiptWire,original.memberReceiptWires);
+  const value = checked(owner.clientValuesHostAdmitEffectfulFinalRunEvidence(
+    publicationToken(original.runDefinition),publicationToken(original.invocation),
+    publicationItems(original.definitions),publicationItems(original.artifacts),
+    publicationItems(original.derivations),publicationItems(original.orderings),
+    publicationItems(original.retentions),publicationToken(original.manifest),
+    publicationToken(original.computationReceipt),publicationToken(original.capturedRun),preview.value,
+    receipts.setReceiptWire,receipts.memberReceiptWires,publicationToken(original.finalReceipt),
+    maxWireBytes,maxNodes,maxDepth),'RunHostEffectfulFinalEvidenceRejected');
+  const receipt = publicationContract(owner.clientValuesHostEffectfulFinalRunReceipt(value));
+  const returned = publicationOriginals.get(receipt);
+  publicationOriginals.set(receipt,Object.freeze({...returned,effect:{value,original,
+    validatedPublication:undefined}}));
+  return receipt;
+}
+
+function retainedEffectFinal(receipt) {
+  const retained = publicationOriginals.get(receipt)?.effect;
+  if (retained === undefined) throw new TypeError('ForeignRunHostEffectFinalEvidence');
+  return retained;
+}
+
+/** Immutable admitted outcome only. No raw receipt parsing, current/permission
+ * check, retry, Store observation or physical acknowledgement occurs here. */
+export function effectfulFinalRunOutcome(receipt) {
+  const value = retainedEffectFinal(receipt).value;
+  const status = owner.clientValuesHostEffectfulFinalRunStatus(value);
+  const allUnattempted = owner.clientValuesHostEffectfulFinalRunAllUnattempted(value);
+  if (!['succeeded','needs_reconciliation','failed'].includes(status) || typeof allUnattempted !== 'boolean') {
+    throw new TypeError('InvalidRunHostEffectFinalOutcome');
+  }
+  return Object.freeze({status,allUnattempted});
+}
+
+/** Existing Unknown-only writer over the same complete admitted partition.
+ * This is historical Run state DATA, never a retry, current grant or ACK. */
+export function effectfulFinalRunReconciliationState(receipt, updatedAt, limits) {
+  if (typeof updatedAt !== 'string') throw new TypeError('InvalidRunHostStateObservation');
+  const {maxWireBytes,maxNodes,maxDepth} = publicationLimits(limits);
+  return checked(owner.clientValuesHostEffectfulFinalRunReconciliationState(
+    retainedEffectFinal(receipt).value,updatedAt,maxWireBytes,maxNodes,maxDepth),
+  'RunHostEffectReconciliationStateRejected');
+}
+
+/** Known failure from the same complete admitted final chain and original
+ * manifest. No current grant, publication, resend or cleanup acknowledgement. */
+export function effectfulFinalRunFailedState(receipt, updatedAt, limits) {
+  if (typeof updatedAt !== 'string') throw new TypeError('InvalidRunHostStateObservation');
+  const {maxWireBytes,maxNodes,maxDepth} = publicationLimits(limits);
+  return checked(owner.clientValuesHostEffectfulFinalRunFailedState(
+    retainedEffectFinal(receipt).value,updatedAt,maxWireBytes,maxNodes,maxDepth),
+  'RunHostEffectFailedStateRejected');
+}
+
 export function validateEffectfulPublicationCommit(evidence, request,
   attempt, indexEntry, limits) {
   if (evidence === null || typeof evidence !== 'object') {
     throw new TypeError('InvalidRunHostEffectfulPublicationCommit');
   }
+  // Once this same original is selected, even a later DATA getter or bounds
+  // refusal cannot leave an older publication check available as this attempt.
+  const selectedReceipt = Object.getOwnPropertyDescriptor(evidence,'finalReceipt');
+  const selectedRetained = selectedReceipt !== undefined && Object.hasOwn(selectedReceipt,'value')
+    ? publicationOriginals.get(selectedReceipt.value)?.effect : undefined;
+  if (selectedRetained !== undefined) selectedRetained.validatedPublication = undefined;
   const {runDefinition, invocation, definitions, artifacts, derivations, orderings,
     retentions, durableBindings, manifest, computationReceipt, capturedRun,
     preview, setReceiptWire, memberReceiptWires, finalReceipt} = evidence;
+  const retained = publicationOriginals.get(finalReceipt)?.effect;
+  if (retained !== undefined) retained.validatedPublication = undefined;
   const {maxWireBytes, maxNodes, maxDepth} = publicationLimits(limits);
+  if (retained !== undefined) {
+    const selected = effectFinalOriginals(evidence);
+    for (const [name,original] of Object.entries(retained.original)) {
+      if (name === 'finalReceipt') continue;
+      const value = selected[name];
+      if (Array.isArray(original) ? value.length !== original.length ||
+          original.some((item,index) => item !== value[index]) : original !== value) {
+        throw new TypeError('ForeignRunHostEffectFinalEvidence');
+      }
+    }
+    const index = checked(owner.clientValuesHostValidateRetainedEffectfulPublicationCommit(
+      retained.value,publicationItems(durableBindings),publicationToken(request),
+      publicationToken(attempt),publicationToken(indexEntry)), 'RunHostEffectfulPublicationCommitRejected');
+    // Immutable validated index facts are not a Store CAS/commit observation.
+    retained.validatedPublication = index;
+    return;
+  }
   const originalPreview = requireHandle(effectPreviewIdentities, preview);
   const receipts = effectReceiptWires(originalPreview, setReceiptWire, memberReceiptWires);
   checked(owner.clientValuesHostValidateEffectfulPublicationCommit(

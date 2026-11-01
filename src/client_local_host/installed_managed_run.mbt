@@ -33,12 +33,13 @@ struct ClientInstalledManagedRun {
   request : @publication_host.ClientRequestIdentity
   mut ledger : @resources.Ledger?
   reads : Array[ClientInstalledSourceRead?]
-  mut keyed : ClientInstalledManagedKeyedPreparation?
+  mut content : ClientInstalledContentPreparation
+  mut serialization_prefix : ClientSerializationPrefix?
   keyed_reads : Array[ClientInstalledKeyedSourceRead]
-  effect_operations : Array[ClientInstalledEffectOperationBorrow]
+  effect_operations : Array[ClientInstalledEffectOperationBorrow?]
   mut effect_operation_opening : Bool
   mut effect_operation_closing : Bool
-  mut effect_operation_controls : @resources.CapacityReservation?
+  mut effect_operation_controls : ClientEffectOperationControls?
   mut source_free_preparation : ClientInstalledManagedSourceFreePreparation?
   mut captured_preparation : ClientInstalledManagedCapturePlan?
   mut preparation_retirement : ClientManagedPreparationCustody?
@@ -86,8 +87,18 @@ pub fn installed_managed_run_compilation_original(
 ) -> @publication_host.ClientRunCompilation? {
   guard run.original is Some(original) &&
     physical_equal(original, run) &&
-    run.ledger is Some(_) &&
-    run.preparation is Some(PureManaged(_, admitted)) &&
+    run.ledger is Some(_) else {
+    return None
+  }
+  if run.preparation is Some(PreparationContentManaged(_, admitted)) &&
+    physical_equal(admitted, prepared) {
+    guard run.content is KeyedContent(selected, compilation) &&
+      physical_equal(selected.prepared, prepared) else {
+      return None
+    }
+    return compilation
+  }
+  guard run.preparation is Some(PureManaged(_, admitted)) &&
     physical_equal(admitted, prepared) else {
     return None
   }
@@ -145,6 +156,8 @@ pub fn installed_managed_run_invocation_original(
 
 ///|
 pub(all) enum ClientInstalledManagedRunIssue {
+  SourceAcquisition(@publication_host.ClientSourceAcquisitionIssue)
+  SourceRoute(@sourceviews.SourceAcquisitionRouteIssue)
   ForeignOriginal
   Unsupported
   AlreadyBound
@@ -156,6 +169,7 @@ pub(all) enum ClientInstalledManagedRunIssue {
   Ledger(@resources.LedgerIssue)
   ModelRead(@publication_host.ClientModelReadPreparationIssue)
   Sequence(@lower.SequenceIssue)
+  SerializationPrefix(ClientSerializationPrefixIssue)
 }
 
 ///|
@@ -276,10 +290,10 @@ fn source_free_installed_managed_preparation_owned(
   let capacity_plan = client_local_capacity_plan(
     sequences,
     max_rows,
-    scalar_values=match owner {
-      Pure(_) => true
-      Effect(_) => false
-    },
+    // These are facts of the SAME checked Compute graph, not Pure permission.
+    // Effect operation/physical demand remains separately composed below its
+    // original owner; an unproved nested schema still takes the old fallback.
+    scalar_values=true,
     graph=Some(graph),
   )
   guard client_local_sequence_capacity(
@@ -778,7 +792,8 @@ fn new_installed_managed_run_owned(
       ),
       None,
     ),
-    keyed: None,
+    content: NoContent,
+    serialization_prefix: None,
     keyed_reads: [],
     effect_operations: [],
     effect_operation_opening: false,
@@ -832,6 +847,18 @@ fn require_installed_managed_run(
     Err(issue) => return Err(Resource(issue))
     Ok(_) => ()
   }
+  check_installed_managed_run_original(value, ledger, preparation)
+}
+
+///|
+// Callback-free fence after the original current observation or a closed
+// constructor. This checks the same lifetime and bindings without observing
+// the external Resource again at the same synchronous boundary.
+fn check_installed_managed_run_original(
+  value : ClientInstalledManagedRun,
+  ledger : @resources.Ledger,
+  preparation : ClientInstalledManagedRunOriginal,
+) -> Result[@resources.Ledger, ClientInstalledManagedRunIssue] {
   guard value.original is Some(original) &&
     physical_equal(value, original) &&
     value.ledger is Some(current_ledger) &&
@@ -968,6 +995,7 @@ pub fn begin_installed_managed_run_source_read(
     declaration: None,
     requirement: None,
     acquisition: None,
+    whole_input: None,
     run: None,
     started: false,
   }
@@ -1016,11 +1044,14 @@ fn prepare_installed_managed_run_ledger_owned(
     Err(issue) => return Err(issue)
     Ok(ledger) => ledger
   }
-  if value.keyed is Some(selected) {
+  if value.content is KeyedContent(selected, _) {
     return prepare_retained_installed_keyed_content_ledger(
       value, selected, capacities, transport_bytes, transport_execution_bytes, installed_contracts,
       values_body, fragment_body, ordered_body, ledger,
     )
+  }
+  if value.content is SerializationContent(_) {
+    return Err(Unsupported)
   }
   let owner = match installed_managed_run_owner(value) {
     Err(issue) => return Err(issue)
@@ -1284,6 +1315,9 @@ pub fn retire_installed_managed_run(
   if value.ledger is None {
     return Ok(())
   }
+  if value.serialization_prefix is Some(prefix) && !prefix.released {
+    return Err(CleanupPending)
+  }
   for read in value.reads {
     if read is Some(read) && read.ledger is Some(_) {
       return Err(CleanupPending)
@@ -1295,7 +1329,7 @@ pub fn retire_installed_managed_run(
     }
   }
   for operation in value.effect_operations {
-    if !operation.retired {
+    if operation is Some(operation) && !operation.retired {
       return Err(CleanupPending)
     }
   }
@@ -1306,8 +1340,11 @@ pub fn retire_installed_managed_run(
     value.effect_operation_closing = true
     if value.effect_operation_controls is Some(control) &&
       value.ledger is Some(ledger) {
-      match @resources.settle_capacity(ledger, control) {
-        Ok(_) => value.effect_operation_controls = None
+      match @resources.settle_capacity(ledger, control.reservation) {
+        Ok(_) => {
+          control.coordinates.clear()
+          value.effect_operation_controls = None
+        }
         Err(issue) => return Err(Ledger(issue))
       }
     }
@@ -1347,7 +1384,8 @@ pub fn retire_installed_managed_run(
   value.preparation = None
   value.reads.clear()
   value.keyed_reads.clear()
-  value.keyed = None
+  value.content = NoContent
+  value.serialization_prefix = None
   value.source_free_preparation = None
   value.captured_preparation = None
   value.source_free_captured = None
@@ -1386,6 +1424,16 @@ pub fn installed_managed_publication_limits(
   if value.captured_preparation is Some(plan) {
     if !physical_equal(plan.prepared, prepared) {
       return None
+    }
+    if plan.whole_input is Some(_) {
+      guard plan.capacity_plan.graph is Some(graph) &&
+        physical_equal(graph, plan.graph) else {
+        return None
+      }
+      return client_node_publication_limits_original(
+        max_payload_bytes,
+        plan.capacity_plan,
+      )
     }
     return client_node_publication_limits(
       prepared,

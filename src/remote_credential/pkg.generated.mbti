@@ -3,6 +3,7 @@ package "actql/actql/remote_credential"
 
 import {
   "actql/actql/checkpoint_runtime",
+  "actql/actql/source_value",
   "moonbitlang/core/debug",
 }
 
@@ -52,6 +53,8 @@ pub fn[Material] bind_credential_authentication_use(CredentialAuthenticationRequ
 pub fn[Material] check_credential_authentication_operation(CredentialAuthenticationOperation[Material], CredentialAuthenticationRequest[Material], RemoteCredentialUse, RemoteCredentialUse, Material, String, String, String, Bytes, Int64) -> Result[Unit, RemoteCredentialIssue]
 
 pub fn credential_grant_cid(RemoteCredentialGrant) -> String
+
+pub fn credential_grant_construction_profile() -> CredentialGrantConstructionProfile
 
 pub fn credential_grant_json(RemoteCredentialGrant) -> Result[String, RemoteCredentialIssue]
 
@@ -161,6 +164,13 @@ pub fn validate_local_signing_credential_use_binding(LocalSigningCredentialUse, 
 type CredentialAuthenticationOperation[Material]
 
 type CredentialAuthenticationRequest[Material]
+
+pub(all) struct CredentialGrantConstructionProfile {
+  grant : @source_value.ParseLimits
+  cid_units : Int
+  signature_units : Int
+  signature_preimage_prefix_units : Int
+} derive(Eq, @debug.Debug)
 
 type InstallationPreparationCredentialGrant
 pub fn InstallationPreparationCredentialGrant::cid(Self) -> String

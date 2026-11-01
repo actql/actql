@@ -241,3 +241,29 @@ test('Sheets range projection requires exact batch ACK and never settles an unce
     assert.deepEqual(project(200, body), {kind: 'provider-response'});
   }
 });
+
+// Count forwarding to this actual exported matcher only, including its
+// canonical DATA fast path. This is a caller counter, NOT a full-validation
+// counter, internal Native invocation count or performance measurement.
+test('range original request does not repeat the exported target parser at CID and recheck boundaries',()=>{
+  let completedMatches=0,current=true;
+  const native=Object.freeze({...provider,sheetsRangeTargetMatches(...args){
+    const result=Reflect.apply(provider.sheetsRangeTargetMatches,provider,args);completedMatches++;return result;
+  }});
+  const definition=sheetsRangeCommand('sheets-book',site,native);
+  const target=sheetsRangeReference({site,catalogCid:token('a'),bindingCid:token('b'),moon:native});
+  const driver=createSheetsRangeDriver({moon:native,site,command:definition.installed,target,bindingCid:token('b'),isCurrent:()=>current});
+  const request=driver.prepareRequest({member,value:value,selector:target}).request;
+  assert.equal(completedMatches,1,'New selector check stays before value encoding or marker construction');
+  assert.equal(driver.requestCid(request),request.requestCid);
+  driver.recheckRequests({entries:[{request}]});
+  assert.equal(driver.requestCid(request),request.requestCid);
+  assert.equal(completedMatches,1,'Original immutable request uses native original/binding admission');
+  assert.throws(()=>driver.requestCid({...request}),{code:'ForeignSheetsRangeRequest'});
+  assert.equal(completedMatches,2,'Foreign failure keeps the existing target-first diagnostic');
+  assert.throws(()=>driver.requestCid({...request,target:{...target,boundary_cid:token('c')}}),{code:'SheetsRangeReferenceUnavailable'});
+  assert.equal(completedMatches,3);
+  current=false;
+  assert.throws(()=>driver.requestCid(request),{code:'SheetsRangeReferenceUnavailable'});
+  assert.equal(completedMatches,3,'Closed current fence precedes every native operation');
+});

@@ -3,6 +3,11 @@
 /// logical units cover the pinned JS concat and non-JS fixed-buffer paths;
 /// they are not measured heap/RSS, a tariff or capacity permission.
 /// Original input text/keys, serializer traversal and UTF8 encoding are OUT.
+/// Closed protocol adapters may use its fixed H/R/W fields as a conservative
+/// constructor envelope for each actual stringify call. Their geometry must
+/// cover the whole co-held fixed document forest, including literal controls;
+/// actual output String domains remain separate. This is neither one global
+/// Host fee nor an allowance for arbitrary provider callbacks.
 pub(all) struct TextWriterConstructionInventory {
   record_headers : Int64
   reference_slots : Int64

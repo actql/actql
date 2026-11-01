@@ -1,3 +1,4 @@
+import {retainFirstAndLatestCleanupError} from './managed-failure.mjs';
 // Common Host orchestration for one complete Run publication.
 // MoonBit owns every contract body, identity, chain verdict and state
 // transition. This module sequences Store effects and reports uncertain I/O;
@@ -587,7 +588,7 @@ function uncertainFailure(
               resolved = true;
               failure.publicationResult = result.publication;
             } catch (error) {
-              errors.push(error);
+              retainFirstAndLatestCleanupError(errors, error);
               throw error;
             }
             continue;
@@ -595,7 +596,7 @@ function uncertainFailure(
           if (action === 'retry_upstream_cleanup') {
             upstreamRetryAttempted = true;
             try { await upstream.retry(); }
-            catch (error) { errors.push(error); }
+            catch (error) { retainFirstAndLatestCleanupError(errors, error); }
             continue;
           }
           if (action === 'finished') {

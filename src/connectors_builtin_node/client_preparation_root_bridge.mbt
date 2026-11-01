@@ -6,6 +6,64 @@
 type ClientLocalPreparationInputOriginal
 
 ///|
+#export_name("clientProgramPrepareInstalledEffectCaptureRecovery")
+pub fn client_program_prepare_installed_effect_capture_recovery(
+  parent : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  definition : @publication.PublicationContract,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @client_local_host.ClientInstalledEffectCaptureRecovery,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.prepare_installed_effect_capture_recovery(
+    parent, prepared, request, definition, max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+#export_name("clientProgramReserveInstalledEffectCaptureRecovery")
+pub fn client_program_reserve_installed_effect_capture_recovery(
+  original : @client_local_host.ClientInstalledEffectCaptureRecovery,
+  encrypted_bytes : Int,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.reserve_installed_effect_capture_recovery(
+    original, encrypted_bytes,
+  )
+}
+
+///|
+#export_name("clientProgramRetireInstalledEffectCaptureRecovery")
+pub fn client_program_retire_installed_effect_capture_recovery(
+  original : @client_local_host.ClientInstalledEffectCaptureRecovery,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.retire_installed_effect_capture_recovery(original)
+}
+
+///|
+#export_name("clientProgramReserveRequestEffectCaptureRecovery")
+pub fn client_program_reserve_request_effect_capture_recovery(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  request : @publication_host.ClientRequestIdentity,
+  definition : @publication.PublicationContract,
+  encrypted_bytes : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue] {
+  @client_local_host.reserve_request_effect_capture_recovery(
+    parent, input, request, definition, encrypted_bytes, max_wire_bytes, max_nodes,
+    max_depth,
+  )
+}
+
+///|
 #export_name("clientProgramBorrowRequestModelPlanInput")
 pub fn client_program_borrow_request_model_plan_input(
   parent : @client_local_host.ClientRequestPreparation[
@@ -17,6 +75,147 @@ pub fn client_program_borrow_request_model_plan_input(
   @client_local_host.ClientRequestPreparationIssue,
 ] {
   @client_local_host.borrow_request_model_plan_input(parent, input)
+}
+
+///|
+#export_name("clientProgramPrepareRequestModelContractMaterials")
+pub fn client_program_prepare_request_model_contract_materials(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  count : Int,
+  wire_at : (Int) -> String,
+  container_count : Int,
+) -> Result[Unit, ClientRequestProgramModuleBridgeIssue] {
+  @client_local_host.prepare_request_model_contract_materials(
+    parent, input, count, wire_at, container_count,
+  ).map_err(issue => Preparation(issue))
+}
+
+///|
+#export_name("clientProgramPrepareRequestModelProviderBinding")
+pub fn client_program_prepare_request_model_provider_binding(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  provider_id : String,
+  installation : String,
+  contract : String,
+  configuration : String,
+) -> Result[
+  @publication.RunEvidenceValue,
+  ClientRequestProgramModuleBridgeIssue,
+] {
+  @client_local_host.prepare_request_model_provider_binding(
+    parent, input, provider_id, installation, contract, configuration,
+  ).map_err(issue => Preparation(issue))
+}
+
+///|
+#export_name("clientProgramPrepareRequestModelSourceFreeModule")
+pub fn client_program_prepare_request_model_source_free_module(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  request : @publication_host.ClientRequestIdentity,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  compilation : @publication_host.ClientTaskCompilation,
+  contracts : @client_local_host.ClientInstalledSequenceContracts,
+  retained_output : Bool,
+  query_time : @publication_host.ClientQueryTimePreparation?,
+) -> Result[
+  @client_local_host.ClientInstalledManagedSourceFreePreparation,
+  ClientRequestProgramModuleBridgeIssue,
+] {
+  @client_local_host.prepare_request_model_source_free_module(
+    parent,
+    input,
+    request,
+    compiled,
+    definition,
+    compilation,
+    contracts,
+    retained_output,
+    installed_client_family_provider_count(),
+    installed_client_family_providers,
+    query_time~,
+  ).map_err(issue => Preparation(issue))
+}
+
+///|
+#export_name("clientProgramPrepareRequestModelCaptureModule")
+pub fn client_program_prepare_request_model_capture_module(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  request : @publication_host.ClientRequestIdentity,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  compilation : @publication_host.ClientTaskCompilation,
+  declarations : Array[@client_row_source_host.RowDeclaration],
+  query_contract_body : String,
+  evidence_contract_body : String,
+  transport_bytes : Array[Int64],
+  transport_execution_bytes : Array[Int64],
+  contracts : @client_local_host.ClientInstalledSequenceContracts,
+  retained_output : Bool,
+  query_time : @publication_host.ClientQueryTimePreparation?,
+) -> Result[
+  @client_local_host.ClientInstalledManagedCapturePlan,
+  ClientRequestProgramModuleBridgeIssue,
+] {
+  @client_local_host.prepare_request_model_capture_module(
+    parent,
+    input,
+    request,
+    compiled,
+    definition,
+    compilation,
+    declarations,
+    query_contract_body,
+    evidence_contract_body,
+    transport_bytes,
+    transport_execution_bytes,
+    contracts,
+    retained_output,
+    installed_client_family_provider_count(),
+    installed_client_family_providers,
+    query_time~,
+  ).map_err(issue => Preparation(issue))
+}
+
+///|
+#export_name("clientProgramPrepareRequestModelGraph")
+pub fn client_program_prepare_request_model_graph(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  occurrence : @publication_host.ClientInferOccurrence,
+  execution : @check_environment.ModelExecutionContract,
+  contracts : @client_local_host.ClientInstalledSequenceContracts,
+) -> Result[
+  @publication_host.ClientInferPlanGraph,
+  ClientRequestProgramModuleBridgeIssue,
+] {
+  let manifests = match client_generated_compilation_manifests() {
+    Ok(value) => value
+    Err(issue) => return Err(Manifests(issue))
+  }
+  @client_local_host.prepare_request_model_graph(
+    parent,
+    input,
+    occurrence,
+    execution,
+    contracts,
+    manifests~,
+    compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+  ).map_err(issue => Preparation(issue))
 }
 
 ///|
@@ -734,8 +933,17 @@ pub fn client_program_finish_request_computation(
     ClientLocalPreparationInputOriginal,
   ],
   input : ClientLocalPreparationInputOriginal,
-) -> Result[Unit, @client_local_host.ClientRequestTerminalIssue] {
-  @client_local_host.finish_request_computation_preparation(parent, input)
+  environment : @program_check.CheckEnvironment,
+  publication : @source_publication.PreparedPublishedQueryEnvironment,
+) -> Result[String, @client_local_host.ClientRequestTerminalIssue] {
+  @client_local_host.finish_request_checked_computation(
+    parent, input, environment, publication,
+  ).map(kind => {
+    match kind {
+      @client_local_host.Pure => "effect_free"
+      @client_local_host.Effect => "effectful"
+    }
+  })
 }
 
 ///|
@@ -773,6 +981,20 @@ pub fn client_program_prepare_request_program_compilation(
     compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
     retained_output~,
     provider_factory=installed_client_family_providers,
+  ).map_err(issue => Preparation(issue))
+}
+
+///|
+#export_name("clientProgramReserveRequestQueryTimeInvocation")
+pub fn client_program_reserve_request_query_time_invocation(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  compilation : @publication_host.ClientRunCompilation,
+) -> Result[Unit, ClientRequestProgramModuleBridgeIssue] {
+  @client_local_host.reserve_request_query_time_invocation(
+    parent, input, compilation,
   ).map_err(issue => Preparation(issue))
 }
 
@@ -1049,8 +1271,8 @@ pub fn client_program_prepare_request_native_computation(
   environment : @program_check.CheckEnvironment,
   publication : @source_publication.PreparedPublishedQueryEnvironment,
   values_max_rows : Int?,
-) -> Result[String, @client_local_host.ClientRequestTerminalIssue] {
-  @client_local_host.prepare_request_native_computation(
+) -> Result[Unit, @client_local_host.ClientRequestTerminalIssue] {
+  @client_local_host.prepare_request_native_computation_check(
     parent,
     input,
     captured,
@@ -1068,12 +1290,7 @@ pub fn client_program_prepare_request_native_computation(
     } else {
       Some(parameters)
     },
-  ).map(kind => {
-    match kind {
-      @client_local_host.Pure => "effect_free"
-      @client_local_host.Effect => "effectful"
-    }
-  })
+  )
 }
 
 ///|
@@ -1112,8 +1329,8 @@ pub fn client_program_prepare_request_source_computation(
   environment : @program_check.CheckEnvironment,
   publication : @source_publication.PreparedPublishedQueryEnvironment,
   values_max_rows : Int?,
-) -> Result[String, @client_local_host.ClientRequestTerminalIssue] {
-  @client_local_host.prepare_request_native_source_computation(
+) -> Result[Unit, @client_local_host.ClientRequestTerminalIssue] {
+  @client_local_host.prepare_request_native_source_computation_check(
     parent,
     input,
     captured,
@@ -1131,12 +1348,72 @@ pub fn client_program_prepare_request_source_computation(
     } else {
       Some(parameters)
     },
-  ).map(kind => {
-    match kind {
-      @client_local_host.Pure => "effect_free"
-      @client_local_host.Effect => "effectful"
-    }
-  })
+  )
+}
+
+///|
+// SAME original Request after semantic check, before compiler/Plan selection.
+#export_name("clientProgramPrepareRequestPolicySubjects")
+pub fn client_program_prepare_request_policy_subjects(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  environment : @program_check.CheckEnvironment,
+) -> Result[Int, @client_local_host.ClientRequestTerminalIssue] {
+  @client_local_host.prepare_request_computation_policy_subjects(
+    parent,
+    input,
+    environment,
+    client_request_value_policy_limits(),
+  )
+}
+
+///|
+#export_name("clientProgramReadRequestPolicySubject")
+pub fn client_program_read_request_policy_subject(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  environment : @program_check.CheckEnvironment,
+  index : Int,
+) -> Result[String, @client_local_host.ClientRequestTerminalIssue] {
+  @client_local_host.request_computation_policy_subject(
+    parent, input, environment, index,
+  )
+}
+
+///|
+// Invoke once per original descriptor, including an explicit verifier decline.
+#export_name("clientProgramBindRequestPolicySubject")
+pub fn client_program_bind_request_policy_subject(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  environment : @program_check.CheckEnvironment,
+  index : Int,
+  policy_cid : String?,
+) -> Result[Unit, @client_local_host.ClientRequestTerminalIssue] {
+  @client_local_host.bind_request_computation_policy_subject(
+    parent, input, environment, index, policy_cid,
+  )
+}
+
+///|
+// Finish work and supplement this SAME child; no selected Environment escapes.
+#export_name("clientProgramFinishRequestPolicySubjects")
+pub fn client_program_finish_request_policy_subjects(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  environment : @program_check.CheckEnvironment,
+) -> Result[Unit, @client_local_host.ClientRequestTerminalIssue] {
+  @client_local_host.finish_request_computation_policy_subjects(
+    parent, input, environment,
+  )
 }
 
 ///|
@@ -1200,6 +1477,149 @@ pub fn client_program_complete_request_content_preparation(
   @client_local_host.complete_request_content_preparation(
     parent, input, request, selected,
   )
+}
+
+///|
+#export_name("clientProgramCompleteRequestSerializationPreparation")
+pub fn client_program_complete_request_serialization_preparation(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  selected : @client_local_host.ClientInstalledManagedSerializationPreparation,
+) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue] {
+  @client_local_host.complete_request_serialization_preparation(
+    parent, input, selected,
+  )
+}
+
+///|
+/// The original Request owns measurement, Graph construction and later compilation.
+#export_name("clientProgramPrepareRequestSerializationGraph")
+pub fn client_program_prepare_request_serialization_graph(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  task : Int,
+  step : Int,
+  policy_cid : String,
+  policy_wire : String,
+  max_rows : Int,
+  max_bytes : Int,
+  include_results : Bool,
+  contracts : @client_local_host.ClientInstalledSequenceContracts,
+) -> Result[
+  @publication_host.ClientSerializationPlanGraph,
+  ClientRequestProgramModuleBridgeIssue,
+] {
+  let manifests = match client_generated_compilation_manifests() {
+    Ok(value) => value
+    Err(issue) => return Err(Manifests(issue))
+  }
+  @client_local_host.prepare_request_serialization_graph(
+    parent,
+    input,
+    task,
+    step,
+    policy_cid,
+    policy_wire,
+    max_rows,
+    max_bytes,
+    include_results,
+    contracts,
+    manifests~,
+    compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+  ).map_err(issue => Preparation(issue))
+}
+
+///|
+#export_name("clientProgramPrepareRequestAcquiredSerializationGraph")
+pub fn client_program_prepare_request_acquired_serialization_graph(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  task : Int,
+  step : Int,
+  max_rows : Int,
+  max_bytes : Int,
+  include_results : Bool,
+  contracts : @client_local_host.ClientInstalledSequenceContracts,
+) -> Result[
+  @publication_host.ClientSerializationPlanGraph,
+  ClientRequestProgramModuleBridgeIssue,
+] {
+  let manifests = match client_generated_compilation_manifests() {
+    Ok(value) => value
+    Err(issue) => return Err(Manifests(issue))
+  }
+  @client_local_host.prepare_request_acquired_serialization_graph(
+    parent,
+    input,
+    task,
+    step,
+    max_rows,
+    max_bytes,
+    include_results,
+    contracts,
+    manifests~,
+    compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+  ).map_err(issue => Preparation(issue))
+}
+
+///|
+#export_name("clientProgramPrepareRequestSerializationCompilation")
+pub fn client_program_prepare_request_serialization_compilation(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  component : @publication_host.ClientSerializationPlanGraph,
+  contracts : @client_local_host.ClientInstalledSequenceContracts,
+) -> Result[
+  @publication_host.ClientTaskCompilation,
+  ClientRequestProgramModuleBridgeIssue,
+] {
+  let manifests = match client_generated_compilation_manifests() {
+    Ok(value) => value
+    Err(issue) => return Err(Manifests(issue))
+  }
+  @client_local_host.prepare_request_serialization_compilation(
+    parent,
+    input,
+    component,
+    contracts,
+    manifests~,
+    compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+  ).map_err(issue => Preparation(issue))
+}
+
+///|
+#export_name("clientProgramPrepareRequestKeyedSerializationCompilation")
+pub fn client_program_prepare_request_keyed_serialization_compilation(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  selected : @client_local_host.ClientInstalledManagedKeyedPreparation,
+  component : @publication_host.ClientSerializationPlanGraph,
+) -> Result[
+  @publication_host.ClientTaskCompilation,
+  ClientRequestProgramModuleBridgeIssue,
+] {
+  let manifests = match client_generated_compilation_manifests() {
+    Ok(value) => value
+    Err(issue) => return Err(Manifests(issue))
+  }
+  @client_local_host.prepare_request_keyed_serialization_compilation(
+    parent,
+    input,
+    selected,
+    component,
+    manifests~,
+    compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+  ).map_err(issue => Preparation(issue))
 }
 
 ///|

@@ -122,9 +122,21 @@ pub fn client_program_installed_effect_response_buffer_construction_capacity(
 pub fn client_program_installed_effect_operation_response_backing_fits(
   original : @client_local_host.ClientInstalledEffectOperationExtent,
   max_response_bytes : Int,
+  max_header_bytes : Int,
 ) -> Bool {
   @client_local_host.installed_effect_operation_response_backing_fits(
-    original, max_response_bytes,
+    original, max_response_bytes, max_header_bytes,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledEffectHttpResponseConstructionCapacity")
+pub fn client_program_installed_effect_http_response_construction_capacity(
+  max_response_bytes : Int,
+  max_header_bytes : Int,
+) -> @execution.ExecutionCapacity? {
+  @client_local_host.installed_effect_http_response_construction_capacity(
+    max_response_bytes, max_header_bytes,
   )
 }
 
@@ -153,8 +165,27 @@ pub fn client_program_installed_effect_operation_controls_begin(
   prepared : @publication_host.PreparedClientEffectComputation,
   request : @publication_host.ClientRequestIdentity,
   plan : @client_local_host.ClientInstalledEffectManagedPlan,
-) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+) -> Result[
+  @client_local_host.ClientInstalledEffectManagedPlan,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
   @client_local_host.begin_installed_effect_operation_controls(
     owner, prepared, request, plan,
   )
+}
+
+///|
+// Forward the original provider-native Option/Array/tuple profile into the
+// existing Core JSON constructor owner. JavaScript supplies no ABI layout or
+// replacement quantities; this result is still constructor DATA only.
+#export_name("clientProgramInstalledStandardCreateConstructorCapacities")
+pub fn client_program_installed_standard_create_constructor_capacities(
+  original : Array[
+    (@execution.ExecutionCapacity, @source.ParseLimits?, @source.ParseLimits?),
+  ]?,
+) -> Result[
+  Array[@execution.ExecutionCapacity],
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.installed_standard_create_constructor_capacities(original)
 }

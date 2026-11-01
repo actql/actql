@@ -42,16 +42,30 @@ fn select_infer_execution_limits(
 }
 
 ///|
-/// Read the selected fixed consumer's complete input/Model/output bounds from
-/// its same checked occurrence, graph and admitted Run definition. The actual
-/// Host still supplies currentness and the entire before-work physical overlap;
-/// no read/Model/publication byte projection or permission is inferred here.
-pub fn original_composed_bounds(
+/// Read the selected consumer's input/Model/output bounds before a Run exists.
+/// These are the same checked occurrence/Plan DATA used by execution, not a
+/// resource grant or an authorization. The caller funds this selection and
+/// retains its original result before allocating the complete physical frame.
+pub fn prepared_composed_bounds(
+  occurrence : @publication_host.ClientInferOccurrence,
+  plan : @publication_host.ClientInferPlanGraph,
+) -> Result[Limits, Issue] {
+  if !@publication_host.client_infer_occurrence_matches_plan(occurrence, plan) {
+    return Err(OriginalCapacity(@publication_host.ForeignInput))
+  }
+  select_infer_execution_limits(occurrence, Some(plan), standard_limits(), true)
+}
+
+///|
+/// Bind that same prepared occurrence/Plan to the actual original Run later.
+/// No bounds selection, Ledger/Scope, provider, current callback or resource
+/// quote is repeated here. Current authority remains at its existing owner.
+pub fn check_original_composed_preparation(
   compiled : @publication_host.ClientCompiledRun,
   definition : @publication.PublicationContract,
   occurrence : @publication_host.ClientInferOccurrence,
   plan : @publication_host.ClientInferPlanGraph,
-) -> Result[Limits, Issue] {
+) -> Result[Unit, Issue] {
   if !@publication_host.client_infer_occurrence_matches_compiled_run(
       occurrence, compiled,
     ) ||
@@ -66,5 +80,5 @@ pub fn original_composed_bounds(
       )
     Ok(_) => ()
   }
-  select_infer_execution_limits(occurrence, Some(plan), standard_limits(), true)
+  Ok(())
 }

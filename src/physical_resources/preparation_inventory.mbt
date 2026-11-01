@@ -196,6 +196,11 @@ pub fn[I, P] grow_preparation_capacity_inventory(
     value.park is None else {
     return Err(WorkActive)
   }
+  // Full Map growth/scalar backing was admitted before allocation. Existing
+  // token identities/order/serials remain in place; no fresh census is issued.
+  value.reservations.reserve_capacity(max_reservations)
+  value.holdings.reserve_capacity(max_holdings)
+  value.delegations.reserve_capacity(max_delegations)
   value.max_reservations = max_reservations
   value.max_holdings = max_holdings
   value.max_delegations = max_delegations
@@ -259,6 +264,8 @@ fn settle_preparation_inventory_current(
       value.holdings.shrink_to_fit()
       value.delegations.clear()
       value.delegations.shrink_to_fit()
+      value.holding_counts.clear()
+      value.holding_counts = Map([])
       Ok(())
     }
   }

@@ -5,7 +5,7 @@
 /// Source spans/decoded Strings shared by the indexed tree are charged once.
 priv struct ClosedValuesSourceInventories {
   source_retained : @execution.PreparationRepresentationUnits
-  source_shared_dependencies : @execution.PreparationRepresentationUnits
+  _observed_source_shared_dependencies : @execution.PreparationRepresentationUnits
   source_growth_peak : @execution.PreparationRepresentationUnits
   indexed_additional : @execution.PreparationRepresentationUnits
   key_admission_peak : @execution.PreparationRepresentationUnits
@@ -180,7 +180,7 @@ fn closed_values_source_inventories(
   }
   {
     source_retained,
-    source_shared_dependencies,
+    _observed_source_shared_dependencies: source_shared_dependencies,
     source_growth_peak,
     indexed_additional,
     key_admission_peak,

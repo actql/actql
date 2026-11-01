@@ -24,15 +24,18 @@ fn request_row_limit_fixture(
     values +
     "]},\"as\":\"v\"}],\"results\":{\"rows\":{\"from\":\"v\",\"fields\":[\"id\"]}}}],\"results\":{\"rows\":{\"from\":{\"stage\":\"s\",\"result\":\"rows\"}}}}"
   let (parent, receipt) = request_diagnostic_test_parent()
+  client_program_prepare_request_native_computation(
+    parent,
+    receipt,
+    request_diagnostic_test_json(document),
+    request_diagnostic_test_json("null"),
+    environment,
+    publication,
+    Some(max_rows),
+  ).unwrap()
   assert_eq(
-    client_program_prepare_request_native_computation(
-      parent,
-      receipt,
-      request_diagnostic_test_json(document),
-      request_diagnostic_test_json("null"),
-      environment,
-      publication,
-      Some(max_rows),
+    client_program_finish_request_computation(
+      parent, receipt, environment, publication,
     ).unwrap(),
     "effect_free",
   )

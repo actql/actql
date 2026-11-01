@@ -5,7 +5,7 @@
     {
       "module": "packages/local-node/connector-installation.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "5b62341a00f6bee5599938b1fc80a9bfd978dd9e36189ada91bcd6a3e1ecc3a2",
+      "sha256": "31bdc57da5ed90fea363394081a6031c63ece76810e3573d151fc037687ac41d",
       "exports": [
         "AuthorizationBoundary",
         "AuthorizationTuple",
@@ -40,6 +40,10 @@
         "InvocationAuthorization",
         "InvocationPrimitive",
         "ReadGrantRequest",
+        "RestSourceInstallationDefinition",
+        "RestSourcePageData",
+        "RestSourceProfile",
+        "RestSourceTransform",
         "RowEffectCommand",
         "RowEffectCommandMember",
         "RowEffectDriver",
@@ -68,6 +72,7 @@
         "RowSourceMapping",
         "RuntimeResult",
         "checked",
+        "createInstalledRestSource",
         "createInstalledRowEffect",
         "createInstalledRowSource",
         "installRowSourceAuthorization",
@@ -86,6 +91,14 @@
           "result": "Result"
         },
         {
+          "name": "<call>#2",
+          "parameters": [
+            "page: Readonly<RestSourcePageData>",
+            "context: Readonly<{resource: string; columns: readonly string[]}>"
+          ],
+          "result": "Readonly<{rowsWire: string; nextCursor?: string}>"
+        },
+        {
           "name": "checked",
           "parameters": [
             "result: RuntimeResult<T>"
@@ -98,6 +111,55 @@
             "result: unknown"
           ],
           "result": "unknown"
+        },
+        {
+          "name": "createInstalledRestSource",
+          "parameters": [
+            "definition: RestSourceInstallationDefinition",
+            "options?: Readonly<{decodePage?: RestSourceTransform}>"
+          ],
+          "result": "Readonly<{\n    checkProfile(profile: unknown): Readonly<RestSourceProfile>;\n    identityParts(profile: object, providerProfile: RestSourceProfile,\n      readJson?: (path: string) => Promise<unknown>, installation?: object,\n      context?: object): Promise<readonly unknown[]>;\n    publish(profile: RestSourceProfile, options: object): Promise<object>;\n    load(profile: RestSourceProfile, options: object): Promise<InstalledRowSource>;\n  }>"
+        },
+        {
+          "name": "createInstalledRestSource/checkProfile",
+          "parameters": [
+            "profile: unknown"
+          ],
+          "result": "Readonly<RestSourceProfile>"
+        },
+        {
+          "name": "createInstalledRestSource/identityParts",
+          "parameters": [
+            "profile: object",
+            "providerProfile: RestSourceProfile",
+            "readJson?: (path: string) => Promise<unknown>",
+            "installation?: object",
+            "context?: object"
+          ],
+          "result": "Promise<readonly unknown[]>"
+        },
+        {
+          "name": "createInstalledRestSource/identityParts/<call>",
+          "parameters": [
+            "path: string"
+          ],
+          "result": "Promise<unknown>"
+        },
+        {
+          "name": "createInstalledRestSource/load",
+          "parameters": [
+            "profile: RestSourceProfile",
+            "options: object"
+          ],
+          "result": "Promise<InstalledRowSource>"
+        },
+        {
+          "name": "createInstalledRestSource/publish",
+          "parameters": [
+            "profile: RestSourceProfile",
+            "options: object"
+          ],
+          "result": "Promise<object>"
         },
         {
           "name": "createInstalledRowEffect",
@@ -224,11 +286,6 @@
           "result": "InstallationCleanupStatus"
         },
         {
-          "name": "InstalledRowEffect/close",
-          "parameters": [],
-          "result": "void"
-        },
-        {
           "name": "InstalledRowProviderReader/observe",
           "parameters": [],
           "result": "Readonly<{cleanupConfirmed: boolean}>"
@@ -249,11 +306,6 @@
             "sourceRef: string"
           ],
           "result": "boolean"
-        },
-        {
-          "name": "InstalledRowSource/close",
-          "parameters": [],
-          "result": "void"
         },
         {
           "name": "installRowSourceAuthorization",
@@ -590,12 +642,10 @@
             "InstallationCloseOwner/close",
             "InstallationFailure/retry",
             "InstallationFailure/status",
-            "InstalledRowEffect/close",
             "InstalledRowProviderReader/observe",
             "InstalledRowProviderReader/read",
             "InstalledRowProviderReader/requestStop",
             "InstalledRowSource/admitsSource",
-            "InstalledRowSource/close",
             "installRowSourceAuthorization",
             "invokeScopedCredentialOperation",
             "openRowSourceCredentialSite",
@@ -1043,15 +1093,160 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "<call>#2",
+            "createInstalledRestSource",
+            "createInstalledRestSource/checkProfile",
+            "createInstalledRestSource/identityParts",
+            "createInstalledRestSource/identityParts/<call>",
+            "createInstalledRestSource/load",
+            "createInstalledRestSource/publish"
+          ],
+          "exports": [
+            "RestSourceInstallationDefinition",
+            "RestSourcePageData",
+            "RestSourceProfile",
+            "RestSourceTransform",
+            "createInstalledRestSource"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/contributing/connector-authoring.md",
+                "anchor": "The common semantics stay in the MoonBit Core and the common Host owners."
+              },
+              {
+                "path": "adapters/host-node/installed-rest-source.mjs",
+                "anchor": "// owners. Provider declarations supply DATA; no reader lifecycle is here."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-rest-source.mjs",
+                "anchor": "export function createInstalledRestSource(definition, {decodePage} = {}) {"
+              },
+              {
+                "path": "docs/contributing/connector-authoring.md",
+                "anchor": "The field DATA enters the original Common declaration constructor unchanged."
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-rest-source.mjs",
+                "anchor": "const {declaration, declared, environment} = prepare();"
+              },
+              {
+                "path": "adapters/host-node/installed-rest-source.mjs",
+                "anchor": "catalogCid: declared.catalog_cid, originalStringsCid: input.originalStringsCid,"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/contributing/connector-authoring.md",
+                "anchor": "The same Host owns checked declaration preparation,"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "The Host passes that projection into the original Run Ledger's"
+              },
+              {
+                "path": "adapters/host-node/installed-rest-source.mjs",
+                "anchor": "{sourceReader: providerReader, sourceProfile: site});"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-rest-source.mjs",
+                "anchor": "// Select original service methods before any configuration await. The"
+              },
+              {
+                "path": "adapters/host-node/installed-rest-source.mjs",
+                "anchor": "const method = Object.getOwnPropertyDescriptor(sourceInitialization, 'prepareAuthoredDeclaration');"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-rest-source.mjs",
+                "anchor": "types.isProxy(sourceInitialization)) fail('RestSourceInitializationUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/installed-rest-source.mjs",
+                "anchor": "throw await retainInstalledHostInitializationFailure(cause,"
+              },
+              {
+                "path": "docs/contributing/connector-authoring.md",
+                "anchor": "Missing framework support refuses;"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/contributing/connector-authoring.md",
+                "anchor": "charging before decode, current checks, cancellation and physical cleanup."
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "The Host also keeps"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "Neither action confirms physical retirement"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/contributing/connector-authoring.md",
+                "anchor": "These finite page and row ceilings constrain the connector; they are not a"
+              },
+              {
+                "path": "adapters/host-node/installed-rest-source.mjs",
+                "anchor": "// funding. The same selected Host profile must cover them in full."
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "Common checks the additions and reserves them before the reader"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/contributing/connector-authoring.md",
+                "anchor": "the Core or Host for each new Connector."
+              },
+              {
+                "path": "adapters/host-node/installed-rest-source.mjs",
+                "anchor": "if (decodePage !== undefined && typeof decodePage !== 'function') fail('InvalidRestSourceTransform');"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/local-node/connector-installation.typecheck.mts",
+                "anchor": "// @ts-expect-error Host services are not an author facade option."
+              },
+              {
+                "path": "packages/local-node/connector-installation.typecheck.mts",
+                "anchor": "// @ts-expect-error A factory cannot accept caller-issued capacity as authority."
+              },
+              {
+                "path": "scripts/fixtures/external-rest/preparation.test.mjs",
+                "anchor": "test('REST installed entrance checks every generated installation export before Host construction'"
+              },
+              {
+                "path": "docs/contributing/connector-authoring.md",
+                "anchor": "Source checks,"
+              }
+            ]
+          }
         }
       ]
     },
     {
       "module": "packages/local-node/connector-installation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f6b79194160b5d7f7927902e693ff66d0c23c9c78d82308396152c0260b7fee0",
+      "sha256": "5a7a44d0104a22e95c05671690b1aee1eb2be4e747ba36b11eac166bc72951ce",
       "exports": [
         "checked",
+        "createInstalledRestSource",
         "createInstalledRowEffect",
         "createInstalledRowSource",
         "installRowSourceAuthorization",
@@ -1066,13 +1261,12 @@
         "./adapters/host-common/owned-invocation-context.mjs",
         "./adapters/host-common/runtime-result.mjs",
         "./adapters/host-node/installed-host-cleanup.mjs",
+        "./adapters/host-node/installed-rest-source.mjs",
         "./adapters/host-node/installed-row-effect.mjs",
         "./adapters/host-node/installed-row-source.mjs"
       ],
       "compilerFields": [],
-      "unresolvedSyntax": [
-        "dynamic CommonJS export value"
-      ],
+      "unresolvedSyntax": [],
       "role": "physical-io",
       "owner": "existing public Client / installed Host port and Result reader boundary",
       "rationale": "Reviewed original facade, codec or explanation; current wire/Host/Core owns admission and meaning. Original typed refusal, pending cleanup, request identity and Unknown do not authorize resending. Type-only export declarations make no new runtime claim.",
@@ -1179,6 +1373,78 @@
               {
                 "path": "adapters/host-node/installed-row-source.test.mjs",
                 "anchor": "test("
+              }
+            ]
+          }
+        },
+        {
+          "operations": [],
+          "exports": [
+            "createInstalledRestSource"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/embedded-source-identity-initialization.test.mjs",
+                "anchor": "identity and Host loader reuse one actual service and parent with the original Project and current fences"
+              },
+              {
+                "path": "adapters/host-node/rest-source-initial-material.test.mjs",
+                "anchor": "REST factory forwards the same managed CA bytes to its original Site service"
               }
             ]
           }
@@ -5457,7 +5723,7 @@
     {
       "module": "packages/sdk/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "8b3fbac77fe46f98dc1d49b401d9d003da155aa746592376e58e1183e6c2798e",
+      "sha256": "9041dd7cef0b0adbedf14554f910379787d8590962d43e49c27f488a8fd59a9d",
       "exports": [
         "CancellationExplanation",
         "CancellationLookup",
@@ -5540,6 +5806,7 @@
         "SubmissionReference",
         "TextCheckOptions",
         "connect",
+        "connectInProcess",
         "createCheckDocumentSession",
         "createCheckSupplementationSession",
         "equalCheckRequirementFrontiers",
@@ -6363,6 +6630,7 @@
       ],
       "imports": [
         "./check-reason-catalog.generated.js",
+        "./host-port.js",
         "./standard-schema.js",
         "@actql/client-wire"
       ],
@@ -6558,6 +6826,7 @@
             "SubmissionReference",
             "TextCheckOptions",
             "connect",
+            "connectInProcess",
             "createCheckDocumentSession",
             "createCheckSupplementationSession",
             "equalCheckRequirementFrontiers",
@@ -15339,6 +15608,202 @@
               {
                 "path": "packages/sdk/typed-results.test.mjs",
                 "anchor": "test("
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "packages/local-node/observation.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "acb9f75ac03543079b6e2ffe72f48b66206e3ba98b65cf76194bd60fae855fa9",
+      "exports": [
+        "createHostObservationConnection",
+        "observationLimits"
+      ],
+      "operations": [],
+      "imports": [
+        "./adapters/host-common/observation.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "physical-io",
+      "owner": "Existing canonical Host observation and Result access services; public typed forwarding only",
+      "rationale": "Original values and private nominal/service ownership are retained. The public facade issues no authority and adds no callback, currentness observation, capacity or cleanup owner.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [
+            "createHostObservationConnection",
+            "observationLimits"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/runtime-public-facades.md",
+                "anchor": "Public runtime entry points forward the values declared by their existing"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/runtime-public-facades.md",
+                "anchor": "TypeScript interfaces. Local observation exposes `createHostObservationConnection`"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/runtime-public-facades.md",
+                "anchor": "Each export is the canonical implementation's original function or value."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/runtime-public-facades.md",
+                "anchor": "The facade creates no wrapper, alternate registry, authority or lifecycle owner."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/runtime-public-facades.md",
+                "anchor": "The module forwards no calls and adds no callback or asynchronous boundary."
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/runtime-public-facades.md",
+                "anchor": "Failures retain the canonical error class, code, cause and cleanup behavior."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/runtime-public-facades.md",
+                "anchor": "Current authorization, delivery sequencing, cancellation and physical cleanup"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/runtime-public-facades.md",
+                "anchor": "Importing a facade does not allocate a Run, reserve capacity or grant access."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/runtime-public-facades.md",
+                "anchor": "Extensions require the existing typed and runtime public surfaces to agree."
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/runtime-public-facades.md",
+                "anchor": "Source-level facade checks compare actual namespaces and original identities,"
+              },
+              {
+                "path": "scripts/runtime-package-inputs.test.mjs",
+                "anchor": "test('public observation facade"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "packages/run-host-core/result-access-public.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "55649f64f3a67ee282c533f8d65761d975f333020c835eb3ee33c7d28a773515",
+      "exports": [
+        "deliverAuthorizedResult",
+        "describeAuthorizedResult",
+        "inspectAuthorizedDeliveryAttempt",
+        "installResultAccessAuthority",
+        "installResultAccessService"
+      ],
+      "operations": [],
+      "imports": [
+        "./result-access.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "physical-io",
+      "owner": "Existing canonical Host observation and Result access services; public typed forwarding only",
+      "rationale": "Original values and private nominal/service ownership are retained. The public facade issues no authority and adds no callback, currentness observation, capacity or cleanup owner.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [
+            "deliverAuthorizedResult",
+            "describeAuthorizedResult",
+            "inspectAuthorizedDeliveryAttempt",
+            "installResultAccessAuthority",
+            "installResultAccessService"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/runtime-public-facades.md",
+                "anchor": "Public runtime entry points forward the values declared by their existing"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/runtime-public-facades.md",
+                "anchor": "TypeScript interfaces. Local observation exposes `createHostObservationConnection`"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/runtime-public-facades.md",
+                "anchor": "Each export is the canonical implementation's original function or value."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/runtime-public-facades.md",
+                "anchor": "The facade creates no wrapper, alternate registry, authority or lifecycle owner."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/runtime-public-facades.md",
+                "anchor": "The module forwards no calls and adds no callback or asynchronous boundary."
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/runtime-public-facades.md",
+                "anchor": "Failures retain the canonical error class, code, cause and cleanup behavior."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/runtime-public-facades.md",
+                "anchor": "Current authorization, delivery sequencing, cancellation and physical cleanup"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/runtime-public-facades.md",
+                "anchor": "Importing a facade does not allocate a Run, reserve capacity or grant access."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/runtime-public-facades.md",
+                "anchor": "Extensions require the existing typed and runtime public surfaces to agree."
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/runtime-public-facades.md",
+                "anchor": "Source-level facade checks compare actual namespaces and original identities,"
+              },
+              {
+                "path": "scripts/runtime-package-inputs.test.mjs",
+                "anchor": "test('public Result facade"
               }
             ]
           }

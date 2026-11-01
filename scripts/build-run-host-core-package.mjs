@@ -43,12 +43,16 @@ const delivery = readFileSync(join(root, 'adapters/host-common',
   'result-delivery.mjs'));
 const action = readFileSync(join(root, 'adapters/host-common',
   'publication-action.mjs'));
+const failure = readFileSync(join(root, 'adapters/host-common',
+  'managed-failure.mjs'));
 const accessFile = join(root, 'packages/run-host-core',
   'result-access.mjs');
 const deliveryFile = join(root, 'packages/run-host-core',
   'result-delivery.mjs');
 const actionFile = join(root, 'packages/run-host-core',
   'publication-action.mjs');
+const failureFile = join(root, 'packages/run-host-core',
+  'managed-failure.mjs');
 if (process.argv.includes('--check')) {
   if (!readFileSync(destination).equals(bytes)) {
     throw new Error('StaleRunHostCorePackage');
@@ -62,7 +66,8 @@ if (process.argv.includes('--check')) {
   }
   if (readFileSync(accessFile, 'utf8') !== access ||
       !readFileSync(deliveryFile).equals(delivery) ||
-      !readFileSync(actionFile).equals(action)) {
+      !readFileSync(actionFile).equals(action) ||
+      !readFileSync(failureFile).equals(failure)) {
     throw new Error('StaleRunHostResultAccessService');
   }
 } else {
@@ -75,5 +80,6 @@ if (process.argv.includes('--check')) {
     writeFileSync(accessFile, access);
     writeFileSync(deliveryFile, delivery);
     writeFileSync(actionFile, action);
+    writeFileSync(failureFile, failure);
   }
 }

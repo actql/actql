@@ -344,6 +344,77 @@ pub fn[P] check_node_managed_run_mutable_admission(
 }
 
 ///|
+// Only these two closed Resource entries consume this immediate result. It
+// never leaves the module as a reusable current proof or retained session.
+fn[P, E] check_node_managed_run_operation_original(
+  value : NodeManagedRunAdmission[P],
+  prepared : P,
+  ledger : Ledger,
+  original : () -> Result[Unit, E],
+) -> Result[Unit, NodeManagedRunOperationIssue[E]] {
+  match check_node_managed_run_mutable_admission(value, prepared, ledger) {
+    Err(issue) => return Err(Admission(issue))
+    Ok(_) => ()
+  }
+  match original() {
+    Err(issue) => return Err(Original(issue))
+    Ok(_) => ()
+  }
+  // The internal continuation carries no authority. Recheck Resource's own
+  // tuple and mutable state without invoking physical current a second time.
+  match check_node_managed_run_preparation(value, prepared) {
+    Err(issue) => return Err(Admission(issue))
+    Ok(_) => ()
+  }
+  guard value.ledger is Some(bound) && physical_equal(bound, ledger) else {
+    return Err(Admission(ForeignOriginal))
+  }
+  match check_imported_original_child_ledger_current(value.child, ledger) {
+    Err(issue) => return Err(Admission(issue))
+    Ok(_) => ()
+  }
+  match check_original_resources_mutable_current(ledger) {
+    Err(issue) => return Err(Admission(Resource(issue)))
+    Ok(_) => ()
+  }
+  Ok(())
+}
+
+///|
+/// Reserve on the same prepared original at one synchronous boundary. The
+/// existing admission performs current once and rechecks its original lifetime;
+/// the existing reservation mutation inspects that resulting state without
+/// another callback. This returns only the ordinary original Reservation, not
+/// a reusable current proof, replacement Ledger or physical-start permission.
+pub fn[P] reserve_node_managed_run_attempt(
+  value : NodeManagedRunAdmission[P],
+  prepared : P,
+  ledger : Ledger,
+  transfer_bytes : Int64,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> Result[Reservation, ImportedChildLedgerIssue] {
+  if transfer_bytes < 0L || retained_bytes < 0L || execution_bytes < 0L {
+    return Err(Resource(InvalidCharge))
+  }
+  match check_node_managed_run_mutable_admission(value, prepared, ledger) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  match check_imported_child_admission_current(ledger) {
+    Err(issue) => return Err(Resource(issue))
+    Ok(_) => ()
+  }
+  reserve_attempt_current(
+    ledger,
+    transfer_bytes,
+    retained_bytes,
+    execution_bytes,
+    None,
+  ).map_err(issue => Resource(issue))
+}
+
+///|
 /// Keep the opaque checked preparation fixed by the actual Root. Equal CIDs
 /// or an independently checked copy cannot replace this original afterwards.
 pub fn[P] check_node_managed_run_preparation(

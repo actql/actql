@@ -14,9 +14,7 @@ pub fn client_program_installed_effect_model_demand_prepare(
   @client_local_host.ClientInstalledManagedRunIssue,
 ] {
   let selected = match
-    @infer_host.original_composed_bounds(
-      compiled, definition, occurrence, graph,
-    ) {
+    original_composed_model_limits(compiled, definition, occurrence, graph) {
     Err(_) => return Err(ForeignOriginal)
     Ok(value) => value
   }
@@ -34,6 +32,15 @@ pub fn client_program_installed_effect_model_demand_prepare(
     selected.input.rows.retained_entries,
     selected.input.rows.metadata_entries,
   )
+}
+
+///|
+/// Read the window retained by the SAME already prepared Model demand.
+#export_name("clientProgramInstalledEffectModelReadWindow")
+pub fn client_program_installed_effect_model_read_window(
+  model : @client_local_host.ClientInstalledEffectModelDemand,
+) -> Array[Int64] {
+  @client_local_host.installed_effect_model_read_window(model)
 }
 
 ///|
@@ -100,8 +107,100 @@ pub fn client_program_installed_mock_model_capture_plan_bind(
 /// Retain the original component providers when the original Plan is prepared.
 /// The canonical fixed family constructors and their order remain unchanged;
 /// the component references are the SAME handles, never late replacements.
+// The JS base entry has no optional Array argument. Only these typed Moon
+// entries construct None/Some; JS cannot substitute its unboxed Array layout.
 #export_name("clientProgramInstalledEffectModelManagedPlanPrepare")
 pub fn client_program_installed_effect_model_managed_plan_prepare(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  declarations : Array[@client_row_source_host.RowDeclaration],
+  query_contract_body : String,
+  evidence_contract_body : String,
+  transport_bytes : Array[Int64],
+  transport_execution_bytes : Array[Int64],
+  installed_contracts : @client_local_host.ClientInstalledSequenceContracts,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+  selected_operations : Array[
+    @client_local_host.ClientInstalledEffectOperationDemand,
+  ],
+  model : @client_local_host.ClientInstalledEffectModelDemand,
+  components : Array[@local.ManagedProvider],
+  query_time : @publication_host.ClientQueryTimePreparation?,
+) -> Result[
+  @client_local_host.ClientInstalledEffectManagedPlan,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  installed_effect_model_plan_from_original_sources(
+    prepared,
+    request,
+    declarations,
+    None,
+    query_contract_body,
+    evidence_contract_body,
+    transport_bytes,
+    transport_execution_bytes,
+    installed_contracts,
+    values_body,
+    fragment_body,
+    ordered_body,
+    selected_operations,
+    model,
+    components,
+    query_time,
+  )
+}
+
+///|
+// Preserve the SAME nonempty provider-capacity vector and checked Source count.
+#export_name("clientProgramInstalledEffectModelManagedProviderPlanPrepare")
+pub fn client_program_installed_effect_model_managed_provider_plan_prepare(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  declarations : Array[@client_row_source_host.RowDeclaration],
+  source_providers : Array[@execution.ExecutionCapacity],
+  query_contract_body : String,
+  evidence_contract_body : String,
+  transport_bytes : Array[Int64],
+  transport_execution_bytes : Array[Int64],
+  installed_contracts : @client_local_host.ClientInstalledSequenceContracts,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+  selected_operations : Array[
+    @client_local_host.ClientInstalledEffectOperationDemand,
+  ],
+  model : @client_local_host.ClientInstalledEffectModelDemand,
+  components : Array[@local.ManagedProvider],
+  query_time : @publication_host.ClientQueryTimePreparation?,
+) -> Result[
+  @client_local_host.ClientInstalledEffectManagedPlan,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  installed_effect_model_plan_from_original_sources(
+    prepared,
+    request,
+    declarations,
+    Some(source_providers),
+    query_contract_body,
+    evidence_contract_body,
+    transport_bytes,
+    transport_execution_bytes,
+    installed_contracts,
+    values_body,
+    fragment_body,
+    ordered_body,
+    selected_operations,
+    model,
+    components,
+    query_time,
+  )
+}
+
+///|
+// One shared original component/Plan construction for both typed entrances.
+fn installed_effect_model_plan_from_original_sources(
   prepared : @publication_host.PreparedClientEffectComputation,
   request : @publication_host.ClientRequestIdentity,
   declarations : Array[@client_row_source_host.RowDeclaration],

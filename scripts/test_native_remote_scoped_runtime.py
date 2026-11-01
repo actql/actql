@@ -5,6 +5,9 @@ import shlex
 import json
 import tempfile
 import unittest
+import subprocess
+import sys
+import os
 
 SPEC = importlib.util.spec_from_file_location('remote_build', Path(__file__).with_name('produce-native-remote-scoped-runtime.py'))
 MODULE = importlib.util.module_from_spec(SPEC)
@@ -120,6 +123,24 @@ class RemoteScopedComposition(unittest.TestCase):
             path.write_text(json.dumps({'steps': []}))
             with self.assertRaisesRegex(ValueError, 'Unplanned'):
                 MODULE.compile_selected_c(path, ['--arbitrary'])
+
+    def test_actual_private_cc_driver_import_needs_no_release_parser_path(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            plan = root / 'plan.json'
+            plan.write_text(json.dumps({'steps': []}))
+            script = ('import importlib.util,sys\n'
+                      'from pathlib import Path\n'
+                      's=importlib.util.spec_from_file_location("selected_cc",sys.argv[1])\n'
+                      'm=importlib.util.module_from_spec(s);s.loader.exec_module(m)\n'
+                      'try:m.compile_selected_c(Path(sys.argv[2]),["--unplanned"])\n'
+                      'except ValueError as e:print(str(e))\n')
+            result = subprocess.run([sys.executable, '-I', '-c', script,
+                                     str(Path(MODULE.__file__)), str(plan)],
+                                    cwd=root, env={**os.environ, 'PYTHONPATH': ''},
+                                    capture_output=True, text=True, timeout=10)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(result.stdout.strip(), 'Unplanned or ambiguous C compiler invocation')
 
     def test_private_c_port_rechecks_allocator_before_compiler(self):
         with tempfile.TemporaryDirectory() as directory:

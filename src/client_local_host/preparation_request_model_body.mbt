@@ -14,7 +14,7 @@ pub fn[I] borrow_request_model_plan_input(
     owner.program_source_free is Some(_) ||
     owner.program_captured is Some(_) ||
     owner.program_artifact_inputs is Some(_) ||
-    owner.program_model_compilation_inputs is Some(_) ||
+    owner.program_domain_compilation_inputs is Some(_) ||
     owner.program_body_attempted {
     return Err(WrongPhase)
   }
@@ -86,18 +86,57 @@ pub fn[I] prepare_request_model_compilation(
   if !installed_managed_run_shape_supported(prepared, true) {
     return Err(Installed(Unsupported))
   }
-  if owner.program_model_compilation_inputs
-    is Some((old_manifests, old_limits, old_contracts, old_model)) {
-    guard physical_equal(old_manifests, manifests) &&
-      old_limits == compilation_limits &&
-      physical_equal(old_contracts, contracts) &&
-      physical_equal(old_model, graph) else {
-      return Err(Preparation(ForeignOriginal))
+  match owner.program_domain_compilation_inputs {
+    Some(RequestModelGraph(old_manifests, old_limits, old_contracts, original)) => {
+      guard physical_equal(old_manifests, manifests) &&
+        old_limits == compilation_limits &&
+        physical_equal(old_contracts, contracts) &&
+        physical_equal(original, graph) else {
+        return Err(Preparation(ForeignOriginal))
+      }
+      owner.program_domain_compilation_inputs = Some(
+        RequestModelCompilation(manifests, compilation_limits, contracts, graph),
+      )
     }
-  } else {
-    owner.program_model_compilation_inputs = Some(
-      (manifests, compilation_limits, contracts, graph),
-    )
+    Some(
+      RequestSerializationGraph(
+        old_manifests,
+        old_limits,
+        old_contracts,
+        component
+      )
+    ) => {
+      guard physical_equal(old_manifests, manifests) &&
+        old_limits == compilation_limits &&
+        physical_equal(old_contracts, contracts) &&
+        graph.serialization is Some(original) &&
+        physical_equal(original, component) else {
+        return Err(Preparation(ForeignOriginal))
+      }
+      owner.program_domain_compilation_inputs = Some(
+        RequestModelCompilation(manifests, compilation_limits, contracts, graph),
+      )
+    }
+    Some(
+      RequestModelCompilation(
+        old_manifests,
+        old_limits,
+        old_contracts,
+        old_model
+      )
+    ) => {
+      guard physical_equal(old_manifests, manifests) &&
+        old_limits == compilation_limits &&
+        physical_equal(old_contracts, contracts) &&
+        physical_equal(old_model, graph) else {
+        return Err(Preparation(ForeignOriginal))
+      }
+    }
+    Some(_) => return Err(Preparation(ForeignOriginal))
+    None =>
+      owner.program_domain_compilation_inputs = Some(
+        RequestModelCompilation(manifests, compilation_limits, contracts, graph),
+      )
   }
   owner.phase = Selecting
   preparation_module_call(
@@ -111,12 +150,7 @@ pub fn[I] prepare_request_model_compilation(
         Ok(_) => ()
       }
       let result = prepare_request_compilation_owned(
-        owner,
-        input,
-        prepared,
-        manifests,
-        compilation_limits,
-        Some(graph),
+        owner, input, prepared, manifests, compilation_limits,
       )
       match result {
         Err(issue) => return Err(issue)
@@ -138,9 +172,9 @@ pub fn[I] prepare_request_model_compilation(
 
 ///|
 /// Bind this actual Model Plan before completing the original Prepared body.
-/// The caller has backed and retained its complete selected Model/read/module
-/// overlap at the current extents. This call does not derive backing from a
-/// codec limit or start another Root/bootstrap/Node admission.
+/// Fund the actual Scope records and the original census-slot growth before
+/// binding. Complete selected Model/read/module/physical constructor overlap
+/// remains separate; no codec ceiling or runtime allowance supplies it here.
 pub fn[I] prepare_request_model_read_scope(
   owner : ClientRequestPreparation[I],
   input : I,
@@ -149,10 +183,39 @@ pub fn[I] prepare_request_model_read_scope(
   @publication_host.ClientModelReadScope,
   ClientInstalledManagedRunIssue,
 ] {
-  guard owner.phase == ModelPlanReserved &&
+  let quoted = owner.phase == ModelScopeQuoted
+  // This Request retained the actual funded module before Plan/Scope entry.
+  // A separately reconstructed module with the same compiler is still foreign.
+  guard (match
+    (
+      plan.source_free,
+      plan.captured,
+      owner.program_source_free,
+      owner.program_captured,
+    ) {
+    (Some(selected), None, Some(original), None) =>
+      physical_equal(selected, original)
+    (None, Some(selected), None, Some(original)) =>
+      physical_equal(selected, original)
+    _ => false
+  }) else {
+    return Err(ForeignOriginal)
+  }
+  guard (
+      (
+        owner.phase == ModelPlanReserved &&
+        owner.program_model is None &&
+        owner.program_domain_quote is None
+      ) ||
+      (
+        quoted &&
+        owner.program_model is Some(selected_plan) &&
+        physical_equal(selected_plan, plan) &&
+        owner.program_domain_quote is Some(_)
+      )
+    ) &&
     owner.program_capacity is Some(capacity) &&
     owner.compiled_program is Some(prepared) &&
-    owner.program_model is None &&
     owner.program_compilation is Some(@publication_host.Tasks(compilation)) &&
     @publication_host.client_compiled_run_matches_tasks(
       plan.compiled,
@@ -173,11 +236,22 @@ pub fn[I] prepare_request_model_read_scope(
   if !installed_effect_limits_fit(plan.limits, available) {
     return Err(InsufficientCapacity)
   }
-  let (r, e) = match
-    @resources.preparation_capacity_working_extents(capacity, input) {
-    Err(issue) => return Err(Preparation(issue))
-    Ok(value) => value
+  if !quoted {
+    let quote = match
+      request_model_scope_construction_quote(
+        capacity,
+        input,
+        plan.max_reservations,
+        plan.max_holdings,
+        plan.max_delegations,
+      ) {
+      Err(issue) => return Err(issue)
+      Ok(value) => value
+    }
+    owner.program_model = Some(plan)
+    owner.program_domain_quote = Some(quote)
   }
+  let (r, e) = owner.program_domain_quote.unwrap()
   owner.phase = Selecting
   let result : Result[
     @publication_host.ClientModelReadScope,
@@ -193,7 +267,22 @@ pub fn[I] prepare_request_model_read_scope(
       plan.max_delegations,
     ) {
     Err(issue) => Err(Preparation(issue))
-    Ok(_) =>
+    Ok(_) => {
+      guard owner.phase == Selecting &&
+        owner.input is Some(original_input) &&
+        physical_equal(original_input, input) &&
+        owner.program_capacity is Some(original_capacity) &&
+        physical_equal(original_capacity, capacity) &&
+        owner.program_model is Some(original_plan) &&
+        physical_equal(original_plan, plan) &&
+        owner.program_domain_quote is Some(current_quote) &&
+        current_quote.0 == r &&
+        current_quote.1 == e else {
+        if owner.phase == Selecting {
+          owner.phase = ModelScopeQuoted
+        }
+        return Err(ForeignOriginal)
+      }
       match
         @resources.preparation_capacity_inventory_original(capacity, input) {
         Err(issue) => Err(Preparation(issue))
@@ -206,11 +295,16 @@ pub fn[I] prepare_request_model_read_scope(
             identity,
           ).map_err(issue => ModelRead(issue))
       }
+    }
   }
   if result is Ok(_) {
-    owner.program_model = Some(plan)
+    owner.program_domain_quote = None
   }
-  owner.phase = ModelPlanReserved
+  owner.phase = if result is Ok(_) {
+    ModelPlanReserved
+  } else {
+    ModelScopeQuoted
+  }
   result
 }
 
@@ -246,10 +340,11 @@ pub fn[I] complete_request_model_preparation(
     // The selected module/Plan owns this SAME artifact; no sizing inventory
     // has a later consumer. Keep the peak debit until construction unwinds.
     owner.program_compilation = None
-    owner.program_model_compilation_inputs = None
+    owner.program_domain_compilation_inputs = None
     owner.program_artifact_geometry = None
     owner.program_artifact_quote = None
     owner.program_measurement_quote = None
+    owner.program_invocation_quote = None
   }
   result
 }
@@ -314,7 +409,7 @@ pub fn[I] begin_request_model_managed_run(
       owner.program_captured = None
       owner.program_model = None
       owner.program_compilation = None
-      owner.program_model_compilation_inputs = None
+      owner.program_domain_compilation_inputs = None
       owner.program_artifact_inputs = None
       owner.program_artifact_geometry = None
       owner.program_artifact_quote = None

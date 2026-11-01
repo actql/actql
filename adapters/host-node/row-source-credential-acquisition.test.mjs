@@ -70,6 +70,31 @@ async function fixture(t, options = {}) {
     counts: () => ({resolutions, accepts, claims, finishes, closes})};
 }
 
+test('managed credential construction facts retain the same original scope and issuer without sampling time', async t => {
+  let samples = 0;
+  const f = await fixture(t, {custody: {now() {samples++; return 1_700_000_000_000;}}});
+  const original = f.custody.construction;
+  assert(original);
+  assert(Object.isFrozen(original));
+  assert(Object.isFrozen(original.scope));
+  assert(Object.isFrozen(original.limits));
+  assert(Object.isFrozen(original.issuer));
+  assert.deepEqual(original.limits, {maxBindings: 2, maxSecretBytes: 64});
+  assert.deepEqual(original.issuer, {authority: 'authority', keyId: 'issuer'});
+  assert.equal(samples, 0);
+  assert.deepEqual(f.counts(), {resolutions: 0, accepts: 0, claims: 0, finishes: 0, closes: 0});
+  const signed = f.custody.sign(request());
+  assert.equal(samples, 1);
+  for (const [name, value] of Object.entries(original.scope)) assert.strictEqual(signed.scope[name], value);
+  assert.deepEqual(Object.keys(original.scope), ['issuerAuthority', 'principal', 'namespaceId', 'environment',
+    'siteKey', 'siteGeneration', 'runtimeBundleCid', 'connectorRegistration', 'connectorRevision', 'resourceOrigin']);
+  assert.strictEqual(f.custody.construction, original);
+  assert.equal(signed.scope.operation, 'fixture:read');
+  assert.equal(signed.scope.taskAttempt, 3);
+  assert.equal(signed.scope.expiresUnixMilliseconds, 1_700_000_000_456n);
+  assert.equal(f.exchange.seen().length, 0);
+});
+
 test('run acquisition custody uses the existing issuer, exact scope, and actual confirmed response use', async t => {
   const f = await fixture(t);
   const original = request();

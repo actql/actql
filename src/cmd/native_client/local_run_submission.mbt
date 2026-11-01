@@ -1,4 +1,61 @@
 ///|
+// Issue only a Submission reference under the already acquired original Read.
+// No business preparation, Run, execution supply or initialization is selected.
+// The existing Epoch Owner retains its clock, current Account and lost-COMMIT
+// semantics; a failure never retries issuance or falls through to raw loading.
+fn local_new_submission_reference(
+  settings : LocalHostSettings,
+  capture : @local_host.NativeLocalJournalCapture,
+  child : @argparse.Matches,
+) -> String raise ClientStop {
+  let scope = local_host_result(
+    capture.authority_scope_cid_in_original_read(
+      settings.principal,
+      settings.connection,
+    ),
+  )
+  let epoch = match
+    capture.issue_epoch_in_original_read(
+      settings.principal,
+      settings.connection,
+      scope,
+      @env.now().to_double(),
+    ) {
+    Ok(value) => value
+    Err(
+      @local_host.Epoch(TransactionUnknown)
+      | @local_host.InstallationReadTransactionFailure(_, TransactionUnknown)
+    ) => stop("LocalSubmissionEpochUnknown")
+    Err(@local_host.Epoch(Fenced)) => stop("LocalSubmissionEpochFenced")
+    Err(@local_host.Epoch(AuthorizationDenied)) =>
+      stop("LocalSubmissionAuthorizationDenied")
+    Err(_) => stop("LocalSubmissionEpochUnavailable")
+  }
+  let reference = @local_host.prepare_native_client_submission_reference(
+    epoch,
+    required(child, "request-id"),
+  ).unwrap_or_else(() => stop("InvalidSubmissionRef"))
+  // Issuance may advance the durable clock. Preserve the original current
+  // boundary before disclosing this reference; it is never an execution grant.
+  guard capture.authority_scope_cid_in_original_read(
+      settings.principal,
+      settings.connection,
+    )
+    is Ok(current) &&
+    current == scope &&
+    capture.authorize_in_original_read({
+      principal: settings.principal,
+      connection: settings.connection,
+      resource: "run",
+      operation: "submit",
+    })
+    is Ok(Allow(_)) else {
+    stop("LocalSubmissionAuthorizationDenied")
+  }
+  @local_host.native_client_submission_reference_wire(reference)
+}
+
+///|
 // Invocation correlation only, not a Run, authorization or retry decision.
 // An explicit original remains the caller's recovery selection. The public
 // fresh spelling allocates once and never enters that branch again on error.
@@ -47,6 +104,17 @@ fn local_select_run_submission(
 ) -> LocalRunSubmission raise ClientStop {
   native_timing_begin(22)
   defer native_timing_end(22)
+  if business is Some(original) && original.submission is Some(selected) {
+    if selected.fresh ||
+      optional(child, "operation-attempt-id") != Some(selected.attempt) ||
+      !local_submission_nonce_matches(
+        selected.reference,
+        optional(child, "request-id"),
+      ) {
+      stop("LocalSubmissionIdentityMismatch")
+    }
+    return selected
+  }
   match
     (
       optional(child, "submission-ref-file"),
@@ -173,4 +241,99 @@ fn local_run_submission_failure(
   " originalOperationAttemptId=" +
   selection.attempt +
   " (reconcile with lookup-request; do not resend this operation)"
+}
+
+///|
+// Caller flow only. These cases grant no acceptance, new identity or attempt.
+priv enum LocalRunSubmissionPreflight {
+  FreshSubmissionInput
+  ExplicitSubmissionInput(LocalRunSubmission, @run_host.ClientSubmittedIntent)
+  RetainedSubmissionRun(@local_host.NativeClientSavedRunStateSelection)
+}
+
+///|
+// Read the supplied original once before business preparation. An admitted
+// Run returns its saved state without checking/compiling the current Program.
+// A preparing intent retains its exact original input for the existing first
+// completion/CAS path; unresolved history never proves nonacceptance.
+fn local_explicit_submission_preflight(
+  host : @local_host.NativeLocalHostConnection,
+  capture : @local_host.NativeLocalJournalCapture,
+  settings : LocalHostSettings,
+  crypto : @local_crypto.Library,
+  input_root : String,
+  operation : String,
+  child : @argparse.Matches,
+) -> LocalRunSubmissionPreflight raise ClientStop {
+  match
+    (
+      optional(child, "submission-ref-file"),
+      optional(child, "operation-attempt-id"),
+    ) {
+    (None, None) => return FreshSubmissionInput
+    (Some(_), Some(_)) => ()
+    _ => stop("OriginalSubmissionReferenceRequired")
+  }
+  let scope = local_host_result(
+    capture.authority_scope_cid_in_original_read(
+      settings.principal,
+      settings.connection,
+    ),
+  )
+  if !local_run_operation_allowed(
+      host,
+      settings,
+      crypto,
+      scope,
+      "submit",
+      capture=Some(capture),
+    ) {
+    stop("LocalSubmissionAuthorizationDenied")
+  }
+  // Only the explicit branch is reachable. It reads the original bounded
+  // file and attempt; it cannot enter fresh Epoch/nonce issuance.
+  let selection = local_select_run_submission(
+    host, settings, crypto, scope, input_root, child, true,
+  )
+  if selection.fresh {
+    stop("OriginalSubmissionReferenceRequired")
+  }
+  let intent = @run_host.prepare_client_submitted_intent(
+    local_intent_wire(input_root, operation, child),
+    65536,
+    8192,
+    64,
+  ).unwrap_or_else(() => stop("LocalSubmittedInputNotAdmitted"))
+  let observed = local_host_result(
+    capture.lookup_submitted_intent_in_original_read(
+      settings.principal,
+      settings.connection,
+      scope,
+      selection.reference,
+      @env.now().to_double(),
+    ),
+  )
+  match observed {
+    UnresolvedSubmissionHistory => ExplicitSubmissionInput(selection, intent)
+    Submitted(record) => {
+      let original_intent = @local_host.native_client_submitted_intent(record)
+      if @run_host.client_submitted_intent_wire(original_intent) !=
+        @run_host.client_submitted_intent_wire(intent) {
+        stop("LocalSubmissionIntentConflict")
+      }
+      match @local_host.native_client_submitted_run_admission(record) {
+        None => ExplicitSubmissionInput(selection, original_intent)
+        Some(_) =>
+          RetainedSubmissionRun(
+            local_public_run_state_selection(
+              host,
+              settings,
+              crypto,
+              selection.reference,
+              capture=Some(capture),
+            ),
+          )
+      }
+    }
+  }
 }

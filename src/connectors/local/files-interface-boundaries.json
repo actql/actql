@@ -272,7 +272,6 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
             "currentResult/currentResult",
             "currentResult/currentResult/currentResult",
             "equalMetadata/equalMetadata",
@@ -399,13 +398,105 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/connectors/local-files.md",
+                "anchor": "Paths are resolved under"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.mjs",
+                "anchor": "export function openLocalFileRoot"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.mjs",
+                "anchor": "readMetadata"
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.inc",
+                "anchor": "fileRootCurrent"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.mjs",
+                "anchor": "slot.outcome"
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.inc",
+                "anchor": "fileRootClose"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.mjs",
+                "anchor": "flight"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.mjs",
+                "anchor": "LocalFileCloseUnconfirmed"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.mjs",
+                "anchor": "signal?.throwIfAborted()"
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.mjs",
+                "anchor": "stopping = true"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.mjs",
+                "anchor": "maxReadBytes"
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.inc",
+                "anchor": "fileRootRead"
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.mjs",
+                "anchor": "Buffer.allocUnsafeSlow(Number(metadata.size))"
+              }
+            ],
+            "extension": [
+              {
+                "path": "scripts/build-node-directory-native.mjs",
+                "anchor": "localFilesPath"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/local/site/root-filesystem-native.test.mjs",
+                "anchor": "test("
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files-content.test.mjs",
+                "anchor": "test('Local Content"
+              }
+            ]
+          }
         }
       ]
     },
     {
       "module": "adapters/connectors/local/host/installed-project-files.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "21f8bcffb2583dd50299b01f845b3427a472e7e616e1ca6d9828bd6c56a90205",
+      "sha256": "1aacce4ad50ead929d6ba7fb542622ebc1866a8ddd34d31cfda2b303ab0f5cfa",
       "exports": [
         "LOCAL_FILES_DEFAULT_LIMITS",
         "installPreparedProjectLocalFiles",
@@ -448,7 +539,9 @@
             "sourceManaged",
             "baseEnvironmentWire",
             "authorizationFor",
-            "nativeFilesystem"
+            "nativeFilesystem",
+            "prepareManagedRun",
+            "prepareManagedContentRun"
           ],
           "async": true
         },
@@ -467,6 +560,13 @@
         },
         {
           "name": "installPreparedProjectLocalFiles/adapter/init:closeKeyedSourceRead/init:closeKeyedSourceRead",
+          "parameters": [
+            "original"
+          ],
+          "async": true
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/adapter/init:closeSourceRead/init:closeSourceRead",
           "parameters": [
             "original"
           ],
@@ -500,7 +600,10 @@
             "checkedOwner",
             "effectful",
             "declaration",
-            "occurrence"
+            "occurrence",
+            "managedRun",
+            "originalRead",
+            "requestIdentity"
           ],
           "async": false
         },
@@ -523,6 +626,11 @@
         },
         {
           "name": "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/cleanup/cleanup",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/cleanup/cleanup#2",
           "parameters": [],
           "async": true
         },
@@ -553,6 +661,11 @@
           "async": false
         },
         {
+          "name": "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/init:readPages#2",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/limits/limits",
           "parameters": [
             "name"
@@ -572,16 +685,28 @@
           "async": true
         },
         {
-          "name": "installPreparedProjectLocalFiles/close/close",
-          "parameters": [
-            "read"
-          ],
-          "async": false
-        },
-        {
           "name": "installPreparedProjectLocalFiles/closeRead",
           "parameters": [
             "read"
+          ],
+          "async": true
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/closeSharedReadExternal",
+          "parameters": [
+            "read"
+          ],
+          "async": true
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/closeSharedReadExternal/work/work",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/closeSourceRead",
+          "parameters": [
+            "original"
           ],
           "async": true
         },
@@ -598,6 +723,30 @@
           "async": false
         },
         {
+          "name": "installPreparedProjectLocalFiles/contentSourceEntry",
+          "parameters": [
+            "resource",
+            "reference"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/contentSourceEntry/index/index",
+          "parameters": [
+            "source",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/contentSourceEntry/index/index/index",
+          "parameters": [
+            "alias",
+            "slot"
+          ],
+          "async": false
+        },
+        {
           "name": "installPreparedProjectLocalFiles/current/current",
           "parameters": [],
           "async": false
@@ -606,6 +755,13 @@
           "name": "installPreparedProjectLocalFiles/init:ledgerCapacity/init:ledgerCapacity",
           "parameters": [
             "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/init:managedCaptureCapacity/init:managedCaptureCapacity",
+          "parameters": [
+            "requirement"
           ],
           "async": false
         },
@@ -652,14 +808,6 @@
           "async": false
         },
         {
-          "name": "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles#5",
-          "parameters": [
-            "prepared",
-            "request"
-          ],
-          "async": false
-        },
-        {
           "name": "installPreparedProjectLocalFiles/issuer/issuer",
           "parameters": [
             "kind",
@@ -684,35 +832,17 @@
           "parameters": [
             "prepared",
             "request",
-            "recipe"
+            "recipe",
+            "graph",
+            "contentPreparation"
           ],
           "async": false
         },
         {
-          "name": "installPreparedProjectLocalFiles/prepareContentRun/content/content",
+          "name": "installPreparedProjectLocalFiles/prepareContentRun/prepareContentRun",
           "parameters": [
-            "entry"
-          ],
-          "async": false
-        },
-        {
-          "name": "installPreparedProjectLocalFiles/prepareContentRun/content/content/content",
-          "parameters": [
-            "view"
-          ],
-          "async": false
-        },
-        {
-          "name": "installPreparedProjectLocalFiles/prepareContentRun/direct/direct",
-          "parameters": [
-            "entry"
-          ],
-          "async": false
-        },
-        {
-          "name": "installPreparedProjectLocalFiles/prepareContentRun/direct/direct/direct",
-          "parameters": [
-            "view"
+            "parent",
+            "requestInput"
           ],
           "async": false
         },
@@ -721,7 +851,7 @@
           "parameters": [
             "prepared",
             "request",
-            "effectful"
+            "prepareInvocation"
           ],
           "async": false
         },
@@ -736,6 +866,21 @@
           "name": "installPreparedProjectLocalFiles/queryAliases/queryAliases/view/view",
           "parameters": [
             "view"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/releaseContentAliases",
+          "parameters": [
+            "managed",
+            "inputHolder"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/releaseSharedRead",
+          "parameters": [
+            "read"
           ],
           "async": false
         },
@@ -980,7 +1125,6 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
             "acknowledged/acknowledged",
             "canonical/canonical",
             "cid/cid",
@@ -1003,9 +1147,11 @@
             "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/limits/limits",
             "installPreparedProjectLocalFiles/captureClose",
             "installPreparedProjectLocalFiles/close",
-            "installPreparedProjectLocalFiles/close/close",
             "installPreparedProjectLocalFiles/closeRead",
             "installPreparedProjectLocalFiles/contentLedger",
+            "installPreparedProjectLocalFiles/contentSourceEntry",
+            "installPreparedProjectLocalFiles/contentSourceEntry/index/index",
+            "installPreparedProjectLocalFiles/contentSourceEntry/index/index/index",
             "installPreparedProjectLocalFiles/current/current",
             "installPreparedProjectLocalFiles/init:ledgerCapacity/init:ledgerCapacity",
             "installPreparedProjectLocalFiles/init:prepare/init:prepare",
@@ -1014,15 +1160,10 @@
             "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles#2",
             "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles#3",
             "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles#4",
-            "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles#5",
             "installPreparedProjectLocalFiles/issuer/issuer",
             "installPreparedProjectLocalFiles/issuer/issuer#2",
             "installPreparedProjectLocalFiles/keyedTransports/keyedTransports",
             "installPreparedProjectLocalFiles/prepareContentRun",
-            "installPreparedProjectLocalFiles/prepareContentRun/content/content",
-            "installPreparedProjectLocalFiles/prepareContentRun/content/content/content",
-            "installPreparedProjectLocalFiles/prepareContentRun/direct/direct",
-            "installPreparedProjectLocalFiles/prepareContentRun/direct/direct/direct",
             "installPreparedProjectLocalFiles/prepareRun",
             "installPreparedProjectLocalFiles/queryAliases/queryAliases",
             "installPreparedProjectLocalFiles/queryAliases/queryAliases/view/view",
@@ -1071,6 +1212,18 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "export async function installPreparedProjectLocalFiles"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "inputsOutputs": [
@@ -1089,6 +1242,18 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "managedRun,originalRead"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "identity": [
@@ -1107,6 +1272,18 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "managedRun!==run.value||originalRead===undefined"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "ownership": [
@@ -1129,6 +1306,18 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Local native read retirement"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "The Core session still owns its original read and RowRun retirement."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "synchronization": [
@@ -1143,6 +1332,18 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "read.externalClosing=work;"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "failure": [
@@ -1165,6 +1366,22 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Local native read retirement"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "LocalFileCleanupPending"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "Do not close"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "cancellation": [
@@ -1183,6 +1400,18 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Local native read retirement"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "const childrenPending = () =>"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "resources": [
@@ -1205,6 +1434,18 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Local native read retirement"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "sharedReads.delete(read);read.closed=true;"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "extension": [
@@ -1219,6 +1460,18 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "verification": [
@@ -1249,6 +1502,873 @@
               {
                 "path": "adapters/host-node/embedded-managed-compute-projection.test.mjs",
                 "anchor": "test('Local keyed cleanup preserves an original thrown undefined before typed retirement'"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files-managed.test.mjs",
+                "anchor": "Local concurrent closes await the same original external cleanup without releasing twice"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files-managed.test.mjs",
+                "anchor": "shared native Source never retires Core rows before original external cleanup acknowledgment"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files-managed.test.mjs",
+                "anchor": "timed original Local wrapper forwards the same Host invocation constructor without invoking it"
+              },
+              {
+                "path": "adapters/host-node/request-keyed-content-caller.test.mjs",
+                "anchor": "Request keyed Content selects then compiles once before completing and adopting its same Host parent"
+              },
+              {
+                "path": "adapters/host-node/content-preparation-retirement.test.mjs",
+                "anchor": "retired keyed Content does not exhaust the unchanged 4096 live-preparation limit"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installPreparedProjectLocalFiles/adapter/init:closeSourceRead/init:closeSourceRead",
+            "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/cleanup/cleanup#2",
+            "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/init:readPages#2",
+            "installPreparedProjectLocalFiles/closeSharedReadExternal",
+            "installPreparedProjectLocalFiles/closeSharedReadExternal/work/work",
+            "installPreparedProjectLocalFiles/closeSourceRead",
+            "installPreparedProjectLocalFiles/init:managedCaptureCapacity/init:managedCaptureCapacity",
+            "installPreparedProjectLocalFiles/releaseSharedRead"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/connectors/local-files.md",
+                "anchor": "## Sources"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "export async function installPreparedProjectLocalFiles"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "prepareInstalledProjectLocalFiles"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "installPreparedProjectLocalFiles"
+              },
+              {
+                "path": "adapters/host-common/file-media-type.mjs",
+                "anchor": "export function defaultFileMediaType"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "managedRun,originalRead"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "originalEntryWire"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "ForeignLocalFilesPreparation"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "LocalFilesContentResourceMismatch"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "managedRun!==run.value||originalRead===undefined"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "physicalReadChild"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "retainChild"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "prepareManagedContentRun:prepareContentRun"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "The Core session still owns its original read and RowRun retirement."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "sameRun"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "consumePage"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "read.externalClosing=work;"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "LocalFilesContentReadUnavailable"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "retainInstalledHostInitializationFailure"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "new AcquisitionOpenError(cause"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "LocalFileCleanupPending"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "Do not close"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "stopping=true"
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.mjs",
+                "anchor": "signal?.throwIfAborted()"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "const childrenPending = () =>"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "LOCAL_FILES_DEFAULT_LIMITS"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "ledgerCapacity"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "const keyedTransports="
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "sharedReads.delete(read);read.closed=true;"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "restoreDeclaration"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "createInstalledRowSource"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.actual.test.mjs",
+                "anchor": "test("
+              },
+              {
+                "path": "src/connectors_builtin_node/client_local_file_timestamp_wbtest.mbt",
+                "anchor": "test "
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files-content.test.mjs",
+                "anchor": "test('Local Content"
+              },
+              {
+                "path": "adapters/host-common/file-media-type-consumers.test.mjs",
+                "anchor": "actual Local listing and Content defaults"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files-managed.test.mjs",
+                "anchor": "Local concurrent closes await the same original external cleanup without releasing twice"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files-managed.test.mjs",
+                "anchor": "shared native Source never retires Core rows before original external cleanup acknowledgment"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files-managed.test.mjs",
+                "anchor": "timed original Local wrapper forwards the same Host invocation constructor without invoking it"
+              },
+              {
+                "path": "adapters/host-node/request-keyed-content-caller.test.mjs",
+                "anchor": "Request keyed Content selects then compiles once before completing and adopting its same Host parent"
+              },
+              {
+                "path": "adapters/host-node/content-preparation-retirement.test.mjs",
+                "anchor": "retired keyed Content does not exhaust the unchanged 4096 live-preparation limit"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installPreparedProjectLocalFiles/prepareContentRun/prepareContentRun"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "  function prepareContentRun("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "  function prepareContentRun("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "  function prepareContentRun("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "  function prepareContentRun("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "  function prepareContentRun("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "  function prepareContentRun("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "  function prepareContentRun("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "  function prepareContentRun("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "  function prepareContentRun("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/request-keyed-content-caller.test.mjs",
+                "anchor": "Request keyed Content selects then compiles once before completing and adopting its same Host parent"
+              },
+              {
+                "path": "adapters/host-node/content-preparation-retirement.test.mjs",
+                "anchor": "retired keyed Content does not exhaust the unchanged 4096 live-preparation limit"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installPreparedProjectLocalFiles/releaseContentAliases"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "  function releaseContentAliases("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "  function releaseContentAliases("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "  function releaseContentAliases("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "  function releaseContentAliases("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "  function releaseContentAliases("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "  function releaseContentAliases("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "  function releaseContentAliases("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "  function releaseContentAliases("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "  function releaseContentAliases("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/content-preparation-retirement.test.mjs",
+                "anchor": "retired keyed Content does not exhaust the unchanged 4096 live-preparation limit"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/connectors/local-files.md",
+                "anchor": "## Sources"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "export async function installPreparedProjectLocalFiles"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "prepareInstalledProjectLocalFiles"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "installPreparedProjectLocalFiles"
+              },
+              {
+                "path": "adapters/host-common/file-media-type.mjs",
+                "anchor": "export function defaultFileMediaType"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "managedRun,originalRead"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "originalEntryWire"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "ForeignLocalFilesPreparation"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "LocalFilesContentResourceMismatch"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "managedRun!==run.value||originalRead===undefined"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "physicalReadChild"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "retainChild"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "prepareManagedContentRun:prepareContentRun"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Local native read retirement"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "The Core session still owns its original read and RowRun retirement."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "sameRun"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "consumePage"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "read.externalClosing=work;"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "LocalFilesContentReadUnavailable"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "retainInstalledHostInitializationFailure"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "new AcquisitionOpenError(cause"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Local native read retirement"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "LocalFileCleanupPending"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "Do not close"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "stopping=true"
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.mjs",
+                "anchor": "signal?.throwIfAborted()"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Local native read retirement"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "const childrenPending = () =>"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "LOCAL_FILES_DEFAULT_LIMITS"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "ledgerCapacity"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "const keyedTransports="
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Local native read retirement"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "sharedReads.delete(read);read.closed=true;"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "restoreDeclaration"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "createInstalledRowSource"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.actual.test.mjs",
+                "anchor": "test("
+              },
+              {
+                "path": "src/connectors_builtin_node/client_local_file_timestamp_wbtest.mbt",
+                "anchor": "test "
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files-content.test.mjs",
+                "anchor": "test('Local Content"
+              },
+              {
+                "path": "adapters/host-common/file-media-type-consumers.test.mjs",
+                "anchor": "actual Local listing and Content defaults"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "adapters/host-node/embedded-managed-compute-projection.test.mjs",
+                "anchor": "test('Local Source typed read and parent remain live until the original raw child acknowledges'"
+              },
+              {
+                "path": "adapters/host-node/embedded-managed-compute-projection.test.mjs",
+                "anchor": "test('Local keyed cleanup preserves an original thrown undefined before typed retirement'"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files-managed.test.mjs",
+                "anchor": "Local concurrent closes await the same original external cleanup without releasing twice"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files-managed.test.mjs",
+                "anchor": "shared native Source never retires Core rows before original external cleanup acknowledgment"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files-managed.test.mjs",
+                "anchor": "timed original Local wrapper forwards the same Host invocation constructor without invoking it"
+              },
+              {
+                "path": "adapters/host-node/request-keyed-content-caller.test.mjs",
+                "anchor": "Request keyed Content selects then compiles once before completing and adopting its same Host parent"
+              },
+              {
+                "path": "adapters/host-node/content-preparation-retirement.test.mjs",
+                "anchor": "retired keyed Content does not exhaust the unchanged 4096 live-preparation limit"
               }
             ]
           }
@@ -1741,7 +2861,6 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
             "cid/cid",
             "closed/closed",
             "createLocalFileStoreDriver",
@@ -1811,6 +2930,118 @@
             "createLocalFileStoreDriver",
             "installPreparedProjectLocalFileEffects"
           ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-file-effects.mjs",
+                "anchor": "export async function installPreparedProjectLocalFileEffects("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-file-effects.mjs",
+                "anchor": "export function createLocalFileStoreDriver("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-file-effects.mjs",
+                "anchor": "const bindingCid=cid({scope:entry.scopeCid,declaration:entry.wire,"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-file-effects.mjs",
+                "anchor": "original.writeChild=write;"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-file-effects.mjs",
+                "anchor": "retained.push(contentChild);"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-file-effects.mjs",
+                "anchor": "LocalFileWriteAlreadyAttempted"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-file-effects.mjs",
+                "anchor": "stopping=true;"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-file-effects.mjs",
+                "anchor": "maxFileBytes:entry.limits.maxFileBytes"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-file-effects.mjs",
+                "anchor": "commands:[{resource:'files'"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-driver.test.mjs",
+                "anchor": "test('Local STORE recovered request connects"
+              },
+              {
+                "path": "adapters/connectors/local/host/local-file-store-declaration.actual.test.mjs",
+                "anchor": "test('actual Local STORE selection reaches its same command Owner without UPDATE substitution'"
+              },
+              {
+                "path": "adapters/connectors/local/host/local-file-store-driver.test.mjs",
+                "anchor": "test('Local STORE projects a Command outcome admitted by actual Common without a provider action'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [],
           "attributes": {
             "responsibility": [
               {
@@ -2108,7 +3339,6 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
             "canonical/canonical",
             "cid/cid",
             "fail/fail",
@@ -2134,6 +3364,96 @@
           "exports": [
             "localFileStoreDeclaration"
           ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-declaration.mjs",
+                "anchor": "export function localFileStoreDeclaration("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Preparation, compilation and saved selection"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-declaration.mjs",
+                "anchor": "const outputWires="
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Preparation, compilation and saved selection"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-declaration.mjs",
+                "anchor": "const sealed ="
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Preparation, compilation and saved selection"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-declaration.mjs",
+                "anchor": "return Object.freeze(outputWires);"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Preparation, compilation and saved selection"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Synchronous bounded immutable declaration construction; no acquisition, suspension or concurrent owner transition."
+            },
+            "failure": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-declaration.mjs",
+                "anchor": "InvalidLocalFileStoreDeclaration"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Preparation, compilation and saved selection"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "No physical or asynchronous work is started; enclosing Project preparation owns cancellation."
+            },
+            "resources": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-declaration.mjs",
+                "anchor": "maxBytes>1048576"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Preparation, compilation and saved selection"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-declaration.mjs",
+                "anchor": "catalog.commands,[command]"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Preparation, compilation and saved selection"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-declaration.actual.test.mjs",
+                "anchor": "test('actual Local STORE declaration retains"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [],
           "attributes": {
             "responsibility": [
               {
@@ -2350,7 +3670,6 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
             "canonical/canonical",
             "cid/cid",
             "fail/fail",
@@ -2369,6 +3688,114 @@
           "exports": [
             "prepareLocalFileStoreTarget"
           ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-target.mjs",
+                "anchor": "export function prepareLocalFileStoreTarget("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Preparation, compilation and saved selection"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-target.mjs",
+                "anchor": "issueOriginalCollectionReference(pair,maxWork)"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Preparation, compilation and saved selection"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-target.mjs",
+                "anchor": "'clientProgramEffectStoreCommandSelection'"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Preparation, compilation and saved selection"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-target.mjs",
+                "anchor": "Reflect.apply(ports[name],moon,args)"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Preparation, compilation and saved selection"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-target.mjs",
+                "anchor": "current();return reference;"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Preparation, compilation and saved selection"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-target.mjs",
+                "anchor": "ForeignLocalStoreSelection"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Preparation, compilation and saved selection"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-target.mjs",
+                "anchor": "InvalidLocalStoreCurrentFence"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Preparation, compilation and saved selection"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-target.mjs",
+                "anchor": "maxBytes,maxNodes,maxDepth"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Preparation, compilation and saved selection"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-target.mjs",
+                "anchor": "kind==='file_collection'&&wire===resourceWire"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Preparation, compilation and saved selection"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors_builtin_node/client_store_collection_reference_wbtest.mbt",
+                "anchor": "test "
+              },
+              {
+                "path": "adapters/connectors/local/host/local-file-store-target.test.mjs",
+                "anchor": "test('Local collection Reference binds the full installed Catalog member identity'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [],
           "attributes": {
             "responsibility": [
               {
@@ -2622,7 +4049,6 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
             "fail/fail",
             "prepareLocalFileWrite",
             "prepareLocalFileWrite/acquire/acquire",
@@ -2646,6 +4072,110 @@
           "exports": [
             "prepareLocalFileWrite"
           ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/connectors/local/site/root-file-writer.mjs",
+                "anchor": "export function prepareLocalFileWrite("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/local/site/root-file-writer.mjs",
+                "anchor": "write(bytes)"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/local/site/root-file-writer.mjs",
+                "anchor": "Reflect.apply(methods[name],native,args)"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/local/site/root-file-writer.mjs",
+                "anchor": "slots.push(slot);"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/local/site/root-file-writer.mjs",
+                "anchor": "for (const slot of slots.slice().reverse())"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/local/site/root-file-writer.mjs",
+                "anchor": "LocalFileCloseUnconfirmed"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/local/site/root-file-writer.mjs",
+                "anchor": "stopping = true;"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/local/site/root-file-writer.mjs",
+                "anchor": "bytes.length > maxBytes-written"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/local/site/root-file-writer.mjs",
+                "anchor": "publishAttempted = true;"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/local/site/root-filesystem-native.test.mjs",
+                "anchor": "test('actual Local write child defers acquisition"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [],
           "attributes": {
             "responsibility": [
               {
@@ -2843,7 +4373,6 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
             "fail/fail",
             "prepareLocalStoredContentWrite",
             "prepareLocalStoredContentWrite/close/close",
@@ -2861,6 +4390,110 @@
           "exports": [
             "prepareLocalStoredContentWrite"
           ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/connectors/local/site/root-stored-content-writer.mjs",
+                "anchor": "export function prepareLocalStoredContentWrite("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/local/site/root-stored-content-writer.mjs",
+                "anchor": "Reflect.apply(consume, contentOwner,"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/local/site/root-stored-content-writer.mjs",
+                "anchor": "const original = Reflect.apply(select, contentOwner, [binding]);"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/local/site/root-stored-content-writer.mjs",
+                "anchor": "reader = cause.cleanupHandle;"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/local/site/root-stored-content-writer.mjs",
+                "anchor": "return writer.publish();"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/local/site/root-stored-content-writer.mjs",
+                "anchor": "OriginalEffectContentUnavailable"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/local/site/root-stored-content-writer.mjs",
+                "anchor": "stopping = true;"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/local/site/root-stored-content-writer.mjs",
+                "anchor": "limits are the"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/local/site/root-stored-content-writer.mjs",
+                "anchor": "attempted = true;"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/local/site/root-filesystem-native.test.mjs",
+                "anchor": "test('actual Local stored Content writes original Store pieces"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [],
           "attributes": {
             "responsibility": [
               {

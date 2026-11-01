@@ -29,6 +29,13 @@ path under a metadata-only reservation. Store-loaded originals use their own
 admission and validation path. No historical Run rewrite or compatibility
 migration is implied.
 
+Validating a restored Definition against a live compiled Run performs the full
+existing binding check. When the restored contract has the same CID, successful
+validation preserves the issued Definition and its original binding. The restored
+contract does not become the live publication original. A compiler with no
+binding can retain its admitted Definition, and an explicitly issued different
+Definition follows the existing replacement path.
+
 ## Ownership and handoff
 
 Existing manager and dispatch holders preserve the preparation while publication
@@ -94,8 +101,14 @@ make the execution free. Repeated notifications after currentness reentry
 preserve the first immutable completion, including its unreclaimed scratch.
 
 Reservation and holding identities advance independently of reusable inventory
-slots. Removing an expired record clears its actual reference; a scalar slot
-index is neither a new identity nor another grant. A closed reservation remains
+slots. The same owner's builtin ordered Map indexes original serials; removal
+still compares the actual token reference, so an equal key authenticates nothing.
+The scalar ordinal view is rebuilt only when a later indexed reader needs it.
+Appending or retiring tokens neither searches occupied slots nor shifts the
+remaining inventory. The last-holder count indexes only actual live holdings;
+consumed attempts, work and uncertainty never enter that count. Removing an
+expired record clears its actual reference; the index is neither a new identity
+nor another grant. A closed reservation remains
 in the live inventory while a retained output still needs its original binding.
 The last holding's retirement can remove that record, while the issuance cursor
 continues to exclude stale identities and fresh-prefix reuse.
@@ -113,6 +126,41 @@ does not rewrite that earlier observation. All original bootstrap envelopes must
 fund reusable control backing, scalar indices, snapshots and overlapping read
 controls before use. Bounded slots alone establish neither those coefficients,
 physical backing, process RSS nor coverage of another backend.
+
+### Effect durable Store usage
+
+The SQLite Effect Store keeps a connection-local TEMP projection of the original
+entry, physical response, batch member and outcome counts and encoded bytes.
+Each existing writer transaction checks the unchanged Store limits and advances
+this projection by the exact inserted rows and bytes. The business mutation,
+totals and external-version stamp share the same commit or rollback; there is
+no JavaScript post-commit usage cache and no additional persistent Store format.
+A lost commit reply retains the existing unknown/connection-usability outcome.
+
+Opening a connection admits the full original durable inventory. Within each
+later writer transaction, an external main-database commit detected through
+[SQLite data_version](https://www.sqlite.org/pragma.html#pragma_data_version)
+requires that same full observation again before a quota decision. The version
+is meaningful only on its original connection and is stored with the TEMP
+projection, so a refused mutation cannot leave a newer version stamped over old
+totals. Concurrent connections keep their independent observation boundaries;
+this mechanism does not claim to remove full observation after external writes.
+The projection advances text totals with SQLite's original native-encoding
+`LENGTH(CAST(... AS BLOB))`, while each preflight retains its original UTF8 input
+increment. Existing UTF16 databases therefore keep the original quota decisions;
+JavaScript does not substitute a different storage-byte model.
+
+Stored entry/outcome text and response bytes are bounded in their original SQL
+row projection, before oversized columns cross into Node. A rejected column
+remains a present row with a null field, preserving the original integrity
+refusal instead of becoming a missing record. UTF8 databases use the existing
+byte ceiling; UTF16 databases use the corresponding native text-backing ceiling
+so valid ASCII and Unicode are preserved. The original exact UTF8 check and
+physical digest admission remain after projection. Paged metadata uses that
+same native per-entry ceiling; its separate aggregate page budget retains the
+existing native-column byte metric. Physical digests, canonical
+admission, claim/CAS, reply-loss recovery and the original database close owner
+remain independent obligations.
 
 ### Checked Local demand
 
@@ -171,6 +219,10 @@ or another occurrence do not establish that correspondence.
 This check grants no execution or output custody. The existing captured Result
 borrow, managed completion, live re-admission bridge, output occurrence, limits
 and retirement checks still apply before an export can proceed.
+
+A whole Source input can supply a physical graph view with new target and
+input-slot vectors. Those vectors supply neither a fallback export nor another
+publication owner.
 
 ## Verification
 

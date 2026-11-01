@@ -48,6 +48,49 @@ pub fn[I] node_local_preparation_limits(
 }
 
 ///|
+/// Install the original census before allocating the first preparation token.
+/// The fixed initial supplier funds bootstrap controls and their bounded slot
+/// inventories. Starting the imported child remains the separate one-use call;
+/// a failed initialization leaves its bootstrap on that same cleanup owner.
+pub fn[I] begin_node_preparation_inventory(
+  owner : NodePreparationAdmission[I],
+  input : I,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+  max_reservations : Int,
+  max_holdings : Int,
+  max_delegations : Int,
+) -> Result[OriginalLedgerIdentity, ImportedChildLedgerIssue] {
+  if owner.transitioning {
+    return Err(Unknown)
+  }
+  guard owner.admission is Some(admission) else { return Err(AlreadyConsumed) }
+  match check_node_local_preparation_original(admission, input) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  guard admission.ledger is Some(ledger) else { return Err(Unavailable) }
+  owner.transitioning = true
+  let outcome = match
+    reserve_node_managed_run_read_bootstrap(
+      admission, input, ledger, retained_bytes, execution_bytes,
+    ) {
+    Err(issue) => Err(issue)
+    Ok(bootstrap) =>
+      begin_original_ledger_inventory(
+        ledger, bootstrap, max_reservations, max_holdings, max_delegations,
+      ).map_err(issue => {
+        match issue {
+          Resource(issue) => ImportedChildLedgerIssue::Resource(issue)
+          _ => Unavailable
+        }
+      })
+  }
+  owner.transitioning = false
+  outcome
+}
+
+///|
 /// No new child, start, take, quota or reservation is created here. The
 /// completed preparation debit remains on the exact imported Ledger. The old
 /// input-facing admission is consumed only after that transfer succeeds.

@@ -883,3 +883,20 @@ test('automatic main integration remains full even with valid narrow cumulative 
     assert(!lines.some(line => line.startsWith('NOT APPLICABLE core')));
   }
 });
+
+test('normal distribution keeps original Request resource and cleanup regressions selected once', () => {
+  const command = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
+    .scripts['check:distribution-client'];
+  const selected = command.split(/\s+/u);
+  for (const file of [
+  "adapters/host-node/content-pre-record-retirement.test.mjs",
+  "adapters/host-node/effect-capture-connection.test.mjs",
+  "adapters/host-node/effect-capture-resources.test.mjs",
+  "adapters/host-node/request-content-graph-resources.test.mjs",
+  "adapters/host-node/request-keyed-prefix-execution.test.mjs",
+  "adapters/host-node/request-model-material-resources.test.mjs",
+  "adapters/store-local/private-evidence-consumer-lifetime.test.mjs"
+]) {
+    assert.equal(selected.filter(value => value === file).length, 1, file);
+  }
+});

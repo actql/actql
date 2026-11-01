@@ -42,6 +42,31 @@ fn NativeLocalHostConnection::lookup_submission_reference_by_request_id_with_ope
   operations? : NativeClientJournalOperationAccess? = None,
   capture? : NativeLocalJournalCapture? = None,
 ) -> Result[NativeClientSubmissionReference?, NativeClientRunJournalIssue] {
+  self
+  .lookup_submitted_record_by_request_id_with_operations(
+    crypto,
+    principal,
+    connection,
+    request_id,
+    now,
+    operations~,
+    capture~,
+  )
+  .map(value => value.map(record => record.reference))
+}
+
+///|
+// Retain the already-checked row through this one clock/current selection.
+fn NativeLocalHostConnection::lookup_submitted_record_by_request_id_with_operations(
+  self : NativeLocalHostConnection,
+  crypto : @crypto.Library,
+  principal : String,
+  connection : String,
+  request_id : String,
+  now : Double,
+  operations? : NativeClientJournalOperationAccess? = None,
+  capture? : NativeLocalJournalCapture? = None,
+) -> Result[NativeClientSubmittedIntentRecord?, NativeClientRunJournalIssue] {
   let reads = operations.map(value => value.reads)
   if !submission_reference_request_id(request_id) {
     return Err(InvalidSubmission)
@@ -113,11 +138,11 @@ fn NativeLocalHostConnection::lookup_submission_reference_by_request_id_with_ope
           Err(issue) => return Err(issue)
         }
         let original = match
-          self.journal.inspect_submitted_intent_row(row, reads~) {
-          Ok(value) => value
+          self.journal.inspect_submitted_intent_row_with_record(row, reads~) {
+          Ok((_, value)) => value
           Err(issue) => return Err(issue)
         }
-        let reference = native_submission_reference_record(original.reference)
+        let reference = original.reference
         // Shared row validation checks key/identity/Run joins. Authentication still
         // comes from the same physical Epoch Owner and its original key/generation.
         match
@@ -134,7 +159,7 @@ fn NativeLocalHostConnection::lookup_submission_reference_by_request_id_with_ope
         if !current() {
           return Err(AuthorizationDenied)
         }
-        Ok(Some(reference))
+        Ok(Some(original))
       },
       reads~,
     ) {

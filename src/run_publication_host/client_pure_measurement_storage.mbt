@@ -68,9 +68,42 @@ fn client_pure_compilation_limits_valid(
 }
 
 ///|
+/// Storage of the same serialization compiler measurement. The original
+/// component arrays remain borrowed; the shared inventory owns only the
+/// returned measurement collections, not a second Graph or Model purpose.
+pub fn prepared_client_serialization_measurement_storage(
+  value : PreparedClientProgram,
+  component : ClientSerializationPlanGraph,
+  limits : ClientPureCompilationLimits,
+) -> Result[
+  @execution.PreparationRepresentationUnits,
+  ClientValuesExecutablePlanIssue,
+] {
+  if !client_pure_compilation_limits_valid(
+      limits.max_facts,
+      limits.max_witnesses,
+      limits.max_wire_bytes,
+      limits.max_nodes,
+      limits.max_depth,
+    ) {
+    return Err(InvalidLimits)
+  }
+  match
+    client_pure_measurement_storage_owned(
+      value,
+      [],
+      serialization=Some(component),
+    ) {
+    Some(units) => Ok(units)
+    None => Err(Encoding)
+  }
+}
+
+///|
 fn client_pure_measurement_storage_owned(
   value : PreparedClientProgram,
   components : Array[ClientInferPlanGraph],
+  serialization? : ClientSerializationPlanGraph? = None,
 ) -> @execution.PreparationRepresentationUnits? {
   let graph = value.graph
   let tasks = @strategy.graph_task_count(graph).to_int64()
@@ -81,6 +114,7 @@ fn client_pure_measurement_storage_owned(
   }
   let mut component_nodes = 0L
   let mut component_edges = 0L
+  let mut component_count = components.length().to_int64()
   for component in components {
     guard client_infer_graph_original_parts(
         component, value, 2147483647, 2147483647, 2147483647,
@@ -103,7 +137,19 @@ fn client_pure_measurement_storage_owned(
     component_nodes = next_nodes
     component_edges = next_edges
   }
-  let ordinary = tasks - components.length().to_int64()
+  if serialization is Some(component) {
+    guard components.is_empty() &&
+      client_serialization_graph_original_parts(
+        component, value, 2147483647, 2147483647, 2147483647,
+      )
+      is Some((nodes, edges, _)) else {
+      return None
+    }
+    component_nodes = nodes.length().to_int64()
+    component_edges = edges.length().to_int64()
+    component_count = 1L
+  }
+  let ordinary = tasks - component_count
   if ordinary < 0L {
     return None
   }
@@ -159,9 +205,9 @@ fn client_pure_measurement_storage_owned(
       }
     }
   }
-  let task_compiler = !components.is_empty() ||
+  let task_compiler = component_count != 0L ||
     prepared_client_requires_task_compilation(value)
-  let profile = if components.is_empty() { 0L } else { 1L }
+  let profile = if component_count == 0L { 0L } else { 1L }
   // Fragment holds its initial/projected geometry, Fragment geometry and
   // output-contract geometry. Values aliases the initial/projected tuple.
   // Task's two tuples are a bound even when an unselected task aliases them.
@@ -213,11 +259,7 @@ fn client_pure_measurement_storage_owned(
     is Some(arrays) &&
     @execution.checked_preparation_add_product(0L, ordinary, 2L) is Some(items) &&
     @execution.checked_preparation_add_product(items, tasks, 2L) is Some(items) &&
-    @execution.checked_preparation_add_product(
-      items,
-      components.length().to_int64(),
-      1L,
-    )
+    @execution.checked_preparation_add_product(items, component_count, 1L)
     is Some(items) &&
     @execution.checked_preparation_add_product(items, component_nodes, 1L)
     is Some(items) &&
@@ -241,7 +283,7 @@ fn client_pure_measurement_storage_owned(
       scalar_arrays: 1L,
       scalar_items: results,
       maps: 1L,
-      map_entries: components.length().to_int64(),
+      map_entries: component_count,
     })
     is Some(collections) else {
     return None

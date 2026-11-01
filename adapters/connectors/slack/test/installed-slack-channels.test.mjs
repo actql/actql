@@ -1,3 +1,4 @@
+import {ledgerUsageFieldsFor} from '../../../host-node/fixtures/ledger-usage.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {installedSlackChannelsFixture} from './installed-slack-channels.fixture.mjs';
@@ -14,9 +15,9 @@ test('installed Slack channels original Source captures exact typed rows under i
     const rows=f.common.clientProgramSourceCaptureExportRows(exported).map(JSON.parse);
     assert.deepEqual(rows.map(r=>[r.id,r.member_count,r.created]),[['C1','2','1970-01-01T00:00:00.000Z'],['C2','3','1970-01-01T00:00:01.000Z']]);
     assert.equal(f.state.requests.length,3);assert(f.state.requests[1].path.startsWith('/api/conversations.list?'));
-    const held=f.common.clientProgramMultiCapturedLedgerUsage(p.ledger);
-    await assert.rejects(async()=>opened.close(),{code:'MoonBitHostFailure'});
-    assert.deepEqual(f.common.clientProgramMultiCapturedLedgerUsage(p.ledger),held);
+    await opened.close();
+    assert.deepEqual(ledgerUsageFieldsFor(f.common.clientProgramMultiCapturedLedgerUsage(p.ledger),
+      ['reservedTransferBytes','heldBytes','reservedRetentionBytes','reservedExecutionBytes']),[0n,0n,0n,0n]);
   }
 });
 

@@ -9,6 +9,16 @@ pub struct ClientSavedSubmissionSnapshot {
   run : ClientJournalPhysicalRow?
   inspection : ClientRunJournalInspection?
   state_original : ClientRunStateOriginal?
+  task_materials : String?
+}
+
+///|
+/// Exact logical codec wire selected from immutable bounded chunk rows in
+/// this same original read. Historical absence never synthesizes material.
+pub fn client_saved_submission_task_materials_original(
+  value : ClientSavedSubmissionSnapshot,
+) -> String? {
+  value.task_materials
 }
 
 ///|
@@ -81,7 +91,28 @@ pub fn[E] reobserve_client_saved_submission_original(
     Err(issue) => Err(issue)
     Ok(Some(row)) if row.key == run.key &&
       row.revision == run.revision &&
-      row.body == run.body => Ok(Some(original))
+      row.body == run.body =>
+      match original.task_materials {
+        None => Ok(Some(original))
+        Some(wire) => {
+          let cid = match client_task_material_original_cid(wire) {
+            Ok(cid) => cid
+            Err(_) => return Ok(None)
+          }
+          match
+            read_client_task_material_original(
+              run.key,
+              cid,
+              (table, key) => read(table, key).map_err(issue => Some(issue)),
+              None,
+            ) {
+            Ok(actual) if actual == wire => Ok(Some(original))
+            Ok(_) => Ok(None)
+            Err(None) => Ok(None)
+            Err(Some(issue)) => Err(issue)
+          }
+        }
+      }
     _ => Ok(None)
   }
 }
@@ -161,7 +192,27 @@ fn[E] read_client_saved_submission_row(
       }
     }
   }
-  Ok({ record, submission: row, run, inspection, state_original, })
+  let task_materials = match (run, inspection) {
+    (Some(row), Some(original)) =>
+      match original.task_materials_cid {
+        None => None
+        Some(cid) =>
+          match
+            read_client_task_material_original(row.key, cid, read, custody_lost) {
+            Ok(wire) => Some(wire)
+            Err(issue) => return Err(issue)
+          }
+      }
+    _ => None
+  }
+  Ok({
+    record,
+    submission: row,
+    run,
+    inspection,
+    state_original,
+    task_materials,
+  })
 }
 
 ///|

@@ -3,13 +3,14 @@ import {mkdtemp, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createServer} from 'node:https';
+import {maxHeaderSize} from 'node:http';
 import test from 'node:test';
 import {fixtureCertificates} from './https-exchange-fixture.mjs';
 import * as resource from './https-credential-resource.mjs';
 
 // Real original HTTPS binding/request/socket and explicit authority/Journal
 // ports. This does not issue a Common grant or prove a normal funded Effect.
-async function fixture(t, handle) {
+async function fixture(t, handle, {unjoinedOriginal = false, fenced = true} = {}) {
   const root = await mkdtemp(join(process.env.ACTQL_TEST_SCRATCH_PARENT ?? tmpdir(), 'actql-response-accounting-'));
   const {ca, cert, key} = await fixtureCertificates(root);
   const server = createServer({cert, key}, handle);
@@ -24,9 +25,10 @@ async function fixture(t, handle) {
   const journal = {claim(){claims++;return {replayed:false,grant,use,record:{useCid:'original-use',grantCid:'original-grant'}};},
     authorize(){},finish(id, outcome){assert.equal(id,'original-use');outcomes.push(outcome);}};
   const resolveSecret = async () => 'fixture-secret';
-  const binding = resource.openHttpsCredentialBinding({scope,control,journal,resolveSecret,maxSecretBytes:64,assertCurrent(){}});
+  const binding = resource.openHttpsCredentialBinding({scope,control,journal,resolveSecret,maxSecretBytes:64,
+    ...(fenced ? {assertCurrent(){}} : {})});
   t.after(async()=>{
-    assert.equal(resource.closeHttpsCredentialBinding(binding),'closed');
+    assert.equal(resource.closeHttpsCredentialBinding(binding),unjoinedOriginal?'pending':'closed');
     await new Promise(resolve=>server.close(resolve));
     if(process.env.ACTQL_TEST_PRESERVE_SCRATCH==='1')t.diagnostic(`Retained owned TLS fixture: ${root}`);
     else await rm(root,{recursive:true,force:true});
@@ -91,6 +93,105 @@ test('an invalid asynchronous byte observer stays joined after socket close unti
   }
 });
 
+for (const publicThen of ['throwing getter', 'throwing method']) {
+  test(`native byte observer keeps its original pending task despite a ${publicThen}`, async t => {
+    let entered, settle, socketClosed;
+    const original = new Promise(resolve => {settle = resolve;});
+    const observed = new Promise(resolve => {entered = resolve;});
+    const closed = new Promise(resolve => {socketClosed = resolve;});
+    const primary = new Error('original public then observation failed');
+    if (publicThen === 'throwing getter') {
+      Object.defineProperty(original, 'then', {get() {throw primary;}});
+    } else Object.defineProperty(original, 'then', {value() {throw primary;}});
+    let requests = 0;
+    const f = await fixture(t, (request, response) => {
+      requests++; request.socket.once('close', socketClosed);
+      response.writeHead(200); response.end('{}');
+    });
+    let completed = false;
+    const pending = f.call({observeResponseBytes() {entered(); return original;}});
+    const refused = assert.rejects(pending, error => publicThen === 'throwing getter'
+      ? error === primary : error.code === 'InvalidRemoteCredentialResponseByteObserver')
+      .then(() => {completed = true;});
+    try {
+      await observed;
+      await closed;
+      // A deliberately pending child has no timeout-based ACK. Give the old
+      // socket-close continuation a bounded opportunity to expose early release;
+      // this is a lifetime assertion, not a latency/performance measurement.
+      await new Promise(resolve => setTimeout(resolve, 25));
+      assert.equal(completed, false, 'Socket close cannot settle a different native task');
+      assert.deepEqual(f.outcomes, []);
+      assert.equal(resource.closeHttpsCredentialBinding(f.binding), 'pending');
+    } finally {
+      settle(); await refused;
+    }
+    assert.equal(requests, 1); assert.equal(f.claims(), 1);
+    assert.deepEqual(f.outcomes, ['unknown']);
+    assert.equal(resource.closeHttpsCredentialBinding(f.binding), 'closed');
+  });
+}
+
+test('native byte observer join failure retains the original under existing binding custody', async t => {
+  let settle;
+  const original = new Promise(resolve => {settle = resolve;});
+  const primary = new Error('original native species lookup failed');
+  Object.defineProperty(original, 'constructor', {get() {throw primary;}});
+  let requests = 0;
+  const f = await fixture(t, (request, response) => {
+    requests++; response.writeHead(200); response.end('{}');
+  }, {unjoinedOriginal: true});
+  await assert.rejects(f.call({observeResponseBytes() {return original;}}), error => error === primary);
+  assert.equal(resource.closeHttpsCredentialBinding(f.binding), 'pending');
+  settle(); await new Promise(setImmediate);
+  // Failed native registration supplied no observable settlement witness to
+  // this binding. A test-owned resolver cannot acknowledge its original duty.
+  assert.equal(resource.closeHttpsCredentialBinding(f.binding), 'pending');
+  assert.equal(requests, 1); assert.equal(f.claims(), 1); assert.deepEqual(f.outcomes, ['unknown']);
+});
+
+for (const port of ['byte observer', 'response custody']) {
+  test(`unfenced binding refuses another claim while its original ${port} cannot be joined`, async t => {
+    let settle;
+    const original = new Promise(resolve => {settle = resolve;});
+    const primary = new Error('original native species lookup failed');
+    Object.defineProperty(original, 'constructor', {get() {throw primary;}});
+    let requests = 0;
+    const f = await fixture(t, (request, response) => {
+      requests++; response.writeHead(200); response.end('{}');
+    }, {unjoinedOriginal: true, fenced: false});
+    const options = port === 'byte observer'
+      ? {observeResponseBytes() {return original;}}
+      : {responseCustody: Object.freeze({retain() {return original;}})};
+    try {
+      await assert.rejects(f.call(options), error => error === primary);
+      // No close first: active=false and a completed socket do not retire the
+      // original callback task. Refuse BEFORE a second Journal claim or send.
+      await assert.rejects(f.call({}), {code: 'RemoteCredentialBindingBusy'});
+      assert.equal(requests, 1); assert.equal(f.claims(), 1);
+      assert.deepEqual(f.outcomes, ['unknown']);
+    } finally {
+      settle(); await new Promise(setImmediate);
+      // A test-owned resolver supplies no missing native settlement witness.
+      assert.equal(resource.closeHttpsCredentialBinding(f.binding), 'pending');
+    }
+  });
+}
+
+test('unfenced binding remains reusable after its original successful response retires', async t => {
+  let requests = 0;
+  const f = await fixture(t, (request, response) => {
+    requests++; response.writeHead(200); response.end('{}');
+  }, {fenced: false});
+  for (let index = 0; index < 2; index++) {
+    const response = await f.call({});
+    assert.equal(response.body.toString(), '{}');
+  }
+  assert.equal(requests, 2); assert.equal(f.claims(), 2);
+  assert.deepEqual(f.outcomes, ['succeeded', 'succeeded']);
+  assert.equal(resource.closeHttpsCredentialBinding(f.binding), 'closed');
+});
+
 test('a failed byte charge preserves its original error while the same request and binding stop',async t=>{
   const primary=new Error('original Ledger charge refusal');
   const f=await fixture(t,(request,response)=>{response.writeHead(200);response.end('body');});
@@ -115,4 +216,51 @@ test('an empty original response closes without fabricating a zero-byte observat
   const result=await f.call({observeResponseBytes:n=>{lengths.push(n);}});
   assert.equal(result.statusCode,204);assert.equal(result.body.byteLength,0);assert.deepEqual(lengths,[]);
   assert.equal(f.claims(),1);assert.equal(resource.closeHttpsCredentialBinding(f.binding),'closed');
+});
+
+test('original HTTP header and trailer bounds retain exact body observations and original cleanup', async t => {
+  assert.equal(resource.httpsCredentialResponseHeaderByteLimit, maxHeaderSize);
+  const f = await fixture(t, (request, response) => {
+    response.writeHead(200, {'x-initial': 'a'.repeat(256), trailer: 'x-final'});
+    response.write('{}'); response.addTrailers({'x-final': 'b'.repeat(256)}); response.end();
+  });
+  const charges = [];
+  const result = await f.call({observeResponseBytes: n => {charges.push(n);}});
+  assert.equal(result.body.toString(), '{}');
+  assert.equal(charges.reduce((a, b) => a + b, 0), 2);
+  assert.deepEqual(f.outcomes, ['succeeded']); assert.equal(f.claims(), 1);
+  assert.equal(resource.closeHttpsCredentialBinding(f.binding), 'closed');
+});
+
+test('original HTTP overflow in either header block stays Unknown without another claim', async t => {
+  for (const trailers of [false, true]) {
+    let requests = 0;
+    const f = await fixture(t, (request, response) => {
+      requests++;
+      if (trailers) {
+        response.writeHead(200, {trailer: 'x-overflow'}); response.write('{}');
+        response.addTrailers({'x-overflow': 'x'.repeat(maxHeaderSize)}); response.end();
+      } else {
+        response.writeHead(200, {'x-overflow': 'x'.repeat(maxHeaderSize)}); response.end('{}');
+      }
+    });
+    const charges = [];
+    await assert.rejects(f.call({observeResponseBytes: n => {charges.push(n);}}),
+      {code: 'HPE_HEADER_OVERFLOW'});
+    assert(charges.reduce((a, b) => a + b, 0) <= 2);
+    assert.equal(requests, 1); assert.equal(f.claims(), 1);
+    assert.deepEqual(f.outcomes, ['unknown']);
+    assert.equal(resource.closeHttpsCredentialBinding(f.binding), 'closed');
+  }
+});
+
+test('original repeated headers preserve the selected normalized value without another response copy', async t => {
+  const f = await fixture(t, (request, response) => {
+    response.writeHead(200, {'x-repeated': ['one', 'two', 'three']}); response.end('{}');
+  });
+  const result = await f.call({operations: new Map([['create', {method: 'POST', path: '/create',
+    body: '{}', responseHeaders: ['x-repeated']}]])});
+  assert.deepEqual(result.headers, [['x-repeated', 'one, two, three']]);
+  assert.equal(result.body.toString(), '{}'); assert.equal(f.claims(), 1);
+  assert.equal(resource.closeHttpsCredentialBinding(f.binding), 'closed');
 });

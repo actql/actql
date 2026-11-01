@@ -747,6 +747,8 @@ pub fn node_infer_input_target(PreparedNode) -> @pipeline_typing.Target?
 
 pub fn node_input_count(PreparedNode) -> Int
 
+pub fn node_input_independent_row_count_bound(PreparedNode) -> Int?
+
 pub fn node_input_step(PreparedNode, Int) -> Int?
 
 pub fn node_input_target(PreparedNode, Int) -> @pipeline_typing.Target?

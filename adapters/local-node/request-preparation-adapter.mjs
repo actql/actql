@@ -55,6 +55,12 @@ export function requestPreparationAvailable(context) {
     typeof own(moon,'clientLocalPreparationResourceLimits')==='function' &&
     typeof own(moon,'clientProgramAbortRequestPreparation')==='function' &&
     typeof own(moon,'clientProgramPrepareRequestNativeComputation')==='function' &&
+    typeof own(moon,'clientProgramPrepareRequestSourceComputation')==='function' &&
+    typeof own(moon,'clientProgramFinishRequestComputation')==='function' &&
+    typeof own(moon,'clientProgramPrepareRequestPolicySubjects')==='function' &&
+    typeof own(moon,'clientProgramReadRequestPolicySubject')==='function' &&
+    typeof own(moon,'clientProgramBindRequestPolicySubject')==='function' &&
+    typeof own(moon,'clientProgramFinishRequestPolicySubjects')==='function' &&
     typeof own(moon,'clientProgramPrepareRequestProgramModuleBody')==='function' &&
     typeof own(moon,'clientProgramRequestProgramModuleIssueCode')==='function' &&
     typeof own(moon,'clientProgramBorrowRequestProgramPlanInput')==='function' &&
@@ -141,13 +147,13 @@ export function closeHostInitializationPreparation(state) {
 
 // General Request admission observes no caller options, Parameters or source.
 // Actual SDK capture below grows this same parent before its detached data.
-export function beginRequestInput(state, receipt, connection, assertCurrent) {
+export function beginRequestInput(state, receipt, connection, assertCurrent, childrenPending = noPhysicalChildren) {
   const moon=state.context.runtime;
   if(typeof moon.clientProgramReserveRequestSnapshot!=='function') invalid();
   if (!Object.isFrozen(connection) || connection.mode !== 'local' ||
       connection.owner !== 'local' || !Array.isArray(connection.consentRefs) ||
       !Array.isArray(connection.runners)) return false;
-  openRequestPreparation(state,receipt,assertCurrent,noPhysicalChildren);
+  openRequestPreparation(state,receipt,assertCurrent,childrenPending);
   return true;
 }
 
@@ -159,22 +165,36 @@ export function cleanupRequestInput(state, retireInitialPreparation) {
   const retirementStarted = holder => borrow===undefined
     ? moon.clientProgramPreparationBorrowRetirementStarted(holder)
     : borrow.clientProgramEffectPreparationInputRetirementStarted(holder);
-  if(state.holder!==undefined && state.parent!==undefined) {
+  if((state.holder!==undefined || state.inventoryHolder!==undefined) && state.parent!==undefined) {
     // The same generic Request retains failed construction and every borrow.
     // Only the original retirement phase permits the selected holder return.
     try {checked(moon.clientProgramAbortRequestPreparation(state.parent));}
     catch(cause) {
-      if(retirementStarted(state.holder)!==true) throw cause;
+      if([state.holder,state.inventoryHolder].some(holder => holder!==undefined && retirementStarted(holder)!==true)) throw cause;
     }
-    if(retirementStarted(state.holder)!==true) invalid();
+    if([state.holder,state.inventoryHolder].some(holder => holder!==undefined && retirementStarted(holder)!==true)) invalid();
     if(state.prepared!==undefined) {
       if(typeof retireInitialPreparation!=='function') invalid();
       retireInitialPreparation(state.prepared);
     }
+    if (state.contentPreparation !== undefined) {
+      const original = state.contentPreparation;
+      Reflect.apply(original.releaseAliases, original, [undefined, state.holder]);
+      state.contentPreparation = undefined;
+      state.contentPlan = state.contentCompilation = state.contentGraph = undefined;
+    }
     state.prepared=state.parametersCursor=undefined;
-    const holder=state.holder;state.holder=undefined;
-    checked(borrow===undefined ? moon.clientProgramPreparationBorrowReturn(holder)
-      : borrow.clientProgramEffectPreparationInputReturn(holder));
+    // A failed family selection handoff can retain its original inventory
+    // borrower as well. Core consumes each holder before attempting owner
+    // settlement; false is a live owner, and settlement failure retains the
+    // parent duty without making the consumed token returnable again.
+    for(const field of ['inventoryHolder','holder']) {
+      const holder=state[field];
+      if(holder===undefined) continue;
+      state[field]=undefined;
+      checked(borrow===undefined ? moon.clientProgramPreparationBorrowReturn(holder)
+        : borrow.clientProgramEffectPreparationInputReturn(holder));
+    }
   }
   if(state.parent!==undefined) {
     checked(moon.clientProgramAbortRequestPreparation(state.parent));
@@ -188,6 +208,9 @@ export function cleanupRequestInput(state, retireInitialPreparation) {
   if(state.original!==undefined && !resources.ordinaryManagedRunStatus(state.original).stopped) invalid();
   state.original=state.prepared=state.snapshot=state.snapshotDocument=undefined;
   state.parametersCursor=state.compilationKind=state.preparationFailure=undefined;
+  state.compilationFamily=undefined;
+  state.modelCompilation=state.modelGraph=state.modelPlan=state.modelProviderBinding=state.contentPlan=state.contentCompilation=state.contentGraph=undefined;
   state.capturePlan=state.acquisitionCount=undefined;
+  state.policyVerifier=state.policySignal=undefined;state.policyVerifierSelected=false;
   state.parameterMetadataLoaded=false;state.preparationFailed=false;
 }

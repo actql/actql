@@ -21,7 +21,6 @@ import subprocess
 import sys
 import time
 import shutil
-from python_release_cohort import select_release_version
 
 ROOT = Path(__file__).resolve().parents[1]
 ENTRY = 'src/cmd/native_remote_resident_site'
@@ -75,7 +74,8 @@ def local_initial_entry_arguments(parts: list[str], moon_home: Path,
     directory = emission / 'native/release/build/cmd/native_client'
     archives = [p for p in parts if Path(p).parent == directory
                 and re.fullmatch(r'libnative_client-[0-9a-f]{16}\.a', Path(p).name)]
-    if parts.count(runtime) != 1 or len(archives) != 1:
+    runtime_members = [str(p if p.is_absolute() else ROOT / p) for p in map(Path, parts)]
+    if runtime_members.count(runtime) != 1 or len(archives) != 1:
         raise ValueError('Exact original CLI archive and allocator object are required')
     return list(parts)
 
@@ -88,6 +88,7 @@ def commands_for(output: str, moon_home: Path, emission: Path, allocator: Path,
     """Keep the actual pinned dry-run closure; reject other targets/entries."""
     entry_package = selected_entry(entry)
     if package_version is not None:
+        from python_release_cohort import select_release_version
         if entry != LOCAL_ENTRY:
             raise ValueError('Package version belongs to the Native client, not the resident helper')
         package_version = select_release_version(package_version)['version']
@@ -141,6 +142,7 @@ def commands_for(output: str, moon_home: Path, emission: Path, allocator: Path,
             if len(sources) != 1:
                 raise ValueError('Each original C step must have one source')
             source = Path(sources[0])
+            resolved = source if source.is_absolute() else ROOT / source
             final = '-c' not in parts
             if final:
                 finals += 1
@@ -152,14 +154,13 @@ def commands_for(output: str, moon_home: Path, emission: Path, allocator: Path,
                     parts = local_initial_entry_arguments(parts, moon_home, emission)
                     parts.extend('-Wl,-exported_symbol,_' + symbol
                                  for symbol in LOCAL_COMPONENT_PROVIDER_EXPORTS)
-            elif under(source, moon_home / 'lib/runtime'):
+            elif under(resolved, moon_home / 'lib/runtime'):
                 if source.stem not in RUNTIME_NAMES or source.stem in runtime:
                     raise ValueError('Duplicate or foreign runtime source')
                 runtime.add(source.stem)
                 parts[parts.index(sources[0])] = str(allocator / source.name)
             else:
                 # Preserve the actual source, including relative include layout.
-                resolved = source if source.is_absolute() else ROOT / source
                 if not under(resolved, ROOT / 'src'):
                     raise ValueError('Foreign FFI source')
                 if resolved.resolve() == (ROOT / 'src/platform_native/host_bootstrap/bootstrap_stub.c').resolve():
@@ -182,7 +183,8 @@ def commands_for(output: str, moon_home: Path, emission: Path, allocator: Path,
                           '-I' + str(allocator), '-DACTQL_SCOPED_READ_ALLOCATOR',
                           *(['-DACTQL_RUNTIME_MANAGED_VALUES=1'] if entry == LOCAL_ENTRY else [])]
         elif ar_driver is not None and parts[0] == str(ar_driver):
-            outside = [Path(p) for p in archive_files if not under(Path(p), emission)]
+            members = [p if p.is_absolute() else ROOT / p for p in map(Path, archive_files)]
+            outside = [p for p in members if not under(p, emission)]
             if outside:
                 # Ordinary pinned release Moon links these two UTF conversion
                 # objects into its runtime archive. Keep that exact command;
@@ -212,11 +214,18 @@ def commands_for(output: str, moon_home: Path, emission: Path, allocator: Path,
 
 
 def canonical_c_arguments(arguments: list[str]) -> list[str]:
-    # The pinned dry-run prints ./src paths while actual Moon execution makes
-    # those same source paths absolute. No flags, outputs or foreign paths are
-    # normalized; they must still match the exact selected command.
-    return [str((ROOT / p).resolve()) if p.startswith('./src/') and p.endswith('.c')
-            else p for p in arguments]
+    # Moon prints checkout C and in-checkout toolchain members relatively, then
+    # invokes cc with absolute spellings. Selection has already checked the exact
+    # source/runtime/link members; flags and outputs still match unchanged.
+    selected = []
+    for p in arguments:
+        if p.startswith('-I./.toolchains/'):
+            selected.append('-I' + str((ROOT / p[2:]).resolve()))
+        elif (p.startswith('./src/') and p.endswith('.c')) or p.startswith('./.toolchains/'):
+            selected.append(str((ROOT / p).resolve()))
+        else:
+            selected.append(p)
+    return selected
 
 
 def compile_selected_c(plan_path: Path, arguments: list[str]) -> None:
@@ -247,6 +256,7 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
           entry: str = ENTRY, package_version: str | None = None) -> dict[str, object]:
     entry_package = selected_entry(entry)
     if package_version is not None:
+        from python_release_cohort import select_release_version
         if entry != LOCAL_ENTRY:
             raise ValueError('Only the Native client has a release package version')
         package_version = select_release_version(package_version)['version']

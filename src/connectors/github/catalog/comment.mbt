@@ -19,6 +19,10 @@ pub let add_comment_mutation : String = "mutation ActqlAddComment($subjectId: ID
 pub let max_comment_characters : Int = 65536
 
 ///|
+/// The existing global-node-ID request bound, in UTF-16 units.
+pub let max_comment_subject_units : Int = 256
+
+///|
 pub(all) enum CommentRequestIssue {
   InvalidSubjectId
   InvalidBody
@@ -26,7 +30,7 @@ pub(all) enum CommentRequestIssue {
 
 ///|
 fn valid_subject_id(subject_id : String) -> Bool {
-  !subject_id.is_empty() && subject_id.length() <= 256
+  !subject_id.is_empty() && subject_id.length() <= max_comment_subject_units
 }
 
 ///|
