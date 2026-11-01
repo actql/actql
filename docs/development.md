@@ -469,6 +469,9 @@ runtime preparation checks them but does not silently update them.
 
 The public Node facade resolves the selected Local provider before loading its
 existing private compile-cache helper, then imports that same resolved provider.
+The helper's declared `@actql/local-node/_internal/compile-cache` delivery edge
+uses the same facade's package resolution context; it is no public SDK API.
+Missing or invalid private delivery exports fail without a replacement helper.
 This places the optional V8 cache call before Local's static Host graph without
 selecting Local for Remote connections. Coverage exclusion and an unavailable
 or declined Node cache keep the existing helper policy. This is no ActQL

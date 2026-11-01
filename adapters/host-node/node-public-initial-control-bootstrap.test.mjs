@@ -18,6 +18,7 @@ function fixture(t,{inventory=true,changeImage=false,publicNode=false,actualFaca
   const sources=new Map();
   sources.set('package.json',Buffer.from(JSON.stringify({name:'@actql/local-node',version:'1.0.0',
     type:'module',exports:{'.':'./index.mjs',
+      './_internal/compile-cache':'./adapters/host-node/compile-cache.mjs',
       './_internal/initial-control-public-dispatch':'./initial-control-public-dispatch.cjs'}})));
   sources.set('index.mjs',Buffer.from('import delivery from "./initial-control-public-dispatch.cjs";'+
     'export function connect(raw){return delivery.selectedInitialControlHostPreparation("connect",raw);}'));

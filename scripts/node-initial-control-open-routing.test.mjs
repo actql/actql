@@ -32,7 +32,8 @@ const table = Object.freeze({selectedInitialControlHostPreparation: ${selected ?
 module.exports = table;
 `);
   await writeFile(join(local, 'package.json'), JSON.stringify({name: '@actql/local-node',
-    type: 'module', exports: './index.mjs'}));
+    type: 'module', exports: {'.': './index.mjs',
+      './_internal/compile-cache': './adapters/host-node/compile-cache.mjs'}}));
   await mkdir(join(local, 'adapters/host-node'), {recursive: true});
   await copyFile(join(root, 'adapters/host-node/compile-cache.mjs'),
     join(local, 'adapters/host-node/compile-cache.mjs'));
