@@ -161,6 +161,53 @@ class OriginalBulkTransferTests(unittest.TestCase):
                                      inspect=inspect, current=lambda: None)
             self.assertEqual(store.read(physical_key).payload, payload)
 
+    def test_journal_current_change_cannot_replace_original_query_or_row(self):
+        from actql_sdk._local_storage import StoredBytes
+        for mode in ('query', 'row'):
+            with self.subTest(mode=mode):
+                owner = object()
+                callbacks = _JournalCallbacks(lambda: None, owner)
+                callbacks.reader = SimpleNamespace(owner=owner,
+                    check_fences_and_current=lambda *args: callbacks.current())
+                if mode == 'query':
+                    self.assertEqual(callbacks.begin(1, 1, 2), 0)
+                    original = callbacks.request
+                    replacement = bytearray(3)
+                    callbacks.current = lambda: setattr(callbacks, 'request', replacement)
+                    self.assertEqual(callbacks.query_copy(0, b'old'), -41)
+                    self.assertEqual(original, bytearray(3))
+                    self.assertEqual(replacement, bytearray(3))
+                    self.assertEqual(callbacks.received, 0)
+                else:
+                    original = (b'key', StoredBytes(4, b'original'))
+                    callbacks.row, callbacks.queried = original, True
+                    replacement = (b'key', StoredBytes(4, b'changed!'))
+                    callbacks.current = lambda: setattr(callbacks, 'row', replacement)
+                    with self.assertRaises(ValueError):
+                        callbacks.row_copy(1, 0, 8)
+                    self.assertIs(callbacks.row, replacement)
+
+    def test_publisher_memory_callback_cannot_replace_original_collector_or_authorize(self):
+        payload = b'original'
+        core, memory, _ = self.bridge(payload)
+        authorized = []
+        callbacks = _PublisherCallbacks(lambda: True, lambda value: authorized.append(value) or True)
+        core._inputs[9] = _PhysicalInput(b'', lambda: True, lambda _: True, publisher=callbacks)
+        self.assertEqual(core._publisher_begin(9, len(payload)), 0)
+        original = callbacks.buffer
+        read = memory.read
+        def replace(*args):
+            raw = read(*args)
+            callbacks.buffer = bytearray(len(payload))
+            return raw
+        memory.read = replace
+        self.assertEqual(core._publisher_copy(SimpleNamespace(get=lambda _: memory),
+                                              9, 0, 64, len(payload)), -2)
+        self.assertEqual(original, bytearray(len(payload)))
+        self.assertEqual(callbacks.received, 0)
+        self.assertEqual(authorized, [])
+        self.assertEqual(core._publisher_finish(9), -2)
+
     def test_publisher_block_keeps_original_six_facts_and_authorizes_only_complete_once(self):
         fact = {'stage': 'request', 'namespace_id': 'ns', 'authority_scope_cid': 'scope',
                 'run_definition_cid': 'definition', 'publication_request_cid': 'request',

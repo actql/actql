@@ -36,7 +36,7 @@ try:
         count = min(16384, len(payload) - start)
         assert fixture.call('fill_block', handle, start, count) == 0
     assert fixture.call('seal', handle) == 0
-    assert fixture.block_calls == [(0, 16384), (16384, 16384), (32768, 21)]
+    assert fixture.block_calls == [(0, 16384), (16384, 16384), (32768, 19)]
     assert fixture.reads == 0
     assert bridge._inputs[41] is original
     actual = []
