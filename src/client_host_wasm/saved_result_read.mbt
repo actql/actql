@@ -337,7 +337,8 @@ fn saved_result_fence_packet(
         _ => None
       }
       guard document is Some(document) else { break }
-      let bytes = @encode.document_bytes(document) + (if end == start { 0 } else { 1 })
+      let bytes = @encode.document_bytes(document) +
+        (if end == start { 0 } else { 1 })
       if bytes > 4096 - used {
         break
       }
@@ -367,7 +368,12 @@ fn validate_saved_result_fences(
   let mut index = 0
   let mut scalar_only = false
   while index < fences.length() {
-    match (if scalar_only { None } else { saved_result_fence_packet(fences, index) }) {
+    match
+      (if scalar_only {
+        None
+      } else {
+        saved_result_fence_packet(fences, index)
+      }) {
       Some((wire, end)) =>
         match packet(wire) {
           Err(code) => return Err(code)
@@ -382,7 +388,9 @@ fn validate_saved_result_fences(
     }
     let (table, key, revision, body) = fences[index]
     match read(table, key) {
-      Ok(Some(row)) if row.key == key && row.revision == revision && row.body == body => ()
+      Ok(Some(row)) if row.key == key &&
+        row.revision == revision &&
+        row.body == body => ()
       Err(code) => return Err(code)
       _ => return Err(-32)
     }
@@ -428,11 +436,14 @@ fn validate_saved_result_read(
     Ok(None) => return Err(-42)
     Err(code) => return Err(code)
   }
-  match validate_saved_result_fences(
-    retained.fences,
-    (table, key) => physical_journal_row(current.physical, check, 1, table, key),
-    wire => physical_journal_fence_packet(current.physical, check, wire),
-  ) {
+  match
+    validate_saved_result_fences(
+      retained.fences,
+      (table, key) => {
+        physical_journal_row(current.physical, check, 1, table, key)
+      },
+      wire => physical_journal_fence_packet(current.physical, check, wire),
+    ) {
     Err(code) => return Err(code)
     Ok(_) => ()
   }

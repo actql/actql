@@ -74009,7 +74009,7 @@
     },
     {
       "module": "src/client_host_wasm/saved_result_read.mbt",
-      "sha256": "d5cee4f41a899595edb47ce88b340e97aa2249052facb243d2a230e825294579",
+      "sha256": "adc8f9964f7afac1616b6b76cc6cfc77382dc0906a7aa57cd51cc384f6653566",
       "exports": [],
       "operations": [
         {
