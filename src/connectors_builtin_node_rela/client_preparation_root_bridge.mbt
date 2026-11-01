@@ -1073,6 +1073,8 @@ pub fn client_program_request_program_module_issue_code(
   match result {
     Err(Preparation(CapacityExceeded(_))) =>
       Some("source_free_capacity_exceeded")
+    Err(Preparation(Installed(MetadataCapacityUnavailable))) =>
+      Some("source_free_metadata_capacity_unavailable")
     Err(Preparation(Installed(Sequence(ValuesFailure(_, ValuesLimit))))) =>
       Some("values_profile_unsupported")
     _ => None

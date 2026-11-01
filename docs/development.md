@@ -511,7 +511,10 @@ For source-free Request preparation, the configured Plan's complete execution
 and retention requirements must fit the same original initial admission before
 its module body completes or its custody transfers to a Run. A known byte
 refusal is reported as `ClientProgramRejected` / `operation_failed`, not as an
-invalid or unsupported Program. The existing bounded Host diagnostic observer
+invalid or unsupported Program. A failed original Result metadata quote is also
+an operation refusal before provider construction, without invented numeric
+capacity amounts. Missing optional specialization or a legitimate absent Result
+envelope is not that failure. The existing bounded Host diagnostic observer
 can receive the best-effort event `preparation_capacity_refused` with immutable phase, dimension, and decimal
 required/available byte quantities. These diagnostic facts neither increase
 capacity nor authorize a retry. The public submission wire retains its existing
