@@ -10,7 +10,7 @@ from threading import RLock, get_ident
 from ._local_files import LocalFileRoot, _PayloadFile
 from ._local_storage_physical import (
     _PhysicalByteDatabase, _SQLiteByteDatabase,
-    _PhysicalCapacityCollision, _PhysicalCapacityExceeded)
+    _PhysicalCapacityCollision, _PhysicalCapacityExceeded, _RUN_DEFINITION_INDEX)
 
 _APPLICATION_ID = 0x41514C42
 _SCHEMA = '''CREATE TABLE core_bytes (
@@ -178,10 +178,19 @@ class LocalByteStore:
                     self._connection.execute(_SCHEMA)
                     self._connection.execute(_CAPACITY_SCHEMA)
                     self._connection.execute(f'PRAGMA application_id = {_APPLICATION_ID}')
-                    self._connection.execute('PRAGMA user_version = 2')
-                elif (schema != [('actql_capacity', _CAPACITY_SCHEMA), ('core_bytes', _SCHEMA)]
-                      or application != _APPLICATION_ID or version != 2):
-                    raise LocalStorageError('Unknown Local physical storage format')
+                    if _new_file is not None:
+                        # Only the existing one-time original file acquisition
+                        # creates this format. Reopen never installs or repairs it.
+                        self._connection.execute(_RUN_DEFINITION_INDEX)
+                        self._connection.execute('PRAGMA user_version = 3')
+                    else:
+                        self._connection.execute('PRAGMA user_version = 2')
+                else:
+                    expected = [('actql_capacity', _CAPACITY_SCHEMA), ('core_bytes', _SCHEMA)]
+                    if version == 3:
+                        expected.insert(1, ('actql_client_run_definition_unique', _RUN_DEFINITION_INDEX))
+                    if schema != expected or application != _APPLICATION_ID or version not in (2, 3):
+                        raise LocalStorageError('Unknown Local physical storage format')
                 self._connection.execute('COMMIT')
             except BaseException:
                 if self._physical.in_transaction:

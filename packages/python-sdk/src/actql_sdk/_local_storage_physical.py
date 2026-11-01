@@ -10,6 +10,15 @@ import sqlite3
 from typing import Protocol, cast
 
 
+# Same existing Native Run-Definition uniqueness domain, adapted only to this
+# physical table/key representation. NULL is not typed Run admission.
+_RUN_DEFINITION_INDEX = (
+    "CREATE UNIQUE INDEX actql_client_run_definition_unique ON core_bytes("
+    "json_extract(json_extract(CAST(payload AS TEXT),'$.run_definition'),"
+    "'$.run_definition_cid')) WHERE key>='namespace:11:client_runs:' "
+    "AND key<'namespace:11:client_runs;'")
+
+
 class _PhysicalCapacityCollision(RuntimeError):
     """A different exact reservation is present; no row was removed/reissued."""
 
@@ -46,7 +55,7 @@ class _PhysicalByteDatabase(Protocol):
 
 
 class _SQLiteByteDatabase:
-    """The existing legacy schema2/stdlib connection, unchanged SQL semantics.
+    """The same stdlib connection for legacy2 and owned indexed Journal3.
 
     Only LocalByteStore owns the connection and closes it. No second connection,
     implicit transaction completion, schema conversion or fallback is created.
@@ -76,6 +85,30 @@ class _SQLiteByteDatabase:
                 or not connection.in_transaction):
             raise ValueError('Original SQLite snapshot changed during observation')
         return connection, sequence, connection.total_changes, (schema[0], temporary[0])
+
+    def _journal_schema(self) -> int:
+        """Observe the actual same-TX physical format; no authority is returned.
+
+        The closed index distinguishes legacy absence from metadata lost after
+        format3 initialization. No open, schema repair, migration or cache runs.
+        """
+        before = self._snapshot_identity()
+        version = self._connection.execute('PRAGMA main.user_version').fetchone()
+        row = self._connection.execute("""SELECT type,
+            CASE WHEN length(tbl_name) <= 10 THEN tbl_name ELSE NULL END,
+            CASE WHEN length(sql) <= ? THEN sql ELSE NULL END
+            FROM main.sqlite_schema
+            WHERE name='actql_client_run_definition_unique' COLLATE NOCASE""",
+            (len(_RUN_DEFINITION_INDEX),)).fetchone()
+        shadow = self._connection.execute("""SELECT 1 FROM temp.sqlite_schema
+            WHERE name='core_bytes' COLLATE NOCASE LIMIT 1""").fetchone()
+        if self._snapshot_identity() != before or shadow is not None:
+            raise ValueError('Original Journal physical schema changed or was shadowed')
+        if version == (2,) and row is None:
+            return 0
+        if version == (3,) and row == ('index', 'core_bytes', _RUN_DEFINITION_INDEX):
+            return 1
+        raise ValueError('Original Journal physical format is missing or inconsistent')
 
     @property
     def in_transaction(self) -> bool:
