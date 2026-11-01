@@ -2,7 +2,7 @@
   {
     "module": "adapters/connectors/sheets/host/installed-sheets.mjs",
     "responsibilityFacet": "primary",
-    "sha256": "4e19ecad9165a3bb644e64cd9ee5b67f6a1a022da9b0d0971a81dd00ffb0f4f4",
+    "sha256": "b9b1cbfd83a5367f1826718177425d790d98950c8c33d349a9c4bac6e0e58cb3",
     "exports": [
       "SHEETS_EFFECT_VERSION",
       "SHEETS_SITE_VERSION",
@@ -141,45 +141,7 @@
         "async": true
       },
       {
-        "name": "load/adapter/adapter",
-        "parameters": [
-          "resource",
-          "fields"
-        ],
-        "async": false
-      },
-      {
-        "name": "load/adapter/adapter#2",
-        "parameters": [
-          "kind",
-          "wire"
-        ],
-        "async": false
-      },
-      {
-        "name": "load/adapter/adapter#3",
-        "parameters": [],
-        "async": false
-      },
-      {
-        "name": "load/adapter/adapter#4",
-        "parameters": [
-          "options"
-        ],
-        "async": false
-      },
-      {
         "name": "load/init:body/init:body",
-        "parameters": [],
-        "async": false
-      },
-      {
-        "name": "load/init:close/init:close",
-        "parameters": [],
-        "async": false
-      },
-      {
-        "name": "load/init:close/init:close#2",
         "parameters": [],
         "async": false
       },
@@ -813,12 +775,6 @@
       {
         "operations": [
           "load",
-          "load/adapter/adapter",
-          "load/adapter/adapter#2",
-          "load/adapter/adapter#3",
-          "load/adapter/adapter#4",
-          "load/init:close/init:close",
-          "load/init:close/init:close#2",
           "load/load",
           "load/load#2",
           "loadInstalledSheetsEffect/loadInstalledSheetsEffect",

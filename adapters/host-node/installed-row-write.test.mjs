@@ -919,6 +919,30 @@ test('Sheets initialized loading refuses missing original reader before a legacy
     {code:'InstalledSheetsConfigurationReaderUnavailable'});
 });
 
+test('Sheets registered loaders refuse absent Source ownership before any configuration or legacy producer', async () => {
+  let reads=0;
+  const load=selectedSheetsInitialization({
+    fail:code=>{throw Object.assign(new Error(code),{code});},
+    readSite(){reads++;throw new Error('Unexpected unfunded configuration read');}});
+  for(const effect of [false,true]) {
+    await assert.rejects(load({}, {moon:{},providerMoon:{}},effect),
+      {code:'InstalledSheetsInitializationUnavailable'});
+  }
+  assert.equal(reads,0);
+});
+
+test('Sheets registered loaders refuse absent Site services before opening original configuration', async () => {
+  let reads=0;
+  const load=selectedSheetsInitialization({
+    fail:code=>{throw Object.assign(new Error(code),{code});},
+    readFile(){reads++;throw new Error('Unexpected configuration read before installed Site services');}});
+  for(const effect of [false,true]) {
+    await assert.rejects(load({}, {sourceInitialization:{},configurationReader:{}},effect),
+      {code:'InvalidInstalledEffectSiteServices'});
+  }
+  assert.equal(reads,0);
+});
+
 test('Sheets original declaration method refuses missing inherited or accessor substitutions without invoking them', () => {
   const site=initializedSheetsSite(),profile={connectorId:'sheet'};
   const restore=selectedSheetsInitialization({registration:'sheets',revision:'sheets/0.1',checked,
@@ -987,33 +1011,40 @@ test('actual managed Sheets Source selects same original request quantity before
 
 for (const rangeCommand of [true, 'clear']) {
   test(`Sheets ${rangeCommand === true ? 'range' : 'clear'} caller consumes the original Command Environment once`, async () => {
-    // Actual caller and common Environment assembler. Declaration, Site,
-    // provider and Effect constructors are explicit ports, not admissions.
+    // Actual registered caller retains the original Source Environment.
+    // Declaration, Site and Effect constructors are explicit ports, not admissions.
     const source=readFileSync(new URL('../connectors/sheets/host/installed-sheets.mjs',import.meta.url),'utf8');
     const node=parse(source,{ecmaVersion:'latest',sourceType:'module'}).body
       .find(value=>value.type==='FunctionDeclaration'&&value.id.name==='load');
     const {rowSourceCheckEnvironment}=await import('./installed-row-source.mjs');
     const command={contract_cid:providerCid,literal:'=e\u0301\r\n'},commandWire=JSON.stringify(command),
-      declaration={},installed={body:commandWire},target={},siteOwner={},authorization={},adapter={},calls=[];
+      declaration={},installed={body:commandWire},target={},siteOwner={referenceCurrent:()=>true},authorization={},adapter={},calls=[];
     const declared={catalog:JSON.stringify({commands:[command]}),command_bodies:[commandWire],
       contracts:[],view_bodies:[],evidence_schemas:[],evidence_capabilities:[],manifest_entry:'{}'};
     const base={version:'actql-check-environment/0.1',connector_catalogs:[],schema_snapshots:[],
       connector_capabilities:[],mapping_contracts:[],command_contracts:[]};
+    const sourceInitialization={},configurationReader={},installationServices={};
+    let environment;
+
     const profile={rangeCommand,connectorId:'sheet',siteProfilePath:'/unopened/site',publicationPath:'/unopened/publication'};
-    const ports={captureConfigurationReaders(){assert.fail('No configuration reader selected in this isolated old-purpose caller');},
+    const ports={captureConfigurationReaders(value){assert.equal(value,configurationReader);return value;},
       fail:code=>{throw Object.assign(new Error(code),{code});},readSite:async()=>({}),
-      restore:()=>({declaration,declared,rangeCommand:{installed,command}}),readPublication:async()=>({}),
-      rowSourceCheckEnvironment(...args){calls.push('environment');return rowSourceCheckEnvironment(...args);},
+      restore(...args){assert.equal(args[5],sourceInitialization);calls.push('environment');
+        environment=rowSourceCheckEnvironment(JSON.stringify(base),declared,[]);
+        return {declaration,declared,rangeCommand:{installed,command},environment};},
+      readPublication:async()=>({}),
+      rowSourceCheckEnvironment(){assert.fail('No second Environment assembly after original Source construction');},
       openSite:async()=>({site:siteOwner,authorization,bindingCid:providerCid}),
-      sheetsRangeReference:()=>target,
-      createSheetsClearDriver(input){assert.equal(input.target,target);calls.push('clear');return input;},
-      createSheetsRangeDriver(input){assert.equal(input.target,target);calls.push('range');return input;},
-      createInstalledRowEffect:async input=>{assert.deepEqual(JSON.parse(input.environmentWire).command_contracts,[command]);
-        assert.deepEqual(input.commands,[installed]);assert.equal(input.authorization,authorization);return adapter;},
+      checkedSourceMethod:(owner,name)=>owner[name],
+      prepareInitializedSheetsEffectDriver(scope,moon,site,catalog,binding,selected,clear,current){
+        assert.equal(scope,sourceInitialization);assert.equal(selected,installed);assert.equal(current(),true);
+        calls.push(clear?'clear':'range');return {target,driver:{}};},
+      createInstalledRowEffect:async input=>{assert.equal(input.environment,environment);assert.deepEqual(JSON.parse(input.environmentWire).command_contracts,[command]);
+        assert.equal(input.site,siteOwner);assert.deepEqual(input.commands,[installed]);assert.equal(input.authorization,authorization);return adapter;},
       retainInstalledHostInitializationFailure:async error=>{throw error;},
       canonicalJson,contentCid,registration:'sheets',revision:'sheets/0.1'};
     const load=Function(...Object.keys(ports),`return (${source.slice(node.start,node.end)});`)(...Object.values(ports));
-    assert.equal(await load(profile,{moon:{},providerMoon:{},baseEnvironmentWire:JSON.stringify(base)},true),adapter);
+    assert.equal(await load(profile,{moon:{},providerMoon:{},sourceInitialization,configurationReader,installationServices,baseEnvironmentWire:JSON.stringify(base)},true),adapter);
     assert.deepEqual(calls,['environment',rangeCommand==='clear'?'clear':'range']);
   });
 }

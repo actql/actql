@@ -1774,7 +1774,12 @@ the returned Environment and complete immutable Mapping array pass unchanged
 through the original Site service into the common Effect constructor. Missing
 initialized readers or constructors refuse rather than select raw-file,
 standalone declaration or another Environment preparation. Physical publication
-and unfinished reader/constructor migrations keep their separate obligations.
+and unfinished reader/constructor migrations keep their separate obligations. The registered
+Sheets loaders require that original initializer, configuration reader and Site
+service. They have no unmanaged readPages, standalone Environment or copied
+Site-close fallback. The separate operator publication entry retains its own
+existing authorization and cleanup contract; it is not another registered
+runtime loading route.
 
 The Sheets append constructor uses the same closed literal document/cell
 builders as its actual mapper. Its immutable schema and the original Host input
