@@ -4508,6 +4508,22 @@ alias release. A pending Local read or failed observation preserves the same
 aliases and slot. A consumed parent return cannot repeat already-spent alias
 release. No alias step acknowledges physical cleanup or refunds work.
 
+An executing Content prefix keeps its original provider until that provider's
+cleanup acknowledges reclamation. It then retains only the original cumulative
+work Result and reservation controller; invalid work remains invalid, and a
+failed reservation settlement cannot restore the provider or repeat its spent
+cleanup. The existing controller excludes cleanup, advance and cancellation
+reentry while that same callback is running.
+
+The Node execution retains its input, writer, prepared objects and evidence
+holdings while their original cleanup is pending. A holding's false abort can
+mean an already committed holding, so its original status and the Store's
+retirement handles govern completion. Once those duties acknowledge cleanup,
+the execution drops those aliases before its same managed prefix settlement,
+which may still decline or throw. A legacy prefix remains retained until its
+own stop acknowledgement. Cleanup callbacks join the existing single flight;
+neither process exit nor a missing JavaScript alias acknowledges a child.
+
 Before Run adoption, the same Request abort and original input borrow's
 retirement phase govern alias release. Failed construction does not fabricate
 a managed Run or a successful physical outcome. The Request retains partial

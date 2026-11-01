@@ -5,6 +5,10 @@
 /// provider confirms cleanup, including after completed input is borrowed.
 struct ClientSerializationPrefix {
   mut child : @local.ManagedProviderExecution?
+  // Fixed controller DATA, not another owner/allowance or cleanup witness.
+  // Preserve the child's actual validated total after its heavy alias retires.
+  mut final_work : Result[Int64, @local.ManagedProviderWorkIssue]?
+  mut cleanup_busy : Bool
   ledger : @resources.Ledger
   reservation : @resources.Reservation
   mut child_cleaned : Bool
@@ -386,7 +390,15 @@ fn serialization_prefix_reservation(
   ledger : @resources.Ledger,
   reservation : @resources.Reservation,
 ) -> ClientSerializationPrefix {
-  { child: None, ledger, reservation, child_cleaned: false, released: false, }
+  {
+    child: None,
+    final_work: None,
+    cleanup_busy: false,
+    ledger,
+    reservation,
+    child_cleaned: false,
+    released: false,
+  }
 }
 
 ///|
@@ -433,6 +445,9 @@ pub fn advance_client_serialization_prefix(
   if value.child_cleaned {
     return Ok(@local.managed_provider_stopped_poll(0L, 0L))
   }
+  if value.cleanup_busy {
+    return Err(@connector.Execution(@execution.InputSet))
+  }
   match value.child {
     Some(child) => @local.advance_managed_provider(child, quantum)
     None => Err(@connector.Execution(@execution.InputSet))
@@ -445,6 +460,9 @@ pub fn advance_client_serialization_prefix(
 pub fn client_serialization_prefix_work(
   value : ClientSerializationPrefix,
 ) -> Result[Int64, @local.ManagedProviderWorkIssue] {
+  if value.final_work is Some(original) {
+    return original
+  }
   match value.child {
     Some(child) => @local.managed_provider_cumulative_work(child)
     // No execution handle has returned. This is observed work only, not
@@ -458,6 +476,7 @@ pub fn cancel_client_serialization_prefix(
   value : ClientSerializationPrefix,
 ) -> Bool {
   !value.child_cleaned &&
+  !value.cleanup_busy &&
   value.child is Some(child) &&
   @local.cancel_managed_provider(child)
 }
@@ -469,20 +488,40 @@ pub fn cleanup_client_serialization_prefix(
   if value.released {
     return Ok(true)
   }
-  if !value.child_cleaned {
-    guard value.child is Some(child) else { return Ok(false) }
-    match @local.cleanup_managed_provider(child) {
-      Ok(true) => value.child_cleaned = true
-      Ok(false) => return Ok(false)
-      Err(issue) => return Err(Provider(issue))
-    }
+  if value.cleanup_busy {
+    return Ok(false)
   }
-  // Never mark this handle complete before the original ledger settles.
-  match @resources.settle_reservation(value.ledger, value.reservation) {
-    Ok(_) => {
-      value.released = true
-      Ok(true)
-    }
-    Err(issue) => Err(Physical(issue))
-  }
+  value.cleanup_busy = true
+  preparation_module_call(
+    () => {
+      if !value.child_cleaned {
+        guard value.child is Some(child) else { return Ok(false) }
+        match @local.cleanup_managed_provider(child) {
+          Ok(true) => {
+            value.child_cleaned = true
+            // This getter is the same callback-free reported_work field read,
+            // not a second current/stop/probe. Keep its exact Result (including
+            // invalid/overflow) before dropping provider closures and inputs.
+            value.final_work = Some(
+              @local.managed_provider_cumulative_work(child),
+            )
+            value.child = None
+          }
+          Ok(false) => return Ok(false)
+          Err(issue) => return Err(Provider(issue))
+        }
+      }
+      // Alias retirement follows the original child ACK, before this original
+      // settlement can consume/fail. A failed return remains retryable here;
+      // it never restores a child or repeats its spent cleanup duty.
+      match @resources.settle_reservation(value.ledger, value.reservation) {
+        Ok(_) => {
+          value.released = true
+          Ok(true)
+        }
+        Err(issue) => Err(Physical(issue))
+      }
+    },
+    () => value.cleanup_busy = false,
+  )
 }

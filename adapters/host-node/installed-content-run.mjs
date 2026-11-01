@@ -173,7 +173,9 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
       if (cleaned) return Promise.resolve(true);
       if (cleanupFlight !== undefined) return cleanupFlight;
       let flight;
-      flight = (async () => {
+      // Install the existing flight before entering any callback, including
+      // synchronous cancellation. Reentry joins this same cleanup operation.
+      flight = Promise.resolve().then(async () => {
         if (prefix !== undefined) control.prefixCancel(prefix);
         if (input !== undefined) control.inputCancel(input);
         if (failureCleanup !== undefined) {
@@ -192,12 +194,19 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
         // Confirm the exact original index before selecting lawful retirement.
         // A failed observation retains custody; it is not proof of no commit.
         const committed = await store.confirmCommittedIndex(key);
+        for (const holding of retained?.holdings ?? []) {
+          await holding.abort();
+          // False can mean an already committed holding. Its original owner
+          // must still have reconciled and released every prepared child.
+          const status = holding.status();
+          if (status.operationPending !== false || status.preparedPending !== false ||
+              (status.committed !== true && status.abandoned !== true)) return false;
+        }
         // Intermediate bytes have their own committed generation/evidence
         // holdings and declared lifetime. A Model approval wait or unknown
         // outcome has no public index; that is not permission to delete them.
         if (committed === undefined && !generatedRetained) {
           retired = true;
-          for (const holding of retained?.holdings ?? []) await holding.abort();
           for (const cid of [byteHolding?.holding_cid,
             ...(retained?.bindings ?? []).map(binding => binding.holdingCid)].filter(Boolean)) {
             let child = retirement.get(cid);
@@ -209,7 +218,18 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
             if (child.status().pending) return false;
           }
         }
+        // The actual writer/prepared/holding/Store duties above acknowledged
+        // cleanup. Forget only this execution's aliases before fallible native
+        // prefix settlement; the same managed Run retains a pending prefix.
+        input = undefined;
+        writer = undefined;
+        physical = undefined;
+        byteHolding = undefined;
+        retained = undefined;
+        publication = undefined;
+        retirement.clear();
         if (managed !== undefined) {
+          prefix = undefined;
           // This also retrieves cleanup after the original start retained a
           // prefix but threw before returning it to this JS caller.
           const acknowledged = selectedKeyed === undefined
@@ -218,10 +238,11 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
           if (acknowledged !== true) return false;
         } else if (prefix !== undefined) {
           if (!stopGeneratedContentPrefix({control, prefix, chargeWork})) return false;
+          prefix = undefined;
         }
         cleaned = true;
         return true;
-      })().finally(() => { if (cleanupFlight === flight) cleanupFlight = undefined; });
+      }).finally(() => { if (cleanupFlight === flight) cleanupFlight = undefined; });
       cleanupFlight = flight;
       return flight;
     };
