@@ -382,13 +382,29 @@ def chain_failure():
     def test_existing_assessor_keeps_selected_process_success_incomplete(self):
         result,report,output=self.collect('native',self.native(),'first-init')
         self.assertEqual(result.returncode,0,result.stderr)
-        assessment=subprocess.run(['node',str(SCRIPT.with_name('operation-performance.mjs')),
-            '--input',str(output/'measurements.json')],capture_output=True,text=True)
-        self.assertEqual(assessment.returncode,1,assessment.stderr)
-        body=json.loads(assessment.stdout)
-        self.assertEqual(body['status'],'incomplete')
-        for section in ['structure','history','chunks','boundaries']:
-            self.assertIn(section,body['missing'])
+        original=(output/'measurements.json').read_bytes()
+        # Fixed assessor vectors, not runtime performance observations. The
+        # synthetic CLI fixture's real startup can cross 200ms under load;
+        # that must not make this missing-evidence assertion nondeterministic.
+        # Keep the original collector report untouched in either case.
+        for wall_ns,expected in [(100_000_000,'incomplete'),(201_000_000,'failed')]:
+            with self.subTest(wall_ns=wall_ns):
+                vector=json.loads(original)
+                for series in vector['latency']:
+                    for row in series['samples']:
+                        row['wallNs']=wall_ns
+                        row['publicTiming']=dict(kind='cli-result-exit',startNs=0,
+                            exitNs=wall_ns//2,observedNs=3*wall_ns//4,endNs=wall_ns)
+                path=output/f'synthetic-assessor-{wall_ns}.json'
+                path.write_text(json.dumps(vector))
+                assessment=subprocess.run(['node',str(SCRIPT.with_name('operation-performance.mjs')),
+                    '--input',str(path)],capture_output=True,text=True)
+                self.assertEqual(assessment.returncode,1,assessment.stderr)
+                body=json.loads(assessment.stdout)
+                self.assertEqual(body['status'],expected)
+                for section in ['structure','history','chunks','boundaries']:
+                    self.assertIn(section,body['missing'])
+        self.assertEqual((output/'measurements.json').read_bytes(),original)
 
     def test_python_priority_varies_new_runs_and_reads_their_same_originals(self):
         result,report,output=self.collect('python',self.python(priority=True),'warm-select',
