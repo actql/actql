@@ -30,6 +30,95 @@ async function fixture(effectRequirements) {
   return {root, originals, journal, native, control, subject, prepared, view, options};
 }
 
+test('ordinary Result keeps the same live service after more than 5000 operation boundaries', async () => {
+  const f = await fixture();
+  try {
+    f.view.admitRun(f.prepared);
+    const store = await f.view.openStore(f.options, f.control);
+    const capacity = f.view.modelPublicationCapacity(f.prepared);
+    const holdings = store.status();
+    const beyondCapacity = {requiredBytes: f.options.capacityBytes + 1,
+      objectCount: 1, maxObjectBytes: 1};
+    assert.equal(store.publicationCapacitySupports(beyondCapacity), false);
+    for (let index = 0; index < 5121; index++) {
+      f.view.beforeOperation();
+      assert.strictEqual(f.view.modelPublicationCapacity(f.prepared), capacity);
+      assert.equal(store.status().closed, false);
+      if (index % 128 === 0) {
+        assert.throws(() => f.view.modelPublicationCapacity({...f.prepared}),
+          {message: 'HostResultPublicationRunUnavailable'});
+      }
+      await Promise.resolve();
+    }
+    assert.deepEqual(store.status(), holdings);
+    assert.equal(store.publicationCapacitySupports(beyondCapacity), false);
+    assert.equal(observeOriginalClientRequestJournalCustody(f.native).databaseClosed, false);
+    await f.journal.close();
+    assert.equal((await f.view.close()).pending, false);
+    assert.equal(store.status().closed, true);
+  } finally {
+    await f.journal.close();
+    assert.equal((await f.view.close()).pending, false);
+    assert.equal((await f.journal.close()).pending, false);
+  }
+});
+
+test('ordinary Result keeps current cancellation and original failure checks after long operation history', async () => {
+  const f = await fixture();
+  let currentFailure;
+  // The original Journal reads this installation on every current check.
+  // A caller cancellation is not a retirement or a replacement installation.
+  Object.defineProperty(f.originals.installation, 'root', {get() {
+    if (currentFailure !== undefined) throw currentFailure;
+    return f.root;
+  }});
+  const controller = new AbortController();
+  controller.abort(new Error('caller cancelled'));
+  const failure = new Error('current observation failed');
+  try {
+    for (let index = 0; index < 5121; index++) {
+      if (index % 256 === 0) {
+        for (const cause of [controller.signal.reason, failure]) {
+          currentFailure = cause;
+          assert.throws(() => f.view.beforeOperation(), error => error === cause);
+        }
+        currentFailure = undefined;
+      }
+      f.view.beforeOperation();
+    }
+  } finally {
+    currentFailure = undefined;
+    await f.journal.close();
+    assert.equal((await f.view.close()).pending, false);
+    assert.equal((await f.journal.close()).pending, false);
+  }
+});
+
+test('ordinary Result still refuses closing services and retired Journal originals', async () => {
+  const f = await fixture();
+  try {
+    f.view.beforeOperation();
+    const closing = f.view.close();
+    assert.throws(() => f.view.beforeOperation(), {code: 'HostResultPublicationUnavailable'});
+    assert.equal((await closing).pending, false);
+    assert.throws(() => f.view.beforeOperation(), {code: 'HostResultPublicationUnavailable'});
+    const other = prepareOrdinaryHostResult(f.originals, f.subject, () => assert.fail('unused'));
+    try {
+      other.beforeOperation();
+      const journalClosing = f.journal.close();
+      assert.throws(() => other.beforeOperation(), {code: 'HostJournalPreparationUnavailable'});
+      await journalClosing;
+      assert.throws(() => other.beforeOperation(), {code: 'HostJournalPreparationUnavailable'});
+    } finally {
+      assert.equal((await other.close()).pending, false);
+    }
+  } finally {
+    await f.journal.close();
+    assert.equal((await f.view.close()).pending, false);
+    assert.equal((await f.journal.close()).pending, false);
+  }
+});
+
 test('ordinary Result acquires the actual same-Host Store and retains separate Journal cleanup', async () => {
   const f = await fixture();
   f.view.admitRun(f.prepared);
