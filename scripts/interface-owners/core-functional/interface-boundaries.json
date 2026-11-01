@@ -281,7 +281,7 @@
     },
     {
       "module": "adapters/host-common/runtime-core.mjs",
-      "sha256": "d2ca52f5bc9f69660809424dd60bfc3bc65ef02d293789e5ec19128893a458f5",
+      "sha256": "02eb48c0370d01aa616e07c8efafac392f4d233984c4afccdf92b5fa2dcf8e0d",
       "role": "physical-io",
       "exports": [
         "contentCaptureControl",
@@ -457,6 +457,14 @@
             "encoder",
             "binding",
             "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:cleanupRequestKeyedPrefix/init:cleanupRequestKeyedPrefix",
+          "parameters": [
+            "run",
+            "selected"
           ],
           "async": false
         },
@@ -809,6 +817,29 @@
           "async": false
         },
         {
+          "name": "contentGenerationControl/init:prepareRequestKeyedPlan/init:prepareRequestKeyedPlan",
+          "parameters": [
+            "parent",
+            "input",
+            "request",
+            "keyed",
+            "directDeclaration",
+            "contentDeclaration",
+            "maxBytes",
+            "maxWork",
+            "queryContract",
+            "evidenceContract",
+            "transfers",
+            "executions",
+            "contracts",
+            "task",
+            "step",
+            "limits",
+            "workspace"
+          ],
+          "async": false
+        },
+        {
           "name": "contentGenerationControl/init:prepareRequestPrefix/init:prepareRequestPrefix",
           "parameters": [
             "parent",
@@ -841,6 +872,20 @@
             "originalWire",
             "binding",
             "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:requestKeyedPrefixCapacity/init:requestKeyedPrefixCapacity",
+          "parameters": [
+            "selected"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:requestKeyedPrefixCapacity/init:requestKeyedPrefixCapacity/init:requestKeyedPrefixCapacity",
+          "parameters": [
+            "n"
           ],
           "async": false
         },
@@ -921,6 +966,17 @@
             "input",
             "row",
             "encoder"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:startRequestKeyedPrefix/init:startRequestKeyedPrefix",
+          "parameters": [
+            "run",
+            "program",
+            "selected",
+            "source",
+            "lookup"
           ],
           "async": false
         },
@@ -4260,6 +4316,18 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:prepareCheckedClientRequestAcquiredSerializationGraph/init:prepareCheckedClientRequestAcquiredSerializationGraph",
+          "parameters": [
+            "parent",
+            "input",
+            "contracts",
+            "checkedProgram",
+            "options",
+            "intermediate"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:prepareCheckedClientRequestKeyedSerializationCompilation/init:prepareCheckedClientRequestKeyedSerializationCompilation",
           "parameters": [
             "parent",
@@ -4276,6 +4344,18 @@
             "input",
             "graph",
             "contracts"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareCheckedClientRequestSerializationGraph/init:prepareCheckedClientRequestSerializationGraph",
+          "parameters": [
+            "parent",
+            "input",
+            "contracts",
+            "checkedProgram",
+            "options",
+            "intermediate"
           ],
           "async": false
         },
@@ -4815,6 +4895,18 @@
           "name": "publicationControl/init:requestedEffectStopLifetime/init:requestedEffectStopLifetime",
           "parameters": [
             "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:reserveEffectCaptureRecovery/init:reserveEffectCaptureRecovery",
+          "parameters": [
+            "parent",
+            "input",
+            "request",
+            "runDefinition",
+            "encryptedBytes",
+            "limits"
           ],
           "async": false
         },
@@ -5374,7 +5466,8 @@
           "parameters": [
             "checkedProgram",
             "options",
-            "intermediate"
+            "intermediate",
+            "request"
           ],
           "async": false
         },
@@ -5390,7 +5483,8 @@
           "parameters": [
             "checkedProgram",
             "options",
-            "intermediate"
+            "intermediate",
+            "request"
           ],
           "async": false
         },
@@ -7623,6 +7717,7 @@
             "contentGenerationControl/init:advance/init:advance",
             "contentGenerationControl/init:bindInput/init:bindInput",
             "contentGenerationControl/init:candidate/init:candidate",
+            "contentGenerationControl/init:cleanupRequestKeyedPrefix/init:cleanupRequestKeyedPrefix",
             "contentGenerationControl/init:complete/init:complete",
             "contentGenerationControl/init:completedOutput/init:completedOutput",
             "contentGenerationControl/init:effectFamily/init:effectFamily",
@@ -7663,8 +7758,11 @@
             "contentGenerationControl/init:prefixCleanup/init:prefixCleanup",
             "contentGenerationControl/init:prefixWork/init:prefixWork",
             "contentGenerationControl/init:prepare/init:prepare",
+            "contentGenerationControl/init:prepareRequestKeyedPlan/init:prepareRequestKeyedPlan",
             "contentGenerationControl/init:recover/init:recover",
             "contentGenerationControl/init:recoveryCandidate/init:recoveryCandidate",
+            "contentGenerationControl/init:requestKeyedPrefixCapacity/init:requestKeyedPrefixCapacity",
+            "contentGenerationControl/init:requestKeyedPrefixCapacity/init:requestKeyedPrefixCapacity/init:requestKeyedPrefixCapacity",
             "contentGenerationControl/init:resultAdvance/init:resultAdvance",
             "contentGenerationControl/init:resultCancel/init:resultCancel",
             "contentGenerationControl/init:resultFinish/init:resultFinish",
@@ -7673,6 +7771,7 @@
             "contentGenerationControl/init:resultStart/init:resultStart/exportLimits/exportLimits",
             "contentGenerationControl/init:resultStart/init:resultStart/init:resultStart",
             "contentGenerationControl/init:row/init:row",
+            "contentGenerationControl/init:startRequestKeyedPrefix/init:startRequestKeyedPrefix",
             "contentGenerationControl/init:workspaceCapacity/init:workspaceCapacity",
             "contentGenerationControl/init:workspaceCapacity/init:workspaceCapacity/exported/exported",
             "contentGenerationControl/init:workspaceCapacity/init:workspaceCapacity/init:workspaceCapacity",
@@ -7796,9 +7895,6 @@
             "publicationControl/init:bindTableInput/init:bindTableInput",
             "publicationControl/init:bindTablePreview/init:bindTablePreview",
             "publicationControl/init:cancelDurableResultRowFrames/init:cancelDurableResultRowFrames",
-            "publicationControl/init:captureIssuedDeliveryAttempt/init:captureIssuedDeliveryAttempt",
-            "publicationControl/init:captureIssuedDeliveryAttempt/init:captureIssuedDeliveryAttempt/init:captureIssuedDeliveryAttempt",
-            "publicationControl/init:captureOriginalClientRunPlan/init:captureOriginalClientRunPlan",
             "publicationControl/init:capturedContentGenerationCount/init:capturedContentGenerationCount",
             "publicationControl/init:capturedContentGenerationStorage/init:capturedContentGenerationStorage",
             "publicationControl/init:capturedContentGenerationStorage/init:capturedContentGenerationStorage/init:capturedContentGenerationStorage",
@@ -7829,14 +7925,14 @@
             "publicationControl/init:capturedEffectSourceRecoveryInventoryValid/init:capturedEffectSourceRecoveryInventoryValid/init:capturedEffectSourceRecoveryInventoryValid#2",
             "publicationControl/init:capturedEffectSourceRecoveryInventoryValid/init:capturedEffectSourceRecoveryInventoryValid/init:capturedEffectSourceRecoveryInventoryValid#3",
             "publicationControl/init:capturedEffectSourceStoreAuthorityCid/init:capturedEffectSourceStoreAuthorityCid",
+            "publicationControl/init:captureIssuedDeliveryAttempt/init:captureIssuedDeliveryAttempt",
+            "publicationControl/init:captureIssuedDeliveryAttempt/init:captureIssuedDeliveryAttempt/init:captureIssuedDeliveryAttempt",
+            "publicationControl/init:captureOriginalClientRunPlan/init:captureOriginalClientRunPlan",
             "publicationControl/init:checkCheckedClientInferOriginalParkedStorageOrigin/init:checkCheckedClientInferOriginalParkedStorageOrigin",
             "publicationControl/init:checkCheckedClientInferOriginalPreRestoreOrigin/init:checkCheckedClientInferOriginalPreRestoreOrigin",
             "publicationControl/init:checkClientCompiledRunDefinition/init:checkClientCompiledRunDefinition",
             "publicationControl/init:checkClientCompiledRunOwner/init:checkClientCompiledRunOwner",
             "publicationControl/init:checkClientRunDefinitionBinding/init:checkClientRunDefinitionBinding",
-            "publicationControl/init:checkRecoveredTableSchemaWire/init:checkRecoveredTableSchemaWire",
-            "publicationControl/init:checkSourceFreeLocalEffectPreviewIdentities/init:checkSourceFreeLocalEffectPreviewIdentities",
-            "publicationControl/init:checkSourceFreeLocalEffectPreviewIdentities/init:checkSourceFreeLocalEffectPreviewIdentities/owned/owned",
             "publicationControl/init:checkedClientCompiledEffectProgram/init:checkedClientCompiledEffectProgram",
             "publicationControl/init:checkedClientEffectInferInvocation/init:checkedClientEffectInferInvocation",
             "publicationControl/init:checkedClientInferOriginalReadScopeLive/init:checkedClientInferOriginalReadScopeLive",
@@ -7852,6 +7948,9 @@
             "publicationControl/init:checkedClientSerializationRecoveryBindings/init:checkedClientSerializationRecoveryBindings",
             "publicationControl/init:checkedClientSerializationRecoveryBindings/init:checkedClientSerializationRecoveryBindings/init:checkedClientSerializationRecoveryBindings",
             "publicationControl/init:checkedClientStoredRunCapturedContentCandidate/init:checkedClientStoredRunCapturedContentCandidate",
+            "publicationControl/init:checkRecoveredTableSchemaWire/init:checkRecoveredTableSchemaWire",
+            "publicationControl/init:checkSourceFreeLocalEffectPreviewIdentities/init:checkSourceFreeLocalEffectPreviewIdentities",
+            "publicationControl/init:checkSourceFreeLocalEffectPreviewIdentities/init:checkSourceFreeLocalEffectPreviewIdentities/owned/owned",
             "publicationControl/init:claimCheckedClientInferNodePreparationLayout/init:claimCheckedClientInferNodePreparationLayout",
             "publicationControl/init:committedPublicationFinalizationAction/init:committedPublicationFinalizationAction",
             "publicationControl/init:compiledInferEvaluationPolicy/init:compiledInferEvaluationPolicy",
@@ -7874,6 +7973,10 @@
             "publicationControl/init:effectComputationRecordHoldingCid/init:effectComputationRecordHoldingCid",
             "publicationControl/init:effectFreeChainValid/init:effectFreeChainValid",
             "publicationControl/init:effectFreeCommitValid/init:effectFreeCommitValid",
+            "publicationControl/init:effectfulCommitValid/init:effectfulCommitValid",
+            "publicationControl/init:effectfulCommitValid/init:effectfulCommitValid/init:effectfulCommitValid",
+            "publicationControl/init:effectfulCommitValid/init:effectfulCommitValid/init:effectfulCommitValid#2",
+            "publicationControl/init:effectfulComputationEvidenceChainValid/init:effectfulComputationEvidenceChainValid",
             "publicationControl/init:effectPrivateEvidenceBinding/init:effectPrivateEvidenceBinding",
             "publicationControl/init:effectReconciliationRunState/init:effectReconciliationRunState",
             "publicationControl/init:effectReconciliationRunState/init:effectReconciliationRunState/init:effectReconciliationRunState",
@@ -7882,10 +7985,6 @@
             "publicationControl/init:effectSetReceiptRunDisposition/init:effectSetReceiptRunDisposition/init:effectSetReceiptRunDisposition",
             "publicationControl/init:effectSourceArtifactPreviewBinding/init:effectSourceArtifactPreviewBinding",
             "publicationControl/init:effectTableSourceArtifactPreviewBinding/init:effectTableSourceArtifactPreviewBinding",
-            "publicationControl/init:effectfulCommitValid/init:effectfulCommitValid",
-            "publicationControl/init:effectfulCommitValid/init:effectfulCommitValid/init:effectfulCommitValid",
-            "publicationControl/init:effectfulCommitValid/init:effectfulCommitValid/init:effectfulCommitValid#2",
-            "publicationControl/init:effectfulComputationEvidenceChainValid/init:effectfulComputationEvidenceChainValid",
             "publicationControl/init:encodeModelOriginalResourceDocument/init:encodeModelOriginalResourceDocument",
             "publicationControl/init:encodeModelOriginalResourceDocument/init:encodeModelOriginalResourceDocument/init:encodeModelOriginalResourceDocument",
             "publicationControl/init:existingDeliveryAttemptAction/init:existingDeliveryAttemptAction",
@@ -7923,6 +8022,12 @@
             "publicationControl/init:issueEffectFreeRunReceipt/init:issueEffectFreeRunReceipt",
             "publicationControl/init:issueEffectFreeRunReceipt/init:issueEffectFreeRunReceipt/init:issueEffectFreeRunReceipt",
             "publicationControl/init:issueEffectFreeRunReceipt/init:issueEffectFreeRunReceipt/init:issueEffectFreeRunReceipt#2",
+            "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun",
+            "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun",
+            "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun/preparation/preparation",
+            "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun/preparation/preparation#2",
+            "publicationControl/init:issueEffectfulFinalRunReceipt/init:issueEffectfulFinalRunReceipt",
+            "publicationControl/init:issueEffectfulFinalRunReceipt/init:issueEffectfulFinalRunReceipt/init:issueEffectfulFinalRunReceipt",
             "publicationControl/init:issueEffectResultImportObservation/init:issueEffectResultImportObservation",
             "publicationControl/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers",
             "publicationControl/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers",
@@ -7930,12 +8035,6 @@
             "publicationControl/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers#3",
             "publicationControl/init:issueEffectSourceArtifactFromExport/init:issueEffectSourceArtifactFromExport",
             "publicationControl/init:issueEffectTableSourceArtifactFromExport/init:issueEffectTableSourceArtifactFromExport",
-            "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun",
-            "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun",
-            "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun/preparation/preparation",
-            "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun/preparation/preparation#2",
-            "publicationControl/init:issueEffectfulFinalRunReceipt/init:issueEffectfulFinalRunReceipt",
-            "publicationControl/init:issueEffectfulFinalRunReceipt/init:issueEffectfulFinalRunReceipt/init:issueEffectfulFinalRunReceipt",
             "publicationControl/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence",
             "publicationControl/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence/owned/owned",
             "publicationControl/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence/value/value",
@@ -7943,10 +8042,10 @@
             "publicationControl/init:issueLocalEffectResultManifest/init:issueLocalEffectResultManifest",
             "publicationControl/init:issueLocalEffectResultManifest/init:issueLocalEffectResultManifest/owned/owned",
             "publicationControl/init:issueManifestReadGrant/init:issueManifestReadGrant",
-            "publicationControl/init:issuePublicIndexEntry/init:issuePublicIndexEntry",
             "publicationControl/init:issuePublicationAttempt/init:issuePublicationAttempt",
             "publicationControl/init:issuePublicationRecord/init:issuePublicationRecord",
             "publicationControl/init:issuePublicationRequest/init:issuePublicationRequest",
+            "publicationControl/init:issuePublicIndexEntry/init:issuePublicIndexEntry",
             "publicationControl/init:issueResultArtifact/init:issueResultArtifact",
             "publicationControl/init:issueResultDeliveryReceipt/init:issueResultDeliveryReceipt",
             "publicationControl/init:issueResultManifest/init:issueResultManifest",
@@ -7981,6 +8080,8 @@
             "publicationControl/init:prepareCheckedClientInferNodeReadLayout/init:prepareCheckedClientInferNodeReadLayout",
             "publicationControl/init:prepareCheckedClientInferNodeReadState/init:prepareCheckedClientInferNodeReadState",
             "publicationControl/init:prepareCheckedClientInferNodeReadState/init:prepareCheckedClientInferNodeReadState/init:prepareCheckedClientInferNodeReadState",
+            "publicationControl/init:prepareCheckedClientRequestAcquiredSerializationGraph/init:prepareCheckedClientRequestAcquiredSerializationGraph",
+            "publicationControl/init:prepareCheckedClientRequestSerializationGraph/init:prepareCheckedClientRequestSerializationGraph",
             "publicationControl/init:prepareCheckedClientRetainedContentOutput/init:prepareCheckedClientRetainedContentOutput",
             "publicationControl/init:prepareCheckedClientSerializationComponent/init:prepareCheckedClientSerializationComponent",
             "publicationControl/init:prepareCheckedClientSerializationGraph/init:prepareCheckedClientSerializationGraph",
@@ -7990,7 +8091,6 @@
             "publicationControl/init:prepareLocalEffectDependencyInventory/init:prepareLocalEffectDependencyInventory/init:prepareLocalEffectDependencyInventory",
             "publicationControl/init:prepareResultDeliverySerializer/init:prepareResultDeliverySerializer",
             "publicationControl/init:projectCommittedPublicationState/init:projectCommittedPublicationState",
-            "publicationControl/init:publicIndexSameCommittedContent/init:publicIndexSameCommittedContent",
             "publicationControl/init:publicationAttemptAction/init:publicationAttemptAction",
             "publicationControl/init:publicationCancellationAction/init:publicationCancellationAction",
             "publicationControl/init:publicationCleanupOwnerAction/init:publicationCleanupOwnerAction",
@@ -8004,6 +8104,7 @@
             "publicationControl/init:publicationPreparedReleaseAction/init:publicationPreparedReleaseAction",
             "publicationControl/init:publicationSetupAction/init:publicationSetupAction",
             "publicationControl/init:publicationUnknownRetryAction/init:publicationUnknownRetryAction",
+            "publicationControl/init:publicIndexSameCommittedContent/init:publicIndexSameCommittedContent",
             "publicationControl/init:readCheckedClientComposedInferSavedInputScope/init:readCheckedClientComposedInferSavedInputScope",
             "publicationControl/init:readCheckedClientInferSavedInputScope/init:readCheckedClientInferSavedInputScope",
             "publicationControl/init:readCheckedClientInferSlotReplay/init:readCheckedClientInferSlotReplay",
@@ -8012,10 +8113,10 @@
             "publicationControl/init:readInstalledModelResponseProfile/init:readInstalledModelResponseProfile",
             "publicationControl/init:readInstalledModelResponseProfile/init:readInstalledModelResponseProfile/init:readInstalledModelResponseProfile",
             "publicationControl/init:readIssuedDeliveryAttempt/init:readIssuedDeliveryAttempt",
+            "publicationControl/init:readmitCheckedClientSerializationGeneration/init:readmitCheckedClientSerializationGeneration",
             "publicationControl/init:readModelOriginalResourceDocument/init:readModelOriginalResourceDocument",
             "publicationControl/init:readStoredRunPlanOriginal/init:readStoredRunPlanOriginal",
             "publicationControl/init:readStoredRunPlanOriginal/init:readStoredRunPlanOriginal/init:readStoredRunPlanOriginal",
-            "publicationControl/init:readmitCheckedClientSerializationGeneration/init:readmitCheckedClientSerializationGeneration",
             "publicationControl/init:recordAllowsCommit/init:recordAllowsCommit",
             "publicationControl/init:recordResultAccessGrant/init:recordResultAccessGrant",
             "publicationControl/init:recordResultAccessInitialAvailability/init:recordResultAccessInitialAvailability",
@@ -8027,6 +8128,7 @@
             "publicationControl/init:registerCheckedClientInferRawCapture/init:registerCheckedClientInferRawCapture",
             "publicationControl/init:requestedEffectStopIntentCid/init:requestedEffectStopIntentCid",
             "publicationControl/init:requestedEffectStopLifetime/init:requestedEffectStopLifetime",
+            "publicationControl/init:reserveEffectCaptureRecovery/init:reserveEffectCaptureRecovery",
             "publicationControl/init:restoreRequestedEffectStop/init:restoreRequestedEffectStop",
             "publicationControl/init:resultAccessProgressAction/init:resultAccessProgressAction",
             "publicationControl/init:resultMetadataRetentionState/init:resultMetadataRetentionState",
@@ -8090,6 +8192,10 @@
             "publicationControl/token/token",
             "remoteBundleControl",
             "remoteBundleControl/remoteBundleControl",
+            "remoteBundleControl/remoteBundleControl/remoteBundleControl",
+            "remoteBundleControl/remoteBundleControl/remoteBundleControl#2",
+            "remoteBundleControl/remoteBundleControl/remoteBundleControl#3",
+            "remoteBundleControl/remoteBundleControl/remoteBundleControl#4",
             "remoteBundleControl/remoteBundleControl#10",
             "remoteBundleControl/remoteBundleControl#11",
             "remoteBundleControl/remoteBundleControl#12",
@@ -8133,10 +8239,6 @@
             "remoteBundleControl/remoteBundleControl#7",
             "remoteBundleControl/remoteBundleControl#8",
             "remoteBundleControl/remoteBundleControl#9",
-            "remoteBundleControl/remoteBundleControl/remoteBundleControl",
-            "remoteBundleControl/remoteBundleControl/remoteBundleControl#2",
-            "remoteBundleControl/remoteBundleControl/remoteBundleControl#3",
-            "remoteBundleControl/remoteBundleControl/remoteBundleControl#4",
             "remoteCredentialControl",
             "remoteCredentialControl/grantFields/grantFields",
             "remoteCredentialControl/init:authorizeUse/init:authorizeUse",
@@ -8281,6 +8383,9 @@
             "remoteTransferControl",
             "remoteTransferControl/int64/int64",
             "remoteTransferControl/remoteTransferControl",
+            "remoteTransferControl/remoteTransferControl/remoteTransferControl",
+            "remoteTransferControl/remoteTransferControl/remoteTransferControl#2",
+            "remoteTransferControl/remoteTransferControl/remoteTransferControl#3",
             "remoteTransferControl/remoteTransferControl#10",
             "remoteTransferControl/remoteTransferControl#11",
             "remoteTransferControl/remoteTransferControl#12",
@@ -8318,9 +8423,6 @@
             "remoteTransferControl/remoteTransferControl#7",
             "remoteTransferControl/remoteTransferControl#8",
             "remoteTransferControl/remoteTransferControl#9",
-            "remoteTransferControl/remoteTransferControl/remoteTransferControl",
-            "remoteTransferControl/remoteTransferControl/remoteTransferControl#2",
-            "remoteTransferControl/remoteTransferControl/remoteTransferControl#3",
             "remoteTransferControl/requestFields/requestFields",
             "remoteTransferControl/requestFields/requestFields/requestFields",
             "remoteTransferControl/requestFields/requestFields/requestFields#2",
@@ -8354,9 +8456,9 @@
             "runtimeCore/runtimeCore#9",
             "siteControl",
             "siteControl/siteControl",
+            "siteControl/siteControl/siteControl",
             "siteControl/siteControl#2",
             "siteControl/siteControl#3",
-            "siteControl/siteControl/siteControl",
             "tuplePair/tuplePair",
             "usageKeys/usageKeys",
             "usageKeys/usageKeys/usageKeys"
@@ -9692,8 +9794,8 @@
         },
         {
           "operations": [
-            "publicationControl/init:checkRestoredClientInferRunOwner/init:checkRestoredClientInferRunOwner",
-            "publicationControl/init:checkedClientCompiledInferOriginal/init:checkedClientCompiledInferOriginal"
+            "publicationControl/init:checkedClientCompiledInferOriginal/init:checkedClientCompiledInferOriginal",
+            "publicationControl/init:checkRestoredClientInferRunOwner/init:checkRestoredClientInferRunOwner"
           ],
           "exports": [],
           "attributes": {
@@ -16968,7 +17070,7 @@
     },
     {
       "module": "adapters/host-node/installed-model.mjs",
-      "sha256": "8937c6e81fec6018d2347ed9727d0781e4a094f563a144a3d261a703bef77205",
+      "sha256": "3e073c2707689714f76d338c81067c4fe2a0cb673a5216cf531b31d738f82e20",
       "role": "physical-io",
       "exports": [
         "admitInstalledModelProvider",
@@ -16997,7 +17099,8 @@
           "parameters": [
             "moon",
             "providerId",
-            "physical"
+            "physical",
+            "constructOriginal"
           ],
           "async": false
         },
@@ -17154,6 +17257,21 @@
           "async": false
         },
         {
+          "name": "originalModelMaterialArrays",
+          "parameters": [
+            "installation"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalModelMaterialArrays/ownString/ownString",
+          "parameters": [
+            "entry",
+            "key"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareInstalledModelProviderDefaults",
           "parameters": [
             "moon",
@@ -17196,7 +17314,8 @@
           "parameters": [
             "moon",
             "execution",
-            "installation"
+            "installation",
+            "beforeRead"
           ],
           "async": false
         },
@@ -17210,6 +17329,13 @@
         {
           "name": "readInstalledModelDependencies/readInstalledModelDependencies",
           "parameters": [
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "readInstalledModelDependencies/readInstalledModelDependencies/readInstalledModelDependencies",
+          "parameters": [
             "entry"
           ],
           "async": false
@@ -17222,7 +17348,67 @@
           "async": false
         },
         {
+          "name": "readInstalledModelDependencies/readInstalledModelDependencies#3",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "readInstalledModelDependenciesLegacy",
+          "parameters": [
+            "moon",
+            "execution",
+            "installation"
+          ],
+          "async": false
+        },
+        {
+          "name": "readInstalledModelDependenciesLegacy/bodies/bodies",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "readInstalledModelDependenciesLegacy/readInstalledModelDependenciesLegacy",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "readInstalledModelDependenciesLegacy/readInstalledModelDependenciesLegacy#2",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
           "name": "readInstalledModelExecution",
+          "parameters": [
+            "moon",
+            "prepared",
+            "installation",
+            "occurrence",
+            "beforeRead"
+          ],
+          "async": false
+        },
+        {
+          "name": "readInstalledModelExecution/entry/entry",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "readInstalledModelExecution/readInstalledModelExecution",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readInstalledModelExecutionLegacy",
           "parameters": [
             "moon",
             "prepared",
@@ -17232,7 +17418,7 @@
           "async": false
         },
         {
-          "name": "readInstalledModelExecution/entry/entry",
+          "name": "readInstalledModelExecutionLegacy/entry/entry",
           "parameters": [
             "item"
           ],
@@ -17316,6 +17502,7 @@
             "admitInstalledModelProviderBinding",
             "checkInstallation",
             "checkInstallation/checkInstallation",
+            "installedModelEnvironment",
             "installModelProviders",
             "installModelProviders/assertNewTrustedRuntime/assertNewTrustedRuntime",
             "installModelProviders/assertTrustedRuntime/assertTrustedRuntime",
@@ -17325,20 +17512,30 @@
             "installModelProviders/requireEagerSdkStartup/requireEagerSdkStartup",
             "installModelProviders/resolveTaskDefaults/resolveTaskDefaults",
             "installModelProviders/resolveTaskDefaults/resolveTaskDefaults#2",
-            "installedModelEnvironment",
+            "originalModelMaterialArrays",
+            "originalModelMaterialArrays/ownString/ownString",
             "readInstalledModelDependencies",
             "readInstalledModelDependencies/bodies/bodies",
             "readInstalledModelDependencies/readInstalledModelDependencies",
+            "readInstalledModelDependencies/readInstalledModelDependencies/readInstalledModelDependencies",
             "readInstalledModelDependencies/readInstalledModelDependencies#2",
+            "readInstalledModelDependencies/readInstalledModelDependencies#3",
+            "readInstalledModelDependenciesLegacy",
+            "readInstalledModelDependenciesLegacy/bodies/bodies",
+            "readInstalledModelDependenciesLegacy/readInstalledModelDependenciesLegacy",
+            "readInstalledModelDependenciesLegacy/readInstalledModelDependenciesLegacy#2",
             "readInstalledModelExecution",
             "readInstalledModelExecution/entry/entry",
+            "readInstalledModelExecution/readInstalledModelExecution",
+            "readInstalledModelExecutionLegacy",
+            "readInstalledModelExecutionLegacy/entry/entry",
             "retainAdmittedProviderBinding",
             "retainModelDefaultsLimits",
             "retainModelDefaultsLimits/retainModelDefaultsLimits",
             "retainModelQuantityCapacity",
             "retainModelQuantityCapacity/retainModelQuantityCapacity",
-            "retainModelQuantityCapacity/retainModelQuantityCapacity#2",
             "retainModelQuantityCapacity/retainModelQuantityCapacity/retainModelQuantityCapacity",
+            "retainModelQuantityCapacity/retainModelQuantityCapacity#2",
             "retainProviderBindingOriginals",
             "retainProviderBindingOriginals/retainProviderBindingOriginals"
           ],
