@@ -820,7 +820,7 @@ test('HTTP Request preparation retains the original through aliases and finishes
       original = request;
       events.push('prepare');
       await Promise.resolve();
-      return {body: request,
+      return {body: request, beforeReply() {events.push('before-reply');},
         bindRequest(value) {derived = value; events.push('bind');},
         finish(terminal) {assert.equal(terminal, 'returned'); events.push('finish');}};
     },
@@ -842,7 +842,7 @@ test('HTTP Request preparation retains the original through aliases and finishes
     assert.equal(response.status, 200);
     assert.deepEqual(await response.json(), state);
   });
-  assert.deepEqual(events, ['authenticate', 'authorize', 'prepare', 'bind', 'dispatch', 'finish']);
+  assert.deepEqual(events, ['authenticate', 'authorize', 'prepare', 'bind', 'dispatch', 'before-reply', 'finish']);
 });
 
 test('HTTP Request preparation failure cannot dispatch or become a known refusal', async () => {
@@ -967,7 +967,8 @@ test('HTTP publication current refusal keeps its primary and still finishes the 
   assertResultPublicationCurrent() {throw primary;}};
   const prepare = installHttpRequestPreparation(preparation, registry, originals);
   const original = prepare('submit-intent', request);
-  assert.throws(() => original.finish('returned'), error => error === primary);
+  assert.throws(() => original.beforeReply(), error => error === primary);
+  original.finish('failed');
   assert.deepEqual(events, ['operation', 'snapshot']);
   assert.deepEqual(finishes, ['failed']);
   preparation.beforeResultPublicationOperation = () => {throw primary;};

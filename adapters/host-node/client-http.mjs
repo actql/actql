@@ -233,6 +233,7 @@ export function createClientHttpHandler({
         authorized = false;
       }
       const sendJson = value => {
+        requestLifetime?.beforeReply();
         response.writeHead(200, {'content-type': 'application/json'});
         response.end(JSON.stringify(value));
       };
@@ -252,6 +253,7 @@ export function createClientHttpHandler({
       if (prepareRequest !== undefined && (requestLifetime === undefined || requestLifetime === null ||
           typeof requestLifetime !== 'object' || requestLifetime.body === null ||
           typeof requestLifetime.body !== 'object' ||
+          typeof requestLifetime.beforeReply !== 'function' ||
           typeof requestLifetime.bindRequest !== 'function' ||
           typeof requestLifetime.finish !== 'function')) invalid('InvalidClientHostPreparation');
       const admittedRequest = prepareRequest === undefined ? originalRequest : requestLifetime.body;
@@ -466,6 +468,7 @@ export function createClientHttpHandler({
           csv: 'text/csv',
         }[body.format];
         const begin = () => {
+          requestLifetime?.beforeReply();
           if (!response.headersSent) {
             response.writeHead(200, {'content-type': contentType});
           }
@@ -486,6 +489,7 @@ export function createClientHttpHandler({
           // The shared owner confirms sink completion before issuing and
           // persisting its receipt and succeeded record. Only their successful
           // return authorizes HTTP EOF; failure destroys the partial response.
+          requestLifetime?.beforeReply();
           await new Promise((resolve, reject) => {
             if (response.destroyed) { reject(new Error('ClientDisconnected')); return; }
             response.end(error => error ? reject(error) : resolve());

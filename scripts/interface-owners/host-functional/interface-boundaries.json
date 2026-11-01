@@ -24679,7 +24679,7 @@
     {
       "module": "adapters/host-node/client-http.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1722c3d13fc43c49310e3e90506421ef9d0d3c99a03c8fbf395ca434acc641a2",
+      "sha256": "63f31aced42d5e53ea3596fc471125d7284bbd95cd1df6344b20ade0b9c1d820",
       "role": "physical-io",
       "owner": "Existing Client Host admission/read services and physical Node ingress",
       "exports": [
@@ -124284,7 +124284,7 @@
     },
     {
       "module": "adapters/host-node/http-request-preparation.mjs",
-      "sha256": "5755d0b2933dbe465b0c2266bf96cfb3ed1dbe968cc6f7e41c000c24d0189e0e",
+      "sha256": "689b11ff98b84d65e77b80f0bdb63fb86f717cc00f0498818cb5444bb0acdb28",
       "exports": [
         "installHttpRequestPreparation"
       ],
@@ -124311,6 +124311,11 @@
           "parameters": [
             "terminal"
           ],
+          "async": false
+        },
+        {
+          "name": "installHttpRequestPreparation/installHttpRequestPreparation/init:beforeReply/init:beforeReply",
+          "parameters": [],
           "async": false
         },
         {
@@ -124346,7 +124351,8 @@
             "installHttpRequestPreparation/installHttpRequestPreparation",
             "installHttpRequestPreparation/installHttpRequestPreparation/finish/finish",
             "installHttpRequestPreparation/installHttpRequestPreparation/init:bindRequest/init:bindRequest",
-            "installHttpRequestPreparation/installHttpRequestPreparation/pending/pending"
+            "installHttpRequestPreparation/installHttpRequestPreparation/pending/pending",
+            "installHttpRequestPreparation/installHttpRequestPreparation/init:beforeReply/init:beforeReply"
           ],
           "exports": [
             "installHttpRequestPreparation"
