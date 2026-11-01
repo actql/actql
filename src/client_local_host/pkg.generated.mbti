@@ -530,7 +530,7 @@ pub fn[I] parse_request_query_syntax(ClientRequestPreparation[I], I, String, @so
 
 pub fn prepare_captured_local_requirements(@run_publication_host.PreparedClientProgram, ClientInstalledSequenceContracts, String, String?, String?) -> ClientLocalRequirements?
 
-pub fn prepare_client_acquired_serialization_prefix(@run_publication_host.PreparedClientProgram, Int, Int, ClientInstalledSequenceContracts, String, String?, String?) -> @execution_relation.GeneratedSequence?
+pub fn prepare_client_acquired_serialization_prefix(@run_publication_host.PreparedClientProgram, Int, Int, ClientInstalledSequenceContracts, String, String?, String?, query_time? : (@run_publication_host.ClientQueryTimePreparation, @run_publication_host.ClientRequestIdentity)?) -> @execution_relation.GeneratedSequence?
 
 pub fn prepare_client_broad_residual(@host.BroadHostRun, Int) -> Result[ClientBroadResidual, ClientQueryResidualIssue]
 
@@ -961,6 +961,8 @@ pub fn start_client_serialized_infer_input(@run_publication_host.ClientInferOccu
 pub fn start_installed_effect_operation(ClientInstalledEffectOperationBorrow) -> Result[Unit, ClientInstalledManagedRunIssue]
 
 pub fn start_installed_keyed_source_read_rows(ClientInstalledKeyedSourceRead, @client_row_source_host.RowKeyedAcquisition, String, (@client_row_source_host.RowAttempt) -> Bool, Int64, Int64, (@client_row_source_host.RowAttempt) -> Bool) -> Result[@client_row_source_host.RowRun, ClientInstalledSourceReadIssue]
+
+pub fn start_installed_managed_acquired_serialization_prefix(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, ClientInstalledManagedSerializationPreparation, @client_row_source_host.RowSourceCapture) -> Result[ClientSerializationPrefix, ClientInstalledManagedRunIssue]
 
 pub fn start_installed_managed_keyed_serialization_prefix(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, ClientInstalledManagedKeyedPreparation, @execution_query.CapturedInputSource, @run_publication_host.ClientKeyedLookupInput) -> Result[ClientSerializationPrefix, ClientInstalledManagedRunIssue]
 
