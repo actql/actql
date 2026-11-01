@@ -174,6 +174,7 @@ pub fn[I] prepare_request_model_graph(
             100000,
             10000,
             100,
+            include_results=false,
             construction=Some(original),
           )
       }
