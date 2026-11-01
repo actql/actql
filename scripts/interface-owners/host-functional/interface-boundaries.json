@@ -24760,7 +24760,7 @@
     {
       "module": "adapters/host-node/client-http.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "63f31aced42d5e53ea3596fc471125d7284bbd95cd1df6344b20ade0b9c1d820",
+      "sha256": "41ec7c2822ffa3275e5693ef341fd0a972447b30bdf1df895f73ac3d3c80b49f",
       "role": "physical-io",
       "owner": "Existing Client Host admission/read services and physical Node ingress",
       "exports": [
@@ -24852,7 +24852,27 @@
           "async": false
         },
         {
+          "name": "createClientHttpHandler/createClientHttpHandler/createClientHttpHandler/complete/complete",
+          "parameters": [
+            "failure",
+            "error"
+          ],
+          "async": false
+        },
+        {
           "name": "createClientHttpHandler/createClientHttpHandler/createClientHttpHandler/createClientHttpHandler",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "createClientHttpHandler/createClientHttpHandler/createClientHttpHandler/disconnected/disconnected",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createClientHttpHandler/createClientHttpHandler/createClientHttpHandler/failed/failed",
           "parameters": [
             "error"
           ],
@@ -25031,7 +25051,10 @@
             "write",
             "write/write",
             "write/write/write",
-            "createClientHttpHandler/createClientHttpHandler/originalRequest/originalRequest"
+            "createClientHttpHandler/createClientHttpHandler/originalRequest/originalRequest",
+            "createClientHttpHandler/createClientHttpHandler/createClientHttpHandler/complete/complete",
+            "createClientHttpHandler/createClientHttpHandler/createClientHttpHandler/disconnected/disconnected",
+            "createClientHttpHandler/createClientHttpHandler/createClientHttpHandler/failed/failed"
           ],
           "exports": [
             "createClientHttpHandler",
