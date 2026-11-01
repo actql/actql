@@ -468,3 +468,42 @@ test "response input construction returns original NFC scratch while preserving 
     )
   }
 }
+
+///|
+test "successful binary receiver retains only its returned body with the complete old receive peak" {
+  for bytes in [1, 64, 65536, 2147483647] {
+    let original = installed_effect_response_buffer_representation(bytes).unwrap()
+    let body = installed_effect_response_buffer_construction_capacity(bytes).unwrap()
+    let returned : @execution.PreparationRepresentationUnits = {
+      record_headers: 1L,
+      reference_slots: 0L,
+      scalar_words: 0L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: bytes.to_int64(),
+    }
+    assert_eq(
+      @execution.execution_capacity_retained_bytes(body),
+      @execution.preparation_representation_cost(returned).unwrap(),
+    )
+    assert_eq(
+      @execution.execution_capacity_execution_bytes(body),
+      @execution.preparation_representation_cost(original).unwrap(),
+    )
+    assert_true(
+      @execution.execution_capacity_retained_bytes(body) <
+      @execution.execution_capacity_execution_bytes(body),
+    )
+    let headers = installed_effect_response_headers_representation(32).unwrap()
+    let full = installed_effect_http_response_construction_capacity(bytes, 32).unwrap()
+    let header_bytes = @execution.preparation_representation_cost(headers).unwrap()
+    assert_eq(
+      @execution.execution_capacity_retained_bytes(full),
+      2L * @execution.execution_capacity_retained_bytes(body) + header_bytes,
+    )
+    assert_eq(
+      @execution.execution_capacity_execution_bytes(full),
+      @execution.preparation_representation_cost(original).unwrap() +
+      header_bytes,
+    )
+  }
+}

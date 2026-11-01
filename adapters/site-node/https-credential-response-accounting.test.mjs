@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
 import {mkdtemp, rm} from 'node:fs/promises';
+import {readFileSync} from 'node:fs';
+import {EventEmitter} from 'node:events';
+import {types} from 'node:util';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createServer} from 'node:https';
@@ -36,7 +39,8 @@ async function fixture(t, handle, {unjoinedOriginal = false, fenced = true} = {}
   const call = options => resource.callHttpsCredentialResource({grant,useId:'use',scope,control,journal,resolveSecret,binding,ca,
     currentBeforeSend:async()=>{},maxRequestBytes:1024,maxResponseBytes:64,
     operations:new Map([['create',{method:'POST',path:'/create',body:'{}'}]]),...options});
-  return {call,outcomes,claims:()=>claims,binding};
+  return {call,outcomes,claims:()=>claims,binding,
+    original:(response, consume)=>resource.withHttpsCredentialRunResponseOriginal(response,control,journal,consume)};
 }
 
 test('bounded original response reader charges the actual refusal byte before discarding its oversized body',async t=>{
@@ -262,5 +266,81 @@ test('original repeated headers preserve the selected normalized value without a
     body: '{}', responseHeaders: ['x-repeated']}]])});
   assert.deepEqual(result.headers, [['x-repeated', 'one, two, three']]);
   assert.equal(result.body.toString(), '{}'); assert.equal(f.claims(), 1);
+  assert.equal(resource.closeHttpsCredentialBinding(f.binding), 'closed');
+});
+
+// Execute the exact private receiver body with explicit original HTTP ports.
+// No provider, Common grant, installed Run or physical cleanup is inferred.
+function originalReceiveComponent({observed = true, concatFailure} = {}) {
+  const source = readFileSync(new URL('./https-credential-resource.mjs', import.meta.url), 'utf8');
+  const start = source.indexOf('function receive({');
+  const end = source.indexOf('\n/// Execute one pre-registered HTTPS operation.', start);
+  assert(start >= 0 && end > start);
+  const response = new EventEmitter();
+  response.statusCode = 200; response.headers = {}; response.rawHeaders = [];
+  response.destroyed = false;
+  response.destroy = error => {response.destroyed = true; response.emit('error', error);};
+  const request = new EventEmitter(); request.end = () => {};
+  let callback, copied, copiedAtConcat;
+  const originalBytes = [Buffer.from('one'), Buffer.from('two')];
+  const buffer = {from: Buffer.from.bind(Buffer), concat(chunks, received) {
+    copied = chunks; copiedAtConcat = chunks.map(chunk => Buffer.from(chunk));
+    if (concatFailure !== undefined) throw concatFailure.original;
+    return Buffer.concat(chunks, received);
+  }};
+  const fail = code => {throw Object.assign(new Error(code), {code});};
+  const receive = new Function('httpsRequest', 'httpsCredentialResponseHeaderByteLimit',
+    'httpsCredentialAuthorizationPrefix', 'Buffer', 'types', 'nativePromiseThen',
+    'responseReadQuantum', 'fail', `${source.slice(start, end)};return receive;`)(
+    (_options, originalCallback) => {callback = originalCallback; return request;},
+    maxHeaderSize, 'Bearer ', buffer, types, Promise.prototype.then, 16384, fail);
+  const charges = [];
+  const pending = receive({hostname: 'fixture.invalid', path: '/read', method: 'GET',
+    requestBytes: 0, secret: 'fixture', headers: [], maxResponseBytes: 64,
+    ...(observed ? {observeResponseBytes: count => {charges.push(count);}} : {})});
+  callback(response);
+  if (observed) {
+    const reads = [...originalBytes, null];
+    response.read = () => reads.shift() ?? null;
+    response.emit('readable');
+  } else for (const chunk of originalBytes) response.emit('data', chunk);
+  return {response, pending, charges, originalBytes,
+    copied: () => copied, copiedAtConcat: () => copiedAtConcat};
+}
+
+for (const observed of [false, true]) {
+  test(`successful original ${observed ? 'observed' : 'legacy'} receiver severs copied chunks before returning its exact body`, async () => {
+    const f = originalReceiveComponent({observed});
+    assert.equal(f.response.listenerCount(observed ? 'readable' : 'data'), 1);
+    f.response.emit('end');
+    const result = await f.pending;
+    assert.equal(result.body.toString(), 'onetwo');
+    assert.deepEqual(f.copiedAtConcat(), f.originalBytes);
+    assert.equal(f.copied().length, 0, 'No copied chunk remains in the original listener closure');
+    assert.equal(f.response.listenerCount('readable'), 0);
+    assert.equal(f.response.listenerCount('data'), 0);
+    assert.deepEqual(f.charges, observed ? [3, 3] : []);
+  });
+}
+
+test('failed original response concatenation retains its prefix and rejects with the same primary', async () => {
+  const primary = {original: undefined};
+  const f = originalReceiveComponent({concatFailure: primary});
+  const rejected = assert.rejects(f.pending, error => error === primary.original);
+  assert.doesNotThrow(() => f.response.emit('end'));
+  await rejected;
+  assert.deepEqual(f.copied(), f.originalBytes);
+  assert.equal(f.response.listenerCount('readable'), 1);
+});
+
+test('successful original response retains its independent historical byte snapshot after copied chunks retire', async t => {
+  const f = await fixture(t, (_request, response) => {response.writeHead(200); response.end('original');});
+  const response = await f.call({retainRunResponseOriginal: true, observeResponseBytes() {}});
+  assert.equal(response.body.toString(), 'original');
+  f.original(response, facts => {assert.equal(facts.response, response);});
+  response.body[0] = 0;
+  assert.throws(() => f.original(response, () => assert.fail('changed original')),
+    {code: 'RemoteCredentialRunResponseChanged'});
+  assert.deepEqual(f.outcomes, ['succeeded']); assert.equal(f.claims(), 1);
   assert.equal(resource.closeHttpsCredentialBinding(f.binding), 'closed');
 });

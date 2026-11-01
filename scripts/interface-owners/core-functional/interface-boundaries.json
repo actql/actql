@@ -48721,7 +48721,7 @@
             "responsibility": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "The observed binary HTTPS receiver retains its copied chunk prefix beside the"
+                "anchor": "The observed binary HTTPS receiver co-counts its copied chunk prefix, the"
               }
             ],
             "inputsOutputs": [
@@ -48739,7 +48739,7 @@
             "ownership": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "It holds that whole envelope through original output retirement rather than"
+                "anchor": "receive or concatenation keeps its original prefix under the unchanged full"
               }
             ],
             "synchronization": [
@@ -48797,7 +48797,7 @@
           }
         }
       ],
-      "sha256": "9e78fe8ff10727c14ad0b6e9f53a85f4d4e2d327aa8cc53dc991b6e69d7917b4",
+      "sha256": "9e1df8fbf0e1deb9f44c4b9cf71055c57b6aa18bea6a7e8fa0ebe5d3e48c0311",
       "operations": [
         {
           "name": "installed_effect_http_response_construction_capacity",
@@ -48853,7 +48853,7 @@
             "responsibility": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "The observed binary HTTPS receiver retains its copied chunk prefix beside the"
+                "anchor": "The observed binary HTTPS receiver co-counts its copied chunk prefix, the"
               }
             ],
             "inputsOutputs": [
@@ -48871,7 +48871,7 @@
             "ownership": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "It holds that whole envelope through original output retirement rather than"
+                "anchor": "receive or concatenation keeps its original prefix under the unchanged full"
               }
             ],
             "synchronization": [

@@ -2308,13 +2308,25 @@ acknowledge cleanup or enable an ordinary execution path.
 
 ## Effect response buffer backing
 
-The observed binary HTTPS receiver retains its copied chunk prefix beside the
-concatenated body at successful end. A body bound B permits at most B nonempty
-one-byte chunk copies; the original current read is bounded by B+1, including
-the byte which causes refusal. Its constructor inventory co-counts those three
-byte families, the chunk Buffer headers and the shared Array growth inventory.
-It holds that whole envelope through original output retirement rather than
-inferring early release from a response Promise or copied body.
+The observed binary HTTPS receiver co-counts its copied chunk prefix, the
+concatenated body and the original current read during construction. A body
+bound B permits at most B nonempty one-byte chunk copies; the current read is
+bounded by B+1, including the byte which causes refusal. The complete peak also
+includes chunk Buffer headers and the original Array growth inventory.
+
+Successful original concatenation severs the same copied prefix and reader
+listener before returning the exact body. Only that returned Buffer remains in
+body retention; initial headers and trailers stay separately retained. The
+whole HTTP extent also retains the existing optional original-response byte
+snapshot. It is constructed only after the copied receive prefix is severed,
+so both returned bodies fit within the unchanged full receive peak. Failed
+receive or concatenation keeps its original prefix under the unchanged full
+execution reservation until actual cleanup. Concatenation failure rejects with
+its same original value through the existing request/socket completion path.
+This separation changes no attempt/transfer debit, current fence, invalid
+observer lifetime, physical stop or cleanup acknowledgment. The whole operation
+still reserves its complete execution peak; this is not an aggregate Plan or
+ordinary-distribution acceptance claim.
 
 Before borrowing or binding a physical occurrence, the shared Effect child
 checks the capacity of that same original selected extent against this buffer

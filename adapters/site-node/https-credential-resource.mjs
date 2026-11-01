@@ -755,10 +755,11 @@ function receive({hostname, port, path, method, body, bodyMediaType, requestByte
       }
       const responseRepresentation = !retainRunResponseOriginal ? undefined :
         Object.freeze({etagCount, contentEncodingCount});
-      const chunks = [];
+      let chunks = [];
+      let detachReader;
       let received = 0;
       if (observeResponseBytes === undefined) {
-        response.on('data', chunk => {
+        const readResponseChunk = chunk => {
           received += chunk.byteLength;
           if (received > maxResponseBytes) {
             response.destroy(Object.assign(
@@ -768,7 +769,9 @@ function receive({hostname, port, path, method, body, bodyMediaType, requestByte
             return;
           }
           chunks.push(Buffer.from(chunk));
-        });
+        };
+        response.on('data', readResponseChunk);
+        detachReader = () => response.off('data', readResponseChunk);
       } else {
         // Paused binary read(size) returns at most size bytes. Bound the SAME
         // reader's selected representation to B+1 even when its protocol body
@@ -821,15 +824,28 @@ function receive({hostname, port, path, method, body, bodyMediaType, requestByte
           } catch (error) { response.destroy(error); }
         };
         response.on('readable', readObservedResponse);
+        detachReader = () => response.off('readable', readObservedResponse);
       }
       response.once('error', error => finish(reject, error));
-      response.once('end', () => finish(resolve, Object.freeze({
-        statusCode: response.statusCode,
-        headers: response.headers,
-        body: Buffer.concat(chunks, received),
-        requestRepresentation,
-        responseRepresentation,
-      })));
+      response.once('end', () => {
+        let body;
+        try { body = Buffer.concat(chunks, received); }
+        catch (error) { finish(reject, error); return; }
+        // Only successful concatenation retires the copied receive prefix.
+        // Sever the listener and its original Array, not the response/headers
+        // or the request/socket/invalid-observer cleanup responsibilities.
+        detachReader();
+        detachReader = undefined;
+        chunks.length = 0;
+        chunks = undefined;
+        finish(resolve, Object.freeze({
+          statusCode: response.statusCode,
+          headers: response.headers,
+          body,
+          requestRepresentation,
+          responseRepresentation,
+        }));
+      });
     });
     if (binding) {
       binding.request = request;

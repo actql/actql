@@ -6852,21 +6852,31 @@
           "async": false
         },
         {
-          "name": "receive/receive/request/request/request",
+          "name": "receive/receive/request/request/readResponseChunk/readResponseChunk",
           "parameters": [
             "chunk"
           ],
           "async": false
         },
         {
+          "name": "receive/receive/request/request/request",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "receive/receive/request/request/request#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "receive/receive/request/request/request#3",
           "parameters": [
             "error"
           ],
           "async": false
         },
         {
-          "name": "receive/receive/request/request/request#3",
+          "name": "receive/receive/request/request/request#4",
           "parameters": [],
           "async": false
         },
@@ -8097,9 +8107,78 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "receive/receive/request/request/readResponseChunk/readResponseChunk",
+            "receive/receive/request/request/request#4"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Successful original concatenation severs the same copied prefix and reader"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Successful original concatenation severs the same copied prefix and reader"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Successful original concatenation severs the same copied prefix and reader"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Successful original concatenation severs the same copied prefix and reader"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Successful original concatenation severs the same copied prefix and reader"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Successful original concatenation severs the same copied prefix and reader"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Successful original concatenation severs the same copied prefix and reader"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Successful original concatenation severs the same copied prefix and reader"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Successful original concatenation severs the same copied prefix and reader"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Successful original concatenation severs the same copied prefix and reader"
+              }
+            ]
+          }
         }
       ],
-      "sha256": "19f0b1294016fe29a3f4f81f8f06862cecd01bbfeb7cbdd3ae27369cdcfa388e",
+      "sha256": "dc48732288e2d73efc390dab5dc9476454de13ef53686fd3af232d2241156ed4",
       "imports": [
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/credential-scope-fields.generated.mjs",

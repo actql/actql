@@ -37,25 +37,37 @@ fn installed_effect_response_buffer_representation(
 }
 
 ///|
-/// Logical constructor/storage DATA for the same observed binary receiver,
-/// held through output retirement. Not a transfer debit, permission, physical
+/// Logical constructor/storage DATA for the same observed binary receiver.
+/// Successful end severs copied chunks/listeners; the concat body remains.
+/// The complete receive peak stays held on failed/pending paths until cleanup.
+/// Not a transfer debit, permission, physical
 /// cleanup observation or whole Host/secret/failed-child capacity. The caller
 /// separately backs quotation and composes every other overlapping owner.
 pub fn installed_effect_response_buffer_construction_capacity(
   max_response_bytes : Int,
 ) -> @execution.ExecutionCapacity? {
   guard installed_effect_response_buffer_representation(max_response_bytes)
-    is Some(retained) else {
+    is Some(peak) else {
     return None
+  }
+  // SAME successful original receiver returns one binary body and severs its
+  // copied prefix/Array/read listener before exposing it. Complete peak is
+  // unchanged, including failed receive and concatenation prefixes.
+  let retained : @execution.PreparationRepresentationUnits = {
+    record_headers: 1L,
+    reference_slots: 0L,
+    scalar_words: 0L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: max_response_bytes.to_int64(),
   }
   @execution.preparation_execution_capacity({
     retained,
     workspace: {
-      record_headers: 0L,
-      reference_slots: 0L,
-      scalar_words: 0L,
-      owned_utf16_units: 0L,
-      owned_wire_bytes: 0L,
+      record_headers: peak.record_headers - retained.record_headers,
+      reference_slots: peak.reference_slots,
+      scalar_words: peak.scalar_words,
+      owned_utf16_units: peak.owned_utf16_units,
+      owned_wire_bytes: peak.owned_wire_bytes - retained.owned_wire_bytes,
     },
     retained_nodes: 0L,
     workspace_nodes: 0L,
@@ -118,28 +130,42 @@ pub fn installed_effect_http_response_construction_capacity(
   max_response_bytes : Int,
   max_header_bytes : Int,
 ) -> @execution.ExecutionCapacity? {
-  guard installed_effect_response_buffer_representation(max_response_bytes)
+  guard installed_effect_response_buffer_construction_capacity(
+      max_response_bytes,
+    )
     is Some(body) &&
     installed_effect_response_headers_representation(max_header_bytes)
-    is Some(headers) &&
-    @execution.compose_preparation_representation([body, headers])
-    is Some(retained) else {
+    is Some(headers) else {
     return None
   }
-  @execution.preparation_execution_capacity({
-    retained,
-    workspace: {
-      record_headers: 0L,
-      reference_slots: 0L,
-      scalar_words: 0L,
-      owned_utf16_units: 0L,
-      owned_wire_bytes: 0L,
-    },
-    retained_nodes: 0L,
-    workspace_nodes: 0L,
-    retained_bytes: 0L,
-    workspace_bytes: 0L,
-  })
+  guard @execution.preparation_execution_capacity({
+      retained: headers,
+      workspace: {
+        record_headers: 0L,
+        reference_slots: 0L,
+        scalar_words: 0L,
+        owned_utf16_units: 0L,
+        owned_wire_bytes: 0L,
+      },
+      retained_nodes: 0L,
+      workspace_nodes: 0L,
+      retained_bytes: 0L,
+      workspace_bytes: 0L,
+    })
+    is Some(headers) else {
+    return None
+  }
+  // Existing retainRunResponseOriginal optionally owns one independent
+  // byte snapshot AFTER the successful receiver has severed copied chunks.
+  // Co-fund both bodies in retention even for implementations that omit it.
+  // That later two-body view fits the unchanged full receive peak; it never
+  // overlaps the retired chunks/concat constructor/current-read envelope.
+  @execution.execution_capacity(
+    2L * @execution.execution_capacity_retained_bytes(body) +
+    @execution.execution_capacity_retained_bytes(headers),
+    @execution.execution_capacity_execution_bytes(body) +
+    @execution.execution_capacity_execution_bytes(headers),
+  )
 }
 
 ///|
