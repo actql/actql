@@ -23,6 +23,8 @@ async function entries(t, protocol = false) {
       assert.deepEqual(await readFile(copied), await readFile(original));
     }
   }
+  await copyFile(join(repository, 'adapters/host-node/compile-cache.mjs'),
+    join(packages, 'local-node/adapters/host-node/compile-cache.mjs'));
   // No provider, key, Store or Run is opened by this explicit Host double.
   await writeFile(join(packages, 'local-node/adapters/host-node/embedded-local.mjs'), `
 import {connectInProcess} from '@actql/sdk/host-port';

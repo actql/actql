@@ -3270,7 +3270,7 @@
     {
       "module": "packages/node/index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "b72c7086e0553d9184fdb798188d660d26dd729181e6ff31897f2fb65b477ecb",
+      "sha256": "5712586d51582f267991f8929d018d629252ca851cd2c9ff1e7f69015d85d58b",
       "exports": [
         "ClientError",
         "RequestHeld",
@@ -3470,6 +3470,10 @@
               }
             ],
             "verification": [
+              {
+                "path": "scripts/node-local-compile-cache.test.mjs",
+                "anchor": "public open enables the existing cache before the actual Local static Host graph"
+              },
               {
                 "path": "scripts/local-node-package-imports.test.mjs",
                 "anchor": "test("

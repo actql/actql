@@ -467,6 +467,13 @@ interfaces, schema/pins, fixtures, and the tracked Run Host service wrappers
 remain reviewed source artifacts. Regenerate wrapper changes explicitly;
 runtime preparation checks them but does not silently update them.
 
+The public Node facade resolves the selected Local provider before loading its
+existing private compile-cache helper, then imports that same resolved provider.
+This places the optional V8 cache call before Local's static Host graph without
+selecting Local for Remote connections. Coverage exclusion and an unavailable
+or declined Node cache keep the existing helper policy. This is no ActQL
+checking cache, funding evidence, admission result, or runtime identity claim.
+
 ### Local Files native delivery
 
 The ordinary Local package producer builds the Local Files descriptor binding
