@@ -18,7 +18,8 @@ function method(file, name, ports, {methodOnly = false} = {}) {
       if(Array.isArray(value))value.forEach(walk);else if(value&&typeof value==='object')walk(value);
     }};
   walk(parse(source,{ecmaVersion:'latest',sourceType:'module'}));assert(found,name);
-  return Function(...Object.keys(ports),`return ({${source.slice(found.start,found.end)}}).${name};`)(...Object.values(ports));
+  const helpers = file === './ordinary-source-managed.mjs' ? source.slice(source.indexOf('  function constructRequestDomain('), source.indexOf('  const view = Object.freeze({')) : '';
+  return Function(...Object.keys(ports),`const pendingRunRegistrations=new Set();${helpers}return ({${source.slice(found.start,found.end)}}).${name};`)(...Object.values(ports));
 }
 const fail=code=>{throw Object.assign(new Error(code),{code});};
 

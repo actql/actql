@@ -150,6 +150,7 @@ test('Local Model constructor failure keeps its issued Scope and original failur
 });
 
 const managerSource = readFileSync(new URL('./ordinary-source-managed.mjs', import.meta.url), 'utf8');
+const managerHelpers = managerSource.slice(managerSource.indexOf('  function constructRequestDomain('), managerSource.indexOf('  const view = Object.freeze({'));
 const methodStart = managerSource.indexOf('    prepareModelRun(');
 const methodEnd = managerSource.indexOf('    adoptModelPreparation(', methodStart);
 assert(methodStart >= 0 && methodEnd > methodStart);
@@ -169,7 +170,7 @@ function managerFixture(refusal) {
     },
   };
   object = Function('current', 'producerForRequest', 'fail', 'view',
-    `return ({${managerSource.slice(methodStart, methodEnd).trim().replace(/,$/u, '')}});`)(
+    `const pendingRunRegistrations=new Set();${managerHelpers}return ({${managerSource.slice(methodStart, methodEnd).trim().replace(/,$/u, '')}});`)(
     () => {}, r => {assert.equal(r, request); return producer;}, fail, view);
   const construct = (p, i, c) => {
     assert.deepEqual([p, i, c], [parent, input, compilation]); assert.equal(state.preparing, true);
@@ -536,7 +537,7 @@ function requestGraphFixture({serialized = true, missingPort = false, replaceAft
   state.context = {runtime: moon};
   const originals = {installation: {sequenceContractOriginal: {moon, admission}}};
   object = Function('current', 'producerForRequest', 'fail', 'originals', 'checkedRequestProgramPreparation',
-    `return ({${managerSource.slice(graphMethodStart, graphMethodEnd).trim().replace(/,$/u, '')}});`)(
+    `const pendingRunRegistrations=new Set();${managerHelpers}return ({${managerSource.slice(graphMethodStart, graphMethodEnd).trim().replace(/,$/u, '')}});`)(
     () => {if (replaceAfter && state.modelGraph !== undefined) state.contentGraph = {};},
     value => {assert.equal(value, request); return producer;}, fail, originals,
     (actual, result, issue) => {assert.equal(actual, moon); assert.equal(issue, moon.clientProgramRequestProgramModuleIssueCode); return result.value;});

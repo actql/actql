@@ -8,6 +8,7 @@ import {cleanupRequestInput} from '../local-node/request-preparation-adapter.mjs
 // Execute the existing manager method with explicit Core original/phase ports.
 // These cases do not supply physical Model/Content construction backing.
 const source = readFileSync(new URL('./ordinary-source-managed.mjs', import.meta.url), 'utf8');
+const managerHelpers = source.slice(source.indexOf('  function constructRequestDomain('), source.indexOf('  const view = Object.freeze({'));
 const start = source.indexOf('    async fundedPreparation(');
 const end = source.indexOf('    publicationPreparation(prepared) {', start);
 assert(start >= 0 && end > start);
@@ -54,7 +55,7 @@ function fixture({infers = [], serializations = [], acquisitions = 0, refusal,
   const originals = {installation: {sequenceContractOriginal: {moon, admission: {}}}};
   const read = Function('current', 'producerForRequest', 'fail', 'originals', 'checked',
     'checkedRequestProgramPreparation', 'requestPreparationAvailable',
-    `const closing=false,closed=false;return ({${method}});`)(() => {},
+    `const closing=false,closed=false;const pendingRunRegistrations=new Set();${managerHelpers}return ({${method}});`)(() => {},
     actual => {assert.equal(actual, request); return producer;}, fail, originals, value => value,
     (_moon, value) => value, () => true);
   return {state, calls, inventory, selected, prepared, moon, parent, input, request,
@@ -207,7 +208,7 @@ function adoptionFixture(family, failure) {
   const a = source.indexOf('    '+name+'('), b = source.indexOf('    adopt'+(family === 'model' ? 'Content' : 'Effect')+'Preparation(', a);
   assert(a >= 0 && b > a);
   const object = Function('current', 'callbacks', 'originals', 'producerForRequest', 'runs', 'liveRuns', 'fail', 'types', 'checked',
-    `return ({${source.slice(a,b).trim().replace(/,$/u,'')}});`)(() => {},
+    `const pendingRunRegistrations=new Set();${managerHelpers}return ({${source.slice(a,b).trim().replace(/,$/u,'')}});`)(() => {},
     {request(actualOriginals, actual) {assert.equal(actualOriginals, originals); assert.equal(actual, prepared); return request;},
       contentRequirements(actualOriginals, actual, selected) {
         assert.equal(actualOriginals, originals); assert.equal(actual, prepared); assert.equal(selected, plan);
@@ -355,5 +356,54 @@ test('Request Model retains its constructor Plan before adoption current and pre
     // The constructor body itself is covered separately; this continuation
     // proves that post-constructor adoption failure cannot lose its same Plan.
     assert.equal(constructions, 1);
+  }
+});
+
+test('Request registration reserves the final live slot across another Request callback and releases only failed reservations', () => {
+  for (const nativeFailure of [false, true]) {
+    const prepared = [{}, {}], requests = [{}, {}], states = prepared.map(p => ({prepared: p, parent: {}, holder: {},
+      compilationFamily: 'pure', acquisitionCount: 0, context: undefined}));
+    const producers = states.map((state, i) => ({preparation: state, request: requests[i], liveRuns: 0}));
+    const runs = new WeakMap(), liveRuns = new Set(Array.from({length: 4095}, () => ({})));
+    let object, adopts = 0;
+    const invoke = i => object.adoptPreparation(prepared[i], requests[i], {});
+    const moon = {clientProgramAdoptRequestProgramPreparation(parent) {
+      adopts++;
+      if (parent === states[0].parent) {
+        assert.throws(() => invoke(1), {code: 'ForeignInstalledSourceProducer'});
+        if (nativeFailure) throw null;
+      }
+      return {};
+    }};
+    states.forEach(state => {state.context = {runtime: moon};});
+    object = requestManagerMethods(['adoptPreparation'], {current() {}, fail, runs, liveRuns,
+      producerForRequest: request => producers[requests.indexOf(request)], originals: {installation: {}}, checked: v => v});
+    if (nativeFailure) {
+      let caught = false; try {invoke(0);} catch (cause) {caught = true; assert.equal(cause, null);} assert(caught);
+      assert.equal(runs.get(prepared[0]), undefined); assert.equal(producers[0].liveRuns, 0);
+    } else {
+      const run = invoke(0); assert.equal(runs.get(prepared[0]), run); assert.equal(liveRuns.size, 4096);
+      // Simulate the already checked bookkeeping release, not a physical ACK.
+      liveRuns.delete(run); runs.delete(prepared[0]); producers[0].liveRuns--;
+    }
+    assert.equal(invoke(1), runs.get(prepared[1])); assert.equal(liveRuns.size, 4096); assert.equal(adopts, 2);
+  }
+});
+
+test('Request synchronous constructor helper latches an original null or undefined failure and clears busy once', () => {
+  for (const primary of [null, undefined]) {
+    const prepared = {}, request = {}, state = {prepared, parent: {}, compilationFamily: 'model'};
+    const producer = {preparation: state, receipt: {}}, model = {graph: {}};
+    let compiles = 0, constructs = 0;
+    const object = requestManagerMethods(['prepareModelRun'], {current() {}, fail, producerForRequest: () => producer,
+      view: {prepareModelCompilation() {compiles++; return {};}, adoptModelPreparation() {assert.fail('No adoption after constructor refusal');}}});
+    const invoke = () => object.prepareModelRun(prepared, request, {}, model, () => {
+      constructs++; assert.equal(state.preparing, true); throw primary;
+    });
+    for (let i = 0; i < 2; i++) {
+      let caught = false; try {invoke();} catch (cause) {caught = true; assert.equal(cause, primary);} assert(caught);
+      assert.equal(state.preparing, false); assert.equal(state.preparationFailed, true); assert.equal(state.preparationFailure, primary);
+    }
+    assert.equal(compiles, 1); assert.equal(constructs, 1);
   }
 });
