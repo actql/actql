@@ -11,13 +11,16 @@ import {retainInstalledHostRuntimeFailure} from './installed-host-cleanup.mjs';
 const source = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
 const tree = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
 const connect = tree.body.map(node => node.declaration ?? node)
-  .find(node => node.type === 'FunctionDeclaration' && node.id.name === 'connectEmbeddedLocal');
+  .find(node => node.type === 'FunctionDeclaration' && node.id.name === 'openPreparedInstalledHost');
 const body = connect.body.body.find(node => node.type === 'TryStatement').block.body;
 const end = body.findIndex(node => node.type === 'VariableDeclaration' &&
   node.declarations.some(value => value.id.type === 'ObjectPattern' &&
     value.id.properties.some(property => property.type === 'RestElement' && property.argument.name === 'clientOptions')));
 assert.ok(end > 0);
-const routeSource = source.slice(body[0].start, body[end].end);
+const remote = body.find(node => node.type === 'IfStatement' &&
+  source.slice(node.test.start, node.test.end) === "initialEntry === 'remote'");
+const routeSource = source.slice(body[0].start, remote.start) +
+  source.slice(remote.end, body[end].end);
 const makeRoute = compileFunction('return async function(options, initialEntry) {' +
   'let control,controlClose,duty;const record={};' + routeSource +
   '\nreturn {control,controlClose,duty,record,options,clientOptions,suppliedInstallation,requestedProfile};};',

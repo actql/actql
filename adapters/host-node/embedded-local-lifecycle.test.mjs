@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {inspect} from 'node:util';
+import {readFileSync} from 'node:fs';
+import {resolve} from 'node:path';
+import {parse} from 'acorn';
+import {beginInitialControlInstallation, assertInitialControlInstallationCurrent,
+  readInitialControlInstallationInput} from './node-initial-control-installation.mjs';
+import {retainInstalledHostInitializationFailure, retainInstalledHostRuntimeFailure} from './installed-host-cleanup.mjs';
 import {createEmbeddedHostRegistry} from './embedded-local-lifecycle.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
@@ -294,4 +300,116 @@ test('failed negotiation keeps a sanitized recovery operation when physical clos
   assert.doesNotMatch(inspect(failure, {showHidden: true, depth: 8}), /private-source-secret/);
   ready = true;
   assert.deepEqual(await failure.cleanupHandle.retry(), {pending: false});
+});
+
+
+test('prepared HTTP Request uses the same registry identity and retires only its original handling', async () => {
+  const registry = createEmbeddedHostRegistry(() => true);
+  const host = {}, installation = {}, request = {}, alias = {};
+  registry.registerPreparation(host, installation, host);
+  const done = deferred();
+  registry.retainRequest(host, installation, host, request, done.promise);
+  registry.bindSourceRequest(host, installation, host, request, alias);
+  assert.strictEqual(registry.originalSourceRequest(host, installation, host, alias), request);
+  assert.throws(() => registry.retainRequest(host, {}, host, {}, Promise.resolve()),
+    /InstalledHostPreparationChanged/);
+  await Promise.resolve();
+  assert.strictEqual(registry.originalSourceRequest(host, installation, host, alias), request);
+  done.resolve();
+  await done.promise;
+  assert.throws(() => registry.originalSourceRequest(host, installation, host, alias),
+    /InstalledHostPreparationChanged/);
+  registry.retirePreparation(host, installation, host);
+  assert.throws(() => registry.assertPreparation(host, installation, host),
+    /InstalledHostPreparationChanged/);
+});
+
+
+function remoteOpeningFixture(failure) {
+  const source = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
+  const tree = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
+  const declaration = tree.body.find(node => node.type === 'FunctionDeclaration' &&
+    node.id.name === 'openPreparedInstalledHost');
+  assert.ok(declaration);
+  const body = source.slice(declaration.start, declaration.end);
+  assert.equal(body.split('import.meta').length, 2);
+  const registry = createEmbeddedHostRegistry(() => true);
+  const events = [];
+  let selected, sameHost, sameInstallation;
+  const prepareRequest = () => {};
+  const options = {directory: '/component/remote', authenticate() {},
+    beforeDispatch() {}, loopbackHttp: true, valuesMaxRows: 7};
+  // Execute the actual complete shared opening. The final Host constructor,
+  // runtime namespace and HTTP constructor are explicit ports: no real
+  // Resource/Journal/Store/Run or ordinary acceptance is claimed here.
+  const context = {profiles: registry, moduleLifetime: {}, resolve,
+    beginInitialControlInstallation, assertInitialControlInstallationCurrent,
+    readInitialControlInstallationInput, retainInstalledHostInitializationFailure,
+    retainInstalledHostRuntimeFailure,
+    clientOperationError: code => Object.assign(new Error(code), {code}),
+    snapshotInstalledCalendar: x => x, snapshotHostCapacityPolicy: x => x,
+    snapshotHostLookupExecutionPolicy: x => x,
+    runtimeUrl: new URL('data:text/javascript,export const componentRuntime = true'),
+    async openInstalledHost(installation, preparation) {
+      events.push('open');
+      selected = preparation; sameHost = preparation.host; sameInstallation = installation;
+      assert.equal(installation.mode, 'remote');
+      assert.equal(installation.root, '/component/remote');
+      assert.equal(installation.retainedRelationOutput, false);
+      assert.equal(installation.projectRuntime.componentRuntime, true);
+      assert.equal(installation.project, undefined);
+      assert.equal(installation.projectProfile, undefined);
+      assert.strictEqual(installation.initialControl, readControl(preparation));
+      registry.assertPreparation(sameHost, installation, sameHost);
+      if (failure !== undefined) throw failure;
+      return Object.assign(sameHost, {initialControl: preparation.initialControl});
+    },
+    installedHostShutdown(host) {
+      assert.strictEqual(host, sameHost);
+      return {close: () => host.initialControl.close()};
+    },
+    installHttpRequestPreparation(preparation, actualRegistry, originals) {
+      assert.strictEqual(preparation, selected); assert.strictEqual(actualRegistry, registry);
+      assert.strictEqual(originals.host, sameHost);
+      assert.strictEqual(originals.installation, sameInstallation);
+      assert.strictEqual(originals.generation, sameHost);
+      assert.strictEqual(originals.supplier, opening);
+      events.push('request-preparation'); return prepareRequest;
+    },
+    installedRemoteHttpTransport(host, input, shutdown, prepared) {
+      assert.strictEqual(host, sameHost); assert.strictEqual(prepared, prepareRequest);
+      assert.strictEqual(input.authenticate, options.authenticate);
+      assert.equal(input.loopbackHttp, true);
+      events.push('http'); return {close: shutdown.close};
+    },
+  };
+  function readControl(preparation) {
+    // The actual constructor receives this same ordinary scope through the
+    // original installation; the public cleanup adapter is a distinct duty.
+    assert.notStrictEqual(sameInstallation.initialControl, preparation.initialControl);
+    return sameInstallation.initialControl;
+  }
+  const opening = new Function(...Object.keys(context), 'return (' +
+    body.replace('import.meta', 'moduleLifetime') + ');')(...Object.values(context));
+  return {options, events, open: () => opening(options, 'remote'),
+    assertRetired() {assert.throws(() => registry.assertPreparation(sameHost, sameInstallation, sameHost),
+      /InstalledHostPreparationChanged/);}};
+}
+
+test('Remote opening retains the same prepared Host without Local discovery and releases its original scope', async () => {
+  const f = remoteOpeningFixture();
+  const host = await f.open();
+  assert.deepEqual(f.events, ['open', 'request-preparation', 'http']);
+  const observation = await host.close();
+  assert.equal(observation.pending, false);
+  f.assertRetired();
+  assert.strictEqual(await host.close(), observation);
+});
+
+test('Remote constructor failure retains the original cause and retires the same preparation', async () => {
+  const primary = new Error('OriginalRemoteConstructorFailure');
+  const f = remoteOpeningFixture(primary);
+  await assert.rejects(f.open(), error => error === primary);
+  assert.deepEqual(f.events, ['open']);
+  f.assertRetired();
 });

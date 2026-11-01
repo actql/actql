@@ -1593,3 +1593,29 @@ test('timed Request backs invocation before constructor and retains original ref
     await f.failedCleanup();assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped,true);
   }
 });
+
+test('Remote Request uses the existing managed parent and rejects mixed transport ownership', async () => {
+  const remote = Object.freeze({mode: 'remote', owner: 'remote',
+    consentRefs: Object.freeze([]), runners: Object.freeze([])});
+  const f = await fixture();
+  const receipt = f.view.beforeSourceSnapshot('aql', 'SELECT 1 AS n', {}, remote);
+  const body = f.view.captureSourceSnapshot(receipt, {
+    kind: 'aql', input: {text: 'SELECT 1 AS n', format: 'sql'}, parameters: null,
+  }, snapshotClientRequest);
+  f.view.bindSourceSnapshot(receipt, body);
+  f.view.bindSourceRequest(receipt, body, {});
+  assert.deepEqual(f.calls.slice(0, 4), ['control', 'policy-limits', 'admission', 'parent']);
+  assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, false);
+  f.view.finishSourceProducer(receipt, 'failed');
+  await f.view.close();
+  assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, true);
+  for (const selected of [{mode: 'remote', owner: 'local'}, {mode: 'local', owner: 'remote'},
+    {mode: 'hybrid', owner: 'hybrid'}]) {
+    const invalid = await fixture();
+    assert.throws(() => invalid.view.beforeSourceSnapshot('aql', 'SELECT 1 AS n', {},
+      Object.freeze({...selected, consentRefs: Object.freeze([]), runners: Object.freeze([])})),
+    {code: 'NodeLocalPreparationAdmissionUnavailable'});
+    assert.equal(invalid.calls.includes('admission'), false);
+    await invalid.view.close();
+  }
+});

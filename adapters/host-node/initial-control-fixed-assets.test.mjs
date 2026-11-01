@@ -19,7 +19,7 @@ function find(node, predicate) {
     } else if (value && typeof value === 'object') {const result = find(value, predicate); if (result) return result;}
   }
 }
-const opening = declaration('openInstalledHost'), connecting = declaration('connectEmbeddedLocal');
+const opening = declaration('openInstalledHost'), connecting = declaration('openPreparedInstalledHost');
 assert.ok(opening && connecting);
 const preparationNode = find(connecting.body, node => node.type === 'VariableDeclarator' && node.id.name === 'preparation').init;
 const assets = [

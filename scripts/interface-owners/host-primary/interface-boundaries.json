@@ -6381,7 +6381,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "b7ed4d01c201c69d33dccd3ad4cce6868a02e57526ea1fd1611b48cfd78537b9",
+      "sha256": "6febf3acd0198eed22aabc86fc679bcaff66267803940eadc615683deb19e4ef",
       "exports": [
         "admitOriginalHostRootFormat",
         "assertInitialControlHostPreparation",
@@ -6465,881 +6465,6 @@
             "options",
             "initialEntry"
           ],
-          "async": true
-        },
-        {
-          "name": "connectEmbeddedLocal/assertSourceInitializationSelection",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/client/client",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/connectEmbeddedLocal",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/connectEmbeddedLocal#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/connectEmbeddedLocal#3",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/initialControl/init:close/init:close",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:admitEffectResultPublicationRun/init:admitEffectResultPublicationRun",
-          "parameters": [
-            "prepared"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:admitResultPublicationRun/init:admitResultPublicationRun",
-          "parameters": [
-            "prepared"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:admitRootFormat/init:admitRootFormat",
-          "parameters": [
-            "root"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:assertContentRunCurrent/init:assertContentRunCurrent",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:assertResultPublicationCurrent/init:assertResultPublicationCurrent",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:beforeResultPublicationOperation/init:beforeResultPublicationOperation",
-          "parameters": [
-            "operation"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:bindManagedComputeRunObservation/init:bindManagedComputeRunObservation",
-          "parameters": [
-            "prepared",
-            "ref"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:bindManagedSources/init:bindManagedSources",
-          "parameters": [
-            "runtime",
-            "profile"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:bindManagedSources/init:bindManagedSources/init:bindManagedSources",
-          "parameters": [
-            "source"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:bindManagedSources/init:bindManagedSources/selected/selected",
-          "parameters": [
-            "prepared"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:bindSourceRequest/init:bindSourceRequest",
-          "parameters": [
-            "parent",
-            "derived"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:borrowManagedPreparation/init:borrowManagedPreparation",
-          "parameters": [
-            "prepared",
-            "request"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:borrowSourceInitializationMaterial/init:borrowSourceInitializationMaterial",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:canRetireManagedPreparation/init:canRetireManagedPreparation",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:effectManagedPlanRun/init:effectManagedPlanRun",
-          "parameters": [
-            "runtime",
-            "prepared",
-            "request"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:effectManagedPlanRun/init:effectManagedPlanRun/current/current",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:effectManagedRun/init:effectManagedRun",
-          "parameters": [
-            "runtime",
-            "prepared",
-            "request"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:fundedPreparation/init:fundedPreparation",
-          "parameters": [
-            "request",
-            "environment",
-            "originalVerifier",
-            "signal"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:hostInitializationPreparation/init:hostInitializationPreparation",
-          "parameters": [
-            "runtime"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:hostInitializationPreparation/init:hostInitializationPreparation/init:hostInitializationPreparation",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:hostInitializationPreparation/init:hostInitializationPreparation/init:hostInitializationPreparation#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:initializeMockAccount/init:initializeMockAccount",
-          "parameters": [
-            "runtime",
-            "principal",
-            "operatorAuthorization",
-            "models"
-          ],
-          "async": true
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:initializeMockAccount/init:initializeMockAccount/binding/binding",
-          "parameters": [
-            "entry"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:initializeMockAccount/init:initializeMockAccount/binding/binding#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:initializeMockAccount/init:initializeMockAccount/sources/sources",
-          "parameters": [
-            "entry"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:initializeMockAccount/init:initializeMockAccount/sources/sources/sources",
-          "parameters": [
-            "view"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:initializeMockAccount/init:initializeMockAccount/tasks/tasks",
-          "parameters": [
-            "entry"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:initializeMockAccount/init:initializeMockAccount/updates/updates",
-          "parameters": [
-            "entry"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:initializeMockAccount/init:initializeMockAccount/updates/updates/updates",
-          "parameters": [
-            "alias"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:installMockEffects/init:installMockEffects",
-          "parameters": [
-            "runtime",
-            "baseEnvironmentWire",
-            "authorizationFor",
-            "principalId",
-            "effectResources",
-            "sourceBinding"
-          ],
-          "async": true
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:installMockEffects/init:installMockEffects/init:installMockEffects",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:installMockModels/init:installMockModels",
-          "parameters": [
-            "runtime"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:installMockModels/init:installMockModels/init:installMockModels",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:installMockModels/init:installMockModels/init:installMockModels/assertCurrent/assertCurrent",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:installMockSources/init:installMockSources",
-          "parameters": [
-            "runtime",
-            "baseEnvironmentWire",
-            "authorizationFor"
-          ],
-          "async": true
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:installMockSources/init:installMockSources/profile/profile",
-          "parameters": [
-            "path"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:installMockSources/init:installMockSources/profile/profile#2",
-          "parameters": [
-            "prepared",
-            "request"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:installMockSources/init:installMockSources/profile/profile#3",
-          "parameters": [
-            "prepared",
-            "request",
-            "model"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:installProjectEffects/init:installProjectEffects",
-          "parameters": [
-            "runtime",
-            "baseEnvironmentWire",
-            "authorizationFor",
-            "principalId",
-            "effectResources",
-            "sourceBindings"
-          ],
-          "async": true
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:installProjectEffects/init:installProjectEffects/init:installProjectEffects",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:installProjectSources/init:installProjectSources",
-          "parameters": [
-            "runtime",
-            "baseEnvironmentWire",
-            "authorizationFor"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:installProjectSources/init:installProjectSources/acquired/init:prepareManagedContentRun/init:prepareManagedContentRun",
-          "parameters": [
-            "prepared",
-            "request",
-            "graph",
-            "recipe",
-            "constructPlan",
-            "contentPreparation"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:installProjectSources/init:installProjectSources/acquired/init:prepareManagedRun/init:prepareManagedRun",
-          "parameters": [
-            "prepared",
-            "request",
-            "profile",
-            "prepareInvocation"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:installProjectSources/init:installProjectSources/init:installProjectSources",
-          "parameters": [
-            "profile"
-          ],
-          "async": true
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:isOriginalManagedComputePreparationRefusal/init:isOriginalManagedComputePreparationRefusal",
-          "parameters": [
-            "error",
-            "prepared",
-            "request"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:localFilesEffectLimits/init:localFilesEffectLimits",
-          "parameters": [
-            "runtime"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:localFilesLookupExecutionPolicy/init:localFilesLookupExecutionPolicy",
-          "parameters": [
-            "runtime"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:localFilesLookupExecutionPolicy/init:localFilesLookupExecutionPolicy/init:localFilesLookupExecutionPolicy",
-          "parameters": [
-            "source"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:managedComputeCompilationOriginal/init:managedComputeCompilationOriginal",
-          "parameters": [
-            "runtime",
-            "prepared"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:managedComputeInvocationOriginal/init:managedComputeInvocationOriginal",
-          "parameters": [
-            "runtime",
-            "prepared"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:managedComputePublicationOriginal/init:managedComputePublicationOriginal",
-          "parameters": [
-            "runtime",
-            "prepared"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:managedComputePublicationPreparation/init:managedComputePublicationPreparation",
-          "parameters": [
-            "runtime",
-            "prepared"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:managedComputeReservePublication/init:managedComputeReservePublication",
-          "parameters": [
-            "runtime",
-            "prepared"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:managedComputeUsageReader/init:managedComputeUsageReader",
-          "parameters": [
-            "ref"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:managedComputeUsageReader/init:managedComputeUsageReader/init:managedComputeUsageReader",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:managesInstalledSources/init:managesInstalledSources",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:modelPublicationCapacity/init:modelPublicationCapacity",
-          "parameters": [
-            "prepared"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:openRequestJournal/init:openRequestJournal",
-          "parameters": [
-            "directory",
-            "options"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:openResultPublicationStore/init:openResultPublicationStore",
-          "parameters": [
-            "options",
-            "control"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:prepareEffectCaptureRecovery/init:prepareEffectCaptureRecovery",
-          "parameters": [
-            "runtime",
-            "request",
-            "definition",
-            "limits",
-            "managed",
-            "originalCurrent",
-            "retain"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:prepareEffectCaptureRecovery/init:prepareEffectCaptureRecovery/current/current",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:prepareEffectCaptureRecovery/init:prepareEffectCaptureRecovery/init:retain/init:retain",
-          "parameters": [
-            "view"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:prepareHostJournal/init:prepareHostJournal",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:prepareHostJournal/init:prepareHostJournal/init:prepareHostJournal",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:prepareManagedCompute/init:prepareManagedCompute",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:prepareManagedCompute/init:prepareManagedCompute/init:prepareManagedCompute",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:prepareManagedComputeRun/init:prepareManagedComputeRun",
-          "parameters": [
-            "runtime",
-            "prepared",
-            "request",
-            "sourceProfile",
-            "prepareInvocation"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:prepareManagedComputeRun/init:prepareManagedComputeRun/constructInvocation/constructInvocation",
-          "parameters": [
-            "artifact"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:prepareManagedComputeRun/init:prepareManagedComputeRun/funded/funded",
-          "parameters": [
-            "invocation"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:prepareManagedComputeRun/init:prepareManagedComputeRun/init:prepareManagedComputeRun",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:prepareManagedComputeRun/init:prepareManagedComputeRun/init:prepareManagedComputeRun#2",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:prepareManagedContentCompilation/init:prepareManagedContentCompilation",
-          "parameters": [
-            "runtime",
-            "prepared",
-            "graph"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:prepareManagedContentCompilation/init:prepareManagedContentCompilation/init:prepareManagedContentCompilation",
-          "parameters": [
-            "parent",
-            "input",
-            "originalGraph",
-            "contracts"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:prepareManagedContentGraph/init:prepareManagedContentGraph",
-          "parameters": [
-            "runtime",
-            "prepared",
-            "options",
-            "intermediate"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:prepareManagedContentGraph/init:prepareManagedContentGraph/init:prepareManagedContentGraph",
-          "parameters": [
-            "parent",
-            "input",
-            "contracts"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:prepareManagedEffectPlanRun/init:prepareManagedEffectPlanRun",
-          "parameters": [
-            "runtime",
-            "facts",
-            "selection",
-            "inputs",
-            "modelSelection"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:prepareManagedEffectPlanRun/init:prepareManagedEffectPlanRun/current/current",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:prepareManagedKeyedContentRun/init:prepareManagedKeyedContentRun",
-          "parameters": [
-            "runtime",
-            "prepared",
-            "request",
-            "graph",
-            "recipe",
-            "constructPlan",
-            "contentPreparation"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:prepareManagedKeyedContentRun/init:prepareManagedKeyedContentRun/adopted/adopted",
-          "parameters": [
-            "parent",
-            "input"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:prepareManagedKeyedContentRun/init:prepareManagedKeyedContentRun/adopted/adopted#2",
-          "parameters": [
-            "parent",
-            "input",
-            "selected",
-            "originalGraph"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:prepareManagedKeyedContentRun/init:prepareManagedKeyedContentRun/init:prepareManagedKeyedContentRun",
-          "parameters": [
-            "method"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:prepareManagedModelBinding/init:prepareManagedModelBinding",
-          "parameters": [
-            "runtime",
-            "prepared",
-            "providerId",
-            "installation",
-            "contract",
-            "configuration"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:prepareManagedModelCompilation/init:prepareManagedModelCompilation",
-          "parameters": [
-            "runtime",
-            "prepared",
-            "graph"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:prepareManagedModelGraph/init:prepareManagedModelGraph",
-          "parameters": [
-            "runtime",
-            "prepared",
-            "occurrence",
-            "execution"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:prepareManagedModelMaterials/init:prepareManagedModelMaterials",
-          "parameters": [
-            "runtime",
-            "prepared",
-            "count",
-            "wireAt",
-            "containers"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:prepareManagedModelRun/init:prepareManagedModelRun",
-          "parameters": [
-            "runtime",
-            "prepared",
-            "request",
-            "model"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:prepareManagedModelRun/init:prepareManagedModelRun/adopted/adopted",
-          "parameters": [
-            "parent",
-            "input",
-            "compilation"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:prepareManagedModelRun/init:prepareManagedModelRun/init:prepareManagedModelRun",
-          "parameters": [
-            "method"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun",
-          "parameters": [
-            "runtime",
-            "prepared",
-            "request",
-            "plan",
-            "limits",
-            "workspace",
-            "contentPreparation"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun/adopted/adopted",
-          "parameters": [
-            "parent",
-            "input"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun",
-          "parameters": [
-            "method"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:prepareManagedSourceRun/init:prepareManagedSourceRun",
-          "parameters": [
-            "runtime",
-            "prepared",
-            "request",
-            "sourceProfile",
-            "prepareInvocation"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:prepareResultPublication/init:prepareResultPublication",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:prepareResultPublication/init:prepareResultPublication/init:prepareResultPublication",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:prepareStandardAccount/init:prepareStandardAccount",
-          "parameters": [
-            "principal",
-            "operatorAuthorization",
-            "rootCreation"
-          ],
-          "async": true
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:publicationOwnership/init:publicationOwnership",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:readAsset/init:readAsset",
-          "parameters": [
-            "path"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:readEnvironmentSource/init:readEnvironmentSource",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:readSequenceContracts/init:readSequenceContracts",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:requestPreparation/init:requestPreparation",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:retainHostJournalPreparation/init:retainHostJournalPreparation",
-          "parameters": [
-            "root",
-            "principalId",
-            "journalDirectory"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:retainHostJournalPreparation/init:retainHostJournalPreparation/view/init:assertCurrent/init:assertCurrent",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:retainManagedContentPreparation/init:retainManagedContentPreparation",
-          "parameters": [
-            "runtime",
-            "prepared",
-            "contentPreparation"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:retainReferenceRetirement/init:retainReferenceRetirement",
-          "parameters": [
-            "original"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:retainUndispatchedRetirement/init:retainUndispatchedRetirement",
-          "parameters": [
-            "original",
-            "initial",
-            "releaseModelSelection"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:retireManagedComputeRun/init:retireManagedComputeRun",
-          "parameters": [
-            "prepared"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:sourceInitializationServices/init:sourceInitializationServices",
-          "parameters": [
-            "runtime",
-            "root",
-            "principalId",
-            "hostCurrent"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:sourceInitializationServices/init:sourceInitializationServices/init:assertCurrent/init:assertCurrent",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:sourcePreparation/init:sourcePreparation",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/preparation/init:submittedIntentOriginal/init:submittedIntentOriginal",
-          "parameters": [
-            "request"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectEmbeddedLocal/releaseUnadopted",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "connectEmbeddedLocal/retirePreparationReferences",
-          "parameters": [],
           "async": false
         },
         {
@@ -7389,6 +6514,50 @@
           "parameters": [
             "originals"
           ],
+          "async": false
+        },
+        {
+          "name": "installedRemoteHttpTransport",
+          "parameters": [
+            "host",
+            "authenticate",
+            "loopbackHttp",
+            "shutdown",
+            "prepareRequest"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedRemoteHttpTransport/init:close/init:close",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "installedRemoteHttpTransport/init:handler/init:handler",
+          "parameters": [
+            "request",
+            "response"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedRemoteHttpTransport/init:handler/init:handler/handled/handled",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installedRemoteHttpTransport/init:handler/init:handler/init:handler",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installedRemoteHttpTransport/init:handler/init:handler/init:handler#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installedRemoteHttpTransport/installedRemoteHttpTransport",
+          "parameters": [],
           "async": false
         },
         {
@@ -9438,66 +8607,890 @@
         {
           "name": "openInstalledRemoteHttpHost",
           "parameters": [
-            "directory",
-            "authenticate",
-            "beforeDispatch",
-            "authorization",
-            "workspaceId",
-            "connectorTable",
-            "sourceProfilePath",
-            "sourceProfilePaths",
-            "sourceNamespace",
-            "sourceSelectorNamespace",
-            "loopbackHttp",
-            "resolveSourceSecret",
-            "effectProfilePath",
-            "effectProfilePaths",
-            "resolveEffectSecret",
-            "effectInstallation",
-            "modelInstallation",
-            "registerModelProviders",
-            "calendarArtifact",
-            "resultDataPolicy",
-            "inferEvidence",
-            "retainedRelationOutput",
-            "hostCapacityPolicy",
-            "hostLookupExecutionPolicy",
-            "verifyRequestValuePolicy",
-            "valuesMaxRows",
-            "observation"
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost",
+          "parameters": [
+            "options",
+            "initialEntry"
           ],
           "async": true
         },
         {
-          "name": "openInstalledRemoteHttpHost/init:close/init:close",
+          "name": "openPreparedInstalledHost/assertSourceInitializationSelection",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/client/client",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/initialControl/init:close/init:close",
           "parameters": [],
           "async": true
         },
         {
-          "name": "openInstalledRemoteHttpHost/init:handler/init:handler",
+          "name": "openPreparedInstalledHost/openPreparedInstalledHost",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/openPreparedInstalledHost#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/openPreparedInstalledHost#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:admitEffectResultPublicationRun/init:admitEffectResultPublicationRun",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:admitResultPublicationRun/init:admitResultPublicationRun",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:admitRootFormat/init:admitRootFormat",
+          "parameters": [
+            "root"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:assertContentRunCurrent/init:assertContentRunCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:assertResultPublicationCurrent/init:assertResultPublicationCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:beforeResultPublicationOperation/init:beforeResultPublicationOperation",
+          "parameters": [
+            "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:bindManagedComputeRunObservation/init:bindManagedComputeRunObservation",
+          "parameters": [
+            "prepared",
+            "ref"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:bindManagedSources/init:bindManagedSources",
+          "parameters": [
+            "runtime",
+            "profile"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:bindManagedSources/init:bindManagedSources/init:bindManagedSources",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:bindManagedSources/init:bindManagedSources/selected/selected",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:bindSourceRequest/init:bindSourceRequest",
+          "parameters": [
+            "parent",
+            "derived"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:borrowManagedPreparation/init:borrowManagedPreparation",
+          "parameters": [
+            "prepared",
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:borrowSourceInitializationMaterial/init:borrowSourceInitializationMaterial",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:canRetireManagedPreparation/init:canRetireManagedPreparation",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:effectManagedPlanRun/init:effectManagedPlanRun",
+          "parameters": [
+            "runtime",
+            "prepared",
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:effectManagedPlanRun/init:effectManagedPlanRun/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:effectManagedRun/init:effectManagedRun",
+          "parameters": [
+            "runtime",
+            "prepared",
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:fundedPreparation/init:fundedPreparation",
           "parameters": [
             "request",
-            "response"
+            "environment",
+            "originalVerifier",
+            "signal"
           ],
           "async": false
         },
         {
-          "name": "openInstalledRemoteHttpHost/init:handler/init:handler/handled/handled",
+          "name": "openPreparedInstalledHost/preparation/init:hostInitializationPreparation/init:hostInitializationPreparation",
+          "parameters": [
+            "runtime"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:hostInitializationPreparation/init:hostInitializationPreparation/init:hostInitializationPreparation",
           "parameters": [],
           "async": false
         },
         {
-          "name": "openInstalledRemoteHttpHost/init:handler/init:handler/init:handler",
+          "name": "openPreparedInstalledHost/preparation/init:hostInitializationPreparation/init:hostInitializationPreparation/init:hostInitializationPreparation#2",
           "parameters": [],
           "async": false
         },
         {
-          "name": "openInstalledRemoteHttpHost/init:handler/init:handler/init:handler#2",
+          "name": "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount",
+          "parameters": [
+            "runtime",
+            "principal",
+            "operatorAuthorization",
+            "models"
+          ],
+          "async": true
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount/binding/binding",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount/binding/binding#2",
           "parameters": [],
           "async": false
         },
         {
-          "name": "openInstalledRemoteHttpHost/openInstalledRemoteHttpHost",
+          "name": "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount/sources/sources",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount/sources/sources/sources",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount/tasks/tasks",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount/updates/updates",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount/updates/updates/updates",
+          "parameters": [
+            "alias"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:installMockEffects/init:installMockEffects",
+          "parameters": [
+            "runtime",
+            "baseEnvironmentWire",
+            "authorizationFor",
+            "principalId",
+            "effectResources",
+            "sourceBinding"
+          ],
+          "async": true
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:installMockEffects/init:installMockEffects/init:installMockEffects",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:installMockModels/init:installMockModels",
+          "parameters": [
+            "runtime"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:installMockModels/init:installMockModels/init:installMockModels",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:installMockModels/init:installMockModels/init:installMockModels/assertCurrent/assertCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:installMockSources/init:installMockSources",
+          "parameters": [
+            "runtime",
+            "baseEnvironmentWire",
+            "authorizationFor"
+          ],
+          "async": true
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:installMockSources/init:installMockSources/profile/profile",
+          "parameters": [
+            "path"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:installMockSources/init:installMockSources/profile/profile#2",
+          "parameters": [
+            "prepared",
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:installMockSources/init:installMockSources/profile/profile#3",
+          "parameters": [
+            "prepared",
+            "request",
+            "model"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:installProjectEffects/init:installProjectEffects",
+          "parameters": [
+            "runtime",
+            "baseEnvironmentWire",
+            "authorizationFor",
+            "principalId",
+            "effectResources",
+            "sourceBindings"
+          ],
+          "async": true
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:installProjectEffects/init:installProjectEffects/init:installProjectEffects",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:installProjectSources/init:installProjectSources",
+          "parameters": [
+            "runtime",
+            "baseEnvironmentWire",
+            "authorizationFor"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:installProjectSources/init:installProjectSources/acquired/init:prepareManagedContentRun/init:prepareManagedContentRun",
+          "parameters": [
+            "prepared",
+            "request",
+            "graph",
+            "recipe",
+            "constructPlan",
+            "contentPreparation"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:installProjectSources/init:installProjectSources/acquired/init:prepareManagedRun/init:prepareManagedRun",
+          "parameters": [
+            "prepared",
+            "request",
+            "profile",
+            "prepareInvocation"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:installProjectSources/init:installProjectSources/init:installProjectSources",
+          "parameters": [
+            "profile"
+          ],
+          "async": true
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:isOriginalManagedComputePreparationRefusal/init:isOriginalManagedComputePreparationRefusal",
+          "parameters": [
+            "error",
+            "prepared",
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:localFilesEffectLimits/init:localFilesEffectLimits",
+          "parameters": [
+            "runtime"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:localFilesLookupExecutionPolicy/init:localFilesLookupExecutionPolicy",
+          "parameters": [
+            "runtime"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:localFilesLookupExecutionPolicy/init:localFilesLookupExecutionPolicy/init:localFilesLookupExecutionPolicy",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:managedComputeCompilationOriginal/init:managedComputeCompilationOriginal",
+          "parameters": [
+            "runtime",
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:managedComputeInvocationOriginal/init:managedComputeInvocationOriginal",
+          "parameters": [
+            "runtime",
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:managedComputePublicationOriginal/init:managedComputePublicationOriginal",
+          "parameters": [
+            "runtime",
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:managedComputePublicationPreparation/init:managedComputePublicationPreparation",
+          "parameters": [
+            "runtime",
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:managedComputeReservePublication/init:managedComputeReservePublication",
+          "parameters": [
+            "runtime",
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:managedComputeUsageReader/init:managedComputeUsageReader",
+          "parameters": [
+            "ref"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:managedComputeUsageReader/init:managedComputeUsageReader/init:managedComputeUsageReader",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:managesInstalledSources/init:managesInstalledSources",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:modelPublicationCapacity/init:modelPublicationCapacity",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:openRequestJournal/init:openRequestJournal",
+          "parameters": [
+            "directory",
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:openResultPublicationStore/init:openResultPublicationStore",
+          "parameters": [
+            "options",
+            "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:prepareEffectCaptureRecovery/init:prepareEffectCaptureRecovery",
+          "parameters": [
+            "runtime",
+            "request",
+            "definition",
+            "limits",
+            "managed",
+            "originalCurrent",
+            "retain"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:prepareEffectCaptureRecovery/init:prepareEffectCaptureRecovery/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:prepareEffectCaptureRecovery/init:prepareEffectCaptureRecovery/init:retain/init:retain",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:prepareHostJournal/init:prepareHostJournal",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:prepareHostJournal/init:prepareHostJournal/init:prepareHostJournal",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:prepareManagedCompute/init:prepareManagedCompute",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:prepareManagedCompute/init:prepareManagedCompute/init:prepareManagedCompute",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:prepareManagedComputeRun/init:prepareManagedComputeRun",
+          "parameters": [
+            "runtime",
+            "prepared",
+            "request",
+            "sourceProfile",
+            "prepareInvocation"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:prepareManagedComputeRun/init:prepareManagedComputeRun/constructInvocation/constructInvocation",
+          "parameters": [
+            "artifact"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:prepareManagedComputeRun/init:prepareManagedComputeRun/funded/funded",
+          "parameters": [
+            "invocation"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:prepareManagedComputeRun/init:prepareManagedComputeRun/init:prepareManagedComputeRun",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:prepareManagedComputeRun/init:prepareManagedComputeRun/init:prepareManagedComputeRun#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:prepareManagedContentCompilation/init:prepareManagedContentCompilation",
+          "parameters": [
+            "runtime",
+            "prepared",
+            "graph"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:prepareManagedContentCompilation/init:prepareManagedContentCompilation/init:prepareManagedContentCompilation",
+          "parameters": [
+            "parent",
+            "input",
+            "originalGraph",
+            "contracts"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:prepareManagedContentGraph/init:prepareManagedContentGraph",
+          "parameters": [
+            "runtime",
+            "prepared",
+            "options",
+            "intermediate"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:prepareManagedContentGraph/init:prepareManagedContentGraph/init:prepareManagedContentGraph",
+          "parameters": [
+            "parent",
+            "input",
+            "contracts"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:prepareManagedEffectPlanRun/init:prepareManagedEffectPlanRun",
+          "parameters": [
+            "runtime",
+            "facts",
+            "selection",
+            "inputs",
+            "modelSelection"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:prepareManagedEffectPlanRun/init:prepareManagedEffectPlanRun/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:prepareManagedKeyedContentRun/init:prepareManagedKeyedContentRun",
+          "parameters": [
+            "runtime",
+            "prepared",
+            "request",
+            "graph",
+            "recipe",
+            "constructPlan",
+            "contentPreparation"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:prepareManagedKeyedContentRun/init:prepareManagedKeyedContentRun/adopted/adopted",
+          "parameters": [
+            "parent",
+            "input"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:prepareManagedKeyedContentRun/init:prepareManagedKeyedContentRun/adopted/adopted#2",
+          "parameters": [
+            "parent",
+            "input",
+            "selected",
+            "originalGraph"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:prepareManagedKeyedContentRun/init:prepareManagedKeyedContentRun/init:prepareManagedKeyedContentRun",
+          "parameters": [
+            "method"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:prepareManagedModelBinding/init:prepareManagedModelBinding",
+          "parameters": [
+            "runtime",
+            "prepared",
+            "providerId",
+            "installation",
+            "contract",
+            "configuration"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:prepareManagedModelCompilation/init:prepareManagedModelCompilation",
+          "parameters": [
+            "runtime",
+            "prepared",
+            "graph"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:prepareManagedModelGraph/init:prepareManagedModelGraph",
+          "parameters": [
+            "runtime",
+            "prepared",
+            "occurrence",
+            "execution"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:prepareManagedModelMaterials/init:prepareManagedModelMaterials",
+          "parameters": [
+            "runtime",
+            "prepared",
+            "count",
+            "wireAt",
+            "containers"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:prepareManagedModelRun/init:prepareManagedModelRun",
+          "parameters": [
+            "runtime",
+            "prepared",
+            "request",
+            "model"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:prepareManagedModelRun/init:prepareManagedModelRun/adopted/adopted",
+          "parameters": [
+            "parent",
+            "input",
+            "compilation"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:prepareManagedModelRun/init:prepareManagedModelRun/init:prepareManagedModelRun",
+          "parameters": [
+            "method"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun",
+          "parameters": [
+            "runtime",
+            "prepared",
+            "request",
+            "plan",
+            "limits",
+            "workspace",
+            "contentPreparation"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun/adopted/adopted",
+          "parameters": [
+            "parent",
+            "input"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun",
+          "parameters": [
+            "method"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:prepareManagedSourceRun/init:prepareManagedSourceRun",
+          "parameters": [
+            "runtime",
+            "prepared",
+            "request",
+            "sourceProfile",
+            "prepareInvocation"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:prepareResultPublication/init:prepareResultPublication",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:prepareResultPublication/init:prepareResultPublication/init:prepareResultPublication",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:prepareStandardAccount/init:prepareStandardAccount",
+          "parameters": [
+            "principal",
+            "operatorAuthorization",
+            "rootCreation"
+          ],
+          "async": true
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:publicationOwnership/init:publicationOwnership",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:readAsset/init:readAsset",
+          "parameters": [
+            "path"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:readEnvironmentSource/init:readEnvironmentSource",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:readSequenceContracts/init:readSequenceContracts",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:requestPreparation/init:requestPreparation",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:retainHostJournalPreparation/init:retainHostJournalPreparation",
+          "parameters": [
+            "root",
+            "principalId",
+            "journalDirectory"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:retainHostJournalPreparation/init:retainHostJournalPreparation/view/init:assertCurrent/init:assertCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:retainManagedContentPreparation/init:retainManagedContentPreparation",
+          "parameters": [
+            "runtime",
+            "prepared",
+            "contentPreparation"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:retainReferenceRetirement/init:retainReferenceRetirement",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:retainUndispatchedRetirement/init:retainUndispatchedRetirement",
+          "parameters": [
+            "original",
+            "initial",
+            "releaseModelSelection"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:retireManagedComputeRun/init:retireManagedComputeRun",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:sourceInitializationServices/init:sourceInitializationServices",
+          "parameters": [
+            "runtime",
+            "root",
+            "principalId",
+            "hostCurrent"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:sourceInitializationServices/init:sourceInitializationServices/init:assertCurrent/init:assertCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:sourcePreparation/init:sourcePreparation",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:submittedIntentOriginal/init:submittedIntentOriginal",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/releaseUnadopted",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "openPreparedInstalledHost/retirePreparationReferences",
           "parameters": [],
           "async": false
         },
@@ -9971,11 +9964,11 @@
             "cid/cid",
             "clientOperationError/clientOperationError",
             "connectEmbeddedLocal",
-            "connectEmbeddedLocal/client/client",
-            "connectEmbeddedLocal/preparation/init:hostInitializationPreparation/init:hostInitializationPreparation",
-            "connectEmbeddedLocal/preparation/init:hostInitializationPreparation/init:hostInitializationPreparation/init:hostInitializationPreparation",
-            "connectEmbeddedLocal/preparation/init:hostInitializationPreparation/init:hostInitializationPreparation/init:hostInitializationPreparation#2",
-            "connectEmbeddedLocal/preparation/init:installMockSources/init:installMockSources/profile/profile#3",
+            "openPreparedInstalledHost/client/client",
+            "openPreparedInstalledHost/preparation/init:hostInitializationPreparation/init:hostInitializationPreparation",
+            "openPreparedInstalledHost/preparation/init:hostInitializationPreparation/init:hostInitializationPreparation/init:hostInitializationPreparation",
+            "openPreparedInstalledHost/preparation/init:hostInitializationPreparation/init:hostInitializationPreparation/init:hostInitializationPreparation#2",
+            "openPreparedInstalledHost/preparation/init:installMockSources/init:installMockSources/profile/profile#3",
             "embeddedInstallationIdentity",
             "embeddedInstallationIdentity/identities/identities",
             "embeddedInstallationIdentity/identity/identity",
@@ -10203,12 +10196,11 @@
             "openInstalledHost/runtimeTarget/runtimeTarget",
             "openInstalledHost/selectedInstalledEffect",
             "openInstalledRemoteHttpHost",
-            "openInstalledRemoteHttpHost/init:close/init:close",
-            "openInstalledRemoteHttpHost/init:handler/init:handler",
-            "openInstalledRemoteHttpHost/init:handler/init:handler/handled/handled",
-            "openInstalledRemoteHttpHost/init:handler/init:handler/init:handler",
-            "openInstalledRemoteHttpHost/init:handler/init:handler/init:handler#2",
-            "openInstalledRemoteHttpHost/openInstalledRemoteHttpHost",
+            "installedRemoteHttpTransport/init:close/init:close",
+            "installedRemoteHttpTransport/init:handler/init:handler",
+            "installedRemoteHttpTransport/init:handler/init:handler/handled/handled",
+            "installedRemoteHttpTransport/init:handler/init:handler/init:handler",
+            "installedRemoteHttpTransport/init:handler/init:handler/init:handler#2",
             "plus/plus",
             "publicKeyCid/publicKeyCid",
             "publishInstalledEffect",
@@ -10216,7 +10208,13 @@
             "sameEmbeddedInstallation",
             "sameEmbeddedInstallation/sameEmbeddedInstallation",
             "validateSourceNamespace",
-            "validateValuesMaxRows"
+            "validateValuesMaxRows",
+            "installedRemoteHttpTransport",
+            "installedRemoteHttpTransport/installedRemoteHttpTransport",
+            "openPreparedInstalledHost",
+            "openPreparedInstalledHost/openPreparedInstalledHost",
+            "openPreparedInstalledHost/openPreparedInstalledHost#2",
+            "openPreparedInstalledHost/openPreparedInstalledHost#3"
           ],
           "exports": [
             "connectEmbeddedLocal",
@@ -11191,32 +11189,31 @@
           "operations": [
             "assertInitialControlHostPreparation",
             "assertSourceManagedHostPreparation",
-            "connectEmbeddedLocal/connectEmbeddedLocal",
-            "connectEmbeddedLocal/initialControl/init:close/init:close",
-            "connectEmbeddedLocal/preparation/init:admitRootFormat/init:admitRootFormat",
-            "connectEmbeddedLocal/preparation/init:bindSourceRequest/init:bindSourceRequest",
-            "connectEmbeddedLocal/preparation/init:initializeMockAccount/init:initializeMockAccount",
-            "connectEmbeddedLocal/preparation/init:initializeMockAccount/init:initializeMockAccount/binding/binding",
-            "connectEmbeddedLocal/preparation/init:initializeMockAccount/init:initializeMockAccount/binding/binding#2",
-            "connectEmbeddedLocal/preparation/init:initializeMockAccount/init:initializeMockAccount/sources/sources",
-            "connectEmbeddedLocal/preparation/init:initializeMockAccount/init:initializeMockAccount/sources/sources/sources",
-            "connectEmbeddedLocal/preparation/init:initializeMockAccount/init:initializeMockAccount/tasks/tasks",
-            "connectEmbeddedLocal/preparation/init:initializeMockAccount/init:initializeMockAccount/updates/updates",
-            "connectEmbeddedLocal/preparation/init:initializeMockAccount/init:initializeMockAccount/updates/updates/updates",
-            "connectEmbeddedLocal/preparation/init:installMockModels/init:installMockModels",
-            "connectEmbeddedLocal/preparation/init:installMockModels/init:installMockModels/init:installMockModels",
-            "connectEmbeddedLocal/preparation/init:installMockModels/init:installMockModels/init:installMockModels/assertCurrent/assertCurrent",
-            "connectEmbeddedLocal/preparation/init:installMockSources/init:installMockSources",
-            "connectEmbeddedLocal/preparation/init:openRequestJournal/init:openRequestJournal",
-            "connectEmbeddedLocal/preparation/init:prepareHostJournal/init:prepareHostJournal",
-            "connectEmbeddedLocal/preparation/init:prepareHostJournal/init:prepareHostJournal/init:prepareHostJournal",
-            "connectEmbeddedLocal/preparation/init:publicationOwnership/init:publicationOwnership",
-            "connectEmbeddedLocal/preparation/init:retainHostJournalPreparation/init:retainHostJournalPreparation",
-            "connectEmbeddedLocal/preparation/init:retainHostJournalPreparation/init:retainHostJournalPreparation/view/init:assertCurrent/init:assertCurrent",
-            "connectEmbeddedLocal/preparation/init:retainReferenceRetirement/init:retainReferenceRetirement",
-            "connectEmbeddedLocal/preparation/init:sourcePreparation/init:sourcePreparation",
-            "connectEmbeddedLocal/releaseUnadopted",
-            "connectEmbeddedLocal/retirePreparationReferences",
+            "openPreparedInstalledHost/initialControl/init:close/init:close",
+            "openPreparedInstalledHost/preparation/init:admitRootFormat/init:admitRootFormat",
+            "openPreparedInstalledHost/preparation/init:bindSourceRequest/init:bindSourceRequest",
+            "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount",
+            "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount/binding/binding",
+            "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount/binding/binding#2",
+            "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount/sources/sources",
+            "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount/sources/sources/sources",
+            "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount/tasks/tasks",
+            "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount/updates/updates",
+            "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount/updates/updates/updates",
+            "openPreparedInstalledHost/preparation/init:installMockModels/init:installMockModels",
+            "openPreparedInstalledHost/preparation/init:installMockModels/init:installMockModels/init:installMockModels",
+            "openPreparedInstalledHost/preparation/init:installMockModels/init:installMockModels/init:installMockModels/assertCurrent/assertCurrent",
+            "openPreparedInstalledHost/preparation/init:installMockSources/init:installMockSources",
+            "openPreparedInstalledHost/preparation/init:openRequestJournal/init:openRequestJournal",
+            "openPreparedInstalledHost/preparation/init:prepareHostJournal/init:prepareHostJournal",
+            "openPreparedInstalledHost/preparation/init:prepareHostJournal/init:prepareHostJournal/init:prepareHostJournal",
+            "openPreparedInstalledHost/preparation/init:publicationOwnership/init:publicationOwnership",
+            "openPreparedInstalledHost/preparation/init:retainHostJournalPreparation/init:retainHostJournalPreparation",
+            "openPreparedInstalledHost/preparation/init:retainHostJournalPreparation/init:retainHostJournalPreparation/view/init:assertCurrent/init:assertCurrent",
+            "openPreparedInstalledHost/preparation/init:retainReferenceRetirement/init:retainReferenceRetirement",
+            "openPreparedInstalledHost/preparation/init:sourcePreparation/init:sourcePreparation",
+            "openPreparedInstalledHost/releaseUnadopted",
+            "openPreparedInstalledHost/retirePreparationReferences",
             "openInstalledHost/closeHostPublicationOwnership",
             "openInstalledHost/closeHostRequestJournal",
             "openInstalledHost/hostJournalExclusion",
@@ -11546,11 +11543,10 @@
         },
         {
           "operations": [
-            "connectEmbeddedLocal/assertSourceInitializationSelection",
-            "connectEmbeddedLocal/connectEmbeddedLocal#3",
-            "connectEmbeddedLocal/preparation/init:borrowSourceInitializationMaterial/init:borrowSourceInitializationMaterial",
-            "connectEmbeddedLocal/preparation/init:sourceInitializationServices/init:sourceInitializationServices",
-            "connectEmbeddedLocal/preparation/init:sourceInitializationServices/init:sourceInitializationServices/init:assertCurrent/init:assertCurrent"
+            "openPreparedInstalledHost/assertSourceInitializationSelection",
+            "openPreparedInstalledHost/preparation/init:borrowSourceInitializationMaterial/init:borrowSourceInitializationMaterial",
+            "openPreparedInstalledHost/preparation/init:sourceInitializationServices/init:sourceInitializationServices",
+            "openPreparedInstalledHost/preparation/init:sourceInitializationServices/init:sourceInitializationServices/init:assertCurrent/init:assertCurrent"
           ],
           "exports": [],
           "attributes": {
@@ -11622,8 +11618,7 @@
         },
         {
           "operations": [
-            "connectEmbeddedLocal/connectEmbeddedLocal#2",
-            "connectEmbeddedLocal/preparation/init:installProjectSources/init:installProjectSources",
+            "openPreparedInstalledHost/preparation/init:installProjectSources/init:installProjectSources",
             "localProjectFilesystem",
             "openInstalledHost/openInstalledHost#10",
             "readInstalledProjectSourcePreparation",
@@ -11726,17 +11721,17 @@
         },
         {
           "operations": [
-            "connectEmbeddedLocal/preparation/init:admitEffectResultPublicationRun/init:admitEffectResultPublicationRun",
-            "connectEmbeddedLocal/preparation/init:installMockEffects/init:installMockEffects",
-            "connectEmbeddedLocal/preparation/init:installMockEffects/init:installMockEffects/init:installMockEffects",
-            "connectEmbeddedLocal/preparation/init:prepareEffectCaptureRecovery/init:prepareEffectCaptureRecovery",
-            "connectEmbeddedLocal/preparation/init:prepareEffectCaptureRecovery/init:prepareEffectCaptureRecovery/current/current",
-            "connectEmbeddedLocal/preparation/init:prepareEffectCaptureRecovery/init:prepareEffectCaptureRecovery/init:retain/init:retain",
-            "connectEmbeddedLocal/preparation/init:prepareManagedContentGraph/init:prepareManagedContentGraph",
-            "connectEmbeddedLocal/preparation/init:prepareManagedContentGraph/init:prepareManagedContentGraph/init:prepareManagedContentGraph",
-            "connectEmbeddedLocal/preparation/init:prepareManagedModelBinding/init:prepareManagedModelBinding",
-            "connectEmbeddedLocal/preparation/init:prepareManagedModelGraph/init:prepareManagedModelGraph",
-            "connectEmbeddedLocal/preparation/init:prepareManagedModelMaterials/init:prepareManagedModelMaterials",
+            "openPreparedInstalledHost/preparation/init:admitEffectResultPublicationRun/init:admitEffectResultPublicationRun",
+            "openPreparedInstalledHost/preparation/init:installMockEffects/init:installMockEffects",
+            "openPreparedInstalledHost/preparation/init:installMockEffects/init:installMockEffects/init:installMockEffects",
+            "openPreparedInstalledHost/preparation/init:prepareEffectCaptureRecovery/init:prepareEffectCaptureRecovery",
+            "openPreparedInstalledHost/preparation/init:prepareEffectCaptureRecovery/init:prepareEffectCaptureRecovery/current/current",
+            "openPreparedInstalledHost/preparation/init:prepareEffectCaptureRecovery/init:prepareEffectCaptureRecovery/init:retain/init:retain",
+            "openPreparedInstalledHost/preparation/init:prepareManagedContentGraph/init:prepareManagedContentGraph",
+            "openPreparedInstalledHost/preparation/init:prepareManagedContentGraph/init:prepareManagedContentGraph/init:prepareManagedContentGraph",
+            "openPreparedInstalledHost/preparation/init:prepareManagedModelBinding/init:prepareManagedModelBinding",
+            "openPreparedInstalledHost/preparation/init:prepareManagedModelGraph/init:prepareManagedModelGraph",
+            "openPreparedInstalledHost/preparation/init:prepareManagedModelMaterials/init:prepareManagedModelMaterials",
             "openInstalledHost/assertMockEffectRunOriginal",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#6",
             "openInstalledHost/mockEffectResources/init:assertCurrent/init:assertCurrent",
@@ -11869,12 +11864,12 @@
         },
         {
           "operations": [
-            "connectEmbeddedLocal/preparation/init:admitResultPublicationRun/init:admitResultPublicationRun",
-            "connectEmbeddedLocal/preparation/init:assertResultPublicationCurrent/init:assertResultPublicationCurrent",
-            "connectEmbeddedLocal/preparation/init:beforeResultPublicationOperation/init:beforeResultPublicationOperation",
-            "connectEmbeddedLocal/preparation/init:openResultPublicationStore/init:openResultPublicationStore",
-            "connectEmbeddedLocal/preparation/init:prepareResultPublication/init:prepareResultPublication",
-            "connectEmbeddedLocal/preparation/init:prepareResultPublication/init:prepareResultPublication/init:prepareResultPublication",
+            "openPreparedInstalledHost/preparation/init:admitResultPublicationRun/init:admitResultPublicationRun",
+            "openPreparedInstalledHost/preparation/init:assertResultPublicationCurrent/init:assertResultPublicationCurrent",
+            "openPreparedInstalledHost/preparation/init:beforeResultPublicationOperation/init:beforeResultPublicationOperation",
+            "openPreparedInstalledHost/preparation/init:openResultPublicationStore/init:openResultPublicationStore",
+            "openPreparedInstalledHost/preparation/init:prepareResultPublication/init:prepareResultPublication",
+            "openPreparedInstalledHost/preparation/init:prepareResultPublication/init:prepareResultPublication/init:prepareResultPublication",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/admitPreparedSubmission/admitPreparedSubmission",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/admitPreparedSubmission/init:isOriginalPreparationRefusal/init:isOriginalPreparationRefusal",
             "readHostResultPublicationPreparation",
@@ -12031,7 +12026,7 @@
         },
         {
           "operations": [
-            "connectEmbeddedLocal/preparation/init:assertContentRunCurrent/init:assertContentRunCurrent"
+            "openPreparedInstalledHost/preparation/init:assertContentRunCurrent/init:assertContentRunCurrent"
           ],
           "exports": [],
           "attributes": {
@@ -12187,9 +12182,9 @@
         },
         {
           "operations": [
-            "connectEmbeddedLocal/preparation/init:bindManagedComputeRunObservation/init:bindManagedComputeRunObservation",
-            "connectEmbeddedLocal/preparation/init:managedComputeUsageReader/init:managedComputeUsageReader",
-            "connectEmbeddedLocal/preparation/init:managedComputeUsageReader/init:managedComputeUsageReader/init:managedComputeUsageReader",
+            "openPreparedInstalledHost/preparation/init:bindManagedComputeRunObservation/init:bindManagedComputeRunObservation",
+            "openPreparedInstalledHost/preparation/init:managedComputeUsageReader/init:managedComputeUsageReader",
+            "openPreparedInstalledHost/preparation/init:managedComputeUsageReader/init:managedComputeUsageReader/init:managedComputeUsageReader",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/ingress/ingress#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/ingress/ingress#3"
           ],
@@ -12303,11 +12298,11 @@
         },
         {
           "operations": [
-            "connectEmbeddedLocal/preparation/init:bindManagedSources/init:bindManagedSources",
-            "connectEmbeddedLocal/preparation/init:bindManagedSources/init:bindManagedSources/init:bindManagedSources",
-            "connectEmbeddedLocal/preparation/init:bindManagedSources/init:bindManagedSources/selected/selected",
-            "connectEmbeddedLocal/preparation/init:managesInstalledSources/init:managesInstalledSources",
-            "connectEmbeddedLocal/preparation/init:prepareManagedSourceRun/init:prepareManagedSourceRun",
+            "openPreparedInstalledHost/preparation/init:bindManagedSources/init:bindManagedSources",
+            "openPreparedInstalledHost/preparation/init:bindManagedSources/init:bindManagedSources/init:bindManagedSources",
+            "openPreparedInstalledHost/preparation/init:bindManagedSources/init:bindManagedSources/selected/selected",
+            "openPreparedInstalledHost/preparation/init:managesInstalledSources/init:managesInstalledSources",
+            "openPreparedInstalledHost/preparation/init:prepareManagedSourceRun/init:prepareManagedSourceRun",
             "readManagedComputeRunRequirements/readManagedComputeRunRequirements#3",
             "readManagedComputeRunRequirements/readManagedComputeRunRequirements#4",
             "readManagedComputeRunRequirements/readManagedComputeRunRequirements#5"
@@ -12390,11 +12385,11 @@
         },
         {
           "operations": [
-            "connectEmbeddedLocal/preparation/init:borrowManagedPreparation/init:borrowManagedPreparation",
-            "connectEmbeddedLocal/preparation/init:fundedPreparation/init:fundedPreparation",
-            "connectEmbeddedLocal/preparation/init:readSequenceContracts/init:readSequenceContracts",
-            "connectEmbeddedLocal/preparation/init:retainUndispatchedRetirement/init:retainUndispatchedRetirement",
-            "connectEmbeddedLocal/preparation/init:submittedIntentOriginal/init:submittedIntentOriginal",
+            "openPreparedInstalledHost/preparation/init:borrowManagedPreparation/init:borrowManagedPreparation",
+            "openPreparedInstalledHost/preparation/init:fundedPreparation/init:fundedPreparation",
+            "openPreparedInstalledHost/preparation/init:readSequenceContracts/init:readSequenceContracts",
+            "openPreparedInstalledHost/preparation/init:retainUndispatchedRetirement/init:retainUndispatchedRetirement",
+            "openPreparedInstalledHost/preparation/init:submittedIntentOriginal/init:submittedIntentOriginal",
             "managedPreparationRetirementContinuation",
             "managedPreparationRetirementContinuation/managedPreparationRetirementContinuation",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/localPreparationCustody/localPreparationCustody#3",
@@ -12598,9 +12593,9 @@
         },
         {
           "operations": [
-            "connectEmbeddedLocal/preparation/init:canRetireManagedPreparation/init:canRetireManagedPreparation",
-            "connectEmbeddedLocal/preparation/init:managedComputePublicationOriginal/init:managedComputePublicationOriginal",
-            "connectEmbeddedLocal/preparation/init:retireManagedComputeRun/init:retireManagedComputeRun",
+            "openPreparedInstalledHost/preparation/init:canRetireManagedPreparation/init:canRetireManagedPreparation",
+            "openPreparedInstalledHost/preparation/init:managedComputePublicationOriginal/init:managedComputePublicationOriginal",
+            "openPreparedInstalledHost/preparation/init:retireManagedComputeRun/init:retireManagedComputeRun",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/localPreparationCustody/localPreparationCustody",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/localPreparationCustody/localPreparationCustody#2"
           ],
@@ -12870,7 +12865,7 @@
         },
         {
           "operations": [
-            "connectEmbeddedLocal/preparation/init:effectManagedPlanRun/init:effectManagedPlanRun"
+            "openPreparedInstalledHost/preparation/init:effectManagedPlanRun/init:effectManagedPlanRun"
           ],
           "exports": [],
           "attributes": {
@@ -12978,10 +12973,10 @@
         },
         {
           "operations": [
-            "connectEmbeddedLocal/preparation/init:effectManagedPlanRun/init:effectManagedPlanRun/current/current",
-            "connectEmbeddedLocal/preparation/init:effectManagedRun/init:effectManagedRun",
-            "connectEmbeddedLocal/preparation/init:prepareManagedEffectPlanRun/init:prepareManagedEffectPlanRun",
-            "connectEmbeddedLocal/preparation/init:prepareManagedEffectPlanRun/init:prepareManagedEffectPlanRun/current/current",
+            "openPreparedInstalledHost/preparation/init:effectManagedPlanRun/init:effectManagedPlanRun/current/current",
+            "openPreparedInstalledHost/preparation/init:effectManagedRun/init:effectManagedRun",
+            "openPreparedInstalledHost/preparation/init:prepareManagedEffectPlanRun/init:prepareManagedEffectPlanRun",
+            "openPreparedInstalledHost/preparation/init:prepareManagedEffectPlanRun/init:prepareManagedEffectPlanRun/current/current",
             "readSourceManagedEffectRunRequirements/readSourceManagedEffectRunRequirements",
             "readSourceManagedEffectRunRequirements/readSourceManagedEffectRunRequirements#2"
           ],
@@ -13091,9 +13086,9 @@
         },
         {
           "operations": [
-            "connectEmbeddedLocal/preparation/init:installProjectEffects/init:installProjectEffects",
-            "connectEmbeddedLocal/preparation/init:installProjectEffects/init:installProjectEffects/init:installProjectEffects",
-            "connectEmbeddedLocal/preparation/init:localFilesEffectLimits/init:localFilesEffectLimits",
+            "openPreparedInstalledHost/preparation/init:installProjectEffects/init:installProjectEffects",
+            "openPreparedInstalledHost/preparation/init:installProjectEffects/init:installProjectEffects/init:installProjectEffects",
+            "openPreparedInstalledHost/preparation/init:localFilesEffectLimits/init:localFilesEffectLimits",
             "openInstalledHost/assertLocalFileEffectRunOriginal",
             "openInstalledHost/combined/combined",
             "openInstalledHost/combined/combined#2",
@@ -13205,8 +13200,8 @@
         },
         {
           "operations": [
-            "connectEmbeddedLocal/preparation/init:installProjectSources/init:installProjectSources/acquired/init:prepareManagedRun/init:prepareManagedRun",
-            "connectEmbeddedLocal/preparation/init:installProjectSources/init:installProjectSources/init:installProjectSources"
+            "openPreparedInstalledHost/preparation/init:installProjectSources/init:installProjectSources/acquired/init:prepareManagedRun/init:prepareManagedRun",
+            "openPreparedInstalledHost/preparation/init:installProjectSources/init:installProjectSources/init:installProjectSources"
           ],
           "exports": [],
           "attributes": {
@@ -13274,12 +13269,12 @@
         },
         {
           "operations": [
-            "connectEmbeddedLocal/preparation/init:isOriginalManagedComputePreparationRefusal/init:isOriginalManagedComputePreparationRefusal",
-            "connectEmbeddedLocal/preparation/init:prepareManagedCompute/init:prepareManagedCompute",
-            "connectEmbeddedLocal/preparation/init:prepareManagedCompute/init:prepareManagedCompute/init:prepareManagedCompute",
-            "connectEmbeddedLocal/preparation/init:prepareManagedComputeRun/init:prepareManagedComputeRun",
-            "connectEmbeddedLocal/preparation/init:prepareManagedComputeRun/init:prepareManagedComputeRun/init:prepareManagedComputeRun",
-            "connectEmbeddedLocal/preparation/init:requestPreparation/init:requestPreparation",
+            "openPreparedInstalledHost/preparation/init:isOriginalManagedComputePreparationRefusal/init:isOriginalManagedComputePreparationRefusal",
+            "openPreparedInstalledHost/preparation/init:prepareManagedCompute/init:prepareManagedCompute",
+            "openPreparedInstalledHost/preparation/init:prepareManagedCompute/init:prepareManagedCompute/init:prepareManagedCompute",
+            "openPreparedInstalledHost/preparation/init:prepareManagedComputeRun/init:prepareManagedComputeRun",
+            "openPreparedInstalledHost/preparation/init:prepareManagedComputeRun/init:prepareManagedComputeRun/init:prepareManagedComputeRun",
+            "openPreparedInstalledHost/preparation/init:requestPreparation/init:requestPreparation",
             "installedManagedRunContracts",
             "managedComputeSubmittedIntentCid",
             "readManagedComputeRunRequirements",
@@ -13556,8 +13551,8 @@
         },
         {
           "operations": [
-            "connectEmbeddedLocal/preparation/init:localFilesLookupExecutionPolicy/init:localFilesLookupExecutionPolicy",
-            "connectEmbeddedLocal/preparation/init:localFilesLookupExecutionPolicy/init:localFilesLookupExecutionPolicy/init:localFilesLookupExecutionPolicy"
+            "openPreparedInstalledHost/preparation/init:localFilesLookupExecutionPolicy/init:localFilesLookupExecutionPolicy",
+            "openPreparedInstalledHost/preparation/init:localFilesLookupExecutionPolicy/init:localFilesLookupExecutionPolicy/init:localFilesLookupExecutionPolicy"
           ],
           "exports": [],
           "attributes": {
@@ -13649,9 +13644,9 @@
         },
         {
           "operations": [
-            "connectEmbeddedLocal/preparation/init:managedComputeCompilationOriginal/init:managedComputeCompilationOriginal",
-            "connectEmbeddedLocal/preparation/init:managedComputePublicationPreparation/init:managedComputePublicationPreparation",
-            "connectEmbeddedLocal/preparation/init:managedComputeReservePublication/init:managedComputeReservePublication",
+            "openPreparedInstalledHost/preparation/init:managedComputeCompilationOriginal/init:managedComputeCompilationOriginal",
+            "openPreparedInstalledHost/preparation/init:managedComputePublicationPreparation/init:managedComputePublicationPreparation",
+            "openPreparedInstalledHost/preparation/init:managedComputeReservePublication/init:managedComputeReservePublication",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices#6"
           ],
           "exports": [],
@@ -13724,8 +13719,8 @@
         },
         {
           "operations": [
-            "connectEmbeddedLocal/preparation/init:managedComputeInvocationOriginal/init:managedComputeInvocationOriginal",
-            "connectEmbeddedLocal/preparation/init:prepareManagedComputeRun/init:prepareManagedComputeRun/constructInvocation/constructInvocation",
+            "openPreparedInstalledHost/preparation/init:managedComputeInvocationOriginal/init:managedComputeInvocationOriginal",
+            "openPreparedInstalledHost/preparation/init:prepareManagedComputeRun/init:prepareManagedComputeRun/constructInvocation/constructInvocation",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareTimedRunInvocation/prepareTimedRunInvocation"
           ],
           "exports": [],
@@ -13838,7 +13833,7 @@
         },
         {
           "operations": [
-            "connectEmbeddedLocal/preparation/init:modelPublicationCapacity/init:modelPublicationCapacity",
+            "openPreparedInstalledHost/preparation/init:modelPublicationCapacity/init:modelPublicationCapacity",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/admitPreparedSubmission/admitPreparedSubmission/admitPreparedSubmission",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/submit/submit/submit#3"
           ],
@@ -13928,8 +13923,8 @@
         },
         {
           "operations": [
-            "connectEmbeddedLocal/preparation/init:prepareManagedComputeRun/init:prepareManagedComputeRun/funded/funded",
-            "connectEmbeddedLocal/preparation/init:prepareManagedComputeRun/init:prepareManagedComputeRun/init:prepareManagedComputeRun#2",
+            "openPreparedInstalledHost/preparation/init:prepareManagedComputeRun/init:prepareManagedComputeRun/funded/funded",
+            "openPreparedInstalledHost/preparation/init:prepareManagedComputeRun/init:prepareManagedComputeRun/init:prepareManagedComputeRun#2",
             "prepareManagedComputeCapturePlan",
             "retainedManagedCaptureInventory"
           ],
@@ -14083,7 +14078,7 @@
         },
         {
           "operations": [
-            "connectEmbeddedLocal/preparation/init:prepareStandardAccount/init:prepareStandardAccount",
+            "openPreparedInstalledHost/preparation/init:prepareStandardAccount/init:prepareStandardAccount",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/configuredConnections/configuredConnections",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/configuredConnections/configuredConnections/configuredConnections",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/modelTasks/modelTasks",
@@ -14155,7 +14150,7 @@
         },
         {
           "operations": [
-            "connectEmbeddedLocal/preparation/init:readAsset/init:readAsset"
+            "openPreparedInstalledHost/preparation/init:readAsset/init:readAsset"
           ],
           "exports": [],
           "attributes": {
@@ -14231,7 +14226,7 @@
         },
         {
           "operations": [
-            "connectEmbeddedLocal/preparation/init:readEnvironmentSource/init:readEnvironmentSource"
+            "openPreparedInstalledHost/preparation/init:readEnvironmentSource/init:readEnvironmentSource"
           ],
           "exports": [],
           "attributes": {
@@ -14709,7 +14704,7 @@
             "responsibility": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "export async function openInstalledRemoteHttpHost({directory,"
+                "anchor": "export function openInstalledRemoteHttpHost(options)"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -14723,7 +14718,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "export async function openInstalledRemoteHttpHost({directory,"
+                "anchor": "export function openInstalledRemoteHttpHost(options)"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -14751,7 +14746,7 @@
             "ownership": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "export async function openInstalledRemoteHttpHost({directory,"
+                "anchor": "export function openInstalledRemoteHttpHost(options)"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -14765,7 +14760,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "export async function openInstalledRemoteHttpHost({directory,"
+                "anchor": "export function openInstalledRemoteHttpHost(options)"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -14779,7 +14774,7 @@
             "failure": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "export async function openInstalledRemoteHttpHost({directory,"
+                "anchor": "export function openInstalledRemoteHttpHost(options)"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -14793,7 +14788,7 @@
             "cancellation": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "export async function openInstalledRemoteHttpHost({directory,"
+                "anchor": "export function openInstalledRemoteHttpHost(options)"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -14807,7 +14802,7 @@
             "resources": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "export async function openInstalledRemoteHttpHost({directory,"
+                "anchor": "export function openInstalledRemoteHttpHost(options)"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -14821,7 +14816,7 @@
             "extension": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "export async function openInstalledRemoteHttpHost({directory,"
+                "anchor": "export function openInstalledRemoteHttpHost(options)"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -15797,7 +15792,7 @@
         },
         {
           "operations": [
-            "connectEmbeddedLocal/preparation/init:prepareManagedModelCompilation/init:prepareManagedModelCompilation"
+            "openPreparedInstalledHost/preparation/init:prepareManagedModelCompilation/init:prepareManagedModelCompilation"
           ],
           "exports": [],
           "attributes": {
@@ -15901,11 +15896,11 @@
         },
         {
           "operations": [
-            "connectEmbeddedLocal/preparation/init:installMockSources/init:installMockSources/profile/profile",
-            "connectEmbeddedLocal/preparation/init:installMockSources/init:installMockSources/profile/profile#2",
-            "connectEmbeddedLocal/preparation/init:prepareManagedModelRun/init:prepareManagedModelRun",
-            "connectEmbeddedLocal/preparation/init:prepareManagedModelRun/init:prepareManagedModelRun/adopted/adopted",
-            "connectEmbeddedLocal/preparation/init:prepareManagedModelRun/init:prepareManagedModelRun/init:prepareManagedModelRun",
+            "openPreparedInstalledHost/preparation/init:installMockSources/init:installMockSources/profile/profile",
+            "openPreparedInstalledHost/preparation/init:installMockSources/init:installMockSources/profile/profile#2",
+            "openPreparedInstalledHost/preparation/init:prepareManagedModelRun/init:prepareManagedModelRun",
+            "openPreparedInstalledHost/preparation/init:prepareManagedModelRun/init:prepareManagedModelRun/adopted/adopted",
+            "openPreparedInstalledHost/preparation/init:prepareManagedModelRun/init:prepareManagedModelRun/init:prepareManagedModelRun",
             "prepareRequestMockModelPlan",
             "prepareRequestMockModelPlan/current/current",
             "prepareRequestMockModelPlan/prepareRequestMockModelPlan",
@@ -16014,11 +16009,11 @@
         },
         {
           "operations": [
-            "connectEmbeddedLocal/preparation/init:prepareManagedContentCompilation/init:prepareManagedContentCompilation",
-            "connectEmbeddedLocal/preparation/init:prepareManagedContentCompilation/init:prepareManagedContentCompilation/init:prepareManagedContentCompilation",
-            "connectEmbeddedLocal/preparation/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun",
-            "connectEmbeddedLocal/preparation/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun/adopted/adopted",
-            "connectEmbeddedLocal/preparation/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun",
+            "openPreparedInstalledHost/preparation/init:prepareManagedContentCompilation/init:prepareManagedContentCompilation",
+            "openPreparedInstalledHost/preparation/init:prepareManagedContentCompilation/init:prepareManagedContentCompilation/init:prepareManagedContentCompilation",
+            "openPreparedInstalledHost/preparation/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun",
+            "openPreparedInstalledHost/preparation/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun/adopted/adopted",
+            "openPreparedInstalledHost/preparation/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/runContent/runContent#4"
           ],
           "exports": [],
@@ -16203,11 +16198,11 @@
         },
         {
           "operations": [
-            "connectEmbeddedLocal/preparation/init:installProjectSources/init:installProjectSources/acquired/init:prepareManagedContentRun/init:prepareManagedContentRun",
-            "connectEmbeddedLocal/preparation/init:prepareManagedKeyedContentRun/init:prepareManagedKeyedContentRun",
-            "connectEmbeddedLocal/preparation/init:prepareManagedKeyedContentRun/init:prepareManagedKeyedContentRun/adopted/adopted",
-            "connectEmbeddedLocal/preparation/init:prepareManagedKeyedContentRun/init:prepareManagedKeyedContentRun/adopted/adopted#2",
-            "connectEmbeddedLocal/preparation/init:prepareManagedKeyedContentRun/init:prepareManagedKeyedContentRun/init:prepareManagedKeyedContentRun"
+            "openPreparedInstalledHost/preparation/init:installProjectSources/init:installProjectSources/acquired/init:prepareManagedContentRun/init:prepareManagedContentRun",
+            "openPreparedInstalledHost/preparation/init:prepareManagedKeyedContentRun/init:prepareManagedKeyedContentRun",
+            "openPreparedInstalledHost/preparation/init:prepareManagedKeyedContentRun/init:prepareManagedKeyedContentRun/adopted/adopted",
+            "openPreparedInstalledHost/preparation/init:prepareManagedKeyedContentRun/init:prepareManagedKeyedContentRun/adopted/adopted#2",
+            "openPreparedInstalledHost/preparation/init:prepareManagedKeyedContentRun/init:prepareManagedKeyedContentRun/init:prepareManagedKeyedContentRun"
           ],
           "exports": [],
           "attributes": {
@@ -16351,7 +16346,7 @@
         },
         {
           "operations": [
-            "connectEmbeddedLocal/preparation/init:retainManagedContentPreparation/init:retainManagedContentPreparation",
+            "openPreparedInstalledHost/preparation/init:retainManagedContentPreparation/init:retainManagedContentPreparation",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/runContent/runContent#5"
           ],
           "exports": [],
@@ -17424,6 +17419,7 @@
         }
       ],
       "imports": [
+        "../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js",
         "../../_build/native/directory-darwin-arm64.node",
         "../../_build/native/directory-darwin-x64.node",
         "../../packages/client-wire/index.mjs",
@@ -17471,12 +17467,14 @@
         "./client-run-plan.mjs",
         "./client-run-start.mjs",
         "./client-submission.mjs",
+        "./effect-capture-resources.mjs",
         "./effect-run-recovery.mjs",
         "./effect-target-read-continuation.mjs",
         "./effect-target-read-inventory.mjs",
         "./embedded-local-lifecycle.mjs",
         "./entry.mjs",
         "./host-root-format.mjs",
+        "./http-request-preparation.mjs",
         "./in-process-client.mjs",
         "./infer-evaluation-evidence.mjs",
         "./infer-trusted-runtime-view.mjs",
@@ -17531,9 +17529,7 @@
         "node:url"
       ],
       "compilerFields": [],
-      "unresolvedSyntax": [
-        "runtime-dependent module dependency requires original owner/artifact mapping"
-      ],
+      "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending."
     },
     {

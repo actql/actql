@@ -1,3 +1,5 @@
+// Reuse the SDK's exact snapshot freeze through this existing private bridge.
+export {freezeInput} from './data.mjs';
 // Read-only custody predicate on the existing private Host bridge; no issuer.
 export {matchesPublishedSubmissionSnapshot} from './submission-observation.mjs';
 // Private in-process transport connection, not a wire field, receipt issuer

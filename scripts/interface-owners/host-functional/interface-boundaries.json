@@ -24679,7 +24679,7 @@
     {
       "module": "adapters/host-node/client-http.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a1f904cec1e910d77819f9351586862670625f07d1ec03a5cc877f820efc8254",
+      "sha256": "63f31aced42d5e53ea3596fc471125d7284bbd95cd1df6344b20ade0b9c1d820",
       "role": "physical-io",
       "owner": "Existing Client Host admission/read services and physical Node ingress",
       "exports": [
@@ -24733,7 +24733,8 @@
             "runPlan",
             "maxRequestBytes",
             "observe",
-            "loopbackHttp"
+            "loopbackHttp",
+            "prepareRequest"
           ],
           "async": false
         },
@@ -24806,7 +24807,7 @@
           "async": true
         },
         {
-          "name": "createClientHttpHandler/createClientHttpHandler/invoke/invoke/invoke",
+          "name": "createClientHttpHandler/createClientHttpHandler/originalRequest/originalRequest",
           "parameters": [
             "key"
           ],
@@ -24934,7 +24935,6 @@
             "createClientHttpHandler/createClientHttpHandler/createClientHttpHandler#4",
             "createClientHttpHandler/createClientHttpHandler/createClientHttpHandler/createClientHttpHandler",
             "createClientHttpHandler/createClientHttpHandler/invoke/invoke",
-            "createClientHttpHandler/createClientHttpHandler/invoke/invoke/invoke",
             "createClientHttpHandler/createClientHttpHandler/sendJson/sendJson",
             "finish",
             "finish/finish",
@@ -24949,7 +24949,8 @@
             "sendError",
             "write",
             "write/write",
-            "write/write/write"
+            "write/write/write",
+            "createClientHttpHandler/createClientHttpHandler/originalRequest/originalRequest"
           ],
           "exports": [
             "createClientHttpHandler",
@@ -27795,7 +27796,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -27958,7 +27959,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -28590,7 +28591,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -41767,7 +41768,7 @@
     {
       "module": "adapters/host-node/embedded-local-lifecycle.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "cbfd3f568227e8ac13a8f970b12af8f1e754ed3ac387ad423b8df09dab48f35c",
+      "sha256": "9b1d576921142910df88227423152d29a00bcbefe5fed887ebd8c33e28f41f61",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
@@ -42104,6 +42105,27 @@
           "async": false
         },
         {
+          "name": "createEmbeddedHostRegistry/init:retainRequest/init:retainRequest",
+          "parameters": [
+            "host",
+            "installation",
+            "generation",
+            "request",
+            "pending"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEmbeddedHostRegistry/init:retainRequest/init:retainRequest/init:retainRequest",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createEmbeddedHostRegistry/init:retainRequest/init:retainRequest/init:retainRequest#2",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "createEmbeddedHostRegistry/init:retirePreparation/init:retirePreparation",
           "parameters": [
             "host",
@@ -42232,7 +42254,10 @@
             "createEmbeddedHostRegistry/init:connect/init:connect/port/init:beforeResultRead/init:beforeResultRead",
             "createEmbeddedHostRegistry/init:connect/init:connect/port/init:beforeSourceQuery/init:beforeSourceQuery",
             "createEmbeddedHostRegistry/init:connect/init:connect/port/init:captureSourceSnapshot/init:captureSourceSnapshot",
-            "createEmbeddedHostRegistry/init:connect/init:connect/retainSourceProducer/retainSourceProducer"
+            "createEmbeddedHostRegistry/init:connect/init:connect/retainSourceProducer/retainSourceProducer",
+            "createEmbeddedHostRegistry/init:retainRequest/init:retainRequest",
+            "createEmbeddedHostRegistry/init:retainRequest/init:retainRequest/init:retainRequest",
+            "createEmbeddedHostRegistry/init:retainRequest/init:retainRequest/init:retainRequest#2"
           ],
           "exports": [],
           "attributes": {
@@ -114940,7 +114965,7 @@
     },
     {
       "module": "adapters/local-node/request-preparation-adapter.mjs",
-      "sha256": "ef6c46f63a0cda4c660ad8e0c1a0f5367b5831aeacd941ab128656e01b03b866",
+      "sha256": "18e9f2e7739ab5fe9710445cc6a624daff2b518d5e0b44cedf2e0a5c7cec016e",
       "exports": [
         "assertRequestPreparationControl",
         "beginRequestInput",
@@ -118610,7 +118635,7 @@
       "sha256": "2ee6349eeab84f91d0d34d24031d6a62e801babd48758632fee7e6b4297e115a",
       "responsibilityFacet": "primary",
       "role": "physical-io",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "createInstalledCredentialSourceReader",
         "installedJsonSourceReaderLimitNames",
@@ -119349,7 +119374,7 @@
       "sha256": "b316bbda6a28ab1c3feea0dadc964e01612d9085a0095f6a8a21abbc17ae5cc9",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "finishInstalledEffectModelScope",
         "installedEffectModelPreparation",
@@ -120038,7 +120063,7 @@
       "sha256": "9297b27b6811b4aa2b0e6b3e03707674afbf1592f757eed0cc6195f537be0c29",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "assertInstalledSourceConstruction",
         "beginInstalledSourceInitialization",
@@ -124256,6 +124281,190 @@
         }
       ],
       "referenceQualification": "Existing Host responsibility for the frozen capture resource adapter. Source references only; not compiled ABI, physical ACK, normal admission or a new semantic Owner."
+    },
+    {
+      "module": "adapters/host-node/http-request-preparation.mjs",
+      "sha256": "3e4eb3094ebf502781dfbe91f541850e58f174bd6a1eeb32a954f58e6813f62d",
+      "exports": [
+        "installHttpRequestPreparation"
+      ],
+      "operations": [
+        {
+          "name": "installHttpRequestPreparation",
+          "parameters": [
+            "preparation",
+            "registry",
+            "originals"
+          ],
+          "async": false
+        },
+        {
+          "name": "installHttpRequestPreparation/installHttpRequestPreparation",
+          "parameters": [
+            "operation",
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "installHttpRequestPreparation/installHttpRequestPreparation/finish/finish",
+          "parameters": [
+            "terminal"
+          ],
+          "async": false
+        },
+        {
+          "name": "installHttpRequestPreparation/installHttpRequestPreparation/init:beforeReply/init:beforeReply",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installHttpRequestPreparation/installHttpRequestPreparation/init:bindRequest/init:bindRequest",
+          "parameters": [
+            "derived"
+          ],
+          "async": false
+        },
+        {
+          "name": "installHttpRequestPreparation/installHttpRequestPreparation/pending/pending",
+          "parameters": [
+            "resolve"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../../packages/client-wire/index.mjs",
+        "../../packages/sdk/internal/private-source-preparation.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing installed Host Request preparation and HTTP ingress lifecycle",
+      "referenceQualification": "Existing original Request/Host functional responsibilities; component and normal qualification remain separate. No new Resource owner or transport authority.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "installHttpRequestPreparation",
+            "installHttpRequestPreparation/installHttpRequestPreparation",
+            "installHttpRequestPreparation/installHttpRequestPreparation/finish/finish",
+            "installHttpRequestPreparation/installHttpRequestPreparation/init:bindRequest/init:bindRequest",
+            "installHttpRequestPreparation/installHttpRequestPreparation/pending/pending",
+            "installHttpRequestPreparation/installHttpRequestPreparation/init:beforeReply/init:beforeReply"
+          ],
+          "exports": [
+            "installHttpRequestPreparation"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Local and Remote HTTP opening retain the same original Host preparation"
+              },
+              {
+                "path": "adapters/host-node/http-request-preparation.mjs",
+                "anchor": "// Bind an authenticated HTTP input to the installed Host"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/http-request-preparation.mjs",
+                "anchor": "export function installHttpRequestPreparation(preparation, registry, originals)"
+              },
+              {
+                "path": "packages/client-wire/index.mjs",
+                "anchor": "export function prepareClientHostRequest("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "function originalSourceRequest("
+              },
+              {
+                "path": "adapters/host-node/http-request-preparation.mjs",
+                "anchor": "manager.bindSourceRequest(receipt, body, request);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Local and Remote HTTP opening retain the same original Host preparation"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const initialControl = Object.freeze({async close()"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/http-request-preparation.mjs",
+                "anchor": "registry.retainRequest(host, installation, generation, request, pending);"
+              },
+              {
+                "path": "adapters/host-node/http-request-preparation.mjs",
+                "anchor": "manager.assertSourceSnapshotCurrent(receipt);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-http.test.mjs",
+                "anchor": "test('HTTP Request preparation failure cannot dispatch or become a known refusal'"
+              },
+              {
+                "path": "adapters/host-node/http-request-preparation.mjs",
+                "anchor": "if (terminal !== 'failed') throw cause;"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "function observationAttempt("
+              },
+              {
+                "path": "adapters/host-node/client-http.test.mjs",
+                "anchor": "test('cancel and reconcile classify synchronous and asynchronous Host faults'"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "captureSourceSnapshot(receipt, value, snapshot)"
+              },
+              {
+                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "anchor": "export function beginRequestInput("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Local and Remote HTTP opening retain the same original Host preparation"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "return openPreparedInstalledHost(options, 'remote');"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-http.test.mjs",
+                "anchor": "test('HTTP funded snapshot and typed intent retain the same Request and failed cleanup owner'"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.test.mjs",
+                "anchor": "test('Remote constructor failure retains the original cause and retires the same preparation'"
+              },
+              {
+                "path": "adapters/host-node/client-http.test.mjs",
+                "anchor": "test('HTTP publication current refusal keeps its primary and still finishes the original producer'"
+              }
+            ]
+          }
+        }
+      ]
     }
   ],
   "generated": [],
