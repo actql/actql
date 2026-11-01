@@ -285,34 +285,38 @@ export async function openDeliveryAttemptIndex(path, {
       fail('DeliveryAttemptIndexUnavailable');
     }
     // Current-format metadata is admitted exactly, never repaired or upgraded.
-    for (const [type,name,sql] of [
-      ['table','completions',completionTable],
-      ['index','completion_receipts',completionReceiptIndex],
-      ['table','publication_contracts',publicationTable],
-      ['table','publication_usage',publicationUsageTable],
-      ['table','publication_recovery',publicationRecoveryTable],
-      ['table','pending_publications',pendingPublicationTable],
-      ['table','native_publication_inventories',nativeInventoryTable],
-      ['table','native_publication_inventory_usage',nativeInventoryUsageTable],
-      ['table','metadata_deletion_fences',metadataFenceTable],
-      ['table','metadata_deletion_fence_coverage',metadataFenceCoverageTable],
-      ['index','metadata_deletion_runs','CREATE INDEX metadata_deletion_runs ON metadata_deletion_fences(run_cid)'],
-      ['table','physical_objects',physicalObjectsTable],
-      ['table','physical_object_usage',physicalUsageTable],
-      ['table','physical_object_preparations',physicalPreparationsTable],
-      ['table','publication_attempts',publicationAttemptsTable],
-      ['table','publication_records',publicationRecordsTable],
-      ['index','publication_attempt_runs',publicationAttemptRunIndex],
-      ['table','result_deletion_recovery',resultRecoveryTable],
-      ['table','native_publication_references',nativeReferencesTable],
-      ['index','native_publication_reference_owners',nativeReferenceOwnerIndex],
-      ['trigger','native_publication_references_insert',nativeReferenceInsert],
-      ['trigger','native_publication_references_update',nativeReferenceUpdate],
-      ['table','native_publication_indexes',nativeIndexTable],
-      ['table','native_publication_materials',nativeIndexMaterialsTable],
-    ]) {
-      if (prepare('SELECT sql FROM sqlite_schema WHERE type=? AND name=?').get(type,name)?.sql !== sql) {
-        fail('DeliveryAttemptIndexUnavailable');
+    {
+      // Reuse this connection's statement, not any schema row or admission.
+      const schemaDefinition = prepare('SELECT sql FROM sqlite_schema WHERE type=? AND name=?');
+      for (const [type,name,sql] of [
+        ['table','completions',completionTable],
+        ['index','completion_receipts',completionReceiptIndex],
+        ['table','publication_contracts',publicationTable],
+        ['table','publication_usage',publicationUsageTable],
+        ['table','publication_recovery',publicationRecoveryTable],
+        ['table','pending_publications',pendingPublicationTable],
+        ['table','native_publication_inventories',nativeInventoryTable],
+        ['table','native_publication_inventory_usage',nativeInventoryUsageTable],
+        ['table','metadata_deletion_fences',metadataFenceTable],
+        ['table','metadata_deletion_fence_coverage',metadataFenceCoverageTable],
+        ['index','metadata_deletion_runs','CREATE INDEX metadata_deletion_runs ON metadata_deletion_fences(run_cid)'],
+        ['table','physical_objects',physicalObjectsTable],
+        ['table','physical_object_usage',physicalUsageTable],
+        ['table','physical_object_preparations',physicalPreparationsTable],
+        ['table','publication_attempts',publicationAttemptsTable],
+        ['table','publication_records',publicationRecordsTable],
+        ['index','publication_attempt_runs',publicationAttemptRunIndex],
+        ['table','result_deletion_recovery',resultRecoveryTable],
+        ['table','native_publication_references',nativeReferencesTable],
+        ['index','native_publication_reference_owners',nativeReferenceOwnerIndex],
+        ['trigger','native_publication_references_insert',nativeReferenceInsert],
+        ['trigger','native_publication_references_update',nativeReferenceUpdate],
+        ['table','native_publication_indexes',nativeIndexTable],
+        ['table','native_publication_materials',nativeIndexMaterialsTable],
+      ]) {
+        if (schemaDefinition.get(type,name)?.sql !== sql) {
+          fail('DeliveryAttemptIndexUnavailable');
+        }
       }
     }
     const resultRecoveryRow = prepare('SELECT dirty,ack_revision FROM result_deletion_recovery WHERE id=1');
