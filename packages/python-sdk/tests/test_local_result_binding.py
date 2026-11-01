@@ -7,6 +7,7 @@ from threading import RLock
 import unittest
 
 from actql_sdk._local_core import LocalCore, LocalCoreError, _Input, _Output
+from local_abi_declaration_fixture import original_byte_fixture_port
 
 
 class ResultBindingCustodyTests(unittest.TestCase):
@@ -52,7 +53,7 @@ class ResultBindingCustodyTests(unittest.TestCase):
                 core._inputs.pop(9)
             return state[name]
 
-        core._call = call
+        core._call = original_byte_fixture_port(call)
         return core, parent, observations, calls, state, wire
 
     def test_original_parent_observations_and_current_configuration_are_forwarded(self):

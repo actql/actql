@@ -290,6 +290,10 @@ fn encode_client_run_materials_body(
 // Bounded retained inputs for both compilation owners.
 priv struct ClientRunMaterialsInput {
   prepared : PreparedClientProgram
+  materials_wire : String
+  program : String
+  environment_wire : String
+  parameters_wire : String?
   infer_input : (String, String)?
   prepared_wire : String
   authorization_wire : String
@@ -355,32 +359,36 @@ fn read_client_run_materials_body(
     @decode.lookup(object, "parameters") is Some(parameters_cursor) else {
     return Err(MaterialsMalformed)
   }
-  let parameters = if @decode.is_null(parameters_cursor) {
+  let parameters_wire = if @decode.is_null(parameters_cursor) {
     None
   } else {
     match @decode.text(parameters_cursor) {
-      Ok(body) => {
-        let node = match
-          @source.parse_json_bytes(
-            @utf8.encode(body),
-            { max_input_bytes: 65536, max_nodes: 8192, max_depth: 64, },
-            source_path="Run Materials Parameters",
-          ) {
-          Ok(value) => value
-          Err(_) => return Err(MaterialsParameters)
-        }
-        match
-          @decode.admit(node, {
-            max_nodes: 8192,
-            max_depth: 64,
-            max_string_bytes: 65536,
-            max_total_string_bytes: 65536,
-          }) {
-          Ok(value) => Some(value)
-          Err(_) => return Err(MaterialsParameters)
-        }
-      }
+      Ok(body) => Some(body)
       Err(_) => return Err(MaterialsMalformed)
+    }
+  }
+  let parameters = match parameters_wire {
+    None => None
+    Some(body) => {
+      let node = match
+        @source.parse_json_bytes(
+          @utf8.encode(body),
+          { max_input_bytes: 65536, max_nodes: 8192, max_depth: 64, },
+          source_path="Run Materials Parameters",
+        ) {
+        Ok(value) => value
+        Err(_) => return Err(MaterialsParameters)
+      }
+      match
+        @decode.admit(node, {
+          max_nodes: 8192,
+          max_depth: 64,
+          max_string_bytes: 65536,
+          max_total_string_bytes: 65536,
+        }) {
+        Ok(value) => Some(value)
+        Err(_) => return Err(MaterialsParameters)
+      }
     }
   }
   guard admit_client_check_environment(
@@ -441,6 +449,8 @@ fn read_client_run_materials_body(
     target_selections_wire,
     normalization_wire,
     request_wire,
+    environment_wire,
+    parameters_wire,
     program,
     environment,
     parameters,
@@ -460,6 +470,8 @@ priv struct ClientRunMaterialsBody {
   target_selections_wire : String?
   normalization_wire : String?
   request_wire : String?
+  environment_wire : String
+  parameters_wire : String?
   program : String
   environment : @checked.CheckEnvironment
   parameters : @decode.Cursor?
@@ -515,6 +527,10 @@ fn read_client_run_materials_input(
   }
   Ok({
     prepared,
+    materials_wire: materials,
+    program: body.program,
+    environment_wire: body.environment_wire,
+    parameters_wire: body.parameters_wire,
     infer_input: body.infer_input,
     prepared_wire: body.prepared_wire,
     authorization_wire: body.authorization_wire,

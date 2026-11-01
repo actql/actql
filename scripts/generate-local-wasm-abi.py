@@ -43,6 +43,8 @@ def unit(symbol: str, name: str) -> str:
     if name in {'max_slots', 'attempts', 'holdings', 'count',
                 'reserved_attempts', 'live_reservations', 'live_delegations'}:
         return 'count in ' + symbol + '; original named collection/chunk bounds'
+    if name == 'offset':
+        return 'private bounded wasm32 payload offset; synchronous same-instance memory borrow only'
     if name in {'start', 'index', 'byte'}:
         return ('byte value0..255' if name == 'byte' else
                 'zero-based position in ' + symbol + '; original Owner bounds')
@@ -53,10 +55,10 @@ def unit(symbol: str, name: str) -> str:
         return 'original physical callback ticket; no authority or wire identity'
     if name in {
         'account_input', 'attempt', 'clock_input', 'compute', 'configuration',
-        'current', 'current_configuration', 'current_handle', 'environment',
+        'current', 'current_configuration', 'current_handle', 'configuration_handle', 'environment',
         'first_handle', 'handle', 'input', 'material', 'materials', 'parent',
         'payload_record', 'preparation', 'publication', 'publisher', 'reader',
-        'request', 'result', 'run', 'source', 'step_handle', 'submission', 'task',
+        'request', 'restoration_handle', 'result', 'run', 'source', 'step_handle', 'submission', 'task',
     }:
         return 'same-instance original handle of ' + symbol + '.' + name
     raise ValueError('Unclassified ABI parameter unit: ' + symbol + '.' + name)

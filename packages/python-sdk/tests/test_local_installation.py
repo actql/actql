@@ -10,6 +10,7 @@ from unittest.mock import patch
 from actql_sdk._local_core import LocalCore
 from actql_sdk._local_installation import OriginalLocalInstallation, LocalInstallationCleanupPending
 from actql_sdk._local_storage import LocalByteStore, LocalStorageCommitUnknown
+from local_abi_declaration_fixture import original_byte_fixture_port
 
 
 def encode(value):
@@ -68,7 +69,7 @@ class OriginalLocalInstallationTests(unittest.TestCase):
             if name == 'close':
                 return 0 if core._cleanup(args[0] - 100) == 0 else -9
             raise AssertionError('Unexpected Source/Compute/Model/Effect/Run/permission call')
-        core._call = call
+        core._call = original_byte_fixture_port(call)
         return core, calls
 
     def create(self, core, path):
@@ -98,7 +99,7 @@ class OriginalLocalInstallationTests(unittest.TestCase):
                     calls.append((family, name, args))
                     return -9
                 return original_call(family, name, *args)
-            core._call = call
+            core._call = original_byte_fixture_port(call)
             with self.assertRaises(LocalInstallationCleanupPending) as raised:
                 self.create(core, Path(directory))
             value = raised.exception.cleanup_installation

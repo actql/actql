@@ -46,6 +46,7 @@ fn journal_append_legacy_fixture(
     publication_binding: None,
     publication_policy_originals: None,
     effect_material_originals: None,
+    task_materials_cid: None,
     local_run_policy_originals: None,
     run_observation_originals: None,
     observation_original: None,

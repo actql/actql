@@ -9,6 +9,7 @@ from actql_sdk._local_files import LocalFileError
 from actql_sdk._local_core import LocalCoreError
 from actql_sdk._local_product import LocalProductCleanupPending
 import test_local_product_payload_file as file_fixture
+from local_abi_declaration_fixture import original_byte_fixture_port
 
 
 PAYLOAD = b'[{"n":1,"text":"e\xcc\x81/~\\r\\n","null":null}]'
@@ -51,7 +52,7 @@ class ProductPayloadCopyTests(unittest.TestCase):
                 del chunks[args[0]]
                 return core._cleanup(ticket)
             return 0
-        core._call = call
+        core._call = original_byte_fixture_port(call)
         return host, core, held, calls, faults
 
     def test_short_write_keeps_original_chunk_and_offset_without_replaying_source(self):

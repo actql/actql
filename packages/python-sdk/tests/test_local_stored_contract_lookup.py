@@ -11,6 +11,7 @@ from actql_sdk._local_files import LocalFileError
 from actql_sdk._local_storage import LocalByteStore, StoredBytes
 import test_local_commit_store_caller as caller_fixture
 import test_local_reader_facts as facts_fixture
+from local_abi_declaration_fixture import original_byte_fixture_port
 
 
 class StoredContractLookupTests(unittest.TestCase):
@@ -34,7 +35,7 @@ class StoredContractLookupTests(unittest.TestCase):
             if family == 'buffer' and name == 'byte' and args[0] in outputs:
                 return outputs[args[0]][args[1]]
             return original_call(family, name, *args)
-        core._call = call
+        core._call = original_byte_fixture_port(call)
 
     def bridge(self):
         core, parent, publisher, projection, calls, state, _, _, _ = caller_fixture.OriginalCommitStoreCallerTests.bridge(self)
@@ -161,7 +162,7 @@ class StoredContractLookupTests(unittest.TestCase):
                                 return -35 if outcome == 'denied' else -36
                         return 0
                     return original_call(family, name, *args)
-                core._call = call
+                core._call = original_byte_fixture_port(call)
                 facts.validate()
                 original_input = facts.pending_input
                 with self.store(Path(directory) / 'core.sqlite') as store:

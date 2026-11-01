@@ -27,6 +27,7 @@ fn sdk_saved_source_snapshot(
         publication_binding: None,
         publication_policy_originals: None,
         effect_material_originals: None,
+        task_materials_cid: None,
         checkpoint: None,
       },
       local_run_policy_originals=Some(
@@ -73,6 +74,7 @@ fn sdk_saved_source_snapshot(
           request: value.request,
           definition: value.definition,
           checkpoint: None,
+          task_materials_cid: value.task_materials_cid,
         }
         inspection
       })

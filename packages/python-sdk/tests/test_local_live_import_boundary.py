@@ -5,6 +5,7 @@ import unittest
 from actql_sdk._local_core import LocalCore, LOCAL_CORE_ABI, _IMPORT_SIGNATURES, _BUFFER_SIGNATURES
 from actql_sdk._local_native_holding import NativeHoldingObservationError
 import test_local_installed_image as fixture
+from local_abi_declaration_fixture import assert_current_local_abi
 
 
 class LiveImportBoundaryTests(unittest.TestCase):
@@ -22,7 +23,7 @@ class LiveImportBoundaryTests(unittest.TestCase):
         }
         self.assertEqual({k: v for k, v in _IMPORT_SIGNATURES.items()
                           if k.startswith('execution_child_')}, expected)
-        self.assertEqual(LOCAL_CORE_ABI, 78)
+        assert_current_local_abi(self, LOCAL_CORE_ABI)
         self.assertEqual(_BUFFER_SIGNATURES['open_live'], ('i64 i64 i32 i32', 'i32'))
         self.assertEqual(_BUFFER_SIGNATURES['report_live'], ('i64', 'i32'))
         self.assertEqual(_BUFFER_SIGNATURES['stop_live'], ('i64', 'i32'))

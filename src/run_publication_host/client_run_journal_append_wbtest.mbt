@@ -28,6 +28,7 @@ fn run_append_validate(
     request: record.0.request,
     definition: record.0.definition,
     checkpoint: None,
+    task_materials_cid: record.0.task_materials_cid,
   })
 }
 

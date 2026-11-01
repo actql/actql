@@ -11,6 +11,7 @@ from actql_sdk._local_core import (
 )
 from actql_sdk._local_storage import LocalByteStore, ByteFence, _NamespaceReader
 from test_local_journal_port import scalar_reader_check
+from local_abi_declaration_fixture import original_byte_fixture_port
 
 
 class LocalHostCurrentTests(unittest.TestCase):
@@ -55,7 +56,7 @@ class LocalHostCurrentTests(unittest.TestCase):
                 return payload[args[1]]
             raise AssertionError('Unexpected execution/adoption/COMMIT call')
 
-        core._call = call
+        core._call = original_byte_fixture_port(call)
         loan = core.reserve_host_current(source, store=store, current=current, cleanup=cleanup)
         return core, source, loan, store, calls, statuses, payload
 

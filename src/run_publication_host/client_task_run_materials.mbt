@@ -7,6 +7,53 @@ pub(all) struct ClientTaskRunMaterials {
   compilation : ClientTaskCompilation
   admission : @publication.RunPublicationAdmission
   run_definition : @publication.PublicationContract
+  retained_input : ClientTaskRunMaterialsRetainedInput
+}
+
+///|
+/// Exact checked codec input. Private fields prevent a caller from attaching
+/// independently prepared input or a replacement wire to an admitted task.
+pub struct ClientTaskRunMaterialsRetainedInput {
+  prepared : PreparedClientProgram
+  materials_wire : String
+  program : String
+  environment_wire : String
+  parameters_wire : String?
+}
+
+///|
+pub fn client_task_run_materials_retained_input(
+  materials : ClientTaskRunMaterials,
+) -> ClientTaskRunMaterialsRetainedInput {
+  materials.retained_input
+}
+
+///|
+pub fn client_task_run_materials_retained_program(
+  input : ClientTaskRunMaterialsRetainedInput,
+) -> PreparedClientProgram {
+  input.prepared
+}
+
+///|
+pub fn client_task_run_materials_retained_document(
+  input : ClientTaskRunMaterialsRetainedInput,
+) -> String {
+  input.program
+}
+
+///|
+pub fn client_task_run_materials_retained_environment(
+  input : ClientTaskRunMaterialsRetainedInput,
+) -> String {
+  input.environment_wire
+}
+
+///|
+pub fn client_task_run_materials_retained_parameters(
+  input : ClientTaskRunMaterialsRetainedInput,
+) -> String? {
+  input.parameters_wire
 }
 
 ///|
@@ -151,7 +198,19 @@ fn admit_client_task_run_materials_compilation(
   match
     bind_client_task_run(input.prepared, compilation, admission, run_definition) {
     Ok(_) =>
-      Ok({ prepared: input.prepared, compilation, admission, run_definition, })
+      Ok({
+        prepared: input.prepared,
+        compilation,
+        admission,
+        run_definition,
+        retained_input: {
+          prepared: input.prepared,
+          materials_wire: input.materials_wire,
+          program: input.program,
+          environment_wire: input.environment_wire,
+          parameters_wire: input.parameters_wire,
+        },
+      })
     Err(issue) => Err(Binding(issue))
   }
 }
@@ -163,6 +222,9 @@ fn admit_client_task_run_materials_compilation(
 pub fn client_task_run_materials_compiled_original(
   materials : ClientTaskRunMaterials,
 ) -> Result[ClientCompiledRun, ClientCompiledRunIssue] {
+  if !physical_equal(materials.prepared, materials.retained_input.prepared) {
+    return Err(ForeignOwner)
+  }
   let value : ClientCompiledRun = {
     owner: materials.prepared,
     compilation: Tasks(materials.compilation),
@@ -181,4 +243,85 @@ pub fn client_task_run_materials_compiled_original(
   ) {
     value
   })
+}
+
+///|
+pub(all) enum ClientSavedTaskMaterialsIssue {
+  MissingOriginal
+  CustodyLost
+  Compilation(ClientCompiledRunIssue)
+  Binding(ClientRunBindingIssue)
+}
+
+///|
+/// The same saved Submission and its exact checked original task input.
+/// This carrier proves no current authority, physical start or Store ACK.
+pub struct ClientSavedTaskMaterials {
+  snapshot : ClientSavedSubmissionSnapshot
+  input : ClientTaskRunMaterialsRetainedInput
+}
+
+///|
+pub fn bind_client_saved_submission_task_materials(
+  snapshot : ClientSavedSubmissionSnapshot,
+  materials : ClientTaskRunMaterials,
+) -> Result[ClientSavedTaskMaterials, ClientSavedTaskMaterialsIssue] {
+  guard snapshot.task_materials is Some(wire) else {
+    return Err(MissingOriginal)
+  }
+  if wire != materials.retained_input.materials_wire {
+    return Err(CustodyLost)
+  }
+  guard snapshot.record.run_admission is Some(admission) &&
+    snapshot.run is Some(row) &&
+    snapshot.inspection is Some(run) else {
+    return Err(CustodyLost)
+  }
+  if @publication.publication_contract_identity(materials.run_definition) !=
+    @publication.publication_contract_identity(run.definition) ||
+    validate_client_submitted_retained_run(
+      snapshot.record.reference,
+      admission,
+      run.request,
+      run.definition,
+      row.revision,
+    )
+    is Err(_) {
+    return Err(CustodyLost)
+  }
+  let compiled = match client_task_run_materials_compiled_original(materials) {
+    Ok(value) => value
+    Err(issue) => return Err(Compilation(issue))
+  }
+  match
+    validate_client_run_binding(
+      run.request,
+      materials.retained_input.prepared,
+      compiled,
+      run.definition,
+    ) {
+    Ok(_) => Ok({ snapshot, input: materials.retained_input, })
+    Err(issue) => Err(Binding(issue))
+  }
+}
+
+///|
+pub fn client_saved_task_materials_snapshot(
+  value : ClientSavedTaskMaterials,
+) -> ClientSavedSubmissionSnapshot {
+  value.snapshot
+}
+
+///|
+pub fn client_saved_task_materials_intent(
+  value : ClientSavedTaskMaterials,
+) -> ClientSubmittedIntent {
+  value.snapshot.record.intent
+}
+
+///|
+pub fn client_saved_task_materials_input(
+  value : ClientSavedTaskMaterials,
+) -> ClientTaskRunMaterialsRetainedInput {
+  value.input
 }

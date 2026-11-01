@@ -11,6 +11,7 @@ from actql_sdk._local_sdk_delivery_storage import (
 from actql_sdk._local_storage import LocalStorageCommitUnknown, LocalStorageError, StoredBytes
 import test_local_reader_facts as file_fixture
 import test_local_sdk_read_storage as evidence_fixture
+from local_abi_declaration_fixture import original_byte_fixture_port
 
 
 class SDKDeliveryStorageTests(unittest.TestCase):
@@ -68,7 +69,7 @@ class SDKDeliveryStorageTests(unittest.TestCase):
             if family == 'buffer' and name == 'byte' and args[0] in outputs:
                 return outputs[args[0]][args[1]]
             return previous(family, name, *args)
-        core._call = call
+        core._call = original_byte_fixture_port(call)
         holder = OriginalSDKDeliveryStore(observation, cleanup=lambda: state['cleanup'])
         return holder, store, core, observation, request, codes, state, calls, rows
 
@@ -142,7 +143,7 @@ class SDKDeliveryStorageTests(unittest.TestCase):
                     produced[0] += 1
                     if produced[0] == 2: state['current'] = False
                 return original(family, name, *args)
-            core._call = call
+            core._call = original_byte_fixture_port(call)
             with self.assertRaises(LocalCoreError) as error: holder.persist(request, 37)
             self.assertEqual(error.exception.code, -35)
             self.assertIsNone(store.read(store.namespaced_key(rows[0]['table'], rows[0]['key'])))
@@ -227,7 +228,7 @@ class SDKDeliveryStorageTests(unittest.TestCase):
                 if family == 'publication_commit_export' and name == 'retire_sdk_delivery_output':
                     self.assertFalse(holder.close())
                 return original(family, name, *args)
-            core._call = call
+            core._call = original_byte_fixture_port(call)
             with self.assertRaisesRegex(RuntimeError, 'storage is closing'):
                 holder.persist(request, 37)
             self.assertIsNone(store.read(store.namespaced_key(rows[3]['table'], rows[3]['key'])))

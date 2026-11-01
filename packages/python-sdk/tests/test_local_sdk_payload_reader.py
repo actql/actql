@@ -10,6 +10,7 @@ from actql_sdk._local_sdk_payload_reader import (
 )
 import test_local_sdk_payload_store as store_fixture
 import test_local_reader_facts as file_fixture
+from local_abi_declaration_fixture import original_byte_fixture_port
 
 
 class SDKPayloadReaderTests(unittest.TestCase):
@@ -54,7 +55,7 @@ class SDKPayloadReaderTests(unittest.TestCase):
             if family == 'buffer' and name == 'byte' and args[0] in outputs:
                 return outputs[args[0]][args[1]]
             return previous(family, name, *args)
-        core._call = call
+        core._call = original_byte_fixture_port(call)
         return holder, store, core, request, first, fact, clock, state, calls
 
     def test_exact_descriptor_advances_only_after_sink_and_core_loans_return(self):
@@ -172,7 +173,7 @@ class SDKPayloadReaderTests(unittest.TestCase):
                 if name == 'confirm_sdk_payload_chunk':
                     return -32
                 return previous(family, name, *args)
-            core._call = refuse
+            core._call = original_byte_fixture_port(refuse)
             with self.assertRaises(LocalCoreError) as error:
                 stream.accept(output)
             self.assertEqual(error.exception.code, -32)

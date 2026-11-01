@@ -462,7 +462,7 @@ class OriginalCommitProjection:
                                 consume: Callable[[ByteWrite], object]) -> None:
         producer = (self._core.produce_publication_sdk_read_evidence if kind == 'evidence'
                     else self._core.produce_publication_sdk_read_grant)
-        identity = self._output()
+        identity = self._output(maximum=71)
         producer(identity, request, original_run, self._configuration, field='identity')
         address = self._address(self._core.read_publication_commit_material(identity), index_key=False)
         payload = self._output()
@@ -485,7 +485,7 @@ class OriginalCommitProjection:
     def _consume_observed_index(self, consume: Callable[[bytes, bytes], object]) -> None:
         # Drop temporary field references before retiring their reservations,
         # matching the existing synchronous original-material projection.
-        identity = self._output()
+        identity = self._output(maximum=71)
         self._core.produce_publication_observed_index(
             identity, self._configuration, field='identity')
         raw_identity = self._core.read_publication_commit_material(identity)
@@ -540,10 +540,11 @@ class OriginalCommitProjection:
             finally:
                 self._projecting = False
 
-    def _output(self) -> _Output:
-        value = (self._core.reserve_saved_result_export(self._publication, cleanup=self._cleanup)
+    def _output(self, *, maximum: int = 1_048_576) -> _Output:
+        value = (self._core.reserve_saved_result_export(self._publication, cleanup=self._cleanup,
+                                                      maximum=maximum)
                  if self._saved else self._core.reserve_publication_commit_export(
-                     self._publication, cleanup=self._cleanup))
+                     self._publication, cleanup=self._cleanup, maximum=maximum))
         self._outputs.append(value)
         return value
 
@@ -562,7 +563,7 @@ class OriginalCommitProjection:
                  consume: Callable[[ByteWrite], object], generation: int | None, *,
                  schema: bool = False) -> None:
         core = self._core
-        address_output = self._output()
+        address_output = self._output(maximum=64 if index_reference else 71)
         if schema:
             core.produce_publication_commit_schema(
                 address_output, self._configuration, ordinal, field='identity')

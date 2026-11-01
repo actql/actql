@@ -432,6 +432,11 @@ class LocalCore:
         self._ordinary_host = _ordinary_host
         self._host_fuel_phase: str | None = 'initial' if _ordinary_host else None
         self._host_initial_claimed = False
+        # One bounded same-instance observation generation, never a grant,
+        # Run identity, submitted continuation or independent fuel allowance.
+        self._host_operation_sequence = 0
+        self._host_operation_id = 0
+        self._host_cleanup_depth = 0
         self._engine: Any = None
         self._engine_configuration: Any = None
         self._pool_configuration: Any = None
@@ -514,14 +519,12 @@ class LocalCore:
                                        ('native_cleaned', self._native_cleaned),
                                        ('publisher_current', self._publisher_current),
                                        ('publisher_begin', self._publisher_begin),
-                                       ('publisher_byte', self._publisher_byte),
                                        ('publisher_finish', self._publisher_finish),
                                        ('journal_current', self._journal_current),
+                                       ('journal_current_operation', self._journal_current_operation),
                                        ('journal_begin', self._journal_begin),
-                                       ('journal_query_byte', self._journal_query_byte),
                                        ('journal_query', self._journal_query),
                                        ('journal_length', self._journal_length),
-                                       ('journal_byte', self._journal_byte),
                                        ('journal_revision', self._journal_revision),
                                        ('journal_release', self._journal_release)]:
                     params = [wasmtime.ValType.i32()
@@ -529,6 +532,15 @@ class LocalCore:
                     self._linker.define_func('actql_host', name,
                         wasmtime.FuncType(params, [wasmtime.ValType.i64() if
                             _IMPORT_SIGNATURES[name][1] == 'i64' else wasmtime.ValType.i32()]), callback)
+                for name, callback in [('input_copy', self._input_copy),
+                                       ('publisher_copy', self._publisher_copy),
+                                       ('journal_query_copy', self._journal_query_copy),
+                                       ('journal_copy', self._journal_copy)]:
+                    params = [wasmtime.ValType.i32()
+                              for _ in _IMPORT_SIGNATURES[name][0].split()]
+                    self._linker.define_func('actql_host', name,
+                        wasmtime.FuncType(params, [wasmtime.ValType.i32()]),
+                        callback, access_caller=True)
                 for name in ('execution_child_admit', 'execution_child_current',
                              'execution_child_limit', 'execution_child_capacity',
                              'execution_child_report', 'execution_child_stop'):
@@ -684,17 +696,23 @@ class LocalCore:
                 raise RuntimeError('Original Host operation is already active')
             if self._closed or self._retired or self._closing:
                 raise RuntimeError('Original Host normal work is fenced')
+            sequence = getattr(self, '_host_operation_sequence', 0)
+            if type(sequence) is not int or not 0 <= sequence < 2**63 - 1:
+                raise RuntimeError('Original Host operation observation identity exhausted')
             if initial:
                 if self._host_initial_claimed:
                     raise RuntimeError('Original Host bootstrap was already attempted')
                 self._host_initial_claimed = True
             else:
                 self._store.set_fuel(_NORMAL_HOST_OPERATION_FUEL)
+            self._host_operation_sequence = sequence + 1
+            self._host_operation_id = sequence + 1
             self._host_fuel_phase = 'operation'
         try:
             yield
         finally:
             with self._lock:
+                self._host_operation_id = 0
                 self._host_fuel_phase = None
 
     @contextmanager
@@ -707,14 +725,16 @@ class LocalCore:
             if self._invoking:
                 raise RuntimeError('Original Host callback cannot start cleanup')
             joined = self._host_fuel_phase is not None
+            self._host_cleanup_depth = getattr(self, '_host_cleanup_depth', 0) + 1
             if not joined:
                 self._store.set_fuel(_NORMAL_HOST_CLEANUP_FUEL)
                 self._host_fuel_phase = 'cleanup'
         try:
             yield
         finally:
-            if not joined:
-                with self._lock:
+            with self._lock:
+                self._host_cleanup_depth -= 1
+                if not joined:
                     self._host_fuel_phase = None
 
     @staticmethod
@@ -747,6 +767,148 @@ class LocalCore:
         except BaseException:
             return 1
 
+    def _input_copy_bytes(self, payload: bytes) -> int:
+        original = sys.getsizeof(payload)
+        if not getattr(self, '_ordinary_host', False):
+            return original
+        # Memory.write receives a bytearray, so it makes no hidden second
+        # payload copy. The temporary is bounded and charged before fill.
+        return original + min(16384, len(payload)) + sys.getsizeof(bytearray())
+
+    def _output_copy_bytes(self, limit: int) -> int:
+        complete = 2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
+        if not getattr(self, '_ordinary_host', False):
+            return complete
+        # At small bounds, Memory.read's bytearray and its immutable block can
+        # overlap the destination. Charge that actual peak, not just two full
+        # outputs; large outputs already have the larger final-copy allowance.
+        block = (limit + 2 * min(16384, limit)
+                 + 2 * sys.getsizeof(bytearray()) + sys.getsizeof(b''))
+        return max(complete, block)
+
+    def _bulk_memory_current(self, memory: Any) -> None:
+        # This is the same entered instance's fixed linear memory. No address
+        # or view escapes the synchronous copy or replaces its original loan.
+        if (self._closing or self._closed or self._retired
+                or self._exports.get('memory') is not memory):
+            raise ValueError('Foreign or retired original Local transfer memory')
+        observation = getattr(self, '_physical_vm_observation', None)
+        if observation is not None:
+            observation._require_core_current()
+
+    def _bulk_memory(self, caller: Any, offset: int, length: int) -> Any:
+        memory = self._exports.get('memory')
+        self._bulk_memory_current(memory)
+        actual = caller.get('memory')
+        if (memory is None or actual is None
+                or type(offset) is not int or offset < 0
+                or type(length) is not int or not 0 < length <= 16384
+                or cast(actual.data_ptr(caller), c_void_p).value !=
+                   cast(memory.data_ptr(self._store), c_void_p).value):
+            raise ValueError('Foreign or invalid original Local transfer memory')
+        size = actual.data_len(caller)
+        if size > _MEMORY_LIMIT or offset > size or length > size - offset:
+            raise ValueError('Original Local transfer exceeds its memory')
+        return memory
+
+    def _input_copy(self, caller: Any, ticket: int, start: int,
+                    offset: int, length: int) -> int:
+        physical = self._inputs.get(ticket)
+        if physical is None:
+            return -5
+        try:
+            original = physical.payload
+            memory = self._bulk_memory(caller, offset, length)
+            if (type(start) is not int or start < 0 or start > len(original)
+                    or length > len(original) - start):
+                return -5
+            payload = bytearray(memoryview(original)[start:start + length])
+            copied = memory.write(caller, payload, offset)
+            self._bulk_memory_current(memory)
+            if (self._inputs.get(ticket) is not physical or physical.payload is not original
+                    or copied != length):
+                return -5
+            return length
+        except BaseException:
+            return -5
+
+    def _read_output_block(self, value: _Output, start: int, length: int) -> bytes:
+        with self._native_scope():
+            self._owned_output(value, value.family)
+            physical = self._inputs.get(value.ticket)
+            memory = self._exports.get('memory')
+            self._bulk_memory_current(memory)
+            if (physical is None or type(start) is not int or start < 0
+                    or type(length) is not int or not 0 < length <= 16384):
+                raise ValueError('Invalid original Local output block')
+            offset = self._call('buffer', 'read_block', value.handle, start, length)
+            size = memory.data_len(self._store)
+            if (size > _MEMORY_LIMIT or offset < 0 or offset > size
+                    or length > size - offset):
+                raise LocalCoreError('projection_block', offset)
+            raw = bytes(memory.read(self._store, offset, offset + length))
+            self._bulk_memory_current(memory)
+            self._owned_output(value, value.family)
+            if self._inputs.get(value.ticket) is not physical or len(raw) != length:
+                raise LocalCoreError('projection_block', -5)
+            return raw
+
+    def _journal_query_copy(self, caller: Any, ticket: int, index: int,
+                            offset: int, length: int) -> int:
+        callbacks = self._journal_callbacks(ticket)
+        if callbacks is None:
+            return -41
+        try:
+            memory = self._bulk_memory(caller, offset, length)
+            raw = bytes(memory.read(caller, offset, offset + length))
+            self._bulk_memory_current(memory)
+            if self._journal_callbacks(ticket) is not callbacks or len(raw) != length:
+                raise ValueError('Original Local query transfer changed')
+            return callbacks.query_copy(index, raw)
+        except BaseException as error:
+            return callbacks._fail(error)
+
+    def _journal_copy(self, caller: Any, ticket: int, field: int, index: int,
+                      offset: int, length: int) -> int:
+        callbacks = self._journal_callbacks(ticket)
+        if callbacks is None:
+            return -41
+        try:
+            memory = self._bulk_memory(caller, offset, length)
+            original = callbacks.row
+            raw = callbacks.row_copy(field, index, length)
+            copied = memory.write(caller, raw, offset)
+            self._bulk_memory_current(memory)
+            if (self._journal_callbacks(ticket) is not callbacks or callbacks.row is not original
+                    or len(raw) != length or copied != length):
+                raise ValueError('Original Local row transfer changed')
+            return length
+        except BaseException as error:
+            return callbacks._fail(error)
+
+    def _publisher_copy(self, caller: Any, ticket: int, index: int,
+                        offset: int, length: int) -> int:
+        callbacks = self._publisher_callbacks(ticket)
+        if callbacks is None or callbacks.buffer is None:
+            return -2
+        try:
+            original = callbacks.buffer
+            memory = self._bulk_memory(caller, offset, length)
+            if (type(index) is not int or index != callbacks.received or index < 0
+                    or index > len(original) or length > len(original) - index):
+                return -2
+            raw = bytes(memory.read(caller, offset, offset + length))
+            self._bulk_memory_current(memory)
+            if (self._publisher_callbacks(ticket) is not callbacks
+                    or callbacks.buffer is not original or callbacks.received != index
+                    or len(raw) != length):
+                return -2
+            original[index:index + length] = raw
+            callbacks.received += length
+            return length
+        except BaseException:
+            return -2
+
     def _journal_callbacks(self, ticket: int) -> _JournalCallbacks | None:
         value = self._inputs.get(ticket)
         return None if value is None else value.journal
@@ -754,6 +916,45 @@ class LocalCore:
     def _journal_current(self, ticket: int) -> int:
         callbacks = self._journal_callbacks(ticket)
         return -41 if callbacks is None else callbacks.check_current()
+
+    def _journal_current_operation(self, ticket: int) -> int:
+        """Fresh original current plus this entered Host operation's DATA.
+
+        Zero selects complete original observation for raw/cleanup callers.
+        It is not an Allow, permission cache, reader handle or continuation.
+        """
+        callbacks = self._journal_callbacks(ticket)
+        if callbacks is None or callbacks.check_current() != 0:
+            return -41
+        loan = self._loans.get(ticket)
+        if type(loan) is not _Output or loan.family != 'current':
+            return -41
+        try:
+            self._owned_output(loan, 'current')
+        except ValueError:
+            return -41
+        if (not getattr(self, '_ordinary_host', False)
+                or self._host_fuel_phase != 'operation'
+                or getattr(self, '_host_cleanup_depth', 0) != 0
+                or self._closing or self._closed or self._retired):
+            return 0
+        # Only the standard original receiver has completed the full physical
+        # singleton/settings fence in this very reader. Other private/raw
+        # suppliers keep Core's complete observation path, never an error fallback.
+        from ._local_host_binding import OriginalHostBinding
+        receiver = getattr(callbacks.current, '__self__', None)
+        if type(receiver) is not OriginalHostBinding:
+            return 0
+        try:
+            receiver._require_observation_frame(self, loan, callbacks.reader)
+        except ValueError:
+            return -41
+        operation = getattr(self, '_host_operation_id', 0)
+        if (not self._invoking or type(operation) is not int
+                or not 0 < operation < 2**63
+                or operation != self._host_operation_sequence):
+            return -41
+        return operation
 
     def _journal_begin(self, ticket: int, mode: int, namespace_bytes: int, key_bytes: int) -> int:
         callbacks = self._journal_callbacks(ticket)
@@ -1182,7 +1383,7 @@ class LocalCore:
             # physical ticket to disappear while the Core may still own it.
             self._inputs[ticket] = _PhysicalInput(payload, cleanup, stopped)
             handle = self._call('buffer', 'reserve', ticket, len(payload),
-                                sys.getsizeof(payload))
+                                self._input_copy_bytes(payload))
             if handle <= 0:
                 del self._inputs[ticket]
                 raise LocalCoreError('reserve', handle)
@@ -1258,17 +1459,17 @@ class LocalCore:
         with self._lock:
             self._owned_input(source)
             if (self._closing or type(configuration) is not int or
-                    not 0 < configuration < 2**31 or type(kind) is not int or kind not in (1, 2, 3, 4, 5, 6)):
+                    not 0 < configuration < 2**31 or type(kind) is not int or kind not in (1, 2, 3, 4, 5, 6, 7, 8)):
                 raise ValueError('Invalid Local Submission projection')
             ticket = self._next_ticket
             if ticket >= 2**31:
                 raise RuntimeError('Local Core input identity exhausted')
             self._next_ticket += 1
-            limit = 1048576 if kind in (3, 4, 5, 6) else 4096
+            limit = 1048576 if kind in (3, 4, 5, 6, 7, 8) else 4096
             family = ('submission_append' if kind == 3 else
-                      'submission_lookup' if kind in (4, 5, 6) else 'submission')
+                      'submission_lookup' if kind in (4, 5, 6, 7, 8) else 'submission')
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
-            physical_bytes = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
+            physical_bytes = (self._output_copy_bytes(limit)
                               + sys.getsizeof(_Output(self._identity, ticket, 0, limit, family)))
             handle = self._call('submission', 'reserve', configuration, source.handle,
                                 kind, ticket, physical_bytes)
@@ -1294,7 +1495,7 @@ class LocalCore:
             self._next_ticket += 1
             limit = 1_048_576
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
-            allowance = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
+            allowance = (self._output_copy_bytes(limit)
                          + sys.getsizeof(_Output(self._identity, ticket, 0, limit, 'check')))
             handle = self._call('check', 'reserve', environment, configuration,
                                 source.handle, kind, ticket, allowance)
@@ -1351,7 +1552,7 @@ class LocalCore:
             self._next_ticket += 1
             limit = 1_048_576
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
-            physical_bytes = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
+            physical_bytes = (self._output_copy_bytes(limit)
                               + sys.getsizeof(_Output(self._identity, ticket, 0, limit, 'bootstrap')))
             handle = self._call('bootstrap', 'reserve', source.handle, ticket, physical_bytes)
             if handle <= 0:
@@ -1378,7 +1579,7 @@ class LocalCore:
             self._next_ticket += 1
             limit = 65536
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
-            physical_bytes = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
+            physical_bytes = (self._output_copy_bytes(limit)
                               + sys.getsizeof(_Output(self._identity, ticket, 0, limit, 'original')))
             handle = self._call('original', 'reserve', source.handle, kind, ticket, physical_bytes)
             if handle <= 0:
@@ -1525,7 +1726,7 @@ class LocalCore:
             self._next_ticket += 1
             limit = 65_536
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
-            physical_bytes = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
+            physical_bytes = (self._output_copy_bytes(limit)
                               + sys.getsizeof(_Output(self._identity, ticket, 0, limit, family)))
             handle = self._call(family, operation, compute.handle, source.handle,
                                 ticket, physical_bytes)
@@ -1621,7 +1822,7 @@ class LocalCore:
             self._next_ticket += 1
             limit = 1_048_576
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
-            physical_bytes = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
+            physical_bytes = (self._output_copy_bytes(limit)
                               + sys.getsizeof(_Output(self._identity, ticket, 0, limit, 'publication_preflight')))
             handle = self._call('publication_preflight', 'reserve', source.handle,
                                 request.handle, ticket, physical_bytes)
@@ -1685,7 +1886,7 @@ class LocalCore:
             self._next_ticket += 1
             limit = 1_048_576
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
-            physical_bytes = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
+            physical_bytes = (self._output_copy_bytes(limit)
                               + sys.getsizeof(_Output(self._identity, ticket, 0, limit, 'publication')))
             handle = self._call('publication', 'reserve', source.handle, request.handle,
                                 ticket, physical_bytes)
@@ -1781,7 +1982,7 @@ class LocalCore:
             self._next_ticket += 1
             limit = 65536
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
-            physical_bytes = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
+            physical_bytes = (self._output_copy_bytes(limit)
                               + sys.getsizeof(_Output(self._identity, ticket, 0, limit, 'result_binding')))
             handle = self._call('result_binding', 'reserve', publication.handle,
                                 index, observations.handle, ticket, physical_bytes)
@@ -1940,17 +2141,22 @@ class LocalCore:
             return True
 
     def reserve_publication_commit_export(self, publication: _Output, *,
-                                          cleanup: Callable[[], bool]) -> _Output:
-        """Read the original validated candidate; grants no Store permission."""
-        return self._reserve_publication_read_export(publication, 'publication', cleanup)
+                                          cleanup: Callable[[], bool],
+                                          maximum: int = 1_048_576) -> _Output:
+        """Read the original candidate within its reserved field byte bound."""
+        return self._reserve_publication_read_export(publication, 'publication', cleanup, maximum)
 
     def reserve_saved_result_export(self, original: _Output, *,
-                                    cleanup: Callable[[], bool]) -> _Output:
-        """Borrow the nominal saved-read Owner; Core refuses other lookups."""
-        return self._reserve_publication_read_export(original, 'submission_lookup', cleanup)
+                                    cleanup: Callable[[], bool],
+                                    maximum: int = 1_048_576) -> _Output:
+        """Borrow the same saved-read Owner within its bounded field output."""
+        return self._reserve_publication_read_export(original, 'submission_lookup', cleanup, maximum)
 
     def _reserve_publication_read_export(self, publication: _Output, family: str,
-                                         cleanup: Callable[[], bool]) -> _Output:
+                                         cleanup: Callable[[], bool],
+                                         maximum: int = 1_048_576) -> _Output:
+        if type(maximum) is not int or not 1 <= maximum <= 1_048_576:
+            raise ValueError('Invalid original publication field output bound')
         with self._lock:
             self._owned_output(publication, family)
             if self._closing:
@@ -1959,13 +2165,15 @@ class LocalCore:
             if ticket >= 2**31:
                 raise RuntimeError('Local Core input identity exhausted')
             self._next_ticket += 1
-            limit = 1_048_576
+            limit = maximum
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
-            physical_bytes = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
+            physical_bytes = (self._output_copy_bytes(limit)
                               + sys.getsizeof(_Output(self._identity, ticket, 0, limit,
                                                       'publication_commit_export')))
-            handle = self._call('publication_commit_export', 'reserve',
-                                publication.handle, ticket, physical_bytes)
+            handle = (self._call('publication_commit_export', 'reserve',
+                                 publication.handle, ticket, physical_bytes) if limit == 1_048_576
+                      else self._call('publication_commit_export', 'reserve_bounded',
+                                      publication.handle, ticket, limit, physical_bytes))
             if handle <= 0:
                 del self._inputs[ticket]
                 raise LocalCoreError('reserve_publication_commit_export', handle)
@@ -2612,7 +2820,7 @@ class LocalCore:
             self._next_ticket += 1
             limit = 65_536
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
-            physical_bytes = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
+            physical_bytes = (self._output_copy_bytes(limit)
                               + sys.getsizeof(_Output(self._identity, ticket, 0, limit,
                                                       'payload_request')))
             handle = self._call('payload_request', 'reserve', publication.handle, index,
@@ -2664,7 +2872,7 @@ class LocalCore:
             self._next_ticket += 1
             limit = 65_536
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
-            physical_bytes = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
+            physical_bytes = (self._output_copy_bytes(limit)
                               + sys.getsizeof(_Output(self._identity, ticket, 0, limit,
                                                       'payload_chunk')))
             handle = self._call('payload_chunk', 'reserve', request.handle,
@@ -2727,7 +2935,7 @@ class LocalCore:
             self._next_ticket += 1
             limit = 65_536
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
-            physical_bytes = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
+            physical_bytes = (self._output_copy_bytes(limit)
                               + sys.getsizeof(_Output(self._identity, ticket, 0, limit,
                                                       'payload_record')))
             handle = self._call('payload_record', 'reserve', request.handle, ticket, physical_bytes)
@@ -2817,7 +3025,7 @@ class LocalCore:
             self._next_ticket += 1
             limit = 65_536
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
-            physical_bytes = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
+            physical_bytes = (self._output_copy_bytes(limit)
                               + sys.getsizeof(_Output(self._identity, ticket, 0, limit,
                                                       'payload_reservation')))
             handle = self._call('payload_reservation', 'reserve', request.handle, ticket, physical_bytes)
@@ -2891,7 +3099,7 @@ class LocalCore:
             self._next_ticket += 1
             limit = 65_536
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
-            physical_bytes = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
+            physical_bytes = (self._output_copy_bytes(limit)
                               + sys.getsizeof(_Output(self._identity, ticket, 0, limit,
                                                       'payload_writing')))
             handle = self._call('payload_writing', 'reserve', request.handle, kind, ticket, physical_bytes)
@@ -2964,7 +3172,7 @@ class LocalCore:
             self._next_ticket += 1
             limit = 1024
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
-            physical_bytes = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
+            physical_bytes = (self._output_copy_bytes(limit)
                               + sys.getsizeof(_Output(self._identity, ticket, 0, limit,
                                                       'payload_names')))
             handle = self._call('payload_names', 'reserve', record.handle, ticket, physical_bytes)
@@ -3011,7 +3219,7 @@ class LocalCore:
             self._next_ticket += 1
             limit = 65536
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
-            physical_bytes = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
+            physical_bytes = (self._output_copy_bytes(limit)
                               + sys.getsizeof(_Output(self._identity, ticket, 0, limit,
                                                       'payload_binding')))
             handle = self._call('payload_binding', 'reserve', record.handle, ticket, physical_bytes)
@@ -3061,7 +3269,7 @@ class LocalCore:
             self._next_ticket += 1
             limit = 65_536
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
-            physical_bytes = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
+            physical_bytes = (self._output_copy_bytes(limit)
                               + sys.getsizeof(_Output(self._identity, ticket, 0, limit,
                                                       'payload_allocation')))
             handle = self._call('payload_allocation', 'reserve', request.handle, kind, ticket, physical_bytes)
@@ -3140,8 +3348,7 @@ class LocalCore:
             # Register physical custody before entering Wasm, but allocate
             # the large destination only after Core reserves its capacity.
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
-            physical_bytes = (2 * limit + sys.getsizeof(bytearray()) +
-                              sys.getsizeof(b'') +
+            physical_bytes = (self._output_copy_bytes(limit) +
                               sys.getsizeof(_Output(self._identity, ticket, 0, limit)))
             handle = self._call('material', 'reserve', run, kind, ticket,
                                 physical_bytes)
@@ -3172,7 +3379,7 @@ class LocalCore:
             self._next_ticket += 1
             limit = 1_048_576
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
-            physical_bytes = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
+            physical_bytes = (self._output_copy_bytes(limit)
                               + sys.getsizeof(_Output(self._identity, ticket, 0, limit)))
             handle = self._call('material', 'reserve_submitted_rows', run, current,
                                 source.handle, ticket, physical_bytes)
@@ -3412,8 +3619,7 @@ class LocalCore:
             self._next_ticket += 1
             limit = 100_000
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
-            physical_bytes = (2 * limit + sys.getsizeof(bytearray()) +
-                              sys.getsizeof(b'') + sys.getsizeof(
+            physical_bytes = (self._output_copy_bytes(limit) + sys.getsizeof(
                                   _Output(self._identity, ticket, 0, limit, 'source')))
             handle = self._call('source', 'reserve_command', attempt.handle, kind,
                                 account.handle, ticket, physical_bytes)
@@ -3505,7 +3711,7 @@ class LocalCore:
             self._next_ticket += 1
             limit = 65_536
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
-            physical_bytes = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
+            physical_bytes = (self._output_copy_bytes(limit)
                               + sys.getsizeof(_Output(self._identity, ticket, 0, limit, 'result')))
             handle = self._call('result', 'reserve_chunk', result.handle, ticket, physical_bytes)
             if handle <= 0:
@@ -3661,12 +3867,21 @@ class LocalCore:
             if not 0 <= length <= value.limit:
                 raise LocalCoreError(operation, length)
             destination = bytearray(length)
-            for start in range(0, length, 16_384):
-                for index in range(start, min(start + 16_384, length)):
-                    byte = self._call('buffer', 'byte', value.handle, index)
-                    if not 0 <= byte <= 255:
-                        raise LocalCoreError('projection_byte', byte)
-                    destination[index] = byte
+            if getattr(self, '_ordinary_host', False):
+                for start in range(0, length, 16384):
+                    count = min(16384, length - start)
+                    destination[start:start + count] = self._read_output_block(value, start, count)
+            else:
+                # The explicit raw diagnostic facade retains its scalar ABI.
+                # An ordinary block refusal never selects this separate route.
+                for start in range(0, length, 7):
+                    count = min(7, length - start)
+                    packed = self._call('buffer', 'read_packed', value.handle, start, count)
+                    if not 0 <= packed < 1 << (8 * count):
+                        raise LocalCoreError('projection_bytes', packed)
+                    for offset in range(count):
+                        destination[start + offset] = packed & 255
+                        packed >>= 8
             physical.payload = bytes(destination)
             return physical.payload
 
@@ -3692,7 +3907,8 @@ class LocalCore:
             self._owned_input(value)
             if self._closing:
                 raise RuntimeError('Local Core is closing')
-            self._check('fill', self._call('buffer', 'fill', value.handle, start, count))
+            operation = 'fill_block' if getattr(self, '_ordinary_host', False) else 'fill'
+            self._check('fill', self._call('buffer', operation, value.handle, start, count))
 
     def seal_input(self, value: _Input) -> None:
         with self._lock:

@@ -86,6 +86,7 @@ fn submission_run_inspection_with_identity(
     request: record.request,
     definition: record.definition,
     checkpoint: None,
+    task_materials_cid: record.task_materials_cid,
   })
 }
 

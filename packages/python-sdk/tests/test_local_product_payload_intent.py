@@ -9,6 +9,7 @@ from unittest.mock import patch
 from actql_sdk._local_core import LocalCoreError
 from actql_sdk._local_storage import LocalStorageCommitUnknown, LocalStorageError
 import test_local_sdk_results as result_fixture
+from local_abi_declaration_fixture import original_byte_fixture_port
 
 
 RAW = b'{"original":"e\xcc\x81/~\\r\\n","null":null,"absent":{}}'
@@ -84,7 +85,7 @@ class ProductPayloadIntentTests(unittest.TestCase):
                 ticket, _ = records.pop(args[0])
                 return core._cleanup(ticket)
             return 0
-        core._call = call
+        core._call = original_byte_fixture_port(call)
         return host, core, publication, calls, faults
 
     def test_exact_original_request_amount_is_distinct_from_physical_store_limit(self):

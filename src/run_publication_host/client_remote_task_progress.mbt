@@ -168,7 +168,8 @@ fn inspect_bound_client_remote_task_progress(
     observations[task] = Some(observation)
     completed[task] = observation.execution is Some(@remote.NativeSettled) &&
       @remote.durable_coordinator_dispatch_record_evidence(saved) is Some(_)
-    if observation.evidence_rejected || observation.execution
+    if observation.evidence_rejected ||
+      observation.execution
       is Some(
         @remote.ExecutionFailed
         | @remote.ExecutionCancelled

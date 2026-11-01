@@ -9,6 +9,7 @@ import unittest
 from actql_sdk._local_core import LocalCoreError
 import test_local_reader_facts as file_fixture
 import test_local_observed_index_caller as index_fixture
+from local_abi_declaration_fixture import original_byte_fixture_port
 
 
 class RunStateCallerTests(unittest.TestCase):
@@ -42,7 +43,7 @@ class RunStateCallerTests(unittest.TestCase):
                 if family == 'buffer' and name == 'byte' and args[0] in projected:
                     return projected[args[0]][args[1]]
                 return previous(family, name, *args)
-            core._call = call
+            core._call = original_byte_fixture_port(call)
             host._inputs = []
             host._uncertain_ticket = None
             host._now = lambda: 1789603203000
