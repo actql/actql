@@ -184,3 +184,13 @@ pub fn Library::create_authenticated_client_with_custody(
 ) -> Result[Client, NativeHttpClientCreateError] {
   Err(RefusedBeforeAcquisition(UnsupportedTarget))
 }
+
+///|
+pub fn Library::close_checked(_self : Library) -> Result[Unit, NativeHttpIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Client::close_checked(_self : Client) -> Result[Unit, NativeHttpIssue] {
+  Err(UnsupportedTarget)
+}

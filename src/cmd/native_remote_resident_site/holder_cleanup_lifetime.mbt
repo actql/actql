@@ -12,7 +12,7 @@ priv enum HolderCleanupInput {
 fn[T] holder_cleanup_initial_position(resources : T?) -> Int {
   match resources {
     Some(_) => 0
-    None => 5
+    None => 7
   }
 }
 

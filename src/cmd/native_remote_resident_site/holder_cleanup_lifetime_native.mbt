@@ -46,7 +46,7 @@ fn close_holder_output_resources(
   guard original.resources is Some(resources) else {
     return HolderOutputResourcesClosed
   }
-  guard advance_holder_cleanup_pass(resources, original.step, 5, (same, step) => {
+  guard advance_holder_cleanup_pass(resources, original.step, 7, (same, step) => {
     match step {
       0 =>
         match close_holder_effect_host_setup(same) {
@@ -59,8 +59,10 @@ fn close_holder_output_resources(
         }
       1 => same.transfer_journal.close()
       2 => same.store.close() is Ok(_)
-      3 => same.transfer.close()
-      _ => same.control.close()
+      3 => same.transfer.close_checked() is Ok(_)
+      4 => same.control.close_checked() is Ok(_)
+      5 => same.transfer_library.close_checked() is Ok(_)
+      _ => same.control_library.close_checked() is Ok(_)
     }
   }) else {
     return HolderOutputResourcesPending
@@ -78,17 +80,17 @@ fn retry_holder_cleanup_custody(original : HolderCleanupCustody) -> Bool {
     HolderOutputResourcesClosed => ()
     HolderOutputResourcesPending => return false
   }
-  advance_holder_cleanup_pass(original, original.step, 9, (custody, step) => {
+  advance_holder_cleanup_pass(original, original.step, 11, (custody, step) => {
     match step {
-      5 => custody.environment.journal.close()
-      6 =>
+      7 => custody.environment.journal.close()
+      8 =>
         holder_runtime_process_hold_released(
           custody.environment.bundles.release(
             custody.environment.process_hold_id,
           ),
         )
-      7 => custody.environment.bundles.close() is Ok(_)
-      8 =>
+      9 => custody.environment.bundles.close() is Ok(_)
+      10 =>
         if custody.slot_close_unknown {
           false
         } else {

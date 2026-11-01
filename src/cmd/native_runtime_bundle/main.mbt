@@ -815,24 +815,27 @@ fn command() -> @argparse.Command {
 }
 
 ///|
-fn execute(matches : @argparse.Matches) -> Result[String, String] {
+fn execute(
+  matches : @argparse.Matches,
+  control : BundleInitialControl,
+) -> Result[String, String] {
   let store_root = match option(matches, "store-root") {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
   let sqlite_library = match option(matches, "sqlite-library") {
     Ok(path) =>
-      match @sqlite.load_library(path) {
+      match control.load_sqlite(path) {
         Ok(value) => value
-        Err(_) => return Err("SQLite library load failed")
+        Err(issue) => return Err(issue)
       }
     Err(issue) => return Err(issue)
   }
   let crypto_library = match option(matches, "crypto-library") {
     Ok(path) =>
-      match @signature.load_library(path) {
+      match control.load_crypto(path) {
         Ok(value) => value
-        Err(_) => return Err("crypto library load failed")
+        Err(issue) => return Err(issue)
       }
     Err(issue) => return Err(issue)
   }
@@ -886,19 +889,26 @@ fn execute(matches : @argparse.Matches) -> Result[String, String] {
     Err(issue) => return Err(issue)
   }
   let store = match
-    @runtime_bundle.open_runtime_bundle_store_with_trust(
+    @runtime_bundle.open_runtime_bundle_store_with_trust_and_custody(
       sqlite_library, crypto_library, store_root, trust, target_triple, capacity_bytes,
       max_bundles, max_owners, max_record_bytes,
     ) {
-    Ok(value) => value
-    Err(issue) => return Err("Store open " + store_issue_code(issue))
+    Ok(value) => {
+      control.store = Some(value)
+      value
+    }
+    Err(RefusedBeforeAcquisition(issue)) =>
+      return Err("Store open refused " + store_issue_code(issue))
+    Err(CleanupRequired(original)) => {
+      control.failed_store = Some(original)
+      return Err(
+        "Store open cleanup pending " + store_issue_code(original.issue()),
+      )
+    }
   }
   let operation = match matches.subcommand {
     Some(value) => value
-    None => {
-      ignore(store.close())
-      return Err("missing operation")
-    }
+    None => return Err("missing operation")
   }
   let result : Result[String, String] = match operation {
     ("install", child) =>
@@ -1025,22 +1035,58 @@ fn execute(matches : @argparse.Matches) -> Result[String, String] {
       }
     (name, _) => Err("unsupported operation " + name)
   }
-  let close_result = store.close()
-  match (result, close_result) {
-    (Ok(value), Ok(_)) => Ok(value)
-    (Ok(_), Err(close_issue)) =>
-      Err("Store close " + store_issue_code(close_issue))
-    (Err(issue), Ok(_)) => Err(issue)
-    (Err(issue), Err(close_issue)) =>
-      Err(issue + "; Store close " + store_issue_code(close_issue))
+  result
+}
+
+///|
+fn run_bundle_with_initial_control(control : BundleInitialControl) -> Bool {
+  let result = try {
+    control.require_current()
+    let matches = command().parse() catch { error => stop(error.to_string()) }
+    control.require_current()
+    execute(matches, control)
+  } catch {
+    CommandStop(issue) => Err(issue)
+  }
+  // All operation aliases have unwound; retain the returned DATA/diagnostic
+  // inside the same Read until the actual old children acknowledge cleanup.
+  let cleaned = control.close_children()
+  match (result, cleaned) {
+    (Ok(value), true) => {
+      println(value)
+      true
+    }
+    (Err(issue), true) => {
+      let message = @utf8.encode("actql-native-runtime-bundle: " + issue)
+      bundle_command_failure_ffi(message, message.length())
+      false
+    }
+    (_, false) => {
+      bundle_control_diagnostic_ffi(3)
+      false
+    }
   }
 }
 
 ///|
 fn main {
-  let matches = command().parse() catch { error => abort(error.to_string()) }
-  match execute(matches) {
-    Ok(value) => println(value)
-    Err(issue) => abort("actql-native-runtime-bundle: " + issue)
+  let control = capture_bundle_initial_control()
+  let ready = try {
+    control.acquire()
+    control.enter()
+    true
+  } catch {
+    CommandStop(_) => {
+      bundle_control_diagnostic_ffi(1)
+      false
+    }
+  }
+  let succeeded = ready && run_bundle_with_initial_control(control)
+  if !control.close() {
+    bundle_control_diagnostic_ffi(2)
+    bundle_control_exit_failure_ffi()
+  }
+  if !succeeded {
+    bundle_control_exit_failure_ffi()
   }
 }

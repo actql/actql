@@ -1,0 +1,23 @@
+{
+  "kind": "private-runtime-bundle-command-initial-control",
+  "target": "darwin-arm64",
+  "generation": 1,
+  "capacityBytes": 268435456,
+  "controlEnvelopeBytes": 16777216,
+  "maximumArguments": 512,
+  "maximumArgumentBytes": 65536,
+  "maximumArgumentStorageBytes": 1048576,
+  "maximumEnvironmentEntries": 10000,
+  "maximumEnvironmentStorageBytes": 4194304,
+  "ledger": {
+    "planning_work": 64,
+    "attempts": 8,
+    "holdings": 4,
+    "transfer_bytes": 0,
+    "retained_bytes": 0
+  },
+  "managedPayloadBytes": 67108864,
+  "sqliteHeapBytes": 33554432,
+  "cryptoHeapBytes": 16777216,
+  "maximumDiagnosticBytes": 2048
+}
