@@ -56,7 +56,7 @@ pub fn[I] borrow_request_model_plan_input(
 }
 
 ///|
-/// Compile the selected fixed Model profile on the original Request. The
+/// Compile the selected single Model component on the original Request. The
 /// existing construction borrow keeps Graph and output live through this
 /// call and until the actual module/Plan/Scope has retained them. Provider,
 /// codec and complete Model construction backing still belongs to the caller.
@@ -84,9 +84,9 @@ pub fn[I] prepare_request_model_compilation(
     return Err(Preparation(ForeignOriginal))
   }
   if !installed_managed_run_shape_supported(prepared, true) {
-    // A mixed component must come from this SAME Request's backed Graph
-    // constructor. This only continues its original compiler; the actual
-    // Model module, Content prefix, Scope and adoption remain distinct duties.
+    // A selected component must come from this SAME Request's backed Graph
+    // constructor. Continue that original compiler for plain or serialized
+    // input; module/provider/Scope/adoption remain separate original duties.
     let retained = match owner.program_domain_compilation_inputs {
       Some(RequestModelGraph(_, _, _, original)) => Some(original)
       Some(RequestModelCompilation(_, _, _, original)) => Some(original)
@@ -94,8 +94,11 @@ pub fn[I] prepare_request_model_compilation(
     }
     guard retained is Some(original) &&
       physical_equal(original, graph) &&
-      graph.serialization is Some(component) &&
-      physical_equal(component.owner, prepared) else {
+      installed_managed_owner_shape_supported(
+        Pure(prepared),
+        true,
+        model=Some(graph),
+      ) else {
       return Err(Installed(Unsupported))
     }
   }

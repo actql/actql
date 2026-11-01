@@ -1611,3 +1611,56 @@ test "plain acquired Model constructs its original Graph module and Source reade
   retire_installed_managed_run(run).unwrap()
   assert_eq(@resources.ledger_usage(f.parent.ledger).live_reservations, 0)
 }
+
+///|
+test "plain acquired Model original occurrence gate does not widen ordinary purpose or accept another Prepared" {
+  let declaration = request_model_module_declaration()
+  let (parent, input, prepared) = request_model_input_fixture(
+    single_capture=true,
+    declaration=Some(declaration),
+  )
+  let holder = borrow_request_model_plan_input(parent, input).unwrap()
+  let (foreign, foreign_input, foreign_prepared) = request_model_input_fixture()
+  let foreign_holder = borrow_request_model_plan_input(foreign, foreign_input).unwrap()
+  let (occurrence, execution) = request_model_graph_inputs(prepared)
+  let (other, _) = request_model_graph_inputs(foreign_prepared)
+  assert_false(installed_managed_run_shape_supported(prepared, false))
+  assert_false(installed_managed_run_shape_supported(prepared, true))
+  assert_true(
+    installed_managed_owner_shape_supported(
+      Pure(prepared),
+      true,
+      model_occurrence=Some(occurrence),
+    ),
+  )
+  assert_false(
+    installed_managed_owner_shape_supported(
+      Pure(prepared),
+      true,
+      model_occurrence=Some(other),
+    ),
+  )
+  let before = request_preparation_accounting(parent)
+  assert_true(
+    prepare_request_model_graph(
+      parent,
+      input,
+      other,
+      execution,
+      request_program_module_contracts(),
+      manifests=request_program_module_manifests(),
+      compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+    )
+    is Err(Preparation(ForeignOriginal)),
+  )
+  assert_eq(request_preparation_accounting(parent), before)
+  assert_true(parent.program_domain_compilation_inputs is None)
+  assert_false(@resources.return_preparation_body_borrow(holder).unwrap())
+  assert_false(
+    @resources.return_preparation_body_borrow(foreign_holder).unwrap(),
+  )
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  abort_request_preparation_after_cleanup(foreign).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  assert_eq(@resources.ledger_usage(foreign.ledger).live_reservations, 0)
+}

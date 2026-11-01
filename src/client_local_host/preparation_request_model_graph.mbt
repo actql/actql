@@ -1,5 +1,5 @@
 ///|
-/// Fund the existing selected Mock Model Graph on its SAME Request before
+/// Fund the selected single Model Graph on its SAME Request before
 /// request/prefix/barrier/suffix/Result construction. Original compiled input
 /// and provider/execution originals remain separate; this grants no Model I/O.
 /// Module/provider/Scope/output/failed-child backing is not inferred from the
@@ -31,8 +31,13 @@ pub fn[I] prepare_request_model_graph(
   }
   match (serialization, owner.program_domain_compilation_inputs) {
     (None, None) =>
-      // The original no-Content entrance retains its exact purpose/refusal.
-      if !installed_managed_run_shape_supported(prepared, true) ||
+      // The same original occurrence selects this construction profile before
+      // its Graph exists. It grants no acquisition, Model read or adoption.
+      if !installed_managed_owner_shape_supported(
+          Pure(prepared),
+          true,
+          model_occurrence=Some(occurrence),
+        ) ||
         !@publication_host.prepared_client_serialization_occurrences(prepared).is_empty() {
         return Err(Installed(Unsupported))
       }

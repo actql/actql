@@ -114,11 +114,7 @@ fn[I] begin_request_model_module(
   }
   let dag = @publication_host.prepared_client_graph(prepared)
   guard @strategy.graph_captured_prefix(dag) == captures &&
-    (
-      captures == 0 ||
-      captures == 2 ||
-      (captures == 1 && graph.serialization is Some(_))
-    ) &&
+    (captures == 0 || captures == 1 || captures == 2) &&
     owner.program_plan_quote is Some((quoted_r, quoted_e)) &&
     request_model_module_container_bytes(
       @strategy.graph_task_count(dag),

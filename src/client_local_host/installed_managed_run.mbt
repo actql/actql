@@ -195,9 +195,16 @@ fn installed_managed_owner_shape_supported(
   owner : ClientLocalSequenceOwner,
   mock_model : Bool,
   model? : @publication_host.ClientInferPlanGraph? = None,
+  model_occurrence? : @publication_host.ClientInferOccurrence? = None,
 ) -> Bool {
   let graph = installed_managed_owner_graph(owner)
   let captured = @strategy.graph_captured_prefix(graph)
+  // A Graph constructor has the original occurrence before the Graph exists.
+  // Later module/Plan callers must supply their actual checked Graph instead.
+  let selected_occurrence = match model {
+    Some(selected) => Some(selected.occurrence)
+    None => model_occurrence
+  }
   let boundary_count = match owner {
     Pure(prepared) =>
       @publication_host.prepared_client_composed_infer_occurrences(prepared).map(value => {
@@ -225,22 +232,41 @@ fn installed_managed_owner_shape_supported(
   (
     (
       captured > 0 &&
-      (!mock_model || captured == 2 || (model is Some(_) && captured == 1))
+      (
+        !mock_model ||
+        captured == 2 ||
+        (selected_occurrence is Some(_) && captured == 1)
+      )
     ) ||
     (captured == 0 && @strategy.graph_source_free_inputs_complete(graph))
   ) &&
   boundary_count is Some(count) &&
   count == (if mock_model { 1 } else { 0 }) &&
   (match model {
-    None => serialized.is_empty()
+    None =>
+      serialized.is_empty() &&
+      (match (model_occurrence, owner) {
+        (None, _) => true
+        (Some(original), Pure(prepared)) =>
+          mock_model &&
+          @publication_host.client_infer_occurrence_matches(original, prepared)
+        _ => false
+      })
     Some(selected) =>
       mock_model &&
-      selected.serialization is Some(component) &&
       (match owner {
         Pure(prepared) =>
           physical_equal(selected.owner, prepared) &&
-          physical_equal(component.owner, prepared) &&
-          serialized == [(component.task, component.step)]
+          @publication_host.client_infer_occurrence_matches_plan(
+            selected.occurrence,
+            selected,
+          ) &&
+          (match selected.serialization {
+            None => serialized.is_empty()
+            Some(component) =>
+              physical_equal(component.owner, prepared) &&
+              serialized == [(component.task, component.step)]
+          })
         Effect(_) => false
       })
   })

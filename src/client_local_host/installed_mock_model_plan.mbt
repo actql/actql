@@ -1,5 +1,5 @@
 ///|
-// The existing fixed Model profile is selected by an original compiler and
+// The checked single Model component is selected by its original compiler and
 // its one retained occurrence, never by a caller mode or an equal CID.
 fn installed_mock_model_compilation_matches(
   prepared : @publication_host.PreparedClientProgram,
@@ -8,20 +8,20 @@ fn installed_mock_model_compilation_matches(
   physical_equal(compilation.owner, prepared) &&
   compilation.infers.length() == 1 &&
   physical_equal(compilation.infers[0].owner, prepared) &&
-  (
-    installed_managed_run_shape_supported(prepared, true) ||
-    (
-      compilation.infers[0].serialization is Some(component) &&
+  installed_managed_owner_shape_supported(
+    Pure(prepared),
+    true,
+    model=Some(compilation.infers[0]),
+  ) &&
+  (match compilation.infers[0].serialization {
+    None =>
+      @publication_host.client_task_compilation_serialization(compilation)
+      is None
+    Some(component) =>
       @publication_host.client_task_compilation_serialization(compilation)
       is Some(original) &&
-      physical_equal(component, original) &&
-      installed_managed_owner_shape_supported(
-        Pure(prepared),
-        true,
-        model=Some(compilation.infers[0]),
-      )
-    )
-  )
+      physical_equal(component, original)
+  })
 }
 
 ///|
@@ -61,11 +61,7 @@ pub fn prepare_installed_mock_model_source_free_with_contracts(
       fragment_body,
       ordered_body,
       true,
-      model=if compilation.infers[0].serialization is Some(_) {
-        Some(compilation.infers[0])
-      } else {
-        None
-      },
+      model=Some(compilation.infers[0]),
       query_time~,
     ) {
     Err(issue) => return Err(issue)
@@ -85,9 +81,9 @@ pub fn prepare_installed_mock_model_source_free_with_contracts(
 }
 
 ///|
-/// The actual two-Source Model profile retains the SAME supplied acquisition
+/// The single Model component retains the SAME supplied acquisition
 /// inventory, module and compilation. Its ordinary sibling still excludes
-/// Model, and neither entry widens the serialization/physical provider profile.
+/// Model. This checked component does not supply a physical provider or grant.
 pub fn prepare_installed_mock_model_capture_plan(
   prepared : @publication_host.PreparedClientProgram,
   request : @publication_host.ClientRequestIdentity,
@@ -123,11 +119,7 @@ pub fn prepare_installed_mock_model_capture_plan(
       retained_output~,
       provider_factory~,
       query_time~,
-      model=if compilation.infers[0].serialization is Some(_) {
-        Some(compilation.infers[0])
-      } else {
-        None
-      },
+      model=Some(compilation.infers[0]),
     ) {
     Err(issue) => return Err(issue)
     Ok(value) => value

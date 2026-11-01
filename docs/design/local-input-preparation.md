@@ -4799,3 +4799,25 @@ retirement stay independent. Pure provider-selection DATA and a borrowed Ledger
 must pass post-callback original-record checks before attaching aliases; callbacks
 that retire a record cannot resurrect its spent fields. Failures stay with the
 same Request and never reissue the compiler, module, prefix or physical operation.
+
+### Original occurrence before a plain Model Graph
+
+The checked Model occurrence selects the same Request's Graph construction
+before the Graph exists. That occurrence must belong to the original Prepared
+value, and the existing single-Model shape and complete no-Serialization inventory
+remain checked. The ordinary purpose and the legacy shape lookup without this
+original occurrence retain their separate refusal; a capture count alone cannot
+select Model construction.
+
+After Graph construction, compilation and module binding consume that exact
+retained Graph. A plain Model has no Content component; a serialized Model must
+retain the exact compiler-selected Content component. The module, original
+provider capacity, physical read layout and Scope bind to the same compiler,
+Definition, Request and parent. The Source read borrows the module's original
+Query/acquisition and that parent's existing Ledger, and refuses an equal copied
+capacity. Its retirement remains separate from the Model Scope and parent.
+
+This construction does not select a Node execution driver. The physical caller
+must carry the original input prefix and read consumer through its actual
+adoption and cleanup path; an independent single-stage or unowned composed start
+cannot substitute for that connection.
