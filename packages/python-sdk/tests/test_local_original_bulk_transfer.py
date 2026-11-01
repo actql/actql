@@ -162,7 +162,7 @@ class OriginalBulkTransferTests(unittest.TestCase):
             self.assertEqual(store.read(physical_key).payload, payload)
 
     def test_publisher_block_keeps_original_six_facts_and_authorizes_only_complete_once(self):
-        fact = {'stage': 'write', 'namespace_id': 'ns', 'authority_scope_cid': 'scope',
+        fact = {'stage': 'request', 'namespace_id': 'ns', 'authority_scope_cid': 'scope',
                 'run_definition_cid': 'definition', 'publication_request_cid': 'request',
                 'public_index_entry_cid': None}
         payload = json.dumps(fact, separators=(',', ':')).encode()
