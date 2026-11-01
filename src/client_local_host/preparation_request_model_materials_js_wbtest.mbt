@@ -136,25 +136,30 @@ test "serialized Model material originals grow on the same Request before Graph 
   let capacity = parent.program_capacity.unwrap()
   let before = @resources.preparation_capacity_working_extents(capacity, input).unwrap()
   let calls = Ref(0)
+  let observed = Ref(true)
   prepare_request_model_contract_materials(
     parent,
     input,
     2,
     index => {
-      assert_true(parent.phase == Selecting)
-      assert_true(parent.program_domain_compilation_inputs is None)
-      assert_true(parent.program_compilation is None)
+      observed.val = observed.val &&
+        parent.phase == Selecting &&
+        parent.program_domain_compilation_inputs is None &&
+        parent.program_compilation is None
       let current = @resources.preparation_capacity_working_extents(
         capacity, input,
       ).unwrap()
-      assert_true(current.0 > before.0 && current.1 > before.1)
-      assert_eq(index, calls.val)
+      observed.val = observed.val &&
+        current.0 > before.0 &&
+        current.1 > before.1 &&
+        index == calls.val
       calls.val += 1
       ["{\"execution\":\"original\"}", "{\"dependency\":\"original\"}"][index]
     },
     2,
   ).unwrap()
   assert_eq(calls.val, 2)
+  assert_true(observed.val)
   assert_true(parent.phase == ModelPlanReserved)
   assert_true(physical_equal(parent.program_capacity.unwrap(), capacity))
   assert_true(parent.program_domain_compilation_inputs is None)
