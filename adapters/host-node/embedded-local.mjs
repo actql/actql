@@ -1413,11 +1413,9 @@ async function openInstalledHost(originalInstallation, preparation) {
   }
   const effectSubmissions = new WeakMap();
   const effectSelections = new WeakMap();
-  // A prepared Local Host borrows the selected startup's original fixed image;
-  // it must not reread a pathname after that original scope was admitted.
-  // The independent unprepared Host entry retains its existing file route.
-  const environmentSource = preparation === undefined ? await readFile(join(packageRoot,
-    'spec/local-check-environment.json'), 'utf8') : preparation.readEnvironmentSource();
+  // Both installed entrances borrow the same startup's original fixed image.
+  // The required preparation owner leaves no unprepared pathname fallback.
+  const environmentSource = preparation.readEnvironmentSource();
   const selectedLookupPolicy = hostLookupExecutionPolicy ??
     preparation?.localFilesLookupExecutionPolicy?.(moon);
   const baseEnvironmentWire = selectInstalledLocalMaterializationEnvironment(moon, environmentSource.trimEnd(), hostCapacityPolicy,

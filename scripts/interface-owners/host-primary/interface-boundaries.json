@@ -10594,6 +10594,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Required installed Request preparation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Installed environment image has one original route"
               }
             ],
             "inputsOutputs": [
@@ -10643,7 +10647,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const environmentSource = preparation === undefined ? await readFile(join(packageRoot,"
+                "anchor": "const environmentSource = preparation.readEnvironmentSource();"
               },
               {
                 "path": "adapters/host-node/initial-control-host-input.mjs",
@@ -10700,6 +10704,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Required installed Request preparation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Installed environment image has one original route"
               }
             ],
             "identity": [
@@ -10822,6 +10830,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Required installed Request preparation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Installed environment image has one original route"
               }
             ],
             "ownership": [
@@ -10932,6 +10944,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Required installed Request preparation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Installed environment image has one original route"
               }
             ],
             "synchronization": [
@@ -11042,6 +11058,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Required installed Request preparation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Installed environment image has one original route"
               }
             ],
             "failure": [
@@ -11144,6 +11164,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Required installed Request preparation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Installed environment image has one original route"
               }
             ],
             "cancellation": [
@@ -11242,6 +11266,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Required installed Request preparation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Installed environment image has one original route"
               }
             ],
             "resources": [
@@ -11360,6 +11388,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Required installed Request preparation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Installed environment image has one original route"
               }
             ],
             "extension": [
@@ -11458,6 +11490,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Required installed Request preparation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Installed environment image has one original route"
               }
             ],
             "verification": [
@@ -11668,6 +11704,14 @@
               {
                 "path": "adapters/host-node/client-dispatch-observation.test.mjs",
                 "anchor": "required installed preparation forwards only its same funded callback"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Installed environment image has one original route"
+              },
+              {
+                "path": "adapters/host-node/initial-control-environment-source.test.mjs",
+                "anchor": "installed environment rejects an absent preparation owner"
               }
             ]
           }
@@ -14778,7 +14822,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const environmentSource = preparation === undefined ? await readFile(join(packageRoot,"
+                "anchor": "const environmentSource = preparation.readEnvironmentSource();"
               }
             ],
             "identity": [
@@ -17572,7 +17616,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const environmentSource = preparation === undefined ? await readFile(join(packageRoot,"
+                "anchor": "const environmentSource = preparation.readEnvironmentSource();"
               },
               {
                 "path": "adapters/host-node/initial-control-host-input.mjs",
@@ -18662,7 +18706,7 @@
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "eaf5f059edc18b89ff59919658690df3153c726dd0dc2e0d6232a2adf1b3843e"
+      "sha256": "0c41cbf2d2a2d3d578168b3773802b1452c995e0519b13d7c25b91babb95dbc4"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
