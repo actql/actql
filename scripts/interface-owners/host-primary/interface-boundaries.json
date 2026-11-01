@@ -9545,6 +9545,18 @@
           "async": false
         },
         {
+          "name": "openPreparedInstalledHost/preparation/init:prepareManagedModelGraph/init:prepareManagedModelGraph/init:prepareManagedModelGraph",
+          "parameters": [
+            "parent",
+            "input",
+            "originalOccurrence",
+            "selected",
+            "originalExecution",
+            "contracts"
+          ],
+          "async": false
+        },
+        {
           "name": "openPreparedInstalledHost/preparation/init:prepareManagedModelMaterials/init:prepareManagedModelMaterials",
           "parameters": [
             "runtime",
@@ -12270,6 +12282,7 @@
             "openPreparedInstalledHost/preparation/init:prepareManagedContentGraph/init:prepareManagedContentGraph/init:prepareManagedContentGraph",
             "openPreparedInstalledHost/preparation/init:prepareManagedModelBinding/init:prepareManagedModelBinding",
             "openPreparedInstalledHost/preparation/init:prepareManagedModelGraph/init:prepareManagedModelGraph",
+            "openPreparedInstalledHost/preparation/init:prepareManagedModelGraph/init:prepareManagedModelGraph/init:prepareManagedModelGraph",
             "openPreparedInstalledHost/preparation/init:prepareManagedModelMaterials/init:prepareManagedModelMaterials",
             "openPreparedInstalledHost/preparation/init:selectManagedDomainSourceInput/init:selectManagedDomainSourceInput",
             "readHostEffectResultPublicationRunRequirements",
@@ -12292,6 +12305,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request serialized Model keeps the original Content graph"
               }
             ],
             "inputsOutputs": [
@@ -12302,6 +12319,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request serialized Model keeps the original Content graph"
               }
             ],
             "identity": [
@@ -12312,6 +12333,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request serialized Model keeps the original Content graph"
               }
             ],
             "ownership": [
@@ -12322,6 +12347,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request serialized Model keeps the original Content graph"
               }
             ],
             "synchronization": [
@@ -12332,6 +12361,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request serialized Model keeps the original Content graph"
               }
             ],
             "failure": [
@@ -12342,6 +12375,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request serialized Model keeps the original Content graph"
               }
             ],
             "cancellation": [
@@ -12352,6 +12389,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request serialized Model keeps the original Content graph"
               }
             ],
             "resources": [
@@ -12362,6 +12403,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request serialized Model keeps the original Content graph"
               }
             ],
             "extension": [
@@ -12372,6 +12417,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request serialized Model keeps the original Content graph"
               }
             ],
             "verification": [
@@ -12390,6 +12439,14 @@
               {
                 "path": "adapters/host-node/content-preparation-retirement.test.mjs",
                 "anchor": "retired keyed Content does not exhaust the unchanged 4096 live-preparation limit"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request serialized Model keeps the original Content graph"
+              },
+              {
+                "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
+                "anchor": "Request serialized Model preserves native Graph across actual facade Host and manager"
               }
             ]
           }
@@ -18795,7 +18852,7 @@
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "7caab4b098e3aa971cc254808a1b0b493be04c535a7a68fc0364297c97d954af"
+      "sha256": "b13dbd1c2b5f18bdc51ffb193ae5ec6b7c28a5e6fab897c12fde17f1fd88182f"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",

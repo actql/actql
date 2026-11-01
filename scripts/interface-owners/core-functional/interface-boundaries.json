@@ -4485,6 +4485,18 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:prepareClientRequestSerializedInferGraph/init:prepareClientRequestSerializedInferGraph",
+          "parameters": [
+            "parent",
+            "input",
+            "occurrence",
+            "selected",
+            "execution",
+            "contracts"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:prepareDurableResultRowFrames/init:prepareDurableResultRowFrames",
           "parameters": [
             "limits"
@@ -8152,6 +8164,7 @@
             "publicationControl/init:prepareCheckedClientSerializationComponent/init:prepareCheckedClientSerializationComponent",
             "publicationControl/init:prepareCheckedClientSerializationGraph/init:prepareCheckedClientSerializationGraph",
             "publicationControl/init:prepareCheckedClientSerializedInferGraph/init:prepareCheckedClientSerializedInferGraph",
+            "publicationControl/init:prepareClientRequestSerializedInferGraph/init:prepareClientRequestSerializedInferGraph",
             "publicationControl/init:prepareDurableResultRowFrames/init:prepareDurableResultRowFrames",
             "publicationControl/init:prepareLocalEffectDependencyInventory/init:prepareLocalEffectDependencyInventory",
             "publicationControl/init:prepareLocalEffectDependencyInventory/init:prepareLocalEffectDependencyInventory/init:prepareLocalEffectDependencyInventory",
@@ -8587,6 +8600,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request serialized Model keeps the original Content graph"
               }
             ],
             "inputsOutputs": [
@@ -8641,6 +8658,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request serialized Model keeps the original Content graph"
               }
             ],
             "identity": [
@@ -8695,6 +8716,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request serialized Model keeps the original Content graph"
               }
             ],
             "ownership": [
@@ -8753,6 +8778,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request serialized Model keeps the original Content graph"
               }
             ],
             "synchronization": [
@@ -8811,6 +8840,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request serialized Model keeps the original Content graph"
               }
             ],
             "failure": [
@@ -8865,6 +8898,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request serialized Model keeps the original Content graph"
               }
             ],
             "cancellation": [
@@ -8911,6 +8948,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request serialized Model keeps the original Content graph"
               }
             ],
             "resources": [
@@ -8973,6 +9014,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request serialized Model keeps the original Content graph"
               }
             ],
             "extension": [
@@ -9027,6 +9072,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request serialized Model keeps the original Content graph"
               }
             ],
             "verification": [
@@ -9105,6 +9154,14 @@
               {
                 "path": "adapters/host-node/request-keyed-content-caller.test.mjs",
                 "anchor": "Request keyed Content selects then compiles once before completing and adopting its same Host parent"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request serialized Model keeps the original Content graph"
+              },
+              {
+                "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
+                "anchor": "Request serialized Model preserves native Graph across actual facade Host and manager"
               }
             ]
           }
@@ -12517,7 +12574,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "63e06b4ca2eb33e5faa354391172c5242b06cf5259def6dc2ee7c3e9f899245d"
+      "sha256": "bc80786c290b085484359228a0bc7400ae8f8c78d80e876556db491b4ec34813"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -43901,7 +43958,7 @@
     },
     {
       "module": "src/client_local_host/installed_managed_run.mbt",
-      "sha256": "99a30c7ae203537957dfd070f151fbfb601a460e326740221b6c71184fb07aef",
+      "sha256": "d1cfbbdedabe234dcc381af721582f2a3332899e742ea5ca97aab03a4b3f1055",
       "exports": [],
       "operations": [
         {

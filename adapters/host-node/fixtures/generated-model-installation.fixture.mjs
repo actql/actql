@@ -46,13 +46,13 @@ export async function mediaInstallation({requestBytes = 1466, contentBytes = 32,
     max_total_duration_ms: 500, max_total_wire_bytes: requestBytes + 65536,
     max_total_token_reservation: 33,
     media_input_contracts: {document: media.self_cid}, default_publication: 'outcomes'});
-  return {task, hostCapacityPolicy, installation: {
+  return {task, hostCapacityPolicy, installation: Object.freeze({
     environmentWire: canonical({...environment, evidence_bundle_cid: cid(environment)}),
-    executionContracts: [{modelTaskCid: task.contract_cid,
-      cid: execution.self_cid, bodyWire: canonical(execution)}],
-    dependencyBodies: [prompt, retry, backoff, media].map(body =>
-      ({cid: body.self_cid, bodyWire: canonical(body)})),
-  }};
+    executionContracts: Object.freeze([Object.freeze({modelTaskCid: task.contract_cid,
+      cid: execution.self_cid, bodyWire: canonical(execution)})]),
+    dependencyBodies: Object.freeze([prompt, retry, backoff, media].map(body =>
+      Object.freeze({cid: body.self_cid, bodyWire: canonical(body)}))),
+  })};
 }
 
 export function generatedContentInferProgram() {

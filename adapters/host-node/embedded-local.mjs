@@ -3402,23 +3402,19 @@ async function openInstalledHost(originalInstallation, preparation) {
     registry, values, fragment, ordered, namespaceId, authorityScopeCid,
     storeAuthorityCid, ownerPrincipal: principalId, now,
     authorize: actual => hostConnection({principalId: actual, connection: {mode, owner: mode}}),
-    preparedRunRequired: preparation !== undefined,
-    assertRunCurrent: preparation === undefined ? undefined
-      : preparation.assertContentRunCurrent.bind(preparation),
-    retainPreparation: preparation === undefined ? undefined
-      : (prepared, original) => preparation.retainManagedContentPreparation(moon, prepared, original),
-    prepareModelManagedRun: preparation === undefined ? undefined
-      : (prepared, request, model) => preparation.prepareManagedModelRun(moon, prepared, request, model),
-    prepareSerializationManagedRun: preparation === undefined ? undefined
-      : (prepared, request, plan, limits, workspace, original) => preparation.prepareManagedSerializationRun(
-        moon, prepared, request, plan, limits, workspace, original),
-    prepareKeyedManagedRun: preparation === undefined ? undefined : (prepared, request, graph, recipe, original) => {
+    preparedRunRequired: true,
+    assertRunCurrent: preparation.assertContentRunCurrent.bind(preparation),
+    retainPreparation: (prepared, original) => preparation.retainManagedContentPreparation(moon, prepared, original),
+    prepareModelManagedRun: (prepared, request, model) => preparation.prepareManagedModelRun(moon, prepared, request, model),
+    prepareSerializationManagedRun: (prepared, request, plan, limits, workspace, original) => preparation.prepareManagedSerializationRun(
+      moon, prepared, request, plan, limits, workspace, original),
+    prepareKeyedManagedRun: (prepared, request, graph, recipe, original) => {
       if (typeof sourceProfile?.prepareManagedContentRun !== 'function') {
         throw clientOperationError('InstalledContentRunPreparationUnavailable');
       }
       return sourceProfile.prepareManagedContentRun(prepared, request, recipe, graph, original);
     },
-    borrowKeyedManagedLedger: preparation === undefined ? undefined : (prepared, request, recipe,
+    borrowKeyedManagedLedger: (prepared, request, recipe,
       direct, keyed, capacity) => {
       if (typeof sourceProfile?.managedContentLedger !== 'function') {
         throw clientOperationError('InstalledContentRunPreparationUnavailable');
@@ -6809,8 +6805,13 @@ async function openPreparedInstalledHost(options, initialEntry) {
       }
       (computeManaged === undefined ? assertSourceManagedInstallationCurrent
         : assertManagedComputeInstallationCurrent)(manager, originals);
+      const control = runtimeCore(runtime).publicationControl;
       return manager.prepareModelGraph(prepared,
-        originalSourceManagedHostRequest(originals, prepared), occurrence, execution, serializationGraph);
+        originalSourceManagedHostRequest(originals, prepared), occurrence, execution, serializationGraph,
+        serializationGraph === undefined ? undefined :
+          (parent, input, originalOccurrence, selected, originalExecution, contracts) =>
+            control.prepareClientRequestSerializedInferGraph(parent, input, originalOccurrence,
+              selected, originalExecution, contracts));
     },
     prepareManagedModelCompilation(runtime, prepared, graph) {
       const manager = computeManaged ?? sourceManaged;

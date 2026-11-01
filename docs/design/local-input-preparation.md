@@ -5129,3 +5129,38 @@ return the parent. Failed signing and failed cleanup preserve the original
 primary reason, including null or undefined, together with the same existing
 cleanup retry. No cleanup exception acknowledges physical stop, refunds a
 resource or permits another recovery/signature to replace the original duty.
+
+
+### Installed managed starts retain the prepared parent
+
+The installed Local and HTTP Content caller always forwards the same selected
+preparation owner's current, retained-preparation, Model, serialization and
+keyed-Content methods. Absence of that owner cannot select the component-only
+Content route. The installed entry already requires its Request preparation;
+these downstream bindings preserve that requirement instead of offering an
+unprepared alternative.
+
+Effect parents are created from the original recorded Effect plan. The former
+unplanned Effect and Mock-Model starts, and the standalone keyed-Content managed
+start, no longer construct private managed-Run variants. Request-owned Content
+keeps its existing original admission and retirement path. This does not remove
+the raw serialization compiler entries used by query integration, or grant a
+raw compiler fixture an installed Host admission.
+
+
+### Request serialized Model keeps the original Content graph
+
+The installed Content selector exposes immutable task, step and wire DATA.
+Its opaque compilation graph remains in the same runtime facade's existing
+private WeakMap. The fixed Request Model caller passes that selection through
+its original manager; the facade retrieves the same native graph immediately
+before the existing typed constructor receives it. The selection DATA itself
+cannot substitute for that original, and a copied selection refuses before the
+native call. No parsing, graph reissue or equal-CID replacement occurs.
+
+The same parent, input, occurrence, execution and installed sequence contracts
+cross this boundary. The constructor's original Result returns to the manager's
+existing error projection, which retains failures and partial output on that
+Request. The fixed callback is transient; no additional graph or constructor
+alias is retained. Foreign/current/reentry fences, adoption, Scope and physical
+cleanup responsibilities remain with their existing owners.

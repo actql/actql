@@ -506,3 +506,42 @@ test('Request acquired Model Ledger projection cannot resurrect retired Content 
   assert.equal(original.retired, true); assert.equal(original.acquiredLedger, undefined);
   assert.equal(acquiredLedgers.has(ledger), false); assert.equal(calls, 1);
 });
+
+test('installed Local and HTTP Content caller always forwards its selected preparation owner',()=>{
+  const source=readFileSync(new URL('./embedded-local.mjs',import.meta.url),'utf8');let selected;
+  const walk=node=>{if(!node||typeof node!=='object')return;
+    if(node.type==='VariableDeclarator'&&node.id?.name==='runContent'){
+      assert.equal(selected,undefined);selected=node.init;
+    }
+    for(const value of Object.values(node)){
+      if(Array.isArray(value))value.forEach(walk);else if(value&&typeof value==='object')walk(value);
+    }};
+  walk(parse(source,{ecmaVersion:'latest',sourceType:'module'}));assert(selected);
+  const calls=[],moon={},core={},originals=[{},{},{},{},{},{}];let options,constructed=0;
+  const preparation=Object.fromEntries(['assertContentRunCurrent','retainManagedContentPreparation',
+    'prepareManagedModelRun','prepareManagedSerializationRun'].map(name=>[name,function(...args){
+      assert.strictEqual(this,preparation);calls.push([name,...args]);return name;
+    }]));
+  const sourceProfile={prepareManagedContentRun(...args){assert.strictEqual(this,sourceProfile);
+    calls.push(['keyed',...args]);return 'keyed';},managedContentLedger(...args){
+    assert.strictEqual(this,sourceProfile);calls.push(['ledger',...args]);return 'ledger';}};
+  const sentinel={},ports={moon,runtimeCore:value=>{assert.strictEqual(value,moon);return core;},
+    registry:{},values:{},fragment:{},ordered:{},namespaceId:'component',authorityScopeCid:'component',
+    storeAuthorityCid:'component',principalId:'component',now:()=>{},hostConnection:()=>true,
+    preparation,sourceProfile,authorization:undefined,
+    clientOperationError:code=>Object.assign(new Error(code),{code}),
+    installNodeContentRun(value){constructed++;options=value;return sentinel;}};
+  const construct=Function(...Object.keys(ports),'return ('+source.slice(selected.start,selected.end)+');');
+  assert.strictEqual(construct(...Object.values(ports)),sentinel);assert.equal(constructed,1);
+  assert.equal(options.preparedRunRequired,true);assert.equal(options.assertRunCurrent(),'assertContentRunCurrent');
+  assert.equal(options.retainPreparation(...originals.slice(0,2)),'retainManagedContentPreparation');
+  assert.equal(options.prepareModelManagedRun(...originals.slice(0,3)),'prepareManagedModelRun');
+  assert.equal(options.prepareSerializationManagedRun(...originals),'prepareManagedSerializationRun');
+  assert.equal(options.prepareKeyedManagedRun(...originals.slice(0,5)),'keyed');
+  assert.equal(options.borrowKeyedManagedLedger(...originals),'ledger');
+  assert.deepEqual(calls,[['assertContentRunCurrent'],['retainManagedContentPreparation',moon,...originals.slice(0,2)],
+    ['prepareManagedModelRun',moon,...originals.slice(0,3)],['prepareManagedSerializationRun',moon,...originals],
+    ['keyed',originals[0],originals[1],originals[3],originals[2],originals[4]],['ledger',...originals]]);
+  assert.throws(()=>construct(...Object.entries(ports).map(([key,value])=>key==='preparation'?undefined:value)),TypeError);
+  assert.equal(constructed,1,'an absent owner must not install the legacy Content route');
+});
