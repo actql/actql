@@ -301,7 +301,10 @@ test "closed entered observation shares only its adjacent pure projection sample
       post_original=post,
     )
   }
-  let material = @host.bind_client_local_adopted_host_material(record.store, observe).unwrap()
+  let material = @host.bind_client_local_adopted_host_material(
+    record.store,
+    observe,
+  ).unwrap()
   record.material = Some(material)
   assert_eq(checks.val, 2)
   assert_eq(reads.val, 2)
@@ -312,7 +315,8 @@ test "closed entered observation shares only its adjacent pure projection sample
       connection: "local-files",
       resource: "run",
       operation: "read",
-    }) is Ok(@authorization.Allow(_)),
+    })
+    is Ok(@authorization.Allow(_)),
   )
   assert_true(
     @host.client_local_adopted_account_outcome(material, record.store, {
@@ -320,10 +324,175 @@ test "closed entered observation shares only its adjacent pure projection sample
       connection: "local-files",
       resource: "run",
       operation: "read",
-    }) is Ok(@authorization.Deny(_)),
+    })
+    is Ok(@authorization.Deny(_)),
   )
   assert_eq(checks.val, 4)
   assert_eq(reads.val, 2)
+  @buffers.close_buffer(pool, record.slot).unwrap()
+  @buffers.close_pool(pool).unwrap()
+}
+
+///|
+test "closed observation refuses replacement originals during physical sampling" {
+  for field in 0..<14 {
+    let (record, pool) = operation_current_fixture()
+    let row : @host.ClientJournalPhysicalRow = {
+      key: "adoption",
+      revision: 0L,
+      body: record.adoption_original.unwrap(),
+    }
+    let material = @host.bind_client_local_adopted_host_material(record.store, () => {
+      host_current_observe_original(record, () => Ok(1L), () => Ok(()), cursor => {
+        Ok(if cursor == "" { Some(row) } else { None })
+      })
+    }).unwrap()
+    record.material = Some(material)
+    let calls = Ref(0)
+    let result = host_current_observe_original(
+      record,
+      () => {
+        calls.val += 1
+        match field {
+          0 =>
+            record.account = Some(
+              @authorization.admit_account_configuration_json(
+                @utf8.decode(record.account_original.unwrap()),
+              ).unwrap(),
+            )
+          1 =>
+            record.account_original = Some(
+              @utf8.encode(@utf8.decode(record.account_original.unwrap())),
+            )
+          2 =>
+            record.adoption_original = Some(
+              @utf8.encode(@utf8.decode(record.adoption_original.unwrap())),
+            )
+          3 => record.generation = Some((7, 10))
+          4 => record.material = None
+          5 =>
+            record.original_adoption_row = Some({
+              key: row.key,
+              revision: row.revision,
+              body: row.body,
+            })
+          6 => record.observed_operation = 2L
+          7 => record.store.val = 2
+          8 => record.principal = Some("foreign")
+          9 => record.connection = Some("foreign-files")
+          10 => record.invoked = false
+          11 => record.produced = true
+          12 => record.closing = true
+          _ => record.output_closed = true
+        }
+        Ok(1L)
+      },
+      () => abort("no replacement may reach a current query"),
+      _ => abort("no replacement may reach a row query"),
+      post_original=Some(() => Ok(())),
+    )
+    assert_true(result is Err(-41))
+    assert_eq(record.observed_operation, 0L)
+    assert_eq(calls.val, 1)
+    @buffers.close_buffer(pool, record.slot).unwrap()
+    @buffers.close_pool(pool).unwrap()
+  }
+}
+
+///|
+test "closed observation checks original liveness after its physical callback" {
+  for failure in 0..<3 {
+    let (record, pool) = operation_current_fixture()
+    let row : @host.ClientJournalPhysicalRow = {
+      key: "adoption",
+      revision: 0L,
+      body: record.adoption_original.unwrap(),
+    }
+    let material = @host.bind_client_local_adopted_host_material(record.store, () => {
+      host_current_observe_original(record, () => Ok(1L), () => Ok(()), cursor => {
+        Ok(if cursor == "" { Some(row) } else { None })
+      })
+    }).unwrap()
+    record.material = Some(material)
+    let instance_closed = Ref(false)
+    let checks = Ref(0)
+    let result = host_current_observe_original(
+      record,
+      () => {
+        checks.val += 1
+        instance_closed.val = true
+        Ok(1L)
+      },
+      () => abort("no retired current query"),
+      _ => abort("no retired row query"),
+      post_original=Some(() => {
+        if failure == 0 && instance_closed.val {
+          Err(-51)
+        } else if failure == 1 {
+          record.store.val = 2
+          Ok(())
+        } else {
+          record.closing = true
+          Ok(())
+        }
+      }),
+    )
+    assert_true(
+      if failure == 0 {
+        result is Err(-51)
+      } else {
+        result is Err(-41)
+      },
+    )
+    assert_eq(record.observed_operation, 0L)
+    assert_eq(checks.val, 1)
+    @buffers.close_buffer(pool, record.slot).unwrap()
+    @buffers.close_pool(pool).unwrap()
+  }
+}
+
+///|
+test "closed observation keeps full row fences for new and zero operations" {
+  let (record, pool) = operation_current_fixture()
+  let row : @host.ClientJournalPhysicalRow = {
+    key: "adoption",
+    revision: 0L,
+    body: record.adoption_original.unwrap(),
+  }
+  let material = @host.bind_client_local_adopted_host_material(record.store, () => {
+    host_current_observe_original(record, () => Ok(1L), () => Ok(()), cursor => {
+      Ok(if cursor == "" { Some(row) } else { None })
+    })
+  }).unwrap()
+  record.material = Some(material)
+  let checks = Ref(0)
+  let currents = Ref(0)
+  let rows = Ref(0)
+  for operation in [2L, 0L, 0L] {
+    assert_true(
+      host_current_observe_original(
+        record,
+        () => {
+          checks.val += 1
+          Ok(operation)
+        },
+        () => {
+          currents.val += 1
+          Ok(())
+        },
+        cursor => {
+          rows.val += 1
+          Ok(if cursor == "" { Some(row) } else { None })
+        },
+        post_original=Some(() => Ok(())),
+      )
+      is Ok(@host.Observed(_, _, _, _, _)),
+    )
+  }
+  assert_eq(checks.val, 6)
+  assert_eq(currents.val, 3)
+  assert_eq(rows.val, 6)
+  assert_eq(record.observed_operation, 0L)
   @buffers.close_buffer(pool, record.slot).unwrap()
   @buffers.close_pool(pool).unwrap()
 }
