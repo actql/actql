@@ -2396,3 +2396,19 @@ original current callback, including the post-await fence. Retirement severs
 the deferred original-method vector with the other input aliases. That vector
 uses the checked operation-child inventory's existing collection owner, without
 a new resource owner, grant or fixed callback tariff.
+
+
+Local STORE recovery admits every original request before encoding its records.
+Its closed canonical envelope encodes each immutable record once, checks the
+cumulative UTF8 byte bound before retaining another row, and joins the full wire
+only after that bound succeeds. The observation CID hashes that SAME wire;
+it does not reconstruct or canonicalize a second full recovery tree. This
+preserves original request/current refusal precedence and grants no Content read
+or physical write permission.
+
+An approved Local STORE keeps the original writer on the request before execute.
+Execution and close record failure presence separately from their thrown value:
+`undefined` and `null` remain failures. A confirmed close preserves the original
+execution failure unchanged. A failed or pending close keeps the SAME cleanup
+handle and original primary cause, without projecting a stored response or
+turning cleanup uncertainty into an acknowledgement.

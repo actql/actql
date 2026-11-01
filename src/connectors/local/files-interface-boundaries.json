@@ -2378,7 +2378,7 @@
     {
       "module": "adapters/connectors/local/host/installed-project-file-effects.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "49b76202833a82c68d8dbffcf652a87ecede796f9f0aa717776ac6f3f3ea3a73",
+      "sha256": "d4302cacf10d378d197c5cc9f1cdb7cfa7f24c4ccb598d710f0414572cf3ca1c",
       "role": "connector-semantics",
       "owner": "Existing installed Local collection/Row Effect, original Account/Run and physical Root children",
       "exports": [
@@ -2609,7 +2609,7 @@
           "async": false
         },
         {
-          "name": "createLocalFileStoreDriver/driver/init:recoveryEntry/init:recoveryEntry/saved/saved",
+          "name": "createLocalFileStoreDriver/driver/init:recoveryEntry/init:recoveryEntry/records/records",
           "parameters": [
             "entry"
           ],
@@ -2892,7 +2892,7 @@
             "createLocalFileStoreDriver/driver/init:project/init:project",
             "createLocalFileStoreDriver/driver/init:recheckRequests/init:recheckRequests",
             "createLocalFileStoreDriver/driver/init:recoveryEntry/init:recoveryEntry",
-            "createLocalFileStoreDriver/driver/init:recoveryEntry/init:recoveryEntry/saved/saved",
+            "createLocalFileStoreDriver/driver/init:recoveryEntry/init:recoveryEntry/records/records",
             "createLocalFileStoreDriver/driver/init:requestFacts/init:requestFacts",
             "createLocalFileStoreDriver/driver/init:send/init:send",
             "createLocalFileStoreDriver/driver/init:send/init:send/write/init:assertCurrent/init:assertCurrent",
