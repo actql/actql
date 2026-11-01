@@ -1625,9 +1625,36 @@ commit a Store, acknowledge publication, issue publisher permission or decide
 Run completion. ABI33 artifacts are rejected by the current strict loader;
 prior immutable evidence retains its original source and module identity.
 
+## Bounded ordinary transfers
+
+Private ABI82 restores bounded block transfers at the existing Python/Core
+boundary. The ordinary installed Host uses up to 16384 bytes for each input,
+output, Journal query/row and publisher-fact copy. This is physical transport
+of the same original bytes, not another decoder, Owner or authorization path.
+The same output/input reservation, fixed original VM and original scoped
+reader/transaction remain retained. All existing current checks, full row
+comparison, limits, publication facts and physical cleanup rules still apply.
+
+Core obtains only a source-pinned wasm32 payload offset through a private
+`#borrow` entrance. Python accepts only the same entered instance's exported,
+nonshared fixed memory, checks the complete bounded range, copies synchronously
+and checks original currentness/loan identity afterward. No address or view is
+public, retained beyond copying or used as a Run, grant or cleanup identity.
+An incomplete transfer refuses without caching a partial output. A failure
+retains the same original ticket and cleanup duties; no physical ACK follows
+from copying bytes.
+
+The separately selected raw diagnostic facade retains `fill`, `byte` and
+`read_packed`. Ordinary input/output use `fill_block` and `read_block`; a refused
+block never falls back to scalar transfer or an older module. This changes no
+wire, CID, schema, pool allowance, fuel or Run/Read law. The block-size bound is
+a transfer bound and is not a claim about whole Python/SQLite memory or normal
+latency.
+
 ## Physical publication metadata transactions
 
-Private ABI81 transports up to seven original output bytes per nonnegative
+The separately selected raw diagnostic ABI retains the ABI81 transport of up to
+seven original output bytes per nonnegative
 Int64 scalar. The same instance nonce and original buffer handle are retained;
 each selected byte passes the existing Buffer Owner guard. Count, position and
 closed/foreign access still refuse without exposing a partial scalar. Python
