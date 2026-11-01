@@ -73427,7 +73427,7 @@
             "identity": [
               {
                 "path": "src/run_publication_host/client_saved_run_reference_locator.mbt",
-                "anchor": "pub fn read_client_saved_run_reference("
+                "anchor": "pub fn[E] read_client_saved_run_reference("
               }
             ],
             "ownership": [
@@ -73578,7 +73578,7 @@
             "identity": [
               {
                 "path": "src/run_publication_host/client_saved_run_reference_locator.mbt",
-                "anchor": "pub fn read_client_saved_run_reference("
+                "anchor": "pub fn[E] read_client_saved_run_reference("
               }
             ],
             "ownership": [
