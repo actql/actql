@@ -288,7 +288,29 @@ pub fn issue_installed_client_composed_infer_plan_graph(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  construction? : ClientInferGraphConstruction? = None,
 ) -> Result[ClientInferPlanGraph, ClientInferPlanGraphIssue] {
+  if construction is Some(original) {
+    if @strategy.graph_program_has_effects(occurrence.owner.graph) ||
+      !prepared_client_serialization_occurrences(occurrence.owner).is_empty() {
+      return Err(UnsupportedProgram)
+    }
+    return issue_client_infer_plan_graph_for_occurrence(
+      occurrence,
+      execution,
+      prepared_client_check_environment_cid(occurrence.owner),
+      @environment.model_task_identity(
+        @environment.model_execution_task(execution),
+      ).2,
+      sequence_limits,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      1000000,
+      false,
+      construction=Some(original),
+    )
+  }
   if @strategy.graph_program_has_effects(occurrence.owner.graph) {
     let serialization = match
       issue_client_serialization_effect_plan(
@@ -452,11 +474,35 @@ fn issue_client_infer_plan_graph_for_occurrence(
   capacity_work : Int,
   include_results : Bool,
   serialization? : ClientSerializationPlanGraph? = None,
+  construction? : ClientInferGraphConstruction? = None,
+  prepare_mappings? : (
+    @infer.CheckedInfer,
+    @parameter.BoundValues?,
+    @lower.ExpressionLimits,
+  ) -> Result[@lower.PreparedInferInputs, @lower.InferInputIssue] = (
+    infer,
+    parameters,
+    limits,
+  ) => @lower.prepare_infer_inputs(infer, parameters, limits),
 ) -> Result[ClientInferPlanGraph, ClientInferPlanGraphIssue] {
   let value = occurrence.owner
   let owner = occurrence.preparation
   let step = occurrence.step
   let task = occurrence.task
+  if construction is Some(original) {
+    guard physical_equal(original.occurrence, occurrence) &&
+      physical_equal(original.execution, execution) &&
+      client_full_sequence_limits_match(
+        original.sequence_limits,
+        sequence_limits,
+      ) &&
+      original.max_wire_bytes == max_wire_bytes &&
+      original.max_nodes == max_nodes &&
+      original.max_depth == max_depth &&
+      serialization is None else {
+      return Err(UnsupportedProgram)
+    }
+  }
   guard client_infer_occurrence_output_step(occurrence) is Some(terminal) &&
     terminal >= step &&
     @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
@@ -511,21 +557,41 @@ fn issue_client_infer_plan_graph_for_occurrence(
         }
       }
       None =>
-        issue_client_infer_prefix_fragment_for_owner(
-          owner, task, step, sequence_limits, max_wire_bytes, max_nodes, max_depth,
-        )
+        match construction {
+          Some(original) => {
+            guard original.pipeline_inputs.get(0) is Some(input) else {
+              return Err(UnsupportedProgram)
+            }
+            issue_constructed_client_infer_fragment(
+              occurrence,
+              step - 1,
+              input,
+              max_wire_bytes,
+              max_nodes,
+              max_depth,
+            )
+          }
+          None =>
+            issue_client_infer_prefix_fragment_for_owner(
+              owner, task, step, sequence_limits, max_wire_bytes, max_nodes, max_depth,
+            )
+        }
     }) {
     Ok(value) => value
     Err(issue) => return Err(Input(issue))
   }
-  let mappings = match
-    @lower.prepare_infer_inputs(
-      infer,
-      @lower.parameter_bindings(owner),
-      sequence_limits.expressions,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(Mapping(issue))
+  let mappings = match construction {
+    Some(original) => original.mappings
+    None =>
+      match
+        prepare_mappings(
+          infer,
+          @lower.parameter_bindings(owner),
+          sequence_limits.expressions,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(Mapping(issue))
+      }
   }
   guard client_task_carrier_contract(
       @lower.node_output_carrier(node),
@@ -768,17 +834,28 @@ fn issue_client_infer_plan_graph_for_occurrence(
     }
     for next in (step + 1)..<(terminal + 1) {
       let fragment = match
-        issue_client_infer_compute_fragment(
-          owner,
-          task,
-          step,
-          next,
-          sequence_limits,
-          max_wire_bytes,
-          max_nodes,
-          max_depth,
-          serialization_boundary=serialization.map(value => value.step),
-        ) {
+        (match construction {
+          Some(original) => {
+            guard original.pipeline_inputs.get(next - step) is Some(input) else {
+              return Err(UnsupportedProgram)
+            }
+            issue_constructed_client_infer_fragment(
+              occurrence, next, input, max_wire_bytes, max_nodes, max_depth,
+            )
+          }
+          None =>
+            issue_client_infer_compute_fragment(
+              owner,
+              task,
+              step,
+              next,
+              sequence_limits,
+              max_wire_bytes,
+              max_nodes,
+              max_depth,
+              serialization_boundary=serialization.map(value => value.step),
+            )
+        }) {
         Ok(fragment) => fragment
         Err(issue) => return Err(Input(issue))
       }

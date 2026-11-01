@@ -761,6 +761,7 @@ fn[I] prepare_request_compilation_owned(
   let continuation_phase = match domain {
     Some(RequestEffectCaptureRecovery(_, _))
     | Some(RequestSerializationGraph(_, _, _, _))
+    | Some(RequestModelGraphConstruction(_, _, _, _))
     | Some(RequestModelGraph(_, _, _, _)) => return Err(Preparation(WrongPhase))
     Some(RequestModelCompilation(_, _, _, _)) => ModelPlanReserved
     Some(RequestSerializationCompilation(_, _, _, _))
@@ -784,6 +785,7 @@ fn[I] prepare_request_compilation_owned(
             (match domain {
               Some(RequestEffectCaptureRecovery(_, _))
               | Some(RequestSerializationGraph(_, _, _, _))
+              | Some(RequestModelGraphConstruction(_, _, _, _))
               | Some(RequestModelGraph(_, _, _, _)) =>
                 return Err(Preparation(WrongPhase))
               Some(RequestModelCompilation(_, _, _, graph)) =>
@@ -834,6 +836,7 @@ fn[I] prepare_request_compilation_owned(
         (match domain {
           Some(RequestEffectCaptureRecovery(_, _))
           | Some(RequestSerializationGraph(_, _, _, _))
+          | Some(RequestModelGraphConstruction(_, _, _, _))
           | Some(RequestModelGraph(_, _, _, _)) =>
             return Err(Preparation(WrongPhase))
           Some(RequestModelCompilation(_, _, _, graph)) =>
@@ -922,6 +925,7 @@ fn[I] prepare_request_compilation_owned(
   ] = match domain {
     Some(RequestEffectCaptureRecovery(_, _))
     | Some(RequestSerializationGraph(_, _, _, _))
+    | Some(RequestModelGraphConstruction(_, _, _, _))
     | Some(RequestModelGraph(_, _, _, _)) => Err(Preparation(WrongPhase))
     Some(RequestModelCompilation(_, _, _, graph)) =>
       @publication_host.observe_prepared_client_multi_infer_plan_encoding(

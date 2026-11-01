@@ -51,6 +51,14 @@ priv enum ClientRequestDomainCompilationInputs {
   )
   // The original component is already backed before the caller can compile
   // it. Reuse this same four-reference slot, then transfer it to that compiler.
+  // Same resident four-reference slot while the backed Graph constructor
+  // retains its original mappings/lowering through a failed issuer/current.
+  RequestModelGraphConstruction(
+    @publication_host.ClientCompilationManifests,
+    @publication_host.ClientPureCompilationLimits,
+    ClientInstalledSequenceContracts,
+    @publication_host.ClientInferGraphConstruction
+  )
   RequestModelGraph(
     @publication_host.ClientCompilationManifests,
     @publication_host.ClientPureCompilationLimits,

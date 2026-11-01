@@ -131,3 +131,55 @@ test "Model Graph original-current refusal leaves no component and retains same 
   abort_request_preparation_after_cleanup(parent).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }
+
+///|
+test "Model Graph retains its already backed original preparation through refused issuer reservation on the same Request" {
+  let armed = Ref(false)
+  let selected : Ref[ClientRequestPreparation[Array[Int]]?] = Ref(None)
+  let (parent, input, prepared) = request_model_input_fixture(current=() => {
+    if armed.val &&
+      selected.val is Some(owner) &&
+      owner.program_domain_compilation_inputs
+      is Some(RequestModelGraphConstruction(_, _, _, _)) {
+      false
+    } else {
+      true
+    }
+  })
+  selected.val = Some(parent)
+  let holder = borrow_request_model_plan_input(parent, input).unwrap()
+  let (occurrence, execution) = request_model_graph_inputs(prepared)
+  let before = @resources.preparation_capacity_working_extents(
+    parent.program_capacity.unwrap(),
+    input,
+  ).unwrap()
+  armed.val = true
+  assert_true(
+    prepare_request_model_graph(
+      parent,
+      input,
+      occurrence,
+      execution,
+      request_program_module_contracts(),
+      manifests=request_program_module_manifests(),
+      compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+    )
+    is Err(Preparation(Capacity(_))),
+  )
+  armed.val = false
+  assert_true(
+    parent.phase == ProgramBodyFailed &&
+    parent.program_domain_compilation_inputs
+    is Some(RequestModelGraphConstruction(_, _, _, _)) &&
+    parent.program_compilation is None,
+  )
+  let after = @resources.preparation_capacity_working_extents(
+    parent.program_capacity.unwrap(),
+    input,
+  ).unwrap()
+  assert_true(after.0 > before.0 && after.1 > before.1)
+  assert_false(@resources.return_preparation_body_borrow(holder).unwrap())
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_true(parent.program_domain_compilation_inputs is None)
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}

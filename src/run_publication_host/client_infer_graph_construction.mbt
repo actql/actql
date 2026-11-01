@@ -1,9 +1,10 @@
 ///|
 /// Geometry of this original Model occurrence's complete prefix/request/
 /// barrier/suffix/Result construction. This is DATA, never a Graph, policy,
-/// provider admission or Resource permission. The real issuer still selects
-/// every Result branch and binds the original execution/occurrence.
-pub(all) struct ClientInferGraphConstruction {
+/// provider admission or Resource permission. The same construction also owns
+/// its actual original mappings and lowered Fragment inputs. The real issuer
+/// consumes these originals; it still selects and validates every Result.
+pub struct ClientInferGraphConstruction {
   fragments : Array[ClientTaskFragmentConstruction]
   request : (Int, Int, Int)
   barrier : (Int, Int, Int)
@@ -15,6 +16,14 @@ pub(all) struct ClientInferGraphConstruction {
   projections : Array[ClientResultGraphConstruction]
   results : Array[(Int, Int, Int)]
   graph : (Int, Int, Int)
+  priv occurrence : ClientInferOccurrence
+  priv execution : @environment.ModelExecutionContract
+  priv sequence_limits : @lower.SequenceLimits
+  priv max_wire_bytes : Int
+  priv max_nodes : Int
+  priv max_depth : Int
+  priv mappings : @lower.PreparedInferInputs
+  priv pipeline_inputs : Array[ClientTaskPipelineInput]
 }
 
 ///|
@@ -49,7 +58,7 @@ pub fn measure_installed_client_composed_infer_graph_construction(
     ) {
     return Err(ForeignExecution)
   }
-  let prefix = match
+  let (prefix, prefix_input) = match
     measure_client_infer_fragment_construction(
       occurrence,
       step - 1,
@@ -125,6 +134,7 @@ pub fn measure_installed_client_composed_infer_graph_construction(
     )
     let barrier_node = @encode.finish_measurement_usage(node_writer)
     let fragments = [prefix]
+    let pipeline_inputs = [prefix_input]
     let nodes = [prefix.fragment, barrier_node]
     let edges : Array[(Int, Int, Int)] = []
     let roots : Array[(Int, Int, Int)] = []
@@ -149,7 +159,7 @@ pub fn measure_installed_client_composed_infer_graph_construction(
     )
     edges.push(@encode.finish_measurement_usage(edge_writer))
     for next in (step + 1)..<(terminal + 1) {
-      let fragment = match
+      let (fragment, prepared_input) = match
         measure_client_infer_fragment_construction(
           occurrence, next, sequence_limits, max_wire_bytes, max_nodes, max_depth,
         ) {
@@ -157,6 +167,7 @@ pub fn measure_installed_client_composed_infer_graph_construction(
         Ok(value) => value
       }
       fragments.push(fragment)
+      pipeline_inputs.push(prepared_input)
       nodes.push(fragment.fragment)
       guard @lower.node_at(@lower.bound_preparation(bound), next)
         is Some(consumer) else {
@@ -252,6 +263,14 @@ pub fn measure_installed_client_composed_infer_graph_construction(
     client_plan_emit_array(writer, roots, emit_client_task_pipeline_measurement)
     @encode.end_object(writer)
     Ok({
+      occurrence,
+      execution,
+      sequence_limits,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      mappings,
+      pipeline_inputs,
       fragments,
       request,
       barrier,
