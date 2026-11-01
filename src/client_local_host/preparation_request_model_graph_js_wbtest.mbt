@@ -665,6 +665,12 @@ fn request_acquired_model_capture_fixture(
   }
   assert_true(complete)
   let capture = @row_source_host.capture_row_run(source).unwrap()
+  let quantities = @resources.quantity_usage(f.parent.ledger)
+  assert_eq(quantities.consumed.tokens, 0L)
+  assert_eq(quantities.consumed.cost_units, 0L)
+  assert_eq(quantities.consumed.duration_ms, 0L)
+  assert_eq(quantities.reserved.tokens, 0L)
+  assert_eq(quantities.uncertain.tokens, 0L)
   {
     original: f,
     prefix,

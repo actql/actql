@@ -609,6 +609,7 @@ fn attach_row_reservation(
       transfer_bytes,
       retained_bytes,
       execution_bytes + execution_scratch,
+      quantities=@resources.quantity_neutral_amounts(ledger),
     ) {
     Ok(value) => value
     Err(issue) => {
