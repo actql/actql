@@ -59,10 +59,11 @@ test('Linux ambiguous rename error remains pending without replay or destination
   assert.equal(readFileSync(directory+'/result','utf8'),'exact');
   // This child exits with retained uncertain custody. Exit is not a close ACK.
 `));
-test('Linux create refuses dangling symlink and namespace contains full Files only',()=>isolated('symlink',`
+test('Linux create refuses dangling symlink and namespace contains only shared Files and Store-owner primitives',()=>isolated('symlink',`
   assert.deepEqual(Object.keys(native).sort(),['openFileRoot','openFileDirectory','openRootFile',
     'fileRootCurrent','fileRootStat','fileRootNext','fileRootRead','fileRootClose','fileRootEntryKind',
-    'openRootFileWriter','fileRootWrite','fileRootPublish'].sort());
+    'openRootFileWriter','fileRootWrite','fileRootPublish',
+    'openStoreOwnerLease','storeOwnerLeaseReceipt'].sort());
   symlinkSync(directory+'/absent',directory+'/result');
   const writer=make();writer.start();writer.write(Buffer.from('exact'));
   assert.throws(()=>writer.publish(),{code:'LocalFileDestinationExists'});

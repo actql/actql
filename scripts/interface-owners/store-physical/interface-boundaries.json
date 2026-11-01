@@ -6883,64 +6883,119 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "da2e66607296ae099cb031cc30dcef49fcbe903c13325f202475af9498286ba0",
+      "sha256": "c60c95f9b2c144b0212e73812b4febb39ab4a4062edb877221e0ab74aee4b59f",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
         "assertOriginalPreparedLocalPublicationStoreFirstInitialization",
         "assertOriginalPreparedLocalPublicationStoreOwnership",
+        "captureOriginalLocalExecutionOwner",
         "closePreparedLocalPublicationStoreOwnership",
         "openLocalPublicationStore",
+        "originalLocalExecutionOwnerStopped",
         "prepareLocalPublicationStoreOwnership",
         "readBoundedLocalMetadata"
       ],
       "operations": [
         {
+          "name": "acquireStoreMetadataOwnership",
+          "parameters": [
+            "root",
+            "bootstrap",
+            "key",
+            "lease"
+          ],
+          "async": true
+        },
+        {
+          "name": "acquireStoreMetadataOwnership/acquireStoreMetadataOwnership",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquireStoreMetadataOwnership/ownership/init:assertCurrent/init:assertCurrent",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "acquireStoreMetadataOwnership/ownership/init:assertCurrent/init:assertCurrent/sameFile/sameFile",
+          "parameters": [
+            "state"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquireStoreMetadataOwnership/ownership/init:assertCurrent/init:assertCurrent/sameFile/sameFile/sameFile",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquireStoreMetadataOwnership/ownership/init:attachLease/init:attachLease",
+          "parameters": [
+            "currentLease"
+          ],
+          "async": true
+        },
+        {
+          "name": "acquireStoreMetadataOwnership/ownership/init:attachLease/init:attachLease/init:attachLease",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquireStoreMetadataOwnership/ownership/init:release/init:release",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "acquireStoreMetadataOwnership/ownership/init:release/init:release/acknowledged/acknowledged",
+          "parameters": [
+            "state"
+          ],
+          "async": false
+        },
+        {
           "name": "acquireStoreOwnership",
           "parameters": [
             "root",
             "bootstrap",
-            "key"
+            "key",
+            "fresh",
+            "directoryInspection"
           ],
           "async": true
         },
         {
-          "name": "acquireStoreOwnership/acquireStoreOwnership",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "acquireStoreOwnership/ownership/init:assertCurrent/init:assertCurrent",
+          "name": "acquireStoreOwnership/init:assertCurrent/init:assertCurrent",
           "parameters": [],
           "async": true
         },
         {
-          "name": "acquireStoreOwnership/ownership/init:assertCurrent/init:assertCurrent/sameFile/sameFile",
+          "name": "acquireStoreOwnership/init:executionReceipt/init:executionReceipt",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "acquireStoreOwnership/init:priorExecutionStopped/init:priorExecutionStopped",
           "parameters": [
-            "state"
+            "receipt"
           ],
           "async": false
         },
         {
-          "name": "acquireStoreOwnership/ownership/init:assertCurrent/init:assertCurrent/sameFile/sameFile/sameFile",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "acquireStoreOwnership/ownership/init:release/init:release",
+          "name": "acquireStoreOwnership/init:qualifyExecutionOwner/init:qualifyExecutionOwner",
           "parameters": [],
           "async": true
         },
         {
-          "name": "acquireStoreOwnership/ownership/init:release/init:release/acknowledged/acknowledged",
-          "parameters": [
-            "state"
-          ],
-          "async": false
+          "name": "acquireStoreOwnership/release/release",
+          "parameters": [],
+          "async": true
         },
         {
           "name": "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -6962,6 +7017,13 @@
           "parameters": [
             "original",
             "directory"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureOriginalLocalExecutionOwner",
+          "parameters": [
+            "original"
           ],
           "async": false
         },
@@ -11026,6 +11088,14 @@
           "async": false
         },
         {
+          "name": "originalLocalExecutionOwnerStopped",
+          "parameters": [
+            "original",
+            "receipt"
+          ],
+          "async": false
+        },
+        {
           "name": "originalPreparedStoreOwnership",
           "parameters": [
             "original"
@@ -11720,8 +11790,6 @@
           "operations": [
             "<module>",
             "acquireStoreOwnership",
-            "acquireStoreOwnership/ownership/init:release/init:release",
-            "acquireStoreOwnership/ownership/init:release/init:release/acknowledged/acknowledged",
             "cidHex/cidHex",
             "encodePrivateEvidenceEnvelope",
             "encodePrivateEvidenceEnvelope/envelopeBytes/envelopeBytes",
@@ -14019,10 +14087,6 @@
         },
         {
           "operations": [
-            "acquireStoreOwnership/acquireStoreOwnership",
-            "acquireStoreOwnership/ownership/init:assertCurrent/init:assertCurrent",
-            "acquireStoreOwnership/ownership/init:assertCurrent/init:assertCurrent/sameFile/sameFile",
-            "acquireStoreOwnership/ownership/init:assertCurrent/init:assertCurrent/sameFile/sameFile/sameFile",
             "assertOriginalPreparedLocalPublicationStoreOwnership",
             "closePreparedLocalPublicationStoreOwnership",
             "closePreparedLocalPublicationStoreOwnership/closePreparedLocalPublicationStoreOwnership",
@@ -14110,7 +14174,7 @@
             "ownership": [
               {
                 "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "entry.ownership = await acquireStoreOwnership(root, bootstrap, undefined);"
+                "anchor": "entry.ownership = await acquireStoreOwnership(root, bootstrap, undefined, fresh, directoryInspection);"
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
@@ -15714,6 +15778,150 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "acquireStoreMetadataOwnership",
+            "acquireStoreMetadataOwnership/acquireStoreMetadataOwnership",
+            "acquireStoreMetadataOwnership/ownership/init:assertCurrent/init:assertCurrent",
+            "acquireStoreMetadataOwnership/ownership/init:assertCurrent/init:assertCurrent/sameFile/sameFile",
+            "acquireStoreMetadataOwnership/ownership/init:assertCurrent/init:assertCurrent/sameFile/sameFile/sameFile",
+            "acquireStoreMetadataOwnership/ownership/init:attachLease/init:attachLease",
+            "acquireStoreMetadataOwnership/ownership/init:attachLease/init:attachLease/init:attachLease",
+            "acquireStoreMetadataOwnership/ownership/init:release/init:release",
+            "acquireStoreMetadataOwnership/ownership/init:release/init:release/acknowledged/acknowledged",
+            "acquireStoreOwnership/init:assertCurrent/init:assertCurrent",
+            "acquireStoreOwnership/init:executionReceipt/init:executionReceipt",
+            "acquireStoreOwnership/init:priorExecutionStopped/init:priorExecutionStopped",
+            "acquireStoreOwnership/init:qualifyExecutionOwner/init:qualifyExecutionOwner",
+            "acquireStoreOwnership/release/release",
+            "captureOriginalLocalExecutionOwner",
+            "originalLocalExecutionOwnerStopped"
+          ],
+          "exports": [
+            "captureOriginalLocalExecutionOwner",
+            "originalLocalExecutionOwnerStopped"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "export function originalLocalExecutionOwnerStopped(original, receipt)"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "Run reconciliation only observes that execution: it MUST NOT submit or"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "export function originalLocalExecutionOwnerStopped(original, receipt)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const value = compiledRunTokens.get(compiled);"
+              },
+              {
+                "path": "src/run_publication_host/client_source_free_observation.mbt",
+                "anchor": "pub fn client_compiled_local_execution_owner("
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.inc",
+                "anchor": "flock(original->descriptor, LOCK_EX | LOCK_NB)"
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.inc",
+                "anchor": "static napi_value local_fs_lease_receipt("
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "const original = retainRunStateFrame(originalFrame, ref);"
+              },
+              {
+                "path": "adapters/store-local/publication-owner-lease.mjs",
+                "anchor": "call('storeOwnerLeaseReceipt', lease)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "return entry.recoveryReady === true && entry.ownership.priorExecutionStopped(receipt);"
+              },
+              {
+                "path": "adapters/store-local/publication-owner-lease.mjs",
+                "anchor": "if (leaseClose?.outcome !== 'closed')"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "transact('physical_start', 'ClientRunPhysicalStartUnknown'"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "if (facts.journal.observeStoppedLocalExecutionOwner(facts.ref, retained) !== true ||"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/publication-owner-lease.mjs",
+                "anchor": "return undefined;"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "if (stored === undefined) return false;"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "facts.journal.markPhysicalClose(facts.ref, committed ? null : 'failed', retained);"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "The Host MUST distinguish confirmed business outcomes, pending cleanup and"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "This observation issues no cancellation or new start permission. Existing Run control still requires its original cancellation decision and confirmed physical stop."
+            },
+            "resources": [
+              {
+                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "anchor": "ownershipLease: record("
+              },
+              {
+                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "anchor": "ownershipLeaseDescriptors: 2"
+              },
+              {
+                "path": "adapters/store-local/publication-owner-lease.mjs",
+                "anchor": "const close = () => {"
+              }
+            ],
+            "extension": {
+              "notApplicable": "Private extensions of the same Store/Host/Journal and compiled Common originals; no public Run identity, new scheduler, arbitrary liveness callback or replacement resource authority."
+            },
+            "verification": [
+              {
+                "path": "adapters/host-node/client-source-operation.test.mjs",
+                "anchor": "test('local execution owner receipt atomically binds the original start"
+              },
+              {
+                "path": "adapters/host-node/client-source-operation.test.mjs",
+                "anchor": "test('local execution owner receipt rejects foreign and external-work originals"
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem-native.test.mjs",
+                "anchor": "test('Store lease locks the exact retained anchor"
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem-native.test.mjs",
+                "anchor": "test('Store lease rejects replacement of its exact opened anchor"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -16389,6 +16597,239 @@
         }
       ],
       "referenceQualification": "Explicit existing physical-owner review: original-FD preservation replaces unsafe timeless inode equality, single-flight unlink and close/quota settlement retain exact ownership. Syntax evidence is not a runtime acceptance claim."
+    },
+    {
+      "module": "adapters/store-local/publication-owner-lease.mjs",
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Local Publication Store exclusive ownership and retained native child cleanup",
+      "exports": [
+        "openPublicationOwnerLease"
+      ],
+      "operations": [
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code",
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPublicationOwnerLease",
+          "parameters": [
+            "path",
+            "inspector"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPublicationOwnerLease/assertCurrent/assertCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openPublicationOwnerLease/call/call",
+          "parameters": [
+            "name",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPublicationOwnerLease/close/close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openPublicationOwnerLease/closeOne/closeOne",
+          "parameters": [
+            "original",
+            "previous"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPublicationOwnerLease/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openPublicationOwnerLease/init:matches/init:matches",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPublicationOwnerLease/init:retry/init:retry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openPublicationOwnerLease/methods/methods",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPublicationOwnerLease/openPublicationOwnerLease",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPublicationOwnerLease/openPublicationOwnerLease#2",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "fail/fail",
+            "openPublicationOwnerLease",
+            "openPublicationOwnerLease/assertCurrent/assertCurrent",
+            "openPublicationOwnerLease/call/call",
+            "openPublicationOwnerLease/close/close",
+            "openPublicationOwnerLease/closeOne/closeOne",
+            "openPublicationOwnerLease/current/current",
+            "openPublicationOwnerLease/init:matches/init:matches",
+            "openPublicationOwnerLease/init:retry/init:retry",
+            "openPublicationOwnerLease/methods/methods",
+            "openPublicationOwnerLease/openPublicationOwnerLease",
+            "openPublicationOwnerLease/openPublicationOwnerLease#2"
+          ],
+          "exports": [
+            "openPublicationOwnerLease"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/store-local/publication-owner-lease.mjs",
+                "anchor": "export function openPublicationOwnerLease(path, inspector)"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "Run reconciliation only observes that execution: it MUST NOT submit or"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/store-local/publication-owner-lease.mjs",
+                "anchor": "export function openPublicationOwnerLease(path, inspector)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const value = compiledRunTokens.get(compiled);"
+              },
+              {
+                "path": "src/run_publication_host/client_source_free_observation.mbt",
+                "anchor": "pub fn client_compiled_local_execution_owner("
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.inc",
+                "anchor": "flock(original->descriptor, LOCK_EX | LOCK_NB)"
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.inc",
+                "anchor": "static napi_value local_fs_lease_receipt("
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "const original = retainRunStateFrame(originalFrame, ref);"
+              },
+              {
+                "path": "adapters/store-local/publication-owner-lease.mjs",
+                "anchor": "call('storeOwnerLeaseReceipt', lease)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "return entry.recoveryReady === true && entry.ownership.priorExecutionStopped(receipt);"
+              },
+              {
+                "path": "adapters/store-local/publication-owner-lease.mjs",
+                "anchor": "if (leaseClose?.outcome !== 'closed')"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "transact('physical_start', 'ClientRunPhysicalStartUnknown'"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "if (facts.journal.observeStoppedLocalExecutionOwner(facts.ref, retained) !== true ||"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/publication-owner-lease.mjs",
+                "anchor": "return undefined;"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "if (stored === undefined) return false;"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "facts.journal.markPhysicalClose(facts.ref, committed ? null : 'failed', retained);"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "The Host MUST distinguish confirmed business outcomes, pending cleanup and"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "This observation issues no cancellation or new start permission. Existing Run control still requires its original cancellation decision and confirmed physical stop."
+            },
+            "resources": [
+              {
+                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "anchor": "ownershipLease: record("
+              },
+              {
+                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "anchor": "ownershipLeaseDescriptors: 2"
+              },
+              {
+                "path": "adapters/store-local/publication-owner-lease.mjs",
+                "anchor": "const close = () => {"
+              }
+            ],
+            "extension": {
+              "notApplicable": "Private extensions of the same Store/Host/Journal and compiled Common originals; no public Run identity, new scheduler, arbitrary liveness callback or replacement resource authority."
+            },
+            "verification": [
+              {
+                "path": "adapters/host-node/client-source-operation.test.mjs",
+                "anchor": "test('local execution owner receipt atomically binds the original start"
+              },
+              {
+                "path": "adapters/host-node/client-source-operation.test.mjs",
+                "anchor": "test('local execution owner receipt rejects foreign and external-work originals"
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem-native.test.mjs",
+                "anchor": "test('Store lease locks the exact retained anchor"
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem-native.test.mjs",
+                "anchor": "test('Store lease rejects replacement of its exact opened anchor"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Actual source syntax and owner references only; no runtime/platform or whole-distribution acceptance is inferred.",
+      "sha256": "fd57b841cc8c5765a6d75f3f4f7bf52a75c93a91bdc3de43c9e533d73dd437bf"
     }
   ],
   "verificationQualification": "Existing actual test entry references only. F prior actual SQLite/Store/INFER source-qualified receipts remain independent; this index does not claim the listed tests all ran at a6cab. Core typed row/data invariants remain with their existing authority and C/E acceptance. No Native/service/Provider/public-product operation executed in this metadata pass."

@@ -251,3 +251,19 @@ test "Local Values Host policy never replaces a contributing Source closure" {
     prepared_client_publication_policy_bodies(prepared, 65536, 8192, 64).unwrap(),
   )
 }
+
+///|
+test "local execution owner admits only its same Values or Tasks compiled definition" {
+  for tasks in [false, true] {
+    let (_, compiled, definition) = local_values_invocation_fixture(tasks)
+    assert_true(client_compiled_local_execution_owner(compiled, definition))
+    let (_, _, foreign) = local_values_invocation_fixture(
+      tasks,
+      document=run_materials_document.replace(
+        old="client-values",
+        new="foreign-execution-owner",
+      ),
+    )
+    assert_false(client_compiled_local_execution_owner(compiled, foreign))
+  }
+}

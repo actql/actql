@@ -1,6 +1,7 @@
 // Durable local publication storage. Prepared objects are content-addressed
 // but remain invisible to ordinary Result lookup until an authority-scoped
 // public index entry is installed with an exclusive atomic link.
+import {openPublicationOwnerLease} from './publication-owner-lease.mjs';
 import {
   constants,
 } from 'node:fs';
@@ -595,7 +596,57 @@ async function removeOpeningTree(path, bootstrap) {
   } else await unlink(path);
 }
 
-async function acquireStoreOwnership(root, bootstrap, key) {
+async function acquireStoreOwnership(root, bootstrap, key, fresh = false, directoryInspection) {
+  let lease, metadata, failureCleanup, qualificationAttempted = false;
+  const release = async () => {
+    if (failureCleanup !== undefined) {
+      const result = await failureCleanup.retry();
+      if (result?.pending !== false) fail('PublicationStoreCleanupPending');
+      failureCleanup = undefined;
+    }
+    if (metadata !== undefined) {
+      if (await metadata.release() !== true) return false;
+      metadata = undefined;
+    }
+    return lease?.close() ?? true;
+  };
+  try {
+    if (!fresh) {qualificationAttempted = true; lease = openPublicationOwnerLease(root, directoryInspection);}
+    metadata = await acquireStoreMetadataOwnership(root, bootstrap, key, lease);
+    const token = metadata.token;
+    return Object.freeze({
+      async assertCurrent() {lease?.current(); await metadata.assertCurrent(); lease?.current();},
+      async qualifyExecutionOwner() {
+        if (!qualificationAttempted) {
+          qualificationAttempted = true;
+          try {
+            lease = openPublicationOwnerLease(root, directoryInspection);
+            if (lease !== undefined) await metadata.attachLease(lease);
+          } catch (cause) {failureCleanup = cause?.cleanupHandle; throw cause;}
+        }
+        lease?.current();
+      },
+      release,
+      executionReceipt() {if (lease === undefined) return undefined; lease.current(); if (metadata === undefined) fail('PublicationStoreOwnershipLost');
+        return Object.freeze({token, anchor: lease.anchor});},
+      priorExecutionStopped(receipt) {
+        if (lease === undefined) return false;
+        try {
+          lease.current(); return metadata !== undefined && typeof receipt?.token === 'string' &&
+            receipt.token !== token && lease.matches(receipt.anchor);
+        } catch (cause) {
+          if (['PublicationStoreLeaseChanged','PublicationStoreLeaseUnavailable','LocalFileOriginalChanged'].includes(cause?.code)) return false;
+          throw cause;
+        }
+      },
+    });
+  } catch (cause) {
+    failureCleanup = cause?.cleanupHandle;
+    throw await retainStoreOpeningFailure(cause, Object.freeze({release}), key);
+  }
+}
+
+async function acquireStoreMetadataOwnership(root, bootstrap, key, lease) {
   const ownershipDirectory = resolve(root, 'owner');
   const ownerPath = resolve(ownershipDirectory, 'owner.json');
   const token = randomUUID();
@@ -609,6 +660,7 @@ async function acquireStoreOwnership(root, bootstrap, key) {
         version: 'actql-local-publication-store-owner/0.1',
         pid: process.pid,
         token,
+        ...(lease === undefined ? {} : {leaseAnchor: lease.anchor}),
       }), 'utf8');
       let released = false, ownerRemoved = false, directoryRemoved = false;
       let ownershipDevice, ownershipInode;
@@ -617,6 +669,28 @@ async function acquireStoreOwnership(root, bootstrap, key) {
       let retirementReadCleanup, retirementReadFailure;
       let ownerFileCreated = false, ownerWritten = false;
       const ownership = Object.freeze({
+        token,
+        async attachLease(currentLease) {
+          await ownership.assertCurrent(); currentLease.current();
+          const bytes = Buffer.from(JSON.stringify({version: 'actql-local-publication-store-owner/0.1',
+            pid: process.pid, token, leaseAnchor: currentLease.anchor}), 'utf8');
+          ownerWriter = await open(ownerPath, constants.O_RDWR | constants.O_NOFOLLOW);
+          ownerWriterClose = ownerWriter.close;
+          const original = await ownerWriter.stat({bigint: true});
+          if (original.dev !== ownerFileIdentity.dev || original.ino !== ownerFileIdentity.ino) fail('PublicationStoreOwnershipLost');
+          let offset = 0;
+          while (offset < bytes.byteLength) {
+            const {bytesWritten} = await ownerWriter.write(bytes, offset, bytes.byteLength - offset, offset);
+            if (bytesWritten === 0) fail('IncompletePublicationWrite');
+            offset += bytesWritten;
+          }
+          await ownerWriter.sync();
+          const written = await ownerWriter.stat({bigint: true});
+          ownerFileIdentity = Object.fromEntries(['dev', 'ino', 'size', 'mtimeNs', 'ctimeNs'].map(name => [name, written[name]]));
+          if (await Reflect.apply(ownerWriterClose, ownerWriter, []) === false) fail('PublicationStoreCleanupPending');
+          ownerWriter = undefined;
+          await syncDirectoryPath(ownershipDirectory); currentLease.current();
+        },
         async assertCurrent() {
           if (!ownerWritten || ownerWriter !== undefined || released || ownerRemoved ||
               directoryRemoved || retirementDirectory !== undefined) {
@@ -813,7 +887,13 @@ async function acquireStoreOwnership(root, bootstrap, key) {
           !Number.isSafeInteger(existing.pid) || existing.pid < 1) {
         fail('InvalidPublicationStoreOwner');
       }
-      if (await processIsAlive(existing.pid)) fail('PublicationStoreBusy');
+      // New owners may be reclaimed only under the SAME stable lock. Legacy
+      // metadata retains its prior conservative live-PID refusal, but cannot
+      // supply a new execution-stop receipt.
+      if (existing.leaseAnchor !== undefined) {
+        if (lease === undefined) fail('PublicationStoreBusy');
+        if (!lease.matches(existing.leaseAnchor)) fail('PublicationStoreLeaseChanged');
+      } else if (await processIsAlive(existing.pid)) fail('PublicationStoreBusy');
       const stale = resolve(root, `stale-owner-${randomUUID()}`);
       try { await rename(ownershipDirectory, stale); }
       catch (renameError) {
@@ -912,6 +992,18 @@ export function assertOriginalPreparedLocalPublicationStoreOwnership(original, d
     fail('PublicationStoreOwnershipLost');
   }
 }
+// Private original custody only: no caller-provided owner or copied flag can
+// issue a start receipt or turn a missing execution observation into a stop.
+export function captureOriginalLocalExecutionOwner(original) {
+  const entry = originalPreparedStoreOwnership(original);
+  assertOriginalPreparedLocalPublicationStoreOwnership(original, entry.root);
+  return entry.ownership.executionReceipt();
+}
+export function originalLocalExecutionOwnerStopped(original, receipt) {
+  const entry = originalPreparedStoreOwnership(original);
+  assertOriginalPreparedLocalPublicationStoreOwnership(original, entry.root);
+  return entry.recoveryReady === true && entry.ownership.priorExecutionStopped(receipt);
+}
 // Only this actual prepared Owner can select first private-key setup. An
 // absent key/path or caller flag cannot make an existing Store never-adopted.
 export async function assertOriginalPreparedLocalPublicationStoreFirstInitialization(original, directory) {
@@ -971,7 +1063,7 @@ export async function prepareLocalPublicationStoreOwnership(directory, bounds, d
     closing: false, releaseFlight: undefined, cleanupFlight: undefined,
     child: undefined, childStatus: undefined, childRetry: undefined, unknownChild: false};
   preparedStoreOwnerships.set(original, entry);
-  entry.ownership = await acquireStoreOwnership(root, bootstrap, undefined);
+  entry.ownership = await acquireStoreOwnership(root, bootstrap, undefined, fresh, directoryInspection);
   try { await entry.ownership.assertCurrent(); }
   catch (cause) {
     entry.closing = true;
@@ -8907,6 +8999,10 @@ async function openOriginalLocalPublicationStore(
     return originalInstallationPublicationStorageBinding.handle;
   };
 
+  // Qualification follows Store startup, before this Store can reach
+  // any physical start. Fresh-format failures never leave a lease-only prefix.
+  await (prepared?.ownership ?? ownership).qualifyExecutionOwner();
+  if (prepared !== undefined) prepared.recoveryReady = true;
   return Object.freeze({
     storeAuthorityCid: configuration.storeAuthorityCid,
     observeOriginalInstallationPublicationStorageBinding,

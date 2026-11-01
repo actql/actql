@@ -115,7 +115,7 @@ export function createHostJournalDirectoryInspector(native, limits, assertCurren
     const entries = run(directory, true);
     return entries.length === 0 ? null : entries[0];
   };
-  apply(weakSet, inspectors, [inspect, freeze({maxEntries, first})]);
+  apply(weakSet, inspectors, [inspect, freeze({maxEntries, first, native, assertCurrent})]);
   return inspect;
 }
 
@@ -140,4 +140,13 @@ export function inspectHostJournalDirectoryFirstEntry(inspector, directory) {
   assertHostJournalDirectoryInspector(inspector, 1);
   const original = apply(weakGet, inspectors, [inspector]);
   return apply(original.first, undefined, [directory]);
+}
+
+// Borrow only the SAME selected native image and currentness fence already
+// retained by this original inspector; never select a normal-loader substitute.
+export function hostJournalDirectoryNative(inspector) {
+  const original = apply(weakGet, inspectors, [inspector]);
+  if (original === undefined) fail('HostJournalDirectoryUnavailable');
+  original.assertCurrent();
+  return Object.freeze({native: original.native, assertCurrent: original.assertCurrent});
 }

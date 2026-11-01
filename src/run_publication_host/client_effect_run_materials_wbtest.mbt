@@ -31,6 +31,11 @@ test "Effect run materials preserve original evidence and reject replaced identi
     allowed, "original-scope", "original-effect-run", "2026-10-09T00:00:00.000Z",
     "2026-10-10T00:00:00.000Z",
   ).unwrap()
+  // A zero-input Effect remains external uncertainty, not local stop proof.
+  let compiled = client_effect_allowed_component_run(allowed, None)
+  check_client_compiled_run_definition(compiled, definition).unwrap()
+  assert_eq(prepared_client_acquisition_count(compiled.owner), 0)
+  assert_false(client_compiled_local_execution_owner(compiled, definition))
   let environment_writer = @encode.writer(65536, 4096, 64)
   @environment.emit(
     @checked.checking_environment_wire(environment),
