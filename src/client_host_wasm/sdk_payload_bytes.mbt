@@ -12,101 +12,6 @@ fn sdk_payload_encoding_issue(
 }
 
 ///|
-// One synchronous read-only observation retains complete originals before and
-// after its nested queries. Every nested decision still calls fresh current.
-// No result escapes this frame or advances an encoder before the final fence.
-fn sdk_payload_read_current_frame(
-  original_current : () -> Result[Unit, Int],
-  current : () -> Result[Unit, Int],
-  observe : (() -> Result[Unit, Int]) -> Result[Unit, Int],
-) -> Result[Unit, Int] {
-  match original_current() {
-    Err(code) => return Err(code)
-    Ok(_) => ()
-  }
-  match observe(current) {
-    Err(code) => return Err(code)
-    Ok(_) => ()
-  }
-  original_current()
-}
-
-///|
-// Reobserve complete mutable originals before issuing a dependent read. A
-// final frame refusal cannot undo IO already issued after an original changed.
-// This private transport returns physical DATA, never a Source or permission.
-fn sdk_payload_read_original_row(
-  original_current : () -> Result[Unit, Int],
-  read : () -> Result[@host.ClientJournalPhysicalRow?, Int],
-) -> Result[@host.ClientJournalPhysicalRow?, Int] {
-  match original_current() {
-    Err(code) => return Err(code)
-    Ok(_) => ()
-  }
-  read()
-}
-
-///|
-// Only the same freshly constructed Saved context selects this private path.
-// These are live owner/Account/Host checks, never a remembered successful check.
-// The enclosing read-only frame separately reobserves all saved Store rows.
-fn sdk_payload_saved_read_current(
-  value : Instance,
-  first : StoredPublicationCommitExport,
-  context : OriginalSDKReadContext,
-  current_configuration : Int,
-) -> Result[Unit, Int] {
-  if value.publications.contains(first.publication) {
-    return Err(-32)
-  }
-  if value.closing || value.runtime_closing || first.closing {
-    return Err(-5)
-  }
-  guard saved_result_export_parent(value, first.publication)
-    is Some((parent, saved)) &&
-    parent.configuration == current_configuration &&
-    value.run_configurations.get(current_configuration) is Some(current) &&
-    physical_equal(current, context.current) &&
-    saved.source is Some(source) &&
-    physical_equal(source, context.source) &&
-    saved.finite is Some(finite) &&
-    physical_equal(finite, context.finite) &&
-    saved.owner is Some(owner) &&
-    physical_equal(owner, context.owner) &&
-    saved.view is Some(view) &&
-    physical_equal(view, context.view) &&
-    saved.result_name == context.result_name else {
-    return Err(-32)
-  }
-  match saved_result_read_current(value, parent, current, saved.result_name) {
-    Err(code) => return Err(code)
-    Ok(_) => ()
-  }
-  match
-    @local_run.validate_local_sdk_read_source_current(
-      source,
-      current.account,
-      saved.result_name,
-    ) {
-    Err(Preflight(_)) => return Err(-35)
-    Err(_) => return Err(-32)
-    Ok(_) => ()
-  }
-  match run_configuration_current(value, current) {
-    Err(code) => return Err(code)
-    Ok(_) => ()
-  }
-  if value.closing ||
-    value.runtime_closing ||
-    first.closing ||
-    parent.output_closed {
-    Err(-5)
-  } else {
-    Ok(())
-  }
-}
-
-///|
 fn sdk_payload_access_current(
   value : Instance,
   first : StoredPublicationCommitExport,
@@ -135,53 +40,23 @@ fn sdk_payload_access_current(
     required_text(observed, "observed_at") is Some(at) else {
     return Err(-30)
   }
-  let observe = (read, current) => {
-    @local_run.validate_local_sdk_payload_encoding_source_current(
-      context.source,
-      context.current.account,
-      context.finite,
-      context.sdk.read,
-      context.sdk.adoption_cid,
-      context.owner,
-      context.view,
-      original,
-      context.result_name,
-      context.format,
-      attempt_id,
-      at,
-      8,
-      read,
-      current,
-    ).map_err(sdk_payload_codec_issue)
-  }
-  if value.publications.contains(first.publication) {
-    // The Live caller keeps its original callback selection and work.
-    observe(
-      (table, key) => {
-        sdk_run_journal_port(value, context.current, 1, table, key)
-      },
-      context.check_current,
-    )
-  } else {
-    sdk_payload_read_current_frame(
-      context.check_current,
-      () => {
-        sdk_payload_saved_read_current(
-          value, first, context, current_configuration,
-        )
-      },
-      current => {
-        observe(
-          (table, key) => {
-            sdk_payload_read_original_row(context.check_current, () => {
-              sdk_run_journal_port(value, context.current, 1, table, key)
-            })
-          },
-          current,
-        )
-      },
-    )
-  }
+  @local_run.validate_local_sdk_payload_encoding_source_current(
+    context.source,
+    context.current.account,
+    context.finite,
+    context.sdk.read,
+    context.sdk.adoption_cid,
+    context.owner,
+    context.view,
+    original,
+    context.result_name,
+    context.format,
+    attempt_id,
+    at,
+    8,
+    (table, key) => sdk_run_journal_port(value, context.current, 1, table, key),
+    context.check_current,
+  ).map_err(sdk_payload_codec_issue)
 }
 
 ///|
