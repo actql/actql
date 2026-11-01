@@ -1886,6 +1886,26 @@ receiver are captured before reserve/current can reenter. The Effect adapter
 retains the original Site rather than a copied close facade; reference
 currentness comes from that Site's original current method.
 
+A completed installation retains its immutable Environment on the SAME
+initial Source material while its original Source is held. A paired Command
+Effect can retain that exact Environment only with the same original
+installation entry, connector/base input and complete final declaration wire.
+A matching CID or copied holder is insufficient. Successful initialization,
+original Source presence and logical close remain distinct facts; a failed or
+closed Source cannot supply this handoff. The same before-use current fence
+still runs without an extra Environment workspace, and reentrant loss refuses
+rather than reconstructing after selection. Each native declaration and its
+full peak remain independently retained. Only the repeated Environment
+assembly is omitted, with no new permission, physical ACK or budget refund.
+
+Identical complete Source and Effect Environment wires are admitted once by
+the same composer; distinct complete inputs retain their separate admission,
+policy and selector checks. The constructor reservation uses the SAME fixed
+role-input selection. It does not treat a CID match or another repeated
+occurrence as identical construction. Independent connector/Site bindings are
+still checked separately, and the Host's base policy is never replaced by a
+publication. This reuses immutable DATA, not Account, read or write authority.
+
 The installing Source also reads its protocol assets through that same
 original file reader, reserving before the actual FD read and before text
 decoding. Its existing native protocol owner quotes the stdlib Json parser,

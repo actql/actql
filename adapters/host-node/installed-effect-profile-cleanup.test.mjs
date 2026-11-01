@@ -9,7 +9,7 @@ import {retainInstalledHostInitializationFailure} from './installed-host-cleanup
 import {createInstalledConnectorTable} from './installed-connectors.mjs';
 import {createInstalledHostServices, retainInstalledHostServiceInstallation,
   retireInstalledSourceInitialization, beginInstalledSourceInitialization, finishInstalledSourceInitialization,
-  assertInstalledSourceConstruction, prepareInstalledSourceAcquisitionContracts, installedSourceConfigurationReader, readInstalledSourceAcquisitionContract} from './installed-host-services.mjs';
+  assertInstalledSourceConstruction, retainInstalledSourceConstruction, closeInstalledSourceConstruction, reserveInstalledSourceEnvironment, prepareInstalledSourceAcquisitionContracts, installedSourceConfigurationReader, readInstalledSourceAcquisitionContract} from './installed-host-services.mjs';
 import {pathToFileURL} from 'node:url';
 import {createHash} from 'node:crypto';
 import {createInstalledRowEffect} from './installed-row-effect.mjs';
@@ -474,7 +474,7 @@ test('GitHub Effect installer forwards original declaration Mapping and Site con
 // Actual existing Source material/context and Environment assembler. Only
 // native Core capacities/projection and current/retirement ports are explicit;
 // this exercises ownership/order, not numeric backing or a physical ACK.
-function commandConstructionFixture({refuseReserve = false, failProjection, duringReserve, role = 'effect', reserveAt = 2, additionalNative = [], contractQuantity, contractFailure} = {}) {
+function commandConstructionFixture({refuseReserve = false, failProjection, duringReserve, role = 'effect', reserveAt = 2, additionalNative = [], contractQuantity, contractFailure, repeatedNative = false} = {}) {
   const ok = value => ({$tag: 1, _0: value});
   const initial = {}, input = {}, unit = {}, capacity = {}, declaration = {}, native = {};
   const installed = Object.freeze({registration: 'sheets', revision: 'sheets/0.1', effect: {}});
@@ -482,7 +482,7 @@ function commandConstructionFixture({refuseReserve = false, failProjection, duri
   const base = {catalog_cid: cid, catalog: '{}', contracts: [], view_bodies: [],
     evidence_schemas: [], evidence_capabilities: [], manifest_entry: '{}'};
   const declared = {...base, command_bodies: ['{}']};
-  const events = [], quotes = [], refusal = new Error('original command reservation refused'), contractOriginal={original:'contracts'};
+  const events = [], quotes = [], reservedQuotes = [], refusal = new Error('original command reservation refused'), contractOriginal={original:'contracts'};
   let reserveCalls = 0, retired = 0, context, pending;
   const originalIo=new Set();
   const moon = Object.fromEntries(['ReconcileInstalledSourceConstruction','CompleteInstalledSourceMaterial',
@@ -499,10 +499,10 @@ function commandConstructionFixture({refuseReserve = false, failProjection, duri
     clientProgramContinueInstalledSourceMaterial(value, original) {assert.equal(value, unit);assert.equal(original, input);return ok(capacity);},
     clientProgramInstalledSourceConstructionCapacity(...values) {return ok(Object.freeze({values}));},
     clientProgramComposeInstalledSourceConstructionCapacity(original, selected) {
-      assert.equal(selected[0], native);assert.deepEqual(selected.slice(1), selected.length === 1 ? [] : additionalNative);quotes.push({original, selected: [...selected]});return ok(Object.freeze({original, selected}));
+      assert.equal(selected[0], native);if(repeatedNative)assert(selected.every(value=>value===native));else assert.deepEqual(selected.slice(1), selected.length === 1 ? [] : additionalNative);quotes.push({original, selected: [...selected]});return ok(Object.freeze({original, selected}));
     },
-    clientProgramReserveInstalledSourceConstruction(value, original) {
-      assert.equal(value, capacity);assert.equal(original, input);reserveCalls++;events.push('reserve');
+    clientProgramReserveInstalledSourceConstruction(value, original, quote) {
+      assert.equal(value, capacity);assert.equal(original, input);reservedQuotes.push(quote);reserveCalls++;events.push('reserve');
       if (reserveCalls === reserveAt) {duringReserve?.(context);if (refuseReserve) throw refusal;}return ok();
     },
     clientProgramRetireInstalledSourceMaterial(value, original) {assert.equal(value, capacity);assert.equal(original, input);retired++;return ok(true);},
@@ -523,7 +523,7 @@ function commandConstructionFixture({refuseReserve = false, failProjection, duri
     if (failProjection === 'async') return new Promise(resolve => {pending = resolve;});
     return Object.freeze({declared, commands, definition: Object.freeze({installed:commands[0]}), wire:JSON.stringify(declared)});
   }});
-  return {context,services,projection,commands,declared,declaration,quotes,events,refusal,contractOriginal,
+  return {context,services,projection,commands,declared,declaration,quotes,reservedQuotes,events,refusal,contractOriginal,installed,moon,native,environment,
     prepare:expected=>context.prepareDeclaredCommands('{"views":[]}',projection,expected),
     finish:()=>finishInstalledSourceInitialization(context, undefined, new Error('original unit terminal'), true),
     retire:()=>retireInstalledSourceInitialization(services), retired:()=>retired,originalIo,
@@ -668,4 +668,150 @@ test('invalid async Source protocol admission stays with SAME Source until settl
  f.getPending()({$tag:1,_0:f.contractOriginal});await Promise.resolve();await Promise.resolve();
  assert.equal(f.retire(),true);assert.equal(f.retired(),1);
  assert.throws(()=>prepareInstalledSourceAcquisitionContracts(f.context,'query','evidence'),{code:'ForeignInstalledSourceInitialization'});
+});
+
+
+test('SAME parent Command Effect retains the original live Source Environment without constructing or charging it twice',()=>{
+  const f=commandConstructionFixture({role:'source',repeatedNative:true}),first=f.prepare(),source={original:'source'};
+  retainInstalledSourceConstruction(f.context,source,f.declaration,f.declared,first.environment);
+  finishInstalledSourceInitialization(f.context,source);
+  const effect=beginInstalledSourceInitialization(f.services,f.installed,'sheets',f.environment,'effect');
+  const prepared=effect.prepareDeclaredCommands('{"views":[]}',f.projection);
+  assert.equal(prepared.environment,first.environment,'Reuse only this original same-parent immutable Environment');
+  assert.equal(prepared.declaration,f.declaration);assert.equal(prepared.commands,f.commands);
+  assert.equal(f.quotes.at(-1).selected.length,2,'Both original native peaks remain charged; no refund or deduplication');
+  assert.deepEqual(f.quotes.at(-1).original.values.slice(3),[0n,0n,0n],
+    'SAME current boundary without another Environment workspace');
+  finishInstalledSourceInitialization(effect,undefined,new Error('fixture construction terminal'),true);
+  assert.equal(f.retire(),false,'The original Source is still held');
+  closeInstalledSourceConstruction(f.context,source);assert.equal(f.retire(),true);
+});
+
+
+test('identical Source and Effect Environment inputs cross the original semantic admission once and select the SAME constructor quote',async()=>{
+  const {composeInstalledCheckEnvironment}=await import('./installed-check-environment.mjs');
+  const {canonicalJson,contentCid}=await import('./local-account-config.mjs');
+  const {withFixtureConnector}=await import('../host-common/connector-manifest.fixture.mjs');
+  const base=(await fs.readFile(new URL('../../spec/local-check-environment.json',import.meta.url),'utf8')).trimEnd();
+  const body=JSON.parse(base);delete body.evidence_bundle_cid;
+  withFixtureConnector(body,'connector://source-effect/records');
+  const source=canonicalJson({...body,evidence_bundle_cid:contentCid(body)}),calls=[];
+  // Actual composer/encoding/base checks, explicit pure Core admission port.
+  // This measures original boundary calls, not Core internals or runtime time.
+  const admission={clientProgramCheckEnvironment(wire){calls.push(wire);return {};}};
+  assert.equal(composeInstalledCheckEnvironment(admission,base,source,source),source);
+  assert.deepEqual(calls,[base,source],'No duplicate semantic admission or recomposition for identical complete input');
+  const f=commandConstructionFixture(),prepared=f.prepare();
+  reserveInstalledSourceEnvironment(f.services,base,source,undefined);
+  const single=f.quotes.at(-1).original.values;
+  reserveInstalledSourceEnvironment(f.services,base,source,source);
+  assert.deepEqual(f.quotes.at(-1).original.values,single,'Quote and actual composer select the SAME complete inputs');
+  assert.equal(f.quotes.at(-1).selected.length,1,'Existing native debt is unchanged');
+  f.finish();assert.equal(f.retire(),true);
+});
+
+
+for(const difference of ['entry','base','declared-wire','closed-source','failed-source']){
+  test(`Command Environment handoff refuses to alias a different or unavailable original: ${difference}`,()=>{
+    const f=commandConstructionFixture({role:'source',repeatedNative:true}),first=f.prepare(),source={original:'source'};
+    retainInstalledSourceConstruction(f.context,source,f.declaration,f.declared,first.environment);
+    finishInstalledSourceInitialization(f.context,source,undefined,difference==='failed-source');
+    if(difference==='closed-source')closeInstalledSourceConstruction(f.context,source);
+    const entry=difference==='entry'?Object.freeze({...f.installed}):f.installed;
+    if(entry!==f.installed)retainInstalledHostServiceInstallation(f.services,entry,'sha256:'+'a'.repeat(64));
+    const base=difference==='base'?' '+f.environment:f.environment;
+    const effect=beginInstalledSourceInitialization(f.services,entry,'sheets',base,'effect');
+    const projection=difference!=='declared-wire'?f.projection:Object.freeze({
+      capacity:f.projection.capacity,
+      project(wire){const original=f.projection.project(wire);
+        // The declared CID stays equal: complete changed input must still
+        // construct its own Environment, not upgrade from a CID match.
+        const declared={...original.declared,command_bodies:['{"literal":"different"}']};
+        return {...original,declared,wire:JSON.stringify(declared)};}});
+    const prepared=effect.prepareDeclaredCommands('{"views":[]}',projection);
+    assert.notEqual(prepared.environment,first.environment);
+    assert(f.reservedQuotes.at(-1).original.values.slice(3).every(value=>value>0n),
+      'Distinct input must fund its own existing Environment construction');
+    assert.equal(f.quotes.at(-1).selected.length,2);
+    finishInstalledSourceInitialization(effect,undefined,new Error('fixture terminal'),true);
+    closeInstalledSourceConstruction(f.context,source);assert.equal(f.retire(),true);
+  });
+}
+
+test('selected original Source Environment cannot be reused or reconstructed after current reenters its close',()=>{
+  let f,source;
+  f=commandConstructionFixture({role:'source',repeatedNative:true,reserveAt:6,
+    duringReserve(){closeInstalledSourceConstruction(f.context,source);}});
+  const first=f.prepare();source={original:'source'};
+  retainInstalledSourceConstruction(f.context,source,f.declaration,f.declared,first.environment);
+  finishInstalledSourceInitialization(f.context,source);
+  const effect=beginInstalledSourceInitialization(f.services,f.installed,'sheets',f.environment,'effect');
+  assert.throws(()=>effect.prepareDeclaredCommands('{"views":[]}',f.projection),
+    {code:'ForeignInstalledSourceInitialization'});
+  assert.deepEqual(f.quotes.at(-1).original.values.slice(3),[0n,0n,0n],
+    'No unselected reconstruction after loss of the original');
+  assert.throws(()=>effect.prepareDeclaredCommands('{"views":[]}',f.projection),
+    {code:'ForeignInstalledSourceInitialization'});
+  assert.equal(f.retire(),false);
+  finishInstalledSourceInitialization(effect,undefined,new Error('fixture terminal'),true);
+  assert.equal(f.retire(),true);
+});
+
+test('original Environment handoff is private to its own initial parent and cannot outlive retirement',()=>{
+  const f=commandConstructionFixture({role:'source',repeatedNative:true}),first=f.prepare(),source={original:'source'};
+  retainInstalledSourceConstruction(f.context,source,f.declaration,f.declared,first.environment);
+  finishInstalledSourceInitialization(f.context,source);
+  const foreign=commandConstructionFixture(),other=foreign.prepare();
+  assert.notEqual(other.environment,first.environment);
+  foreign.finish();assert.equal(foreign.retire(),true);
+  closeInstalledSourceConstruction(f.context,source);assert.equal(f.retire(),true);
+  assert.throws(()=>beginInstalledSourceInitialization(f.services,f.installed,'sheets',f.environment,'effect'),
+    {code:'InstalledSourceInitializationClosed'});
+});
+
+
+for(const difference of ['policy','body-with-old-cid','conflicting-catalog','physical-binding']){
+  test(`same-wire Environment composition preserves independent admission and binding refusal: ${difference}`,async()=>{
+    const {composeInstalledCheckEnvironment,verifyInstalledConnectorBindings}=await import('./installed-check-environment.mjs');
+    const {canonicalJson,contentCid}=await import('./local-account-config.mjs');
+    const {withFixtureConnector}=await import('../host-common/connector-manifest.fixture.mjs');
+    const base=(await fs.readFile(new URL('../../spec/local-check-environment.json',import.meta.url),'utf8')).trimEnd();
+    const original=JSON.parse(base);delete original.evidence_bundle_cid;
+    withFixtureConnector(original,'connector://source-effect/records');
+    const seal=body=>canonicalJson({...body,evidence_bundle_cid:contentCid(body)}),source=seal(original);
+    const admission={clientProgramCheckEnvironment(){return {};}};
+    if(difference==='physical-binding'){
+      assert.equal(composeInstalledCheckEnvironment(admission,base,source,source),source);
+      const adapter=site=>({environmentWire:source,connectorBindings:[{
+        connectorId:'source-effect',bindingCid:contentCid({site})}]});
+      assert.throws(()=>verifyInstalledConnectorBindings(adapter('original-a'),adapter('original-b')),
+        {code:'InstalledCheckEnvironmentConflict'});
+    }else{
+      const body=structuredClone(original);let effect,first=source;
+      if(difference==='policy'){
+        body.host_policy_profile.capacity.max_effect_items++;
+        first=effect=seal(body);
+      }else if(difference==='body-with-old-cid'){
+        body.connector_catalogs[0].connector_version='changed';
+        first=effect=canonicalJson({...body,evidence_bundle_cid:JSON.parse(source).evidence_bundle_cid});
+      }else{
+        const catalog=body.connector_catalogs[0];catalog.connector_version='changed';
+        const {catalog_cid:ignored,...catalogBody}=catalog;void ignored;catalog.catalog_cid=contentCid(catalogBody);
+        body.connector_manifest.connectors[0].connector_version='changed';effect=seal(body);
+      }
+      assert.throws(()=>composeInstalledCheckEnvironment(admission,base,first,effect),
+        {code:'InstalledCheckEnvironmentConflict'});
+    }
+  });
+}
+
+test('Environment quote shares only its paired role input and preserves all additional original occurrences',()=>{
+  const f=commandConstructionFixture();f.prepare();
+  reserveInstalledSourceEnvironment(f.services,'base','source','source','source');
+  const paired=f.quotes.at(-1).original.values;
+  reserveInstalledSourceEnvironment(f.services,'base','source',undefined,'source');
+  assert.deepEqual(paired,f.quotes.at(-1).original.values);
+  reserveInstalledSourceEnvironment(f.services,'base','source',undefined);
+  assert(paired[3]>f.quotes.at(-1).original.values[3],'Additional occurrence stays funded');
+  f.finish();assert.equal(f.retire(),true);
 });

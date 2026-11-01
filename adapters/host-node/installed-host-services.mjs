@@ -4,6 +4,7 @@
 import {openInstalledRowSite, installedRowCredentialOperationSite, rowSourceCheckEnvironment,
   rowSourceMapping} from './installed-row-source.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
+import {installedCheckEnvironmentInputs} from './installed-check-environment.mjs';
 import {readSourceProfileJson, readBoundedConfigurationText, installedConfigurationByteLimit,
   installedConfigurationChunkBytes, readOriginalConfigurationText, readOriginalConfigurationBytes,
   installedRuntimeBundleCid} from './source-profile-json.mjs';
@@ -554,8 +555,39 @@ export function beginInstalledSourceInitialization(services, installation, conne
             }
             material.inputs.push(projected, declared, commands, definition, outputWire);
           } finally {material.busy = false;}
+          // A successfully installed original Source may already retain the
+          // SAME immutable Environment inputs on this same initial parent.
+          // Match the original entry and complete wires, never a CID/name or
+          // copied holder. Both native declarations/peaks stay independently
+          // retained; only the duplicate Environment assembly is omitted.
+          const sourceScope = scope.role !== 'effect' ? undefined : material.contexts.find(other =>
+            other.role === 'source' && other.finishedSuccessfully === true && other.source !== undefined &&
+            other.closed !== true && other.installation === scope.installation &&
+            other.connectorId === scope.connectorId && other.baseEnvironmentWire === scope.baseEnvironmentWire &&
+            other.commandDeclarationWire === outputWire && other.prepared?.environment !== undefined);
+          if (sourceScope !== undefined) {
+            const sourcePrepared = sourceScope.prepared, sourceOriginal = sourceScope.source;
+            // Preserve the original before-use current fence even when no new
+            // workspace is needed. A reentrant close cannot reuse or rebuild
+            // the retired input after this selected handoff.
+            reserveSource(original, material);
+            if (!scope.active || material.phase !== 'working' || scope.prepared !== undefined ||
+                sourceScope.finishedSuccessfully !== true || sourceScope.closed === true ||
+                sourceScope.source !== sourceOriginal || sourceScope.prepared !== sourcePrepared ||
+                sourceScope.installation !== scope.installation ||
+                sourceScope.commandDeclarationWire !== outputWire ||
+                sourceScope.baseEnvironmentWire !== scope.baseEnvironmentWire) {
+              fail('ForeignInstalledSourceInitialization');
+            }
+            const prepared = Object.freeze({declaration, declared, environment: sourcePrepared.environment,
+              commands, commandDefinition: definition});
+            scope.prepared = prepared;scope.commandDeclarationWire = outputWire;
+            material.inputs.push(outputWire, prepared, sourceOriginal);
+            return prepared;
+          }
           // JSON output is already backed by the original native quantity.
-          // Bound the ONE final Environment before parsing/merging its bodies.
+          // Different inputs still fund their own complete Environment before
+          // parsing/merging. An equal CID alone cannot select the reuse path.
           const basis = 16n * (BigInt(outputWire.length) + BigInt(scope.baseEnvironmentWire.length));
           reserveSource(original, material, basis, basis, basis);
           if (!scope.active || material.phase !== 'working' || scope.prepared !== undefined) fail('ForeignInstalledSourceInitialization');
@@ -564,7 +596,8 @@ export function beginInstalledSourceInitialization(services, installation, conne
           try {
             const environment = rowSourceCheckEnvironment(scope.baseEnvironmentWire, declared);
             prepared = Object.freeze({declaration, declared, environment, commands, commandDefinition: definition});
-            scope.prepared = prepared;material.inputs.push(outputWire, environment);
+            scope.prepared = prepared;scope.commandDeclarationWire = outputWire;
+            material.inputs.push(outputWire, environment);
             material.nodes += basis;material.text += basis;material.wire += basis;
           } finally {material.busy = false;}
           return prepared;
@@ -753,6 +786,7 @@ export function finishInstalledSourceInitialization(context, adapter, cause, fai
   if (retained === undefined || !retained.scope.active) fail('ForeignInstalledSourceInitialization');
   if (!failed && retained.scope.source !== adapter) fail('InstalledSourceConstructorUnavailable');
   if (failed) retainSourceFailure(retained.material, cause);
+  retained.scope.finishedSuccessfully = !failed;
   retained.scope.active = false; retained.material.constructors--;
 }
 
@@ -762,7 +796,9 @@ export function reserveInstalledSourceEnvironment(services, ...wires) {
   const material = original.material;
   if (material === undefined) return;
   let basis = 0n;
-  for (const wire of wires) {
+  const selected = installedCheckEnvironmentInputs(wires[0], wires[1], wires[2]);
+  for (let index = 0; index < wires.length; index++) {
+    const wire = index < selected.length ? selected[index] : wires[index];
     if (wire !== undefined) {
       if (typeof wire !== 'string') fail('InvalidInstalledSourceEnvironment');
       basis += BigInt(Buffer.byteLength(wire));
@@ -869,6 +905,7 @@ export function retireInstalledSourceInitialization(services) {
   if (completed === true) {
     for (const scope of material.contexts) {
       scope.prepared = scope.source = scope.installation = scope.baseEnvironmentWire = undefined;
+      scope.commandDeclarationWire = undefined;scope.finishedSuccessfully = false;
       scope.reader = scope.readerDemand = undefined;
       scope.acquisitionContracts = undefined;
     }
