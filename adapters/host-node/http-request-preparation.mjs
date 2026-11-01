@@ -2,7 +2,7 @@
 // preparation and pending-call registry. HTTP owns decoding/authorization;
 // the existing manager owns snapshot/compiler admission and child retirement.
 import {snapshotClientRequest} from '../../packages/client-wire/index.mjs';
-import {freezeInput} from '../../packages/sdk/internal/data.mjs';
+import {freezeInput} from '../../packages/sdk/internal/private-source-preparation.mjs';
 
 export function installHttpRequestPreparation(preparation, registry, originals) {
   const manager = preparation.requestPreparation();

@@ -10404,9 +10404,10 @@
     {
       "module": "packages/sdk/internal/private-source-preparation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f7bcd310b5b8cfd09c7ca1d157bcdded5751d1039a7b620a096021de99d07b3f",
+      "sha256": "55a5d4c48f50ab5b0d98aa070c5f308656c679e93be1ce1063c7b5221f421ad4",
       "exports": [
         "captureSourcePreparation",
+        "freezeInput",
         "matchesPublishedSubmissionSnapshot",
         "sourcePreparationPort"
       ],
@@ -10562,6 +10563,7 @@
         }
       ],
       "imports": [
+        "./data.mjs",
         "./submission-observation.mjs"
       ],
       "compilerFields": [],
@@ -10987,6 +10989,99 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Native Source snapshot currentness"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [],
+          "exports": [
+            "freezeInput"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "anchor": "export {freezeInput} from './data.mjs';"
+              },
+              {
+                "path": "packages/sdk/internal/data.mjs",
+                "anchor": "export const freezeInput = value =>"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/sdk/internal/data.mjs",
+                "anchor": "export const freezeInput = value =>"
+              },
+              {
+                "path": "adapters/host-node/http-request-preparation.mjs",
+                "anchor": "freezeInput(body);"
+              }
+            ],
+            "identity": [
+              {
+                "path": "scripts/local-node-package-imports.test.mjs",
+                "anchor": "assert.strictEqual(bridge.freezeInput, original.freezeInput);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Local and Remote HTTP opening retain the same original Host preparation"
+              },
+              {
+                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "anchor": "// Reuse the SDK's exact snapshot freeze through this existing private bridge."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/http-request-preparation.mjs",
+                "anchor": "body = manager.captureSourceSnapshot(receipt, request, snapshotClientRequest);"
+              },
+              {
+                "path": "packages/sdk/internal/data.mjs",
+                "anchor": "Object.freeze(value);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "scripts/local-node-package-imports.test.mjs",
+                "anchor": "test('shallow and nested imports keep quotes and unknown package paths fail'"
+              },
+              {
+                "path": "adapters/host-node/http-request-preparation.mjs",
+                "anchor": "finish('failed');"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Re-exporting the existing synchronous data freeze starts no operation and owns no cancellation or physical-stop duty; the original HTTP Request retains those duties."
+            },
+            "resources": [
+              {
+                "path": "adapters/host-node/http-request-preparation.mjs",
+                "anchor": "manager.assertSourceSnapshotCurrent(receipt);"
+              },
+              {
+                "path": "packages/sdk/internal/data.mjs",
+                "anchor": "return value;"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/sdk/package.json",
+                "anchor": "\"./_internal/source-preparation\": \"./internal/private-source-preparation.mjs\""
+              },
+              {
+                "path": "scripts/local-node-package-imports.mjs",
+                "anchor": "['sdk/internal/private-source-preparation.mjs', '@actql/sdk/_internal/source-preparation']"
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/local-node-package-imports.test.mjs",
+                "anchor": "test('HTTP Request freeze uses the exact existing private bridge and packaged import'"
               }
             ]
           }

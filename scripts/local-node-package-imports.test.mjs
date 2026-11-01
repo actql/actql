@@ -65,3 +65,18 @@ test('ordinary Host native filesystem fallbacks retain only the exact package-lo
     /UnpackagedLocalNodeImport/u);
   }
 });
+
+test('HTTP Request freeze uses the exact existing private bridge and packaged import', async () => {
+  const path = 'adapters/host-node/http-request-preparation.mjs';
+  const source = readFileSync(path, 'utf8');
+  const copied = rewriteLocalNodePackageImports(source, path);
+  assert.ok(copied.includes("import {freezeInput} from '@actql/sdk/_internal/source-preparation';"));
+  assert.doesNotMatch(copied, /(?:\.\.\/)+packages\//u);
+  const original = await import('../packages/sdk/internal/data.mjs');
+  const bridge = await import('../packages/sdk/internal/private-source-preparation.mjs');
+  assert.strictEqual(bridge.freezeInput, original.freezeInput);
+  const child = {value: null}, body = {rows: [child], text: 'e\u0301\r\n'};
+  assert.strictEqual(bridge.freezeInput(body), body);
+  assert.strictEqual(body.rows[0], child);
+  assert.ok(Object.isFrozen(body) && Object.isFrozen(body.rows) && Object.isFrozen(child));
+});
