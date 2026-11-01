@@ -119664,10 +119664,10 @@
     },
     {
       "module": "adapters/host-node/installed-credential-source-reader.mjs",
-      "sha256": "285c2eca6d2008492079b918a7721b2e9d62405f307d5214136fc382c02d38ef",
+      "sha256": "5d457d7a60d36441fc1d32019d1a6dc189e3de2f659b4ba87a5d18b0a7c89489",
       "responsibilityFacet": "primary",
       "role": "physical-io",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "createInstalledCredentialSourceReader",
         "installedJsonSourceReaderLimitNames",
@@ -120011,6 +120011,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Installed JSON Source service originals"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
               }
             ],
             "inputsOutputs": [
@@ -120021,6 +120025,10 @@
               {
                 "path": "adapters/host-node/installed-credential-source-reader.test.mjs",
                 "anchor": "same pending Source read cannot retire through stop or a copied factory"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
               }
             ],
             "identity": [
@@ -120031,6 +120039,10 @@
               {
                 "path": "adapters/host-node/installed-credential-source-reader.test.mjs",
                 "anchor": "same pending Source read cannot retire through stop or a copied factory"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
               }
             ],
             "ownership": [
@@ -120041,6 +120053,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Installed JSON Source service originals"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
               }
             ],
             "synchronization": [
@@ -120051,6 +120067,10 @@
               {
                 "path": "adapters/host-node/installed-credential-source-reader.test.mjs",
                 "anchor": "same pending Source read cannot retire through stop or a copied factory"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
               }
             ],
             "failure": [
@@ -120061,6 +120081,10 @@
               {
                 "path": "adapters/host-node/installed-credential-source-reader.test.mjs",
                 "anchor": "same pending Source read cannot retire through stop or a copied factory"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
               }
             ],
             "cancellation": [
@@ -120071,6 +120095,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Installed JSON Source service originals"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
               }
             ],
             "resources": [
@@ -120081,6 +120109,10 @@
               {
                 "path": "adapters/host-node/installed-credential-source-reader.mjs",
                 "anchor": "export function createInstalledCredentialSourceReader"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
               }
             ],
             "extension": [
@@ -120091,6 +120123,10 @@
               {
                 "path": "adapters/host-node/installed-credential-source-reader.test.mjs",
                 "anchor": "same pending Source read cannot retire through stop or a copied factory"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
               }
             ],
             "verification": [
@@ -120105,6 +120141,22 @@
               {
                 "path": "adapters/host-node/installed-reader-binding-retirement.test.mjs",
                 "anchor": "invalid original binding retirement cannot become acknowledged socket cleanup"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
+              },
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.test.mjs",
+                "anchor": "test('shared reader typed page keeps the same response charge and opaque page through first close'"
+              },
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.test.mjs",
+                "anchor": "test('shared reader typed page charge failure remains pending without decode consumption or fake close ACK'"
+              },
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.test.mjs",
+                "anchor": "test('shared reader typed page stop retains the pending original consumption until it settles'"
               }
             ]
           }
@@ -120152,54 +120204,90 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
               }
             ],
             "identity": [
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
               }
             ],
             "failure": [
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
               }
             ],
             "resources": [
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
               }
             ],
             "extension": [
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
               }
             ],
             "verification": [
@@ -120214,6 +120302,22 @@
               {
                 "path": "adapters/host-node/installed-reader-binding-retirement.test.mjs",
                 "anchor": "invalid original binding retirement cannot become acknowledged socket cleanup"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
+              },
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.test.mjs",
+                "anchor": "test('shared reader typed page keeps the same response charge and opaque page through first close'"
+              },
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.test.mjs",
+                "anchor": "test('shared reader typed page charge failure remains pending without decode consumption or fake close ACK'"
+              },
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.test.mjs",
+                "anchor": "test('shared reader typed page stop retains the pending original consumption until it settles'"
               }
             ]
           }
@@ -123854,7 +123958,7 @@
     {
       "module": "adapters/host-node/rest-source-page.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f17878e0f51b6d1c7dba1770c5eaa2afc348fd7b3f385973800c957269b20709",
+      "sha256": "17c61dd9c33d0e0e9b3d7bdbd404639502dab3537bcc2ca4268b7d5b282d7bf9",
       "role": "connector-semantics",
       "owner": "Existing Common JSON/row projection and Host ManagedReader Owners; REST adapter supplies authored request, cursor and pure row-wire transformation semantics only.",
       "exports": [
@@ -123943,7 +124047,8 @@
             "bytes",
             "itemsPath",
             "cursorPath",
-            "maxRows"
+            "maxRows",
+            "wire"
           ],
           "async": false
         }
@@ -123980,6 +124085,10 @@
               {
                 "path": "docs/contributing/connector-authoring.md",
                 "anchor": "Providers retain their actual request, cursor and response"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
               }
             ],
             "inputsOutputs": [
@@ -123989,11 +124098,15 @@
               },
               {
                 "path": "adapters/host-node/rest-source-page.mjs",
-                "anchor": "return Object.freeze({rowsWire: page.rowsWire, rowCount: page.rowCount,"
+                "anchor": "return Object.freeze({projectedPage: page.originalPage, rowCount: page.rowCount,"
               },
               {
                 "path": "docs/contributing/connector-authoring.md",
                 "anchor": "Its inputs are frozen row-wire/count/cursor DATA"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
               }
             ],
             "identity": [
@@ -124008,6 +124121,10 @@
               {
                 "path": "docs/contributing/connector-authoring.md",
                 "anchor": "The fixed origin/path"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
               }
             ],
             "ownership": [
@@ -124022,6 +124139,10 @@
               {
                 "path": "docs/contributing/connector-authoring.md",
                 "anchor": "The Host invokes it under the"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
               }
             ],
             "synchronization": [
@@ -124036,6 +124157,10 @@
               {
                 "path": "packages/local-node/connector-installation.typecheck.mts",
                 "anchor": "// @ts-expect-error An author transform is pure and synchronous, not a reader."
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
               }
             ],
             "failure": [
@@ -124050,6 +124175,10 @@
               {
                 "path": "docs/contributing/connector-authoring.md",
                 "anchor": "Unknown, absent Run or process exit proves neither nonacceptance nor close."
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
               }
             ],
             "cancellation": [
@@ -124064,6 +124193,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "The Host also keeps"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
               }
             ],
             "resources": [
@@ -124078,6 +124211,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "The original Host/Run inventory includes the retained declaration and planner"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
               }
             ],
             "extension": [
@@ -124092,6 +124229,10 @@
               {
                 "path": "docs/contributing/connector-authoring.md",
                 "anchor": "The standard projector already preserves JSON row bytes and cursor identity;"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
               }
             ],
             "verification": [
@@ -124106,6 +124247,22 @@
               {
                 "path": "docs/contributing/connector-authoring.md",
                 "anchor": "Keep empty/one/multiple-page, provider-error, byte-limit, current-loss,"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
+              },
+              {
+                "path": "adapters/host-node/rest-source-page-typed.test.mjs",
+                "anchor": "test('REST typed page forwards the same opaque original without rows wire encoding'"
+              },
+              {
+                "path": "adapters/host-node/rest-source-page-typed.test.mjs",
+                "anchor": "test('REST changed author wire is a new bounded Core parse while original cursor remains exact'"
+              },
+              {
+                "path": "adapters/host-node/rest-source-page-typed.test.mjs",
+                "anchor": "test('REST author transform cannot change cursor add fields or exceed the existing page bound'"
               }
             ]
           }
@@ -124133,7 +124290,7 @@
               },
               {
                 "path": "adapters/host-node/rest-source-page.mjs",
-                "anchor": "return Object.freeze({rowsWire: page.rowsWire, rowCount: page.rowCount,"
+                "anchor": "return Object.freeze({projectedPage: page.originalPage, rowCount: page.rowCount,"
               },
               {
                 "path": "docs/contributing/connector-authoring.md",
