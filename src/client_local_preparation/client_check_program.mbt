@@ -454,9 +454,11 @@ fn check_program_diagnostic(
   locate : (String?) -> Unit,
   format? : @syntax.Format = Json,
   original_body? : @decode.Cursor? = None,
+  retained_program? : @syntax.Program? = None,
 ) -> CheckStop {
   let mut original_pointer = None
-  if @checked.diagnostic_origin(diagnostic) is Some(ProgramDocument) &&
+  if retained_program is None &&
+    @checked.diagnostic_origin(diagnostic) is Some(ProgramDocument) &&
     @checked.diagnostic_location(diagnostic) is Some(location) &&
     @checked.diagnostic_location_path(location) is Some(path) {
     original_pointer = check_program_original_pointer(
@@ -495,7 +497,10 @@ fn check_program_diagnostic(
         _ => None
       }
       if cause is Source(Declarations(Declarations(issue))) &&
-        check_program_document_cursor(document, format, original_body)
+        (match retained_program {
+          Some(program) => Some(@syntax.program_body(program))
+          None => check_program_document_cursor(document, format, original_body)
+        })
         is Some(body) &&
         @decode.open_object(body) is Ok(object) &&
         @decode.lookup(object, "params") is Some(params) {
@@ -520,12 +525,16 @@ fn check_program_diagnostic(
         findings.push(
           UnusedParameter(
             declaration.name,
-            Some(
-              "/params/" +
-              declaration.name
-              .replace_all(old="~", new="~0")
-              .replace_all(old="/", new="~1"),
-            ),
+            if retained_program is Some(_) {
+              None
+            } else {
+              Some(
+                "/params/" +
+                declaration.name
+                .replace_all(old="~", new="~0")
+                .replace_all(old="/", new="~1"),
+              )
+            },
           ),
         )
         return Report
@@ -534,7 +543,14 @@ fn check_program_diagnostic(
         if structure is Some(issue) {
           ProgramStructureViolation(issue)
         } else {
-          check_program_finding(diagnostic, None, supplied, parameters, None)
+          check_program_finding(
+            diagnostic,
+            None,
+            supplied,
+            parameters,
+            None,
+            program=retained_program,
+          )
         },
       )
     }

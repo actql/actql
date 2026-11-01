@@ -66,6 +66,7 @@ options(
     "installed_whole_source_result_js_wbtest.mbt": [ "js" ],
     "installed_whole_source_query_time_js_wbtest.mbt": [ "js" ],
     "preparation_request_check_boundary_js_wbtest.mbt": [ "js" ],
+    "preparation_request_check_observation_js_wbtest.mbt": [ "js" ],
     "preparation_request_policy_fixture_js_wbtest.mbt": [ "js" ],
     "preparation_request_policy_check_js_wbtest.mbt": [ "js" ],
     "installed_whole_source_plan_js_wbtest.mbt": [ "js" ],
