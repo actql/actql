@@ -37,6 +37,10 @@ fn serialization_prefix_provider(
   execution : @execution.SequenceExecutionLimits,
   measurement : @execution.FixedInputGuardMeasureLimits,
   acquired? : Bool = false,
+  query_time? : (
+    @publication_host.ClientQueryTimePreparation,
+    @publication_host.ClientRequestIdentity,
+  )? = None,
 ) -> (
   @execution.GeneratedSequence,
   @local.ManagedProvider,
@@ -53,7 +57,14 @@ fn serialization_prefix_provider(
     )
   } else {
     prepare_client_serialization_prefix(
-      prepared, task, step, installed_contracts, values_body, fragment_body, ordered_body,
+      prepared,
+      task,
+      step,
+      installed_contracts,
+      values_body,
+      fragment_body,
+      ordered_body,
+      query_time~,
     )
   }
   guard sequence is Some(sequence) &&

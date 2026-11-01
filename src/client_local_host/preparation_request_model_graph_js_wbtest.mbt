@@ -312,3 +312,276 @@ test "same Request serialized Model Graph current refusal retains its original C
   assert_true(parent.program_domain_compilation_inputs is None)
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }
+
+///|
+// Real Request/Graph/compiler/Scope/prefix owners. Resource admission and the
+// module factory remain explicit component ports, not a physical Model call.
+priv struct RequestSerializedModelFixture {
+  parent : ClientRequestPreparation[Array[Int]]
+  input : Array[Int]
+  prepared : @publication_host.PreparedClientProgram
+  holder : @resources.PreparationBodyBorrow[
+    @publication_host.PreparedClientProgram,
+  ]
+  contracts : ClientInstalledSequenceContracts
+  occurrence : @publication_host.ClientInferOccurrence
+  graph : @publication_host.ClientInferPlanGraph
+  compilation : @publication_host.ClientTaskCompilation
+  compiled : @publication_host.ClientCompiledRun
+  definition : @publication.PublicationContract
+  request : @publication_host.ClientRequestIdentity
+}
+
+///|
+fn request_serialized_model_fixture(
+  current? : () -> Bool = () => true,
+) -> RequestSerializedModelFixture raise {
+  let (parent, input, prepared) = request_model_input_fixture(
+    with_serialization=true,
+    current~,
+  )
+  let holder = borrow_request_model_plan_input(parent, input).unwrap()
+  @resources.configure_quantities(parent.ledger, {
+    tokens: 128L,
+    cost_units: 0L,
+    duration_ms: 1000L,
+  }).unwrap()
+  let contracts = request_program_module_contracts()
+  let manifests = request_program_module_manifests()
+  let compilation_limits = @publication_host.client_standard_pure_compilation_limits()
+  let component = prepare_request_serialization_graph(
+    parent,
+    input,
+    0,
+    2,
+    request_graph_policy_cid,
+    request_graph_policy_wire,
+    1,
+    128,
+    false,
+    contracts,
+    manifests~,
+    compilation_limits~,
+  ).unwrap()
+  let (occurrence, execution) = request_model_graph_inputs(prepared)
+  let graph = prepare_request_model_graph(
+    parent,
+    input,
+    occurrence,
+    execution,
+    contracts,
+    manifests~,
+    compilation_limits~,
+    serialization=Some(component),
+  ).unwrap()
+  let compilation = prepare_request_model_compilation(
+    parent,
+    input,
+    graph,
+    contracts,
+    manifests~,
+    compilation_limits~,
+  ).unwrap()
+  let compiled = @publication_host.issue_client_task_compiled_run(
+    prepared,
+    compilation,
+    "sha256:" + "a".repeat(64),
+    "sha256:" + "b".repeat(64),
+    "2027-01-01T00:00:00.000Z",
+  ).unwrap()
+  let definition = @publication_host.issue_client_compiled_run_definition(
+    compiled, "serialized-model", "same-original", "2026-10-31T00:00:00.000Z", "2027-01-01T00:00:00.000Z",
+  ).unwrap()
+  let request = @publication_host.prepare_source_free_client_request_identity(
+    prepared,
+    "sha256:" + "a".repeat(64),
+    "serialized-model",
+  ).unwrap()
+  {
+    parent,
+    input,
+    prepared,
+    holder,
+    contracts,
+    occurrence,
+    graph,
+    compilation,
+    compiled,
+    definition,
+    request,
+  }
+}
+
+///|
+test "serialized Model adopts the same Request Content prefix and retains both original cleanup duties" {
+  let f = request_serialized_model_fixture()
+  let (_, execution, measurement) = client_local_execution_limits(max_rows=1)
+  let calls = Ref(0)
+  // The actual module cannot allocate providers before its prefix constructor.
+  assert_true(
+    prepare_request_model_source_free_module(
+      f.parent,
+      f.input,
+      f.request,
+      f.compiled,
+      f.definition,
+      f.compilation,
+      f.contracts,
+      true,
+      0,
+      _ => {
+        calls.val += 1
+        []
+      },
+    )
+    is Err(Preparation(ForeignOriginal)),
+  )
+  assert_eq(calls.val, 0)
+  let prefix = prepare_request_model_serialization_plan(
+    f.parent,
+    f.input,
+    f.request,
+    f.compiled,
+    f.definition,
+    execution,
+    measurement,
+    None,
+    None,
+  ).unwrap()
+  let module = prepare_request_model_source_free_module(
+    f.parent,
+    f.input,
+    f.request,
+    f.compiled,
+    f.definition,
+    f.compilation,
+    f.contracts,
+    true,
+    0,
+    _ => {
+      calls.val += 1
+      []
+    },
+  ).unwrap()
+  assert_eq(calls.val, 1)
+  // An old module-only Plan cannot discard the still-live Content component.
+  assert_true(
+    prepare_installed_mock_model_source_free_plan(
+      module,
+      f.request,
+      f.compiled,
+      f.definition,
+      f.occurrence,
+      f.graph,
+      effect_model_plan_limits,
+      500L,
+      700L,
+      20,
+      20,
+      20,
+    )
+    is Err(ForeignOriginal),
+  )
+  let plan = prepare_request_model_source_free_plan(
+    f.parent,
+    f.input,
+    module,
+    f.request,
+    f.compiled,
+    f.definition,
+    f.occurrence,
+    f.graph,
+    effect_model_plan_limits,
+    500L,
+    700L,
+    20,
+    20,
+    20,
+  ).unwrap()
+  let scope = prepare_request_model_read_scope(f.parent, f.input, plan).unwrap()
+  complete_request_model_preparation(f.parent, f.input, plan).unwrap()
+  let run = begin_request_model_managed_run(f.parent, f.request, scope).unwrap()
+  assert_true(f.parent.program_content is NoContent)
+  assert_true(
+    run.content is SerializationContent(original) &&
+    physical_equal(original, prefix),
+  )
+  let child = start_installed_managed_serialization_prefix(
+    run,
+    f.prepared,
+    prefix,
+  ).unwrap()
+  assert_true(physical_equal(child.ledger, f.parent.ledger))
+  assert_true(retire_installed_managed_run(run) is Err(CleanupPending))
+  let mut output = None
+  for _ in 0..<1000 {
+    match advance_client_serialization_prefix(child, 1).unwrap() {
+      @local.Complete(value, ..) => {
+        output = Some(value)
+        break
+      }
+      @local.Continue(..) | @local.Waiting(..) | @local.Settling(_, ..) => ()
+      _ => fail("original serialized Model prefix")
+    }
+  }
+  let output = output.unwrap()
+  assert_eq(@execution.completed_row_count(output), 1)
+  assert_eq(
+    @execution.completed_output_row_wire(output, 0, 10000, 1000, 100).unwrap(),
+    "{\"id\":1,\"text\":\"hello\"}",
+  )
+  assert_true(
+    cleanup_installed_managed_serialization_prefix(run, prefix).unwrap(),
+  )
+  // Prefix ACK does not release the Model Scope or the Request borrower.
+  assert_true(retire_installed_managed_run(run) is Err(CleanupPending))
+  assert_true(
+    @publication_host.finish_client_model_read_scope(
+      scope,
+      f.compiled,
+      f.definition,
+      f.graph,
+      true,
+    ).unwrap(),
+  )
+  assert_false(@resources.return_preparation_body_borrow(f.holder).unwrap())
+  retire_installed_managed_run(run).unwrap()
+  assert_eq(@resources.ledger_usage(f.parent.ledger).live_reservations, 0)
+  assert_true(
+    start_installed_managed_serialization_prefix(run, f.prepared, prefix)
+    is Err(ForeignOriginal),
+  )
+}
+
+///|
+test "serialized Model prefix refusal retains original compiler and Request cleanup before any module" {
+  let armed = Ref(false)
+  let f = request_serialized_model_fixture(current=() => !armed.val)
+  let (_, execution, measurement) = client_local_execution_limits(max_rows=1)
+  armed.val = true
+  assert_true(
+    prepare_request_model_serialization_plan(
+      f.parent,
+      f.input,
+      f.request,
+      f.compiled,
+      f.definition,
+      execution,
+      measurement,
+      None,
+      None,
+    )
+    is Err(Preparation(_)),
+  )
+  assert_true(f.parent.program_content is NoContent)
+  assert_true(f.parent.program_source_free is None)
+  assert_true(
+    f.parent.program_compilation is Some(@publication_host.Tasks(original)) &&
+    physical_equal(original, f.compilation),
+  )
+  assert_true(f.parent.program_domain_quote is Some(_))
+  armed.val = false
+  assert_false(@resources.return_preparation_body_borrow(f.holder).unwrap())
+  abort_request_preparation_after_cleanup(f.parent).unwrap()
+  assert_eq(@resources.ledger_usage(f.parent.ledger).live_reservations, 0)
+}

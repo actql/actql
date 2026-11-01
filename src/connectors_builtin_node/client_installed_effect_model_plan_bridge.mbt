@@ -76,6 +76,44 @@ pub fn client_program_installed_mock_model_source_free_plan_prepare(
 }
 
 ///|
+/// Retain the actual early selected bounds. This later original binding does
+/// not invoke their numerical selector again or accept a raw Ledger vector.
+#export_name("clientProgramPrepareRequestModelSourceFreePlan")
+pub fn client_program_prepare_request_model_source_free_plan(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  original : @client_local_host.ClientInstalledManagedSourceFreePreparation,
+  request : @publication_host.ClientRequestIdentity,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  occurrence : @publication_host.ClientInferOccurrence,
+  graph : @publication_host.ClientInferPlanGraph,
+  selected : @infer_host.Limits,
+) -> Result[
+  @client_local_host.ClientInstalledManagedModelPlan,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.prepare_request_model_source_free_plan(
+    parent,
+    input,
+    original,
+    request,
+    compiled,
+    definition,
+    occurrence,
+    graph,
+    selected.model.ledger,
+    selected.mapping.logical.max_live_value_bytes,
+    selected.identity.wire.max_bytes.to_int64(),
+    selected.input.rows.operation_entries,
+    selected.input.rows.retained_entries,
+    selected.input.rows.metadata_entries,
+  )
+}
+
+///|
 #export_name("clientProgramInstalledMockModelCapturePlanBind")
 pub fn client_program_installed_mock_model_capture_plan_bind(
   original : @client_local_host.ClientInstalledManagedCapturePlan,

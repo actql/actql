@@ -143,8 +143,11 @@ fn[I] prepare_request_serialization_compilation_owned(
     owner.program_compilation is None &&
     (
       owner.program_content is NoContent ||
-      (keyed is Some(selected) && owner.program_content is KeyedContent(original, None) &&
-       physical_equal(original, selected))
+      (
+        keyed is Some(selected) &&
+        owner.program_content is KeyedContent(original, None) &&
+        physical_equal(original, selected)
+      )
     ) &&
     !owner.program_body_attempted &&
     owner.program_artifact_work is None &&
@@ -166,9 +169,13 @@ fn[I] prepare_request_serialization_compilation_owned(
       guard physical_equal(selected.prepared, prepared) &&
         component.task == selected.serialization_task &&
         component.step == selected.serialization_step &&
-        (selected.prefix is None ||
-          (owner.program_content is KeyedContent(original, None) &&
-           physical_equal(original, selected))) else {
+        (
+          selected.prefix is None ||
+          (
+            owner.program_content is KeyedContent(original, None) &&
+            physical_equal(original, selected)
+          )
+        ) else {
         return Err(Preparation(ForeignOriginal))
       }
     }
@@ -298,10 +305,12 @@ pub fn[I] complete_request_content_preparation(
     owner.program_captured is None &&
     (
       (owner.program_content is NoContent && selected.prefix is None) ||
-      (owner.program_content is KeyedContent(original, None) &&
-       physical_equal(original, selected) &&
-       owner.program_content_request is Some(original_request) &&
-       physical_equal(original_request, request))
+      (
+        owner.program_content is KeyedContent(original, None) &&
+        physical_equal(original, selected) &&
+        owner.program_content_request is Some(original_request) &&
+        physical_equal(original_request, request)
+      )
     ) else {
     return Err(WrongPhase)
   }
@@ -368,34 +377,144 @@ pub fn[I] prepare_request_serialization_plan(
   ClientInstalledManagedSerializationPreparation,
   ClientInstalledManagedRunIssue,
 ] {
-  guard owner.phase == ContentPlanReserved &&
+  prepare_request_serialization_plan_owned(
+    owner,
+    input,
+    request,
+    compiled,
+    definition,
+    execution,
+    measurement,
+    workspace,
+    None,
+    None,
+  )
+}
+
+///|
+/// Construct this Model input prefix under the SAME Request before module,
+/// Scope or physical generation. The actual compiler retains the component.
+pub fn[I] prepare_request_model_serialization_plan(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  request : @publication_host.ClientRequestIdentity,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  execution : @execution.SequenceExecutionLimits,
+  measurement : @execution.FixedInputGuardMeasureLimits,
+  workspace : @execution.ExecutionCapacity?,
+  query_time : @publication_host.ClientQueryTimePreparation?,
+) -> Result[
+  ClientInstalledManagedSerializationPreparation,
+  ClientInstalledManagedRunIssue,
+] {
+  let graph = match owner.program_domain_compilation_inputs {
+    Some(RequestModelCompilation(_, _, _, graph)) => graph
+    _ => return Err(ForeignOriginal)
+  }
+  prepare_request_serialization_plan_owned(
+    owner,
+    input,
+    request,
+    compiled,
+    definition,
+    execution,
+    measurement,
+    workspace,
+    Some(graph),
+    query_time,
+  )
+}
+
+///|
+fn[I] prepare_request_serialization_plan_owned(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  request : @publication_host.ClientRequestIdentity,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  execution : @execution.SequenceExecutionLimits,
+  measurement : @execution.FixedInputGuardMeasureLimits,
+  workspace : @execution.ExecutionCapacity?,
+  model : @publication_host.ClientInferPlanGraph?,
+  query_time : @publication_host.ClientQueryTimePreparation?,
+) -> Result[
+  ClientInstalledManagedSerializationPreparation,
+  ClientInstalledManagedRunIssue,
+] {
+  let previous = if model is Some(_) {
+    ModelPlanReserved
+  } else {
+    ContentPlanReserved
+  }
+  guard owner.phase == previous &&
     owner.input is Some(original) &&
     physical_equal(original, input) &&
     owner.compiled_program is Some(prepared) &&
     owner.program_content is NoContent &&
     owner.program_compilation is Some(@publication_host.Tasks(compilation)) &&
-    owner.program_domain_compilation_inputs
-    is Some(RequestSerializationCompilation(_, _, contracts, component)) &&
+    owner.program_data is Some(data) &&
     owner.program_capacity is Some(capacity) &&
     !owner.program_body_attempted else {
     return Err(ForeignOriginal)
+  }
+  let (contracts, component) = match
+    (model, owner.program_domain_compilation_inputs) {
+    (None, Some(RequestSerializationCompilation(_, _, contracts, component))) =>
+      (contracts, component)
+    (Some(selected), Some(RequestModelCompilation(_, _, contracts, original))) => {
+      guard physical_equal(selected, original) &&
+        physical_equal(selected.owner, prepared) &&
+        selected.serialization is Some(component) else {
+        return Err(ForeignOriginal)
+      }
+      (contracts, component)
+    }
+    _ => return Err(ForeignOriginal)
   }
   // The selected record owns ten original references; its LedgerLimits owns
   // six scalar words. Plan/Request/compiler link carriers were admitted at
   // the Content input borrow. Compiler, sequence/provider and output backing
   // are separate domains: do not count them as supplied by this fixed packet.
-  // Reuse the mutually exclusive Model/Content quote slot, already backed by
-  // the Request constructor. Keep the absolute target across a refused grow.
+  // Reuse the existing sequential construction quote slot. The completed
+  // Model and Content originals coexist in their separate retained fields.
+  // Keep the absolute target across a refused grow.
   if owner.program_domain_quote is None {
     guard @execution.preparation_representation_cost({
-        record_headers: 2L,
-        reference_slots: 10L,
-        scalar_words: 6L,
+        record_headers: if model is Some(_) {
+          5L
+        } else {
+          2L
+        },
+        reference_slots: if model is Some(_) {
+          14L
+        } else {
+          10L
+        },
+        scalar_words: if model is Some(_) {
+          9L
+        } else {
+          6L
+        },
         owned_utf16_units: 0L,
         owned_wire_bytes: 0L,
       })
-      is Some(bytes) else {
+      is Some(records) else {
       return Err(InsufficientCapacity)
+    }
+    let bytes = match model {
+      None => records
+      Some(_) => {
+        // This additional prefix constructs a second original sequence view
+        // while the Model Graph/compiler remain retained. Reuse their actual
+        // parsed input extent, not a declared codec ceiling or new tariff.
+        guard program_check_data_extent_cost(data) is Some(prefix_inputs) &&
+          @execution.checked_preparation_add_product(records, prefix_inputs, 1L)
+          is Some(bytes) else {
+          return Err(InsufficientCapacity)
+        }
+        bytes
+      }
     }
     let (r, e) = match
       @resources.preparation_capacity_working_extents(capacity, input) {
@@ -415,7 +534,7 @@ pub fn[I] prepare_request_serialization_plan(
   )
   if grown is Err(issue) {
     if owner.phase == Selecting {
-      owner.phase = ContentPlanReserved
+      owner.phase = previous
     }
     return Err(Preparation(issue))
   }
@@ -427,16 +546,53 @@ pub fn[I] prepare_request_serialization_plan(
     owner.compiled_program is Some(original_prepared) &&
     physical_equal(original_prepared, prepared) &&
     owner.program_content is NoContent &&
+    owner.program_compilation
+    is Some(@publication_host.Tasks(original_compilation)) &&
+    physical_equal(original_compilation, compilation) &&
+    (match (model, owner.program_domain_compilation_inputs) {
+      (
+        None,
+        Some(
+          RequestSerializationCompilation(
+            _,
+            _,
+            current_contracts,
+            current_component
+          )
+        ),
+      ) =>
+        physical_equal(current_contracts, contracts) &&
+        physical_equal(current_component, component)
+      (
+        Some(selected),
+        Some(RequestModelCompilation(_, _, current_contracts, current_graph)),
+      ) =>
+        physical_equal(current_contracts, contracts) &&
+        physical_equal(current_graph, selected) &&
+        current_graph.serialization is Some(current_component) &&
+        physical_equal(current_component, component)
+      _ => false
+    }) &&
     owner.program_domain_quote == Some((r, e)) else {
     if owner.phase == Selecting {
-      owner.phase = ContentPlanReserved
+      owner.phase = previous
     }
     return Err(ForeignOriginal)
   }
   let selected = match
     prepare_installed_managed_serialization(
-      prepared, request, compiled, definition, component, compilation, contracts,
-      execution, measurement, workspace,
+      prepared,
+      request,
+      compiled,
+      definition,
+      component,
+      compilation,
+      contracts,
+      execution,
+      measurement,
+      workspace,
+      model~,
+      query_time~,
     ) {
     Err(issue) => {
       // A foreign tuple is refused before prefix construction. Once the
@@ -444,7 +600,7 @@ pub fn[I] prepare_request_serialization_plan(
       // limits/provider on this same Request. Keep its reservation for Abort;
       // a successful pre-construction grow is neither a body nor cleanup ACK.
       owner.phase = if issue is ForeignOriginal {
-        ContentPlanReserved
+        previous
       } else {
         ProgramBodyFailed
       }
@@ -457,7 +613,7 @@ pub fn[I] prepare_request_serialization_plan(
   owner.program_content = SerializationContent(selected)
   owner.program_content_request = Some(request)
   owner.program_domain_quote = None
-  owner.phase = ContentPlanReserved
+  owner.phase = previous
   Ok(selected)
 }
 

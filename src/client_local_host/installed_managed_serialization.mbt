@@ -42,6 +42,8 @@ fn prepare_installed_managed_serialization(
   execution : @execution.SequenceExecutionLimits,
   measurement : @execution.FixedInputGuardMeasureLimits,
   workspace : @execution.ExecutionCapacity?,
+  model? : @publication_host.ClientInferPlanGraph? = None,
+  query_time? : @publication_host.ClientQueryTimePreparation? = None,
 ) -> Result[
   ClientInstalledManagedSerializationPreparation,
   ClientInstalledManagedRunIssue,
@@ -56,7 +58,16 @@ fn prepare_installed_managed_serialization(
     @publication_host.prepared_client_acquisition_count(prepared) == 0 &&
     @publication_host.prepared_client_composed_infer_occurrences(prepared)
     is Some(infers) &&
-    infers.is_empty() &&
+    (match model {
+      None => infers.is_empty()
+      Some(graph) =>
+        infers.length() == 1 &&
+        physical_equal(graph.owner, prepared) &&
+        compilation.infers.length() == 1 &&
+        physical_equal(compilation.infers[0], graph) &&
+        graph.serialization is Some(original) &&
+        physical_equal(original, component)
+    }) &&
     @publication_host.prepared_client_serialization_occurrences(prepared) ==
     [(component.task, component.step)] else {
     return Err(ForeignOriginal)
@@ -67,6 +78,15 @@ fn prepare_installed_managed_serialization(
     ) {
     Err(_) => return Err(ForeignOriginal)
     Ok(_) => ()
+  }
+  if query_time is Some(original) {
+    match
+      @publication_host.client_query_time_preparation_context_for_run(
+        original, prepared, compiled, definition, request,
+      ) {
+      Err(_) => return Err(ForeignOriginal)
+      Ok(_) => ()
+    }
   }
   let installed = contracts.original
   guard serialization_prefix_provider(
@@ -79,6 +99,7 @@ fn prepare_installed_managed_serialization(
       installed.ordered_body,
       execution,
       measurement,
+      query_time=query_time.map(original => (original, request)),
     )
     is Some((sequence, provider, prefix_capacity)) else {
     return Err(Unsupported)
@@ -149,14 +170,23 @@ pub fn start_installed_managed_serialization_prefix(
   preparation_module_call(
     () => {
       guard owner.ledger is Some(ledger) &&
-        owner.preparation
-        is Some(PreparationContentManaged(admission, original)) &&
-        physical_equal(original, prepared) &&
+        owner.preparation is Some(preparation) &&
         owner.content is SerializationContent(current) &&
         physical_equal(current, selected) else {
         return Err(Retired)
       }
-      let preparation = PreparationContentManaged(admission, original)
+      // Both purposes retain the same Content prefix on this exact adopted
+      // Run. A bare Pure preparation without that original cannot enter.
+      let admission = match preparation {
+        PreparationContentManaged(admission, original)
+        | PureManaged(admission, original) => {
+          guard physical_equal(original, prepared) else {
+            return Err(ForeignOriginal)
+          }
+          admission
+        }
+        _ => return Err(ForeignOriginal)
+      }
       let reservation = match
         @resources.reserve_node_managed_run_attempt(
           admission,
@@ -182,6 +212,14 @@ pub fn start_installed_managed_serialization_prefix(
           return Err(issue)
         }
         Ok(_) => ()
+      }
+      guard owner.content is SerializationContent(original) &&
+        physical_equal(original, selected) &&
+        owner.serialization_prefix is Some(original_prefix) &&
+        physical_equal(original_prefix, prefix) else {
+        prefix.child_cleaned = true
+        ignore(cleanup_client_serialization_prefix(prefix))
+        return Err(ForeignOriginal)
       }
       match
         start_retained_serialization_prefix_provider(

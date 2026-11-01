@@ -129,8 +129,9 @@ struct ClientRequestPreparation[I] {
   mut program_data : @checked.ParsedCheckDataEstimate?
   mut program_plan_quote : (Int64, Int64)?
   mut program_measurement_quote : (Int64, Int64)?
-  // Graph, Model Scope and Content Plan are exclusive domain constructors. Retain
-  // their absolute target in the same prepaid slot across a declined grow.
+  // Sequential Graph, Model Scope and Content constructors reuse this prepaid
+  // absolute-target slot across a declined grow. Their completed originals
+  // coexist in the distinct existing domain/body slots below.
   mut program_domain_quote : (Int64, Int64)?
   mut program_artifact_geometry : @publication_host.ClientPureCompilationConstruction?
   mut program_artifact_quote : (Int64, Int64)?

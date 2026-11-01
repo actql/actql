@@ -184,6 +184,59 @@ pub fn[I] prepare_request_model_compilation(
 }
 
 ///|
+/// Bind the actual Model module and its optional Content prefix from this
+/// original Request. The Plan record was admitted by the existing input borrow;
+/// no caller-supplied prefix or equal compiler can replace its retained original.
+pub fn[I] prepare_request_model_source_free_plan(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  original : ClientInstalledManagedSourceFreePreparation,
+  request : @publication_host.ClientRequestIdentity,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  occurrence : @publication_host.ClientInferOccurrence,
+  graph : @publication_host.ClientInferPlanGraph,
+  model_limits : @resources.LedgerLimits,
+  read_retained_bytes : Int64,
+  read_execution_bytes : Int64,
+  max_reservations : Int,
+  max_holdings : Int,
+  max_delegations : Int,
+) -> Result[ClientInstalledManagedModelPlan, ClientInstalledManagedRunIssue] {
+  guard owner.phase == ModelPlanReserved &&
+    owner.input is Some(same_input) &&
+    physical_equal(same_input, input) &&
+    owner.program_source_free is Some(module) &&
+    physical_equal(module, original) &&
+    owner.program_domain_compilation_inputs
+    is Some(RequestModelCompilation(_, _, _, same_graph)) &&
+    physical_equal(same_graph, graph) &&
+    owner.program_model is None else {
+    return Err(ForeignOriginal)
+  }
+  let content_prefix = match (graph.serialization, owner.program_content) {
+    (None, NoContent) => None
+    (Some(_), SerializationContent(prefix)) => Some(prefix)
+    _ => return Err(ForeignOriginal)
+  }
+  prepare_installed_mock_model_source_free_plan(
+    original,
+    request,
+    compiled,
+    definition,
+    occurrence,
+    graph,
+    model_limits,
+    read_retained_bytes,
+    read_execution_bytes,
+    max_reservations,
+    max_holdings,
+    max_delegations,
+    content_prefix~,
+  )
+}
+
+///|
 /// Bind this actual Model Plan before completing the original Prepared body.
 /// Fund the actual Scope records and the original census-slot growth before
 /// binding. Complete selected Model/read/module/physical constructor overlap
@@ -196,6 +249,18 @@ pub fn[I] prepare_request_model_read_scope(
   @publication_host.ClientModelReadScope,
   ClientInstalledManagedRunIssue,
 ] {
+  // A mixed module carries the same already constructed prefix, not a
+  // successful quote or a Model Scope standing in for Content retention.
+  guard (match (plan.content_prefix, owner.program_content) {
+    (None, NoContent) => plan.graph.serialization is None
+    (Some(prefix), SerializationContent(original)) =>
+      physical_equal(prefix, original) &&
+      owner.program_content_request is Some(request) &&
+      physical_equal(request, plan.request)
+    _ => false
+  }) else {
+    return Err(ForeignOriginal)
+  }
   let quoted = owner.phase == ModelScopeQuoted
   // This Request retained the actual funded module before Plan/Scope entry.
   // A separately reconstructed module with the same compiler is still foreign.
@@ -398,6 +463,17 @@ pub fn[I] begin_request_model_managed_run(
     ) {
     return Err(ForeignOriginal)
   }
+  let content = owner.program_content
+  guard (match (plan.content_prefix, content) {
+    (None, NoContent) => true
+    (Some(prefix), SerializationContent(original)) =>
+      physical_equal(prefix, original) &&
+      owner.program_content_request is Some(bound) &&
+      physical_equal(bound, request)
+    _ => false
+  }) else {
+    return Err(ForeignOriginal)
+  }
   owner.phase = Selecting
   let result = adopt_preparation_owned_pure_plan(
     owner.initial,
@@ -414,6 +490,11 @@ pub fn[I] begin_request_model_managed_run(
       Err(issue)
     }
     Ok(run) => {
+      // Closed original DATA handoff before another current callback. The
+      // adopted Run retains this same prefix until its actual cleanup ACK.
+      run.content = content
+      owner.program_content = NoContent
+      owner.program_content_request = None
       owner.program_capacity = None
       owner.compiled_program = None
       owner.program_data = None

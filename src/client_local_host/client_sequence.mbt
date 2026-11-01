@@ -142,6 +142,10 @@ pub fn prepare_client_serialization_prefix(
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
+  query_time? : (
+    @publication_host.ClientQueryTimePreparation,
+    @publication_host.ClientRequestIdentity,
+  )? = None,
 ) -> @execution.GeneratedSequence? {
   let graph = @publication_host.prepared_client_graph(prepared)
   guard @strategy.graph_task_owner(graph, task) is Some(owner) &&
@@ -156,6 +160,7 @@ pub fn prepare_client_serialization_prefix(
     values_body,
     fragment_body,
     ordered_body,
+    query_time~,
   )
 }
 
@@ -294,6 +299,10 @@ fn prepare_client_serialization_prefix_owned(
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
+  query_time? : (
+    @publication_host.ClientQueryTimePreparation,
+    @publication_host.ClientRequestIdentity,
+  )? = None,
 ) -> @execution.GeneratedSequence? {
   let (graph, barrier) = match prepared {
     Pure(value) =>
@@ -346,6 +355,7 @@ fn prepare_client_serialization_prefix_owned(
       ),
     ),
     serialization_input=Some((task, barrier)),
+    query_time~,
   )
   .to_option()
   .bind(sequences => sequences.get(0))

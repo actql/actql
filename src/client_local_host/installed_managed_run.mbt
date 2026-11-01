@@ -193,6 +193,7 @@ fn installed_managed_run_shape_supported(
 fn installed_managed_owner_shape_supported(
   owner : ClientLocalSequenceOwner,
   mock_model : Bool,
+  model? : @publication_host.ClientInferPlanGraph? = None,
 ) -> Bool {
   let graph = installed_managed_owner_graph(owner)
   let captured = @strategy.graph_captured_prefix(graph)
@@ -226,7 +227,19 @@ fn installed_managed_owner_shape_supported(
   ) &&
   boundary_count is Some(count) &&
   count == (if mock_model { 1 } else { 0 }) &&
-  serialized.is_empty()
+  (match model {
+    None => serialized.is_empty()
+    Some(selected) =>
+      mock_model &&
+      selected.serialization is Some(component) &&
+      (match owner {
+        Pure(prepared) =>
+          physical_equal(selected.owner, prepared) &&
+          physical_equal(component.owner, prepared) &&
+          serialized == [(component.task, component.step)]
+        Effect(_) => false
+      })
+  })
 }
 
 ///|
@@ -237,6 +250,7 @@ fn source_free_installed_managed_preparation_owned(
   fragment_body : String?,
   ordered_body : String?,
   mock_model : Bool,
+  model? : @publication_host.ClientInferPlanGraph? = None,
   query_time? : (
     @publication_host.ClientQueryTimePreparation,
     @publication_host.ClientRequestIdentity,
@@ -246,7 +260,7 @@ fn source_free_installed_managed_preparation_owned(
   ClientInstalledManagedRunIssue,
 ] {
   let graph = installed_managed_owner_graph(owner)
-  if !installed_managed_owner_shape_supported(owner, mock_model) ||
+  if !installed_managed_owner_shape_supported(owner, mock_model, model~) ||
     @strategy.graph_captured_prefix(graph) != 0 ||
     !@strategy.graph_source_free_inputs_complete(graph) {
     return Err(Unsupported)

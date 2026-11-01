@@ -83,6 +83,22 @@ fn[I] begin_request_model_module(
     installed_mock_model_compilation_matches(prepared, compilation) else {
     return Err(Preparation(ForeignOriginal))
   }
+  // A serialized Model cannot construct its module before the original
+  // same-Request prefix has retained its compiler and constructor output.
+  guard (match (graph.serialization, owner.program_content) {
+    (None, NoContent) => true
+    (Some(component), SerializationContent(prefix)) =>
+      physical_equal(prefix.prepared, prepared) &&
+      physical_equal(prefix.request, request) &&
+      physical_equal(prefix._observed_compiled, compiled) &&
+      physical_equal(prefix._observed_definition, definition) &&
+      @publication_host.client_task_compilation_serialization(compilation)
+      is Some(original) &&
+      physical_equal(original, component)
+    _ => false
+  }) else {
+    return Err(Preparation(ForeignOriginal))
+  }
   if query_time is Some(original) {
     match
       @publication_host.client_query_time_preparation_context_for_run(
