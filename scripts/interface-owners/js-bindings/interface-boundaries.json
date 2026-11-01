@@ -75037,7 +75037,7 @@
     {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "26856fcec59e5a3c8e655d73b88d96c82017c31d0b6c2f690a126c5b023adced",
+      "sha256": "38e9b3703d6b7c13b9f875acad63d134bf97a5c85d56655b42179e6286b70b6c",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -75687,6 +75687,14 @@
           "async": false
         },
         {
+          "name": "createInstalledRowSource/ordinaryRecoveryBinding/ordinaryRecoveryBinding",
+          "parameters": [
+            "field",
+            "index"
+          ],
+          "async": false
+        },
+        {
           "name": "createInstalledRowSource/ordinarySubject/ordinarySubject",
           "parameters": [
             "prepared"
@@ -76325,6 +76333,47 @@
           "async": false
         },
         {
+          "name": "prepareImmutablePhysicalTargets",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareImmutablePhysicalTargets/arrayValues/arrayValues",
+          "parameters": [
+            "input"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareImmutablePhysicalTargets/init:prepare/init:prepare",
+          "parameters": [
+            "resource",
+            "fields"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareImmutablePhysicalTargets/init:prepare/init:prepare/init:prepare",
+          "parameters": [
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareImmutablePhysicalTargets/mismatch/mismatch",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareImmutablePhysicalTargets/prepareImmutablePhysicalTargets",
+          "parameters": [
+            "field"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareInstallationMetadataSite",
           "parameters": [
             "options"
@@ -76912,6 +76961,8 @@
             "createInstalledRowSource/acquire/readerOptions/readerOptions#3",
             "createInstalledRowSource/acquire/readerOptions/readerOptions#4",
             "createInstalledRowSource/acquire/readerOptions/readerOptions#5",
+            "createInstalledRowSource/acquire/readerOptions/readerOptions/readerOptions",
+            "createInstalledRowSource/acquire/readerOptions/readerOptions/selected/selected",
             "createInstalledRowSource/captureCapacity/captureCapacity",
             "createInstalledRowSource/createInstalledRowSource",
             "createInstalledRowSource/createInstalledRowSource#10",
@@ -76955,6 +77006,7 @@
             "createInstalledRowSource/openKeyedLookup/stop/stop",
             "createInstalledRowSource/operationBindings/operationBindings",
             "createInstalledRowSource/ordinaryRecoveryBinding",
+            "createInstalledRowSource/ordinaryRecoveryBinding/ordinaryRecoveryBinding",
             "createInstalledRowSource/ordinarySubject/ordinarySubject",
             "createInstalledRowSource/prepare",
             "createInstalledRowSource/prepare/authorizePreparation/authorizePreparation",
@@ -76968,8 +77020,12 @@
             "createInstalledRowSource/sourceRefs/sourceRefs",
             "createInstalledRowSource/verifyKeyedRead",
             "createInstalledRowSource/verifyKeyedRead/recheck/recheck",
-            "createInstalledRowSource/acquire/readerOptions/readerOptions/readerOptions",
-            "createInstalledRowSource/acquire/readerOptions/readerOptions/selected/selected"
+            "prepareImmutablePhysicalTargets",
+            "prepareImmutablePhysicalTargets/arrayValues/arrayValues",
+            "prepareImmutablePhysicalTargets/init:prepare/init:prepare",
+            "prepareImmutablePhysicalTargets/init:prepare/init:prepare/init:prepare",
+            "prepareImmutablePhysicalTargets/mismatch/mismatch",
+            "prepareImmutablePhysicalTargets/prepareImmutablePhysicalTargets"
           ],
           "exports": [
             "createInstalledRowSource"
@@ -77023,6 +77079,10 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "clientProgramInstalledSourceReadAttachAcquisition("
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Standard REST installations hand their complete frozen physical-target DATA"
               }
             ],
             "ownership": [
@@ -77213,6 +77273,10 @@
               {
                 "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
                 "anchor": "whole Source transfers its original reference only after the RowRun constructor returns"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-binding-originals.test.mjs",
+                "anchor": "test('same immutable binding removes generation/hash work without removing Account or Core target observations'"
               }
             ]
           }
@@ -78805,7 +78869,7 @@
             "resources": [
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "occurrence, physicalBindingCid, providerCaptureCapacity, originalRead, managedRun}));"
+                "anchor": "occurrence, physicalBindingCid, providerCaptureCapacity, originalRead, managedRun,"
               },
               {
                 "path": "adapters/host-node/source-managed-phase-envelope.cjs",

@@ -192,7 +192,7 @@ function demandFixture(authored) {
 }
 
 async function observeDemand(f) {
-  let implementation, rowSource, siteCalls = 0;
+  let implementation, rowSource, siteInput, siteCalls = 0;
   const capacity = {}, prepared = {declaration: {}, declared: {catalog_cid: 'authored-catalog',
     views: f.definition.sources.map(source => ({resource: source.resource,
       fields: source.fields.map(field => field.name)}))}, environment: {wire: 'original-environment'}};
@@ -203,7 +203,7 @@ async function observeDemand(f) {
     sourceReaderImplementationProfile() {return f.policy;},
     sourceReaderImplementation(input) {implementation = input;
       return {capacity, limits: input.limits, runAcquisitionLimits: {}};},
-    async openRowSite() {siteCalls++;return {site: {}, authorization: {context: {contextCid: 'authored-context'}}};},
+    async openRowSite(input) {siteInput=input;siteCalls++;return {site: {}, authorization: {context: {contextCid: 'authored-context'}}};},
     createSourceReader(input) {assert.equal(input.implementation.capacity, capacity);return {capacity};},
   };
   const moon = Object.fromEntries(['ProjectJsonPage', 'JsonPageRowsWire', 'JsonPageRowCount',
@@ -213,8 +213,30 @@ async function observeDemand(f) {
   const run = () => create(f.definition).load(f.profile, {installationServices: services,
     sourceInitialization: initialization, installation: {}, moon, resolveSecret() {},
     configurationReader: {readJson: async () => f.selectedSite, readText() {assert.fail('No physical read');}}});
-  return {run, observations: () => ({implementation, rowSource, siteCalls, prepared})};
+  return {run, observations: () => ({implementation, rowSource, siteInput, siteCalls, prepared})};
 }
+
+test('standard REST supplies exact immutable target DATA while approval keeps its complete matcher', async () => {
+  const authored=JSON.parse(readFileSync(new URL('../../scripts/fixtures/external-rest/connector.json',import.meta.url)));
+  const f=demandFixture(authored),probe=await observeDemand(f);await probe.run();
+  const {rowSource,siteInput,prepared}=probe.observations();
+  const input=await createRestSourceMetadata(f.definition).readInputs(f.profile,{configurationReader:{
+    readJson:async()=>f.selectedSite,readText(){assert.fail('No physical read');}}});
+  assert(Object.isFrozen(rowSource.physicalTarget));
+  assert.equal(rowSource.physicalTarget.length,f.definition.sources.length);
+  for(const [index,target] of rowSource.physicalTarget.entries()){
+    const source=f.definition.sources[index],fields=source.fields.map(field=>field.name);
+    assert.deepEqual(target,{connectorRegistration:f.definition.registration,connectorRevision:f.definition.revision,
+      catalogCid:prepared.declared.catalog_cid,originalStringsCid:input.originalStringsCid,
+      origin:f.definition.origin,path:source.read.path,resource:source.resource,fields});
+    assert(Object.isFrozen(target));assert(Object.isFrozen(target.fields));
+    assert.equal(siteInput.admitsApprovalTarget(target,source.resource),true);
+    assert.equal(siteInput.admitsApprovalTarget({...target,path:'/foreign'},source.resource),false);
+    assert.equal(siteInput.admitsApprovalTarget({...target,fields:fields.slice(0,1)},source.resource),true);
+    assert.throws(()=>siteInput.admitsApprovalTarget({...target,fields:['undeclared']},source.resource),
+      {code:'RestSourceReadTargetMismatch'});
+  }
+});
 
 test('REST factory selects the same validated authored demand for implementation and Source', async () => {
   const authored = JSON.parse(readFileSync(new URL('../../scripts/fixtures/external-rest/connector.json', import.meta.url)));

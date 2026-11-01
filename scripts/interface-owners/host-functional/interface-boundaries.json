@@ -122184,7 +122184,7 @@
     {
       "module": "adapters/host-node/installed-rest-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "80816b9df8462418c1eff31683dc938e8dfba50263471c48092bb15d8889d3b7",
+      "sha256": "bf02bdb794dd97e29588d02f14f0db477b61b8b0579b0143d499e55c3810ba59",
       "role": "physical-io",
       "owner": "Existing installed Host Source initialization, Credential Site, managed Reader and RowRun Owners; facade retains only its selected original author declaration/service composition.",
       "exports": [
@@ -122280,6 +122280,20 @@
           "name": "createInstalledRestSource/load/limits/limits#4",
           "parameters": [
             "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRestSource/load/load",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRestSource/load/load/load",
+          "parameters": [
+            "view"
           ],
           "async": false
         },
@@ -122398,6 +122412,8 @@
             "createInstalledRestSource/load/limits/limits#2",
             "createInstalledRestSource/load/limits/limits#3",
             "createInstalledRestSource/load/limits/limits#4",
+            "createInstalledRestSource/load/load",
+            "createInstalledRestSource/load/load/load",
             "createInstalledRestSource/load/opened/init:admitsApprovalTarget/init:admitsApprovalTarget",
             "createInstalledRestSource/load/pageBounds/pageBounds",
             "createInstalledRestSource/load/pageBounds/pageBounds#2",
@@ -122443,6 +122459,10 @@
               {
                 "path": "adapters/host-node/installed-rest-source.mjs",
                 "anchor": "catalogCid: declared.catalog_cid, originalStringsCid: input.originalStringsCid,"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Standard REST installations hand their complete frozen physical-target DATA"
               }
             ],
             "ownership": [
@@ -122553,6 +122573,14 @@
               {
                 "path": "adapters/host-node/rest-source-initial-material.test.mjs",
                 "anchor": "test('REST authored bounds still refuse above any selected policy before implementation or Site'"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-binding-originals.test.mjs",
+                "anchor": "test('same immutable binding removes generation/hash work without removing Account or Core target observations'"
+              },
+              {
+                "path": "adapters/host-node/rest-source-initial-material.test.mjs",
+                "anchor": "test('standard REST supplies exact immutable target DATA while approval keeps its complete matcher'"
               }
             ]
           }
