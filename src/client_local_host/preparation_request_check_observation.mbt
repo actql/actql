@@ -165,8 +165,7 @@ pub fn[I] project_request_check_outcome(
   // copying the Program again. Collection is borrowed, never repeated here.
   let input_label_bytes = match inputs {
     Some(value) =>
-      @decode.admission_usage(@syntax.program_body(program))
-      .total_string_bytes.to_int64() +
+      @decode.admission_usage(@syntax.program_body(program)).total_string_bytes.to_int64() +
       16L * @sourceview_input.count(value).to_int64()
     None => 0L
   }
@@ -214,11 +213,11 @@ pub fn[I] project_request_check_outcome(
         physical_equal(current_outcome, original) else {
         return Err(ForeignOriginal)
       }
-      guard match (registration, child.source_registration) {
-          (None, None) => true
-          (Some(original), Some(current)) => physical_equal(original, current)
-          _ => false
-        } else {
+      guard (match (registration, child.source_registration) {
+        (None, None) => true
+        (Some(original), Some(current)) => physical_equal(original, current)
+        _ => false
+      }) else {
         return Err(ForeignOriginal)
       }
       let current_inputs = match child.source_registration {
@@ -228,11 +227,11 @@ pub fn[I] project_request_check_outcome(
           )
         None => None
       }
-      guard match (inputs, current_inputs) {
-          (None, None) => true
-          (Some(original), Some(current)) => physical_equal(original, current)
-          _ => false
-        } else {
+      guard (match (inputs, current_inputs) {
+        (None, None) => true
+        (Some(original), Some(current)) => physical_equal(original, current)
+        _ => false
+      }) else {
         return Err(ForeignOriginal)
       }
       Ok(
