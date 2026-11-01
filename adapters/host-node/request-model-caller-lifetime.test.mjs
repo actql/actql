@@ -542,8 +542,10 @@ function requestGraphFixture({serialized = true, missingPort = false, replaceAft
     () => {if (replaceAfter && state.modelGraph !== undefined) state.contentGraph = {};},
     value => {assert.equal(value, request); return producer;}, fail, originals,
     (actual, result, issue) => {assert.equal(actual, moon); assert.equal(issue, moon.clientProgramRequestProgramModuleIssueCode); return result.value;});
-  return {state, calls, graph, invoke: () => object.prepareModelGraph(prepared, request, occurrence, execution, component),
-    foreign: () => object.prepareModelGraph(prepared, request, occurrence, execution, {})};
+  const constructSerialized = missingPort ? undefined : (...args) =>
+    Reflect.apply(moon.clientProgramPrepareRequestSerializedModelGraph, moon, args);
+  return {state, calls, graph, invoke: () => object.prepareModelGraph(prepared, request, occurrence, execution, component, constructSerialized),
+    foreign: () => object.prepareModelGraph(prepared, request, occurrence, execution, {}, constructSerialized)};
 }
 
 test('Request Model Graph forwards the same retained Content original to one typed parent constructor', () => {
