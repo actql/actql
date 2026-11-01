@@ -9479,7 +9479,7 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
-      "sha256": "ac206258bfaea1cadf803b0f0d448db11457fcc251f61565377b8c58b4c3c3bc",
+      "sha256": "26856fcec59e5a3c8e655d73b88d96c82017c31d0b6c2f690a126c5b023adced",
       "operations": [
         {
           "name": "byCid/byCid",
@@ -11095,6 +11095,7 @@
         "node:path",
         "node:perf_hooks",
         "node:timers/promises",
+        "node:url",
         "node:util"
       ],
       "compilerFields": [],

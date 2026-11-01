@@ -9,7 +9,7 @@ import {retainInstalledHostInitializationFailure} from './installed-host-cleanup
 import {createInstalledConnectorTable} from './installed-connectors.mjs';
 import {createInstalledHostServices, retainInstalledHostServiceInstallation,
   retireInstalledSourceInitialization, beginInstalledSourceInitialization, finishInstalledSourceInitialization,
-  assertInstalledSourceConstruction} from './installed-host-services.mjs';
+  assertInstalledSourceConstruction, prepareInstalledSourceAcquisitionContracts, installedSourceConfigurationReader, readInstalledSourceAcquisitionContract} from './installed-host-services.mjs';
 import {pathToFileURL} from 'node:url';
 import {createHash} from 'node:crypto';
 import {createInstalledRowEffect} from './installed-row-effect.mjs';
@@ -474,7 +474,7 @@ test('GitHub Effect installer forwards original declaration Mapping and Site con
 // Actual existing Source material/context and Environment assembler. Only
 // native Core capacities/projection and current/retirement ports are explicit;
 // this exercises ownership/order, not numeric backing or a physical ACK.
-function commandConstructionFixture({refuseReserve = false, failProjection, duringReserve, role = 'effect', reserveAt = 2, additionalNative = []} = {}) {
+function commandConstructionFixture({refuseReserve = false, failProjection, duringReserve, role = 'effect', reserveAt = 2, additionalNative = [], contractQuantity, contractFailure} = {}) {
   const ok = value => ({$tag: 1, _0: value});
   const initial = {}, input = {}, unit = {}, capacity = {}, declaration = {}, native = {};
   const installed = Object.freeze({registration: 'sheets', revision: 'sheets/0.1', effect: {}});
@@ -482,13 +482,19 @@ function commandConstructionFixture({refuseReserve = false, failProjection, duri
   const base = {catalog_cid: cid, catalog: '{}', contracts: [], view_bodies: [],
     evidence_schemas: [], evidence_capabilities: [], manifest_entry: '{}'};
   const declared = {...base, command_bodies: ['{}']};
-  const events = [], quotes = [], refusal = new Error('original command reservation refused');
+  const events = [], quotes = [], refusal = new Error('original command reservation refused'), contractOriginal={original:'contracts'};
   let reserveCalls = 0, retired = 0, context, pending;
+  const originalIo=new Set();
   const moon = Object.fromEntries(['ReconcileInstalledSourceConstruction','CompleteInstalledSourceMaterial',
     'BorrowInstalledSourceMaterial','BorrowedInstalledSourceEnvironment','ReturnInstalledSourceMaterial',
     'AbortUncontinuedSourceMaterial','BeginInstalledSourceIo','ChargeInstalledSourceIo',
     'MarkInstalledSourceIoTransferUncertain','FinishInstalledSourceIoAfterCleanup'].map(name => ['clientProgram' + name, () => ok()]));
   Object.assign(moon, {
+    clientProgramBeginInstalledSourceIo(value,original,bytes) {assert.equal(value,capacity);assert.equal(original,input);assert.equal(typeof bytes,'bigint');const operation=Object.freeze({original:'fixture-io'});originalIo.add(operation);events.push('io-begin');return ok(operation);},
+    clientProgramChargeInstalledSourceIo(operation,bytes) {assert(originalIo.has(operation));assert.equal(typeof bytes,'bigint');events.push('io-charge');return ok();},
+    clientProgramFinishInstalledSourceIoAfterCleanup(operation) {assert(originalIo.delete(operation));events.push('io-finish');return ok();},
+    clientProgramRowSourceAcquisitionContractsConstructionCapacity(...args) {events.push('contract-quantity');assert.deepEqual(args,[5,8]);return contractQuantity;},
+    clientProgramRowSourceAdmitAcquisitionContracts(query,evidence) {assert.equal(query,'query');assert.equal(evidence,'evidence');events.push('admit-contract');if(contractFailure==='undefined')throw undefined;if(contractFailure==='async')return new Promise(resolve=>{pending=resolve;});return ok(contractOriginal);},
     clientProgramTakeHostInitializationSourceCapacity(value) {assert.equal(value, initial);return ok({_0: input, _1: unit});},
     clientProgramContinueInstalledSourceMaterial(value, original) {assert.equal(value, unit);assert.equal(original, input);return ok(capacity);},
     clientProgramInstalledSourceConstructionCapacity(...values) {return ok(Object.freeze({values}));},
@@ -517,10 +523,10 @@ function commandConstructionFixture({refuseReserve = false, failProjection, duri
     if (failProjection === 'async') return new Promise(resolve => {pending = resolve;});
     return Object.freeze({declared, commands, definition: Object.freeze({installed:commands[0]}), wire:JSON.stringify(declared)});
   }});
-  return {context,services,projection,commands,declared,declaration,quotes,events,refusal,
+  return {context,services,projection,commands,declared,declaration,quotes,events,refusal,contractOriginal,
     prepare:expected=>context.prepareDeclaredCommands('{"views":[]}',projection,expected),
     finish:()=>finishInstalledSourceInitialization(context, undefined, new Error('original unit terminal'), true),
-    retire:()=>retireInstalledSourceInitialization(services), retired:()=>retired,
+    retire:()=>retireInstalledSourceInitialization(services), retired:()=>retired,originalIo,
     // Native Promise settlement is independent of constructor refusal.
     getPending:()=>pending};
 }
@@ -629,4 +635,37 @@ for(const refuseReserve of [false,true])test(`Effect driver construction retains
   assert.equal(projected,refuseReserve?0:1);assert.equal(f.quotes.at(-1).selected[1],quantity);
   assert.throws(()=>f.context.prepareEffectDriverConstruction(projection),{code:'ForeignInstalledSourceInitialization'});
   f.finish();assert.equal(f.retire(),true);assert.equal(f.retired(),1);
+});
+
+for(const refuseReserve of [false,true])test(`Source protocols use one native constructor quantity before admission and keep failure sticky: ${refuseReserve}`,()=>{
+ const quantity={},f=commandConstructionFixture({role:'source',additionalNative:[quantity],contractQuantity:quantity,refuseReserve,reserveAt:4});f.prepare();
+ const prepare=()=>prepareInstalledSourceAcquisitionContracts(f.context,'query','evidence');
+ if(refuseReserve)assert.throws(prepare,cause=>cause===f.refusal);else assert.equal(prepare(),f.contractOriginal);
+ assert.equal(f.events.filter(x=>x==='contract-quantity').length,1);assert.equal(f.events.filter(x=>x==='admit-contract').length,refuseReserve?0:1);
+ assert.equal(f.quotes.at(-1).selected[1],quantity);assert.throws(prepare,{code:'InstalledSourceAcquisitionContractsAlreadyPrepared'});
+ f.finish();assert.equal(f.retire(),true);assert.equal(f.retired(),1);
+});
+test('Source protocol admission retains thrown undefined after original native backing without reconstruction',()=>{
+ const quantity={},f=commandConstructionFixture({role:'source',additionalNative:[quantity],contractQuantity:quantity,contractFailure:'undefined'});f.prepare();let caught=false;
+ try{prepareInstalledSourceAcquisitionContracts(f.context,'query','evidence');}catch(cause){caught=true;assert.equal(cause,undefined);}assert.equal(caught,true);
+ assert.throws(()=>prepareInstalledSourceAcquisitionContracts(f.context,'query','evidence'),{code:'InstalledSourceAcquisitionContractsAlreadyPrepared'});
+ f.finish();assert.equal(f.retire(),true);
+});
+test('Source protocol text uses the SAME original file reader before native contract construction',async t=>{
+ const f=commandConstructionFixture({role:'source'}),reader=installedSourceConfigurationReader(f.services);f.prepare();
+ const root=await fs.mkdtemp(join(tmpdir(),'actql-source-protocol-input-'));t.after(()=>fs.rm(root,{recursive:true,force:true}));
+ const path=join(root,'protocol.json');await fs.writeFile(path,'query');
+ const original=reader.readOriginalText;assert.equal(Object.isFrozen(reader),true);
+ assert.equal(await readInstalledSourceAcquisitionContract(f.context,path),'query');assert.equal(reader.readOriginalText,original);
+ assert.equal(f.events.includes('admit-contract'),false);f.finish();assert.equal(f.retire(),true);
+ await assert.rejects(readInstalledSourceAcquisitionContract(f.context,path),{code:'ForeignInstalledSourceInitialization'});
+});
+
+test('invalid async Source protocol admission stays with SAME Source until settlement without becoming a holder',async()=>{
+ const quantity={},f=commandConstructionFixture({role:'source',additionalNative:[quantity],contractQuantity:quantity,contractFailure:'async'});f.prepare();
+ assert.throws(()=>prepareInstalledSourceAcquisitionContracts(f.context,'query','evidence'),{code:'InstalledSourceConstructorNotSynchronous'});
+ f.finish();assert.equal(f.retire(),false);assert.equal(f.retired(),0);
+ f.getPending()({$tag:1,_0:f.contractOriginal});await Promise.resolve();await Promise.resolve();
+ assert.equal(f.retire(),true);assert.equal(f.retired(),1);
+ assert.throws(()=>prepareInstalledSourceAcquisitionContracts(f.context,'query','evidence'),{code:'ForeignInstalledSourceInitialization'});
 });

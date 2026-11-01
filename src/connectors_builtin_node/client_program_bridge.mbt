@@ -8779,6 +8779,17 @@ pub fn client_program_row_source_admit_acquisition_contracts(
 }
 
 ///|
+#export_name("clientProgramRowSourceAcquisitionContractsConstructionCapacity")
+pub fn client_program_row_source_acquisition_contracts_construction_capacity(
+  query_units : Int,
+  evidence_units : Int,
+) -> @execution.ExecutionCapacity? {
+  @client_row_source_host.row_acquisition_contracts_construction_capacity(
+    query_units, evidence_units,
+  )
+}
+
+///|
 #export_name("clientProgramRowSourcePrepareAcquisitionWithContracts")
 pub fn client_program_row_source_prepare_acquisition_with_contracts(
   declaration : @client_row_source_host.RowDeclaration,

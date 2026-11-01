@@ -1811,6 +1811,8 @@ pub fn client_program_row_source_accept_page(@client_row_source_host.RowRun, Byt
 
 pub fn client_program_row_source_accept_values(@client_row_source_host.RowRun, Array[String], Array[Array[@value_admission.CheckedValue]]) -> Result[Int, @client_row_source_host.RowHostIssue]
 
+pub fn client_program_row_source_acquisition_contracts_construction_capacity(Int, Int) -> @execution_relation.ExecutionCapacity?
+
 pub fn client_program_row_source_admit_acquisition_contracts(String, String) -> Result[@query_planning.QueryEvidenceContracts, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_row_source_advance_listing_page(@client_row_source_host.RowRun, Int, Int64) -> Result[String, @client_row_source_host.RowHostIssue]

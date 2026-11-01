@@ -667,6 +667,28 @@ export function assertInstalledSourceConstruction(context, declaration, declared
   }
 }
 
+// Normal static protocol input uses the existing SAME Source file reader.
+// Its original stat/before-read/before-decode/close path owns every Buffer and
+// String before the native admission constructor can receive these inputs.
+export async function readInstalledSourceAcquisitionContract(context, path) {
+  const retained = sourceContexts.get(context);
+  if (retained === undefined || retained.material.phase !== 'working' ||
+      !retained.scope.active || retained.scope.prepared === undefined || retained.scope.source !== undefined) {
+    fail('ForeignInstalledSourceInitialization');
+  }
+  const {original,material,scope} = retained;
+  if (material.busy) fail('InstalledSourceInitializationReentry');
+  const reader = material.configurationReader;
+  const method = reader && Object.getOwnPropertyDescriptor(reader,'readOriginalText');
+  if (!method || !Object.hasOwn(method,'value') || typeof method.value !== 'function') {
+    fail('InstalledSourceInitializationRuntimeUnavailable');
+  }
+  const value = await Reflect.apply(method.value,reader,[path]);
+  original.current();
+  if (material.phase !== 'working' || !scope.active || scope.source !== undefined) fail('ForeignInstalledSourceInitialization');
+  return value;
+}
+
 // Retain the existing admitted protocol holder on the SAME Source successor.
 // No Request needs to parse these unchanged installation bodies again. The
 // numeric extents describe this constructor's input/output/failed-child overlap;
@@ -679,20 +701,33 @@ export function prepareInstalledSourceAcquisitionContracts(context, query, evide
   }
   const {original, material, scope} = retained;
   if (material.busy) fail('InstalledSourceInitializationReentry');
-  if (scope.acquisitionContracts !== undefined) fail('InstalledSourceAcquisitionContractsAlreadyPrepared');
+  if (scope.acquisitionContractsAttempted || scope.acquisitionContracts !== undefined) fail('InstalledSourceAcquisitionContractsAlreadyPrepared');
   if (typeof query !== 'string' || typeof evidence !== 'string') fail('InvalidInstalledSourceAcquisitionContracts');
-  if (typeof original.admitAcquisitionContracts !== 'function') fail('InstalledSourceInitializationRuntimeUnavailable');
-  const basis = 6n * (BigInt(query.length) + BigInt(evidence.length)) + 64n;
-  reserveSource(original, material, 4n * basis, 8n * basis, 8n * basis);
+  if (typeof original.admitAcquisitionContracts !== 'function' || typeof original.acquisitionContractsCapacity !== 'function') fail('InstalledSourceInitializationRuntimeUnavailable');
+  scope.acquisitionContractsAttempted = true;
+  const prepared = scope.prepared;
+  let quantity;
+  material.busy = true;
+  try {quantity = requireSynchronousSourceConstruction(material,
+    Reflect.apply(original.acquisitionContractsCapacity, original.moon, [query.length, evidence.length]));}
+  finally {material.busy = false;}
+  if (!quantity || typeof quantity !== 'object' || nodeTypes.isProxy(quantity)) fail('InstalledSourceAcquisitionContractsConstructionUnavailable');
+  // The SAME original native parser/canonical/hash owner supplies its actual
+  // constructor peak. Keep the full peak through Source retirement, including
+  // a failed reserve or native call; do not turn escaped byte counts into a
+  // second number of generic ValueNodeSlots and quote the same trees twice.
+  material.providers.push(quantity);
+  reserveSource(original, material);
+  if (material.phase !== 'working' || !scope.active || scope.prepared !== prepared || scope.source !== undefined) fail('ForeignInstalledSourceInitialization');
   let contracts;
   material.busy = true;
-  try {contracts = checked(Reflect.apply(original.admitAcquisitionContracts, original.moon, [query, evidence]));}
+  try {contracts = checked(requireSynchronousSourceConstruction(material,
+    Reflect.apply(original.admitAcquisitionContracts, original.moon, [query, evidence])));}
   finally {material.busy = false;}
   if (contracts === undefined || contracts === null) fail('InstalledSourceAcquisitionContractsUnavailable');
   // Retain before any subsequent current/reconcile callback can fail.
   scope.acquisitionContracts = contracts;
   material.inputs.push(query, evidence, contracts);
-  material.nodes += 4n * basis; material.text += 8n * basis; material.wire += 8n * basis;
   original.current();
   if (material.phase !== 'working' || !scope.active || scope.source !== undefined) fail('ForeignInstalledSourceInitialization');
   reconcileSource(original, material);
@@ -1305,10 +1340,11 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
   const restoreAuthoredDeclaration = moon.clientProgramRowSourceRestoreDeclaration;
   const declarationJson = moon.clientProgramRowSourceDeclarationJson;
   const admitAcquisitionContracts = moon.clientProgramRowSourceAdmitAcquisitionContracts;
+  const acquisitionContractsCapacity = moon.clientProgramRowSourceAcquisitionContractsConstructionCapacity;
   const prepareMapping = moon.clientProgramRowSourcePrepareMapping;
   installations.set(services, {selected, current, sites, siteInstallations, implementations,
     sourceImplementations, sourceProfiles, moon, initialPreparation, restoreDeclaration, restoreAuthoredDeclaration, declarationJson,
-    admitAcquisitionContracts, prepareMapping});
+    admitAcquisitionContracts, acquisitionContractsCapacity, prepareMapping});
   return services;
 }
 

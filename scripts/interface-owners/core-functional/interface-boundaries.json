@@ -42908,7 +42908,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_program_bridge.mbt",
-      "sha256": "3e93858e130e48e63660baeaaacf6739904562331dcad1371a93a82de5a221a9",
+      "sha256": "d7e889efc278d86b7ddf505f2da82227cc11a2f2d63a23f45d9a7474a004565e",
       "exports": [],
       "operations": [
         {
@@ -43876,6 +43876,10 @@
           "declaration": "client_program_installed_managed_run_compilation_original ( run : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , ) - > @ publication_host . ClientRunCompilation ?"
         },
         {
+          "name": "client_program_installed_managed_run_invocation_original",
+          "declaration": "client_program_installed_managed_run_invocation_original ( run : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , ) - > ( @ publication_host . ClientQueryTimePreparation , @ publication_host . ClientRequestIdentity , @ publication_host . ClientCompiledRun , @ publication . PublicationContract , ) ?"
+        },
+        {
           "name": "client_program_issue_acquired_effect_evidence",
           "declaration": "client_program_issue_acquired_effect_evidence ( owner : @ publication_host . PreparedClientEffectComputation , captured : @ query . CapturedInputSource , identity : @ query . CapturedSourceRelationIdentity , requirement : @ planning . QueryRequirement , input : @ publication . RunEvidenceValue , observation : @ publication . RunEvidenceValue , authority_scope_cid : String , data_policy_cid : String , retention : @ publication . PublicationContract , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ @ publication_host . ClientEffectAcquiredEvidence , @ publication_host . ClientEffectAcquiredEvidenceIssue , ]"
         },
@@ -44484,6 +44488,10 @@
           "declaration": "client_program_query_time_created_at ( preparation : @ publication_host . ClientQueryTimePreparation , ) - > String"
         },
         {
+          "name": "client_program_query_time_invocation_original",
+          "declaration": "client_program_query_time_invocation_original ( preparation : @ publication_host . ClientQueryTimePreparation , owner : @ publication_host . PreparedClientProgram , ) - > ( @ publication_host . ClientQueryTimePreparation , @ publication_host . ClientRequestIdentity , @ publication_host . ClientCompiledRun , @ publication . PublicationContract , ) ?"
+        },
+        {
           "name": "client_program_recheck_salesforce_row_projection",
           "declaration": "client_program_recheck_salesforce_row_projection ( declaration : @ salesforce_host . InstalledSalesforceDeclaration , acquisition : @ client_row_source_host . RowAcquisition , current : @ salesforce_catalog . CatalogObservation , max_soql_bytes : Int , ) - > Result [ @ salesforce_catalog . ReadProjection , @ salesforce_host . InstalledSalesforceIssue , ]"
         },
@@ -44636,6 +44644,10 @@
           "declaration": "client_program_row_source_accept_values ( run : @ client_row_source_host . RowRun , columns : Array [ String ] , rows : Array [ Array [ @ admitted . CheckedValue ] ] , ) - > Result [ Int , @ client_row_source_host . RowHostIssue ]"
         },
         {
+          "name": "client_program_row_source_acquisition_contracts_construction_capacity",
+          "declaration": "client_program_row_source_acquisition_contracts_construction_capacity ( query_units : Int , evidence_units : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
           "name": "client_program_row_source_admit_acquisition_contracts",
           "declaration": "client_program_row_source_admit_acquisition_contracts ( query_contract : String , evidence_contract : String , ) - > Result [ @ planning . QueryEvidenceContracts , @ client_row_source_host . RowHostIssue , ]"
         },
@@ -44706,6 +44718,10 @@
         {
           "name": "client_program_row_source_issue_source_evidence",
           "declaration": "client_program_row_source_issue_source_evidence ( acquisition : @ client_row_source_host . RowAcquisition , capture : @ client_row_source_host . RowSourceCapture , identity : @ query . CapturedSourceRelationIdentity , logical_input : @ publication . RunEvidenceValue , authority_scope_cid : String , effective_data_policy_cid : String , observed_at : String , ) - > Result [ String , @ client_row_source_host . RowHostIssue ]"
+        },
+        {
+          "name": "client_program_row_source_issue_source_evidence_original",
+          "declaration": "client_program_row_source_issue_source_evidence_original ( acquisition : @ client_row_source_host . RowAcquisition , capture : @ client_row_source_host . RowSourceCapture , identity : @ query . CapturedSourceRelationIdentity , logical_input : @ publication . RunEvidenceValue , authority_scope_cid : String , effective_data_policy_cid : String , observed_at : String , ) - > Result [ @ publication . RunEvidenceValue , @ client_row_source_host . RowHostIssue ]"
         },
         {
           "name": "client_program_row_source_listing_complete",
@@ -45522,7 +45538,11 @@
             "issue_captured_source_logical_graph",
             "open_client_local_effect_host",
             "read_client_generated_compilation_manifests",
-            "reject_client_local_run"
+            "reject_client_local_run",
+            "client_program_installed_managed_run_invocation_original",
+            "client_program_query_time_invocation_original",
+            "client_program_row_source_acquisition_contracts_construction_capacity",
+            "client_program_row_source_issue_source_evidence_original"
           ],
           "exports": [],
           "attributes": {
@@ -49964,7 +49984,7 @@
     },
     {
       "module": "src/client_row_source_host/host.mbt",
-      "sha256": "3d9ff8454183b0efb2ed40799f7434de78181bb9a0709f05faa200c324bcd068",
+      "sha256": "6ffc688f20f61050a791fb87dc90e0190a38369998b9de71532a49d30a4cedbb",
       "exports": [],
       "operations": [
         {

@@ -1871,6 +1871,19 @@ receiver are captured before reserve/current can reenter. The Effect adapter
 retains the original Site rather than a copied close facade; reference
 currentness comes from that Site's original current method.
 
+The installing Source also reads its protocol assets through that same
+original file reader, reserving before the actual FD read and before text
+decoding. Its existing native protocol owner quotes the stdlib Json parser,
+canonical values/keys, refusal frames and hashing writer before admission.
+This uses the original per-body canonical UTF16/node/depth limits and the
+separate cumulative canonical UTF8/node writer limits. It does not interpret
+escaped byte counts as additional generic value trees or add those trees
+again after the native peak. The full native constructor peak remains held
+on the original Source through retirement, including reservation/admission
+failure. The immutable admitted protocol holder is retained before subsequent
+current/reconcile callbacks. No second parser, protocol meaning, quota,
+Resource owner, permission or physical acknowledgement is introduced.
+
 The actual range/clear driver supplies its same immutable Command definition,
 constructor descriptor and original native binding profile to the existing
 standard Effect Plan composer. It does not supply an independently handwritten
