@@ -190,9 +190,16 @@ pub fn prepare_client_acquired_serialization_prefix(
       ) &&
       @publication_host.client_keyed_direct_acquisition_coordinates(keyed)
       is Some((_, input, direct_task)) &&
-      @publication_host.prepare_client_query_acquisition(
-        prepared, direct_task, input,
-      )
+      (match query_time {
+        None =>
+          @publication_host.prepare_client_query_acquisition(
+            prepared, direct_task, input,
+          )
+        Some((original, request)) =>
+          @publication_host.prepare_client_query_acquisition_at_query_time(
+            prepared, direct_task, input, original, request,
+          )
+      })
       is Ok(query) &&
       @sourceviews.query_acquisition_capture(query) is @pipeline.Step(capture) &&
       prepare_client_serialization_prefix_owned(
