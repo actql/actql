@@ -26,7 +26,7 @@ function fixture(t,{inventory=true,changeImage=false,publicNode=false,actualFaca
   for(const name of ['node-public-initial-control-bootstrap.cjs','host-journal-native-image.cjs','host-journal-directory.mjs','initial-control-installation-owner.cjs',
     'initial-control-phase-envelope.cjs','source-managed-phase-envelope.cjs','initial-control-package-custody.cjs','initial-control-image-source.cjs',
     'initial-control-image-loader.cjs','node-initial-control-installation.mjs','initial-control-host-input.mjs',
-    'source-managed-original-input.mjs','host-journal-facility-fields.cjs','compile-cache.mjs',
+    'source-managed-original-input.mjs','host-journal-facility-fields.cjs',
     'host-journal-service-recipe.cjs','host-journal-schema-support.cjs',
     'host-result-service-recipe.cjs','host-local-mock-model-service-recipe.cjs',
     'ordinary-host-control.mjs','installed-host-policy.mjs','local-account-config.mjs','authorization.mjs']) {

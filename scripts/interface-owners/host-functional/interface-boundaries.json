@@ -55529,7 +55529,7 @@
     },
     {
       "module": "adapters/host-node/initial-control-package-custody.cjs",
-      "sha256": "00a0f7bdb2166f2967085e8aabd0e38545b473b3b6ee8df5ddf470a26a72fa3c",
+      "sha256": "2914cdb608ee2bf4a72e770f8e5b76e481585c2775b8c6f8e5c73042cfa3f0fe",
       "exports": [
         "commonjs:captureInitialControlPackageCustody",
         "commonjs:captureOrdinaryInitialControlPackageCustody"
@@ -55761,10 +55761,6 @@
               {
                 "path": "adapters/host-node/initial-control-package-custody.cjs",
                 "anchor": "// Compile both actual public ESM namespaces before the Module handoff."
-              },
-              {
-                "path": "adapters/host-node/initial-control-package-custody.cjs",
-                "anchor": "// Use the already captured helper before compiling the static Host graph."
               }
             ],
             "failure": [
@@ -55855,10 +55851,6 @@
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs",
                 "anchor": "ordinary import acquires its installed prefix before original bounded input and never refills a generation"
-              },
-              {
-                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
-                "anchor": "ordinary custody enables its original code cache before compiling the Host dependency graph"
               }
             ]
           }
@@ -55929,10 +55921,6 @@
               {
                 "path": "adapters/host-node/initial-control-package-custody.cjs",
                 "anchor": "// Compile both actual public ESM namespaces before the Module handoff."
-              },
-              {
-                "path": "adapters/host-node/initial-control-package-custody.cjs",
-                "anchor": "// Use the already captured helper before compiling the static Host graph."
               }
             ],
             "failure": [
@@ -56023,10 +56011,6 @@
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs",
                 "anchor": "ordinary import acquires its installed prefix before original bounded input and never refills a generation"
-              },
-              {
-                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
-                "anchor": "ordinary custody enables its original code cache before compiling the Host dependency graph"
               }
             ]
           }
