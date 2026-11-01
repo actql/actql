@@ -1109,9 +1109,12 @@ fn recover_stopped_release(
         Ok(value) => value
         Err(_) => return false
       }
-      if slot.try_acquire() != Ok(true) {
-        ignore(slot.close())
-        return false
+      match acquire_release_recovery_slot_with_custody(slot, identity) {
+        Ok(_) => ()
+        Err(original) => {
+          finish_failed_release_recovery_open(original)
+          return false
+        }
       }
       let value = match
         open_release_recovery_with_custody(matches, environment, slot, identity) {

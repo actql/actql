@@ -8,6 +8,7 @@ priv struct ReleaseRecoveryOpenCustody {
   mut bundles : @bundle.NativeRuntimeBundleStore?
   mut failed_bundle : @bundle.NativeRuntimeBundleStoreOpenFailure?
   mut failure : String
+  mut slot_issue : @slot.NativeExecutorSlotIssue?
   mut slot_closed : Bool
   mut slot_close_unknown : Bool
 }
@@ -24,9 +25,40 @@ fn release_recovery_open_custody(
     bundles: None,
     failed_bundle: None,
     failure: "release recovery preparation incomplete",
+    slot_issue: None,
     slot_closed: false,
     slot_close_unknown: false,
   }
+}
+
+///|
+/// A fresh descriptor is not yet an exclusive current recovery hold. Keep
+/// the original on either acquisition or named-current failure, before any
+/// Journal/Bundle preparation. Cleanup does not confirm a Run release.
+fn acquire_release_recovery_slot_with_custody(
+  slot : @slot.NativeExecutorSlot,
+  identity : String,
+) -> Result[@slot.NativeExecutorSlot, ReleaseRecoveryOpenCustody] {
+  let original = release_recovery_open_custody(slot, identity)
+  let failure = match slot.try_acquire() {
+    Ok(true) => {
+      match slot.verify_current_hold() {
+        Ok(_) => return Ok(slot)
+        Err(issue) => original.slot_issue = Some(issue)
+      }
+      "release recovery Slot current hold unconfirmed"
+    }
+    Ok(false) => {
+      original.slot_issue = Some(@slot.Busy)
+      "release recovery Slot busy"
+    }
+    Err(issue) => {
+      original.slot_issue = Some(issue)
+      "release recovery Slot acquisition failed"
+    }
+  }
+  original.failure = failure
+  Err(original)
 }
 
 ///|
