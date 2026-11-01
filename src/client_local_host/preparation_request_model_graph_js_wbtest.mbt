@@ -1664,3 +1664,68 @@ test "plain acquired Model original occurrence gate does not widen ordinary purp
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
   assert_eq(@resources.ledger_usage(foreign.ledger).live_reservations, 0)
 }
+
+///|
+test "plain Node Model input lowering is backed on the same Request before module provider factory" {
+  let f = request_serialized_model_fixture(
+    single_capture=true,
+    serialized=false,
+  )
+  let before = @resources.preparation_capacity_working_extents(
+    f.parent.program_capacity.unwrap(),
+    f.input,
+  ).unwrap()
+  let provider = @execution.execution_capacity(7L, 9L).unwrap()
+  let containers = request_model_module_container_bytes(
+    @strategy.graph_task_count(
+      @publication_host.prepared_client_graph(f.prepared),
+    ),
+    1,
+    0,
+    provider_captures=1,
+  ).unwrap()
+  let protocols = request_model_material_body_bytes(2, index => {
+    if index == 0 {
+      original_row_query_contract_fixture
+    } else {
+      original_row_evidence_contract_fixture
+    }
+  }).unwrap()
+  let query = request_local_query_construction_bytes().unwrap()
+  let input = program_check_data_extent_cost(f.parent.program_data.unwrap()).unwrap()
+  // One real pre-INFER lowering; this fixture's original occurrence is terminal.
+  assert_true(@publication_host.client_infer_occurrence_terminal(f.occurrence))
+  let required = containers + protocols + query + input
+  let observed = Ref(false)
+  prepare_request_model_capture_module(
+    f.parent,
+    f.input,
+    f.request,
+    f.compiled,
+    f.definition,
+    f.compilation,
+    [f.declaration.unwrap()],
+    original_row_query_contract_fixture,
+    original_row_evidence_contract_fixture,
+    [4096L],
+    [2048L],
+    f.contracts,
+    true,
+    0,
+    _ => {
+      let current = @resources.preparation_capacity_working_extents(
+        f.parent.program_capacity.unwrap(),
+        f.input,
+      ).unwrap()
+      observed.val = current.0 >= before.0 + required &&
+        current.1 >= before.1 + required
+      []
+    },
+    providers=Some([Some(provider)]),
+  ).unwrap()
+  |> ignore
+  assert_false(@resources.return_preparation_body_borrow(f.holder).unwrap())
+  abort_request_preparation_after_cleanup(f.parent).unwrap()
+  assert_eq(@resources.ledger_usage(f.parent.ledger).live_reservations, 0)
+  assert_true(observed.val)
+}
