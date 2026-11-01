@@ -10,7 +10,7 @@ const node = parse(source, {ecmaVersion: 'latest', sourceType: 'module'}).body
   .find(value => value.type === 'FunctionDeclaration' && value.id.name === 'prepareRequestMockModelPlan');
 assert(node);
 function fixture({count = 0, timed = false, refuseCapture, expire = false, missingModule = false,
-  serialized = false, expirePrefix = false, missingPrefix = false} = {}) {
+  serialized = false, expirePrefix = false, missingPrefix = false, physical = false, missingPhysical = false} = {}) {
   const parent = {}, input = {}, prepared = {}, request = {}, compilation = {}, module = {}, plan = {};
   const graph = {}, occurrence = {}, bounds = {}, q = {}, admission = {}, initialControl = {};
   const declarations = [{}, {}];
@@ -39,6 +39,7 @@ function fixture({count = 0, timed = false, refuseCapture, expire = false, missi
   const control = {
     prepareCheckedClientRequestModelSourceFreePlan(...args) {
       assert.deepEqual(args, [parent, input, module, request, model.compiled, model.runDefinition, occurrence, graph, bounds]);
+      assert.equal(physical, false, 'The Node installation must select its actual layout-bound Plan');
       calls.push('bind-source-free'); return plan;
     },
     bindCheckedClientMockModelCapturePlan(...args) {
@@ -46,6 +47,19 @@ function fixture({count = 0, timed = false, refuseCapture, expire = false, missi
       calls.push('bind-captured'); return plan;
     },
   };
+  if (physical) {
+    model.originalReadInstallation = Object.freeze({nodeInstallation: Object.freeze({layout: Object.freeze({
+      retained_bytes: 70n, execution_bytes: 30n}), installation: {}, runtimeArtifactCid: 'runtime', layoutArtifactCid: 'layout', probability: undefined}),
+      modelRetainedBytes: 90n, modelExecutionBytes: 40n,
+      bootstrap: Object.freeze({maxReservations: 21, maxHoldings: 22, maxDelegations: 23})});
+    control.prepareCheckedClientRequestNodeModelSourceFreePlan = function(...args) {
+      assert.equal(this, control);
+      assert.deepEqual(args, [parent, input, module, request, model.compiled, model.runDefinition,
+        occurrence, graph, bounds, model.originalReadInstallation]);
+      calls.push('bind-Node-layout'); return plan;
+    };
+    if (missingPhysical) delete control.prepareCheckedClientRequestNodeModelSourceFreePlan;
+  }
   model.control = control;
   const moon = {
     clientProgramAcquisitionCount: value => {assert.equal(value, prepared); return count;},
@@ -58,7 +72,7 @@ function fixture({count = 0, timed = false, refuseCapture, expire = false, missi
     clientProgramPrepareRequestModelSourceFreeModule(...args) {
       assert.deepEqual(args, [parent, input, request, model.compiled, model.runDefinition,
         compilation, admission, true, timed ? q : undefined]);
-      assert.equal(model.selectedBounds, bounds); assert.equal(model.budget.readRetainedBytes, 13n);
+      assert.equal(model.selectedBounds, bounds); assert.equal(model.budget.readRetainedBytes, physical ? 70n : 13n);
       if (serialized) assert.equal(run.serialization, prefix, 'Retain original prefix before module constructor');
       calls.push('source-free-module'); if (expire) current = false; return ok(module);
     },
@@ -151,4 +165,26 @@ test('Request mixed Model retains returned prefix through current refusal before
   assert.equal(f.run.preparedSequences, undefined);
   assert.equal(f.run.modelPlan, undefined);
   assert.deepEqual(f.calls, ['bounds', 'same Request prefix']);
+});
+
+
+test('Request Node Model caller retains actual installation extents and binds the same module and bounds', () => {
+  const f = fixture({physical: true, serialized: true});
+  assert.equal(f.construct(), f.plan);
+  assert.equal(f.run.preparedSequences, f.module); assert.equal(f.run.modelPlan, f.plan);
+  assert.deepEqual(f.calls, ['bounds', 'same Request prefix', 'source-free-module', 'bind-Node-layout']);
+  assert.equal(f.model.budget.readRetainedBytes, 70n); assert.equal(f.model.budget.readExecutionBytes, 30n);
+  assert.equal(f.model.budget.modelRetainedBytes, 90n); assert.equal(f.model.budget.modelExecutionBytes, 40n);
+  assert.equal(f.model.budget.maxReservations, 21); assert.equal(f.model.budget.maxHoldings, 22);
+  assert.equal(f.model.budget.maxDelegations, 23);
+});
+
+test('Request Node Model caller refuses absent layout-bound Plan and keeps partial module through current failure', () => {
+  const missing = fixture({physical: true, missingPhysical: true});
+  assert.throws(missing.construct, {code: 'NodeManagedRunRuntimeUnavailable'});
+  assert(!missing.calls.includes('bind-source-free')); assert(!missing.calls.includes('bind-Node-layout'));
+  const f = fixture({physical: true, expire: true});
+  assert.throws(f.construct, cause => cause === f.primary);
+  assert.equal(f.run.preparedSequences, f.module); assert.equal(f.run.modelPlan, undefined);
+  assert(f.model.originalReadInstallation); assert.equal(f.model.budget.readRetainedBytes, 70n);
 });
