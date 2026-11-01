@@ -14,6 +14,30 @@ import test_local_submission_lookup as lookup_fixture
 
 
 class SnapshotTransportTests(unittest.TestCase):
+    def test_original_journal_row_transfer_has_only_query_entry_and_return_currents(self):
+        with TemporaryDirectory(prefix='actql-direct-journal-row-') as directory:
+            store = LocalByteStore(Path(directory) / 'original.sqlite', max_records=8,
+                max_record_bytes=4096, max_payload_bytes=16384)
+            self.addCleanup(store.close)
+            store.compare_exchange('epoch', None, b'original-epoch')
+            store.compare_exchange(store.namespaced_key('original', 'one'), None, b'original-row')
+            calls = []
+            def current(): calls.append(None)
+            callbacks = _JournalCallbacks(current, store)
+            def inspect(reader):
+                callbacks.reader = reader
+                self.assertEqual(callbacks.begin(1, 8, 3), 0)
+                self.assertEqual(callbacks.query_copy(0, b'originalone'), 11)
+                before = len(calls)
+                self.assertEqual(callbacks.query(), 0)
+                self.assertEqual(len(calls) - before, 2)
+                self.assertEqual(callbacks.row[0], b'one')
+                self.assertEqual(callbacks.row_copy(1, 0, 12), b'original-row')
+                self.assertEqual(callbacks.release(), 0)
+            store.inspect_namespaces((ByteFence('epoch', 0, b'original-epoch'),),
+                inspect=inspect, current=current)
+            self.assertFalse(store._physical.in_transaction)
+
     def test_semantic_current_reuses_only_unchanged_sql_snapshot_and_keeps_each_current(self):
         with TemporaryDirectory(prefix='actql-same-sql-snapshot-') as directory:
             store = LocalByteStore(Path(directory) / 'original.sqlite', max_records=8,
