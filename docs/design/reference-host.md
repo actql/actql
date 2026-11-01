@@ -2434,3 +2434,22 @@ construction completes through the existing original operation token, returning
 only that scratch; failure or invalid asynchronous construction keeps its full
 backing until original cleanup. No permission, input bound, physical status,
 byte tariff or additional memory owner follows from this lifetime split.
+
+
+A deferred Effect constructor retains the SAME checked occurrence and its
+complete input/output backing before Source or Preview work. Its existing
+capacity reservation initially holds that retained quantity. Typed constructor
+entry grows this SAME reservation to the original immutable execution upper
+immediately before invocation. It issues no new slot, attempt, grant or Root.
+The Node child is already retained before that fallible entry, captures the
+original methods/receiver once, and fences its original Run record after Core's
+single current observation. This replaces its separate callbackful Plan getter.
+
+The original full borrower remains available with its original allocation
+meaning. Constructor-only retention refuses physical extents. A successful
+entry is single-use; completion cannot precede it, and completion returns only
+workspace on the same reservation. Refused growth leaves its retained backing
+and spent coordinate unchanged. Copied, retired, mismatched and reentered
+originals cannot revive a body. Failed or invalid asynchronous constructors keep
+their original backing and existing cleanup; input/output alias retirement and
+physical cleanup remain independent duties.

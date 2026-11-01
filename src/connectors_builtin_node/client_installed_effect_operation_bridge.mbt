@@ -197,3 +197,33 @@ pub fn client_program_installed_effect_operation_construction_complete(
 ) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
   @client_local_host.complete_installed_effect_operation_construction(original)
 }
+
+///|
+#export_name("clientProgramInstalledEffectOperationConstructionRetain")
+pub fn client_program_installed_effect_operation_construction_retain(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+  member_index : Int,
+  per_row : Bool,
+  operation_index : Int,
+  row_index : Int,
+  operation : String,
+) -> Result[
+  @client_local_host.ClientInstalledEffectOperationBorrow,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.retain_installed_effect_operation_construction(
+    owner, prepared, request, plan, member_index, per_row, operation_index, row_index,
+    operation,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledEffectOperationConstructionBegin")
+pub fn client_program_installed_effect_operation_construction_begin(
+  original : @client_local_host.ClientInstalledEffectOperationBorrow,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.begin_installed_effect_operation_construction(original)
+}

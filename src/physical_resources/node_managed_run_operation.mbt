@@ -164,3 +164,34 @@ pub fn[P, E] complete_node_managed_run_operation_construction(
     Int64::min(retained, capacity.reservation.execution),
   ).map_err(issue => Control(issue))
 }
+
+///|
+/// Grow only the SAME retained pure-constructor reservation immediately before
+/// its callback. The original consumer/current frame is the same as completion;
+/// neither this byte resize nor completion creates an attempt or a new owner.
+pub fn[P, E] begin_node_managed_run_operation_construction(
+  value : NodeManagedRunAdmission[P],
+  prepared : P,
+  ledger : Ledger,
+  original : () -> Result[Unit, E],
+  backing : NodeManagedRunOperationBacking,
+  execution_bytes : Int64,
+) -> Result[Unit, NodeManagedRunOperationIssue[E]] {
+  if execution_bytes < 0L {
+    return Err(Control(InvalidCharge))
+  }
+  match
+    check_node_managed_run_operation_original(value, prepared, ledger, original) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  guard backing is Construction(capacity) else {
+    return Err(Control(InvalidCharge))
+  }
+  resize_capacity_reservation_current(
+    ledger,
+    capacity,
+    capacity.reservation.retention,
+    execution_bytes,
+  ).map_err(issue => Control(issue))
+}

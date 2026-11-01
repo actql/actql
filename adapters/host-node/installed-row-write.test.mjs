@@ -1313,10 +1313,12 @@ test('actual member capture caller defers SAME original recovery until Preview a
     const events=[],members=[{memberIndex:0},{memberIndex:1}],parent={},prepared={},identity={},plan={};
     const tokens=members.map(()=>({})); let retired=false;
     const moon={clientProgramInstalledEffectManagedOperationPlan:()=>({$tag:1,_0:plan}),
-      clientProgramInstalledEffectOperationBorrow(p,original,intent,selected,index,perRow) {
+      clientProgramInstalledEffectOperationConstructionRetain(p,original,intent,selected,index,perRow) {
         assert.strictEqual(p,parent);assert.strictEqual(original,prepared);assert.strictEqual(intent,identity);
         assert.strictEqual(selected,plan);assert.equal(perRow,false);events.push('borrow'+index);
         return {$tag:1,_0:tokens[index]};
+      } ,clientProgramInstalledEffectOperationConstructionBegin(token) {
+        assert(tokens.includes(token));return {$tag:1,_0:undefined};
       },clientProgramInstalledEffectOperationConstructionComplete(token) {
         events.push('complete'+tokens.indexOf(token));return {$tag:1,_0:undefined};
       },clientProgramInstalledEffectOperationRetire(token) {assert(retired);return {$tag:1,_0:true};}};

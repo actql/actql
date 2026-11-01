@@ -15609,11 +15609,6 @@
           "async": false
         },
         {
-          "name": "prepareInstalledEffectRequestChild/current/current",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "prepareInstalledEffectRequestChild/drain/drain",
           "parameters": [],
           "async": false
@@ -15714,7 +15709,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "21b8643d199119a348ebee7fdc580589d155c14b90a3ba428ee9cc976227b6a6",
+      "sha256": "cb687bb4472196308af00d78b751f10535caf4d3d9f743143442e2e19567a2cf",
       "contracts": [
         {
           "operations": [
@@ -15763,7 +15758,6 @@
             "prepareInstalledEffectManagedPlan/prepareInstalledEffectManagedPlan",
             "prepareInstalledEffectManagedPlan/prepareInstalledEffectManagedPlan#2",
             "prepareInstalledEffectRequestChild",
-            "prepareInstalledEffectRequestChild/current/current",
             "prepareInstalledEffectRequestChild/drain/drain",
             "prepareInstalledEffectRequestChild/init:prepare/init:prepare",
             "prepareInstalledEffectRequestChild/init:prepare/init:prepare/init:prepare",

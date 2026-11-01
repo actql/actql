@@ -1033,3 +1033,137 @@ test "actual response normalization completes scratch on the original Effect tok
   assert_true(retire_installed_effect_operation(child, true).unwrap())
   retire_installed_managed_run(owner).unwrap()
 }
+
+///|
+test "retained constructor entry grows the same original backing only at work and preserves spent occurrence" {
+  let (prepared, request, contracts) = effect_operation_plan_inputs()
+  let plan = effect_operation_plan_fixture(prepared, request, contracts)
+  let calls = Ref(0)
+  let (input, initial, _, admitted) = effect_parent_test_preparation(
+    plan,
+    prepared_installed_effect_managed_requirements(plan),
+    current=() => calls.val += 1,
+  )
+  let owner = begin_preparation_owned_installed_effect_managed_run(
+    initial, input, admitted, prepared, request, plan,
+  ).unwrap()
+  let ledger = owner.ledger.unwrap()
+  let child = retain_installed_effect_operation_construction(
+    owner, prepared, request, plan, 0, true, 2, 0, "operation",
+  ).unwrap()
+  let held = @resources.ledger_usage(ledger)
+  assert_true(
+    complete_installed_effect_operation_construction(child) is Err(Unsupported),
+  )
+  let observations = calls.val
+  begin_installed_effect_operation_construction(child).unwrap()
+  assert_eq(calls.val, observations + 1)
+  assert_eq(@resources.ledger_usage(ledger), {
+    ..held,
+    reserved_execution_bytes: held.reserved_execution_bytes + 20L,
+  })
+  assert_true(
+    begin_installed_effect_operation_construction(child) is Err(AlreadyBound),
+  )
+  complete_installed_effect_operation_construction(child).unwrap()
+  let completed = @resources.ledger_usage(ledger)
+  assert_eq(completed, held)
+  assert_true(
+    begin_installed_effect_operation_construction(child) is Err(AlreadyBound),
+  )
+  assert_true(
+    borrow_installed_effect_operation(
+      owner, prepared, request, plan, 0, true, 2, 0, "operation",
+    )
+    is Err(AlreadyBound),
+  )
+  assert_true(retire_installed_effect_operation(child, false) is Ok(false))
+  assert_true(retire_installed_effect_operation(child, true).unwrap())
+  assert_true(
+    begin_installed_effect_operation_construction(child) is Err(Retired),
+  )
+  retire_installed_managed_run(owner).unwrap()
+}
+
+///|
+test "retained constructor entry refuses insufficient growth without changing backing or borrowing a new slot" {
+  let (prepared, request, contracts) = effect_operation_plan_inputs()
+  let plan = effect_operation_plan_fixture(prepared, request, contracts)
+  let (input, initial, _, admitted) = effect_parent_test_preparation(
+    plan,
+    prepared_installed_effect_managed_requirements(plan),
+  )
+  let owner = begin_preparation_owned_installed_effect_managed_run(
+    initial, input, admitted, prepared, request, plan,
+  ).unwrap()
+  let ledger = owner.ledger.unwrap()
+  let child = retain_installed_effect_operation_construction(
+    owner, prepared, request, plan, 0, true, 2, 0, "operation",
+  ).unwrap()
+  let usage = @resources.ledger_usage(ledger)
+  let remaining = @resources.ledger_limits(ledger).execution_bytes -
+    usage.reserved_execution_bytes
+  let occupied = @resources.reserve_capacity(ledger, 0L, remaining).unwrap()
+  let before = @resources.ledger_usage(ledger)
+  assert_true(
+    begin_installed_effect_operation_construction(child)
+    is Err(Ledger(@resources.LedgerIssue::ExecutionLimit)),
+  )
+  assert_eq(@resources.ledger_usage(ledger), before)
+  assert_true(!child.started)
+  @resources.settle_capacity(ledger, occupied).unwrap()
+  assert_true(retire_installed_effect_operation(child, true).unwrap())
+  retire_installed_managed_run(owner).unwrap()
+}
+
+///|
+test "retained constructor entry keeps original reentry retirement and physical purpose refusal" {
+  let (prepared, request, contracts) = effect_operation_plan_inputs()
+  let plan = effect_operation_plan_fixture(prepared, request, contracts)
+  let selected : Ref[ClientInstalledEffectOperationBorrow?] = Ref(None)
+  let retire_on_current = Ref(false)
+  let (input, initial, _, admitted) = effect_parent_test_preparation(
+    plan,
+    prepared_installed_effect_managed_requirements(plan),
+    current=() => {
+      if retire_on_current.val {
+        retire_on_current.val = false
+        retire_installed_effect_operation(selected.val.unwrap(), true).unwrap()
+        |> ignore
+      }
+    },
+  )
+  let owner = begin_preparation_owned_installed_effect_managed_run(
+    initial, input, admitted, prepared, request, plan,
+  ).unwrap()
+  let ledger = owner.ledger.unwrap()
+  let child = retain_installed_effect_operation_construction(
+    owner, prepared, request, plan, 0, true, 2, 0, "operation",
+  ).unwrap()
+  let copy = { ..child, }
+  assert_true(
+    begin_installed_effect_operation_construction(copy) is Err(ForeignOriginal),
+  )
+  selected.val = Some(child)
+  retire_on_current.val = true
+  assert_true(
+    begin_installed_effect_operation_construction(child) is Err(Retired),
+  )
+  assert_true(child.retired)
+  assert_true(
+    retain_installed_effect_operation_construction(
+      owner, prepared, request, plan, 0, true, 0, 0, "operation",
+    )
+    is Err(Unsupported),
+  )
+  let physical = borrow_installed_effect_operation(
+    owner, prepared, request, plan, 0, true, 0, 0, "operation",
+  ).unwrap()
+  let before = @resources.ledger_usage(ledger)
+  assert_true(
+    begin_installed_effect_operation_construction(physical) is Err(Unsupported),
+  )
+  assert_eq(@resources.ledger_usage(ledger), before)
+  assert_true(retire_installed_effect_operation(physical, true).unwrap())
+  retire_installed_managed_run(owner).unwrap()
+}

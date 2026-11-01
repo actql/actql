@@ -5,7 +5,7 @@ import {types as nodeTypes} from 'node:util';
 import {maxHeaderSize} from 'node:http';
 import {parse} from 'acorn';
 import {runtimeField, runtimeTupleFromFields} from '../host-common/compiler-binding.generated.mjs';
-import {prepareInstalledRowCaptureChild, releaseInstalledRowCapture} from './installed-row-capture-cleanup.mjs';
+import {prepareInstalledRowCaptureChild, retainInstalledRowCaptureChild, releaseInstalledRowCapture} from './installed-row-capture-cleanup.mjs';
 import {captureClaimedEffectResponse} from './effect-physical-dispatch.mjs';
 import {prepareInstalledEffectRequestChild, prepareInstalledEffectCredentialChild, captureInstalledEffectPlanRecipe} from './installed-effect-plan.mjs';
 
@@ -99,7 +99,9 @@ function fixture({child=false,inventoryError,managed=false}={}){
     requestConstruction:Object.freeze({operationIndex:1})}),2):undefined;
   const nativePlan={},parent={},prepared={},identity={};
   const runtime={clientProgramInstalledEffectManagedOperationPlan:()=>({$tag:1,_0:nativePlan}),
-    clientProgramInstalledEffectOperationBorrow(owner,p,r,plan,memberIndex,perRow,operationIndex,rowIndex,operation){
+    clientProgramInstalledEffectOperationConstructionBegin(){return {$tag:1,_0:undefined};},
+    clientProgramInstalledEffectOperationConstructionComplete(){return {$tag:1,_0:undefined};},
+    clientProgramInstalledEffectOperationConstructionRetain(owner,p,r,plan,memberIndex,perRow,operationIndex,rowIndex,operation){
       assert.equal(owner,parent);assert.equal(p,prepared);assert.equal(r,identity);assert.equal(plan,nativePlan);
       assert.deepEqual([memberIndex,perRow,operationIndex,operation],[0,true,1,'construct']);
       assert.equal(inventoryCalls,1);assert.equal(contexts.length,rowIndex);
@@ -462,7 +464,9 @@ function prefixFixture({failBorrowAt, exportFailure}={}) {
     clientProgramReleaseEffectInputs(value){assert.equal(value,input);events.push('unpin');},
     clientProgramEffectInputExportLimits(){return {};},
     clientProgramInstalledEffectManagedOperationPlan(){return {$tag:1,_0:nativePlan};},
-    clientProgramInstalledEffectOperationBorrow(owner,p,r,plan,memberIndex,perRow,operationIndex,rowIndex,operation){
+    clientProgramInstalledEffectOperationConstructionBegin(){return {$tag:1,_0:undefined};},
+    clientProgramInstalledEffectOperationConstructionComplete(){return {$tag:1,_0:undefined};},
+    clientProgramInstalledEffectOperationConstructionRetain(owner,p,r,plan,memberIndex,perRow,operationIndex,rowIndex,operation){
       assert.equal(owner,parent);assert.equal(p,prepared);assert.equal(r,identity);assert.equal(plan,nativePlan);
       assert.deepEqual([perRow,operationIndex,rowIndex,operation],[false,0,0,'capture-prefix']);
       events.push(`borrow-${memberIndex}`);borrowCount++;
@@ -474,16 +478,20 @@ function prefixFixture({failBorrowAt, exportFailure}={}) {
   const members=Array.from({length:failBorrowAt??1},(_,memberIndex)=>Object.freeze({kind:'create',memberIndex}));
   const recipe=Object.freeze({memberOperations:Object.freeze([Object.freeze({operation:'capture-prefix',extent:{}})]),
     rowOperations:Object.freeze([]),captureConstruction:Object.freeze({operationIndex:0})});
-  const owned=Object.freeze({managedPlanRecipe:recipe,profile:{source:'fixture-source'}});
+  const owned=Object.freeze({managedPlanRecipe:recipe,profile:{source:'fixture-source'},
+    owned:Object.freeze({recoveryEntry(){assert.fail('No recovery work before Source finishes');}})});
   const managedEffect={runtime:moon,value:parent,prepared,request:identity,operationPlan:nativePlan,
     readPlan:moon.clientProgramInstalledEffectManagedOperationPlan};
   const control={publicationPreparedReleaseAction(index,_count,checked,pending,attempted){
-    return index<0?'finished':!checked?'inspect':pending&&!attempted?'release':'advance';}};
+    return index<0?'finished':!checked?'inspect':pending&&!attempted?'release':'advance';},
+    publicationCleanupOwnerAction(index,count,checked,pending,available,attempted){
+      return index>=count?'finished':!checked?'inspect':pending&&available&&!attempted?'retry':'advance';
+    }};
   const ports={moon,prepared,identity,managedEffect,members,checkedHost:{},checked,fail,
     limits:{maxPinnedResults:2,maxRows:2,maxWork:100,maxFields:4,body:{maxBytes:100,maxNodes:20,maxDepth:5}},
     ownerOf:()=>owned,assertCurrent(){},own(){},ownChildren(value){assert.equal(children.length,0);children.push(value);},
     ownInputs(release,complete){releaseInputs=release;finish=complete;},control,
-    prepareInstalledRowCaptureChild,prepareInstalledEffectRequestChild,releaseInstalledRowCapture,
+    prepareInstalledRowCaptureChild,retainInstalledRowCaptureChild,prepareInstalledEffectRequestChild,releaseInstalledRowCapture,
     prepareCredentialOperation:()=>assert.fail('No physical child in capture prelude'),
     plan:{outputLimits:{maxWireBytes:100}},exportLimits:()=>[],singular:undefined,cid:()=>cid('e'),
     store:{storeAuthorityCid:cid('f')},runInvocationCid:cid('c'),execution:{},signal:undefined,
@@ -498,7 +506,12 @@ function prefixFixture({failBorrowAt, exportFailure}={}) {
   const end=capture.body.body.find(node=>node.type==='ExpressionStatement'&&node.expression.type==='CallExpression'&&node.expression.callee.name==='own'&&node.expression.arguments[0]?.name==='sourceSet').end;
   const code=source.slice(capture.body.start+1,end);
   const run=()=>Function(...Object.keys(ports),`return (async()=>{${code};return {proposals,requestChildren};})();`)(...Object.values(ports));
-  return {run,events,children,primary,exportCalls:()=>exportCalls,cleanup:async()=>{finish();await releaseInputs();}};
+  return {run,events,children,primary,exportCalls:()=>exportCalls,cleanup:async()=>{
+    finish();
+    const marker=Object.freeze(new Error('same original prefix cleanup'));
+    try{await releaseInstalledRowCapture({children:children[0],releaseInputs,control},marker);}
+    catch(cause){if(cause!==marker)throw cause;}
+  }};
 }
 
 test('original member capture reservation precedes exported proposal rows and retains their prefix until release',async()=>{

@@ -47653,13 +47653,17 @@
     },
     {
       "module": "src/client_local_host/installed_effect_operation_borrow.mbt",
-      "sha256": "9c44b56a382e2316ce40e7510fecef485e7bf088766ebf88e8ea0fa1771fbfc0",
+      "sha256": "5dca5fd92f9c993cf279c4e864d4b91a1dd873eea5959fd558a1ec8a612bbd0f",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "D — original installed Effect operation borrow and retained same-Run management controls",
       "referenceQualification": "Native reservation and stated callback/lifetime components only; no Account permission, physical ACK or complete normal recipe",
       "exports": [],
       "operations": [
+        {
+          "name": "begin_installed_effect_operation_construction",
+          "declaration": "begin_installed_effect_operation_construction ( value : ClientInstalledEffectOperationBorrow , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
+        },
         {
           "name": "begin_installed_effect_operation_controls",
           "declaration": "begin_installed_effect_operation_controls ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , expected_plan : ClientInstalledEffectManagedPlan , ) - > Result [ ClientInstalledEffectManagedPlan , ClientInstalledManagedRunIssue ]"
@@ -47674,11 +47678,15 @@
         },
         {
           "name": "borrow_installed_effect_operation_original",
-          "declaration": "borrow_installed_effect_operation_original ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , expected_plan : ClientInstalledEffectManagedPlan , member_index : Int , per_row : Bool , operation_index : Int , row_index : Int , operation : String , lookup_probes ? : Ref [ Int64 ] ?"
+          "declaration": "borrow_installed_effect_operation_original ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , expected_plan : ClientInstalledEffectManagedPlan , member_index : Int , per_row : Bool , operation_index : Int , row_index : Int , operation : String , defer_construction ? : Bool"
         },
         {
           "name": "charge_installed_effect_operation",
           "declaration": "charge_installed_effect_operation ( value : ClientInstalledEffectOperationBorrow , bytes : Int64 , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "check_installed_effect_construction_original",
+          "declaration": "check_installed_effect_construction_original ( value : ClientInstalledEffectOperationBorrow , owner : ClientInstalledManagedRun , ledger : @ resources . Ledger , preparation : ClientInstalledManagedRunOriginal , backing : @ resources . NodeManagedRunOperationBacking , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "check_installed_effect_operation_original",
@@ -47713,12 +47721,20 @@
           "declaration": "require_installed_effect_operation ( value : ClientInstalledEffectOperationBorrow , lookup_probes ? : Ref [ Int64 ] ?"
         },
         {
+          "name": "retain_installed_effect_operation_construction",
+          "declaration": "retain_installed_effect_operation_construction ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , expected_plan : ClientInstalledEffectManagedPlan , member_index : Int , per_row : Bool , operation_index : Int , row_index : Int , operation : String , ) - > Result [ ClientInstalledEffectOperationBorrow , ClientInstalledManagedRunIssue , ]"
+        },
+        {
           "name": "retain_installed_effect_operation_controls",
           "declaration": "retain_installed_effect_operation_controls ( owner : ClientInstalledManagedRun , previous : ClientEffectOperationControls ? , reservation : @ resources . CapacityReservation , ) - > ClientEffectOperationControls"
         },
         {
           "name": "retire_installed_effect_operation",
           "declaration": "retire_installed_effect_operation ( value : ClientInstalledEffectOperationBorrow , original_cleanup_confirmed : Bool , ) - > Result [ Bool , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "select_installed_effect_operation_original",
+          "declaration": "select_installed_effect_operation_original ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , expected_plan : ClientInstalledEffectManagedPlan , member_index : Int , per_row : Bool , operation_index : Int , row_index : Int , operation : String , defer_construction : Bool , ) - > Result [ ClientInstalledEffectOperationBorrow , ClientInstalledManagedRunIssue , ]"
         },
         {
           "name": "start_installed_effect_operation",
@@ -47877,6 +47893,77 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Successful synchronous Effect row construction returns its workspace on the"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "begin_installed_effect_operation_construction",
+            "check_installed_effect_construction_original",
+            "retain_installed_effect_operation_construction",
+            "select_installed_effect_operation_original"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A deferred Effect constructor retains the SAME checked occurrence and its"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A deferred Effect constructor retains the SAME checked occurrence and its"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A deferred Effect constructor retains the SAME checked occurrence and its"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A deferred Effect constructor retains the SAME checked occurrence and its"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A deferred Effect constructor retains the SAME checked occurrence and its"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A deferred Effect constructor retains the SAME checked occurrence and its"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A deferred Effect constructor retains the SAME checked occurrence and its"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A deferred Effect constructor retains the SAME checked occurrence and its"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A deferred Effect constructor retains the SAME checked occurrence and its"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A deferred Effect constructor retains the SAME checked occurrence and its"
               }
             ]
           }
@@ -48916,9 +49003,78 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "client_program_installed_effect_operation_construction_begin",
+            "client_program_installed_effect_operation_construction_retain"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A deferred Effect constructor retains the SAME checked occurrence and its"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A deferred Effect constructor retains the SAME checked occurrence and its"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A deferred Effect constructor retains the SAME checked occurrence and its"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A deferred Effect constructor retains the SAME checked occurrence and its"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A deferred Effect constructor retains the SAME checked occurrence and its"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A deferred Effect constructor retains the SAME checked occurrence and its"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A deferred Effect constructor retains the SAME checked occurrence and its"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A deferred Effect constructor retains the SAME checked occurrence and its"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A deferred Effect constructor retains the SAME checked occurrence and its"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A deferred Effect constructor retains the SAME checked occurrence and its"
+              }
+            ]
+          }
         }
       ],
-      "sha256": "b83de435dea5aa1cbfea30a640f4de64364ed9ebb9c01f04bbbf9428fa6b0c50",
+      "sha256": "37dac12228431d7359a690271f4c3493a36b105f8eb9d195d8bbf9870547985e",
       "operations": [
         {
           "name": "client_program_installed_effect_http_response_construction_capacity",
@@ -48933,8 +49089,16 @@
           "declaration": "client_program_installed_effect_operation_charge ( original : @ client_local_host . ClientInstalledEffectOperationBorrow , bytes : Int64 , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
         },
         {
+          "name": "client_program_installed_effect_operation_construction_begin",
+          "declaration": "client_program_installed_effect_operation_construction_begin ( original : @ client_local_host . ClientInstalledEffectOperationBorrow , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
+        },
+        {
           "name": "client_program_installed_effect_operation_construction_complete",
           "declaration": "client_program_installed_effect_operation_construction_complete ( original : @ client_local_host . ClientInstalledEffectOperationBorrow , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "client_program_installed_effect_operation_construction_retain",
+          "declaration": "client_program_installed_effect_operation_construction_retain ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : @ client_local_host . ClientInstalledEffectManagedPlan , member_index : Int , per_row : Bool , operation_index : Int , row_index : Int , operation : String , ) - > Result [ @ client_local_host . ClientInstalledEffectOperationBorrow , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
           "name": "client_program_installed_effect_operation_controls_begin",

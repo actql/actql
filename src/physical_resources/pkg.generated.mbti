@@ -48,6 +48,8 @@ pub fn[I] backed_initialization_ledger_published(BackedInitializationAdmission[I
 
 pub fn[I] backed_initialization_original_frame(BackedInitializationAdmission[I], I) -> Result[ImportedChildLedger, ImportedChildLedgerIssue]
 
+pub fn[P, E] begin_node_managed_run_operation_construction(NodeManagedRunAdmission[P], P, Ledger, () -> Result[Unit, E], NodeManagedRunOperationBacking, Int64) -> Result[Unit, NodeManagedRunOperationIssue[E]]
+
 pub fn[I] begin_node_preparation_inventory(NodePreparationAdmission[I], I, Int64, Int64, Int, Int, Int) -> Result[OriginalLedgerIdentity, ImportedChildLedgerIssue]
 
 pub fn begin_original_ledger_inventory(Ledger, CapacityReservation, Int, Int, Int) -> Result[OriginalLedgerIdentity, OriginalReadIssue]

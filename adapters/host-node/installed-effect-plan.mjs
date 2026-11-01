@@ -277,10 +277,11 @@ export function prepareInstalledEffectRequestChild({run, memberIndex, rowIndex,
   if (run === undefined || typeof perRow !== 'boolean' || typeof originalConstruct !== 'function' ||
       typeof requestsRetired !== 'function') fail('InstalledEffectConstructorUnavailable');
   const {runtime, value: parent, prepared, request, operationPlan: plan, readPlan} = run;
-  const borrow = runtime?.clientProgramInstalledEffectOperationBorrow;
+  const retain = runtime?.clientProgramInstalledEffectOperationConstructionRetain;
+  const begin = runtime?.clientProgramInstalledEffectOperationConstructionBegin;
   const retire = runtime?.clientProgramInstalledEffectOperationRetire;
   const complete = runtime?.clientProgramInstalledEffectOperationConstructionComplete;
-  if (![borrow, retire, readPlan].every(method => typeof method === 'function')) {
+  if (![retain, begin, complete, retire, readPlan].every(method => typeof method === 'function')) {
     fail('InstalledEffectOperationRuntimeUnavailable');
   }
   const originalRecord = () => {
@@ -290,19 +291,10 @@ export function prepareInstalledEffectRequestChild({run, memberIndex, rowIndex,
       fail('ForeignInstalledEffectManagedRun');
     }
   };
-  const current = () => {
-    originalRecord();
-    if (checked(Reflect.apply(readPlan, runtime, [parent, prepared, request])) !== plan) {
-      fail('ForeignInstalledEffectManagedRun');
-    }
-    // Preserve the local reentry fence after the original current callback.
-    originalRecord();
-  };
-  // The atomic Core borrow checks this SAME Plan/current/reservation itself.
-  // No external operation lies between this callback-free local fence and it.
-  // The capture retains the returned child before prepare's current boundary.
+  // Retained input/output backing precedes Source/Preview and its callbacks.
+  // Temporary workspace is not reserved while this constructor is only held.
   originalRecord();
-  let token = checked(Reflect.apply(borrow, runtime,
+  let token = checked(Reflect.apply(retain, runtime,
     [parent, prepared, request, plan, memberIndex, perRow, operationIndex, rowIndex, operation]));
   let construct = originalConstruct;
   originalConstruct = undefined;
@@ -327,7 +319,11 @@ export function prepareInstalledEffectRequestChild({run, memberIndex, rowIndex,
       state = 'preparing';
       preparing = true;
       try {
-        current();
+        originalRecord();
+        // Atomic Core entry grows this SAME original backing to its captured
+        // extent and observes current once, before any constructor allocation.
+        checked(Reflect.apply(begin, runtime, [token]));
+        originalRecord();
         const value = construct();
         if (nodeTypes.isPromise(value)) {
           pendingConstructor = value;
@@ -356,7 +352,6 @@ export function prepareInstalledEffectRequestChild({run, memberIndex, rowIndex,
         // retained earlier and prepares only at its real recovery-entry work;
         // no placeholder may return that workspace before Source/Preview.
         originalRecord();
-        if (typeof complete !== 'function') fail('InstalledEffectOperationRuntimeUnavailable');
         checked(Reflect.apply(complete, runtime, [token]));
         originalRecord();
         state = 'prepared';

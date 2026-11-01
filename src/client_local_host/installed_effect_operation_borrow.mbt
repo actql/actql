@@ -5,6 +5,8 @@ pub struct ClientInstalledEffectOperationBorrow {
   priv mut ledger : @resources.Ledger?
   priv slot : Int
   priv mut backing : @resources.NodeManagedRunOperationBacking?
+  // The SAME immutable extent's execution upper; never Host-supplied DATA.
+  priv execution_limit : Int64
   priv mut started : Bool
   priv mut retired : Bool
 }
@@ -104,6 +106,54 @@ pub fn borrow_installed_effect_operation(
   ClientInstalledEffectOperationBorrow,
   ClientInstalledManagedRunIssue,
 ] {
+  select_installed_effect_operation_original(
+    owner, prepared, request, expected_plan, member_index, per_row, operation_index,
+    row_index, operation, false,
+  )
+}
+
+///|
+/// Retain the SAME pure occurrence and its complete returned/input backing
+/// before Source/Preview. Its temporary constructor workspace is acquired by
+/// begin_installed_effect_operation_construction immediately before work.
+/// No new reservation, occurrence, permission or physical use is issued then.
+pub fn retain_installed_effect_operation_construction(
+  owner : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  expected_plan : ClientInstalledEffectManagedPlan,
+  member_index : Int,
+  per_row : Bool,
+  operation_index : Int,
+  row_index : Int,
+  operation : String,
+) -> Result[
+  ClientInstalledEffectOperationBorrow,
+  ClientInstalledManagedRunIssue,
+] {
+  select_installed_effect_operation_original(
+    owner, prepared, request, expected_plan, member_index, per_row, operation_index,
+    row_index, operation, true,
+  )
+}
+
+///|
+// One original/latch boundary for full borrowing and retained constructor entry.
+fn select_installed_effect_operation_original(
+  owner : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  expected_plan : ClientInstalledEffectManagedPlan,
+  member_index : Int,
+  per_row : Bool,
+  operation_index : Int,
+  row_index : Int,
+  operation : String,
+  defer_construction : Bool,
+) -> Result[
+  ClientInstalledEffectOperationBorrow,
+  ClientInstalledManagedRunIssue,
+] {
   guard owner.original is Some(original) && physical_equal(original, owner) else {
     return Err(ForeignOriginal)
   }
@@ -115,8 +165,16 @@ pub fn borrow_installed_effect_operation(
   }
   owner.effect_operation_opening = true
   let result = borrow_installed_effect_operation_original(
-    owner, prepared, request, expected_plan, member_index, per_row, operation_index,
-    row_index, operation,
+    owner,
+    prepared,
+    request,
+    expected_plan,
+    member_index,
+    per_row,
+    operation_index,
+    row_index,
+    operation,
+    defer_construction~,
   )
   owner.effect_operation_opening = false
   result
@@ -133,6 +191,7 @@ fn borrow_installed_effect_operation_original(
   operation_index : Int,
   row_index : Int,
   operation : String,
+  defer_construction? : Bool = false,
   lookup_probes? : Ref[Int64]? = None,
 ) -> Result[
   ClientInstalledEffectOperationBorrow,
@@ -166,6 +225,14 @@ fn borrow_installed_effect_operation_original(
       return refuse_installed_effect_operation_after_current(
         owner, prepared, request, issue,
       )
+  }
+  if defer_construction && extent.physical_attempt {
+    return refuse_installed_effect_operation_after_current(
+      owner,
+      prepared,
+      request,
+      Unsupported,
+    )
   }
   if owner.effect_operation_controls is Some(control) {
     let coordinate : ClientEffectOperationCoordinate = {
@@ -219,7 +286,11 @@ fn borrow_installed_effect_operation_original(
     extent.physical_attempt,
     extent.transfer_bytes,
     retained,
-    execution,
+    if defer_construction {
+      Int64::min(retained, execution)
+    } else {
+      execution
+    },
   )
   let (reservation, body) = match reserved {
     Err(issue) =>
@@ -240,7 +311,8 @@ fn borrow_installed_effect_operation_original(
     ledger: Some(ledger),
     slot: owner.effect_operations.length(),
     backing: Some(backing),
-    started: false,
+    execution_limit: execution,
+    started: !extent.physical_attempt && !defer_construction,
     retired: false,
   }
   value.original = Some(value)
@@ -330,12 +402,12 @@ pub fn start_installed_effect_operation(
     Err(issue) => return Err(issue)
     Ok(ledger) => ledger
   }
-  if value.started {
-    return Err(AlreadyBound)
-  }
   guard value.backing
     is Some(@resources.NodeManagedRunOperationBacking::Physical(original)) else {
     return Err(Unsupported)
+  }
+  if value.started {
+    return Err(AlreadyBound)
   }
   match @resources.consume_reserved_attempt(ledger, original) {
     Err(issue) => Err(Ledger(issue))
@@ -565,6 +637,59 @@ fn begin_installed_effect_operation_controls_original(
 }
 
 ///|
+/// Acquire the original constructor workspace immediately before invocation.
+/// Retained inputs and the spent coordinate already belong to this SAME token.
+/// Reentry/retirement is fenced after one original Resource current; refused
+/// growth changes neither the slot nor the retained backing or work history.
+pub fn begin_installed_effect_operation_construction(
+  value : ClientInstalledEffectOperationBorrow,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  guard value.original is Some(original) && physical_equal(original, value) else {
+    return Err(ForeignOriginal)
+  }
+  guard !value.retired &&
+    value.owner is Some(owner) &&
+    value.ledger is Some(ledger) &&
+    value.backing is Some(backing) else {
+    return Err(Retired)
+  }
+  guard backing is @resources.NodeManagedRunOperationBacking::Construction(_) else {
+    return Err(Unsupported)
+  }
+  if value.started {
+    return Err(AlreadyBound)
+  }
+  guard owner.preparation is Some(preparation) &&
+    preparation is PlannedEffectManaged(admission, plan) else {
+    return Err(Retired)
+  }
+  if owner.effect_operation_opening || owner.effect_operation_closing {
+    return Err(AlreadyBound)
+  }
+  owner.effect_operation_opening = true
+  let result = @resources.begin_node_managed_run_operation_construction(
+    admission,
+    plan,
+    ledger,
+    () => {
+      check_installed_effect_construction_original(
+        value, owner, ledger, preparation, backing,
+      )
+    },
+    backing,
+    value.execution_limit,
+  ).map_err(installed_effect_operation_reservation_issue)
+  owner.effect_operation_opening = false
+  match result {
+    Err(issue) => Err(issue)
+    Ok(_) => {
+      value.started = true
+      Ok(())
+    }
+  }
+}
+
+///|
 /// Retain the original request/output after its synchronous constructor has
 /// completed. The existing Host supplies this boundary only after the actual
 /// callback and its current/reentry fence, never for the capture placeholder,
@@ -584,6 +709,9 @@ pub fn complete_installed_effect_operation_construction(
   guard backing is @resources.NodeManagedRunOperationBacking::Construction(_) else {
     return Err(Unsupported)
   }
+  if !value.started {
+    return Err(Unsupported)
+  }
   guard owner.preparation is Some(preparation) &&
     preparation is PlannedEffectManaged(admission, plan) else {
     return Err(Retired)
@@ -597,34 +725,44 @@ pub fn complete_installed_effect_operation_construction(
     plan,
     ledger,
     () => {
-      match check_installed_managed_run_original(owner, ledger, preparation) {
-        Err(issue) => return Err(issue)
-        Ok(_) => ()
-      }
-      guard !value.retired &&
-        value.owner is Some(current_owner) &&
-        physical_equal(current_owner, owner) &&
-        value.ledger is Some(current_ledger) &&
-        physical_equal(current_ledger, ledger) &&
-        owner.effect_operations.get(value.slot) is Some(Some(current)) &&
-        physical_equal(current, value) &&
-        value.backing
-        is Some(
-          @resources.NodeManagedRunOperationBacking::Construction(
-            current_backing
-          )
-        ) &&
-        backing
-        is @resources.NodeManagedRunOperationBacking::Construction(
-          original_backing
-        ) &&
-        physical_equal(current_backing, original_backing) else {
-        return Err(Retired)
-      }
-      Ok(())
+      check_installed_effect_construction_original(
+        value, owner, ledger, preparation, backing,
+      )
     },
     backing,
   ).map_err(installed_effect_operation_reservation_issue)
   owner.effect_operation_opening = false
   result
+}
+
+///|
+// Callback-free original/slot/backing fence AFTER the one Resource current.
+fn check_installed_effect_construction_original(
+  value : ClientInstalledEffectOperationBorrow,
+  owner : ClientInstalledManagedRun,
+  ledger : @resources.Ledger,
+  preparation : ClientInstalledManagedRunOriginal,
+  backing : @resources.NodeManagedRunOperationBacking,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  match check_installed_managed_run_original(owner, ledger, preparation) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  guard !value.retired &&
+    value.owner is Some(current_owner) &&
+    physical_equal(current_owner, owner) &&
+    value.ledger is Some(current_ledger) &&
+    physical_equal(current_ledger, ledger) &&
+    owner.effect_operations.get(value.slot) is Some(Some(current)) &&
+    physical_equal(current, value) &&
+    value.backing
+    is Some(
+      @resources.NodeManagedRunOperationBacking::Construction(current_backing)
+    ) &&
+    backing
+    is @resources.NodeManagedRunOperationBacking::Construction(original_backing) &&
+    physical_equal(current_backing, original_backing) else {
+    return Err(Retired)
+  }
+  Ok(())
 }

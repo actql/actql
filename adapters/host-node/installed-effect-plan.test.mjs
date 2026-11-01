@@ -195,11 +195,14 @@ test('constructor child debits the same original before work and retains it unti
       assert.equal(this, runtime); assert.equal(owner, parent); assert.equal(p, prepared);
       assert.equal(r, identity); return {$tag: 1, _0: plan};
     },
-    clientProgramInstalledEffectOperationBorrow(owner, p, r, originalPlan, member, perRow, operation, row, name) {
+    clientProgramInstalledEffectOperationConstructionRetain(owner, p, r, originalPlan, member, perRow, operation, row, name) {
       assert.equal(this, runtime); assert.equal(owner, parent); assert.equal(p, prepared);
       assert.equal(r, identity); assert.equal(originalPlan, plan);
       assert.deepEqual([member, perRow, operation, row, name], [2, true, 3, 4, 'construct']);
       calls.push('debit'); return {$tag: 1, _0: token};
+    },
+    clientProgramInstalledEffectOperationConstructionBegin(original) {
+      assert.equal(original,token);return {$tag:1,_0:undefined};
     },
     clientProgramInstalledEffectOperationConstructionComplete(original) {
       assert.equal(original, token); return {$tag: 1, _0: undefined};
@@ -233,10 +236,13 @@ test('constructor child debits the same original before work and retains it unti
 
 function constructorControlFixture(construct) {
   const prepared = {}, request = {}, parent = {}, plan = {}, token = {};
-  let retired = false, debits = 0, settlements = 0;
+  let retired = false, debits = 0, settlements = 0, entries = 0;
   const runtime = {
     clientProgramInstalledEffectManagedOperationPlan: () => ({$tag: 1, _0: plan}),
-    clientProgramInstalledEffectOperationBorrow() {debits++; return {$tag: 1, _0: token};},
+    clientProgramInstalledEffectOperationConstructionRetain() {debits++; return {$tag: 1, _0: token};},
+    clientProgramInstalledEffectOperationConstructionBegin(original) {
+      assert.equal(original,token); entries++; return {$tag:1,_0:undefined};
+    },
     clientProgramInstalledEffectOperationConstructionComplete(original) {
       assert.equal(original, token); return {$tag: 1, _0: undefined};
     },
@@ -248,7 +254,7 @@ function constructorControlFixture(construct) {
     readPlan: runtime.clientProgramInstalledEffectManagedOperationPlan, closed: false};
   return {run, construct, requestsRetired: () => retired,
     memberIndex: 0, rowIndex: 0, operationIndex: 0, operation: 'construct', originalToken: token,
-    retireAliases() {retired = true;}, debits: () => debits, settlements: () => settlements};
+    retireAliases() {retired = true;}, debits: () => debits, settlements: () => settlements, entries: () => entries};
 }
 
 test('invalid asynchronous constructor remains borrowed through both original settlements', async () => {
@@ -480,9 +486,15 @@ test('constructor atomic borrow owns its current boundary without a preceding ca
       assert.strictEqual(p, parent); assert.strictEqual(source, prepared); assert.strictEqual(intent, request);
       reads++; return {$tag: 1, _0: plan};
     },
-    clientProgramInstalledEffectOperationBorrow(p, source, intent, selected) {
+    clientProgramInstalledEffectOperationConstructionRetain(p, source, intent, selected) {
       assert.deepEqual([p, source, intent, selected], [parent, prepared, request, plan]);
       borrows++; return {$tag: 1, _0: token};
+    },
+    clientProgramInstalledEffectOperationConstructionBegin(original) {
+      assert.strictEqual(original,token); return {$tag:1,_0:undefined};
+    },
+    clientProgramInstalledEffectOperationConstructionComplete(original) {
+      assert.strictEqual(original,token); return {$tag:1,_0:undefined};
     },
     clientProgramInstalledEffectOperationRetire(original, done) {
       assert.strictEqual(original, token); assert.equal(done, true); retired = true; return {$tag: 1, _0: true};
@@ -499,8 +511,8 @@ test('atomic borrow reentry keeps the returned original child before the constru
   const {prepareInstalledRowCaptureChild} = await import('./installed-row-capture-cleanup.mjs');
   for (const failure of ['changed Plan', 'thrown undefined']) {
     const f = constructorControlFixture(() => assert.fail('Reentry cannot reach the constructor'));
-    const borrow = f.run.runtime.clientProgramInstalledEffectOperationBorrow;
-    f.run.runtime.clientProgramInstalledEffectOperationBorrow = function(...args) {
+    const borrow = f.run.runtime.clientProgramInstalledEffectOperationConstructionRetain;
+    f.run.runtime.clientProgramInstalledEffectOperationConstructionRetain = function(...args) {
       const result = Reflect.apply(borrow, this, args);
       if (failure === 'changed Plan') f.run.operationPlan = {};
       else f.run.failure = undefined;
@@ -598,7 +610,7 @@ test('constructor completion keeps original post-current reentry fences without 
       }
       assert.equal(caught, true);
     }
-    assert.equal(reads, 1, 'completion Core owns the post-callback current; no second readPlan');
+    assert.equal(reads, 0, 'typed Begin/Complete own current, with callback-free Node post-fences');
     assert.equal(completions, 1);
     assert.equal(child.status().pending, true);
     assert.equal(child.release(), false);
@@ -645,4 +657,48 @@ test('deferred member constructor keeps the original asynchronous body until set
   assert.equal(f.settlements(),0);assert.equal(children[0].prepared.status().pending,true);
   resolve({original:true});await pending;
   assert.equal(completes,0);await children[0].prepared.retry();assert.equal(f.settlements(),1);
+});
+
+
+test('retained constructor keeps original inputs before Source and acquires workspace only at actual entry',async()=>{
+  const {retainInstalledRowCaptureChild}=await import('./installed-row-capture-cleanup.mjs');
+  const events=[],output={original:true},f=constructorControlFixture(()=>{events.push('construct');return output;});
+  const originalRetain=f.run.runtime.clientProgramInstalledEffectOperationConstructionRetain;
+  const originalBegin=f.run.runtime.clientProgramInstalledEffectOperationConstructionBegin;
+  f.run.runtime.clientProgramInstalledEffectOperationConstructionRetain=function(...args){
+    events.push('retain inputs');return Reflect.apply(originalRetain,this,args);
+  };
+  f.run.runtime.clientProgramInstalledEffectOperationConstructionBegin=function(...args){
+    events.push('acquire workspace');return Reflect.apply(originalBegin,this,args);
+  };
+  f.run.runtime.clientProgramInstalledEffectOperationBorrow=()=>assert.fail('no full-body fallback');
+  const children=[],child=prepareInstalledEffectRequestChild(f);
+  const retained=retainInstalledRowCaptureChild({children,create:()=>child});
+  assert.equal(children.length,1);assert.equal(f.debits(),1);assert.equal(f.entries(),0);
+  assert.deepEqual(events,['retain inputs']);events.push('Source and Preview');
+  assert.strictEqual(await retained.prepare(),output);
+  assert.deepEqual(events,['retain inputs','Source and Preview','acquire workspace','construct']);
+  assert.equal(f.entries(),1);assert.equal(child.release(),false);
+  f.retireAliases();await children[0].prepared.release();assert.equal(f.settlements(),1);
+});
+
+test('constructor entry refusal and reentry retain the same original backing without work or retry',()=>{
+  for(const mode of ['refusal','replaced Plan','thrown undefined']){
+    const f=constructorControlFixture(()=>assert.fail('refused entry must not construct'));
+    f.run.runtime.clientProgramInstalledEffectOperationConstructionBegin=function(original){
+      assert.strictEqual(original,f.originalToken);
+      if(mode==='refusal')throw undefined;
+      if(mode==='replaced Plan')f.run.operationPlan={};else f.run.failure=undefined;
+      return {$tag:1,_0:undefined};
+    };
+    const child=prepareInstalledEffectRequestChild(f);let caught=false;
+    try{child.prepare();}catch(cause){caught=true;
+      if(mode==='replaced Plan')assert.equal(cause.code,'ForeignInstalledEffectManagedRun');
+      else assert.strictEqual(cause,undefined);
+    }
+    assert.equal(caught,true);assert.equal(f.debits(),1);assert.equal(f.settlements(),0);
+    assert.throws(()=>child.prepare(),{code:'InstalledEffectRequestChildAlreadyPrepared'});
+    assert.equal(child.release(),false);f.retireAliases();assert.equal(child.retry(),true);
+    assert.equal(f.settlements(),1);
+  }
 });
