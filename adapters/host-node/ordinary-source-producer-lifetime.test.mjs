@@ -66,6 +66,11 @@ test('producer request index preserves exact live identity and separate Host own
     assert.throws(() => other.view.submittedIntentOriginal(record.request),
       {code: 'ForeignInstalledSourceProducer'});
     assert.equal(first.view.submittedIntentOriginal(record.request), undefined);
+    // Internal nominal associations preserve the existing object/function
+    // weak-key domain; this is not a new public Program input shape.
+    const callable = first.begin(Object.freeze(function originalRequest() {}));
+    first.bind(callable);
+    assert.equal(first.view.submittedIntentOriginal(callable.request), undefined);
   } finally {await first.close(); await other.close();}
 });
 
