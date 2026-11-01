@@ -45,14 +45,18 @@ const make=compileFunction(`return async function(input){
   const authorityScopeCid=input.scope,workspaceId=undefined,moon=input.moon,journal=input.journal;
   const closeHostRequestJournal=()=>journal.close();
   const sourceProfile=input.source,installedEffect=undefined,diagnostic=undefined,observation=undefined;
-  const preparation=input.selected===false?undefined:{initialControl:input.initialControl,
-    fundedPreparation(){throw Error('No business funding in this fixture');},
-    requestPreparation(){throw Error('No business Request in this fixture');},
-    bindSourceRequest(){throw Error('No business Source in this fixture');}};
-  ${source.slice(installedEntryGuard.start,installedEntryGuard.end)}
-  const originalSourcePreparation=input.withSource===false?undefined:Object.freeze(Object.fromEntries(
+  const fixtureRequestPreparation=Object.freeze(Object.fromEntries(
     ['beforeSourceSnapshot','bindSourceSnapshot','bindSourceRequest','finishSourceProducer','intentCid']
       .map(name=>[name,()=>{throw Error('No business Source in this fixture');}])));
+  const preparation=input.selected===false?undefined:{initialControl:input.initialControl,
+    fundedPreparation(){throw Error('No business funding in this fixture');},
+    requestPreparation(){return fixtureRequestPreparation;},
+    beforeResultPublicationOperation(operation){if(operation!=='attach')throw Error('Unexpected component operation');},
+    assertResultPublicationCurrent(){},
+    bindSourceRequest(){throw Error('No business Source in this fixture');}};
+  ${source.slice(installedEntryGuard.start,installedEntryGuard.end)}
+  const originalSourcePreparation=input.withSource===false?undefined:fixtureRequestPreparation;
+  const ${declaration('originalRequestPreparation')};
   let modelRuntimeClosing=false,activationFlight,activationFailure,store;
   const retireModelRuntime=input.retire;
   const initializePublicationServices=()=>input.initialize(host,value=>{store=value;});
@@ -83,7 +87,7 @@ async function createFixture({initialize,withSource=true,selected=true}={}){
   let constructions=0;
   const host=await make({scope:ref.authorityScopeCid,moon,journal,withSource,selected,
     observeIngress(options){assert.equal(typeof options.bindOwnedRequest,
-      withSource?'function':'undefined');},
+      'function');},
     source:{close(){calls.push('source');}},initialControl:{close(){calls.push('control');return {pending:false};}},
     retire(){calls.push('retire-runtime');},async initialize(same,setStore){
       constructions++;if(initialize)return initialize(same,setStore,calls);
@@ -123,7 +127,8 @@ const test=(name,body)=>nodeTest(`${withSource?'Source-selected':'ordinary selec
 
 test('SDK connect and unused close require no Publication Store key or service construction',async()=>{
   const f=await fixture(),client=await f.connect();
-  assert.equal(Object.hasOwn(f.host.port,sourcePreparationPort),withSource);
+  assert.equal(Object.hasOwn(f.host.port,sourcePreparationPort),true);
+  assert.equal(Object.hasOwn(f.host.port,'answerCheckpoint'),withSource);
   assert.equal(f.constructions(),0);assert.equal(f.host.store,undefined);
   assert.deepEqual(f.calls,['epoch']);
   await client.close();
