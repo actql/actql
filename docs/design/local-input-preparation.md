@@ -25,6 +25,14 @@ Installed contract originals contain validated immutable contract data. They
 do not issue resources or permit dispatch. Request originals, installed
 contracts and resource children are separate identities.
 
+The installed sequence-contract original retains the registry wire, the three
+extracted contract strings and their actual admission under the same runtime
+and initial control. Host open borrows that complete original instead of
+parsing the AoA asset and extracting those contracts again. The holder keeps
+its current/runtime/control checks, and compiler manifests remain prepared
+during installation. Later Request requirements reuse those strings without
+issuing another admission or moving installation work into the first query.
+
 ## Captured native Program input
 
 The normal Node representation reader projects DATA from the SDK's detached
