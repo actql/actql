@@ -2295,6 +2295,14 @@ another scope/preimage or repairing saved originals with current defaults.
 
 ## Original adopted/current transaction frames
 
+The borrowed namespace reader reuses shape and bound admission only for the
+same immutable fence objects in the same admitted order. A newly constructed
+outer tuple may hold those exact objects; equal copies, reordered members and
+subsets still take the complete required-fence validator. Each call first
+observes the actual current transaction and both schema catalogs. Successor
+writes still prevent selecting the prior fence as current metadata. This
+shares only immutable DATA validation, never a currentness or permission result.
+
 Private ABI50 `actql_current_*` retains one original metadata input and one
 physical query/cleanup ticket. Core chooses the `client_local_adoption`
 singleton scan and validates its exact key, revision, original body and unsigned
