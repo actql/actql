@@ -1,6 +1,6 @@
 {
   "source": "d5d66cd86ac2e153f31a511e7d37c78e0cc28ae3",
-  "syntaxProjectionSha256": "4b6eea3a336d3050604eef2670da26b532446c756733e46c80a5d1a3757e087b",
+  "syntaxProjectionSha256": "feeba13f60c686101810cde1b30750426a2aae2e7c47fe651a473ef728fb35ee",
   "qualification": "Source-reference coverage only; original Native/FFI/Python executions retain their own source, artifact and target qualifications. No normal funding, VM or installed product admission.",
   "generated": [
     {
@@ -50687,7 +50687,7 @@
           ]
         }
       ],
-      "sha256": "c7fe8b61df909030640d1a3e43b2f6dafae1b960abb61e1be8a951960e4ff665",
+      "sha256": "35a5e4d169948cffb4d9835c93ec5b5657304d35bc0ad44a182a42c0d40ee6a5",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -50847,6 +50847,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Public Local Check reporting"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The SDK ready-row producer also projects the existing subordinate Run-reference"
               }
             ],
             "inputsOutputs": [
@@ -50877,6 +50881,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Public Local Check reporting"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The SDK ready-row producer also projects the existing subordinate Run-reference"
               }
             ],
             "identity": [
@@ -50911,6 +50919,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Public Local Check reporting"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The SDK ready-row producer also projects the existing subordinate Run-reference"
               }
             ],
             "ownership": [
@@ -50945,6 +50957,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Public Local Check reporting"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The SDK ready-row producer also projects the existing subordinate Run-reference"
               }
             ],
             "synchronization": [
@@ -50975,6 +50991,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Public Local Check reporting"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The SDK ready-row producer also projects the existing subordinate Run-reference"
               }
             ],
             "failure": [
@@ -51009,6 +51029,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Public Local Check reporting"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The SDK ready-row producer also projects the existing subordinate Run-reference"
               }
             ],
             "cancellation": [
@@ -51039,6 +51063,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Public Local Check reporting"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The SDK ready-row producer also projects the existing subordinate Run-reference"
               }
             ],
             "resources": [
@@ -51073,6 +51101,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Public Local Check reporting"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The SDK ready-row producer also projects the existing subordinate Run-reference"
               }
             ],
             "extension": [
@@ -51103,6 +51135,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Public Local Check reporting"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The SDK ready-row producer also projects the existing subordinate Run-reference"
               }
             ],
             "verification": [
@@ -51145,6 +51181,18 @@
               {
                 "path": "packages/python-sdk/tests/test_local_submission_lookup.py",
                 "anchor": "def test_original_selector_restores_same_saved_input_without_ordinary_preparation(self):"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The SDK ready-row producer also projects the existing subordinate Run-reference"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_finite_run.py",
+                "anchor": "def test_original_reference_locator_commits_with_same_ready_rows("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_finite_run.py",
+                "anchor": "def test_original_reference_locator_refusal_rolls_back_and_unknown_never_replays("
               }
             ]
           }
@@ -72792,6 +72840,158 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed Guest current observation"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_host_wasm/materials.mbt",
+      "sha256": "9f521599d5d4d5c177a4481a96d548a1f44d1aa5c5c74ec807d29ec8b6cff79f",
+      "exports": [],
+      "operations": [
+        {
+          "name": "close_material",
+          "declaration": "close_material ( nonce : Int64 , handle : Int ) - > Int"
+        },
+        {
+          "name": "material_length",
+          "declaration": "material_length ( nonce : Int64 , handle : Int ) - > Int"
+        },
+        {
+          "name": "produce_material",
+          "declaration": "produce_material ( nonce : Int64 , handle : Int ) - > Int"
+        },
+        {
+          "name": "reserve_material",
+          "declaration": "reserve_material ( nonce : Int64 , run : Int , kind : Int , physical_ticket : Int , physical_copy_bytes : Int64 , ) - > Int"
+        },
+        {
+          "name": "reserve_material_record",
+          "declaration": "reserve_material_record ( value : Instance , run : Int , kind : Int , physical_ticket : Int , physical_copy_bytes : Int64 , ) - > Int"
+        },
+        {
+          "name": "reserve_submitted_rows_material",
+          "declaration": "reserve_submitted_rows_material ( nonce : Int64 , run : Int , current_configuration : Int , input : Int , physical_ticket : Int , physical_copy_bytes : Int64 , ) - > Int"
+        },
+        {
+          "name": "retire_material_output",
+          "declaration": "retire_material_output ( nonce : Int64 , handle : Int ) - > Int"
+        },
+        {
+          "name": "submitted_rows_material_wire",
+          "declaration": "submitted_rows_material_wire ( value : Instance , material : StoredMaterial , plan : @ local_run . LocalRunPlan , preparation : StoredPreparation , ) - > Result [ String , Int ]"
+        },
+        {
+          "name": "validate_submitted_rows_material",
+          "declaration": "validate_submitted_rows_material ( nonce : Int64 , handle : Int ) - > Int"
+        }
+      ],
+      "role": "boundary-adapter",
+      "owner": "D / existing Local material, submitted-row, Run and buffer Owners",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "close_material",
+            "material_length",
+            "produce_material",
+            "reserve_material",
+            "reserve_material_record",
+            "reserve_submitted_rows_material",
+            "retire_material_output",
+            "submitted_rows_material_wire",
+            "validate_submitted_rows_material"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_host_wasm/materials.mbt",
+                "anchor": "/// Invocation custody and an existing Ledger reservation, never durable Run"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_host_wasm/materials.mbt",
+                "anchor": "fn submitted_rows_material_wire("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_host_wasm/materials.mbt",
+                "anchor": "@host.client_saved_run_reference_locator("
+              },
+              {
+                "path": "src/run_publication_host/client_saved_run_reference_locator.mbt",
+                "anchor": "pub fn client_saved_run_reference_locator("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_host_wasm/materials.mbt",
+                "anchor": "fn reserve_material_record("
+              },
+              {
+                "path": "src/client_host_wasm/materials.mbt",
+                "anchor": "pub fn retire_material_output("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_host_wasm/materials.mbt",
+                "anchor": "pub fn validate_submitted_rows_material("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _commit_original_run_rows("
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_host_wasm/materials.mbt",
+                "anchor": "fn submitted_rows_material_wire("
+              },
+              {
+                "path": "src/client_host_wasm/materials.mbt",
+                "anchor": "pub fn close_material("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_host_wasm/materials.mbt",
+                "anchor": "pub fn close_material("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Failed stop or cleanup retains the same"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_host_wasm/materials.mbt",
+                "anchor": "/// Reserve the complete wire allowance before encoding."
+              },
+              {
+                "path": "src/client_host_wasm/materials.mbt",
+                "anchor": "@encode.writer(1048576, 24, 3)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "This retained DATA does not by itself select an indexed read or complete legacy"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/tests/test_local_finite_run.py",
+                "anchor": "def test_original_reference_locator_commits_with_same_ready_rows("
+              },
+              {
+                "path": "src/run_publication_host/client_saved_run_reference_locator_wbtest.mbt",
+                "anchor": "test \"saved Run reference locator reads one selected original without unrelated inventory\""
               }
             ]
           }
