@@ -89,6 +89,7 @@ class _JournalCallbacks:
                     or type(namespace_length) is not int or not 0 < namespace_length <= _KEY_BYTES
                     or type(key_length) is not int or not 0 <= key_length <= _KEY_BYTES
                     or (mode in (1, 2) and key_length == 0)
+                    or (mode == 2 and namespace_length != len('publication_contract'))
                     or namespace_length + key_length > _QUERY_BYTES):
                 raise ValueError('Invalid original Local journal physical query')
             if self.check_frame() != 0:
