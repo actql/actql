@@ -2295,6 +2295,12 @@ another scope/preimage or repairing saved originals with current defaults.
 
 ## Original adopted/current transaction frames
 
+After observing every original file FD/name, root and Store generation, the Host
+may consume the exact same frozen snapshot object retained by that reader.
+Distinct snapshots still require their complete value comparison. Object
+identity never bypasses the preceding physical observations, nominal ownership
+or retirement checks and is not a reusable currentness result.
+
 The borrowed namespace reader reuses shape and bound admission only for the
 same immutable fence objects in the same admitted order. A newly constructed
 outer tuple may hold those exact objects; equal copies, reordered members and
