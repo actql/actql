@@ -104,6 +104,12 @@ pub fn[I] project_request_check_outcome(
     return Err(ForeignOriginal)
   }
   guard owner.program_check is Some(child) else { return Ok(None) }
+  if child.phase == Transferred ||
+    child.phase == Retired ||
+    child.check_outcome is None ||
+    child.arguments is None {
+    return Ok(None)
+  }
   if child.busy || child.work is Some(_) || child.policy_subject_work is Some(_) {
     return Err(WrongPhase)
   }

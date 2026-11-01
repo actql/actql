@@ -138,6 +138,11 @@ pub fn client_program_project_original_check_outcome(
             _ => findings.push(Limit("bound_values_missing"))
           }
         }
+        // The original partial frontier cannot become verified when an
+        // oversized/undisclosable requirement could not be enumerated.
+        if findings.is_empty() {
+          findings.push(Limit("bound_values_missing"))
+        }
         Report
       }
       @checked.Rejected(diagnostic) =>

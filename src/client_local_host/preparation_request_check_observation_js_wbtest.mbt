@@ -131,6 +131,16 @@ test "live Request projection refuses foreign originals and never recreates a re
   )
   assert_eq(@resources.ledger_usage(parent.ledger), before)
   abort_request_preparation_after_cleanup(other).unwrap()
+  clear_program_check_preparation(child).unwrap()
+  assert_true(
+    request_observation_project(parent, input, terminal, publication)
+    is Ok(None),
+  )
+  // Dropping this controller's DATA is not settlement of the original parent.
+  assert_eq(
+    @resources.ledger_usage(parent.ledger).live_reservations,
+    before.live_reservations,
+  )
   abort_request_preparation_after_cleanup(parent).unwrap()
   assert_true(child.check_outcome is None && child.arguments is None)
   assert_true(
