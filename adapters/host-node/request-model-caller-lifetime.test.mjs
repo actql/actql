@@ -735,3 +735,52 @@ test('Host Request Node Model Scope cleanup refuses same-record reentry and fore
   assert.equal(foreign.model.scopeFinished, true); assert.equal(run.closed, false);
   assert(!foreign.calls.includes('retire')); assert(!foreign.calls.includes('aliases'));
 });
+
+test('Host unadopted Model Scope cleanup fences original carriers before alias or bag retirement', () => {
+  for (const mutate of [
+    f => {f.record.computeRuns.get(f.prepared).model = {};},
+    f => {f.record.computeRuns.set(f.prepared, {});},
+    f => {f.record.computeLiveRuns.delete(f.record.computeRuns.get(f.prepared));},
+    f => {f.record.computeRuns.get(f.prepared).value = {};},
+    f => {f.record.computeRuns.get(f.prepared).request = {};},
+    f => {f.record.computeRuns.get(f.prepared).original = {};},
+    f => {f.record.computeRuns.get(f.prepared).runtime = {};},
+    f => {f.record.computeRuns.get(f.prepared).closed = true;},
+    f => {f.record.computeRuns.get(f.prepared).releaseModelAliases = () => assert.fail('Foreign aliases');},
+    f => {f.model.scope = {};},
+  ]) {
+    let f;
+    const original = new Error('same failed original Model completion');
+    f = hostFixture({refuse: original, retainedSelection: true, onScopeFinish() {
+      assert.throws(f.retire, {code: 'InstalledModelCleanupPending'});
+      mutate(f);
+    }});
+    assert.throws(f.begin, cause => cause === original);
+    const run = f.record.computeRuns.get(f.prepared);
+    assert.throws(f.retire, {code: 'ForeignInstalledModelPreparation'});
+    assert.equal(f.calls.includes('aliases'), false);
+    assert.equal(f.calls.includes('selection-aliases'), false);
+    assert.equal(f.calls.includes('retire'), false);
+    assert.equal(f.calls.includes('sever'), false);
+    assert.equal(f.selectionHeld(), true);
+    assert.equal(run.prepared, f.prepared);
+    assert.equal(f.calls.filter(value => value === 'scope').length, 1);
+  }
+});
+
+test('Host unadopted Model Scope cleanup keeps original thrown causes and pending Scope custody', () => {
+  for (const primary of [new Error('original Scope finish'), null, undefined]) {
+    const original = new Error('same failed Model constructor');
+    const f = hostFixture({refuse: original, retainedSelection: true,
+      onScopeFinish() {throw primary;}});
+    assert.throws(f.begin, cause => cause === original);
+    const run = f.record.computeRuns.get(f.prepared);
+    let thrown = false, cause;
+    try {f.retire();} catch (error) {thrown = true; cause = error;}
+    assert.equal(thrown, true); assert.equal(cause, primary);
+    assert.equal(f.record.computeRuns.get(f.prepared), run);
+    assert.equal(run.model, f.model); assert.equal(f.model.scope, f.scope);
+    assert.notEqual(f.model.scopeFinished, true);
+    assert.equal(f.selectionHeld(), true); assert.equal(f.calls.includes('aliases'), false);
+  }
+});
