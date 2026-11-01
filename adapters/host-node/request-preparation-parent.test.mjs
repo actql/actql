@@ -68,8 +68,9 @@ async function fixture({beginFailure, environment, observe, validate = () => {},
   return {view,calls,shapes,context,originals,get parent(){return parent;},get original(){return admission?.original;}};
 }
 
-async function policyRequestFixture(kind = 'program') {
+async function policyRequestFixture(kind = 'program', projectOriginal) {
   const environment = {}, f = await fixture({environment}), moon = f.context.runtime;
+  if (projectOriginal !== undefined) moon.clientProgramProjectRequestCheckOutcome = projectOriginal;
   const request = {}, parameters = {path: 'cafe\u0301\r\n日本語😀'};
   const original = kind === 'program' ? input() : {format: 'sql', text: 'SELECT @path AS path'};
   const receipt = f.view.beforeSourceSnapshot(kind, kind === 'program' ? original : original.text,
@@ -1716,12 +1717,12 @@ test('original Request Check projection retains exact result receiver and receip
   f = await originalCheckFixture(project);
   try {
     f.moon.clientProgramProjectRequestCheckOutcome = () => assert.fail('Use the captured original method');
-    assert.equal(f.view.projectOriginalCheckOutcome(f.request, new Error('same-looking refusal'), originalReportMetadata), undefined);
-    assert.equal(f.view.projectOriginalCheckOutcome(f.request, f.failure, originalReportMetadata), 'original public wire');
+    assert.equal(f.view.observeOriginalCheckOutcome(f.request, new Error('same-looking refusal'), () => assert.fail('No metadata visitor for a foreign failure')), undefined);
+    assert.equal(f.view.observeOriginalCheckOutcome(f.request, f.failure, project => project(originalReportMetadata)), 'original public wire');
     await assert.rejects(f.view.fundedPreparation(f.request, f.context.environment), error => error === f.failure);
     assert.equal(f.checks, 1); assert.equal(calls, 1);
     f.view.finishSourceProducer(f.receipt, 'failed');
-    assert.equal(f.view.projectOriginalCheckOutcome(f.request, f.failure, originalReportMetadata), undefined);
+    assert.equal(f.view.observeOriginalCheckOutcome(f.request, f.failure, project => project(originalReportMetadata)), undefined);
     assert.equal(calls, 1);
   } finally {await f.view.close();}
   assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, true);
@@ -1731,7 +1732,7 @@ test('original Request Check projection omits absent or unavailable typed observ
   for (const project of [undefined, () => ok(undefined)]) {
     const f = await originalCheckFixture(project);
     try {
-      assert.equal(f.view.projectOriginalCheckOutcome(f.request, f.failure, originalReportMetadata), undefined);
+      assert.equal(f.view.observeOriginalCheckOutcome(f.request, f.failure, project => project(originalReportMetadata)), undefined);
       assert.equal(f.checks, 1);
     } finally {f.view.finishSourceProducer(f.receipt, 'failed'); await f.view.close();}
     assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, true);
@@ -1744,9 +1745,61 @@ test('original Request Check projection fences retirement reentry before returni
     f.view.finishSourceProducer(f.receipt, 'failed'); return ok('must not escape after retirement');
   });
   try {
-    assert.throws(() => f.view.projectOriginalCheckOutcome(f.request, f.failure, originalReportMetadata),
+    assert.throws(() => f.view.observeOriginalCheckOutcome(f.request, f.failure, project => project(originalReportMetadata)),
       {code: 'ForeignInstalledSourceProducer'});
     assert.equal(f.checks, 1);
   } finally {await f.view.close();}
+  assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, true);
+});
+
+
+test('original Request availability omits a policy failure before all metadata work', async () => {
+  const f = await policyRequestFixture('program', () => assert.fail('No original failed Check to project')),
+    failure = new Error('original policy failure after successful Check');
+  let metadataCalls = 0;
+  try {
+    await assert.rejects(f.view.fundedPreparation(f.request, f.environment, async () => {throw failure;}),
+      error => error === failure);
+    // Execute the actual installed callback, with only its connection and
+    // metadata entrances supplied as explicit ports. This catches ordering
+    // before the manager, rather than testing an invented outer protocol.
+    const {readFileSync} = await import('node:fs');
+    const {parse} = await import('acorn');
+    const source = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
+    const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
+    let selected;
+    const walk = node => {
+      if (!node || typeof node !== 'object') return;
+      if (node.type === 'Property' && node.key.name === 'observeOriginalPreparationFailure') selected = node.value;
+      for (const value of Object.values(node)) {
+        if (Array.isArray(value)) value.forEach(walk);
+        else if (value && typeof value === 'object' && value.type) walk(value);
+      }
+    };
+    walk(ast); assert.ok(selected);
+    let connections = 0;
+    const observer = Function('preparation', 'checkSource', 'hostConnection', 'clientOperationError',
+      'return (' + source.slice(selected.start, selected.end) + ');')({
+      observeOriginalCheckOutcome: (request, cause, visit) => f.view.observeOriginalCheckOutcome(request, cause, visit),
+    }, {projectOriginal() {metadataCalls++;}}, () => {connections++; return true;}, code => new Error(code));
+    assert.equal(await observer(failure, f.request), undefined);
+    assert.equal(metadataCalls, 0, 'No Source/account/namespace metadata for an unavailable original Check');
+    assert.equal(connections, 2, 'Keep both existing connection-current fences');
+    assert.deepEqual(f.events, ['check', 'subjects', 'read-0']);
+  } finally {await f.finish();}
+});
+
+test('original Request availability keeps the same state across metadata await and refuses retirement', async () => {
+  const f = await originalCheckFixture(() => ok('must not escape a retired Request'));
+  let entered, release;
+  const visiting = new Promise(resolve => {entered = resolve;});
+  const held = new Promise(resolve => {release = resolve;});
+  const pending = f.view.observeOriginalCheckOutcome(f.request, f.failure, async project => {
+    entered(); await held; return project(originalReportMetadata);
+  });
+  try {
+    await visiting; f.view.finishSourceProducer(f.receipt, 'failed'); release();
+    await assert.rejects(pending, {code: 'ForeignInstalledSourceProducer'});
+  } finally {release(); await pending.catch(() => {}); await f.view.close();}
   assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, true);
 });

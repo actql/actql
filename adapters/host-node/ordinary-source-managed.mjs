@@ -553,7 +553,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       if (intent === undefined) fail('ForeignInstalledSourceProducer');
       return intent;
     },
-    projectOriginalCheckOutcome(request, failure, metadata) {
+    observeOriginalCheckOutcome(request, failure, visit) {
       current();
       const producer = producerForRequest(request), state = producer?.preparation;
       // No retained original is reconstructed after completion/retirement, or
@@ -561,7 +561,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       if (state === undefined || state.parent === undefined || state.preparing ||
           !state.preparationFailed || state.preparationFailure !== failure ||
           state.originalCheckResult === undefined || typeof state.projectOriginalCheck !== 'function') return undefined;
-      if (!Array.isArray(metadata) || metadata.length !== 11) fail('InvalidOriginalCheckObservation');
+      if (typeof visit !== 'function') fail('InvalidOriginalCheckObservation');
       const parent = state.parent, result = state.originalCheckResult;
       const project = state.projectOriginalCheck, moon = state.context.runtime;
       const assertSame = () => {
@@ -572,14 +572,20 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
           fail('ForeignInstalledSourceProducer');
         }
       };
+      // Availability is decided from this SAME failed state before any
+      // Source/account/namespace metadata visitor can await or do work.
       assertSame();
-      // Preserve the original Result wrapper. Only the typed C bridge may
-      // match its terminal; no Err/Option or Error.cause is rebuilt in JS.
-      const wire = checked(Reflect.apply(project, moon,
-        [parent, producer.receipt, result, ...metadata]));
-      assertSame();
-      if (wire !== undefined && typeof wire !== 'string') fail('InvalidOriginalCheckObservation');
-      return wire;
+      return visit(metadata => {
+        if (!Array.isArray(metadata) || metadata.length !== 11) fail('InvalidOriginalCheckObservation');
+        assertSame();
+        // Preserve the original Result wrapper. Only the typed C bridge may
+        // match its terminal; no Err/Option or Error.cause is rebuilt in JS.
+        const wire = checked(Reflect.apply(project, moon,
+          [parent, producer.receipt, result, ...metadata]));
+        assertSame();
+        if (wire !== undefined && typeof wire !== 'string') fail('InvalidOriginalCheckObservation');
+        return wire;
+      });
     },
     async fundedPreparation(request, environment, originalVerifier, signal) {
       current();

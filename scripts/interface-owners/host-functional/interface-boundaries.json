@@ -108585,6 +108585,27 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/view/init:observeOriginalCheckOutcome/init:observeOriginalCheckOutcome",
+          "parameters": [
+            "request",
+            "failure",
+            "visit"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:observeOriginalCheckOutcome/init:observeOriginalCheckOutcome/assertSame/assertSame",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:observeOriginalCheckOutcome/init:observeOriginalCheckOutcome/init:observeOriginalCheckOutcome",
+          "parameters": [
+            "metadata"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/view/init:prepareContentCompilation/init:prepareContentCompilation",
           "parameters": [
             "prepared",
@@ -108817,20 +108838,6 @@
         },
         {
           "name": "prepareOrdinaryManagedInstallation/view/init:prepareSerializationRun/init:prepareSerializationRun/init:prepareSerializationRun",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:projectOriginalCheckOutcome/init:projectOriginalCheckOutcome",
-          "parameters": [
-            "request",
-            "failure",
-            "metadata"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:projectOriginalCheckOutcome/init:projectOriginalCheckOutcome/assertSame/assertSame",
           "parameters": [],
           "async": false
         },
@@ -112311,8 +112318,80 @@
         },
         {
           "operations": [
-            "prepareOrdinaryManagedInstallation/view/init:projectOriginalCheckOutcome/init:projectOriginalCheckOutcome",
-            "prepareOrdinaryManagedInstallation/view/init:projectOriginalCheckOutcome/init:projectOriginalCheckOutcome/assertSame/assertSame"
+            "prepareOrdinaryManagedInstallation/view/init:observeOriginalCheckOutcome/init:observeOriginalCheckOutcome",
+            "prepareOrdinaryManagedInstallation/view/init:observeOriginalCheckOutcome/init:observeOriginalCheckOutcome/assertSame/assertSame"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Node caller and transient disclosure"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Node caller and transient disclosure"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Node caller and transient disclosure"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Node caller and transient disclosure"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Node caller and transient disclosure"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Node caller and transient disclosure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Node caller and transient disclosure"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Node caller and transient disclosure"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Node caller and transient disclosure"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Node caller and transient disclosure"
+              },
+              {
+                "path": "adapters/host-node/request-preparation-parent.test.mjs",
+                "anchor": "original Request Check projection retains exact result receiver and receipt"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "prepareOrdinaryManagedInstallation/view/init:observeOriginalCheckOutcome/init:observeOriginalCheckOutcome/init:observeOriginalCheckOutcome"
           ],
           "exports": [],
           "attributes": {
@@ -112384,7 +112463,7 @@
         }
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "9f4e73ad49fae9268d9423a241b18b04e9cdc8308f0e27a018990bc0db9ecc0c"
+      "sha256": "e4bd5e2a73cc434953f11e63c2a61ff6516dc9427aab7ad1fd1d4f812d3b5c00"
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",

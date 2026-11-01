@@ -1274,16 +1274,16 @@ test('original Request compiled Check observation uses actual parent preparation
     await assert.rejects(view.fundedPreparation(request, valuesEnvironment), error => {
       assert.equal(error.code, 'ClientProgramInvalidInput'); failure = error; return true;
     });
-    const outcome = await checker.projectOriginal({principalId, kind: 'program', scope: 'bound_input',
-      input: body.input, parameters: body.parameters},
-    metadata => view.projectOriginalCheckOutcome(request, failure, metadata));
+    const outcome = await view.observeOriginalCheckOutcome(request, failure, project =>
+      checker.projectOriginal({principalId, kind: 'program', scope: 'bound_input',
+        input: body.input, parameters: body.parameters}, project));
     assert.equal(validCheckOutcome(outcome), true); assert.equal(outcome.report.verdict, 'invalid');
     assert.equal(outcome.report.scope.kind, 'bound_input');
     assert.equal(outcome.report.inputs[0].byte_length, Buffer.byteLength(JSON.stringify(body.input)));
-    assert.equal(view.projectOriginalCheckOutcome(request, new Error('foreign failure'), []), undefined);
+    assert.equal(view.observeOriginalCheckOutcome(request, new Error('foreign failure'), () =>
+      assert.fail('No metadata for a foreign failure')), undefined);
     view.finishSourceProducer(receipt, 'failed');
-    assert.equal(await checker.projectOriginal({principalId, kind: 'program', scope: 'bound_input',
-      input: body.input, parameters: body.parameters},
-    metadata => view.projectOriginalCheckOutcome(request, failure, metadata)), undefined);
+    assert.equal(await view.observeOriginalCheckOutcome(request, failure, () =>
+      assert.fail('No metadata after original retirement')), undefined);
   } finally {await view.close();}
 });

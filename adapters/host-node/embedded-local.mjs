@@ -4527,10 +4527,10 @@ async function openInstalledHost(originalInstallation, preparation) {
     prepareSubmit, submit, lookupRequest: lookupHeld, checkSubmissionInput: check,
     observeOriginalPreparationFailure: preparation === undefined ? undefined : async (failure, value) => {
       if (!hostConnection(value)) throw clientOperationError('ClientConnectionDenied');
-      const outcome = await checkSource.projectOriginal({principalId: value.principalId,
-        connection: value.connection, kind: value.kind === 'program' ? 'program' : 'text',
-        scope: 'bound_input', input: value.input, parameters: value.parameters, signal: value.signal},
-      metadata => preparation.projectOriginalCheckOutcome(value, failure, metadata));
+      const outcome = await preparation.observeOriginalCheckOutcome(value, failure, project =>
+        checkSource.projectOriginal({principalId: value.principalId,
+          connection: value.connection, kind: value.kind === 'program' ? 'program' : 'text',
+          scope: 'bound_input', input: value.input, parameters: value.parameters, signal: value.signal}, project));
       if (!hostConnection(value)) throw clientOperationError('ClientConnectionDenied');
       return outcome;
     },
@@ -6067,13 +6067,13 @@ async function openPreparedInstalledHost(options, initialEntry) {
       return manager.fundedPreparation(originalSourceManagedHostRequest(originals, request), environment,
         originalVerifier, signal);
     },
-    projectOriginalCheckOutcome(request, failure, metadata) {
+    observeOriginalCheckOutcome(request, failure, visit) {
       const manager = sourceManaged ?? computeManaged;
       if (manager === undefined) return undefined;
       (sourceManaged === undefined ? assertManagedComputeInstallationCurrent
         : assertSourceManagedInstallationCurrent)(manager, originals);
-      return manager.projectOriginalCheckOutcome?.(
-        originalSourceManagedHostRequest(originals, request), failure, metadata);
+      return manager.observeOriginalCheckOutcome?.(
+        originalSourceManagedHostRequest(originals, request), failure, visit);
     },
     borrowManagedPreparation(prepared, request) {
       const manager = sourceManaged ?? computeManaged;
