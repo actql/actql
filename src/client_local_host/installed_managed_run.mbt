@@ -161,6 +161,7 @@ pub(all) enum ClientInstalledManagedRunIssue {
   ModelLayout(@publication_host.ClientModelPreparationLayoutIssue)
   Sequence(@lower.SequenceIssue)
   SerializationPrefix(ClientSerializationPrefixIssue)
+  MetadataCapacityUnavailable
 }
 
 ///|
@@ -330,6 +331,15 @@ fn source_free_installed_managed_preparation_owned(
     scalar_values=true,
     graph=Some(graph),
   )
+  // This fixed issuer requested Result metadata from the same checked graph.
+  // A present envelope with zero retained bytes is the failed metadata quote,
+  // not an empty Result: successful scalar metadata and the ordinary cleanup
+  // fallback are both positive. Preserve its exact pre-admission cause before
+  // the generic Plan matcher rejects this unusable zero-byte sentinel.
+  if capacity_plan._retained_result_envelope is Some(_) &&
+    capacity_plan.metadata_retained_bytes == 0L {
+    return Err(MetadataCapacityUnavailable)
+  }
   guard client_local_sequence_capacity(
       sequences,
       task_count,

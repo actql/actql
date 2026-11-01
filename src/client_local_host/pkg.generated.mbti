@@ -1198,6 +1198,7 @@ pub(all) enum ClientInstalledManagedRunIssue {
   ModelLayout(@run_publication_host.ClientModelPreparationLayoutIssue)
   Sequence(@lowering_relation.SequenceIssue)
   SerializationPrefix(ClientSerializationPrefixIssue)
+  MetadataCapacityUnavailable
 }
 
 type ClientInstalledManagedSerializationPreparation

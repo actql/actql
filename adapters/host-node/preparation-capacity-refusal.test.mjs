@@ -113,3 +113,30 @@ test('retention is the first exact exceeded dimension when both byte requirement
     _2:537000000n,_3:800000000n,_4:536870912n,_5:536870912n});
   assert.throws(()=>checkedRequestProgramPreparation(moon,result),{code:'InvalidHostRuntimeResult'});
 });
+
+test('original metadata quote failure refuses admission without inventing numeric capacity', () => {
+  const issue = {}, result = {$tag: 0, _0: issue};
+  let projections = 0;
+  const moon = {
+    clientProgramRequestProgramModuleIssueCode(original) {
+      assert.equal(original, result);
+      projections++;
+      return 'source_free_metadata_capacity_unavailable';
+    },
+    clientProgramRequestProgramModuleCapacityRefusal() {
+      assert.fail('A failed quote has no numeric exceeded amount');
+    },
+  };
+  assert.throws(() => checkedRequestProgramPreparation(moon, result,
+    moon.clientProgramRequestProgramModuleIssueCode), error => {
+    assert.equal(error.code, 'ClientProgramRejected');
+    assert.equal(error.cause, issue);
+    assert.equal(Object.hasOwn(error, 'capacity'), false);
+    assert.equal(requestProgramCapacityRefusal(error), undefined);
+    return true;
+  });
+  assert.equal(projections, 1);
+  const body = {};
+  assert.equal(checkedRequestProgramPreparation(moon, {$tag: 1, _0: body},
+    () => assert.fail('Success must not project a refusal')), body);
+});
