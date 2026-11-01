@@ -1060,7 +1060,7 @@ class InstalledLocalHost:
                 raise LocalProductCleanupPending(self)
             return raw
 
-    def _retain_original_result_read(self, reference: object, result_name: str) -> _Output:
+    def _retain_original_result_read(self, reference: object, result_name: str) -> tuple[_Output, dict[str, Any]]:
         """Retain Core's actual stored-chain reader, never an executable plan.
 
         Its private wire carries metadata only. A later Result delivery must
@@ -1069,6 +1069,9 @@ class InstalledLocalHost:
         existing Owners. No reconstruction from these strings is authorized.
         Partial preparation, changed history or output close keeps the original
         input/output reachable for same-handle cleanup.
+
+        Return the same bounded, checked metadata with its original output so
+        the private caller need not parse it again. The data is not currentness.
         """
         installation = self._active()
         configuration = self._configuration
@@ -1097,7 +1100,7 @@ class InstalledLocalHost:
                     or any(packet[key] not in tuple(str(i) for i in range(8))
                            for key in ('resultOrdinal', 'bindingOrdinal'))):
                 raise ValueError('Foreign original saved Local Result projection')
-            return output
+            return output, packet
 
     def _close_projection(self, output: _Output) -> bool:
         """Release only original transport loans after successful cleanup."""

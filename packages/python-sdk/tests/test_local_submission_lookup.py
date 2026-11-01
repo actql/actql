@@ -424,7 +424,8 @@ class LocalSubmissionLookupTests(unittest.TestCase):
             store = host._installation._store
             with patch.object(store, 'compare_exchange_many_inspected',
                               side_effect=AssertionError('Metadata read must not write or deliver')):
-                output = host._retain_original_result_read(reference, 'answer')
+                output, metadata = host._retain_original_result_read(reference, 'answer')
+            self.assertEqual(metadata, packet)
             self.assertIs(core._loans[output.ticket], output)
             self.assertIs(host._projections[-1], output)
             self.assertFalse(host._run_loans)

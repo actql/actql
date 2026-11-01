@@ -50861,7 +50861,7 @@
           ]
         }
       ],
-      "sha256": "dc685c7ecc5ac6d953dc6a6acbbed2a6be6061e554de2fb06d45bd287d2df2f9",
+      "sha256": "b61b706f121af5a61650312f0e78d787bd417e4087b63e3c4960b3a6b07fa4da",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -52303,6 +52303,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "class InstalledLocalHost:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The private saved-Result acquisition returns its already bounded and checked"
               }
             ],
             "inputsOutputs": [
@@ -52313,6 +52317,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "class InstalledLocalHost:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The private saved-Result acquisition returns its already bounded and checked"
               }
             ],
             "identity": [
@@ -52323,6 +52331,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "class InstalledLocalHost:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The private saved-Result acquisition returns its already bounded and checked"
               }
             ],
             "ownership": [
@@ -52333,6 +52345,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "class InstalledLocalHost:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The private saved-Result acquisition returns its already bounded and checked"
               }
             ],
             "synchronization": [
@@ -52343,6 +52359,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "class InstalledLocalHost:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The private saved-Result acquisition returns its already bounded and checked"
               }
             ],
             "failure": [
@@ -52353,6 +52373,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "class InstalledLocalHost:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The private saved-Result acquisition returns its already bounded and checked"
               }
             ],
             "cancellation": [
@@ -52363,6 +52387,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "class InstalledLocalHost:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The private saved-Result acquisition returns its already bounded and checked"
               }
             ],
             "resources": [
@@ -52373,6 +52401,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "class InstalledLocalHost:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The private saved-Result acquisition returns its already bounded and checked"
               }
             ],
             "extension": [
@@ -52383,6 +52415,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "class InstalledLocalHost:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The private saved-Result acquisition returns its already bounded and checked"
               }
             ],
             "verification": [
@@ -52401,6 +52437,18 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The private saved-Result acquisition returns its already bounded and checked"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_saved_read_ports.py",
+                "anchor": "def test_saved_metadata_uses_same_admitted_packet_without_a_second_current_parse("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_saved_read_ports.py",
+                "anchor": "def test_saved_lookup_keeps_same_returned_source_when_original_clock_refuses("
               }
             ]
           }
@@ -72626,7 +72674,7 @@
           ]
         }
       ],
-      "sha256": "3192b86a0d199dc94b8e10359d307427852b730b991ef331f89d64b1728bfbcc",
+      "sha256": "54d103f1f19e586c9342992ba309dbe52c9e91016825a0cadcaab02c32ee984b",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing Python Local Host, Core read, File and Store Owners",
@@ -72690,6 +72738,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_saved_read.py",
                 "anchor": "class OriginalSavedResultRead:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The private saved-Result acquisition returns its already bounded and checked"
               }
             ],
             "inputsOutputs": [
@@ -72700,6 +72752,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_saved_read.py",
                 "anchor": "class OriginalSavedResultRead:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The private saved-Result acquisition returns its already bounded and checked"
               }
             ],
             "identity": [
@@ -72710,6 +72766,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_saved_read.py",
                 "anchor": "class OriginalSavedResultRead:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The private saved-Result acquisition returns its already bounded and checked"
               }
             ],
             "ownership": [
@@ -72720,6 +72780,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_saved_read.py",
                 "anchor": "class OriginalSavedResultRead:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The private saved-Result acquisition returns its already bounded and checked"
               }
             ],
             "synchronization": [
@@ -72730,6 +72794,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_saved_read.py",
                 "anchor": "class OriginalSavedResultRead:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The private saved-Result acquisition returns its already bounded and checked"
               }
             ],
             "failure": [
@@ -72740,6 +72808,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_saved_read.py",
                 "anchor": "class OriginalSavedResultRead:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The private saved-Result acquisition returns its already bounded and checked"
               }
             ],
             "cancellation": [
@@ -72750,6 +72822,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_saved_read.py",
                 "anchor": "class OriginalSavedResultRead:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The private saved-Result acquisition returns its already bounded and checked"
               }
             ],
             "resources": [
@@ -72760,6 +72836,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_saved_read.py",
                 "anchor": "class OriginalSavedResultRead:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The private saved-Result acquisition returns its already bounded and checked"
               }
             ],
             "extension": [
@@ -72770,6 +72850,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_saved_read.py",
                 "anchor": "class OriginalSavedResultRead:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The private saved-Result acquisition returns its already bounded and checked"
               }
             ],
             "verification": [
@@ -72788,6 +72872,18 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The private saved-Result acquisition returns its already bounded and checked"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_saved_read_ports.py",
+                "anchor": "def test_saved_metadata_uses_same_admitted_packet_without_a_second_current_parse("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_saved_read_ports.py",
+                "anchor": "def test_saved_lookup_keeps_same_returned_source_when_original_clock_refuses("
               }
             ]
           }

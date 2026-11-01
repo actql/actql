@@ -11,6 +11,7 @@ from actql_sdk._local_commit_projection import OriginalCommitProjection
 from actql_sdk._local_core import LocalCoreError, _Input, _Output
 from actql_sdk._local_reader_facts import OriginalReaderFacts
 from actql_sdk._local_saved_read import OriginalSavedResultRead
+import actql_sdk._local_saved_read as saved_read_module
 from actql_sdk._local_sdk_delivery_storage import OriginalSDKDeliveryStore
 import test_local_commit_store_caller as export_fixture
 import test_local_reader_facts as physical_fixture
@@ -18,6 +19,72 @@ import test_local_submission_lookup as host_fixture
 
 
 class SavedReadPortsTests(unittest.TestCase):
+    def test_saved_metadata_uses_same_admitted_packet_without_a_second_current_parse(self):
+        from tempfile import TemporaryDirectory
+        reference = {'namespaceId': 'local', 'authorityScopeCid': 'sha256:' + 'a' * 64,
+                     'runDefinitionCid': 'sha256:' + 'd' * 64}
+        packet = {'resultOrdinal': '0', 'bindingOrdinal': '0', 'kind': 'result-originals',
+                  'resultName': 'answer', 'runDefinitionCid': reference['runDefinitionCid'],
+                  **{name: '{"fixture":"transport"}' for name in
+                     ('index', 'manifest', 'definition', 'artifact', 'retention', 'binding')}}
+        helper = host_fixture.LocalSubmissionLookupTests()
+        helper.addCleanup = self.addCleanup
+        failure = OSError('original next payload acquisition')
+        with TemporaryDirectory(prefix='actql-saved-metadata-original-') as directory:
+            host, core, _, counts, _ = helper.fixture(directory, packet,
+                run_reference=reference, result_name='answer')
+            saved = OriginalSavedResultRead(host)
+            host._saved_result_reads.append(saved)
+            with patch('actql_sdk._local_saved_read._object', wraps=saved_read_module._object) as decode, patch.object(
+                    core, 'reserve_saved_payload_record', side_effect=failure) as acquire:
+                with self.assertRaises(OSError) as caught:
+                    saved.prepare(reference, 'answer', 'jsonl', 'original-attempt')
+            self.assertIs(caught.exception, failure)
+            acquire.assert_called_once()
+            self.assertEqual(counts, {'produce': 1, 'validate': 2})
+            decode.assert_not_called()
+            source = saved._source
+            self.assertIsNotNone(source)
+            self.assertIs(host._projections[-1], source)
+            self.assertIs(core._loans[source.ticket], source)
+            self.assertIsNotNone(saved._projection)
+            self.assertFalse(saved._preparing)
+            self.assertTrue(host.close())
+
+    def test_saved_lookup_keeps_same_returned_source_when_original_clock_refuses(self):
+        from tempfile import TemporaryDirectory
+        reference = {'namespaceId': 'local', 'authorityScopeCid': 'sha256:' + 'a' * 64,
+                     'runDefinitionCid': 'sha256:' + 'd' * 64}
+        packet = {'resultOrdinal': '0', 'bindingOrdinal': '0', 'kind': 'result-originals',
+                  'resultName': 'answer', 'runDefinitionCid': reference['runDefinitionCid'],
+                  **{name: '{}' for name in
+                     ('index', 'manifest', 'definition', 'artifact', 'retention', 'binding')}}
+        helper = host_fixture.LocalSubmissionLookupTests()
+        helper.addCleanup = self.addCleanup
+        failure = ValueError('original saved lookup clock refused')
+        with TemporaryDirectory(prefix='actql-saved-lookup-original-') as directory:
+            host, core, _, counts, _ = helper.fixture(directory, packet,
+                run_reference=reference, result_name='answer')
+            saved = OriginalSavedResultRead(host)
+            host._saved_result_reads.append(saved)
+            with patch.object(host, '_original_sdk_delivery_clock', side_effect=failure) as clock:
+                with self.assertRaises(ValueError) as caught:
+                    saved.prepare_lookup(reference, 'answer', 'original-attempt')
+            self.assertIs(caught.exception, failure)
+            clock.assert_called_once_with()
+            self.assertEqual(counts, {'produce': 1, 'validate': 2})
+            source = saved._source
+            self.assertIs(host._projections[-1], source)
+            self.assertIs(core._loans[source.ticket], source)
+            self.assertIsNotNone(saved._projection)
+            self.assertFalse(saved._preparing)
+            with patch.object(core, 'close_submission_lookup', return_value=False):
+                self.assertFalse(saved.close())
+                self.assertIs(saved._source, source)
+                self.assertIs(core._loans[source.ticket], source)
+            self.assertTrue(saved.close())
+            self.assertTrue(host.close())
+
     def test_payload_output_uses_its_live_or_saved_original_parent_until_child_ack(self):
         for saved in (False, True):
             with self.subTest(saved=saved):
