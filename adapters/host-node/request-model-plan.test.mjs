@@ -91,8 +91,10 @@ function fixture({count = 0, timed = false, refuseCapture, expire = false, missi
       assert.strictEqual(model.component.provider, componentProvider);
       return ok(module);
     },
-    clientProgramSelectInstalledSourceInput(p, stage, index) {
-      assert.equal(p, prepared); assert.equal(stage, 0); assert.equal(index, 0); return ok(selectedSource);
+    clientProgramSelectInstalledSourceInput(...args) {
+      assert.deepEqual(args, [prepared, request, 0, 0],
+        'Select with the SAME original Request in the actual four-argument ABI');
+      return ok(selectedSource);
     },
     clientProgramInstalledSourceInputKind(value) {assert.equal(value, selectedSource); return 'query';},
     clientProgramInstalledSourceInputRef(value) {assert.equal(value, selectedSource); return sourceRef;},
