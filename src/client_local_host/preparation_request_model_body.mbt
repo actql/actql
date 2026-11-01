@@ -84,7 +84,20 @@ pub fn[I] prepare_request_model_compilation(
     return Err(Preparation(ForeignOriginal))
   }
   if !installed_managed_run_shape_supported(prepared, true) {
-    return Err(Installed(Unsupported))
+    // A mixed component must come from this SAME Request's backed Graph
+    // constructor. This only continues its original compiler; the actual
+    // Model module, Content prefix, Scope and adoption remain distinct duties.
+    let retained = match owner.program_domain_compilation_inputs {
+      Some(RequestModelGraph(_, _, _, original)) => Some(original)
+      Some(RequestModelCompilation(_, _, _, original)) => Some(original)
+      _ => None
+    }
+    guard retained is Some(original) &&
+      physical_equal(original, graph) &&
+      graph.serialization is Some(component) &&
+      physical_equal(component.owner, prepared) else {
+      return Err(Installed(Unsupported))
+    }
   }
   match owner.program_domain_compilation_inputs {
     Some(RequestModelGraph(old_manifests, old_limits, old_contracts, original)) => {
