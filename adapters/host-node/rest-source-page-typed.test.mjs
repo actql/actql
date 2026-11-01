@@ -9,6 +9,7 @@ function fixture(transform, options = {}) {
   const bytes = Buffer.from('original response DATA'), wire = '[{"id":"9007199254740993"}]';
   const projected = (method, value) => function(...args) {
     assert.equal(this, moon);calls.push([method, ...args]);
+    if (method === 'typed') options.onTyped?.(args);
     if (method === 'typed' && options.failure !== undefined) throw options.failure;
     return {$tag: 1, _0: value};
   };
@@ -34,7 +35,7 @@ function fixture(transform, options = {}) {
   };
   const source = {resource: 'records', fields: [{name: 'id'}], read: {path: '/records'},
     pagination: {kind: 'cursor', parameter: 'cursor', items: ['items'], next: ['next']},
-    limits: {maxPageBytes: 1024, maxNodes: 64, maxDepth: 8, maxPageRows: 2,
+    limits: {maxPageBytes: options.maxPageBytes ?? 1024, maxNodes: 64, maxDepth: 8, maxPageRows: 2,
       maxRows: 4, maxPages: 3, maxCursorBytes: 32}};
   const prepare = restSourcePageReader({moon, source, decodePage: transform});
   const invoke = (fn, receiver, args) => Reflect.apply(fn, receiver, args);
@@ -107,4 +108,23 @@ test('REST author transform cannot change cursor add fields or exceed the existi
     assert.throws(() => f.reader.decodePage(f.response, f.progress), {code});
     assert.equal(f.calls.filter(call => call[0] === 'typed').length, 0);
   }
+});
+
+
+test('REST transform captures own DATA before an alternating getter can bypass the byte bound', t => {
+  let reads = 0;
+  const typedBytes = [], downstream = new Error('original bounded Core refusal');
+  const value = {get rowsWire() {return ++reads <= 4 ? '[]' : ' '.repeat(256 * 1024);}};
+  const f = fixture(() => value, {maxPageBytes: 64, onTyped(args) {
+    typedBytes.push(args[0].byteLength);
+    assert.equal(args[4], 64);
+    if (args[0].byteLength > 64) throw downstream;
+  }});
+  let failure;
+  try { f.reader.decodePage(f.response, f.progress); } catch (error) { failure = error; }
+  t.diagnostic(JSON.stringify({getterReads: reads, typedBufferBytes: typedBytes,
+    failureCode: failure?.code ?? null, originalDownstreamRefusal: failure === downstream}));
+  assert.equal(failure?.code, 'InvalidRestSourceTransform');
+  assert.equal(reads, 0, 'An own accessor is rejected without entering author DATA');
+  assert.deepEqual(typedBytes, [], 'No changed Buffer reaches Core after rejected transform DATA');
 });
