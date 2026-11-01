@@ -4694,3 +4694,23 @@ construction failure the transient slot is removed, while partial native
 materials stay on the same Request and domain carrier for original cleanup.
 This bookkeeping neither acknowledges physical release nor adds a Resource
 owner. Existing Scope, Content prefix and Effect cleanup duties remain separate.
+
+
+### Request-owned Node Model layout
+
+The installed Node Model Plan binding takes the original response-profile
+layout beside the same Request, module, compiler, Definition, occurrence and
+Graph. The existing layout checker validates its profile, runtime and layout
+artifacts, checked Program/Parameters/barrier and all-row bound. The Plan uses
+the declared complete read extents and preserves the checked Model non-byte
+dimensions. Its declared Model extents must cover the selected checked demand;
+they cannot shrink that demand. The existing parent Plan/Scope reservation
+still admits the simultaneous construction and execution inventories.
+
+Installed execution may consume the same already adopted Model Scope through
+its fixed private caller. It retains the original read on that Request carrier
+before a post-constructor current check. The existing execution custody keeps
+failed read construction and Scope binding attached to that same original.
+Only actual read settlement and the original Scope census can mark those duties
+finished. This handoff issues neither an independent Scope nor a replacement
+Run, and a missing or foreign selected carrier cannot fall back to one.
