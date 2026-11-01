@@ -10,17 +10,10 @@ from threading import RLock, get_ident
 from ._local_files import LocalFileRoot, _PayloadFile
 from ._local_storage_physical import (
     _PhysicalByteDatabase, _SQLiteByteDatabase,
-    _PhysicalCapacityCollision, _PhysicalCapacityExceeded, _RUN_DEFINITION_INDEX)
+    _PhysicalCapacityCollision, _PhysicalCapacityExceeded, _RUN_DEFINITION_INDEX,
+    _APPLICATION_ID, _SCHEMA, _CAPACITY_SCHEMA)
 
-_APPLICATION_ID = 0x41514C42
-_SCHEMA = '''CREATE TABLE core_bytes (
-    key TEXT PRIMARY KEY COLLATE BINARY NOT NULL,
-    generation INTEGER NOT NULL CHECK(generation >= 0),
-    payload BLOB NOT NULL CHECK(typeof(payload) = 'blob')
-) STRICT, WITHOUT ROWID'''
-# Match the existing Native SQLite physical reservation fields. Core supplies
-# the namespace, material key and amounts; this table carries no Run state.
-_CAPACITY_SCHEMA = '''CREATE TABLE actql_capacity(namespace TEXT NOT NULL,reservation_key TEXT NOT NULL,reserved_bytes INTEGER NOT NULL CHECK(reserved_bytes >= 0),reserved_objects INTEGER NOT NULL CHECK(reserved_objects >= 0),PRIMARY KEY(namespace, reservation_key)) STRICT'''
+
 
 
 @dataclass(frozen=True)
@@ -168,12 +161,13 @@ class LocalByteStore:
         self._connection = sqlite3.connect(path, isolation_level=None,
                                            timeout=1.0, check_same_thread=False)
         try:
-            self._physical = _SQLiteByteDatabase(self._connection)
+            database = _SQLiteByteDatabase(self._connection)
+            self._physical = database
             self._observe_generation()
             self._connection.execute('BEGIN IMMEDIATE')
             try:
-                schema = self._connection.execute('''SELECT name, sql FROM sqlite_schema
-                    WHERE name NOT LIKE 'sqlite_%' ORDER BY name''').fetchall()
+                schema = self._connection.execute('''SELECT 1 FROM main.sqlite_schema
+                    WHERE name NOT LIKE 'sqlite_%' LIMIT 1''').fetchone()
                 application = self._connection.execute('PRAGMA application_id').fetchone()[0]
                 version = self._connection.execute('PRAGMA user_version').fetchone()[0]
                 if not schema and application == 0 and version == 0:
@@ -190,11 +184,10 @@ class LocalByteStore:
                     else:
                         self._connection.execute('PRAGMA user_version = 2')
                 else:
-                    expected = [('actql_capacity', _CAPACITY_SCHEMA), ('core_bytes', _SCHEMA)]
-                    if version == 3:
-                        expected.insert(1, ('actql_client_run_definition_unique', _RUN_DEFINITION_INDEX))
-                    if schema != expected or application != _APPLICATION_ID or version not in (2, 3):
-                        raise LocalStorageError('Unknown Local physical storage format')
+                    try:
+                        database._journal_schema()
+                    except ValueError as error:
+                        raise LocalStorageError('Unknown Local physical storage format') from error
                 self._connection.execute('COMMIT')
             except BaseException:
                 if self._physical.in_transaction:
