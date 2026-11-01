@@ -32,13 +32,17 @@ fn sdk_payload_read_current_frame(
 }
 
 ///|
-// Original direct read, extracted unchanged before the before-IO counter.
+// Reobserve complete mutable originals before issuing a dependent read. A
+// final frame refusal cannot undo IO already issued after an original changed.
 // This private transport returns physical DATA, never a Source or permission.
 fn sdk_payload_read_original_row(
   original_current : () -> Result[Unit, Int],
   read : () -> Result[@host.ClientJournalPhysicalRow?, Int],
 ) -> Result[@host.ClientJournalPhysicalRow?, Int] {
-  original_current |> ignore
+  match original_current() {
+    Err(code) => return Err(code)
+    Ok(_) => ()
+  }
   read()
 }
 
@@ -131,17 +135,7 @@ fn sdk_payload_access_current(
     required_text(observed, "observed_at") is Some(at) else {
     return Err(-30)
   }
-  let read = (table, key) => {
-    if value.publications.contains(first.publication) {
-      sdk_run_journal_port(value, context.current, 1, table, key)
-    } else {
-      sdk_payload_read_original_row(
-        context.check_current,
-        () => sdk_run_journal_port(value, context.current, 1, table, key),
-      )
-    }
-  }
-  let observe = current => {
+  let observe = (read, current) => {
     @local_run.validate_local_sdk_payload_encoding_source_current(
       context.source,
       context.current.account,
@@ -162,7 +156,10 @@ fn sdk_payload_access_current(
   }
   if value.publications.contains(first.publication) {
     // The Live caller keeps its original callback selection and work.
-    observe(context.check_current)
+    observe(
+      (table, key) => sdk_run_journal_port(value, context.current, 1, table, key),
+      context.check_current,
+    )
   } else {
     sdk_payload_read_current_frame(
       context.check_current,
@@ -171,7 +168,17 @@ fn sdk_payload_access_current(
           value, first, context, current_configuration,
         )
       },
-      observe,
+      current => {
+        observe(
+          (table, key) => {
+            sdk_payload_read_original_row(
+              context.check_current,
+              () => sdk_run_journal_port(value, context.current, 1, table, key),
+            )
+          },
+          current,
+        )
+      },
     )
   }
 }
