@@ -77,3 +77,85 @@ pub fn admission_construction_inventory(
     controls,
   })
 }
+
+///|
+/// Existing preserving byte-JSON parser and indexed admission, including
+/// refusal. The received Bytes are borrowed; the decoder owns one input
+/// String. This moves the installed preserving recipe to its decoder Owner
+/// so provider and Host quotes consume the same construction inventory.
+/// No tariff, resource allowance or physical-backend proof is supplied here.
+pub fn preserving_json_admission_construction_inventory(
+  bytes : Int,
+  nodes : Int,
+  depth : Int,
+) -> @source.JsonLiteralConstructionExtent? {
+  guard @source.json_literal_construction_extent(bytes, nodes, depth)
+    is Some(literal) &&
+    @shape.key_admission_construction_extent(nodes, nodes) is Some(all_keys) &&
+    @shape.key_admission_construction_extent(Int::min(nodes, depth), nodes)
+    is Some(active_keys) &&
+    admission_construction_inventory(
+      nodes,
+      nodes,
+      nodes,
+      0,
+      Int::min(nodes, depth),
+    )
+    is Some(objects) &&
+    admission_construction_inventory(
+      nodes,
+      nodes,
+      0,
+      nodes,
+      Int::min(nodes, depth),
+    )
+    is Some(arrays) &&
+    literal.record_headers >= all_keys.record_headers &&
+    literal.reference_slots >= all_keys.reference_slots &&
+    literal.scalar_words >= all_keys.scalar_words else {
+    return None
+  }
+  // Objects+arrays cannot exceed nodes. Indexed construction is affine in
+  // those counts, so its two homogeneous endpoints bound each coordinate.
+  // Preserve the complete index, ancestry and refusal controls at that peak.
+  let object_headers = objects.indexed.record_headers +
+    objects.ancestry.record_headers +
+    objects.controls.record_headers
+  let object_refs = objects.indexed.reference_slots +
+    objects.ancestry.reference_slots +
+    objects.controls.reference_slots
+  let object_words = objects.indexed.scalar_words +
+    objects.ancestry.scalar_words +
+    objects.controls.scalar_words
+  let array_headers = arrays.indexed.record_headers +
+    arrays.ancestry.record_headers +
+    arrays.controls.record_headers
+  let array_refs = arrays.indexed.reference_slots +
+    arrays.ancestry.reference_slots +
+    arrays.controls.reference_slots
+  let array_words = arrays.indexed.scalar_words +
+    arrays.ancestry.scalar_words +
+    arrays.controls.scalar_words
+  // Parser maps leave their active frames before indexed admission starts.
+  // Neither map is retained by the Source tree. Both enforce depth before
+  // creating a map: one shared active peak includes the pending-key refusal.
+  // Replace only the parser's old all-object map component; no text, Source
+  // node, index, growth, UTF8 or failure inventory is removed.
+  // Positive Int-bounded inputs keep these fixed linear Int64 sums in range.
+  Some({
+    record_headers: literal.record_headers -
+    all_keys.record_headers +
+    Int64::max(object_headers, array_headers) +
+    active_keys.record_headers +
+    1L,
+    reference_slots: literal.reference_slots -
+    all_keys.reference_slots +
+    Int64::max(object_refs, array_refs) +
+    active_keys.reference_slots,
+    scalar_words: literal.scalar_words -
+    all_keys.scalar_words +
+    Int64::max(object_words, array_words) +
+    active_keys.scalar_words,
+    owned_utf16_units: literal.owned_utf16_units + bytes.to_int64(),
+  })
+}

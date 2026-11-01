@@ -2282,3 +2282,12 @@ need their own backing and retained overlap before normal execution. Node's
 stream, Buffer-pool, TLS and runtime implementation storage is not measured by
 these logical quantities. No receiver check supplies authority or a cleanup
 acknowledgement, and no old compiled runtime gains the new native predicates.
+
+The preserving byte-JSON construction inventory belongs to `decode_core`.
+Sheets native codecs and the installed Source Reader project the same parser,
+active key-map and indexed-admission inventory into their existing constructor
+quotes. Objects and arrays share the same node population; their two structural
+endpoints bound each coordinate. Parser and decoder maps are sequential and
+use one active-depth peak. Original text, Source/index backing, UTF8 checks,
+growth and failed-prefix controls remain included. This changes neither input
+limits nor the shared byte tariff or Run allowance.

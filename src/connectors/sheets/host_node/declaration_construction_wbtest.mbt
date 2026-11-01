@@ -423,9 +423,41 @@ test "range recovery keeps the larger original binding normalization guard" {
 
 ///|
 test "clear recovery keeps its distinct original normalization envelope" {
-  // Original fixed quantity from the unchanged before-body: clear shares
-  // this forest but has no equivalent early saved range-entry byte guard.
+  // Clear and range share every decoder/writer constructor. Only clear
+  // lacks the early saved range-entry guard. Compare that original NFC
+  // difference independently of the shared decoder's construction recipe.
   let clear = recovery_guard_test_fixed(100000, true)
-  assert_eq(@execution.execution_capacity_retained_bytes(clear), 3592137642L)
-  assert_eq(@execution.execution_capacity_execution_bytes(clear), 3592137642L)
+  let range = recovery_guard_test_fixed(100000, false)
+  let whole_forest = recovery_guard_test_nfc(7004171)
+  let guarded = recovery_guard_test_nfc(100000)
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(clear) -
+    @execution.execution_capacity_retained_bytes(range),
+    @execution.execution_capacity_retained_bytes(whole_forest) -
+    @execution.execution_capacity_retained_bytes(guarded),
+  )
+  assert_eq(
+    @execution.execution_capacity_execution_bytes(clear) -
+    @execution.execution_capacity_execution_bytes(range),
+    @execution.execution_capacity_execution_bytes(whole_forest) -
+    @execution.execution_capacity_execution_bytes(guarded),
+  )
+}
+
+///|
+test "range native input decoders do not retain impossible container populations" {
+  // Necessary lower slice of the actual range fixed quote: binding300000,
+  // at least100000 nodes and depth32. No policy ceiling is changed here.
+  let one = sheets_decoded_construction(300000, 100000, 32).unwrap()
+  let normalized = recovery_guard_test_nfc(300000)
+  let inputs = sheets_constructor_capacity([one, one]).unwrap()
+  let slice = @execution.add_execution_capacity(inputs, normalized).unwrap()
+  let original = @client_host.client_local_preparation_initial_limits(
+    @client_host.client_local_resource_policy(),
+  ).unwrap()
+  assert_true(
+    @execution.execution_capacity_retained_bytes(slice) <=
+    original.retained_bytes,
+    msg=@execution.execution_capacity_retained_bytes(slice).to_string(),
+  )
 }

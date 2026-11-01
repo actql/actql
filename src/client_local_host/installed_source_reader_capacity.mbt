@@ -79,111 +79,19 @@ fn installed_source_response_preserving_workspace(
   nodes : Int,
   depth : Int,
 ) -> @execution.PreparationRepresentationUnits? {
-  guard @source.json_literal_construction_extent(bytes, nodes, depth)
-    is Some(literal) &&
-    @shape.key_admission_construction_extent(nodes, nodes) is Some(all_keys) &&
-    @shape.key_admission_construction_extent(Int::min(nodes, depth), nodes)
-    is Some(active_keys) &&
-    literal.record_headers >= all_keys.record_headers &&
-    literal.reference_slots >= all_keys.reference_slots &&
-    literal.scalar_words >= all_keys.scalar_words else {
+  guard @decode.preserving_json_admission_construction_inventory(
+      bytes, nodes, depth,
+    )
+    is Some(original) else {
     return None
   }
-  // Reuse ONLY the decoder's structural families. Each node is either an object, an array or a scalar;
-  // objects+arrays <= nodes. The shared structural inventory is affine in
-  // those counts. Its two homogeneous endpoints therefore bound each
-  // representation coordinate for every mixture, without co-counting two
-  // impossible full container populations. These are constructor bounds, not facts from the ASCII scan.
-  // Its parser/text/ASCII-control inventories are not consumed below.
-  let indexed = closed_values_source_inventories({
-    input_bytes: bytes,
-    node_upper: nodes,
-    objects: nodes,
-    arrays: 0,
-    fields_upper: nodes,
-    quoted_tokens: 0,
-    quoted_utf16_units: 0,
-    longest_quoted_utf16: 0,
-    longest_atom_utf16: 0,
-    depth_upper: Int::min(nodes, depth),
-  })
-  let array_indexed = closed_values_source_inventories({
-    input_bytes: bytes,
-    node_upper: nodes,
-    objects: 0,
-    arrays: nodes,
-    fields_upper: nodes,
-    quoted_tokens: 0,
-    quoted_utf16_units: 0,
-    longest_quoted_utf16: 0,
-    longest_atom_utf16: 0,
-    depth_upper: Int::min(nodes, depth),
-  })
-  guard @execution.compose_preparation_representation([
-      indexed.indexed_additional,
-      indexed.decoder_ancestry_peak,
-      indexed.decoder_controls_peak,
-    ])
-    is Some(objects) &&
-    @execution.compose_preparation_representation([
-      array_indexed.indexed_additional,
-      array_indexed.decoder_ancestry_peak,
-      array_indexed.decoder_controls_peak,
-    ])
-    is Some(arrays) else {
-    return None
-  }
-  // json_literal_construction_extent includes its full key-map peak already.
-  // Parser frames release their maps when an object completes; decoder
-  // ObjectNext frames start only after parsing. Neither map is in the Source
-  // tree. Both check depth BEFORE creating a new map, so at most min(nodes,
-  // depth) map owners and nodes entries coexist, including a pending key on
-  // refusal. Replace only that original component, then charge ONE shared
-  // peak for these sequential phases, not a second decoder key-map peak.
-  let source : @execution.PreparationRepresentationUnits = {
-    record_headers: literal.record_headers - all_keys.record_headers,
-    reference_slots: literal.reference_slots - all_keys.reference_slots,
-    scalar_words: literal.scalar_words - all_keys.scalar_words,
-    owned_utf16_units: literal.owned_utf16_units,
+  Some({
+    record_headers: original.record_headers,
+    reference_slots: original.reference_slots,
+    scalar_words: original.scalar_words,
+    owned_utf16_units: original.owned_utf16_units,
     owned_wire_bytes: 0L,
-  }
-  // The original Bytes decoder owns its input String. Preserving parsing
-  // and exact-key admission do not normalize keys or allocate normalized key
-  // Strings; source/index/UTF8 validation and refusal controls stay included.
-  let input_and_keys : @execution.PreparationRepresentationUnits = {
-    record_headers: 1L,
-    reference_slots: 0L,
-    scalar_words: 0L,
-    owned_utf16_units: bytes.to_int64(),
-    owned_wire_bytes: 0L,
-  }
-  @execution.compose_preparation_representation([
-    source,
-    {
-      record_headers: Int64::max(objects.record_headers, arrays.record_headers),
-      reference_slots: Int64::max(
-        objects.reference_slots,
-        arrays.reference_slots,
-      ),
-      scalar_words: Int64::max(objects.scalar_words, arrays.scalar_words),
-      owned_utf16_units: Int64::max(
-        objects.owned_utf16_units,
-        arrays.owned_utf16_units,
-      ),
-      owned_wire_bytes: Int64::max(
-        objects.owned_wire_bytes,
-        arrays.owned_wire_bytes,
-      ),
-    },
-    {
-      record_headers: active_keys.record_headers,
-      reference_slots: active_keys.reference_slots,
-      scalar_words: active_keys.scalar_words,
-      owned_utf16_units: 0L,
-      owned_wire_bytes: 0L,
-    },
-    input_and_keys,
-  ])
+  })
 }
 
 ///|

@@ -8,35 +8,17 @@ fn sheets_decoded_construction(
   nodes : Int,
   depth : Int,
 ) -> @execution.PreparationRepresentationUnits? {
-  guard @source.json_construction_extent(
-      bytes,
-      nodes,
-      depth,
-      normalize_keys=false,
+  guard @decode.preserving_json_admission_construction_inventory(
+      bytes, nodes, depth,
     )
-    is Some(parsed) &&
-    @decode.admission_construction_inventory(nodes, nodes, nodes, nodes, depth)
-    is Some(index) else {
+    is Some(original) else {
     return None
   }
   Some({
-    record_headers: 1L +
-    parsed.record_headers +
-    index.indexed.record_headers +
-    index.keys.record_headers +
-    index.ancestry.record_headers +
-    index.controls.record_headers,
-    reference_slots: parsed.reference_slots +
-    index.indexed.reference_slots +
-    index.keys.reference_slots +
-    index.ancestry.reference_slots +
-    index.controls.reference_slots,
-    scalar_words: parsed.scalar_words +
-    index.indexed.scalar_words +
-    index.keys.scalar_words +
-    index.ancestry.scalar_words +
-    index.controls.scalar_words,
-    owned_utf16_units: parsed.owned_utf16_units + bytes.to_int64(),
+    record_headers: original.record_headers,
+    reference_slots: original.reference_slots,
+    scalar_words: original.scalar_words,
+    owned_utf16_units: original.owned_utf16_units,
     owned_wire_bytes: 0L,
   })
 }
