@@ -272,7 +272,7 @@ test('original repeated headers preserve the selected normalized value without a
 
 // Execute the exact private receiver body with explicit original HTTP ports.
 // No provider, Common grant, installed Run or physical cleanup is inferred.
-function originalReceiveComponent({observed = true, concatFailure} = {}) {
+function originalReceiveComponent({observed = true, concatFailure, readFailure} = {}) {
   const source = readFileSync(new URL('./https-credential-resource.mjs', import.meta.url), 'utf8');
   const start = source.indexOf('function receive({');
   const end = source.indexOf('\n/// Execute one pre-registered HTTPS operation.', start);
@@ -302,6 +302,7 @@ function originalReceiveComponent({observed = true, concatFailure} = {}) {
   if (observed) {
     const reads = [...originalBytes, null];
     response.read = () => reads.shift() ?? null;
+    if (readFailure !== undefined) Object.defineProperty(response,'read',{get(){throw readFailure.original;}});
   }
   callback(response);
   if (observed) response.emit('readable');
@@ -396,3 +397,14 @@ test('observed original binary reader coalesces tiny ingress chunks with one EOF
     assert.equal(response.listenerCount('readable'),0);
   }
 });
+
+
+for (const original of [undefined, new Error('original read accessor refused')]) {
+  test(`observed reader captures its method inside the existing error fence (${original === undefined ? 'undefined' : 'Error'})`, async () => {
+    let component;
+    assert.doesNotThrow(() => {component=originalReceiveComponent({readFailure:{original}});});
+    await assert.rejects(component.pending, cause => cause === original);
+    assert.equal(component.response.destroyed,true);
+    assert.deepEqual(component.charges,[]);
+  });
+}

@@ -2616,8 +2616,8 @@ chunk permits at most ceil(B/Q) copied buffers under the unchanged B-byte body
 limit. Both the standard recipe and the necessary pre-borrow backing predicate
 consume that same implementation fact. The conservative one-byte default stays
 on other/unqualified readers. The original read method and receiver are retained
-before any external byte observer, and their reference is included in the
-constructor inventory. The full B+1 refusal window, copied/concat/current byte
+before any external byte observer, inside the original response error fence;
+their reference is included in the constructor inventory. The full B+1 refusal window, copied/concat/current byte
 peak, header/trailer/secret owners and failed-prefix cleanup remain unchanged.
 This geometry is internal implementation metadata, not a new user limit or
 resource grant. The selected Core/Node interfaces and adapters require one matching

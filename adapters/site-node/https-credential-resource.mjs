@@ -778,7 +778,7 @@ function receive({hostname, port, path, method, body, bodyMediaType, requestByte
         // Capture the original method and receiver before an external observer
         // can replace read. Binary read(size) waits for size bytes until EOF,
         // permitting one final partial copy rather than arbitrary tiny copies.
-        const readOriginal = response.read;
+        let readOriginal;
         // Bound the SAME
         // reader's selected representation to B+1 even when its protocol body
         // cap is B. Charge each actual read BEFORE limit refusal/copy; the last
@@ -786,6 +786,10 @@ function receive({hostname, port, path, method, body, bodyMediaType, requestByte
         const readObservedResponse = () => {
           if (settled || observerPending || response.destroyed) return;
           try {
+            // Capture once under the SAME original error fence. A throwing
+            // getter (including thrown undefined) destroys this response and
+            // follows its existing binding/socket retirement path.
+            readOriginal ??= response.read;
             let chunk;
             while ((chunk = Reflect.apply(readOriginal, response, [Math.min(httpsCredentialResponseReadQuantum,
               maxResponseBytes - received + 1)])) !== null) {
