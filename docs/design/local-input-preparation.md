@@ -4875,6 +4875,13 @@ two constructor calls. Protocol/Query construction and the module's retained
 input references coexist with these outputs in the same parent debit. Fixed
 installed Host controls remain trusted; these DATA costs issue no authority.
 
+A captured Stage may also contain its own serialization and Model continuation.
+Its positive task count can equal the captured prefix count, leaving an empty
+Compute tail. The same module still owns its fixed container packet, all capture
+and dispatch arrays, protocol/Query construction, and retained prefix/compiler
+outputs. An empty tail neither erases the original capture nor permits a zero-task
+Program, and it does not return any Source, Scope, Store or parent holding.
+
 The module retains the exact generated prefix and optional suffix. Its pure
 accessors return those originals without preparing, growing, observing current,
 or sampling QueryTime again. The one-component construction callback receives
