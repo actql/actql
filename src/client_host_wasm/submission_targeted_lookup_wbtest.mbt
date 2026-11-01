@@ -501,12 +501,25 @@ test "indexed saved cold lookup retains original nested query and cancellation f
       "sha256:7a12ebea352eee2a7d88bf6df5c5b6d7b56d6383f7e6e5fc9231fef79412fafc",
       None,
       (_, _) => Err(-88),
-      (table, key) => if mode == 0 { Err(-74) } else { targeted_row_read(rows, table, key) },
-      row => if mode == 1 { Err(-32) } else { submission_append_run_inspection(row) },
+      (table, key) => {
+        if mode == 0 {
+          Err(-74)
+        } else {
+          targeted_row_read(rows, table, key)
+        }
+      },
+      row => {
+        if mode == 1 {
+          Err(-32)
+        } else {
+          submission_append_run_inspection(row)
+        }
+      },
       () => Err(-97),
       physical_schema=1,
     )
-    assert_true(actual is Err(if mode == 0 { -74 } else if mode == 1 { -32 } else { -97 }))
+    let expected = if mode == 0 { -74 } else if mode == 1 { -32 } else { -97 }
+    assert_true(actual is Err(code) && code == expected)
   }
 }
 
