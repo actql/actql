@@ -720,3 +720,16 @@ test('original Source evidence remains held through pending cleanup and retires 
     {code: 'InstalledSourceClosed'});
   assert.equal(f.count('clientProgramRowSourceIssueSourceEvidence'), 0);
 });
+
+
+test('accounted Row capture original is retained once and refuses foreign receiver or retired access', async () => {
+  const f = rowRunFixture({accounted: true}), owner = f.start();
+  const result = await owner.complete(f.options);
+  assert.equal(result.capture.originalRowCapture(), f.capture);
+  assert.equal(result.capture.originalRowCapture(), f.capture);
+  assert.equal(f.count('clientProgramRowSourceCapture'), 1);
+  const get = result.capture.originalRowCapture;
+  assert.throws(() => Reflect.apply(get, {...result.capture}, []), {code: 'ForeignInstalledSourceCapture'});
+  owner.close();
+  assert.throws(() => result.capture.originalRowCapture(), {code: 'ForeignInstalledSourceCapture'});
+});

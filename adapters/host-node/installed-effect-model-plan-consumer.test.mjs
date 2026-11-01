@@ -233,3 +233,94 @@ test('foreign Model demand and missing original Request refuse before Scope cons
   assert.throws(() => prepareInstalledEffectManagedPlanRun(g.options), {code: 'InstalledEffectRequestPreparationUnavailable'});
   assert.equal(g.calls.includes('adopt-request-model'), false);
 });
+
+// Execute the existing Host retirement body with explicit original Core return
+// ports. A checked Unit or its one existing sever observation controls managed
+// alias retirement; neither port is a physical cleanup acknowledgement.
+function effectRetirementFixture() {
+  const source = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
+  let method;
+  const walk = node => {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'Property' && node.key?.name === 'retireManagedComputeRun') method = node;
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(walk);
+      else if (value && typeof value === 'object') walk(value);
+    }
+  };
+  walk(parse(source, {ecmaVersion: 'latest', sourceType: 'module'})); assert(method);
+  const prepared = {}, request = {}, value = {}, original = {}, plan = {};
+  const record = {computeRuns: new WeakMap(), computeLiveRuns: new Set()};
+  const counts = {retire: 0, observations: 0, returns: 0, finish: 0};
+  const moon = {clientProgramInstalledPreparationPayloadSevered(v, r) {
+    assert.equal(v, value); assert.equal(r, request); counts.observations++;
+    return observe();
+  }};
+  let before = () => {}, observe = () => true;
+  const run = {prepared, request, runtime: moon, value, original, operationPlan: plan,
+    preparationKind: 'effect-plan', preparationFunded: true, closed: false,
+    manager: {severPreparation(p, o) {
+      assert.equal(p, prepared); assert.equal(o, original); counts.returns++;
+    }},
+    retire(v) {
+      assert.equal(this, moon); assert.equal(v, value); counts.retire++; before();
+      return ok(undefined);
+    }};
+  record.computeRuns.set(prepared, run); record.computeLiveRuns.add(run);
+  const ports = {record, moon, checked, finishInstalledEffectModelScope,
+    clientOperationError: code => Object.assign(new Error(code), {code}),
+    managedPreparationRetirementContinuation(actual, bag) {
+      assert.equal(actual, run); assert.equal(bag, record);
+      return () => {counts.finish++;};
+    }};
+  const retire = Function(...Object.keys(ports),
+    `return ({${source.slice(method.start, method.end)}}).retireManagedComputeRun;`)(...Object.values(ports));
+  return {prepared, request, value, original, plan, record, run, counts,
+    retire: () => retire(prepared), setBefore: callback => {before = callback;},
+    setObserve: callback => {observe = callback;}};
+}
+
+test('Effect Host retirement fences same-record reentry before returning the original Request borrower', () => {
+  const f = effectRetirementFixture();
+  f.setBefore(() => {
+    // The original Core retire may call current. That callback must not enter
+    // the same retirement body or consume the Request borrower a second time.
+    assert.throws(f.retire, {code: 'InstalledEffectRunCleanupPending'});
+    assert.equal(f.counts.returns, 0); assert.equal(f.run.operationPlan, f.plan);
+  });
+  const finish = f.retire();
+  assert.deepEqual(f.counts, {retire: 1, observations: 0, returns: 1, finish: 0});
+  assert.equal(f.run.operationPlan, undefined); assert.equal(f.run.closed, true);
+  finish(); assert.equal(f.counts.finish, 1);
+});
+
+test('Effect Host retirement retains originals on one failed sever observation or a changed original bag', () => {
+  const f = effectRetirementFixture(), primary = new Error('original retire callback');
+  f.setBefore(() => {throw primary;});
+  f.setObserve(() => {
+    assert.throws(f.retire, {code: 'InstalledEffectRunCleanupPending'});
+    return false;
+  });
+  assert.throws(f.retire, error => error === primary);
+  assert.deepEqual(f.counts, {retire: 1, observations: 1, returns: 0, finish: 0});
+  assert.equal(f.run.operationPlan, f.plan); assert.equal(f.run.prepared, f.prepared);
+  f.setObserve(() => {
+    assert.throws(f.retire, {code: 'InstalledEffectRunCleanupPending'});
+    return true;
+  });
+  f.retire(); assert.equal(f.counts.observations, 2); assert.equal(f.counts.returns, 1);
+  const g = effectRetirementFixture();
+  g.setBefore(() => {g.record.computeRuns.set(g.prepared, {});});
+  assert.throws(g.retire, {code: 'ForeignInstalledEffectManagedRun'});
+  assert.equal(g.counts.observations, 0); assert.equal(g.counts.returns, 0);
+  assert.equal(g.run.operationPlan, g.plan); assert.equal(g.run.prepared, g.prepared);
+});
+
+
+test('Effect fallback observes only the same original parent after a throwing retirement callback', () => {
+  const f = effectRetirementFixture(), primary = new Error('retire changed original');
+  f.setBefore(() => {f.run.value = {}; f.run.request = {}; throw primary;});
+  assert.throws(f.retire, {code: 'ForeignInstalledEffectManagedRun'});
+  assert.equal(f.counts.observations, 1); assert.equal(f.counts.returns, 0);
+  assert.equal(f.run.operationPlan, f.plan); assert.equal(f.run.prepared, f.prepared);
+});

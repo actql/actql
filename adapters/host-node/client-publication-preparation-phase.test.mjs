@@ -672,7 +672,7 @@ function sourceRouteCallerFixture({kind = 'whole-input', queryFailure, wrapAdapt
     clientProgramResultCount(body) {assert.equal(body, prepared); return 1;},
     clientProgramResultName(body, index) {assert.equal(body, prepared); assert.equal(index, 0); return 'rows';},
   };
-  const context = {moon, prepareSubmit: {assertOwned(body) {assert.equal(body, prepared);}, kindOf() {return 'effect_free';}},
+  const context = {moon, preparation: undefined, prepareSubmit: {assertOwned(body) {assert.equal(body, prepared);}, kindOf() {return 'effect_free';}},
     sourceProfile, sourceFreeRequestIdentities: identities, earlyContentPlans: new WeakMap(),
     inferSelections: new WeakMap(), prepareInferSelection(body, occurrence) {assert.equal(body, prepared); assert.equal(occurrence, undefined);},
     installedSourceFor(profile, ref) {assert.equal(profile, sourceProfile); assert.equal(ref, reference); return adapter;},

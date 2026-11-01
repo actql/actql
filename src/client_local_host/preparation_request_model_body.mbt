@@ -56,7 +56,7 @@ pub fn[I] borrow_request_model_plan_input(
 }
 
 ///|
-/// Compile the selected fixed Model profile on the original Request. The
+/// Compile the selected single Model component on the original Request. The
 /// existing construction borrow keeps Graph and output live through this
 /// call and until the actual module/Plan/Scope has retained them. Provider,
 /// codec and complete Model construction backing still belongs to the caller.
@@ -84,7 +84,23 @@ pub fn[I] prepare_request_model_compilation(
     return Err(Preparation(ForeignOriginal))
   }
   if !installed_managed_run_shape_supported(prepared, true) {
-    return Err(Installed(Unsupported))
+    // A selected component must come from this SAME Request's backed Graph
+    // constructor. Continue that original compiler for plain or serialized
+    // input; module/provider/Scope/adoption remain separate original duties.
+    let retained = match owner.program_domain_compilation_inputs {
+      Some(RequestModelGraph(_, _, _, original)) => Some(original)
+      Some(RequestModelCompilation(_, _, _, original)) => Some(original)
+      _ => None
+    }
+    guard retained is Some(original) &&
+      physical_equal(original, graph) &&
+      installed_managed_owner_shape_supported(
+        Pure(prepared),
+        true,
+        model=Some(graph),
+      ) else {
+      return Err(Installed(Unsupported))
+    }
   }
   match owner.program_domain_compilation_inputs {
     Some(RequestModelGraph(old_manifests, old_limits, old_contracts, original)) => {
@@ -171,6 +187,216 @@ pub fn[I] prepare_request_model_compilation(
 }
 
 ///|
+/// Bind the actual Model module and its optional Content prefix from this
+/// original Request. The Plan record was admitted by the existing input borrow;
+/// no caller-supplied prefix or equal compiler can replace its retained original.
+pub fn[I] prepare_request_model_source_free_plan(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  original : ClientInstalledManagedSourceFreePreparation,
+  request : @publication_host.ClientRequestIdentity,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  occurrence : @publication_host.ClientInferOccurrence,
+  graph : @publication_host.ClientInferPlanGraph,
+  model_limits : @resources.LedgerLimits,
+  read_retained_bytes : Int64,
+  read_execution_bytes : Int64,
+  max_reservations : Int,
+  max_holdings : Int,
+  max_delegations : Int,
+) -> Result[ClientInstalledManagedModelPlan, ClientInstalledManagedRunIssue] {
+  guard owner.phase == ModelPlanReserved &&
+    owner.input is Some(same_input) &&
+    physical_equal(same_input, input) &&
+    owner.program_source_free is Some(selected_module) &&
+    physical_equal(selected_module, original) &&
+    owner.program_domain_compilation_inputs
+    is Some(RequestModelCompilation(_, _, _, same_graph)) &&
+    physical_equal(same_graph, graph) &&
+    owner.program_model is None else {
+    return Err(ForeignOriginal)
+  }
+  let content_prefix = match (graph.serialization, owner.program_content) {
+    (None, NoContent) => None
+    (Some(_), SerializationContent(prefix)) => Some(prefix)
+    _ => return Err(ForeignOriginal)
+  }
+  prepare_installed_mock_model_source_free_plan(
+    original,
+    request,
+    compiled,
+    definition,
+    occurrence,
+    graph,
+    model_limits,
+    read_retained_bytes,
+    read_execution_bytes,
+    max_reservations,
+    max_holdings,
+    max_delegations,
+    content_prefix~,
+  )
+}
+
+///|
+/// Bind the existing installed Node read envelope to this SAME Request Plan.
+/// Layout correspondence and declared extents are DATA; the existing Plan and
+/// Scope constructors still reserve their complete overlap on the parent.
+/// No read, Scope, claim, permission or provider is issued by this binding.
+pub fn[I] prepare_request_node_model_source_free_plan(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  original : ClientInstalledManagedSourceFreePreparation,
+  request : @publication_host.ClientRequestIdentity,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  occurrence : @publication_host.ClientInferOccurrence,
+  graph : @publication_host.ClientInferPlanGraph,
+  model_limits : @resources.LedgerLimits,
+  layout : @publication_host.ClientNodeModelPreparationLayout?,
+  installation : @environment.ModelResponseProfileInstallation,
+  runtime_artifact_cid : String,
+  layout_artifact_cid : String,
+  probability : @environment.DecisionProbabilityProfile?,
+  max_reservations : Int,
+  max_holdings : Int,
+  max_delegations : Int,
+) -> Result[ClientInstalledManagedModelPlan, ClientInstalledManagedRunIssue] {
+  match
+    @publication_host.check_client_node_model_preparation_layout(
+      layout, graph, installation, runtime_artifact_cid, layout_artifact_cid, probability,
+    ) {
+    Err(issue) => return Err(ModelLayout(issue))
+    Ok(_) => ()
+  }
+  guard layout is Some(layout) else {
+    return Err(ModelLayout(@publication_host.Unavailable))
+  }
+  prepare_request_model_source_free_plan(
+    owner,
+    input,
+    original,
+    request,
+    compiled,
+    definition,
+    occurrence,
+    graph,
+    model_limits,
+    layout.retained_bytes,
+    layout.execution_bytes,
+    max_reservations,
+    max_holdings,
+    max_delegations,
+  )
+}
+
+///|
+/// Bind the actual Model module and its optional Content prefix from this
+/// original Request. The Plan record was admitted by the existing input borrow;
+/// no caller-supplied prefix or equal compiler can replace its retained original.
+pub fn[I] prepare_request_model_capture_plan(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  original : ClientInstalledManagedCapturePlan,
+  request : @publication_host.ClientRequestIdentity,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  occurrence : @publication_host.ClientInferOccurrence,
+  graph : @publication_host.ClientInferPlanGraph,
+  model_limits : @resources.LedgerLimits,
+  read_retained_bytes : Int64,
+  read_execution_bytes : Int64,
+  max_reservations : Int,
+  max_holdings : Int,
+  max_delegations : Int,
+) -> Result[ClientInstalledManagedModelPlan, ClientInstalledManagedRunIssue] {
+  guard owner.phase == ModelPlanReserved &&
+    owner.input is Some(same_input) &&
+    physical_equal(same_input, input) &&
+    owner.program_captured is Some(selected_module) &&
+    physical_equal(selected_module, original) &&
+    physical_equal(original.request, request) &&
+    owner.program_domain_compilation_inputs
+    is Some(RequestModelCompilation(_, _, _, same_graph)) &&
+    physical_equal(same_graph, graph) &&
+    owner.program_model is None else {
+    return Err(ForeignOriginal)
+  }
+  let content_prefix = match (graph.serialization, owner.program_content) {
+    (None, NoContent) => None
+    (Some(_), SerializationContent(prefix)) => Some(prefix)
+    _ => return Err(ForeignOriginal)
+  }
+  prepare_installed_mock_model_capture_plan_binding(
+    original,
+    compiled,
+    definition,
+    occurrence,
+    graph,
+    model_limits,
+    read_retained_bytes,
+    read_execution_bytes,
+    max_reservations,
+    max_holdings,
+    max_delegations,
+    content_prefix~,
+  )
+}
+
+///|
+/// Bind the existing installed Node read envelope to this SAME Request Plan.
+/// Layout correspondence and declared extents are DATA; the existing Plan and
+/// Scope constructors still reserve their complete overlap on the parent.
+/// No read, Scope, claim, permission or provider is issued by this binding.
+pub fn[I] prepare_request_node_model_capture_plan(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  original : ClientInstalledManagedCapturePlan,
+  request : @publication_host.ClientRequestIdentity,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  occurrence : @publication_host.ClientInferOccurrence,
+  graph : @publication_host.ClientInferPlanGraph,
+  model_limits : @resources.LedgerLimits,
+  layout : @publication_host.ClientNodeModelPreparationLayout?,
+  installation : @environment.ModelResponseProfileInstallation,
+  runtime_artifact_cid : String,
+  layout_artifact_cid : String,
+  probability : @environment.DecisionProbabilityProfile?,
+  max_reservations : Int,
+  max_holdings : Int,
+  max_delegations : Int,
+) -> Result[ClientInstalledManagedModelPlan, ClientInstalledManagedRunIssue] {
+  match
+    @publication_host.check_client_node_model_preparation_layout(
+      layout, graph, installation, runtime_artifact_cid, layout_artifact_cid, probability,
+    ) {
+    Err(issue) => return Err(ModelLayout(issue))
+    Ok(_) => ()
+  }
+  guard layout is Some(layout) else {
+    return Err(ModelLayout(@publication_host.Unavailable))
+  }
+  prepare_request_model_capture_plan(
+    owner,
+    input,
+    original,
+    request,
+    compiled,
+    definition,
+    occurrence,
+    graph,
+    model_limits,
+    layout.retained_bytes,
+    layout.execution_bytes,
+    max_reservations,
+    max_holdings,
+    max_delegations,
+  )
+}
+
+///|
 /// Bind this actual Model Plan before completing the original Prepared body.
 /// Fund the actual Scope records and the original census-slot growth before
 /// binding. Complete selected Model/read/module/physical constructor overlap
@@ -183,6 +409,18 @@ pub fn[I] prepare_request_model_read_scope(
   @publication_host.ClientModelReadScope,
   ClientInstalledManagedRunIssue,
 ] {
+  // A mixed module carries the same already constructed prefix, not a
+  // successful quote or a Model Scope standing in for Content retention.
+  guard (match (plan.content_prefix, owner.program_content) {
+    (None, NoContent) => plan.graph.serialization is None
+    (Some(prefix), SerializationContent(original)) =>
+      physical_equal(prefix, original) &&
+      owner.program_content_request is Some(request) &&
+      physical_equal(request, plan.request)
+    _ => false
+  }) else {
+    return Err(ForeignOriginal)
+  }
   let quoted = owner.phase == ModelScopeQuoted
   // This Request retained the actual funded module before Plan/Scope entry.
   // A separately reconstructed module with the same compiler is still foreign.
@@ -385,6 +623,17 @@ pub fn[I] begin_request_model_managed_run(
     ) {
     return Err(ForeignOriginal)
   }
+  let content = owner.program_content
+  guard (match (plan.content_prefix, content) {
+    (None, NoContent) => true
+    (Some(prefix), SerializationContent(original)) =>
+      physical_equal(prefix, original) &&
+      owner.program_content_request is Some(bound) &&
+      physical_equal(bound, request)
+    _ => false
+  }) else {
+    return Err(ForeignOriginal)
+  }
   owner.phase = Selecting
   let result = adopt_preparation_owned_pure_plan(
     owner.initial,
@@ -401,6 +650,11 @@ pub fn[I] begin_request_model_managed_run(
       Err(issue)
     }
     Ok(run) => {
+      // Closed original DATA handoff before another current callback. The
+      // adopted Run retains this same prefix until its actual cleanup ACK.
+      run.content = content
+      owner.program_content = NoContent
+      owner.program_content_request = None
       owner.program_capacity = None
       owner.compiled_program = None
       owner.program_data = None

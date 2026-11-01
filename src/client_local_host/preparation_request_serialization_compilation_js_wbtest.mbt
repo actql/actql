@@ -429,6 +429,8 @@ test "source-free Content refuses changed originals and retains an unreturned or
     child: None,
     ledger: parent.ledger,
     reservation,
+    final_work: None,
+    cleanup_busy: false,
     child_cleaned: false,
     released: false,
   }

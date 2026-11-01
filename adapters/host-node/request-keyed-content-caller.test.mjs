@@ -20,7 +20,8 @@ function method(file, name, ports) {
     if(n.type==='Property'&&n.key?.name===name){assert(!selected);selected=n;}
     for(const value of Object.values(n)){if(Array.isArray(value))value.forEach(walk);else if(value&&typeof value==='object')walk(value);}};
   walk(parse(s,{ecmaVersion:'latest',sourceType:'module'}));assert(selected,name);
-  return Function(...Object.keys(ports),`return ({${s.slice(selected.start,selected.end)}}).${name};`)(...Object.values(ports));
+  const helpers = file === './ordinary-source-managed.mjs' ? s.slice(s.indexOf('  function constructRequestDomain('), s.indexOf('  const view = Object.freeze({')) : '';
+  return Function(...Object.keys(ports),`const pendingRunRegistrations=new Set();${helpers}return ({${s.slice(selected.start,selected.end)}}).${name};`)(...Object.values(ports));
 }
 const fail=code=>{throw Object.assign(new Error(code),{code});},ok=value=>({$tag:1,_0:value});
 async function fixture({failurePhase,failure,failKeyedRead,hostRetirement=false,requestPlanOnly=false}={}) {

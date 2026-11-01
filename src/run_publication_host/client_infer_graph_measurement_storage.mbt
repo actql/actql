@@ -7,6 +7,7 @@
 /// codec headroom nor a Resource permission.
 pub fn prepared_client_infer_graph_measurement_storage(
   occurrence : ClientInferOccurrence,
+  serialization? : ClientSerializationPlanGraph? = None,
 ) -> @execution.PreparationRepresentationUnits? {
   guard client_infer_occurrence_matches(occurrence, occurrence.owner) &&
     client_infer_occurrence_output_step(occurrence) is Some(terminal) &&
@@ -20,8 +21,39 @@ pub fn prepared_client_infer_graph_measurement_storage(
     @lower.payload(node) is @lower.Infer(infer) else {
     return None
   }
-  let count = 1L + (terminal - occurrence.step).to_int64()
-  let mut ports = client_task_fragment_input_count(occurrence.preparation, None).to_int64()
+  let (count, original_ports, content_parts) = match serialization {
+    None =>
+      (
+        1L + (terminal - occurrence.step).to_int64(),
+        client_task_fragment_input_count(occurrence.preparation, None).to_int64(),
+        0L,
+      )
+    Some(component) => {
+      guard physical_equal(component.owner, occurrence.owner) &&
+        physical_equal(
+          @lower.serialization_owner(component.barrier),
+          occurrence.preparation,
+        ) &&
+        component.task == occurrence.task &&
+        component.step < occurrence.step &&
+        component.graph_roots.is_empty() else {
+        return None
+      }
+      let mut inputs = 0L
+      for step in (component.step + 1)..<occurrence.step {
+        inputs += client_task_fragment_input_count(
+          occurrence.preparation,
+          Some(step),
+        ).to_int64()
+      }
+      (
+        (terminal - component.step - 1).to_int64(),
+        inputs,
+        (component.graph_nodes.length() + component.graph_edges.length()).to_int64(),
+      )
+    }
+  }
+  let mut ports = original_ports
   for step in (occurrence.step + 1)..<(terminal + 1) {
     ports += client_task_fragment_input_count(
       occurrence.preparation,
@@ -39,17 +71,18 @@ pub fn prepared_client_infer_graph_measurement_storage(
   }
   // Fragment (four geometry tuples + record + producer tuple), each input
   // contract/edge tuple, possible direct/projected Result geometry and Plan.
-  let tuples = 4L * count + 2L * ports + 8L * results + 5L
+  let tuples = 4L * count + 2L * ports + 8L * results + 5L + content_parts
   guard @shape.collection_construction_extent({
       records: tuples + 2L * count + results,
-      record_references: 8L * count + 6L * results + 3L * count + 5L,
+      record_references: 8L * count + 6L * results + 3L * count + 6L,
       record_words: 3L * tuples + count + 3L,
       reference_arrays: 10L + count,
       reference_items: 5L * count +
       2L * ports +
       6L * results +
       2L +
-      @infer.input_binding_count(infer).to_int64(),
+      @infer.input_binding_count(infer).to_int64() +
+      2L * content_parts,
       scalar_arrays: 0L,
       scalar_items: 0L,
       maps: 0L,
@@ -60,7 +93,11 @@ pub fn prepared_client_infer_graph_measurement_storage(
   }
   let label = ("task_" +
     occurrence.task.to_string() +
-    "_before_infer_" +
+    (if serialization is Some(_) {
+      "_after_serialize_"
+    } else {
+      "_before_infer_"
+    }) +
     terminal.to_string())
     .length()
     .to_int64()

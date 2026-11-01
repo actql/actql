@@ -95,7 +95,7 @@ fn request_model_material_body_bytes(
 }
 
 ///|
-/// Before the installed Mock's execution/dependency/provider readers enter,
+/// Before the installed Model's execution/dependency/provider readers enter,
 /// grow this SAME original Request for their complete material overlap. This
 /// only reserves constructor space; original contract/Task/Account/current
 /// checks still admit the actual bodies. A foreign callback throw leaves the
@@ -121,10 +121,32 @@ pub fn[I] prepare_request_model_contract_materials(
     !owner.program_body_attempted else {
     return Err(Preparation(ForeignOriginal))
   }
+  // This selects only the original material-construction purpose before a
+  // Graph exists. Its checked Serialize/Infer coordinates are DATA inventory;
+  // the later same-Request Graph/module/Scope entries retain their own guards.
+  let material_profile = if installed_managed_run_shape_supported(
+      prepared, true,
+    ) {
+    true
+  } else {
+    match
+      (
+        @publication_host.prepared_client_composed_infer_occurrences(prepared),
+        @publication_host.prepared_client_serialization_occurrences(prepared),
+      ) {
+      (Some([occurrence]), [(task, step)]) => {
+        let coordinates = @publication_host.client_infer_occurrence_coordinates(
+          occurrence,
+        )
+        task == coordinates.1 && step < coordinates.2
+      }
+      _ => false
+    }
+  }
   guard count >= 0 &&
     container_count >= 0 &&
     count.to_int64() + container_count.to_int64() <= 2147483647L &&
-    installed_managed_run_shape_supported(prepared, true) &&
+    material_profile &&
     request_model_material_collection_bytes(count + container_count)
     is Some(collections) else {
     return Err(Installed(Unsupported))

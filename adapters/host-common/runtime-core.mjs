@@ -3453,6 +3453,18 @@ function publicationControl(moon) {
         limits.maxRows, limits.maxWork, limits.maxEntries, limits.maxValueBytes,
         limits.maxValueNodes, limits.maxValueDepth, limits.maxFrames, workspace]));
     },
+    prepareCheckedClientRequestModelSerializationPlan(parent, input, request, compiled, definition,
+      limits, workspace, queryTime) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      const prepare = moon.clientProgramPrepareRequestModelSerializationPlan;
+      if (typeof prepare !== 'function') throw new TypeError('Request Model Content Plan unavailable');
+      return checked(Reflect.apply(prepare, moon, [parent, input, request, value, token(definition),
+        limits.maxRows, limits.maxWork, limits.maxEntries, limits.maxValueBytes,
+        limits.maxValueNodes, limits.maxValueDepth, limits.maxFrames, workspace, queryTime]));
+    },
     prepareCheckedClientEffectModelDemand(prepared, compiled, compilation, definition, occurrence, graph) {
       const value = compiledRunTokens.get(compiled);
       if (value === undefined || compiled.kind !== 'infer') {
@@ -3464,19 +3476,55 @@ function publicationControl(moon) {
       return checked(moon.clientProgramInstalledEffectModelDemandPrepare(
         prepared, value, compilation, token(definition), occurrence, graph));
     },
-    prepareCheckedClientMockModelSourceFreePlan(original, request, compiled, definition,
+    prepareCheckedClientRequestModelSourceFreePlan(parent, input, original, request, compiled, definition,
       occurrence, graph, selected) {
       const value = compiledRunTokens.get(compiled);
       if (value === undefined || compiled.kind !== 'infer') {
         throw new TypeError('Foreign Client compiled Infer preparation');
       }
-      const prepare = moon.clientProgramInstalledMockModelSourceFreePlanPrepare;
+      const prepare = moon.clientProgramPrepareRequestModelSourceFreePlan;
       if (typeof prepare !== 'function') throw new TypeError('Installed Model Plan unavailable');
       // These are the original module, selected Limits and Run tokens. The
       // existing typed constructor checks their complete tuple; this binding
       // issues no Scope/Run and does not select bounds or compile again.
-      return checked(Reflect.apply(prepare, moon, [original, request, value,
+      return checked(Reflect.apply(prepare, moon, [parent, input, original, request, value,
         token(definition), occurrence, graph, selected]));
+    },
+    prepareCheckedClientRequestNodeModelSourceFreePlan(parent, input, original, request, compiled, definition,
+      occurrence, graph, selected, installation) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      const prepare = moon.clientProgramPrepareRequestNodeModelSourceFreePlan;
+      if (typeof prepare !== 'function') throw new TypeError('Installed Node Model Plan unavailable');
+      const node = installation.nodeInstallation, census = installation.bootstrap;
+      // SAME immutable installed declaration and opaque selected bounds. The
+      // typed constructor validates layout/originals and the Request admits
+      // these actual extents before Scope/read; no JS Ledger is constructed.
+      return checked(Reflect.apply(prepare, moon, [parent, input, original, request, value,
+        token(definition), occurrence, graph, selected, node.layout, node.installation,
+        node.runtimeArtifactCid, node.layoutArtifactCid, node.probability,
+        installation.modelRetainedBytes, installation.modelExecutionBytes,
+        census.maxReservations, census.maxHoldings, census.maxDelegations]));
+    },
+    prepareCheckedClientRequestNodeModelCapturePlan(parent, input, original, request, compiled, definition,
+      occurrence, graph, selected, installation) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      const prepare = moon.clientProgramPrepareRequestNodeModelCapturePlan;
+      if (typeof prepare !== 'function') throw new TypeError('Installed Node Model Plan unavailable');
+      const node = installation.nodeInstallation, census = installation.bootstrap;
+      // SAME immutable installed declaration and opaque selected bounds. The
+      // typed constructor validates layout/originals and the Request admits
+      // these actual extents before Scope/read; no JS Ledger is constructed.
+      return checked(Reflect.apply(prepare, moon, [parent, input, original, request, value,
+        token(definition), occurrence, graph, selected, node.layout, node.installation,
+        node.runtimeArtifactCid, node.layoutArtifactCid, node.probability,
+        installation.modelRetainedBytes, installation.modelExecutionBytes,
+        census.maxReservations, census.maxHoldings, census.maxDelegations]));
     },
     bindCheckedClientMockModelCapturePlan(original, compiled, definition,
       occurrence, graph, selected) {
@@ -3498,16 +3546,6 @@ function publicationControl(moon) {
       return checked(moon.clientProgramInstalledMockModelManagedRunRequirements(
         prepared, value, token(definition), occurrence, graph, declarations,
         query, evidence, transport, scratch, registry, values, fragment, ordered));
-    },
-    beginCheckedClientMockModelManagedRun(admission, prepared, request, compiled, definition, graph, budget) {
-      const value = compiledRunTokens.get(compiled);
-      if (value === undefined || compiled.kind !== 'infer') {
-        throw new TypeError('Foreign Client compiled Infer preparation');
-      }
-      return checked(moon.clientProgramInstalledMockModelManagedRunBegin(admission,
-        prepared, request, value, token(definition), graph,
-        budget.bootstrapRetainedBytes, budget.bootstrapExecutionBytes,
-        budget.maxReservations, budget.maxHoldings, budget.maxDelegations));
     },
     prepareCheckedClientInferOriginalRead(compiled, definition, graph, scope, budget) {
       const value = compiledRunTokens.get(compiled);
@@ -6574,6 +6612,13 @@ export function contentGenerationControl(moon, publications) {
       return publications.prepareCheckedClientRequestSerializationPlan(parent, input, request, compiled,
         definition, limits, workspace === undefined ? undefined : workspaces.get(workspace));
     },
+    prepareModelRequestPrefix(parent, input, request, compiled, definition, limits, workspace, queryTime) {
+      if (workspace !== undefined && !workspaces.has(workspace)) {
+        throw new TypeError('Foreign Content workspace capacity');
+      }
+      return publications.prepareCheckedClientRequestModelSerializationPlan(parent, input, request, compiled,
+        definition, limits, workspace === undefined ? undefined : workspaces.get(workspace), queryTime);
+    },
     prepareRequestKeyedPlan(parent, input, request, keyed, directDeclaration, contentDeclaration,
       maxBytes, maxWork, queryContract, evidenceContract, transfers, executions, contracts, task, step,
       limits, workspace) {
@@ -6605,6 +6650,11 @@ export function contentGenerationControl(moon, publications) {
     },
     startRequestPrefix(run, program, selected) {
       const prefix = checked(moon.clientProgramInstalledManagedSerializationPrefixStart(run, program, selected));
+      prefixes.add(prefix); return prefix;
+    },
+    startRequestAcquiredPrefix(run, program, selected, capture) {
+      const prefix = checked(moon.clientProgramInstalledManagedAcquiredSerializationPrefixStart(
+        run, program, selected, capture));
       prefixes.add(prefix); return prefix;
     },
     cleanupRequestPrefix(run, selected) {

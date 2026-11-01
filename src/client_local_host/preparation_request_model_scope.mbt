@@ -1,23 +1,4 @@
 ///|
-// Prepaid at the Request's fixed entrance, before reading/growing a domain.
-// Working-extents tuple/Ok2H1R3W; census-shape tuple/Some2H1R4W;
-// units and checked cost2H0R7W; two checked sums2H0R4W;
-// cached pair/Some and original selected Plan Some3H2R4W;
-// conservative returned/error alternatives6H6R6W; final pair Result1H1R1W.
-// One additional resident quote reference belongs to the existing Request.
-// Growing the initially six-slot reservation census can briefly retain its
-// two old backing arrays:2H6R6W. Holdings/delegations start empty. Prepay this
-// fixed overlap too; the exact new backing is reserved by the domain grow.
-// Scope/expanded census payloads are NOT in this caller-control packet.
-let request_model_scope_quote_controls : @execution.PreparationRepresentationUnits = {
-  record_headers: 2L + 2L + 2L + 2L + 3L + 6L + 1L + 2L,
-  reference_slots: 1L + 1L + 2L + 6L + 1L + 1L + 6L,
-  scalar_words: 3L + 4L + 7L + 4L + 4L + 6L + 1L + 6L,
-  owned_utf16_units: 0L,
-  owned_wire_bytes: 0L,
-}
-
-///|
 // This SAME Request has only its initial six borrower slots before its one
 // Model binding. Pure/Effect are closed, exclusive body choices. Resource owns
 // slot shapes; the Model Owner supplies its actual retained-record inventory.

@@ -895,7 +895,10 @@ test('normal distribution keeps original Request resource and cleanup regression
   "adapters/host-node/request-content-graph-resources.test.mjs",
   "adapters/host-node/request-keyed-prefix-execution.test.mjs",
   "adapters/host-node/request-model-material-resources.test.mjs",
-  "adapters/store-local/private-evidence-consumer-lifetime.test.mjs"
+  "adapters/host-node/request-model-source-ledger.test.mjs",
+  "adapters/store-local/private-evidence-consumer-lifetime.test.mjs",
+  "adapters/host-node/request-domain-source-preflight.test.mjs",
+  "adapters/host-node/content-execution-alias-retirement.test.mjs"
 ]) {
     assert.equal(selected.filter(value => value === file).length, 1, file);
   }

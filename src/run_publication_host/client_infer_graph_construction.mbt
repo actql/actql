@@ -24,12 +24,13 @@ pub struct ClientInferGraphConstruction {
   priv max_depth : Int
   priv mappings : @lower.PreparedInferInputs
   priv pipeline_inputs : Array[ClientTaskPipelineInput]
+  priv serialization : ClientSerializationPlanGraph?
 }
 
 ///|
-/// The existing Mock Model profile has no Serialization component. Other
-/// installed profiles keep their original constructor until their complete
-/// component/physical connection is selected; this measurer does not cast it.
+/// The same Model emitter also measures its already retained Content producer.
+/// Keeping a component original does not authorize byte generation or Model I/O;
+/// the Request must back both constructors and their failed-child overlap.
 pub fn measure_installed_client_composed_infer_graph_construction(
   occurrence : ClientInferOccurrence,
   execution : @environment.ModelExecutionContract,
@@ -37,6 +38,7 @@ pub fn measure_installed_client_composed_infer_graph_construction(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  serialization? : ClientSerializationPlanGraph? = None,
 ) -> Result[ClientInferGraphConstruction, ClientInferPlanGraphIssue] {
   if max_wire_bytes <= 0 || max_nodes <= 0 || max_depth <= 0 {
     return Err(UnsupportedProgram)
@@ -58,17 +60,24 @@ pub fn measure_installed_client_composed_infer_graph_construction(
     ) {
     return Err(ForeignExecution)
   }
-  let (prefix, prefix_input) = match
-    measure_client_infer_fragment_construction(
-      occurrence,
-      step - 1,
-      sequence_limits,
-      max_wire_bytes,
-      max_nodes,
-      max_depth,
-    ) {
-    Err(issue) => return Err(Input(issue))
-    Ok(value) => value
+  // Preserve the ordinary constructor's original prefix-before-mapping order.
+  let ordinary_prefix = match serialization {
+    None =>
+      Some(
+        match
+          measure_client_infer_fragment_construction(
+            occurrence,
+            step - 1,
+            sequence_limits,
+            max_wire_bytes,
+            max_nodes,
+            max_depth,
+          ) {
+          Err(issue) => return Err(Input(issue))
+          Ok(value) => value
+        },
+      )
+    Some(_) => None
   }
   let mappings = match
     @lower.prepare_infer_inputs(
@@ -133,17 +142,110 @@ pub fn measure_installed_client_composed_infer_graph_construction(
       measure_client_fragment_cid,
     )
     let barrier_node = @encode.finish_measurement_usage(node_writer)
-    let fragments = [prefix]
-    let pipeline_inputs = [prefix_input]
-    let nodes = [prefix.fragment, barrier_node]
+    let fragments : Array[ClientTaskFragmentConstruction] = []
+    let pipeline_inputs : Array[ClientTaskPipelineInput] = []
+    let nodes : Array[(Int, Int, Int)] = []
     let edges : Array[(Int, Int, Int)] = []
     let roots : Array[(Int, Int, Int)] = []
     let projections : Array[ClientResultGraphConstruction] = []
     let results : Array[(Int, Int, Int)] = []
-    let producers : Array[(Int, String, String)] = [
-      (step - 1, prefix.node_id, prefix.output_port),
-      (step, barrier_id, output_port),
-    ]
+    let producers : Array[(Int, String, String)] = []
+    match serialization {
+      None => {
+        let (prefix, input) = ordinary_prefix.unwrap()
+        fragments.push(prefix)
+        pipeline_inputs.push(input)
+        nodes.push(prefix.fragment)
+        producers.push((step - 1, prefix.node_id, prefix.output_port))
+      }
+      Some(component) => {
+        guard physical_equal(component.owner, prepared) &&
+          physical_equal(@lower.serialization_owner(component.barrier), bound) &&
+          component.task == occurrence.task &&
+          component.step < step &&
+          client_serialization_graph_original_parts(
+            component, prepared, max_wire_bytes, max_nodes, max_depth,
+          )
+          is Some((content_nodes, content_edges, content_roots)) &&
+          content_roots.is_empty() else {
+          return Err(UnsupportedProgram)
+        }
+        // These are original admitted values, not another graph-wire parse.
+        for
+          (originals, measured) in [
+            (content_nodes, nodes),
+            (content_edges, edges),
+          ] {
+          for original in originals {
+            let writer = @encode.measuring_writer(
+              max_wire_bytes, max_nodes, max_depth,
+            )
+            @canonical.emit_value(original, writer)
+            measured.push(@encode.finish_measurement_usage(writer))
+          }
+        }
+        producers.push(
+          (
+            component.step,
+            component.output.node_id,
+            component.output.output_port,
+          ),
+        )
+        for next in (component.step + 1)..<step {
+          let (fragment, input) = match
+            measure_client_serialized_infer_fragment_construction(
+              occurrence, component, next, sequence_limits, max_wire_bytes, max_nodes,
+              max_depth,
+            ) {
+            Err(issue) => return Err(Input(issue))
+            Ok(value) => value
+          }
+          fragments.push(fragment)
+          pipeline_inputs.push(input)
+          nodes.push(fragment.fragment)
+          guard @lower.node_at(@lower.bound_preparation(bound), next)
+            is Some(consumer) else {
+            return Err(UnsupportedProgram)
+          }
+          for port in 0..<@lower.node_input_count(consumer) {
+            guard @lower.node_input_target(consumer, port)
+              is Some(@pipeline.Step(source)) else {
+              return Err(UnsupportedProgram)
+            }
+            let mut producer : (Int, String, String)? = None
+            for candidate in producers {
+              if candidate.0 == source {
+                producer = Some(candidate)
+              }
+            }
+            guard producer is Some((_, name, output)) else {
+              return Err(UnsupportedProgram)
+            }
+            let writer = @encode.measuring_writer(
+              max_wire_bytes, max_nodes, max_depth,
+            )
+            emit_client_compilation_data_edge(
+              writer,
+              "relation",
+              (),
+              name,
+              output,
+              fragment.node_id,
+              "input_" + port.to_string(),
+              measure_client_fragment_cid,
+            )
+            edges.push(@encode.finish_measurement_usage(writer))
+          }
+          producers.push((next, fragment.node_id, fragment.output_port))
+        }
+      }
+    }
+    let (prefix_step, prefix_id, prefix_port) = producers[producers.length() - 1]
+    if prefix_step != step - 1 {
+      return Err(UnsupportedProgram)
+    }
+    nodes.push(barrier_node)
+    producers.push((step, barrier_id, output_port))
     let edge_writer = @encode.measuring_writer(
       max_wire_bytes, max_nodes, max_depth,
     )
@@ -151,8 +253,8 @@ pub fn measure_installed_client_composed_infer_graph_construction(
       edge_writer,
       "relation",
       (),
-      prefix.node_id,
-      prefix.output_port,
+      prefix_id,
+      prefix_port,
       barrier_id,
       "input_0",
       measure_client_fragment_cid,
@@ -161,7 +263,13 @@ pub fn measure_installed_client_composed_infer_graph_construction(
     for next in (step + 1)..<(terminal + 1) {
       let (fragment, prepared_input) = match
         measure_client_infer_fragment_construction(
-          occurrence, next, sequence_limits, max_wire_bytes, max_nodes, max_depth,
+          occurrence,
+          next,
+          sequence_limits,
+          max_wire_bytes,
+          max_nodes,
+          max_depth,
+          serialization_boundary=serialization.map(component => component.step),
         ) {
         Err(issue) => return Err(Input(issue))
         Ok(value) => value
@@ -271,6 +379,7 @@ pub fn measure_installed_client_composed_infer_graph_construction(
       max_depth,
       mappings,
       pipeline_inputs,
+      serialization,
       fragments,
       request,
       barrier,

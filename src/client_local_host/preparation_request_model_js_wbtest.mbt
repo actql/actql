@@ -4,7 +4,10 @@
 // recipe, Source/Model IO or a public acceptance/performance claim.
 fn request_model_input_fixture(
   captured? : Bool = false,
+  single_capture? : Bool = false,
   with_query_time? : Bool = false,
+  with_serialization? : Bool = false,
+  nonterminal? : Bool = false,
   current? : () -> Bool = () => true,
   declaration? : @row_source_host.RowDeclaration? = None,
 ) -> (
@@ -13,7 +16,12 @@ fn request_model_input_fixture(
   @publication_host.PreparedClientProgram,
 ) raise {
   let (environment, _) = effect_model_plan_source(declaration~)
-  let document = if captured {
+  let document = if single_capture {
+    assert_false(captured)
+    (
+      #|{"version":"actql/0.1","id":"request-model-one-capture","stages":[{"id":"source","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id >= 0"},{"select":["id","amount"],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id","amount"]}}},{"id":"classify","inputs":{"rows":{"result":{"stage":"source","result":"rows"}}},"steps":[{"from":"rows","derive":{"text":{"literal":"hello"}}},{"assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"classified"}],"results":{"rows":{"from":"classified","fields":["id","outcome","value"]}}}],"results":{"rows":{"from":{"stage":"classify","result":"rows"}}}}
+    )
+  } else if captured {
     (
       #|{"version":"actql/0.1","id":"request-model-captures","stages":[{"id":"left","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id >= 0"},{"select":["id","amount"],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id","amount"]}}},{"id":"right","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id >= 0"},{"select":["id","amount"],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id","amount"]}}},{"id":"classify","inputs":{"left":{"result":{"stage":"left","result":"rows"}},"right":{"result":{"stage":"right","result":"rows"}}},"steps":[{"from":"left","join":{"with":"right","kind":"inner","on":[{"left":"id","right":"id"}],"select":{"id":"left.id"}}},{"derive":{"text":{"literal":"hello"}}},{"assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"classified"}],"results":{"rows":{"from":"classified","fields":["id","outcome","value"]}}}],"results":{"rows":{"from":{"stage":"classify","result":"rows"}}}}
     )
@@ -21,6 +29,39 @@ fn request_model_input_fixture(
     (
       #|{"version":"actql/0.1","id":"request-model-values","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"text":{"type":"string","nullable":true}},"rows":[{"id":1,"text":"hello"}]},"as":"seed"},{"assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"classified"}],"results":{"rows":{"from":"classified","fields":["id","outcome","value"]}}}],"results":{"rows":{"from":{"stage":"main","result":"rows"}}}}
     )
+  }
+  let document = if with_serialization {
+    assert_false(captured)
+    assert_false(with_query_time)
+    document
+    .replace(
+      old="{\"assert_rows\":{\"unique_by\":[\"id\"]}},{\"infer\":",
+      new="{\"assert_rows\":{\"unique_by\":[\"id\"]}},{\"serialize\":{\"format\":\"jsonl\",\"fields\":[\"id\",\"text\"],\"name\":\"out.jsonl\",\"preserve_order\":true,\"bounds\":{\"max_rows\":1,\"max_bytes\":128}},\"as\":\"attachment\"},{\"assert_rows\":{\"unique_by\":[\"name\"]}},{\"infer\":",
+    )
+    .replace(
+      old="\"key\":\"id\",\"input\":{\"text\":{\"field\":\"text\"}}",
+      new="\"key\":\"name\",\"input\":{\"text\":{\"field\":\"name\"}}",
+    )
+    .replace(
+      old="\"fields\":[\"id\",\"outcome\",\"value\"]",
+      new="\"fields\":[\"name\",\"outcome\",\"value\"]",
+    )
+  } else {
+    document
+  }
+  let document = if nonterminal {
+    assert_false(with_serialization)
+    document
+    .replace(
+      old="\"as\":\"classified\"}],\"results\"",
+      new="\"as\":\"classified\"},{\"filter\":\"id >= 0\",\"as\":\"kept\"}],\"results\"",
+    )
+    .replace(
+      old="\"from\":\"classified\",\"fields\"",
+      new="\"from\":\"kept\",\"fields\"",
+    )
+  } else {
+    document
   }
   let document = match declaration {
     Some(original) =>

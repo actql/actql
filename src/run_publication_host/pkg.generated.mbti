@@ -1657,7 +1657,7 @@ pub fn issue_prepared_client_serialization_plan_graph(PreparedClientProgram, Int
 
 pub fn issue_prepared_client_serialization_prefix_fragment(PreparedClientProgram, Int, Int, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientTaskFragmentNode, ClientSerializationPrefixIssue]
 
-pub fn issue_prepared_client_serialized_infer_plan_graph(ClientInferOccurrence, ClientSerializationPlanGraph, @check_environment.ModelExecutionContract, @lowering_relation.SequenceLimits, Int, Int, Int, include_results? : Bool) -> Result[ClientInferPlanGraph, ClientInferPlanGraphIssue]
+pub fn issue_prepared_client_serialized_infer_plan_graph(ClientInferOccurrence, ClientSerializationPlanGraph, @check_environment.ModelExecutionContract, @lowering_relation.SequenceLimits, Int, Int, Int, include_results? : Bool, construction? : ClientInferGraphConstruction?) -> Result[ClientInferPlanGraph, ClientInferPlanGraphIssue]
 
 pub fn issue_prepared_client_task_bound_template(PreparedClientProgram, ClientCompilationManifests, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[@run_publication.RunEvidenceValue, ClientTaskBoundTemplateIssue]
 
@@ -1703,7 +1703,7 @@ pub fn issue_source_free_exported_client_effect_local_result_artifact(PreparedCl
 
 pub fn measure_client_model_provider_binding_construction(String) -> (Int, Int, Int)?
 
-pub fn measure_installed_client_composed_infer_graph_construction(ClientInferOccurrence, @check_environment.ModelExecutionContract, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientInferGraphConstruction, ClientInferPlanGraphIssue]
+pub fn measure_installed_client_composed_infer_graph_construction(ClientInferOccurrence, @check_environment.ModelExecutionContract, @lowering_relation.SequenceLimits, Int, Int, Int, serialization? : ClientSerializationPlanGraph?) -> Result[ClientInferGraphConstruction, ClientInferPlanGraphIssue]
 
 pub fn measure_prepared_client_execution_material(PreparedClientProgram, ClientCompilationManifests, Int, Int, Int) -> Result[(Int, Int, Int), ClientExecutionMaterialIssue]
 
@@ -2019,7 +2019,7 @@ pub fn prepared_client_identity(PreparedClientProgram) -> ClientProgramIdentity
 
 pub fn prepared_client_infer_execution_occurrence(PreparedClientProgram, Int) -> ClientInferOccurrence?
 
-pub fn prepared_client_infer_graph_measurement_storage(ClientInferOccurrence) -> @execution_relation.PreparationRepresentationUnits?
+pub fn prepared_client_infer_graph_measurement_storage(ClientInferOccurrence, serialization? : ClientSerializationPlanGraph?) -> @execution_relation.PreparationRepresentationUnits?
 
 pub fn prepared_client_infer_host_item_ceiling(PreparedClientProgram, Int) -> Result[Int64, ClientInferHostCapacityIssue]
 
