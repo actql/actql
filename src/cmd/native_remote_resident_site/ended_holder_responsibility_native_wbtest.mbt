@@ -1,4 +1,16 @@
 ///|
+fn finish_ended_holder_physical_fixture(holder : RunningHolder) -> Unit raise {
+  if holder.spawn_custody.cleanup() {
+    return
+  }
+  assert_true(holder.channel.close())
+  let stop = holder.spawn_custody.poll_stop().unwrap().unwrap()
+  stop.require_current(holder.spawn_custody).unwrap()
+  assert_true(stop.close())
+  assert_true(holder.spawn_custody.cleanup())
+}
+
+///|
 fn ended_holder_physical_fixture(
   label : String,
   script : String,
@@ -10,17 +22,28 @@ fn ended_holder_physical_fixture(
   let path = root + "/" + name + ".lock"
   let slot = @slot.open_native_executor_slot(path).unwrap()
   assert_true(slot.try_acquire().unwrap())
-  let (child, channel) = slot
-    .spawn_holder_with_channel("/bin/sh", [
-      "-c",
-      script,
-      "owned-fixture",
-      root + "/" + name + ".done",
-    ])
-    .unwrap()
+  let original = match slot.prepare_scoped_holder() {
+    Ready(original) => original
+    Refused(original, _) => {
+      assert_true(original.cleanup())
+      fail("owned fixture original preparation refused")
+      original
+    }
+  }
+  original
+  .spawn_with_channel("/bin/sh", [
+    "-c",
+    script,
+    "owned-fixture",
+    root + "/" + name + ".done",
+  ])
+  .unwrap()
+  let child = original.child().unwrap()
+  let channel = original.channel().unwrap()
   assert_true(child.wait(true).unwrap() is Some(_))
   let request = holder_custody_test_request("original-task", label)
   let holder : RunningHolder = {
+    spawn_custody: original,
     child,
     channel,
     request,
@@ -43,11 +66,13 @@ test "adversarial report ACK cannot discard an unclosed original Channel" {
     report_evidence: OriginalStatusAcknowledged,
     startability: Some(false),
     journal: Ref(None),
+    process_retirement: HolderStopPending,
   }
   assert_false(ended_holder_can_leave_window(original, probe))
   assert_true(physical_equal(original.original.channel, holder.channel))
   assert_true(holder.channel.close())
   assert_true(probe.close())
+  finish_ended_holder_physical_fixture(holder)
 }
 
 ///|
@@ -63,6 +88,7 @@ test "child exit and adversarial report ACK do not prove inherited descendant st
     report_evidence: OriginalStatusAcknowledged, // Negative input only.
     startability: Some(false),
     journal: Ref(None),
+    process_retirement: HolderStopPending,
   }
   assert_true(probe.try_acquire() == Ok(false))
   assert_false(ended_holder_can_leave_window(original, probe))
@@ -80,16 +106,18 @@ test "child exit and adversarial report ACK do not prove inherited descendant st
   // Same finite five-second barrier used by the existing slot cases. Waiting
   // alone is not evidence: only the real exclusive slot observation is used.
   for _ in 0..<100 {
-    if probe.try_acquire() == Ok(true) {
+    if retire_ended_holder_process(original) {
       stopped = true
       break
     }
     @slot.native_wait_milliseconds(50)
   }
   assert_true(stopped)
+  assert_true(probe.try_acquire() == Ok(true))
   assert_true(probe.verify_current_hold() is Ok(_))
   assert_true(ended_holder_can_leave_window(original, probe))
   assert_true(probe.close())
+  finish_ended_holder_physical_fixture(holder)
 }
 
 ///|
@@ -106,6 +134,7 @@ test "unreadable original execution record never becomes startable from status A
     report_evidence: OriginalStatusAcknowledged, // Negative input only.
     startability: None,
     journal: Ref(None),
+    process_retirement: HolderStopPending,
   }
   assert_true(probe.try_acquire() == Ok(true))
   assert_true(probe.verify_current_hold() is Ok(_))
@@ -113,6 +142,7 @@ test "unreadable original execution record never becomes startable from status A
   assert_false(ended_holder_can_leave_window(original, probe))
   assert_true(original.startability is None)
   assert_true(probe.close())
+  finish_ended_holder_physical_fixture(holder)
 }
 
 ///|
@@ -151,6 +181,7 @@ test "ended holder observation reuses its original Journal before any replacemen
   assert_true(original.journal.val is None)
   assert_false(ended_holder_can_leave_window(original, probe))
   assert_true(probe.close())
+  finish_ended_holder_physical_fixture(holder)
 }
 
 ///|
@@ -195,4 +226,5 @@ test "ended holder failed Journal open retains original cleanup before status ob
   assert_true(original.journal.val is None)
   assert_true(failure.issue() is @journal.Physical(@sqlite.DatabaseOpen(_)))
   assert_true(probe.close())
+  finish_ended_holder_physical_fixture(holder)
 }

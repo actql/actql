@@ -25,8 +25,10 @@ import shutil
 ROOT = Path(__file__).resolve().parents[1]
 ENTRY = 'src/cmd/native_remote_resident_site'
 LOCAL_ENTRY = 'src/cmd/native_client'
+BUNDLE_ENTRY = 'src/cmd/native_runtime_bundle'
 RUNTIME_NAMES = frozenset(('runtime', 'env', 'utf', 'backtrace', 'sync_io'))
 RELEASE_UTF_OBJECTS = frozenset(('moonbit_simdutf.o', 'simdutf.o'))
+RESIDENT_RECIPE = Path(ENTRY) / 'initial_control_recipe.json'
 # Only the selected Local components import these same-process physical ports.
 # No provider DLL, general symbol export or second allocator is introduced.
 LOCAL_COMPONENT_PROVIDER_EXPORTS = (
@@ -42,8 +44,8 @@ LOCAL_COMPONENT_PROVIDER_EXPORTS = (
 
 
 def selected_entry(entry: str) -> str:
-    if entry not in (ENTRY, LOCAL_ENTRY):
-        raise ValueError('Only the original Remote or Local CLI entry may be selected')
+    if entry not in (ENTRY, LOCAL_ENTRY, BUNDLE_ENTRY):
+        raise ValueError('Only the original Remote, Local or bundle installer CLI entry may be selected')
     return entry.removeprefix('src/')
 
 
@@ -52,7 +54,7 @@ def moon_build_arguments(moon_home: Path, emission: Path, entry: str) -> list[st
     # The existing Remote recipe strips; the ordinary Local artifact recipe
     # does not. Its native_client package remains the source of its selected flags.
     return [str(moon_home / 'bin/moon'), 'build', '--target', 'native', '--release',
-            *(['--strip'] if entry == ENTRY else []),
+            *(['--strip'] if entry != LOCAL_ENTRY else []),
             '--target-dir', str(emission), '-j', '1', entry]
 
 
@@ -65,6 +67,82 @@ def original(path: Path) -> dict[str, object]:
 
 def under(path: Path, root: Path) -> bool:
     return path.is_absolute() and path.resolve().is_relative_to(root.resolve())
+
+
+def resident_initial_control_header(source: str, destination: Path) -> dict[str, object]:
+    return command_initial_control_header(source, destination, ENTRY)
+
+
+def command_initial_control_header(source: str, destination: Path, entry: str) -> dict[str, object]:
+    """Pin a private physical entry, not a public Host/Run budget profile."""
+    if re.fullmatch(r'[0-9a-f]{40}', source) is None:
+        raise ValueError('Exact Resident source pin is required')
+    if entry not in (ENTRY, BUNDLE_ENTRY):
+        raise ValueError('No private command recipe for this entry')
+    path = ROOT / entry / 'initial_control_recipe.json'
+    raw = path.read_bytes()
+    recipe = json.loads(raw)
+    quantities = {
+        'generation': 'GENERATION', 'capacityBytes': 'CAPACITY',
+        'controlEnvelopeBytes': 'CONTROL_ENVELOPE', 'maximumArguments': 'ARGUMENTS',
+        'maximumArgumentBytes': 'ARGUMENT_BYTES',
+        'maximumArgumentStorageBytes': 'ARGUMENT_STORAGE',
+        'maximumEnvironmentEntries': 'ENVIRONMENT_ENTRIES',
+        'maximumEnvironmentStorageBytes': 'ENVIRONMENT_STORAGE',
+    }
+    resident_quantities = ({'sqliteHeapBytes': 'SQLITE_HEAP',
+                            'cryptoHeapBytes': 'CRYPTO_HEAP',
+                            'maximumDiagnosticBytes': 'DIAGNOSTIC_BYTES'}
+                           if entry == ENTRY else {})
+    installer_quantities = ({'managedPayloadBytes': 'MANAGED_PAYLOAD',
+                             'sqliteHeapBytes': 'SQLITE_HEAP',
+                             'cryptoHeapBytes': 'CRYPTO_HEAP',
+                             'maximumDiagnosticBytes': 'DIAGNOSTIC_BYTES'}
+                            if entry == BUNDLE_ENTRY else {})
+    if (set(recipe) != {'kind', 'target', 'ledger', *quantities, *resident_quantities, *installer_quantities}
+            or recipe['kind'] != ('private-resident-command-initial-control' if entry == ENTRY
+                                  else 'private-runtime-bundle-command-initial-control')
+            or recipe['target'] != 'darwin-arm64'
+            or set(recipe['ledger']) != {'planning_work', 'attempts', 'holdings',
+                                         'transfer_bytes', 'retained_bytes'}
+            or any(type(recipe[k]) is not int or not 0 < recipe[k] <= 2**31-1
+                   for k in {**quantities, **resident_quantities, **installer_quantities})
+            or any(type(v) is not int or not 0 <= v <= 2**31-1
+                   for v in recipe['ledger'].values())
+            or any(recipe['ledger'][k] <= 0 for k in ('planning_work', 'attempts', 'holdings'))
+            or recipe['ledger']['transfer_bytes'] != 0
+            or recipe['ledger']['retained_bytes'] != 0
+            or recipe['maximumArgumentStorageBytes'] > 1048576
+            or recipe['maximumEnvironmentEntries'] > 10000
+            or recipe['maximumArgumentBytes'] > recipe['maximumArgumentStorageBytes']
+            or recipe['capacityBytes'] % 16384):
+        raise ValueError('Incomplete Resident initial-control recipe')
+    if entry == ENTRY and (
+            recipe['sqliteHeapBytes'] % 16384 or recipe['cryptoHeapBytes'] % 16384
+            or recipe['sqliteHeapBytes'] + recipe['cryptoHeapBytes'] >= recipe['capacityBytes']):
+        raise ValueError('Resident component extents cannot coexist in original arena')
+    if entry == BUNDLE_ENTRY and (
+            recipe['sqliteHeapBytes'] % 16384 or recipe['cryptoHeapBytes'] % 16384
+            or recipe['managedPayloadBytes'] + recipe['sqliteHeapBytes']
+               + recipe['cryptoHeapBytes'] >= recipe['capacityBytes']):
+        raise ValueError('Installer component extents cannot coexist in original arena')
+    digest = hashlib.sha256(raw).hexdigest()
+    lines = ['/* Private selected Resident entry DATA; not authority or capacity. */',
+             '#define ACTQL_RESIDENT_SOURCE_SHA "' + source + '"',
+             '#define ACTQL_RESIDENT_RECIPE_SHA "' + digest + '"']
+    lines += ['#define ACTQL_RESIDENT_' + macro + ' ' + str(recipe[key])
+              for key, macro in quantities.items()]
+    lines += ['#define ACTQL_RESIDENT_' + key.upper() + ' ' + str(recipe['ledger'][key])
+              for key in ('planning_work', 'attempts', 'holdings')]
+    lines += ['#define ACTQL_RESIDENT_' + macro + ' ' + str(recipe[key])
+              for key, macro in resident_quantities.items()]
+    lines += ['#define ACTQL_BUNDLE_' + macro + ' ' + str(recipe[key])
+              for key, macro in installer_quantities.items()]
+    with destination.open('x') as stream:
+        stream.write('\n'.join(lines) + '\n')
+    return {'recipe': original(path), 'header': original(destination),
+            'source': source, 'recipeSha256': digest, 'selected': recipe,
+            'permission': False, 'physicalAcquired': False}
 
 
 def local_initial_entry_arguments(parts: list[str], moon_home: Path,
@@ -84,7 +162,9 @@ def commands_for(output: str, moon_home: Path, emission: Path, allocator: Path,
                  clang: Path, sdk: Path, *, cc_driver: Path | None = None,
                  ar_driver: Path | None = None, entry: str = ENTRY,
                  source_sha: str | None = None,
-                 package_version: str | None = None) -> list[list[str]]:
+                 package_version: str | None = None,
+                 resident_control_header: Path | None = None,
+                 bundle_control_header: Path | None = None) -> list[list[str]]:
     """Keep the actual pinned dry-run closure; reject other targets/entries."""
     entry_package = selected_entry(entry)
     if package_version is not None:
@@ -94,10 +174,17 @@ def commands_for(output: str, moon_home: Path, emission: Path, allocator: Path,
         package_version = select_release_version(package_version)['version']
     if entry == LOCAL_ENTRY and (source_sha is None or re.fullmatch(r'[0-9a-f]{40}', source_sha) is None):
         raise ValueError('Exact Local CLI source pin is required')
+    control_header = resident_control_header if entry == ENTRY else bundle_control_header
+    control_label = 'Resident' if entry == ENTRY else 'Bundle installer'
+    control_macro = 'ACTQL_RESIDENT_' if entry == ENTRY else 'ACTQL_BUNDLE_'
+    valid_resident_pin = (source_sha is not None and re.fullmatch(r'[0-9a-f]{40}', source_sha) is not None
+                          and control_header is not None
+                          and under(control_header, emission.parent)
+                          and not any(c in str(control_header) for c in '\n\r"\\'))
     core = emission / 'native/release/build' / entry_package / (Path(entry_package).name + '.c')
     executable = core.with_suffix('.exe')
     commands: list[list[str]] = []
-    links = finals = providers = source_pins = version_pins = 0
+    links = finals = providers = source_pins = version_pins = resident_entries = 0
     runtime: set[str] = set()
     modules: set[str] = set()
     for line in output.splitlines():
@@ -166,6 +253,13 @@ def commands_for(output: str, moon_home: Path, emission: Path, allocator: Path,
                 if resolved.resolve() == (ROOT / 'src/platform_native/host_bootstrap/bootstrap_stub.c').resolve():
                     providers += 1
                     parts.append('-DACTQL_SCOPED_READ_PROVIDER="' + str(allocator / 'owned_capacity.c') + '"')
+                if entry in (ENTRY, BUNDLE_ENTRY) and resolved.resolve() == (ROOT / entry / 'initial_control_stub.c').resolve():
+                    if not valid_resident_pin:
+                        raise ValueError('Exact ' + control_label + ' source and owned initial-control header required')
+                    if any(p.startswith(('-DACTQL_RESIDENT_', '-DACTQL_BUNDLE_')) for p in parts):
+                        raise ValueError('Duplicate ' + control_label + ' entry compiler selection')
+                    resident_entries += 1
+                    parts.append('-D' + control_macro + 'INITIAL_CONTROL_HEADER="' + str(control_header) + '"')
                 if entry == LOCAL_ENTRY and resolved.resolve() == (ROOT / 'src/cmd/native_client/stdout_stub.c').resolve():
                     if any(p.startswith(('-DACTQL_NATIVE_CLIENT_SOURCE_SHA', '-DACTQL_NATIVE_COMMAND_OPERATIONAL_ENTRY', '-DACTQL_NATIVE_COMMAND_INITIAL_OS_RECIPE')) for p in parts):
                         raise ValueError('Duplicate Local CLI source pin')
@@ -204,8 +298,12 @@ def commands_for(output: str, moon_home: Path, emission: Path, allocator: Path,
         commands.append(parts)
     if (links, finals, providers) != (1, 1, 1) or runtime != RUNTIME_NAMES:
         raise ValueError('Incomplete or duplicated Core/runtime/provider composition')
+    if entry in (ENTRY, BUNDLE_ENTRY) and not valid_resident_pin:
+        raise ValueError('Exact ' + control_label + ' source and owned initial-control header required')
     if entry == LOCAL_ENTRY and source_pins != 1:
         raise ValueError('Missing or duplicate Local CLI source pin entrance')
+    if entry in (ENTRY, BUNDLE_ENTRY) and resident_entries != 1:
+        raise ValueError('Missing or duplicate ' + control_label + ' initial-control entrance')
     if package_version is not None and version_pins != 1:
         raise ValueError('Missing or duplicate Native package version stub compilation')
     if 'actql/actql/' + entry_package not in modules:
@@ -303,6 +401,9 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
     spec.loader.exec_module(module)
     allocator = destination / 'derived-read-source'
     selection = module.prepare(moon_home, allocator)
+    resident_control = (command_initial_control_header(source, destination /
+                        ('resident-initial-control.h' if entry == ENTRY else 'bundle-initial-control.h'), entry)
+                        if entry in (ENTRY, BUNDLE_ENTRY) else None)
     emission = destination / 'emission'
     cc_driver = destination / 'bin/cc'
     cc_driver.parent.mkdir()
@@ -329,7 +430,11 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
     (destination / 'moon-dry-run.txt').write_text(dry)
     commands = commands_for(dry, moon_home, emission, allocator, clang, sdk,
                             cc_driver=cc_driver, ar_driver=ar_driver, entry=entry, source_sha=source,
-                            package_version=package_version)
+                            package_version=package_version,
+                            resident_control_header=(Path(resident_control['header']['path'])
+                                                     if resident_control and entry == ENTRY else None),
+                            bundle_control_header=(Path(resident_control['header']['path'])
+                                                   if resident_control and entry == BUNDLE_ENTRY else None))
     (destination / 'commands.json').write_text(json.dumps(commands, indent=2) + '\n')
     originals = [[p.replace('$MOON_HOME', str(moon_home)) for p in shlex.split(line)]
                  for line in dry.splitlines() if line.strip()]
@@ -337,8 +442,13 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
                 'receipt': str(destination / ('cc-' + str(index) + '.json'))}
                for index, (before, after) in enumerate(zip(originals, commands))
                if before[0] == str(cc_driver)]
+    command_include_inputs = ([original(ROOT / ENTRY / name) for name in
+                               ('initial_control_stub.c', 'initial_control_capture.h')]
+                              if entry == BUNDLE_ENTRY else [])
     cc_plan.write_text(json.dumps({'steps': c_steps,
-        'allocator_inputs': [original(p) for p in sorted(allocator.iterdir()) if p.is_file()]}, indent=2) + '\n')
+        'allocator_inputs': [original(p) for p in sorted(allocator.iterdir()) if p.is_file()]
+            + ([resident_control['recipe'], resident_control['header']] if resident_control else [])
+            + command_include_inputs}, indent=2) + '\n')
     # Preserve all selected package sources, the original pinned Core and FFI
     # include closure, and the exact allocator recipe. Source SHA alone cannot
     # stand in for the separately installed compiler/runtime/Core inputs.
@@ -352,6 +462,13 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
              moon_home / 'bin/moon', moon_home / 'bin/moonc',
              moon_home / 'lib/libmoonbitrun.o', moon_home / 'lib/libbacktrace.a'}
     paths.update(moon_home / 'lib' / name for name in RELEASE_UTF_OBJECTS)
+    if resident_control:
+        paths.update((ROOT / entry / 'initial_control_recipe.json', Path(resident_control['header']['path'])))
+        if entry == BUNDLE_ENTRY:
+            # The installer compiles these exact private capture helpers into
+            # its OWN image. Preserve their include closure, not a Resident handle.
+            paths.update(ROOT / ENTRY / name for name in
+                         ('initial_control_stub.c', 'initial_control_capture.h'))
     if package_version is not None:
         node = shutil.which('node')
         if node is None:
@@ -371,11 +488,13 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
         'source': source, 'entry': entry, 'target': 'darwin-arm64',
         'compiler_backend': 'pinned ordinary C (MOONBIT_NEW_NATIVE=0)',
         'package_registry': 'Generated by ordinary pinned Moon; no compiler arguments omitted',
-        'compiler_profile': 'ordinary Moon --release' + (' --strip' if entry == ENTRY else ''),
+        'compiler_profile': 'ordinary Moon --release' + (' --strip' if entry != LOCAL_ENTRY else ''),
         'selected_packages': packages, 'core_modules': 1, 'providers': 1,
         'allocator': selection, 'plan_only': plan_only, 'commands_completed': 0,
         'installed_supplier': False, 'normal_profile': None, 'runtime_cases': 0, 'public_e2e': 0,
     }
+    if resident_control:
+        receipt['resident_initial_control' if entry == ENTRY else 'bundle_initial_control'] = resident_control
     if package_version is not None:
         receipt['package_version'] = package_version
     (destination / 'progress.json').write_text(json.dumps(receipt, indent=2) + '\n')
@@ -419,7 +538,7 @@ if __name__ == '__main__':
     parser.add_argument('--destination', type=Path, required=True)
     parser.add_argument('--seconds', type=int, required=True)
     parser.add_argument('--plan-only', action='store_true')
-    parser.add_argument('--entry', choices=(ENTRY, LOCAL_ENTRY), default=ENTRY)
+    parser.add_argument('--entry', choices=(ENTRY, LOCAL_ENTRY, BUNDLE_ENTRY), default=ENTRY)
     parser.add_argument('--package-version')
     args = parser.parse_args()
     print(json.dumps(build(args.source, args.moon_home.resolve(), args.clang,

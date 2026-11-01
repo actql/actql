@@ -4,6 +4,7 @@
 /// This command grants no execution permission and commits no release state.
 fn recover_retained_input_command(
   matches : @argparse.Matches,
+  entry : ResidentInitialControl,
   child : @argparse.Matches,
   source_output? : Bool = false,
   cancelled_receiver? : Bool = false,
@@ -56,7 +57,7 @@ fn recover_retained_input_command(
   let transfer_path = required(matches, "transfer-journal")
   let delegated = delegation(matches, budget(matches))
   let target = required(matches, "target-triple")
-  let environment = open_control_environment(matches)
+  let environment = open_control_environment(matches, entry)
   let site = match
     @site.create_site(
       environment.site_key,
@@ -79,7 +80,9 @@ fn recover_retained_input_command(
     ignore(slot.close())
     stop("retained cleanup slot busy")
   }
-  let owner = open_release_recovery(matches, slot, expected_consumer)
+  let owner = open_release_recovery(
+    matches, environment, slot, expected_consumer,
+  )
   let receiver : Ref[@transfer_journal.Journal?] = { val: None, }
   let failure = try {
     for

@@ -17,6 +17,7 @@ pub fn load_library_with_custody(String, diagnostic_ceiling? : Int?) -> Result[L
 type Client
 pub fn Client::cancel(Self) -> Bool
 pub fn Client::close(Self) -> Bool
+pub fn Client::close_checked(Self) -> Result[Unit, NativeHttpIssue]
 pub fn Client::get_bearer_file(Self, String, String, Int64) -> Result[NativeHttpResponse, NativeHttpIssue]
 pub fn Client::get_local_preparation(Self, String, @filesystem.PrivateFileProjection, Int64) -> Result[NativeHttpResponse, NativeHttpIssue]
 pub fn Client::post_json(Self, String, Bytes) -> Result[NativeHttpResponse, NativeHttpIssue]
@@ -25,6 +26,7 @@ pub fn Client::request_bearer_file(Self, NativeHttpMethod, String, Array[NativeH
 pub fn Client::response_limit(Self) -> Result[Int64, NativeHttpIssue]
 
 type Library
+pub fn Library::close_checked(Self) -> Result[Unit, NativeHttpIssue]
 pub fn Library::create_authenticated_client(Self, String, NativeHttpAuthentication, Int64, Int, Int) -> Result[Client, NativeHttpIssue]
 pub fn Library::create_authenticated_client_with_custody(Self, String, NativeHttpAuthentication, Int64, Int, Int) -> Result[Client, NativeHttpClientCreateError]
 pub fn Library::create_client(Self, String, String, String, Int64, Int, Int) -> Result[Client, NativeHttpIssue]

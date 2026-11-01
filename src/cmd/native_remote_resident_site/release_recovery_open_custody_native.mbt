@@ -31,16 +31,17 @@ fn release_recovery_open_custody(
 
 ///|
 /// All failures after the inherited Slot return that same custody. Argument
-/// extraction precedes Journal/Bundle acquisition; setup file-read funding and
-/// loaded Library lifetime are separate unfinished Host supplier boundaries.
+/// extraction precedes Journal/Bundle acquisition. The environment carries the
+/// original command SQLite Library and lazy SAME-carrier Crypto loader; this
+/// constructor never opens a replacement Library or invents a cleanup ACK.
 fn open_release_recovery_with_custody(
   matches : @argparse.Matches,
+  environment : ControlEnvironment,
   slot : @slot.NativeExecutorSlot,
   identity : String,
 ) -> Result[StoppedReleaseRecovery, ReleaseRecoveryOpenCustody] {
   let original = release_recovery_open_custody(slot, identity)
   try {
-    let environment = open_control_environment(matches)
     let crypto_path = required(matches, "crypto-library")
     let key_root = required(matches, "bundle-public-key-root")
     let key_file = required(matches, "bundle-public-key-file")
@@ -55,7 +56,7 @@ fn open_release_recovery_with_custody(
       Some(value) => value
       None => stop("release recovery journal unavailable")
     }
-    let signature_library = match @signature.load_library(crypto_path) {
+    let signature_library = match (environment.crypto_library)(crypto_path) {
       Ok(value) => value
       Err(_) => stop("signature library load failed")
     }

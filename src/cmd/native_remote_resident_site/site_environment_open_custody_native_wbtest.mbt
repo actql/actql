@@ -76,7 +76,12 @@ test "invalid original Site selection refuses before executable Library or Store
       "/unavailable/original-store",
       "run",
     ])
-    let original = match open_site_environment(matches, "original-process") {
+    let original = match
+      open_site_environment(
+        matches,
+        "original-process",
+        capture_resident_initial_control(),
+      ) {
       Err(original) => original
       Ok(_) => {
         fail("invalid Site was accepted")

@@ -83,6 +83,21 @@ pub fn open_runtime_bundle_store_with_trust(
 }
 
 ///|
+pub fn open_runtime_bundle_store_with_trust_and_custody(
+  _sqlite_library : @sqlite.Library,
+  _signature_library : @signature.Library,
+  _root_path : String,
+  _trust : Array[NativeRuntimeBundleTrust],
+  _target_triple : String,
+  _capacity_bytes : Int64,
+  _max_bundles : Int,
+  _max_owners : Int,
+  _max_record_bytes : Int64,
+) -> Result[NativeRuntimeBundleStore, NativeRuntimeBundleStoreOpenError] {
+  Err(RefusedBeforeAcquisition(UnsupportedTarget))
+}
+
+///|
 pub fn NativeRuntimeBundleStore::begin_install(
   _self : NativeRuntimeBundleStore,
   _install_id : String,

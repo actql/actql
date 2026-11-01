@@ -14,8 +14,6 @@ priv struct HolderPartialOutputResources {
   mut failed_store : @publication_store.NativePublicationStoreOpenFailure?
   mut transfer_journal : @transfer_journal.Journal?
   mut failed_transfer_journal : @transfer_journal.NativeRemoteTransferJournalOpenFailure?
-  mut control_logical_close : Bool?
-  mut transfer_logical_close : Bool?
 }
 
 ///|
@@ -39,8 +37,6 @@ fn new_holder_partial_output_resources() -> HolderPartialOutputResources {
     failed_store: None,
     transfer_journal: None,
     failed_transfer_journal: None,
-    control_logical_close: None,
-    transfer_logical_close: None,
   }
 }
 
@@ -168,9 +164,9 @@ fn holder_output_setup_failure(
 
 ///|
 /// One bounded pass on the exact original constructors in reverse order.
-/// Logical Client close is not metadata/global-Library retirement. Loaded
-/// Library/Client aliases stay here as residual custody until a formal Host
-/// lifetime supplier exists; that currently missing seam cannot become ACK.
+/// Each checked close concerns only the same original resource. A pending
+/// request, failed Library retirement or lost observation retains that original
+/// and the outer Root; neither logical cancel nor finalization supplies ACK.
 fn retry_partial_holder_output_resources(
   original : HolderPartialOutputResources,
 ) -> Bool {
@@ -211,19 +207,21 @@ fn retry_partial_holder_output_resources(
     guard owner.retry_cleanup() is Ok(_) else { return false }
     original.failed_http_library = None
   }
-  if original.transfer is Some(owner) && original.transfer_logical_close is None {
-    original.transfer_logical_close = Some(owner.close())
+  if original.transfer is Some(owner) {
+    guard owner.close_checked() is Ok(_) else { return false }
+    original.transfer = None
   }
-  if original.control is Some(owner) && original.control_logical_close is None {
-    original.control_logical_close = Some(owner.close())
+  if original.control is Some(owner) {
+    guard owner.close_checked() is Ok(_) else { return false }
+    original.control = None
   }
-  // Logical Client close does not retire its metadata or runtime aliases.
-  // Keep the outer retained Root as well while that responsibility remains.
-  if original.control is Some(_) ||
-    original.transfer is Some(_) ||
-    original.control_library is Some(_) ||
-    original.transfer_library is Some(_) {
-    return false
+  if original.transfer_library is Some(owner) {
+    guard owner.close_checked() is Ok(_) else { return false }
+    original.transfer_library = None
+  }
+  if original.control_library is Some(owner) {
+    guard owner.close_checked() is Ok(_) else { return false }
+    original.control_library = None
   }
   if original.failed_root is Some(owner) {
     guard owner.retry_cleanup() is Ok(_) else { return false }
@@ -327,6 +325,8 @@ priv struct PartialOutputRecoveryCleanup {
 ///|
 /// Maintenance custody is not a fresh SiteEnvironment or process holding.
 /// In particular this never invents/release a holding this tool did not own.
+/// The same lifetime also accepts a completed setup's exact objects; no new
+/// constructor runs, and pending child/Library cleanup keeps the outer slot.
 fn retain_partial_output_recovery_setup(
   resources : HolderPartialOutputResources,
   recovery : StoppedReleaseRecovery,

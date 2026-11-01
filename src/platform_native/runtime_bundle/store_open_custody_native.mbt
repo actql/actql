@@ -106,8 +106,10 @@ pub fn open_runtime_bundle_store_with_custody(
 }
 
 ///|
-/// Exact verification custody already retained by this Store. Never reopen
-/// after a failed close or discard a rejected Reader before its own ACK.
+/// Exact verification/copy custody already retained by this Store. Never
+/// reopen after a failed close or discard a rejected Reader before its ACK.
+/// Copy Readers retire before the original Writer; cancel/sync failures keep
+/// that Writer and the outer DB/Lock/Root alive without releasing copy bytes.
 fn close_bundle_component_reader(
   store : NativeRuntimeBundleStore,
   original_reader? : @filesystem.Reader? = None,
@@ -119,6 +121,12 @@ fn close_bundle_component_reader(
       return Err(CleanupPending)
     }
     store.component_reader = Some(same)
+  }
+  if store.component_hasher is Some(original) {
+    match original.close_checked() {
+      Ok(_) => store.component_hasher = None
+      Err(issue) => return Err(Signature(issue))
+    }
   }
   if store.component_open_failure is Some(original) {
     match original.retry_cleanup() {
@@ -132,5 +140,32 @@ fn close_bundle_component_reader(
       Err(issue) => return Err(Filesystem(issue))
     }
   }
+  if store.component_writer_open_failure is Some(original) {
+    match original.retry_cleanup() {
+      Ok(_) => store.component_writer_open_failure = None
+      Err(issue) => return Err(Filesystem(issue))
+    }
+  }
+  if store.component_writer is Some(original) {
+    match original.cancel() {
+      Ok(_) => store.component_writer = None
+      Err(issue) => return Err(Filesystem(issue))
+    }
+  }
   Ok(())
+}
+
+///|
+/// Retain before fallible cleanup, never replace an earlier copy's original.
+/// This retires physical I/O only; the existing durable copy intent/reservation
+/// remains until its separate original recovery and catalog CAS confirm it.
+fn cancel_bundle_component_writer(
+  store : NativeRuntimeBundleStore,
+  original : @filesystem.Writer,
+) -> Result[Unit, NativeRuntimeBundleStoreIssue] {
+  if store.component_writer is Some(prior) && !physical_equal(prior, original) {
+    return Err(CleanupPending)
+  }
+  store.component_writer = Some(original)
+  close_bundle_component_reader(store)
 }

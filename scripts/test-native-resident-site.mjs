@@ -25,8 +25,6 @@ import {prepareResidentEffectComputation, runResidentEffectComputation,
   residentEffectSourceContractCid} from
   './fixtures/resident-effect-computation.mjs';
 import {runtimeCore} from '../adapters/host-common/runtime-core.mjs';
-import {installNodeClientProgramPreparation} from
-  '../adapters/host-node/client-program-preparation.mjs';
 import {startHttpsOutboundSiteGateway} from
   '../adapters/host-node/outbound-site-gateway.mjs';
 import {openSqliteCoordinatorDispatchJournal} from
@@ -399,51 +397,34 @@ try {
     runHost, programText, environmentWire, createdAt, validUntil, physicalCid,
     coordinatorAuthority,
   }) : undefined;
-  const {compiled, definition, retainedPrepared, retainedCompilation,
+  const {compiled, definition, retainedEnvironment, retainedPrepared, retainedCompilation,
     retainedAdmission, retainedDefinition, materials} = preparedEffect ?? await (async () => {
     const environmentCid = JSON.parse(environmentWire).evidence_bundle_cid;
-    const checkEnvironment = moonModule.clientProgramCheckEnvironment(
-      environmentWire, environmentCid, false, false, true, false, false, false,
-      false);
-    assert.ok(checkEnvironment);
-    const program = installNodeClientProgramPreparation({moon: moonModule,
-      environment: checkEnvironment})({kind: 'aql',
-      input: {text: programText, format: 'json'}, parameters: null});
-    const sourcePrepared = sourceMode ? runHost.prepare(programText, 'json',
-      runHost.admitEnvironment(environmentWire, environmentCid, {rela: true})) : undefined;
-    const sourceCompilation = sourceMode ? runHost.compileTasks(sourcePrepared) : undefined;
-    const sourceAllowed = sourceMode ? runHost.issueAllowedTaskRun(sourcePrepared, sourceCompilation, {
-      executionContextCid: physicalCid('resident-execution-context'),
-      hostPolicyCid: physicalCid('resident-host-policy'), expiresAt: validUntil,
-    }) : undefined;
-    const compiled = sourceMode ? {
-      preparedEvidence: {wire: sourceAllowed.preparedInvocationWire},
-      authorization: {wire: sourceAllowed.authorizationWire},
-      compiledPlan: {wire: runHost.privateTaskCompilationWires(sourceCompilation).compiledPlan},
-    } : portable.publicationControl.prepareCheckedClientCompiledRun(
-      program, 'values', {
-        executionContextCid: physicalCid('resident-execution-context'),
-        hostPolicyCid: physicalCid('resident-host-policy'),
-        expiresAt: validUntil,
-      });
-    const sourceDefinition = sourceMode ? runHost.privateRunDefinition(runHost.issueTaskRunDefinition(
-      sourcePrepared, sourceCompilation, sourceAllowed.admission,
-      'resident-scope', 'resident-run-1', createdAt, validUntil)) : undefined;
-    const definition = sourceMode ? {wire: sourceDefinition.wire, identity: sourceDefinition.cid}
-      : portable.publicationControl.defineCheckedClientCompiledRun(
-      compiled, {namespaceId: 'resident-scope', runId: 'resident-run-1',
-        createdAt, validUntil});
-    // Restore the original owners from retained evidence. The new issuer only
-    // projects them: it cannot authorize, recompile or issue a replacement Run.
+    // One independent public compiler owner on the issuing side. Keep its
+    // actual checked Program/compilation/admission/Definition throughout;
+    // no installed Node preparation or same-process wire re-admission.
     const retainedEnvironment = runHost.admitEnvironment(environmentWire,
       environmentCid, {rela: true});
     const retainedPrepared = runHost.prepare(programText, 'json', retainedEnvironment);
     const retainedCompilation = sourceMode ? runHost.compileTasks(retainedPrepared)
       : runHost.compileValues(retainedPrepared);
-    const retainedAdmission = (sourceMode ? runHost.admitTaskRun : runHost.admitRun)(retainedPrepared, retainedCompilation,
-      compiled.preparedEvidence.wire, compiled.authorization.wire);
-    const retainedDefinition = (sourceMode ? runHost.admitTaskRunDefinition : runHost.admitSourceFreeRunDefinition)(retainedPrepared,
-      retainedCompilation, retainedAdmission, definition.wire);
+    const allowed = (sourceMode ? runHost.issueAllowedTaskRun : runHost.issueAllowedRun)(
+      retainedPrepared, retainedCompilation, {
+        executionContextCid: physicalCid('resident-execution-context'),
+        hostPolicyCid: physicalCid('resident-host-policy'), expiresAt: validUntil,
+      });
+    const retainedAdmission = allowed.admission;
+    const retainedDefinition = (sourceMode ? runHost.issueTaskRunDefinition
+      : runHost.issueSourceFreeRunDefinition)(retainedPrepared, retainedCompilation,
+      retainedAdmission, 'resident-scope', 'resident-run-1', createdAt, validUntil);
+    const originalDefinition = runHost.privateRunDefinition(retainedDefinition);
+    const definition = {wire: originalDefinition.wire, identity: originalDefinition.cid};
+    const compiled = {
+      preparedEvidence: {wire: allowed.preparedInvocationWire},
+      authorization: {wire: allowed.authorizationWire},
+      compiledPlan: {wire: (sourceMode ? runHost.privateTaskCompilationWires
+        : runHost.privateCompilationWires)(retainedCompilation).compiledPlan},
+    };
     const materialsIssuer = sourceMode ? runHost.issueTaskRunMaterials : runHost.issueSourceFreeRunMaterials;
     const materials = materialsIssuer(retainedPrepared,
       retainedCompilation, retainedAdmission, retainedDefinition, {
@@ -466,7 +447,7 @@ try {
         document: '\t'.repeat(65536 - Buffer.byteLength(programText)) + programText,
         parametersWire: '\t'.repeat(65534) + '{}',
       }), {code: 'RunHostRunMaterialsRejected'});
-    return {compiled, definition, retainedPrepared, retainedCompilation,
+    return {compiled, definition, retainedEnvironment, retainedPrepared, retainedCompilation,
       retainedAdmission, retainedDefinition, materials};
   })();
   const operationCapability = physicalCid('resident-operation-capability');
@@ -2483,7 +2464,9 @@ try {
   site.child.kill('SIGTERM');
   const [code] = await site.exited;
   assert.equal(code, 0, site.stderr());
-  assert.ok(site.lines.some(line => line.kind === 'stopped'));
+  assert.ok(site.lines.some(line => line.kind === 'stopped' &&
+    line.scope === 'original-command-retired'),
+  'controller terminal report follows original command handle and bootstrap retirement');
   gateway.cancelPending?.();
   void refusedForeign;
   void refusedPlain;
@@ -3283,16 +3266,15 @@ try {
     line.request_cid === siteControl.identity(expiredHead));
   assert.ok(headAcceptance);
   const laterUntil = new Date(now + 7_200_000).toISOString();
-  const laterCompiled = portable.publicationControl.prepareCheckedClientCompiledRun(program,
-    'values', {executionContextCid: physicalCid('resident-execution-context'),
+  const laterAllowed = runHost.issueAllowedRun(retainedPrepared, retainedCompilation,
+    {executionContextCid: physicalCid('resident-execution-context'),
       hostPolicyCid: physicalCid('resident-host-policy'), expiresAt: laterUntil});
-  const laterDefinition = portable.publicationControl.defineCheckedClientCompiledRun(laterCompiled,
-    {namespaceId: 'resident-scope', runId: 'resident-live-successor', createdAt,
-      validUntil: laterUntil});
-  const laterAdmission = runHost.admitRun(retainedPrepared, retainedCompilation,
-    laterCompiled.preparedEvidence.wire, laterCompiled.authorization.wire);
-  const laterOwnedDefinition = runHost.admitSourceFreeRunDefinition(retainedPrepared,
-    retainedCompilation, laterAdmission, laterDefinition.wire);
+  const laterAdmission = laterAllowed.admission;
+  const laterOwnedDefinition = runHost.issueSourceFreeRunDefinition(retainedPrepared,
+    retainedCompilation, laterAdmission, 'resident-scope', 'resident-live-successor',
+    createdAt, laterUntil);
+  const laterOriginal = runHost.privateRunDefinition(laterOwnedDefinition);
+  const laterDefinition = {wire: laterOriginal.wire, identity: laterOriginal.cid};
   const laterMaterials = runHost.issueSourceFreeRunMaterials(retainedPrepared,
     retainedCompilation, laterAdmission, laterOwnedDefinition, {
       environment: retainedEnvironment, environmentWire,

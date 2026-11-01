@@ -12,6 +12,16 @@ priv enum EndedHolderReportEvidence {
 }
 
 ///|
+/// Only the existing scoped process/anchor Owner can advance these stages.
+/// None of them is a Run outcome, capacity release or publication ACK.
+priv enum EndedHolderProcessRetirement {
+  HolderStopPending
+  HolderStopPinned(@slot.NativeScopedExecutorStop)
+  HolderStopAnchorRetired
+  HolderProcessRetired
+}
+
+///|
 /// Only this existing recovery Owner's terminal handle progression. It is not
 /// a Run outcome or a source of physical stop/cleanup/authorization evidence.
 priv enum StoppedRecoveryTerminalClose {
@@ -57,6 +67,7 @@ priv struct EndedHolderResponsibility {
   mut report_evidence : EndedHolderReportEvidence
   mut startability : Bool?
   journal : Ref[ControlReplayJournalCustody?]
+  mut process_retirement : EndedHolderProcessRetirement
 }
 
 ///|
@@ -71,7 +82,36 @@ fn retain_ended_holder(current : RunningHolder) -> EndedHolderResponsibility {
     report_evidence: OriginalStatusPending,
     startability: None,
     journal: Ref(None),
+    process_retirement: HolderStopPending,
   }
+}
+
+///|
+/// Same original child/channel and anchor; no PID or path DATA substitutes
+/// for the existing scoped stop. Keep a lost close observation pending.
+fn retire_ended_holder_process(original : EndedHolderResponsibility) -> Bool {
+  guard original.channel is ChannelDescriptorsRetired &&
+    original.journal.val is None else {
+    return false
+  }
+  if original.process_retirement is HolderStopPending {
+    match original.original.spawn_custody.poll_stop() {
+      Ok(Some(stop)) => original.process_retirement = HolderStopPinned(stop)
+      _ => return false
+    }
+  }
+  if original.process_retirement is HolderStopPinned(stop) {
+    guard stop.require_current(original.original.spawn_custody) is Ok(_) else {
+      return false
+    }
+    guard stop.close() else { return false }
+    original.process_retirement = HolderStopAnchorRetired
+  }
+  if original.process_retirement is HolderStopAnchorRetired {
+    guard original.original.spawn_custody.cleanup() else { return false }
+    original.process_retirement = HolderProcessRetired
+  }
+  original.process_retirement is HolderProcessRetired
 }
 
 ///|
@@ -172,6 +212,7 @@ fn ended_holder_can_leave_window(
     original.journal.val is None else {
     return false
   }
+  guard retire_ended_holder_process(original) else { return false }
   slot.try_acquire() == Ok(true) && slot.verify_current_hold() == Ok(())
 }
 
@@ -194,12 +235,27 @@ priv struct ControlEndedHolderLifetime {
   recovery_close_failures : Ref[Int]
   mut pending_custody : PendingBundleCustody?
   replay_journal : Ref[ControlReplayJournalCustody?]
+  pending_spawn : Ref[@slot.NativeScopedExecutorHolder?]
+  failed_orphan_store : Ref[
+    @publication_store.NativePublicationStoreOpenFailure?,
+  ]
 }
 
 ///|
 fn retry_control_ended_holder_lifetime(
   original : ControlEndedHolderLifetime,
 ) -> Bool {
+  if original.pending_spawn.val is Some(same) {
+    guard same.cleanup() else { return false }
+    original.pending_spawn.val = None
+  }
+  guard retry_control_orphan_store_cleanup(
+    original.failed_orphan_store,
+    original.replay_journal,
+    original.slot,
+  ) else {
+    return false
+  }
   guard retry_control_replay_journal_cleanup(original.replay_journal) else {
     return false
   }
@@ -244,6 +300,7 @@ fn retry_control_ended_holder_lifetime(
       }
       let completed = recover_stopped_release(
         original.matches,
+        original.environment,
         request,
         original.recovery,
         original.recovery_close_failures,
@@ -280,6 +337,15 @@ fn retry_control_ended_holder_lifetime(
       // shutdown never turns a not-yet-performed operation into success.
       return false
     None => ()
+  }
+  for ended in original.ended {
+    observe_ended_holder(
+      ended,
+      original.environment,
+      original.client,
+      original.observation_url,
+    )
+    guard retire_ended_holder_process(ended) else { return false }
   }
   if !original.slot.is_open() {
     // Same configured slot path, as in the ordinary controller. A failed
@@ -318,6 +384,10 @@ fn retain_control_ended_holder_lifetime(
   recovery_close_failures : Ref[Int],
   pending_custody : PendingBundleCustody?,
   replay_journal : Ref[ControlReplayJournalCustody?],
+  pending_spawn : Ref[@slot.NativeScopedExecutorHolder?],
+  failed_orphan_store : Ref[
+    @publication_store.NativePublicationStoreOpenFailure?,
+  ],
 ) -> @slot.NativeExecutorSlot {
   let original : ControlEndedHolderLifetime = {
     ended,
@@ -334,6 +404,8 @@ fn retain_control_ended_holder_lifetime(
     recovery_close_failures,
     pending_custody,
     replay_journal,
+    pending_spawn,
+    failed_orphan_store,
   }
   install_partial_holder_cleanup_signal()
   ignore(

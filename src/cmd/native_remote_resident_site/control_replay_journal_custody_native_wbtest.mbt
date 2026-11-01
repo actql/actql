@@ -5,6 +5,9 @@ fn replay_journal_test_environment(
 ) -> ControlEnvironment {
   {
     sqlite_library: library,
+    crypto_library: path => {
+      @signature.load_library(path).map_err(_ => "fixture Crypto load failed")
+    },
     journal_path: path,
     max_record_bytes: 262144L,
     site_key: "cleanup-test-site",
