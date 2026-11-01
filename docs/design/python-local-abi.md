@@ -2045,6 +2045,13 @@ existing one-shot descriptor carrier. There is no intervening native call,
 callback, await or new authority. A standalone linkage check owns its own
 identical bounded observation; later initializers never reuse it.
 
+The selected image descriptor is bound to the original component's exact
+filename, byte length and digest before capture. Its existing bounded reader
+still reads and hashes the complete actual file before returning immutable
+bytes. The resolver compares that same descriptor instead of hashing those
+unchanged returned bytes again. This does not bypass the separate unsafe
+Engine/image entrance, native-load checks or standalone diagnostic predicates.
+
 The scope binds the same original recipe and exact runtime path. Before and
 after the thirteen address comparisons it checks the retained FD and named
 regular file against the original device, inode, size, nanosecond modification
