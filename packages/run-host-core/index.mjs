@@ -2703,6 +2703,16 @@ export function effectfulFinalRunReconciliationState(receipt, updatedAt, limits)
   'RunHostEffectReconciliationStateRejected');
 }
 
+/** Known failure from the same complete admitted final chain and original
+ * manifest. No current grant, publication, resend or cleanup acknowledgement. */
+export function effectfulFinalRunFailedState(receipt, updatedAt, limits) {
+  if (typeof updatedAt !== 'string') throw new TypeError('InvalidRunHostStateObservation');
+  const {maxWireBytes,maxNodes,maxDepth} = publicationLimits(limits);
+  return checked(owner.clientValuesHostEffectfulFinalRunFailedState(
+    retainedEffectFinal(receipt).value,updatedAt,maxWireBytes,maxNodes,maxDepth),
+  'RunHostEffectFailedStateRejected');
+}
+
 export function validateEffectfulPublicationCommit(evidence, request,
   attempt, indexEntry, limits) {
   if (evidence === null || typeof evidence !== 'object') {

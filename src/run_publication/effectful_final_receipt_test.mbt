@@ -1940,6 +1940,12 @@ test "retained public Effect evidence snapshots the admitted chain without reiss
   assert_false(
     effectful_final_run_evidence_matches_definition(retained, chain.artifact),
   )
+  assert_true(
+    effectful_final_run_evidence_failed_state(
+      retained, "2026-09-18T00:00:00.000Z", 65536, 4096, 32,
+    )
+    is Err(ActionStatusMismatch),
+  )
   // Caller container mutation cannot replace the admitted snapshot. No
   // derivation, ordering, issuer, scope or final Receipt is issued by getters.
   definitions[0] = chain.artifact

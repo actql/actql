@@ -26,6 +26,15 @@ produces reconciliation state; failed and unattempted rows do not become Unknown
 or success. The raw reconciliation entry still performs its complete receipt
 admission and uses the same writer and refusal order.
 
+The same retained final chain can project a known-failed Run through the
+existing unpublished failure writer. Only the complete admitted partition can
+select this path; successful and Unknown partitions refuse it. The original Run
+identity and manifest supply the Result inventory, all unavailable because no
+publication occurred. This historical state does not confirm physical stop,
+release resources, grant current authority or permit another dispatch. The caller
+still observes the original durable revision, current authorization and CAS; an
+uncertain state write remains Unknown until its original commit is observed.
+
 ## Original Result occurrences
 
 Restored Results pass their actual Definition, Artifact, derivation, ordering and

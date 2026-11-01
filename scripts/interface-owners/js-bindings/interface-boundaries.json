@@ -108977,7 +108977,7 @@
     {
       "module": "packages/run-host-core/index.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "e7e8cf8a09618526dda7e5911a91fb515763b11330de546d73fa670fce3990e6",
+      "sha256": "e6872570d64052f999d5ad0ce0dac2916a137104386852b5fc73d5d907478aa4",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -109030,6 +109030,7 @@
         "effectSourceEvidenceFacts",
         "effectSourceInputBinding",
         "effectTaskKeys",
+        "effectfulFinalRunFailedState",
         "effectfulFinalRunOutcome",
         "effectfulFinalRunReconciliationState",
         "executionShape",
@@ -109694,6 +109695,15 @@
           "name": "effectFinalOriginals/own/own",
           "parameters": [
             "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "effectfulFinalRunFailedState",
+          "parameters": [
+            "receipt",
+            "updatedAt",
+            "limits"
           ],
           "async": false
         },
@@ -112516,7 +112526,8 @@
             "admitEffectfulFinalRunEvidence",
             "admitOriginalResultOccurrenceEvidence",
             "effectfulFinalRunOutcome",
-            "effectfulFinalRunReconciliationState"
+            "effectfulFinalRunReconciliationState",
+            "effectfulFinalRunFailedState"
           ],
           "attributes": {
             "responsibility": [
@@ -116733,7 +116744,8 @@
             "effectFinalOriginals",
             "effectFinalOriginals/own/own",
             "effectfulFinalRunOutcome",
-            "effectfulFinalRunReconciliationState"
+            "effectfulFinalRunReconciliationState",
+            "effectfulFinalRunFailedState"
           ],
           "exports": [],
           "attributes": {

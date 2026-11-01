@@ -59,6 +59,38 @@ pub fn issue_admitted_effect_reconciliation_run_state_wire(
 }
 
 ///|
+/// Known failure from the complete admitted Effect partition. This is only
+/// unpublished Run-state DATA: no current, cancellation or cleanup premise is
+/// supplied, and Unknown outcomes can never enter this terminal projection.
+pub fn issue_admitted_effect_failed_run_state_wire(
+  outcomes : EffectSetApplyReceiptEvidence,
+  run_id : String,
+  updated_at : String,
+  declared_results : Array[String],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, RunStateIssue] {
+  if effect_set_apply_receipt_run_status(outcomes) != "failed" {
+    return Err(ActionStatusMismatch)
+  }
+  match validate_unpublished_run_identity(run_id, updated_at) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  issue_determined_unpublished_run_state_wire(
+    run_id,
+    updated_at,
+    declared_results,
+    Failed,
+    NoAction,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
 fn reconciliation_run_state_inputs(
   run_id : String,
   updated_at : String,

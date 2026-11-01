@@ -46,6 +46,9 @@ export const clientValuesHostEffectfulFinalRunAllUnattempted = value => value.al
 export const clientValuesHostEffectfulFinalRunReconciliationState = (...args) =>
   args[0].status === 'needs_reconciliation' ? result('reconcile-retained', args, 'fixture reconciliation wire')
     : {$tag:0,_0:'not-an-unknown-partition'};
+export const clientValuesHostEffectfulFinalRunFailedState = (...args) =>
+  args[0].status === 'failed' ? result('failed-retained', args, 'fixture failed wire')
+    : {$tag:0,_0:'not-a-known-failed-partition'};
 export const clientValuesHostValidateRetainedEffectfulPublicationCommit = (...args) =>
   result('commit-retained', args, args[4]);
 export const clientValuesHostAdmitOriginalResultOccurrenceEvidence = (...args) =>
@@ -328,6 +331,33 @@ test('retained public Effect succeeded state requires original checked publicati
     const other=owner.admitEffectRunMaterials('other saved material','other Definition CID',{});
     assert.throws(()=>owner.issueSucceededRunStateWire(other.prepared,materials.compilation,materials.allowed,
       materials.definition,'2026-09-18T00:00:00.000Z',[],receipt),/ForeignRunHostCompilation/u);
+  }
+  control.status='succeeded';
+});
+
+
+test('known failed state forwards only the same admitted original without another chain admission',()=>{
+  control.status='failed';const f=originals();
+  const receipt=owner.admitEffectfulFinalRunEvidence(f.evidence,limits);
+  const at='2026-09-18T00:00:00.000Z';control.calls.length=0;
+  assert.equal(owner.effectfulFinalRunFailedState(receipt,at,limits),'fixture failed wire');
+  assert.deepEqual(control.calls.map(call=>call.name),['failed-retained']);
+  const original=control.calls[0].args[0];
+  assert.deepEqual(control.calls[0].args.slice(1),[at,65536,4096,32]);
+  assert.equal(original.status,'failed');
+  control.calls.length=0;
+  for(const copy of [{...receipt},f.evidence.finalReceipt]){
+    assert.throws(()=>owner.effectfulFinalRunFailedState(copy,at,limits),/ForeignRunHostEffectFinalEvidence/u);
+  }
+  assert.throws(()=>foreign.effectfulFinalRunFailedState(receipt,at,limits),/ForeignRunHostEffectFinalEvidence/u);
+  assert.throws(()=>owner.effectfulFinalRunFailedState(receipt,1,limits),/InvalidRunHostStateObservation/u);
+  assert.throws(()=>owner.effectfulFinalRunFailedState(receipt,at,{...limits,maxWireBytes:0}),/InvalidRunHostPublicationLimits/u);
+  assert.equal(control.calls.length,0);
+  for(const status of ['succeeded','needs_reconciliation']){
+    control.status=status;const other=originals(),value=owner.admitEffectfulFinalRunEvidence(other.evidence,limits);
+    control.calls.length=0;
+    assert.throws(()=>owner.effectfulFinalRunFailedState(value,at,limits),{code:'RunHostEffectFailedStateRejected'});
+    assert.equal(control.calls.filter(call=>call.name==='admit-full').length,0);
   }
   control.status='succeeded';
 });

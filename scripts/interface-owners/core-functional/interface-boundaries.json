@@ -21221,7 +21221,7 @@
     },
     {
       "module": "packages/run-host-core/index.mjs",
-      "sha256": "e7e8cf8a09618526dda7e5911a91fb515763b11330de546d73fa670fce3990e6",
+      "sha256": "e6872570d64052f999d5ad0ce0dac2916a137104386852b5fc73d5d907478aa4",
       "role": "physical-io",
       "exports": [
         "admitCapturedResultSnapshot",
@@ -21273,6 +21273,7 @@
         "effectSourceEvidenceFacts",
         "effectSourceInputBinding",
         "effectTaskKeys",
+        "effectfulFinalRunFailedState",
         "effectfulFinalRunOutcome",
         "effectfulFinalRunReconciliationState",
         "executionShape",
@@ -21937,6 +21938,15 @@
           "name": "effectFinalOriginals/own/own",
           "parameters": [
             "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "effectfulFinalRunFailedState",
+          "parameters": [
+            "receipt",
+            "updatedAt",
+            "limits"
           ],
           "async": false
         },
@@ -25133,7 +25143,8 @@
             "issueSucceededRunStateWire/wire/wire#7",
             "issueSucceededRunStateWire/wire/wire#8",
             "retainedEffectFinal",
-            "validateEffectfulPublicationCommit/validateEffectfulPublicationCommit"
+            "validateEffectfulPublicationCommit/validateEffectfulPublicationCommit",
+            "effectfulFinalRunFailedState"
           ],
           "exports": [
             "admitCapturedResultSnapshot",
@@ -25303,7 +25314,8 @@
             "admitEffectfulFinalRunEvidence",
             "admitOriginalResultOccurrenceEvidence",
             "effectfulFinalRunOutcome",
-            "effectfulFinalRunReconciliationState"
+            "effectfulFinalRunReconciliationState",
+            "effectfulFinalRunFailedState"
           ],
           "attributes": {
             "responsibility": [
@@ -55921,7 +55933,7 @@
     },
     {
       "module": "src/run_publication/effectful_final_receipt.mbt",
-      "sha256": "284035ab2d7a7ac3a36ad0294f00cad76de63ed7bfff5a1be578b1714768c9f8",
+      "sha256": "349dcd457f944c03edca85b11c0b114a44d52d11de4b20b3a95c6211faf5818f",
       "operations": [
         {
           "name": "admit_effectful_final_receipt_evidence",
@@ -55942,6 +55954,10 @@
         {
           "name": "admit_retained_effectful_final_run_evidence",
           "declaration": "admit_retained_effectful_final_run_evidence ( run_definition : PublicationContract , invocation : PublicationContract , definitions : Array [ PublicationContract ] , artifacts : Array [ PublicationContract ] , derivations : Array [ PublicationContract ] , orderings : Array [ PublicationContract ] , retentions : Array [ PublicationContract ] , manifest : PublicationContract , computation_receipt : PublicationContract , captured_run : PublicationContract , preview : EffectPreviewIdentity , set_receipt_wire : String , member_receipt_wires : Array [ String ] , final_receipt_wire : String , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ EffectfulFinalRunEvidence , EffectfulPublicationCommitIssue ]"
+        },
+        {
+          "name": "effectful_final_run_evidence_failed_state",
+          "declaration": "effectful_final_run_evidence_failed_state ( value : EffectfulFinalRunEvidence , updated_at : String , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , RunStateIssue ]"
         },
         {
           "name": "effectful_final_run_evidence_matches_definition",
@@ -55996,7 +56012,8 @@
             "issue_effectful_final_run_receipt",
             "validate_effectful_publication_commit",
             "validate_effectful_publication_commit_with_result_evidence",
-            "validate_retained_effectful_publication_commit"
+            "validate_retained_effectful_publication_commit",
+            "effectful_final_run_evidence_failed_state"
           ],
           "exports": [],
           "attributes": {
@@ -56209,8 +56226,12 @@
     },
     {
       "module": "src/run_publication/effect_run_state.mbt",
-      "sha256": "814cb3d7f049a241bc1e1474c02d23b317f205f98eca0aa6d7bc964d4aa55af9",
+      "sha256": "f80e37c54b5347c25d066c495aadacaa7690b64b25ad6c21b26089d3ecb8bf95",
       "operations": [
+        {
+          "name": "issue_admitted_effect_failed_run_state_wire",
+          "declaration": "issue_admitted_effect_failed_run_state_wire ( outcomes : EffectSetApplyReceiptEvidence , run_id : String , updated_at : String , declared_results : Array [ String ] , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , RunStateIssue ]"
+        },
         {
           "name": "issue_admitted_effect_reconciliation_run_state_wire",
           "declaration": "issue_admitted_effect_reconciliation_run_state_wire ( outcomes : EffectSetApplyReceiptEvidence , run_id : String , updated_at : String , declared_results : Array [ String ] , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , RunStateIssue ]"
@@ -56239,7 +56260,8 @@
             "issue_admitted_effect_reconciliation_run_state_wire",
             "issue_effect_reconciliation_run_state_wire",
             "reconciliation_run_state_from_set",
-            "reconciliation_run_state_inputs"
+            "reconciliation_run_state_inputs",
+            "issue_admitted_effect_failed_run_state_wire"
           ],
           "exports": [],
           "attributes": {
@@ -56522,7 +56544,7 @@
     },
     {
       "module": "src/client_values_host_abi/effect_publication.mbt",
-      "sha256": "ad921244f8b8ef8fe810aba7cd6bc19e6e8a53139871ae5ebfb7bfaf38917c49",
+      "sha256": "fc43d33b2e9adb6e4beb597af09aeb4f9ce6be8d11f15eaaf2200e2a5806eaba",
       "operations": [
         {
           "name": "client_values_host_admit_effect_checkpoint_preview",
@@ -56551,6 +56573,10 @@
         {
           "name": "client_values_host_effectful_final_run_all_unattempted",
           "declaration": "client_values_host_effectful_final_run_all_unattempted ( value : @ publication . EffectfulFinalRunEvidence , ) - > Bool"
+        },
+        {
+          "name": "client_values_host_effectful_final_run_failed_state",
+          "declaration": "client_values_host_effectful_final_run_failed_state ( value : @ publication . EffectfulFinalRunEvidence , updated_at : String , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , @ publication . RunStateIssue ]"
         },
         {
           "name": "client_values_host_effectful_final_run_receipt",
@@ -56602,7 +56628,8 @@
             "client_values_host_issue_effect_succeeded_run_state_wire",
             "client_values_host_issue_effectful_final_run_receipt",
             "client_values_host_validate_effectful_publication_commit",
-            "client_values_host_validate_retained_effectful_publication_commit"
+            "client_values_host_validate_retained_effectful_publication_commit",
+            "client_values_host_effectful_final_run_failed_state"
           ],
           "exports": [],
           "attributes": {

@@ -1,6 +1,6 @@
 import {admitEffectPreviewIdentity, effectPreviewIdentityCid, effectReviewCheckpointPreview, issueEffectfulFinalRunReceipt,
   validateEffectfulPublicationCommit, admitEffectfulFinalRunEvidence, effectfulFinalRunOutcome,
-  effectfulFinalRunReconciliationState, admitOriginalResultOccurrenceEvidence, issueSucceededRunStateWire,
+  effectfulFinalRunReconciliationState, effectfulFinalRunFailedState, admitOriginalResultOccurrenceEvidence, issueSucceededRunStateWire,
   type PreparedEffectProgram, type EffectCompilation, type EffectPreviewIdentity,
   type EffectfulPublicationCommitEvidence, type PublicationContract,
   type PublicationRequestContract, type PublicationAttemptContract,
@@ -57,3 +57,9 @@ issueSucceededRunStateWire(preparedEffect, compiledEffect, allowed, run, '2026-0
 effectfulFinalRunOutcome('wire');
 // @ts-expect-error All three independent observed identities are required.
 admitOriginalResultOccurrenceEvidence(definition, definition, definition, definition, definition, {logicalValueCid: 'value'});
+
+const failedState: string = effectfulFinalRunFailedState(admitted, '2026-09-18T00:00:00.000Z', limits);
+// @ts-expect-error Historical receipt wire is not the original admitted final Receipt.
+effectfulFinalRunFailedState('wire', '2026-09-18T00:00:00.000Z', limits);
+// @ts-expect-error A failure Bool is not an admitted complete partition.
+effectfulFinalRunFailedState(false, '2026-09-18T00:00:00.000Z', limits);
