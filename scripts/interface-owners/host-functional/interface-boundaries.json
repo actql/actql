@@ -108938,6 +108938,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request lookup within the existing producer owner"
               }
             ],
             "ownership": [
@@ -108952,6 +108956,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request lookup within the existing producer owner"
               }
             ],
             "synchronization": [
@@ -109036,6 +109044,22 @@
               {
                 "path": "adapters/host-node/request-content-caller.test.mjs",
                 "anchor": "Request Content manager compiles one original graph"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-producer-lifetime.test.mjs",
+                "anchor": "test('producer request index preserves exact live identity and separate Host ownership'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-producer-lifetime.test.mjs",
+                "anchor": "test('producer request index refuses rebinding a live or retired original without poisoning another receipt'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-producer-lifetime.test.mjs",
+                "anchor": "test('producer request index performs direct membership lookups at N and 2N live requests'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-producer-lifetime.test.mjs",
+                "anchor": "test('producer request index refuses synchronous Host close during the current callback'"
               }
             ]
           }
@@ -109911,6 +109935,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Fixed Request controls and synchronous domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request lookup within the existing producer owner"
               }
             ],
             "ownership": [
@@ -109937,6 +109965,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Fixed Request controls and synchronous domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request lookup within the existing producer owner"
               }
             ],
             "synchronization": [
@@ -110093,6 +110125,22 @@
               {
                 "path": "adapters/host-node/request-domain-preparation.test.mjs",
                 "anchor": "test('Request registration refuses every full or duplicate original before native adoption'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-producer-lifetime.test.mjs",
+                "anchor": "test('producer request index preserves exact live identity and separate Host ownership'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-producer-lifetime.test.mjs",
+                "anchor": "test('producer request index refuses rebinding a live or retired original without poisoning another receipt'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-producer-lifetime.test.mjs",
+                "anchor": "test('producer request index performs direct membership lookups at N and 2N live requests'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-producer-lifetime.test.mjs",
+                "anchor": "test('producer request index refuses synchronous Host close during the current callback'"
               }
             ]
           }
@@ -112167,7 +112215,7 @@
         }
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "8cd42a9bbcc9985b339a2cfe5fff65710b3fdc51223e5cf4d4661b1bdb9e8b30"
+      "sha256": "3a927c2bff1be09200d307f4952ceea62ffebadb73d87a09247066493fdabac8"
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",

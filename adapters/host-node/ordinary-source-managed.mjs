@@ -56,6 +56,10 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
   };
   let closing = false, closed = false, bundle, flight, checkingBundle = false;
   const receipts = new WeakMap(), producers = new Set(), runs = new WeakMap();
+  // The existing live inventory owns producers. Request lookup retains only
+  // a weak reference; a held retired Request cannot keep its payload alive or
+  // be rebound to another producer after its original owner has retired.
+  const requestProducers = new WeakMap();
   // Exact Prepared lookup is provenance, not a second strong payload root.
   // The live inventory owns each record until its actual retirement.
   const liveRuns = new Set();
@@ -147,8 +151,10 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
     return false;
   };
   const producerForRequest = request => {
-    for (const producer of producers) if (producer.request === request && !producer.finished) return producer;
-    return undefined;
+    const producer = requestProducers.get(request)?.deref();
+    return !closing && !closed && producer !== undefined && producers.has(producer) &&
+      receipts.get(producer.receipt) === producer && producer.request === request &&
+      !producer.finished ? producer : undefined;
   };
   const current = () => {
     if (closing || closed) fail('SourceManagedPreparationUnavailable');
@@ -522,7 +528,12 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
     },
     bindSourceRequest(receipt, body, request) {
       current(); const producer = producerFor(receipt);
-      if (producer.body !== body || producer.request !== undefined || producer.finished) fail('ForeignInstalledSourceProducer');
+      if (producer.body !== body || producer.request !== undefined || producer.finished ||
+          request === null || (typeof request !== 'object' && typeof request !== 'function') ||
+          requestProducers.has(request)) {
+        fail('ForeignInstalledSourceProducer');
+      }
+      requestProducers.set(request, new WeakRef(producer));
       producer.request = request;
     },
     submittedIntentOriginal(request) {
