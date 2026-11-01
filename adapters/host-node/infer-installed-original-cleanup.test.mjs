@@ -551,7 +551,7 @@ test('Request-owned installed Model reuses its adopted Scope and retains origina
   assert.equal(f.calls.includes('scopeBegin'), false);
   assert.equal(f.requestCarrier.read, f.originalPreparation.read);
   assert.equal(f.requestCarrier.readAttempted, true); assert.equal(f.requestCarrier.taken, true);
-  assert.equal(await f.custody().close(), false);
+  await assert.rejects(f.custody().close(), {code: 'ClientDispatchCleanupPending'});
   assert.equal(f.requestCarrier.scopeFinished, false); assert(f.requestCarrier.read);
   f.modelClean(true); assert.equal(await f.custody().cleanup(), true);
   assert.equal(f.requestCarrier.read, undefined); assert.equal(f.requestCarrier.scopeFinished, true);
