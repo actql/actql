@@ -50,8 +50,8 @@ fn installed_source_response_workspace(
     owned_utf16_units: literal.owned_utf16_units,
     owned_wire_bytes: 0L,
   }
-  // Unicode 16's pinned <=4-scalar recursive expansion gives <=8 UTF16
-  // units per decoded key unit. Sum all normalized key output with the
+  // Use the SAME canonical Owner's generated UTF16 expansion, including
+  // supplementary mappings. Sum all normalized key output with the
   // non-normalizing tree bound, even if old text would already be unrooted.
   // The separate one-key normalization workspace includes scalar arrays,
   // stable ordering, builder, LF passes and bounded recursive controls.
@@ -59,7 +59,8 @@ fn installed_source_response_workspace(
     record_headers: 1L + nodes.to_int64(),
     reference_slots: 0L,
     scalar_words: 0L,
-    owned_utf16_units: 9L * bytes.to_int64(),
+    owned_utf16_units: bytes.to_int64() +
+    @canonical.nfc_lf_retained_output_units(bytes.to_int64()).unwrap(),
     owned_wire_bytes: 0L,
   }
   @execution.compose_preparation_representation([

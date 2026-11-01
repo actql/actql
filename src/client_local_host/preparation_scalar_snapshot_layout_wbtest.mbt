@@ -99,12 +99,12 @@ test "scalar snapshot consumes canonical construction units without repricing" {
     assert_eq(actual.scalar_words, extent.scalar_words)
     assert_eq(actual.owned_utf16_units, extent.owned_utf16_units)
     assert_eq(actual.owned_wire_bytes, 0L)
-    // Independent original Local inventory: this migration changes its owner,
-    // not the pre-existing reservation or its limits.
+    // Same independent Local slots and controls; the pinned recursive UTF16
+    // proof refines only the five retained text/builder overlaps.
     assert_eq(actual.record_headers, 100L)
     assert_eq(actual.reference_slots, 123L)
     assert_eq(actual.scalar_words, 528L + 35L * units.to_int64())
-    assert_eq(actual.owned_utf16_units, 40L * units.to_int64() + 2L)
+    assert_eq(actual.owned_utf16_units, 20L * units.to_int64() + 2L)
   }
   assert_true(scalar_snapshot_name_normalization_layout(-1) is None)
 }

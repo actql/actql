@@ -1077,3 +1077,94 @@ test "range request projection reuses original JSON within one parser-backed pha
     @execution.execution_capacity_retained_bytes(native),
   )
 }
+
+///|
+test "observed-reader range recipe minimum includes every original physical and constructor holding" {
+  let configuration = "{\"origin\":\"https://sheets.example.test\",\"spreadsheetId\":\"book\",\"range\":{\"sheetId\":7,\"startRow\":2,\"endRow\":4,\"startColumn\":1,\"endColumn\":3},\"columns\":[{\"name\":\"text\",\"type\":\"string\",\"nullable\":false},{\"name\":\"flag\",\"type\":\"boolean\",\"nullable\":true}]}"
+  let limits : @catalog.Limits = {
+    max_bytes: 300000,
+    max_nodes: 200000,
+    max_depth: 32,
+    max_cells: 6400,
+  }
+  let target = @catalog.range_reference(
+      "https://sheets.example.test",
+      "book",
+      { sheet_id: 7, start_row: 2, end_row: 4, start_column: 1, end_column: 3, },
+      "sha256:" + "a".repeat(64),
+      "sha256:" + "b".repeat(64),
+      limits,
+    )
+    .unwrap()
+    .stringify()
+  let binding = @catalog.admit_range_binding(
+    configuration,
+    "sha256:e3b7d39898d2037cffd055b1c51f24c66e616d2bb8ae3d4a34529515c26196ab",
+    "sha256:" + "b".repeat(64),
+    target,
+    limits,
+  ).unwrap()
+  let native = sheets_range_construction_profile(
+    binding, 100000, 10000, 16, 2000000, 200000, 32,
+  )
+  let capture = sheets_range_capture_construction_profile(
+    binding, 1000000, 100000, 64, 100000, 10000, 16, 2000000, 200000, 32,
+  )
+  // SAME standard Host/Sheets/Ledger bounds. Secret=1 and metadata=0 are
+  // deliberate lower bounds for this necessary inequality, not a selected
+  // installation, allowance, or ordinary execution claim. Compute/Source,
+  // checked effect-id text and fixed Run controls are also excluded here.
+  let capacities = @client_host.installed_standard_driver_recipe_capacities(
+    native,
+    capture,
+    1000000,
+    100000,
+    64,
+    100000,
+    10000,
+    16,
+    300000,
+    2000000,
+    0,
+    0,
+    false,
+    1,
+    7,
+    16384,
+    1000000,
+    64,
+    4,
+    0L,
+    response_read_quantum=16384,
+  ).unwrap()
+  assert_eq(capacities.length(), 6)
+  let mut retained = 0L
+  let mut execution = 0L
+  let mut constructor_workspace = 0L
+  for index in 0..<5 {
+    let capacity = capacities[index]
+    let r = @execution.execution_capacity_retained_bytes(capacity)
+    let e = @execution.execution_capacity_execution_bytes(capacity)
+    println(
+      "OBSERVED_RANGE_RECIPE_MINIMUM slot=\{index} retained=\{r} execution=\{e}",
+    )
+    retained += r
+    if index == 3 {
+      // The physical child retains its complete peak, never a Promise/stop
+      // inference. Every pure/control returned body remains co-held too.
+      execution += e
+    } else {
+      execution += r
+      constructor_workspace = Int64::max(constructor_workspace, e - r)
+    }
+  }
+  execution += constructor_workspace
+  println(
+    "OBSERVED_RANGE_RECIPE_MINIMUM retained=\{retained} execution=\{execution}",
+  )
+  let original = @client_host.client_local_preparation_initial_limits(
+    @client_host.client_local_resource_policy(),
+  ).unwrap()
+  // A necessary lower bound only; passing cannot certify a complete Plan.
+  assert_true(execution <= original.execution_bytes, msg=execution.to_string())
+}

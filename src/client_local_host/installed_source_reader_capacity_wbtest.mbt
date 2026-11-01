@@ -7,7 +7,9 @@ test "JSON Source reader inventory uses shared tariff and separate retained work
   // The reader also retains its original sequence retirement method/state.
   let capacity = installed_json_source_reader_capacity(limits, 2, 3).unwrap()
   assert_eq(@execution.execution_capacity_retained_bytes(capacity), 3416L)
-  assert_eq(@execution.execution_capacity_execution_bytes(capacity), 30800L)
+  // Four input units: the same five text overlaps use20U (formerly40U),
+  // and returned normalized keys use4U (formerly8U), each at2bytes/unit.
+  assert_eq(@execution.execution_capacity_execution_bytes(capacity), 30608L)
   assert_true(installed_json_source_reader_capacity([], 2, 3) is None)
   assert_true(installed_json_source_reader_capacity(limits, 0, 3) is None)
   assert_true(installed_json_source_reader_capacity(limits, 2, 0) is None)

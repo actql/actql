@@ -2511,6 +2511,17 @@ recipe positions and physical attempts/transfers are unchanged; the per-row
 term is temporary constructor workspace, not another grant or cleanup owner.
 
 
+The canonical Unicode generator derives recursive scalar and UTF-16 expansion
+from the SAME pinned canonical mappings and runtime composition pairs, including
+algorithmic Hangul. It counts actual input/output UTF-16 widths; a scalar bound
+must not acquire an extra factor of two for supplementary output. Ordering
+preserves units, while composition and LF folding cannot increase them. The NFC
+constructor retains its same five text/builder overlaps and complete scalar
+array/control inventory. The normalizing response reader consumes that same
+retained-output projection rather than copying a second expansion multiplier.
+This refines one existing representation bound; it changes neither normalized
+values nor language acceptance, byte prices, configured limits or cleanup.
+
 The standard response-input constructor separates only the Unicode Owner's
 existing nonescaping normalization scratch from its returned holding. Its
 Source/index/normalized-key material and original provider output stay retained.
