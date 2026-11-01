@@ -59930,6 +59930,507 @@
       "role": "common-semantics",
       "owner": "Existing checked Program, typed sequence and original Request/Plan preparation owners",
       "referenceQualification": "Same Request pre-factory original Model input and component construction; JS debug component and source correspondence only, not new ABI or ordinary physical acceptance"
+    },
+    {
+      "module": "src/client_local_host/preparation_request_check_observation.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "3a625e9b92111883c57a0c46d0a8c3be00a2733f648146a6d62e6b94373bff10",
+      "role": "common-semantics",
+      "owner": "Existing Request check, preparation capacity and public observation owners",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I]project_request_check_outcome",
+          "declaration": "[ I ] project_request_check_outcome ( owner : ClientRequestPreparation [ I ] , input : I , terminal : ClientRequestTerminalIssue , visible_publication : String , context_ref : String , input_kind : String , input_revision : String , input_bytes : Int , declarations_revision : String ? , declarations_bytes : Int , parameters_revision : String ? , parameters_bytes : Int , correlation_ref : String , selector_namespace : @ local_preparation . ClientCheckSourceSelectorNamespace ? , ) - > Result [ String ? , ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "[I]request_check_observation_bytes",
+          "declaration": "[ I ] request_check_observation_bytes ( child : ClientProgramCheckPreparation [ I , Unit ] , source : @ stages . Source , outcome : @ checked . CheckOutcome , publication : String , input_label_bytes : Int64 , ) - > Int64 ?"
+        },
+        {
+          "name": "request_check_observation_reference",
+          "declaration": "request_check_observation_reference ( value : String , prefix : String , digits ? : Int"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I]project_request_check_outcome",
+            "[I]request_check_observation_bytes",
+            "request_check_observation_reference"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Live original Request refusal observation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Live original Request refusal observation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Live original Request refusal observation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Live original Request refusal observation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Live original Request refusal observation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Live original Request refusal observation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Live original Request refusal observation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Live original Request refusal observation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Live original Request refusal observation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Live original Request refusal observation"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_check_observation_js_wbtest.mbt",
+                "anchor": "test \"live Request projection"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_preparation_diagnostic_wbtest.mbt",
+                "anchor": "test \"Request original observation bridge"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Live same-original refusal projection and affected report controls only; matching ordinary audience/caller custody and installed runtime remain separate."
+    },
+    {
+      "module": "src/client_local_preparation/client_check_original_outcome.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "fcf27af4561ade8a69c190cbb4a9c1d4d87aee7d555e8bb6a9aa70e4ff8d6c84",
+      "role": "observation-presentation",
+      "owner": "Existing Request check, preparation capacity and public observation owners",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_program_project_original_check_outcome",
+          "declaration": "client_program_project_original_check_outcome ( program : @ syntax . Program , source : @ stage_parameters . Source , supplied : @ decode . Cursor ? , inputs : @ sourceview_input . Inputs ? , outcome : @ checked . CheckOutcome , environment : @ checked . CheckEnvironment , visible_publication : String , context_ref : String , input_kind : String , input_revision : String , input_bytes : Int , declarations_revision : String ? , declarations_bytes : Int , parameters_revision : String ? , parameters_bytes : Int , correlation_ref : String , selector_namespace : ClientCheckSourceSelectorNamespace ? , ) - > String"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_program_project_original_check_outcome"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Live original Request refusal observation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Live original Request refusal observation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Live original Request refusal observation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Live original Request refusal observation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Live original Request refusal observation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Live original Request refusal observation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Live original Request refusal observation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Live original Request refusal observation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Live original Request refusal observation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Live original Request refusal observation"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_check_observation_js_wbtest.mbt",
+                "anchor": "test \"live Request projection"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_preparation_diagnostic_wbtest.mbt",
+                "anchor": "test \"Request original observation bridge"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Live same-original refusal projection and affected report controls only; matching ordinary audience/caller custody and installed runtime remain separate."
+    },
+    {
+      "module": "src/client_local_preparation/client_check_program.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "8cc8fc6f775bd17b1f67b1220a02751078894b3355a6b1ef448b51feca525fa1",
+      "role": "observation-presentation",
+      "owner": "Existing Request check, preparation capacity and public observation owners",
+      "exports": [],
+      "operations": [
+        {
+          "name": "check_program_diagnostic",
+          "declaration": "check_program_diagnostic ( findings : Array [ CheckFinding ] , diagnostic : @ checked . CheckDiagnostic , document : String , supplied : @ decode . Cursor ? , parameters : String ? , locate : ( String ? ) - > Unit , format ? : @ syntax . Format"
+        },
+        {
+          "name": "check_program_document_cursor",
+          "declaration": "check_program_document_cursor ( document : String , format : @ syntax . Format , original_body : @ decode . Cursor ? , ) - > @ decode . Cursor ?"
+        },
+        {
+          "name": "check_program_findings",
+          "declaration": "check_program_findings ( findings : Array [ CheckFinding ] , document : String , environment : @ checked . CheckEnvironment , visible_publication : String , parameters : String ? , locate : ( String ? ) - > Unit , scope : @ checked . CheckScope , selector_namespace : ClientCheckSourceSelectorNamespace ? , format : @ syntax . Format , ) - > CheckStop"
+        },
+        {
+          "name": "check_program_original_pointer",
+          "declaration": "check_program_original_pointer ( document : String , path : Array [ @ decode . PathSegment ] , format ? : @ syntax . Format"
+        },
+        {
+          "name": "check_program_public_text",
+          "declaration": "check_program_public_text ( cursor : @ decode . Cursor , field : String , ) - > String ?"
+        },
+        {
+          "name": "client_program_check_program",
+          "declaration": "client_program_check_program ( document : String , environment : @ checked . CheckEnvironment , visible_publication : String , parameters : String ? , context_ref : String , program_revision : String , parameters_revision : String ? , correlation_ref : String , scope : String , selector_namespace : ClientCheckSourceSelectorNamespace ? , ) - > String"
+        },
+        {
+          "name": "client_program_check_program_with_format",
+          "declaration": "client_program_check_program_with_format ( document : String , format : String , environment : @ checked . CheckEnvironment , visible_publication : String , parameters : String ? , context_ref : String , program_revision : String , parameters_revision : String ? , correlation_ref : String , scope : String , selector_namespace : ClientCheckSourceSelectorNamespace ? , ) - > String"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "check_program_diagnostic",
+            "check_program_document_cursor",
+            "check_program_findings",
+            "check_program_original_pointer",
+            "check_program_public_text",
+            "client_program_check_program",
+            "client_program_check_program_with_format"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Live original Request refusal observation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Remaining ordinary semantic check"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Live original Request refusal observation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Remaining ordinary semantic check"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Live original Request refusal observation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Remaining ordinary semantic check"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Live original Request refusal observation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Remaining ordinary semantic check"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Live original Request refusal observation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Remaining ordinary semantic check"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Live original Request refusal observation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Remaining ordinary semantic check"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Live original Request refusal observation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Remaining ordinary semantic check"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Live original Request refusal observation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Remaining ordinary semantic check"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Live original Request refusal observation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Remaining ordinary semantic check"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Live original Request refusal observation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Remaining ordinary semantic check"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_check_observation_js_wbtest.mbt",
+                "anchor": "test \"live Request projection"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_preparation_diagnostic_wbtest.mbt",
+                "anchor": "test \"Request original observation bridge"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Live same-original refusal projection and affected report controls only; matching ordinary audience/caller custody and installed runtime remain separate."
+    },
+    {
+      "module": "src/connectors_builtin_node/client_check_program.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "1b97785eab88ec7b8c066862c80a210fd3081e469d796804d1da88f68ed50209",
+      "role": "generated-binding",
+      "owner": "Existing Request check, preparation capacity and public observation owners",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_program_check_program",
+          "declaration": "client_program_check_program ( document : String , environment : @ program_check . CheckEnvironment , visible_publication : String , parameters : String ? , context_ref : String , program_revision : String , parameters_revision : String ? , correlation_ref : String , scope : String , selector_namespace : ClientCheckSourceSelectorNamespace ? , ) - > String"
+        },
+        {
+          "name": "client_program_project_request_check_outcome",
+          "declaration": "client_program_project_request_check_outcome ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , original_result : Result [ Unit , @ client_local_host . ClientRequestTerminalIssue ] , visible_publication : String , context_ref : String , input_kind : String , input_revision : String , input_bytes : Int , declarations_revision : String ? , declarations_bytes : Int , parameters_revision : String ? , parameters_bytes : Int , correlation_ref : String , selector_namespace : ClientCheckSourceSelectorNamespace ? , ) - > Result [ String ? , @ client_local_host . ClientRequestPreparationIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_program_check_program",
+            "client_program_project_request_check_outcome"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Live original Request refusal observation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Remaining ordinary semantic check"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Live original Request refusal observation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Remaining ordinary semantic check"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Live original Request refusal observation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Remaining ordinary semantic check"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Live original Request refusal observation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Remaining ordinary semantic check"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Live original Request refusal observation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Remaining ordinary semantic check"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Live original Request refusal observation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Remaining ordinary semantic check"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Live original Request refusal observation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Remaining ordinary semantic check"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Live original Request refusal observation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Remaining ordinary semantic check"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Live original Request refusal observation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Remaining ordinary semantic check"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Live original Request refusal observation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Remaining ordinary semantic check"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_check_observation_js_wbtest.mbt",
+                "anchor": "test \"live Request projection"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_preparation_diagnostic_wbtest.mbt",
+                "anchor": "test \"Request original observation bridge"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Live same-original refusal projection and affected report controls only; matching ordinary audience/caller custody and installed runtime remain separate."
     }
   ]
 }

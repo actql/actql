@@ -21,3 +21,36 @@ pub fn client_program_check_program(
     parameters_revision, correlation_ref, scope, selector_namespace,
   )
 }
+
+///|
+/// Borrow the live Request's original CheckOutcome for its current audience.
+/// No opaque result layout, checker or retired report is reconstructed in JS.
+#export_name("clientProgramProjectRequestCheckOutcome")
+pub fn client_program_project_request_check_outcome(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  original_result : Result[Unit, @client_local_host.ClientRequestTerminalIssue],
+  visible_publication : String,
+  context_ref : String,
+  input_kind : String,
+  input_revision : String,
+  input_bytes : Int,
+  declarations_revision : String?,
+  declarations_bytes : Int,
+  parameters_revision : String?,
+  parameters_bytes : Int,
+  correlation_ref : String,
+  selector_namespace : ClientCheckSourceSelectorNamespace?,
+) -> Result[String?, @client_local_host.ClientRequestPreparationIssue] {
+  let terminal = match original_result {
+    Err(value) => value
+    Ok(_) => return Ok(None)
+  }
+  @client_local_host.project_request_check_outcome(
+    parent, input, terminal, visible_publication, context_ref, input_kind, input_revision,
+    input_bytes, declarations_revision, declarations_bytes, parameters_revision,
+    parameters_bytes, correlation_ref, selector_namespace,
+  )
+}
