@@ -185,12 +185,14 @@ class CollectorTests(unittest.TestCase):
         code = PRIORITY_PYTHON if priority else PYTHON
         if small_queries:
             fixtures = runpy.run_path(str(SCRIPT))['SMALL_QUERIES']
-            literal_rows = {'warm-join': [{'id': 1, 'label': 'joined'}], 'warm-decimal-sum': [{'total': '4.00'}]}
+            literal_rows = {'warm-join': [{'id': 1, 'label': 'joined'}], 'warm-decimal-sum': [{'total': '4.00'}],
+                            'warm-union': [{'id': 1}, {'id': 2}], 'warm-parameters': [{'id': 7}],
+                            'warm-unicode': [{'label': 'é😀'}]}
             answers = {'SELECT 1 AS id': [{'id': 1}], **{fixtures[key]['text']: value for key, value in literal_rows.items()}}
             code = code.replace(" def __init__(self):self.execution=Execution()\n  def all(self):event('submit');return [{'id':1}]",
                                 " def __init__(self,value):self.execution=Execution();self.value=value\n  def all(self):event('submit');return self.value")
             code = code.replace("def sql(self,text):assert text=='SELECT 1 AS id';return Query()",
-                                f"def sql(self,text):\n   values={answers!r}\n   assert text in values;event('sql:'+text);return Query(values[text])")
+                                f"def sql(self,text,**options):\n   values={answers!r}\n   expected={{'parameters':{{'id':7}},'parameter_declarations':{{'id':{{'type':'number'}}}}}} if text=='SELECT @id AS id' else {{}}\n   assert options==expected\n   assert text in values;event('sql:'+text);return Query(values[text])")
         if fail_query is not None:
             code = code.replace('FAIL_QUERY=None', f'FAIL_QUERY={fail_query}')
         if failure_chain:
@@ -298,7 +300,7 @@ def chain_failure():
 
     def test_python_join_and_aggregate_keep_the_same_retained_host(self):
         fixture = self.python(small_queries=True)
-        for operation in ['warm-join', 'warm-decimal-sum']:
+        for operation in ['warm-join', 'warm-union', 'warm-decimal-sum', 'warm-parameters', 'warm-unicode']:
             with self.subTest(operation=operation):
                 result, report, output = self.collect('python', fixture, operation, self.root/operation)
                 self.assertEqual(result.returncode, 0, result.stderr)
@@ -312,6 +314,9 @@ def chain_failure():
                 self.assertEqual(events.count('close'), 1)
                 self.assertTrue(report['cleanup']['closed'])
                 self.assertTrue(all(row['verified'] for row in rows))
+                self.assertTrue(all(row['publicTiming']['kind']=='public-result' and
+                    row['publicTiming']['startNs']<=row['publicTiming']['observedNs']<=row['publicTiming']['endNs']
+                    and row['peakRssBytes']>0 for row in rows))
 
     def test_python_cold_retains_reference_without_another_submission(self):
         result,report,output=self.collect('python',self.python(),'cold-existing')
@@ -377,13 +382,29 @@ def chain_failure():
     def test_existing_assessor_keeps_selected_process_success_incomplete(self):
         result,report,output=self.collect('native',self.native(),'first-init')
         self.assertEqual(result.returncode,0,result.stderr)
-        assessment=subprocess.run(['node',str(SCRIPT.with_name('operation-performance.mjs')),
-            '--input',str(output/'measurements.json')],capture_output=True,text=True)
-        self.assertEqual(assessment.returncode,1,assessment.stderr)
-        body=json.loads(assessment.stdout)
-        self.assertEqual(body['status'],'incomplete')
-        for section in ['structure','history','chunks','boundaries']:
-            self.assertIn(section,body['missing'])
+        original=(output/'measurements.json').read_bytes()
+        # Fixed assessor vectors, not runtime performance observations. The
+        # synthetic CLI fixture's real startup can cross 200ms under load;
+        # that must not make this missing-evidence assertion nondeterministic.
+        # Keep the original collector report untouched in either case.
+        for wall_ns,expected in [(100_000_000,'incomplete'),(201_000_000,'failed')]:
+            with self.subTest(wall_ns=wall_ns):
+                vector=json.loads(original)
+                for series in vector['latency']:
+                    for row in series['samples']:
+                        row['wallNs']=wall_ns
+                        row['publicTiming']=dict(kind='cli-result-exit',startNs=0,
+                            exitNs=wall_ns//2,observedNs=3*wall_ns//4,endNs=wall_ns)
+                path=output/f'synthetic-assessor-{wall_ns}.json'
+                path.write_text(json.dumps(vector))
+                assessment=subprocess.run(['node',str(SCRIPT.with_name('operation-performance.mjs')),
+                    '--input',str(path)],capture_output=True,text=True)
+                self.assertEqual(assessment.returncode,1,assessment.stderr)
+                body=json.loads(assessment.stdout)
+                self.assertEqual(body['status'],expected)
+                for section in ['structure','history','chunks','boundaries']:
+                    self.assertIn(section,body['missing'])
+        self.assertEqual((output/'measurements.json').read_bytes(),original)
 
     def test_python_priority_varies_new_runs_and_reads_their_same_originals(self):
         result,report,output=self.collect('python',self.python(priority=True),'warm-select',

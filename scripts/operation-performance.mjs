@@ -1,15 +1,13 @@
 import {createHash} from 'node:crypto';
 // Acceptance evidence only. This module grants no runtime authority and does
 // not replace package provenance, the public result oracle, or resource guards.
+export const publicLatencyTarget = Object.freeze({p95Ms: 200, maxMs: 200});
 export const operationTargets = Object.freeze({
-  'warm-select': {samples: 100, comparison: 'local-sqlite'},
-  'warm-result': {samples: 100, comparison: 'local-sqlite'},
-  'warm-status': {samples: 100, comparison: 'local-sqlite'},
-  'warm-join': {samples: 100, comparison: 'local-sqlite'},
-  'warm-union': {samples: 100, comparison: 'local-sqlite'},
-  'warm-decimal-sum': {samples: 100, comparison: 'local-sqlite'},
-  'cold-existing': {samples: 30, p95Ms: 2000},
-  'first-init': {samples: 30, p95Ms: 5000},
+  ...Object.fromEntries(['warm-select', 'warm-result', 'warm-status', 'warm-join',
+    'warm-union', 'warm-decimal-sum', 'warm-parameters', 'warm-unicode'].map(operation => [operation,
+    {samples: 100, comparison: 'local-sqlite', publicEndToEnd: true, ...publicLatencyTarget}])),
+  'cold-existing': {samples: 30, publicEndToEnd: true, ...publicLatencyTarget},
+  'first-init': {samples: 30, publicEndToEnd: true, ...publicLatencyTarget},
   'mock-workflow': {samples: 30, p95Ms: 5000},
 });
 for (const target of Object.values(operationTargets)) Object.freeze(target);
@@ -32,6 +30,46 @@ export function latencySummary(samples, minimum) {
     // A small diagnostic never supplies an acceptance p95.
     p95Ms: n >= minimum ? values[Math.ceil(n * 0.95) - 1] : null,
     maxMs: n ? values[n - 1] : null, quantile: 'nearest-rank', minimum};
+}
+
+export function resourceSummary(samples, minimum) {
+  const cpuAvailable = samples.length > 0 && samples.every(row =>
+    row.cpuAvailable !== false && row.childCpuAvailable !== false &&
+    integer(row.cpuUserUs) && integer(row.cpuSystemUs) && typeof row.cpuScope === 'string' && row.cpuScope.length > 0);
+  const rssAvailable = samples.length > 0 && samples.every(row =>
+    integer(row.peakRssBytes) && row.peakRssBytes > 0 && typeof row.rssScope === 'string' && row.rssScope.length > 0);
+  return {cpu: cpuAvailable ? {available: true, scopes: [...new Set(samples.map(row => row.cpuScope))],
+    ...latencySummary(samples.map(row => ({wallNs: (row.cpuUserUs + row.cpuSystemUs) * 1000,
+      cpuUserUs: row.cpuUserUs, cpuSystemUs: row.cpuSystemUs})), minimum)} : {available: false},
+  rss: rssAvailable ? {available: true, scopes: [...new Set(samples.map(row => row.rssScope))],
+    maximumBytes: Math.max(...samples.map(row => row.peakRssBytes))} : {available: false}};
+}
+
+// These are actual clocks around the existing public caller and its row
+// oracle, not validation-call counters or inferred work durations. Child
+// clocks are compared by elapsed time only, never by cross-process origin.
+export function assessPublicLatencySamples(samples, minimum, operation) {
+  const summary = latencySummary(samples, minimum), failures = [], missing = [];
+  for (const row of samples) {
+    if (row.completed !== true || row.verified !== true) continue;
+    const timing = row.publicTiming;
+    if (!timing) {missing.push(`sample ${row.iteration}: public completion timing`); continue;}
+    const names = timing.kind === 'process-result-close'
+      ? ['startNs', 'observedNs', 'closeStartNs', 'closeEndNs', 'endNs']
+      : timing.kind === 'cli-result-exit' ? ['startNs', 'exitNs', 'observedNs', 'endNs']
+        : ['startNs', 'observedNs', 'endNs'];
+    const allowed = operation.startsWith('warm-')
+      ? [operation === 'warm-status' ? 'public-status' : 'public-result']
+      : ['process-result-close', 'cli-result-exit'];
+    if (!allowed.includes(timing.kind) || names.some(name => !integer(timing[name])) ||
+        names.some((name, index) => index > 0 && timing[name] < timing[names[index - 1]]) ||
+        timing.endNs - timing.startNs > row.wallNs) {
+      failures.push(`sample ${row.iteration}: public timer excludes completion or close`);
+    }
+  }
+  if (summary.p95Ms !== null && summary.p95Ms > publicLatencyTarget.p95Ms) failures.push('public E2E p95 exceeds 200ms');
+  if (summary.maxMs !== null && summary.maxMs > publicLatencyTarget.maxMs) failures.push('public E2E observed max exceeds 200ms');
+  return {summary, failures, missing};
 }
 
 // Diagnostic calibration consumes independently measured SQLite data, never
@@ -71,6 +109,9 @@ const comparisonQueries = Object.freeze({
     + 'SELECT id FROM items |> ASSERT UNIQUE BY (id) |> ORDER BY id',
     sqlite: 'WITH items AS (SELECT 2 AS id UNION ALL SELECT 1 AS id) SELECT id FROM items ORDER BY id',
     expected: [{id: 1}, {id: 2}]},
+  'warm-parameters': {text: 'SELECT @id AS id', sqlite: 'SELECT ? AS id', parameters: [7],
+    options: {parameters: {id: 7}, parameterDeclarations: {id: {type: 'number'}}}, expected: [{id: 7}]},
+  'warm-unicode': {text: "SELECT 'é😀' AS label", sqlite: "SELECT 'é😀' AS label", expected: [{label: 'é😀'}]},
 });
 function resultStorageComparison(control, baseline) {
   requireValue(control.kind === 'local-sqlite-result-control' && [1, 2].includes(control.schemaVersion) &&
@@ -188,7 +229,7 @@ export function calibrateSqliteComparisonProfile(baseline, resultControl) {
   const durable = observed('durable-transaction-read', 'prepared');
   if (durable) requireValue(durable.outputSha256 === evidenceHash([{id: 1}]), 'Durable comparator oracle differs');
   const entries = [];
-  for (const operation of ['warm-select', 'warm-result', 'warm-status', 'warm-join', 'warm-union']) {
+  for (const operation of ['warm-select', 'warm-result', 'warm-status', 'warm-join', 'warm-union', 'warm-parameters', 'warm-unicode']) {
     const mode = ['warm-result', 'warm-status'].includes(operation) ? 'prepared' : 'one-shot';
     const value = observed(operation, mode); if (!value) continue;
     const query = comparisonQueries[operation];
@@ -196,8 +237,9 @@ export function calibrateSqliteComparisonProfile(baseline, resultControl) {
     if (query) {
       requireValue(value.row.fixture?.sql === query.sqlite &&
         evidenceHash(value.row.fixture.expected) === evidenceHash(query.expected) &&
-        JSON.stringify(value.row.fixture.parameters) === '[]', 'Unmatched SQLite query fixture');
-      fixtureSha256 = evidenceHash({operation, text: query.text, expected: query.expected});
+        evidenceHash(value.row.fixture.parameters) === evidenceHash(query.parameters ?? []), 'Unmatched SQLite query fixture');
+      fixtureSha256 = evidenceHash({operation, text: query.text,
+        ...(query.options ? {options: query.options} : {}), expected: query.expected});
     } else if (operation === 'warm-select') {
       requireValue(value.row.fixture?.sql === 'SELECT 1 AS id' &&
         JSON.stringify(value.row.fixture.parameters) === '[]' &&
@@ -214,7 +256,7 @@ export function calibrateSqliteComparisonProfile(baseline, resultControl) {
     entries.push({operation, mode, fixtureSha256, expectedSha256: value.outputSha256,
       matchQualification: newRun ? 'matched literal-query input/output' : 'minimum indexed control only; actual saved Run key/row not yet matched',
       conditions: {concurrency: 1, preparation: mode, temperature: 'warm',
-        materialization: 'ordinary JS records', parameters: [],
+        materialization: 'ordinary JS records', parameters: query?.parameters ?? [],
         data: query || operation === 'warm-select' ? {input: 'literal CTE', indexes: []}
           : {logicalRows: [{id: 1}], indexes: ['single bound primary key']},
         durability: newRun ? 'diagnostic minimum WAL/FULL transaction; public Run/Result duties unmatched' : 'pure indexed-read diagnostic; no invented write'},
@@ -430,12 +472,22 @@ function assessLatencyTarget(series, target, initialMissing = []) {
   }
   // Validate failed samples too; errors cannot remove inconvenient durations.
   latencySummary(series.samples, target.samples);
-  const summary = latencySummary(successful, target.samples);
+  // Retain every raw duration, including a failed or slow original sample.
+  // An oracle failure still fails independently; it cannot improve p95/max.
+  const summary = latencySummary(series.samples, target.samples);
+  const verifiedSummary = latencySummary(successful, target.samples);
+  const resources = resourceSummary(series.samples, target.samples);
   if (series.mode !== 'final') missing.push('diagnostic only');
   if (series.profiled !== false) missing.push('uninstrumented latency samples');
   if (series.load !== 'isolated') missing.push('controlled isolated measurement');
   if (series.stoppedEarly) missing.push('measurement stopped early');
-  if (summary.count < target.samples) missing.push(`${target.samples} successful raw samples`);
+  if (summary.count !== target.samples || verifiedSummary.count !== target.samples) missing.push(`${target.samples} successful raw samples`);
+  if (target.publicEndToEnd) {
+    const actual = assessPublicLatencySamples(series.samples, target.samples, series.operation);
+    failures.push(...actual.failures); missing.push(...actual.missing);
+    if (!resources.cpu.available) missing.push('actual scoped CPU observations');
+    if (!resources.rss.available) missing.push('actual scoped peak RSS observations');
+  }
   if (series.operation.startsWith('warm')) {
     if (successful.some(row => typeof row.hostId !== 'string' || !row.hostId)) missing.push('explicit warm Host identity');
     else if (new Set(successful.map(row => row.hostId)).size !== 1 || new Set(successful.map(row => row.pid)).size !== 1) {
@@ -450,6 +502,7 @@ function assessLatencyTarget(series, target, initialMissing = []) {
   }
   if (successful.some(row => typeof row.stateId !== 'string' || !row.stateId)) missing.push('explicit state identity');
   if (target.p95Ms !== undefined && summary.p95Ms !== null && summary.p95Ms > target.p95Ms) failures.push('p95 latency exceeds target');
+  if (target.maxMs !== undefined && summary.maxMs !== null && summary.maxMs > target.maxMs) failures.push('maximum latency exceeds target');
   if (summary.count >= target.samples && target.medianMs !== undefined && summary.medianMs > target.medianMs) {
     failures.push('median latency exceeds target');
   }
@@ -467,7 +520,7 @@ function assessLatencyTarget(series, target, initialMissing = []) {
     deltaMs: summary[key] === null ? null : summary[key] - storage.summary[key],
     diagnosticLimitMs: storage.diagnosticLimits[key], publicAcceptance: 'unmatched',
   }])) : null;
-  return outcome(failures, missing, {operation: series.operation, target, summary, diagnosticComparison, resultStorage});
+  return outcome(failures, missing, {operation: series.operation, target, summary, verifiedSummary, resources, diagnosticComparison, resultStorage});
 }
 
 const fullCheckKinds = Object.freeze(['physical-validation', 'current-validation', 'account-evaluation',
@@ -724,10 +777,15 @@ export async function collectOperationSamples({operation, mode, identity, stateI
     const beforeCpu = cpu(), start = now();
     let verified = false, error;
     try { await execute(iteration); verified = true; } catch (failure) { error = String(failure?.message ?? failure); }
-    const wallNs = Number(now() - start), afterCpu = cpu();
+    const end = now(), wallNs = Number(end - start), afterCpu = cpu();
     const row = {...identity, iteration, stateId, pid, wallNs,
       cpuUserUs: afterCpu.user - beforeCpu.user, cpuSystemUs: afterCpu.system - beforeCpu.system,
-      cpuScope: 'collector-process-only', completed: verified, verified, ...(error ? {error} : {})};
+      cpuScope: 'collector-process-only', completed: verified, verified,
+      peakRssBytes: process.resourceUsage().maxRSS * 1024,
+      rssScope: 'actual Node process high-water RSS, including prior setup/operations; not operation allocation',
+      ...(verified ? {publicTiming: {kind: operation === 'warm-status' ? 'public-status' : 'public-result',
+        startNs: Number(start), observedNs: Number(end), endNs: Number(end)}} : {}),
+      ...(error ? {error} : {})};
     latencySummary([row], target.samples);
     samples.push(row);
     await emit(row);
@@ -1058,7 +1116,8 @@ export function assessPriorityTransition(input) {
 
 // CLI startup is measured on both routes. These targets do not add Native
 // requirements to the retained-Host SDK gate or establish full acceptance.
-export const nativeOperationTarget = Object.freeze({samples: 100, medianMs: 100, p95Ms: 200});
+export const nativeOperationTarget = Object.freeze({samples: 100, medianMs: 100,
+  publicEndToEnd: true, ...publicLatencyTarget});
 export function assessNativeOperations(report) {
   requireValue(report?.selection === 'native-operations' && report.executionPath === 'native-cli' &&
     /^[a-f0-9]{40}$/u.test(report.sourceSha), 'Ordinary Native operation report required');

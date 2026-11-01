@@ -204,3 +204,40 @@ automation remain later phases.
 | 10 | Same command in fail-closed reusable/dispatch workflow; hosted execution unverified |
 | 11 | Monitor/collector adaptation only; no public API, Runtime or capacity change |
 | 12 | `node scripts/local-checks.mjs test node -- scripts/health-monitor.test.mjs`; no Runtime build |
+
+## Public end-to-end acceptance
+
+The existing operation assessor now requires both **p95 <= 200 ms** and
+**observed maximum <= 200 ms** for the in-scope public short-query operations,
+including retained SELECT, two-row UNION, parameters and short Unicode, saved
+Result, status, process-cold existing state and normal first initialization.
+Normal initialization is included; a warm-only number cannot qualify the cold
+entry. The separate Mock workflow keeps its own workflow budget and cannot
+substitute for a short-query measurement. Native CLI launches remain process
+operations, never retained-Host warm samples.
+
+Final measurements retain the existing 100 warm/30 cold populations (the
+separate Native operation selection retains its existing 100 process samples).
+Every original duration, including a failed or slow sample, contributes to the
+raw summary; successful-oracle counts are reported separately. Diagnostic
+populations do not supply an acceptance p95. Failed, incomplete, profiled,
+undersampled, mixed-artifact or unmatched measurements cannot pass. The
+SQLite diagnostic comparison remains separate from a fully matched public
+work comparator; the absolute limit does not discharge missing comparison
+coverage.
+
+Public timing observations bind the actual call to materialized ordinary
+Result rows. SDK process observations retain Result-before-close, first close
+and whole-process timing separately. CLI observations retain actual child exit
+and the later materialized-output oracle without inventing a public close API
+or internal physical ACK. A timer stopped before its observed Result or close
+is rejected. CPU and peak RSS keep their actual process/child scopes; peak RSS
+is a high-water observation, not per-operation allocation or initialized bytes.
+
+Quick remains a small diagnostic with warning-only comparison semantics.
+Release additionally requires a reviewed, environment/build/load/fixture- and
+artifact-bound baseline. Its existing relative-plus-absolute thresholds apply
+to median, p95 and maximum latency as regressions, not warnings; CPU/RSS
+statistics and their scopes remain visible. Missing or incompatible baselines
+are incomplete. No source change, baseline adoption, final sampling campaign
+or release qualification follows merely from passing the assessor unit tests.
