@@ -5072,3 +5072,23 @@ and current-audience authorization. Explicit Core ports are identified as such;
 the matching compiled-parent case separately exercises actual Request/check and
 report constructors. Neither category establishes packed ordinary Run, Saved or
 physical Host-close acceptance.
+
+
+### Required installed Request preparation
+
+The private installed Host constructor is reached by the Local and HTTP
+entrances with the same fixed preparation owner. It refuses an absent owner
+before reading installation metadata. Its preparation adapter always forwards
+to that owner's funded Request path; it does not select the standalone raw
+compiler serializer when funding is missing. The ordinary dispatch path likewise
+requires the original managed preparation borrow. A missing borrow method or
+an explicit legacy `None` is a failure, never permission to continue without
+custody. A returned holder must still read as the same Prepared and use the
+existing return protocol on mismatch and retirement.
+
+The generic compiler adapter retains its standalone raw preparation APIs for
+actual compiler and fixture Run-definition issuers. Those calls are not ordinary
+installed preparation or a dispatch-custody exemption. Explicit-port controls
+exercise the installed entry/forwarding and exact dispatch borrow helpers;
+they grant no Resource or Account authority and do not establish a packed Host,
+physical stop, Saved result or Native/Resident ordinary qualification.

@@ -580,3 +580,67 @@ test('required installed preparation rejects missing owner before installation m
   await assert.rejects(open(installation, undefined), /InstalledRequestPreparationUnavailable/u);
   assert.equal(reads, 0);
 });
+
+
+test('required preparation borrow keeps exact originals and returns a foreign holder through the original helper', () => {
+  const prepared = {}, request = {}, run = {}, holder = {};
+  for (const foreign of [false, true]) {
+    let returns = 0;
+    const moon = {
+      clientProgramInstalledManagedPreparationBorrow(actualRun, actualPrepared, actualRequest) {
+        assert.strictEqual(this, moon); assert.strictEqual(actualRun, run);
+        assert.strictEqual(actualPrepared, prepared); assert.strictEqual(actualRequest, request);
+        return {$tag: 1, _0: holder};
+      },
+      clientProgramPreparationBorrowRead(actual) {assert.strictEqual(this, moon); assert.strictEqual(actual, holder);
+        return foreign ? {} : prepared;},
+      clientProgramPreparationBorrowReturn(actual) {assert.strictEqual(this, moon); assert.strictEqual(actual, holder);
+        returns++; return {$tag: 1, _0: undefined};},
+    };
+    const retain = requiredDispatchBorrowFixture(moon), entry = {};
+    if (foreign) {
+      assert.throws(() => retain(entry, moon, run, prepared, request, true), /ForeignPreparationHostCustody/u);
+      assert.equal(returns, 1); assert.equal(entry.preparationHostBorrow, undefined);
+    } else {
+      retain(entry, moon, run, prepared, request, true);
+      assert.strictEqual(entry.preparationHostBorrow, holder); assert.equal(returns, 0);
+      const node = ast.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'releaseDispatchPreparationHost');
+      const release = compileFunction('return (' + source.slice(node.start, node.end) + ');', ['checked'])(awaitResultReader.checked);
+      release(entry); release(entry);
+      assert.equal(returns, 1); assert.equal(entry.preparationHostBorrow, undefined);
+    }
+  }
+});
+
+test('required installed preparation forwards only its same funded callback without raw serialization', async () => {
+  const text = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
+  const tree = parse(text, {ecmaVersion: 'latest', sourceType: 'module'});
+  let options;
+  const walk = node => {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'CallExpression' && node.callee.name === 'installNodeClientProgramPreparation') options = node.arguments[0];
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(walk);
+      else if (value && typeof value === 'object' && value.type) walk(value);
+    }
+  };
+  walk(tree); assert.ok(options);
+  const environment = {}, prepared = {}, request = {kind: 'program', input: {
+    toJSON() {assert.fail('Funded caller must not serialize a second document');}}, parameters: null};
+  let calls = 0;
+  const preparation = {fundedPreparation(actual, selected) {
+    assert.strictEqual(this, preparation); assert.strictEqual(actual, request); assert.strictEqual(selected, environment);
+    calls++; return {kind: 'effect_free', prepared, originalInputs: {environment}};
+  }};
+  const names = ['moon', 'environment', 'sourcePublication', 'valuesMaxRows', 'check', 'preparation',
+    'preparedSourceEnvironment', 'getPreparedSourceEnvironment', 'verifyRequestValuePolicy',
+    'updateTargetOriginals', 'control', 'calendarArtifact', 'localContractLimits', 'effectInstallation'];
+  const selected = compileFunction('return (' + text.slice(options.start, options.end) + ');', names)(
+    {}, environment, undefined, undefined, undefined, preparation, undefined, undefined, undefined,
+    {}, {}, undefined, {}, undefined);
+  assert.equal(typeof selected.getFundedPreparation, 'function');
+  const {installNodeClientProgramPreparation} = await import('./client-program-preparation.mjs');
+  const prepare = installNodeClientProgramPreparation(selected);
+  assert.strictEqual(await prepare(request), prepared); assert.equal(calls, 1);
+  prepare.retireOriginal(prepared); prepare.retireReferences();
+});

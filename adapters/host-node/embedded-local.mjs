@@ -1151,6 +1151,12 @@ function managedPreparationRetirementContinuation(run, record) {
 }
 
 async function openInstalledHost(originalInstallation, preparation) {
+  // Both installed Local and HTTP entrances supply this same fixed owner.
+  // Standalone compiler callers use their separate adapter, never this Host.
+  if (preparation === undefined || typeof preparation.fundedPreparation !== 'function' ||
+      typeof preparation.requestPreparation !== 'function') {
+    throw new TypeError('InstalledRequestPreparationUnavailable');
+  }
   let {root, mode = 'local', beforeDispatch, workspaceId,
   authorization, connectorTable, sourceProfilePath, sourceProfilePaths, sourceNamespace, sourceSelectorNamespace, resolveSourceSecret,
   effectProfilePath, effectProfilePaths, resolveEffectSecret, effectInstallation,
@@ -2074,7 +2080,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       await preparation.prepareResultPublication();
       if (originalSourcePreparation === undefined) await preparation.prepareManagedCompute();
     }
-    const originalRequestPreparation = preparation?.requestPreparation();
+    const originalRequestPreparation = preparation.requestPreparation();
     observation = installHostObservation(observationConnection, {journal,
       runId: ref => {
         const retained = journal.lookupRunDefinition(ref, moon, control);
@@ -2265,8 +2271,8 @@ async function openInstalledHost(originalInstallation, preparation) {
     limits: localContractLimits});
   const prepareSubmit = installNodeClientProgramPreparation({moon,
     environment, sourcePublication, valuesMaxRows, check,
-    ...(preparation === undefined ? {} : {getFundedPreparation: (request, selectedEnvironment, originalVerifier, signal) =>
-      preparation.fundedPreparation(request, selectedEnvironment, originalVerifier, signal)}),
+    getFundedPreparation: (request, selectedEnvironment, originalVerifier, signal) =>
+      preparation.fundedPreparation(request, selectedEnvironment, originalVerifier, signal),
     ...(preparedSourceEnvironment?.preparedEnvironment === undefined ? {} : {getPreparedSourceEnvironment}),
     verifyRequestValuePolicy, restoreEffectOriginal: updateTargetOriginals.restorePrepared,
     restoreInferOriginal: (original, definition, request, evidence) =>
@@ -3530,7 +3536,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     runInfer, runContent, retainedRelationOutput, observation,
     preparationCustody: localPreparationCustody,
     beforePublication: prepared => preparation.managedComputeReservePublication(moon, prepared),
-    managedComputeRequired: originalRequestPreparation !== undefined,
+    managedComputeRequired: true,
     computeConfigurations: {local:localSnapshotConfiguration}});
   const startDispatch = dispatchOwner.start;
   const recoverEffectCapture = (ref, signal, managed, retainRecoveryResources) => {
