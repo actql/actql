@@ -406,7 +406,7 @@ export function createEmbeddedHostRegistry(sameInstallation) {
         },
         publishSourceSnapshot(receipt, body, publication) {
           if (sealed || opened.closing || !sourceProducers.has(receipt)) throw closing();
-          return sourcePreparation.publishSourceSnapshot?.(receipt, body, publication);
+          return sourcePreparation.publishSourceSnapshot(receipt, body, publication);
         },
         bindSourceRequest(receipt, body, request) {
           if (sealed || opened.closing) throw closing();

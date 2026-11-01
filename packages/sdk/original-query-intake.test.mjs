@@ -18,7 +18,11 @@ const state = {version: 'actql-run-state/0.1', run_id: 'original-query', revisio
   next_action: {kind: 'read_result', results: ['answer']}, result_available: true,
   result_availability: {answer: {state: 'available', observed_at: '2026-10-20T00:00:00.000Z',
     reason: 'confirmed_present'}}};
-const source = () => ({beforeSourceSnapshot() {assert.fail('NoSecondAdmission');},
+const source = () => ({
+  captureSourceSnapshot(_receipt, value, snapshot) {return snapshot(value);},
+  assertSourceSnapshotCurrent() {},
+  publishSourceSnapshot() {},
+  beforeSourceSnapshot() {assert.fail('NoSecondAdmission');},
   bindSourceSnapshot() {}, bindSourceRequest() {}, finishSourceProducer() {}, intentCid() {return cid('c');},
   beforeResultRead() {}, assertResultReadCurrent() {}});
 async function fixture(t, receiver, overrides = {}) {

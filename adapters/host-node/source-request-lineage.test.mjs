@@ -57,7 +57,11 @@ async function fixture(t, inspect, deferredIngress = false) {
       return actualIngress.perform(operation,body,signal);
     },
   }) : actualIngress;
-  const receiver = {beforeSourceSnapshot: () => receipt, bindSourceSnapshot() {},
+  const receiver = {
+    captureSourceSnapshot(_receipt, value, snapshot) {return snapshot(value);},
+    assertSourceSnapshotCurrent() {},
+    publishSourceSnapshot() {},
+    beforeSourceSnapshot: () => receipt, bindSourceSnapshot() {},
     bindSourceRequest(value, _body, request) {assert.equal(value, receipt); packet = request;},
     intentCid: () => cid('d'), finishSourceProducer(value) {
       assert.equal(value, receipt); finishes++;

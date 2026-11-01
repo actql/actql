@@ -41887,7 +41887,7 @@
     {
       "module": "adapters/host-node/embedded-local-lifecycle.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "6ad3d3f3fb1f0a4c50ac381c55d2a2481c84f688ae83fa786178f88de1b3979a",
+      "sha256": "5afacb92729be5bbec4739b51e93b5f91d43d9c15817c7091830e34ce06136ce",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
@@ -42656,6 +42656,10 @@
               {
                 "path": "adapters/host-node/embedded-local-lifecycle.mjs",
                 "anchor": "const closeRequestJournal = host.closeRequestJournal;"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Selecting the private Local Source preparation receiver requires its complete"
               }
             ],
             "synchronization": [
@@ -42900,6 +42904,14 @@
               {
                 "path": "adapters/host-node/host-journal-writer-exclusion.test.mjs",
                 "anchor": "actual Store-opening failure drains its already acquired Journal independently of the dependent child"
+              },
+              {
+                "path": "packages/sdk/source-preparation-submission.test.mjs",
+                "anchor": "selected Local Source rejects incomplete required methods before connect or caller access"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-source-preparation.test.mjs",
+                "anchor": "incomplete selected Source initialization retains the same Host"
               }
             ]
           }
