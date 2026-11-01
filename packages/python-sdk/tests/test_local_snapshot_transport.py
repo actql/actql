@@ -38,7 +38,8 @@ class SnapshotTransportTests(unittest.TestCase):
                     self.assertEqual(callbacks.query_copy(0, namespace + packet),
                                      len(namespace) + len(packet))
                     before = len(currents)
-                    with patch.object(store._physical, '_match_rows', wraps=store._physical._match_rows) as match:
+                    with patch.object(type(store._physical), '_match_rows', autospec=True,
+                                      side_effect=type(store._physical)._match_rows) as match:
                         self.assertEqual(callbacks.query(), int(change))
                         self.assertEqual(match.call_count, 1)
                     self.assertEqual(len(currents) - before, 2)
@@ -64,7 +65,8 @@ class SnapshotTransportTests(unittest.TestCase):
                 callbacks.reader = reader
                 self.assertEqual(callbacks.begin(2, len(namespace), len(packet)), 0)
                 self.assertEqual(callbacks.query_copy(0, namespace + packet), len(namespace + packet))
-                with patch.object(store._physical, '_match_rows', wraps=store._physical._match_rows) as match:
+                with patch.object(type(store._physical), '_match_rows', autospec=True,
+                                      side_effect=type(store._physical)._match_rows) as match:
                     self.assertEqual(callbacks.query(), -41)
                     self.assertEqual(match.call_count, 0)
                 failures.append(callbacks.failure)
@@ -129,7 +131,8 @@ class SnapshotTransportTests(unittest.TestCase):
                 self.assertIsNone(reader.match_rows_current)
                 self.assertEqual(callbacks.begin(2, len(namespace), len(packet)), 0)
                 self.assertEqual(callbacks.query_copy(0, namespace + packet), len(namespace + packet))
-                with patch.object(database, 'scan_range', wraps=database.scan_range) as query:
+                with patch.object(type(database), 'scan_range', autospec=True,
+                                  side_effect=type(database).scan_range) as query:
                     self.assertEqual(callbacks.query(), 2)
                     self.assertEqual(query.call_count, 0)
                 self.assertIsNone(callbacks.failure)
