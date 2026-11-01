@@ -1,6 +1,6 @@
 {
   "source": "d5d66cd86ac2e153f31a511e7d37c78e0cc28ae3",
-  "syntaxProjectionSha256": "bd4dd8b0e05c4a0ae6314499b85962187d60346cd3dc74254e6a2bae96d36afc",
+  "syntaxProjectionSha256": "82210d550de550bdd068123d7935d2a69d80d97890885e8a618cd786529e9b57",
   "qualification": "Source-reference coverage only; original Native/FFI/Python executions retain their own source, artifact and target qualifications. No normal funding, VM or installed product admission.",
   "generated": [
     {
@@ -72781,7 +72781,7 @@
     },
     {
       "module": "src/client_host_wasm/sdk_payload_bytes.mbt",
-      "sha256": "3b2fb06732cf6e6aa7e338877a0da965942ad684da9faaf389224e053a467105",
+      "sha256": "930b494864f6f3acd7fe3c90b5b4ee14cb8397e6576e49195f22c6aa44d9a8d1",
       "exports": [],
       "operations": [
         {
@@ -72817,6 +72817,10 @@
           "declaration": "sdk_payload_read_current_frame ( original_current : ( ) - > Result [ Unit , Int ] , current : ( ) - > Result [ Unit , Int ] , observe : ( ( ) - > Result [ Unit , Int ] ) - > Result [ Unit , Int ] , ) - > Result [ Unit , Int ]"
         },
         {
+          "name": "sdk_payload_read_original_row",
+          "declaration": "sdk_payload_read_original_row ( original_current : ( ) - > Result [ Unit , Int ] , read : ( ) - > Result [ @ host . ClientJournalPhysicalRow ? , Int ] , ) - > Result [ @ host . ClientJournalPhysicalRow ? , Int ]"
+        },
+        {
           "name": "sdk_payload_return_previous_clock",
           "declaration": "sdk_payload_return_previous_clock ( value : Instance , output : StoredPublicationCommitExport , clock_input : Int , ) - > Int"
         },
@@ -72840,6 +72844,7 @@
             "sdk_payload_encoding_issue",
             "sdk_payload_owned_bytes",
             "sdk_payload_read_current_frame",
+            "sdk_payload_read_original_row",
             "sdk_payload_return_previous_clock",
             "sdk_payload_saved_read_current"
           ],
@@ -72947,6 +72952,10 @@
               {
                 "path": "src/client_host_wasm/sdk_payload_access_frame_wbtest.mbt",
                 "anchor": "test \"saved payload access frame rejects changed final originals before encoder advancement\""
+              },
+              {
+                "path": "src/client_host_wasm/sdk_payload_access_frame_wbtest.mbt",
+                "anchor": "test \"saved payload row fence refuses the next dependent read after original mutation\""
               }
             ]
           }

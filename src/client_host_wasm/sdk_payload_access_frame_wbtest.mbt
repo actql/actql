@@ -170,20 +170,16 @@ test "saved payload row fence refuses the next dependent read after original mut
       Ok(Some(row))
     })
   }
-  let result = sdk_payload_read_current_frame(
-    original,
-    () => Ok(()),
-    current => {
-      current().unwrap()
-      read().unwrap() |> ignore
-      unchanged.val = false
-      current().unwrap()
-      match read() {
-        Err(code) => Err(code)
-        Ok(_) => Ok(())
-      }
-    },
-  )
+  let result = sdk_payload_read_current_frame(original, () => Ok(()), current => {
+    current().unwrap()
+    read().unwrap() |> ignore
+    unchanged.val = false
+    current().unwrap()
+    match read() {
+      Err(code) => Err(code)
+      Ok(_) => Ok(())
+    }
+  })
   assert_eq(result, Err(-32))
   assert_eq(reads.val, 1)
 }

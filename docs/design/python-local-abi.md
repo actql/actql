@@ -3234,7 +3234,9 @@ ABI82 behavior or runtime timing equivalence is implied.
 
 A Saved payload access check separates complete stored-original observation from
 fresh current-purpose checks. The private synchronous frame observes the full
-saved chain before and after its read-only delivery/grant validation. It returns
+saved chain before its read-only delivery/grant validation and again after that
+validation succeeds. A failed validation retains its first error without another
+observation or retry. It returns
 no successful result, advances no encoder and discloses no payload bytes before
 the final original-chain observation. The existing check after returning the
 physical clock loan remains separate, since that return can invoke cleanup.
@@ -3254,3 +3256,11 @@ original refusal prevents nested reads; a nested read/current failure remains
 the first failure and is not replaced by a later observation or retry. Changed
 final originals refuse before encoder advancement, while all existing retained
 loans and child-first cleanup duties remain with their original owners.
+
+Every dependent metadata read in that Saved validation also invokes the same
+complete original-chain callback immediately before the physical query. The
+shorter nested current callback is not sufficient to issue that query. This
+before-IO fence applies to every reachable Saved supplier, including mutable or
+raw physical ports; it does not infer an immutable snapshot from a nominal
+context or introduce a caller flag. A changed original stops the next dependent
+read rather than relying only on the final frame fence to refuse success.

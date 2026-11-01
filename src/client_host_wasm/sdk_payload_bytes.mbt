@@ -157,7 +157,9 @@ fn sdk_payload_access_current(
   if value.publications.contains(first.publication) {
     // The Live caller keeps its original callback selection and work.
     observe(
-      (table, key) => sdk_run_journal_port(value, context.current, 1, table, key),
+      (table, key) => {
+        sdk_run_journal_port(value, context.current, 1, table, key)
+      },
       context.check_current,
     )
   } else {
@@ -171,10 +173,9 @@ fn sdk_payload_access_current(
       current => {
         observe(
           (table, key) => {
-            sdk_payload_read_original_row(
-              context.check_current,
-              () => sdk_run_journal_port(value, context.current, 1, table, key),
-            )
+            sdk_payload_read_original_row(context.check_current, () => {
+              sdk_run_journal_port(value, context.current, 1, table, key)
+            })
           },
           current,
         )
