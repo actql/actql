@@ -55855,6 +55855,10 @@
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs",
                 "anchor": "ordinary import acquires its installed prefix before original bounded input and never refills a generation"
+              },
+              {
+                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
+                "anchor": "ordinary custody enables its original code cache before compiling the Host dependency graph"
               }
             ]
           }
@@ -56019,6 +56023,10 @@
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs",
                 "anchor": "ordinary import acquires its installed prefix before original bounded input and never refills a generation"
+              },
+              {
+                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
+                "anchor": "ordinary custody enables its original code cache before compiling the Host dependency graph"
               }
             ]
           }
