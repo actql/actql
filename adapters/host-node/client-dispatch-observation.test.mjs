@@ -537,3 +537,46 @@ test('restored local stop refuses changed originals and permits only nominal bou
     else{await assert.rejects(observeRestoredLocal(facts),/ClientRunStopObservationChanged/);assert.deepEqual(stopped,[]);}
   }
 });
+
+
+// These execute the original private helper declarations with explicit Core
+// ports. They do not construct a Host, issue capacity or certify physical stop.
+function requiredDispatchBorrowFixture() {
+  const selected = ast.body.filter(node => node.type === 'FunctionDeclaration' &&
+    ['retainDispatchPreparationHost', 'releaseDispatchPreparationHost'].includes(node.id.name));
+  assert.equal(selected.length, 2);
+  const {checked} = awaitResultReader;
+  return compileFunction(selected.map(node => source.slice(node.start, node.end)).join('\n') +
+    '\nreturn retainDispatchPreparationHost;', ['checked'])(checked);
+}
+const awaitResultReader = await import('../host-common/runtime-result.mjs');
+
+test('required dispatch preparation never skips a missing or legacy None borrow', () => {
+  for (const mode of ['missing', 'legacy-none']) {
+    const moon = mode === 'missing' ? {} : {
+      clientProgramInstalledManagedPreparationBorrow: () => ({$tag: 1, _0: undefined}),
+      clientProgramPreparationBorrowRead: () => assert.fail('No holder to read'),
+      clientProgramPreparationBorrowReturn: () => assert.fail('No holder to return'),
+    };
+    assert.throws(() => requiredDispatchBorrowFixture(moon)({}, moon, {}, {}, {}, true),
+      /PreparationHostCustodyUnavailable/u);
+  }
+});
+
+test('required installed preparation rejects missing owner before installation metadata', async () => {
+  const text = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
+  const declaration = parse(text, {ecmaVersion: 'latest', sourceType: 'module'}).body.find(node =>
+    node.type === 'FunctionDeclaration' && node.id.name === 'openInstalledHost');
+  assert.ok(declaration);
+  const firstRead = declaration.body.body.find(node => node.type === 'VariableDeclaration' &&
+    node.declarations.some(value => value.init?.type === 'Identifier' && value.init.name === 'originalInstallation'));
+  assert.ok(firstRead);
+  // Select the actual entry prefix through its first installation read. The
+  // unrelated later module loader/import.meta is outside this explicit port.
+  const prefix = text.slice(declaration.body.start + 1, firstRead.end);
+  const open = compileFunction('return async function(originalInstallation, preparation) {' + prefix + '};', [])();
+  let reads = 0;
+  const installation = new Proxy({}, {get() {reads++; throw new Error('UnexpectedInstallationMetadataRead');}});
+  await assert.rejects(open(installation, undefined), /InstalledRequestPreparationUnavailable/u);
+  assert.equal(reads, 0);
+});
