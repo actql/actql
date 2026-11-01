@@ -180,24 +180,21 @@ test "Request original observation bridge returns optional String through the ac
   let document =
     #|{"version":"actql/0.1","id":"original-observation","stages":[{"id":"s","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[]},"as":"v"},{"take":-1,"as":"bad"}],"results":{"rows":{"from":"bad","fields":["id"]}}}],"results":{"rows":{"from":{"stage":"s","result":"rows"}}}}
   let (parent, input) = request_diagnostic_test_parent()
-  let terminal = match
-    client_program_prepare_request_native_computation(
-      parent,
-      input,
-      request_diagnostic_test_json(document),
-      request_diagnostic_test_json("null"),
-      environment,
-      publication,
-      None,
-    ) {
-    Err(issue) => issue
-    Ok(_) => fail("the original negative Take must reject")
-  }
+  let original_result = client_program_prepare_request_native_computation(
+    parent,
+    input,
+    request_diagnostic_test_json(document),
+    request_diagnostic_test_json("null"),
+    environment,
+    publication,
+    None,
+  )
+  assert_true(original_result is Err(CheckOutcome(_)))
   let project = () => {
     client_program_project_request_check_outcome(
       parent,
       input,
-      terminal,
+      original_result,
       wire,
       "ctx:" + "a".repeat(64),
       "program",
@@ -236,26 +233,22 @@ test "Request original observation bridge never upgrades undisclosable NeedsInpu
     name +
     "\"},\"as\":\"d\"}],\"results\":{\"rows\":{\"from\":\"d\",\"fields\":[\"value\"]}}}],\"results\":{\"rows\":{\"from\":{\"stage\":\"s\",\"result\":\"rows\"}}}}"
   let (parent, input) = request_diagnostic_test_parent()
-  let terminal = match
-    client_program_prepare_request_native_computation(
-      parent,
-      input,
-      request_diagnostic_test_json(document),
-      request_diagnostic_test_json("null"),
-      environment,
-      publication,
-      None,
-    ) {
-    Err(issue) => issue
-    Ok(_) => fail("the original missing parameter must remain incomplete")
-  }
-  guard terminal is CheckOutcome(@program_check.NeedsInputs(_)) else {
+  let original_result = client_program_prepare_request_native_computation(
+    parent,
+    input,
+    request_diagnostic_test_json(document),
+    request_diagnostic_test_json("null"),
+    environment,
+    publication,
+    None,
+  )
+  guard original_result is Err(CheckOutcome(@program_check.NeedsInputs(_))) else {
     fail("must retain the actual nominal NeedsInputs frontier")
   }
   let report = client_program_project_request_check_outcome(
       parent,
       input,
-      terminal,
+      original_result,
       wire,
       "ctx:" + "a".repeat(64),
       "program",

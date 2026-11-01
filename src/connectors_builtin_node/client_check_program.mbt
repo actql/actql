@@ -31,7 +31,7 @@ pub fn client_program_project_request_check_outcome(
     ClientLocalPreparationInputOriginal,
   ],
   input : ClientLocalPreparationInputOriginal,
-  terminal : @client_local_host.ClientRequestTerminalIssue,
+  original_result : Result[Unit, @client_local_host.ClientRequestTerminalIssue],
   visible_publication : String,
   context_ref : String,
   input_kind : String,
@@ -44,6 +44,10 @@ pub fn client_program_project_request_check_outcome(
   correlation_ref : String,
   selector_namespace : ClientCheckSourceSelectorNamespace?,
 ) -> Result[String?, @client_local_host.ClientRequestPreparationIssue] {
+  let terminal = match original_result {
+    Err(value) => value
+    Ok(_) => return Ok(None)
+  }
   @client_local_host.project_request_check_outcome(
     parent, input, terminal, visible_publication, context_ref, input_kind, input_revision,
     input_bytes, declarations_revision, declarations_bytes, parameters_revision,
