@@ -4,6 +4,7 @@ import test from 'node:test';
 import {operationTargets, calibrateSqliteComparisonProfile, calibratedLatencyTarget,
   assessLatency, publicLatencyTarget, assessPublicLatencySamples} from './operation-performance.mjs';
 import {syntheticSQLiteBaseline, syntheticResultStorageControl} from './fixtures/operation-performance-comparison.mjs';
+import {nodeWarmSmallQueryFixtures} from './benchmark-node-operations.mjs';
 
 // Independent arithmetic and policy expectations. Synthetic timings never
 // establish a measured baseline or product latency.
@@ -77,6 +78,23 @@ test('diagnostic calibration uses a fixed ratio, raw jitter and one measured min
     assert.match(entry.conditions.durability, /diagnostic/u);
   }
   assert.match(profile.qualification, /not an unconditional SDK SLA/u);
+});
+test('parameter comparison binds the separate public values and declaration options', () => {
+  const control = comparison(syntheticSQLiteBaseline());
+  const query = nodeWarmSmallQueryFixtures.find(row => row.operation === 'warm-parameters');
+  const entry = control.profile.entries.find(row => row.operation === query.operation);
+  const hash = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
+  assert.equal(entry.fixtureSha256, hash(query));
+  assert.deepEqual(entry.conditions.parameters, [7]); // Actual SQLite positional binding.
+  const row = matchedDiagnostic(query.operation, control);
+  row.fixtureSha256 = hash(query);
+  row.samples.forEach(sample => {sample.fixtureSha256 = row.fixtureSha256;});
+  const result = calibratedLatencyTarget(row, control);
+  assert(!result.missing.includes('matched public fixture/oracle'));
+  assert(result.missing.includes('matched minimum public essential-work comparator'));
+  assert.deepEqual([result.target.p95Ms, result.target.maxMs], [200, 200]);
+  row.fixtureSha256 = hash({...query, parameters: {id: 8}});
+  assert(calibratedLatencyTarget(row, control).missing.includes('matched public fixture/oracle'));
 });
 test('matching literal data cannot supply missing public durable-transition correspondence', () => {
   const control = comparison(syntheticSQLiteBaseline());

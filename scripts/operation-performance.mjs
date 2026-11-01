@@ -110,8 +110,8 @@ const comparisonQueries = Object.freeze({
     + 'SELECT id FROM items |> ASSERT UNIQUE BY (id) |> ORDER BY id',
     sqlite: 'WITH items AS (SELECT 2 AS id UNION ALL SELECT 1 AS id) SELECT id FROM items ORDER BY id',
     expected: [{id: 1}, {id: 2}]},
-  'warm-parameters': {text: 'SELECT @id AS id', sqlite: 'SELECT ? AS id', parameters: [7],
-    options: {parameters: {id: 7}, parameterDeclarations: {id: {type: 'number'}}}, expected: [{id: 7}]},
+  'warm-parameters': {text: 'SELECT @id AS id', sqlite: 'SELECT ? AS id', sqliteParameters: [7],
+    parameters: {id: 7}, options: {parameterDeclarations: {id: {type: 'number'}}}, expected: [{id: 7}]},
   'warm-unicode': {text: "SELECT 'é😀' AS label", sqlite: "SELECT 'é😀' AS label", expected: [{label: 'é😀'}]},
 });
 function resultStorageComparison(control, baseline) {
@@ -238,8 +238,9 @@ export function calibrateSqliteComparisonProfile(baseline, resultControl) {
     if (query) {
       requireValue(value.row.fixture?.sql === query.sqlite &&
         evidenceHash(value.row.fixture.expected) === evidenceHash(query.expected) &&
-        evidenceHash(value.row.fixture.parameters) === evidenceHash(query.parameters ?? []), 'Unmatched SQLite query fixture');
+        evidenceHash(value.row.fixture.parameters) === evidenceHash(query.sqliteParameters ?? []), 'Unmatched SQLite query fixture');
       fixtureSha256 = evidenceHash({operation, text: query.text,
+        ...(query.parameters ? {parameters: query.parameters} : {}),
         ...(query.options ? {options: query.options} : {}), expected: query.expected});
     } else if (operation === 'warm-select') {
       requireValue(value.row.fixture?.sql === 'SELECT 1 AS id' &&
@@ -257,7 +258,7 @@ export function calibrateSqliteComparisonProfile(baseline, resultControl) {
     entries.push({operation, mode, fixtureSha256, expectedSha256: value.outputSha256,
       matchQualification: newRun ? 'matched literal-query input/output' : 'minimum indexed control only; actual saved Run key/row not yet matched',
       conditions: {concurrency: 1, preparation: mode, temperature: 'warm',
-        materialization: 'ordinary JS records', parameters: query?.parameters ?? [],
+        materialization: 'ordinary JS records', parameters: query?.sqliteParameters ?? [],
         data: query || operation === 'warm-select' ? {input: 'literal CTE', indexes: []}
           : {logicalRows: [{id: 1}], indexes: ['single bound primary key']},
         durability: newRun ? 'diagnostic minimum WAL/FULL transaction; public Run/Result duties unmatched' : 'pure indexed-read diagnostic; no invented write'},
