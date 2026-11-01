@@ -2562,3 +2562,10 @@ task consumers do not redo this schema walk. Missing Array bounds, opaque
 reference/JSON domains, arithmetic overflow, or exhausted proof work/depth
 select the existing general policy rather than a partial bound or a new
 acceptance restriction.
+
+
+The schema inventory charges each root field before its optional node proof.
+That same charge covers the corresponding root-contract visit; only additional
+nested contracts spend remaining proof work. A completed leaf schema therefore
+needs no second work allowance. This affects neither Ledger consumption nor
+attempt, transfer or physical-retirement accounting.

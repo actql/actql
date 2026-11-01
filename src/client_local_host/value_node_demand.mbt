@@ -49,7 +49,14 @@ fn client_local_json_schema_nodes(
   max_work : Int,
   depth : Int,
 ) -> (Int64, Int)? {
-  let work = Ref(max_work)
+  // The outer inventory already charged every root field. Only additional
+  // nested contracts spend its remaining work; this is not Ledger work or a
+  // physical refund. Keep the old leaf proof's exact exhausted-work behavior.
+  let roots = @schema.field_count(schema)
+  if max_work < 0 || roots > 2147483647 - max_work {
+    return None
+  }
+  let work = Ref(max_work + roots)
   let mut nodes = 1L
   for index in 0..<@schema.field_count(schema) {
     guard @schema.field_at(schema, index) is Some(field) &&

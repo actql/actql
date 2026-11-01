@@ -396,3 +396,19 @@ test "bounded contract node proof preserves nullable empty work depth and opaque
   ).unwrap()
   assert_true(client_local_json_contract_nodes(content, Ref(100), 100) is None)
 }
+
+///|
+test "checked node proof does not spend the original root field visits twice" {
+  let number = @contract.primitive(NumberType, nullable=false)
+  let text = @contract.primitive(StringType, nullable=true)
+  let root = @contract.object_contract(
+    [("number", number), ("text", text)],
+    nullable=false,
+    max_fields=2,
+    max_name_bytes=10,
+  ).unwrap()
+  let schema = @schema.from_object(root).unwrap()
+  // The inventory has already spent one visit for each original root field.
+  // No nested contract remains, even when that leaves zero proof work.
+  assert_eq(client_local_json_schema_nodes(schema, 0, 100), Some((3L, 0)))
+}
