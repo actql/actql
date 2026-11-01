@@ -58,6 +58,7 @@ test "saved interruption cleanup spends normal entry but retains original loans 
     borrow: Err(CleanupPending),
     slot: parent_slot,
     saved_result: None,
+    saved_snapshot: None,
     append_plan: None,
     invoked: true,
     produced: false,

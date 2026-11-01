@@ -2179,7 +2179,7 @@
     },
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
-      "sha256": "68d81095d50b3015dd221e2a9bf46c78fc735f5e7c994465947323421b6f35cf",
+      "sha256": "2272a587afb945e1cec9f705fe3ffaaa7cfe30081f0e076ed5362beeff32ff36",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "Existing Salesforce Effect installation/publication/Mapping and target-read inventory; Common row Effect governs the Set",
@@ -4093,7 +4093,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "b3a9d11f11819e13cf88c20f569568561a468651c120bbc849246ca98f4450bd",
+      "sha256": "101563a66696889883bcd1793e43265274bbc637707adcaf680fa3eca3cb1155",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -4156,6 +4156,38 @@
           "name": "captureEffectResources/captureEffectResources",
           "parameters": [
             "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureManagedDriverConstruction",
+          "parameters": [
+            "construction",
+            "definition",
+            "driver",
+            "provider"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureManagedDriverConstruction/captureManagedDriverConstruction",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureManagedDriverConstruction/own/own",
+          "parameters": [
+            "value",
+            "names"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureManagedDriverConstruction/own/own/own",
+          "parameters": [
+            "name"
           ],
           "async": false
         },
@@ -4392,7 +4424,8 @@
             "effectResources",
             "issueOriginalCollectionReference",
             "managedPlanDefinition",
-            "managedPlanRecipe"
+            "managedPlanRecipe",
+            "managedPlanConstruction"
           ],
           "async": true
         },
@@ -7946,7 +7979,11 @@
             "captureManagedPlanDefinition",
             "captureManagedPlanDefinition/array/array",
             "captureManagedPlanDefinition/fields/fields",
-            "captureManagedPlanDefinition/fields/fields/fields"
+            "captureManagedPlanDefinition/fields/fields/fields",
+            "captureManagedDriverConstruction",
+            "captureManagedDriverConstruction/captureManagedDriverConstruction",
+            "captureManagedDriverConstruction/own/own",
+            "captureManagedDriverConstruction/own/own/own"
           ],
           "exports": [],
           "attributes": {
@@ -9442,7 +9479,7 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
-      "sha256": "d5028a7493822179d7068e75bf7a45117ee4df630768385eaa871eafb5d68ebb",
+      "sha256": "26856fcec59e5a3c8e655d73b88d96c82017c31d0b6c2f690a126c5b023adced",
       "operations": [
         {
           "name": "byCid/byCid",
@@ -9478,6 +9515,7 @@
           "parameters": [
             "moon",
             "declaration",
+            "commands",
             "declared",
             "environmentWire",
             "environment",
@@ -11057,6 +11095,7 @@
         "node:path",
         "node:perf_hooks",
         "node:timers/promises",
+        "node:url",
         "node:util"
       ],
       "compilerFields": [],
@@ -15564,7 +15603,8 @@
             "construction",
             "credentialSite",
             "limits",
-            "resourceTextUnits"
+            "resourceTextUnits",
+            "requestInput"
           ],
           "async": false
         },
@@ -15616,7 +15656,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "5867a5cd3cfa21b7a31b5234e5ca386197077520baa88dffd4398d88059bf9f9",
+      "sha256": "82f69a2a6d377fad121c7ddd89c5eb4ec8c1b011fa4a045000d265ff44680e6f",
       "contracts": [
         {
           "operations": [

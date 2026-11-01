@@ -73,6 +73,41 @@ class _JournalCallbacks:
         except BaseException as error:
             return self._fail(error)
 
+    def query_copy(self, index: int, payload: bytes) -> int:
+        try:
+            original = self.request
+            if (original is None or self.failure is not None or self.queried
+                    or type(index) is not int or index != self.received
+                    or type(payload) is not bytes or not 0 < len(payload) <= 16384
+                    or index < 0 or index > len(original)
+                    or len(payload) > len(original) - index):
+                raise ValueError('Invalid original Local query block')
+            if self.check_current() != 0:
+                return -41
+            if self.request is not original or self.received != index or self.queried:
+                raise ValueError('Original Local query changed during current check')
+            original[index:index + len(payload)] = payload
+            self.received += len(payload)
+            return len(payload)
+        except BaseException as error:
+            return self._fail(error)
+
+    def row_copy(self, field: int, index: int, length: int) -> bytes:
+        original = self.row
+        if (original is None or not self.queried or self.failure is not None
+                or type(field) is not int or field not in (0, 1)
+                or type(index) is not int or index < 0
+                or type(length) is not int or not 0 < length <= 16384):
+            raise ValueError('Invalid original Local row block')
+        payload = original[0] if field == 0 else original[1].payload
+        if index > len(payload) or length > len(payload) - index:
+            raise ValueError('Original Local row block exceeds its field')
+        if self.check_current() != 0:
+            raise ValueError('Original Local row current check failed')
+        if self.row is not original or not self.queried:
+            raise ValueError('Original Local row changed during current check')
+        return payload[index:index + length]
+
     def query(self) -> int:
         try:
             if (self.request is None or self.received != len(self.request)

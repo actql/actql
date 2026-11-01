@@ -1766,6 +1766,21 @@ physical write and pre-body controls retain distinct original lifetimes. A
 secret-size check after resolution does not fund the resolver's earlier or
 failed construction; that producer must already have its own actual backing.
 
+Managed Sheets initialization captures the original configuration methods
+before its first awaited read. Its CA remains the exact original byte object
+from the initializer's observed-FD reader, without text conversion or a secret
+byte ceiling. The same context prepares the authored declaration and Mappings;
+the returned Environment and complete immutable Mapping array pass unchanged
+through the original Site service into the common Effect constructor. Missing
+initialized readers or constructors refuse rather than select raw-file,
+standalone declaration or another Environment preparation. Physical publication
+and unfinished reader/constructor migrations keep their separate obligations. The registered
+Sheets loaders require that original initializer, configuration reader and Site
+service. They have no unmanaged readPages, standalone Environment or copied
+Site-close fallback. The separate operator publication entry retains its own
+existing authorization and cleanup contract; it is not another registered
+runtime loading route.
+
 The Sheets append constructor uses the same closed literal document/cell
 builders as its actual mapper. Its immutable schema and the original Host input
 bound select native parser/index, scalar arrays, supplied-width closed-object
@@ -1779,6 +1794,224 @@ has no native output; typed None does not create an empty JSON document. Each
 present output still adds the original Host literal-JSON constructor. These
 quantities do not by themselves prove installation prelude, complete concurrent
 request/response/failed-child backing, ordinary execution or physical release.
+
+Managed Sheets grid Source uses the common standard page Reader for its single
+bounded POST. Before opening the Site, its native request constructor quantity
+is composed once with the original JSON reader quantity; the same opaque
+capacity and immutable request-byte bound reach the original Reader factory.
+An operation name or an HTTP body limit alone is not that constructor quantity.
+Replacing the selected constructor refuses without repeating the quote. The
+native quantity shares the actual grid request document builder and owns its
+schema decoding, request forest, writers and UTF8 buffers. The existing reader
+owns response parsing, projection and row work, so they are not counted again
+as another request parser. The grid retains no paging cursor or row-identity
+strings; those unused representation dimensions do not constrain cell values.
+The grid response selects the preserving Reader quote because its actual
+native parser and indexed admission retain exact keys without NFC. The generic
+normalizing Reader quote is unchanged. Literal parser construction already
+contains its key-map growth peak; the preserving quote replaces only that
+component using the same KeyAdmission constructor inventory. Parser frames and
+decoder ObjectNext frames retain at most min(nodes, depth) live map owners and
+at most nodes entries, including a pending key before refusal. Their depth
+checks precede map creation. Completed Source objects retain fields, not those
+maps; parsing and indexed admission are sequential, so one such peak covers
+both. Source/indexed trees, text, decoder controls, ancestry, buffers and
+failed-input backing remain composed independently. This changes neither
+implementation bounds nor the admitted Ledger policy and supplies no cleanup
+or physical-GC acknowledgement. Indexed object and array populations are
+mutually exclusive per Source node: their sum is bounded by the original node
+limit. The existing structural inventory is affine in those populations. The
+preserving quote therefore uses the componentwise maximum of its all-object
+and all-array endpoints for indexed storage and decoder controls/ancestry,
+rather than summing two impossible full populations. Text, parser/key-map
+peaks and retained inputs remain separate original families. No provider
+reservation is settled early; original pending cleanup and the later Compute
+reservation keep their existing lifetimes.
+The preserving implementation selection is
+immutable; missing native support or switching the selected parser recipe
+refuses rather than falling back to the generic quote.
+All declared cells remain admitted before requested-column projection. Site
+authorization, acquisition admission, before-send current checks, response
+charging and failed-child retirement remain with their original owners.
+
+The existing Sheets range and clear Catalog projection also retains the full
+canonical Command body beside that same Catalog. The shared row Environment
+constructor consumes those original bodies together with their referenced
+contracts; the installer does not append them later by rehashing a second
+Environment. Range and clear keep distinct original contracts and requests.
+This projection does not issue a ResourceRef, permission, approval, claim or
+physical cleanup acknowledgement.
+
+Initialized range and clear run their existing declaration projection inside
+the original Source constructor. The initial parent backs the Source-only base
+before its Common restore; the selected native quantity is retained before the
+same Command/Catalog builders run. Their fixed document shapes are shared with
+the quantity's template geometry, including exact role names and unchanged
+identity domains. Original schema/connector text supplies only variable extent,
+never a second semantic declaration or caller-chosen allowance. Native parse,
+index, canonical-identity workspace, escaped outputs and Host output parsing
+remain backed together with prior Source material and failed prefixes. The
+shared quantity fold retains each selected native quantity through the same
+Source lifetime. Before the closed synchronous Command projection it selects
+the full original peak. Only after its canonical wires and plain frozen
+outputs have returned, validated and been retained does the same Source
+replace that entry with its original retained-output quantity. The final
+outer declaration and definition forests, final wire and captured schema/range
+text remain charged using the existing Host units. Native parser, NFC and
+writer locals do not escape this closed call. Failed, invalid asynchronous or
+unproven construction keeps the full original peak. This selection issues no
+Resource, current observation, physical-GC acknowledgement or work refund.
+The next constructor still crosses the original current/reservation boundary;
+only its existing after-unwind reconciliation may reduce the live reservation.
+
+The completed original Command array, full declared Catalog and one Environment
+stay associated with that context. The installer forwards them unchanged to
+the same Site service and Effect owner. Default empty Mappings are merely the
+absent family; copied/nonempty Mappings or copied Commands cannot join another
+context. A failed native reservation never enters the provider projection or
+reissues its original declaration. Reentry and a second construction refuse;
+an invalid native Promise remains held until its actual computation settles,
+without turning its later result into an admitted construction. Original Site
+close, physical stop, Request admission and managed driver Plan construction
+remain distinct obligations.
+
+The native Command quote passes original decoded input lengths to the
+normalizer's scratch inventory. Its separately retained NFC outputs use the
+same canonical owner's output bound once; expanded output is not normalized
+again as a new input. The closed canonical emission calls are synchronous and
+do not expose or nest their Writer/cursor. Their completed Catalog, contract,
+Command and declaration Strings remain co-held, while the active writer
+workspace is counted once beside all retained output families. This is a
+logical live-representation bound, not a GC observation or physical ACK. The
+Source keeps the returned Command outputs until its own retirement. Other
+native construction families keep their existing conservative peak lifetime.
+
+Initialized range and clear also construct their original retained binding
+inside that SAME Source initializer, before the Effect adapter is created.
+The initializer reserves the provider's configuration/reference/binding peak
+before the projection callback and retains it through Source retirement,
+including failed construction. Fixed callback/control frames use the existing
+trusted Host baseline; variable configuration/schema/target representations
+are composed explicitly. Provider methods and their original namespace
+receiver are captured before reserve/current can reenter. The Effect adapter
+retains the original Site rather than a copied close facade; reference
+currentness comes from that Site's original current method.
+
+A completed installation retains its immutable Environment on the SAME
+initial Source material while its original Source is held. A paired Command
+Effect can retain that exact Environment only with the same original
+installation entry, connector/base input and complete final declaration wire.
+A matching CID or copied holder is insufficient. Successful initialization,
+original Source presence and logical close remain distinct facts; a failed or
+closed Source cannot supply this handoff. The same before-use current fence
+still runs without an extra Environment workspace, and reentrant loss refuses
+rather than reconstructing after selection. Each native declaration and its
+completed output quantities remain independently retained. Only the repeated
+Environment assembly is omitted, with no new permission, physical ACK or work
+refund. Uncompleted native quantities retain their original full peak.
+
+Identical complete Source and Effect Environment wires are admitted once by
+the same composer; distinct complete inputs retain their separate admission,
+policy and selector checks. The constructor reservation uses the SAME fixed
+role-input selection. It does not treat a CID match or another repeated
+occurrence as identical construction. Independent connector/Site bindings are
+still checked separately, and the Host's base policy is never replaced by a
+publication. This reuses immutable DATA, not Account, read or write authority.
+
+The installing Source also reads its protocol assets through that same
+original file reader, reserving before the actual FD read and before text
+decoding. Its existing native protocol owner quotes the stdlib Json parser,
+canonical values/keys, refusal frames and hashing writer before admission.
+This uses the original per-body canonical UTF16/node/depth limits and the
+separate cumulative canonical UTF8/node writer limits. It does not interpret
+escaped byte counts as additional generic value trees or add those trees
+again after the native peak. The full native constructor peak remains held
+on the original Source through retirement, including reservation/admission
+failure. The immutable admitted protocol holder is retained before subsequent
+current/reconcile callbacks. No second parser, protocol meaning, quota,
+Resource owner, permission or physical acknowledgement is introduced.
+
+Range/clear request payload and target serialization use the existing
+preserving canonical codec; their framed request identity hashes the original
+UTF8 parts. They do not invoke configuration NFC normalization. The native
+request quantity therefore keeps its parser/index, Json/canonical forests,
+writer, byte preimages and Host output backing without adding a normalization
+constructor that this path never calls. Binding and recovery configuration
+identity retain their distinct normalization obligations. This changes no
+payload spelling, request identity, refusal guard or installed resource ceiling.
+
+The shared Effect request constructor uses the existing preserving byte-JSON
+parser/index inventory, matching data-key Preview admission and the Native
+payload codecs. It does not add the distinct normalizing reader's NFC work.
+Input String/Bytes, indexed nodes, native provider quantities, failed prefixes
+and their original output lifetimes remain co-held. Response decoding keeps
+its own declared recipe; no response, grant, transport or recovery allowance
+is removed by selecting the request's actual decoder.
+
+Captured Effect operation multiplicity selects the SAME checked member Result
+endpoints inside the existing work-bounded schema walk. It does not replace
+Source/Compute input demand with an output count or re-lower another Program.
+An original literal cross-join output guard can bound successful Result rows
+even when an upstream Source cardinality is unknown; it neither truncates a
+failed join nor proves its input demand. Missing/parameter/unknown facts keep
+the original executor fallback. Multiple members remain separate occurrences,
+even when they share the same immutable extent or Result owner. The existing
+Request reserves the extra fixed endpoint-selection scratch before calling the
+Plan constructor, and the Plan uses that same constructor quantity. General
+Compute inventories retain their original complete-node scope.
+
+The actual range/clear driver supplies its same immutable Command definition,
+constructor descriptor and original native binding profile to the existing
+standard Effect Plan composer. It does not supply an independently handwritten
+operation table or a second recipe calculator. The existing checked proposal
+input bounds apply to per-row request construction; the complete Preview
+bounds independently apply to capture/recovery. Native profiles return opaque
+typed quantities and parse limits directly through the bridge. The shared Core
+fold adds the original fixed and per-row capture peaks once, alongside its
+existing request/response/credential/HTTP/control quantities. Request building,
+response decoding, saved recovery and failed prefixes remain distinct live
+representations. These quotes admit no Run, permission, physical attempt,
+release, retry or cleanup acknowledgement, and do not change implementation
+limits or original request/marker/identity domains.
+
+An original range/clear request retains its native binding and immutable
+projected target. Subsequent CID, recheck and send boundaries use the existing
+private original-request association and native binding admission, with current
+installation checks kept separately. They do not reparse the same admitted
+target before every CID access. A new selector still passes the original native
+request constructor's target check. Foreign/copied failure paths retain the
+existing target-first diagnostic and cannot acquire original provenance by
+passing that diagnostic check. New-selector refusal still precedes value
+encoding and clear-marker generation. Within the original private binding,
+exact canonical text reuses its admitted immutable DATA; different spellings
+retain the previous complete parse/canonical comparison, including accepted
+noncanonical equivalents. This does not retain current permission or a physical
+read decision.
+
+A range/clear Source uses the same managed Reader for both grid rows and its
+single metadata-verified range reference. Metadata GET construction is shared
+with the existing Effect metadata check; callback return is not response charge
+or physical completion. The original metadata codec sees every declared column
+before that same original reference is emitted. The initialized normal entrance
+has no parallel `readPages` transport factory.
+
+The reference itself has the installation's lifetime, beyond any individual
+Run's Reader. Its original native constructor therefore runs only after the
+same Source initializer reserves its separate full peak. The exact returned
+reference, declaration, Command and Environment stay retained there, including
+failed and invalid asynchronous construction. Per-Run reader construction uses
+the maximum of its mutually exclusive grid and metadata callback quantities;
+it does not combine two simultaneous full native parses. Source/index, received
+response, projected output and failed-child overlap remain in the same common
+preserving Reader recipe. Native optional quantities pass unchanged through
+the Host; typed Core consumes their Options before composing allowances.
+
+The exact installed Source adapter is returned, not a copied close facade.
+Reference currentness uses the original Site's captured synchronous method and
+receiver, so requested close denies later reference use while physical cleanup
+continues under the existing owners. Source initialization completion still
+requires the same retained adapter; no reference or close callback supplies a
+new admission, permission or cleanup acknowledgement.
 
 A synchronous request constructor returning a native Promise is invalid, but
 its original task stays in the same capture child until settlement. Observation

@@ -85,6 +85,54 @@ pub fn client_program_installed_source_construction_capacity(
 }
 
 ///|
+#export_name("clientProgramComposeInstalledSourceConstructionCapacity")
+pub fn client_program_compose_installed_source_construction_capacity(
+  original : @execution.ExecutionCapacity,
+  providers : Array[@execution.ExecutionCapacity?],
+) -> Result[@execution.ExecutionCapacity, @resources.PreparationCapacityIssue] {
+  // Native constructor quotes return this original Option. Consume it in
+  // typed Core; the Host forwards it unchanged and never guesses/reboxes its
+  // compiler representation or uses an absent quote as an allowance.
+  let selected = []
+  for provider in providers {
+    guard provider is Some(provider) else {
+      return Err(@resources.InvalidExtent)
+    }
+    selected.push(provider)
+  }
+  match
+    @client_local_host.compose_installed_source_construction_capacity(
+      original, selected,
+    ) {
+    Some(value) => Ok(value)
+    None => Err(@resources.InvalidExtent)
+  }
+}
+
+///|
+/// Keep the original optional quantity in typed Core. This is DATA only;
+/// selecting its retained part neither proves constructor completion nor
+/// issues or retires a Resource. No Host-side Option layout is constructed.
+#export_name("clientProgramInstalledSourceRetainedConstructionCapacity")
+pub fn client_program_installed_source_retained_construction_capacity(
+  original : @execution.ExecutionCapacity?,
+) -> Result[@execution.ExecutionCapacity?, @resources.PreparationCapacityIssue] {
+  guard original is Some(capacity) else { return Err(@resources.InvalidExtent) }
+  if @execution.execution_capacity_retained_bytes(capacity) ==
+    @execution.execution_capacity_execution_bytes(capacity) {
+    Ok(original)
+  } else {
+    Ok(
+      Some(
+        @client_local_host.retained_installed_source_construction_capacity(
+          capacity,
+        ),
+      ),
+    )
+  }
+}
+
+///|
 #export_name("clientProgramReserveInstalledSourceConstruction")
 pub fn client_program_reserve_installed_source_construction(
   owner : @resources.PreparationCapacity[

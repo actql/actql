@@ -231,6 +231,8 @@ pub fn bind_client_query_evaluation_time(ClientQueryTimePreparation, PreparedCli
 
 pub fn bind_client_query_time_sequence(PreparedClientProgram, Int, @execution_relation.GeneratedSequence, ClientQueryTimePreparation, ClientRequestIdentity, Int, Int) -> Result[@execution_relation.GeneratedSequence, ClientQueryTimeIssue]
 
+pub fn bind_client_saved_submission_task_materials(ClientSavedSubmissionSnapshot, ClientTaskRunMaterials) -> Result[ClientSavedTaskMaterials, ClientSavedTaskMaterialsIssue]
+
 pub fn bind_client_serialization_completed_input(@lowering_relation.PreparedSerialization, @execution_relation.CompletedOutput, @run_publication.ContentByteEncoder) -> Result[ClientSerializationInput, ClientSerializationInputIssue]
 
 pub fn bind_client_serialization_input_identity(ClientCompiledRun, ClientSerializationInput, @execution_relation.CompletedRelationExportReceipt, Int, Int, Int) -> Result[ClientSerializationInputEvidence, @run_publication.RunEvidenceValueIssue]
@@ -1123,6 +1125,14 @@ pub fn client_saved_submission_run_row(ClientSavedSubmissionSnapshot) -> ClientJ
 
 pub fn client_saved_submission_state_original(ClientSavedSubmissionSnapshot) -> ClientRunStateOriginal?
 
+pub fn client_saved_submission_task_materials_original(ClientSavedSubmissionSnapshot) -> String?
+
+pub fn client_saved_task_materials_input(ClientSavedTaskMaterials) -> ClientTaskRunMaterialsRetainedInput
+
+pub fn client_saved_task_materials_intent(ClientSavedTaskMaterials) -> ClientSubmittedIntent
+
+pub fn client_saved_task_materials_snapshot(ClientSavedTaskMaterials) -> ClientSavedSubmissionSnapshot
+
 pub fn client_serialization_byte_holding_cid(ClientCompiledRun, @run_publication.PublicationContract, String) -> String?
 
 pub fn client_serialization_generation_capture(ClientSerializationGeneration) -> @run_publication.BoundContentGeneration?
@@ -1279,6 +1289,10 @@ pub fn client_task_fragment_output_port(ClientTaskFragmentNode) -> String
 
 pub fn client_task_fragment_wire(ClientTaskFragmentNode) -> String
 
+pub fn client_task_material_original_chunks(String, String) -> Result[Array[(String, String)], ClientJournalEncodingIssue]
+
+pub fn client_task_material_original_cid(String) -> Result[String, ClientJournalEncodingIssue]
+
 pub fn client_task_plan_graph_wire(ClientTaskPlanGraph) -> String
 
 pub fn client_task_run_binding_definition_cid(ClientTaskRunBinding) -> String
@@ -1286,6 +1300,16 @@ pub fn client_task_run_binding_definition_cid(ClientTaskRunBinding) -> String
 pub fn client_task_run_binding_result_names(ClientTaskRunBinding) -> Array[String]
 
 pub fn client_task_run_materials_compiled_original(ClientTaskRunMaterials) -> Result[ClientCompiledRun, ClientCompiledRunIssue]
+
+pub fn client_task_run_materials_retained_document(ClientTaskRunMaterialsRetainedInput) -> String
+
+pub fn client_task_run_materials_retained_environment(ClientTaskRunMaterialsRetainedInput) -> String
+
+pub fn client_task_run_materials_retained_input(ClientTaskRunMaterials) -> ClientTaskRunMaterialsRetainedInput
+
+pub fn client_task_run_materials_retained_parameters(ClientTaskRunMaterialsRetainedInput) -> String?
+
+pub fn client_task_run_materials_retained_program(ClientTaskRunMaterialsRetainedInput) -> PreparedClientProgram
 
 pub fn client_task_static_plan_view(PreparedClientProgram, ClientTaskCompilation, Int, Int, Int, inspect_installed? : Bool) -> Result[String, ClientInteractivePlanIssue]
 
@@ -1871,7 +1895,7 @@ pub fn prepare_client_run_cancellation(@run_publication.PublicationContract, Str
 
 pub fn prepare_client_run_captured_content(ClientCompiledRun, @run_publication.PublicationContract, ClientKeyedAcquisition, ClientKeyedRequest, String, String, String, Int, @value_admission.ReferenceLimits) -> Result[ClientCapturedContent, @run_publication.GeneratedContentReferenceIssue]
 
-pub fn[E] prepare_client_run_journal_append(ClientRequestIdentity, @run_publication.PublicationContract, Int, (String, String) -> Result[ClientJournalPhysicalRow?, E], (String, String) -> Result[ClientJournalPhysicalRow?, E], (ClientJournalPhysicalRow) -> Result[ClientRunJournalInspection, E], () -> Result[Unit, E], E, local_policy_original? : ClientLocalRunPolicyOriginal?, run_observation_originals? : ClientRunObservationOriginals?) -> Result[ClientRunJournalAppendPlan, ClientRunJournalAppendIssue[E]]
+pub fn[E] prepare_client_run_journal_append(ClientRequestIdentity, @run_publication.PublicationContract, Int, (String, String) -> Result[ClientJournalPhysicalRow?, E], (String, String) -> Result[ClientJournalPhysicalRow?, E], (ClientJournalPhysicalRow) -> Result[ClientRunJournalInspection, E], () -> Result[Unit, E], E, local_policy_original? : ClientLocalRunPolicyOriginal?, run_observation_originals? : ClientRunObservationOriginals?, task_materials_cid? : String?, publication_policy_originals? : String?) -> Result[ClientRunJournalAppendPlan, ClientRunJournalAppendIssue[E]]
 
 pub fn prepare_client_run_physical_start(ClientRequestIdentity, ClientRequestIdentity, @run_publication.PublicationContract, String, Bool, Bool, Bool, cancellation_requested? : Bool, pre_start_failure_confirmed? : Bool) -> Result[Bool, ClientRunStartIssue]
 
@@ -2066,6 +2090,8 @@ pub fn read_client_run_policy_originals(String) -> Result[Array[@run_publication
 pub fn[E] read_client_saved_run_reference(String, String, String, (String, String) -> Result[ClientJournalPhysicalRow?, E], (ClientJournalPhysicalRow) -> Result[ClientRunJournalInspection, E], E) -> Result[ClientSavedSubmissionSnapshot, E]
 
 pub fn[E] read_client_saved_submission(ClientSubmissionReferenceRecord, (String, String) -> Result[ClientJournalPhysicalRow?, E], (ClientJournalPhysicalRow) -> Result[ClientRunJournalInspection, E], E) -> Result[ClientSavedSubmissionSnapshot?, E]
+
+pub fn[E] read_client_task_material_original(String, String, (String, String) -> Result[ClientJournalPhysicalRow?, E], E) -> Result[String, E]
 
 pub fn read_client_worker_resource_original(Bytes) -> Result[@physical_resources.UnresolvedBackedExecutionOriginal, ClientLocalOriginalCodecIssue]
 
@@ -4103,6 +4129,7 @@ pub(all) struct ClientRunJournalEncoding {
   publication_binding : String?
   publication_policy_originals : String?
   effect_material_originals : String?
+  task_materials_cid : String?
   checkpoint : String?
 }
 
@@ -4110,6 +4137,7 @@ pub(all) struct ClientRunJournalInspection {
   request : ClientRequestIdentity
   definition : @run_publication.PublicationContract
   checkpoint : Array[@effect_application.EffectLedgerEntry]?
+  task_materials_cid : String?
 }
 
 pub(all) struct ClientRunMaterials {
@@ -4192,6 +4220,7 @@ pub struct ClientSavedSubmissionSnapshot {
   run : ClientJournalPhysicalRow?
   inspection : ClientRunJournalInspection?
   state_original : ClientRunStateOriginal?
+  task_materials : String?
 }
 
 pub(all) enum ClientSavedSubmissionViewIssue {
@@ -4200,6 +4229,18 @@ pub(all) enum ClientSavedSubmissionViewIssue {
   UnrepresentableRevision
   Encoding
 } derive(Eq, @debug.Debug)
+
+pub struct ClientSavedTaskMaterials {
+  snapshot : ClientSavedSubmissionSnapshot
+  input : ClientTaskRunMaterialsRetainedInput
+}
+
+pub(all) enum ClientSavedTaskMaterialsIssue {
+  MissingOriginal
+  CustodyLost
+  Compilation(ClientCompiledRunIssue)
+  Binding(ClientRunBindingIssue)
+}
 
 pub struct ClientSerializationCapturedInput {
   owner : PreparedClientProgram
@@ -4609,6 +4650,7 @@ pub(all) struct ClientTaskRunMaterials {
   compilation : ClientTaskCompilation
   admission : @run_publication.RunPublicationAdmission
   run_definition : @run_publication.PublicationContract
+  retained_input : ClientTaskRunMaterialsRetainedInput
 }
 
 pub(all) enum ClientTaskRunMaterialsIssue {
@@ -4618,6 +4660,14 @@ pub(all) enum ClientTaskRunMaterialsIssue {
   Definition(@run_publication.RunPublicationAdmissionIssue)
   RunMismatch
   Binding(ClientTaskRunBindingIssue)
+}
+
+pub struct ClientTaskRunMaterialsRetainedInput {
+  prepared : PreparedClientProgram
+  materials_wire : String
+  program : String
+  environment_wire : String
+  parameters_wire : String?
 }
 
 pub(all) enum ClientTaskSequenceIssue {

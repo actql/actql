@@ -229,6 +229,20 @@ pub fn client_values_host_effectful_final_run_reconciliation_state(
 }
 
 ///|
+#export_name("clientValuesHostEffectfulFinalRunFailedState")
+pub fn client_values_host_effectful_final_run_failed_state(
+  value : @publication.EffectfulFinalRunEvidence,
+  updated_at : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, @publication.RunStateIssue] {
+  @publication.effectful_final_run_evidence_failed_state(
+    value, updated_at, max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
 /// The returned original index is checked immutable publication DATA, never
 /// an observation that the Store committed it or released physical resources.
 #export_name("clientValuesHostValidateRetainedEffectfulPublicationCommit")

@@ -10,6 +10,7 @@ from actql_sdk._local_storage import LocalStorageCommitUnknown, LocalStorageErro
 import test_local_sdk_read_original as nominal_fixture
 import test_local_retained_delivery_codecs as delivery_fixture
 import test_local_reader_facts as file_fixture
+from local_abi_declaration_fixture import original_byte_fixture_port
 
 
 class SDKTerminalPortTests(unittest.TestCase):
@@ -47,7 +48,7 @@ class SDKTerminalPortTests(unittest.TestCase):
         def close(*_):
             del core._loans[first.ticket]
             return 0
-        core._call = close
+        core._call = original_byte_fixture_port(close)
         with self.assertRaises(ValueError): core.observe_publication_sdk_terminal(first, 23)
         self.assertIs(core._loans[clock.ticket], clock)
 
@@ -93,7 +94,7 @@ class SDKTerminalStoreTests(unittest.TestCase):
             if family == 'buffer' and name == 'byte' and args[0] in outputs:
                 return outputs[args[0]][args[1]]
             return previous(family, name, *args)
-        core._call = call
+        core._call = original_byte_fixture_port(call)
         return holder, store, core, request, first, clock, state, calls, rows
 
     def test_success_is_observed_in_new_transaction_not_precommit_callback(self):

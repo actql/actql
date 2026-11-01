@@ -75,6 +75,7 @@ fn local_observation_validate(
     request: record.request,
     definition: record.definition,
     checkpoint: None,
+    task_materials_cid: record.task_materials_cid,
   })
 }
 

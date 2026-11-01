@@ -13,6 +13,7 @@ from actql_sdk._local_observation_transfer import OriginalObservationTransfer
 from actql_sdk._local_storage import LocalStorageError
 from actql_sdk._local_store_reconciliation import OriginalStoreReconciliation
 import test_local_reader_facts as original_fixture
+from local_abi_declaration_fixture import original_byte_fixture_port
 
 
 class StoreReconciliationTests(unittest.TestCase):
@@ -78,7 +79,7 @@ class StoreReconciliationTests(unittest.TestCase):
                 calls.append((family, name, args))
                 return -9
             return original_call(family, name, *args)
-        core._call = call
+        core._call = original_byte_fixture_port(call)
         transfers = [OriginalObservationTransfer(
             projection, publisher, max_source_bytes=512, max_packet_bytes=512,
             cleanup=lambda: state['transfer_cleanup'], stopped=lambda _: not state['borrow'],
@@ -262,7 +263,7 @@ class StoreReconciliationTests(unittest.TestCase):
                 if family == 'publication' and name == 'finish_observation':
                     os.utime(path/'payload-original', ns=(1, 1))
                 return result
-            core._call = call
+            core._call = original_byte_fixture_port(call)
             with self.assertRaises(LocalFileError):
                 caller.finish()
             self.assertIs(facts.pending_input, metadata)

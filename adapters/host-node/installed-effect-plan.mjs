@@ -43,7 +43,7 @@ export function captureInstalledStandardCreateLimits(providerMoon) {
 // constructor facts. This is a private installing-code path, not user tuning,
 // a new Provider framework, a Run admission or a replacement cleanup owner.
 export function prepareInstalledStandardCreatePlanRecipe({moon, providerMoon, construction, credentialSite, limits,
-  resourceTextUnits}) {
+  resourceTextUnits, requestInput = limits}) {
   if (construction === undefined || construction.check === null ||
       credentialSite?.construction === undefined ||
       !Number.isSafeInteger(resourceTextUnits) || resourceTextUnits < 0) {
@@ -61,12 +61,17 @@ export function prepareInstalledStandardCreatePlanRecipe({moon, providerMoon, co
     return (...args) => Reflect.apply(field.value, receiver, args);
   };
   const profile = originalMethod(providerMoon, 'installedStandardCreateConstructionProfile');
-  const capacitiesFor = originalMethod(moon, 'clientProgramInstalledStandardCreateRecipeCapacities');
+  const captureField = Object.getOwnPropertyDescriptor(providerMoon, 'installedStandardDriverCaptureConstructionCapacity');
+  const captureProfile = captureField === undefined ? undefined
+    : originalMethod(providerMoon, 'installedStandardDriverCaptureConstructionCapacity');
+  const capacitiesFor = originalMethod(moon, captureProfile === undefined
+    ? 'clientProgramInstalledStandardCreateRecipeCapacities' : 'clientProgramInstalledStandardDriverRecipeCapacities');
   const extentFor = originalMethod(moon, 'clientProgramInstalledEffectOperationExtentFromCapacityPrepare');
   const captureFor = originalMethod(moon, 'clientProgramInstalledEffectCaptureExtentPrepare');
   const {write, check} = construction;
   const secret = credentialSite.construction;
   if (![write.maxRequestBytes,write.maxResponseBytes,limits.maxWireBytes,limits.maxNodes,limits.maxDepth,
+    requestInput?.maxWireBytes,requestInput?.maxNodes,requestInput?.maxDepth,
     secret.limits?.maxSecretBytes,httpsCredentialResponseHeaderByteLimit,
     ...(check === undefined ? [] : [check.maxRequestBytes,check.maxResponseBytes])]
     .every(value => Number.isSafeInteger(value) && value > 0 && value <= 2147483647)) {
@@ -77,7 +82,9 @@ export function prepareInstalledStandardCreatePlanRecipe({moon, providerMoon, co
   let units = BigInt(construction.metadataTextUnits) + BigInt(resourceTextUnits);
   for (const value of Object.values(secret.scope)) if (typeof value === 'string') units += BigInt(value.length);
   for (const value of Object.values(secret.issuer)) units += BigInt(value.length);
-  const capacities = checked(capacitiesFor(profile(limits.maxWireBytes, limits.maxNodes, limits.maxDepth), limits.maxWireBytes, limits.maxNodes, limits.maxDepth,
+  const capacities = checked(capacitiesFor(profile(requestInput.maxWireBytes, requestInput.maxNodes, requestInput.maxDepth),
+    ...(captureProfile === undefined ? [] : [captureProfile(limits.maxWireBytes,limits.maxNodes,limits.maxDepth,
+      requestInput.maxWireBytes,requestInput.maxNodes,requestInput.maxDepth)]), limits.maxWireBytes, limits.maxNodes, limits.maxDepth,
     write.maxRequestBytes, write.maxResponseBytes, check?.maxRequestBytes ?? 0, check?.maxResponseBytes ?? 0,
     check?.beforeSend === true, secret.limits.maxSecretBytes, httpsCredentialAuthorizationPrefix.length,
     httpsCredentialResponseHeaderByteLimit, effectLedgerImplementationBounds.maxResponseBytes,

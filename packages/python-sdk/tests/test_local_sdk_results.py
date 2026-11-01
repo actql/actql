@@ -10,6 +10,7 @@ from actql_sdk._local_product import LocalProductCleanupPending
 from actql_sdk._local_storage import LocalStorageError
 import test_local_sdk_preflight as preflight_fixture
 import test_local_sdk_start as start_fixture
+from local_abi_declaration_fixture import original_byte_fixture_port
 
 
 class SDKResultAssemblyTests(unittest.TestCase):
@@ -101,7 +102,7 @@ class SDKResultAssemblyTests(unittest.TestCase):
                     elif name not in ('prepare', 'finish'): self.fail('Unexpected publication operation ' + name)
                     return 0
             return previous(family, name, *args)
-        core._call = call
+        core._call = original_byte_fixture_port(call)
         return host, core, compute, preflight, publisher, calls, failures
 
     def test_core_selected_tasks_and_original_result_reach_receipt_without_ack_or_row_copy(self):

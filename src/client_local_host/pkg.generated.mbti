@@ -328,6 +328,8 @@ pub fn[I] complete_request_program_preparation(ClientRequestPreparation[I], I, C
 
 pub fn[I] complete_request_serialization_preparation(ClientRequestPreparation[I], I, ClientInstalledManagedSerializationPreparation) -> Result[Unit, ClientRequestPreparationIssue]
 
+pub fn compose_installed_source_construction_capacity(@execution_relation.ExecutionCapacity, Array[@execution_relation.ExecutionCapacity]) -> @execution_relation.ExecutionCapacity?
+
 pub fn configure_source_free_effect_local_retained_host(@run_publication_host.PreparedClientEffectRun, @physical_strategy_host.CapturedEffectRunDAG, ClientInstalledSequenceContracts, String, String?, String?) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]?
 
 pub fn[I, P] construct_program_json_preparation(ClientProgramJsonPreparation[I, P]) -> Result[Unit, ClientProgramJsonPreparationIssue]
@@ -414,6 +416,8 @@ pub fn installed_json_effect_response_construction_capacity(@execution_relation.
 
 pub fn installed_json_source_reader_capacity(Array[Int], Int, Int) -> @execution_relation.ExecutionCapacity?
 
+pub fn installed_json_source_reader_capacity_with_request(Array[Int], Int, Int, @execution_relation.ExecutionCapacity?) -> @execution_relation.ExecutionCapacity?
+
 pub fn installed_json_source_reader_profile(Int, Int) -> Array[Int]?
 
 pub fn installed_keyed_row_limits(Int, Int, Int) -> @client_row_source_host.RowKeyedLimits
@@ -456,6 +460,8 @@ pub fn installed_pending_duckdb_capture_capacity(ClientDuckDBCaptureCapacity) ->
 
 pub fn installed_preparation_payload_severed(ClientInstalledManagedRun, @run_publication_host.ClientRequestIdentity) -> Bool
 
+pub fn installed_preserving_json_source_reader_capacity_with_request(Array[Int], Int, Int, @execution_relation.ExecutionCapacity?) -> @execution_relation.ExecutionCapacity?
+
 pub fn installed_provider_row_capture_capacity(@client_row_source_host.RowAcquisition, @execution_relation.ExecutionCapacity?) -> ClientInstalledCaptureCapacity?
 
 pub fn installed_provider_row_capture_capacity_matches(ClientInstalledCaptureCapacity, @client_row_source_host.RowAcquisition, @execution_relation.ExecutionCapacity) -> Bool
@@ -473,6 +479,8 @@ pub fn installed_source_reader_policy() -> Array[Int]
 pub fn installed_standard_create_constructor_capacities(Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?) -> Result[Array[@execution_relation.ExecutionCapacity], ClientInstalledManagedRunIssue]
 
 pub fn installed_standard_create_recipe_capacities(Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?, Int, Int, Int, Int, Int, Int, Int, Bool, Int, Int, Int, Int, Int, Int, Int64) -> Result[Array[@execution_relation.ExecutionCapacity], ClientInstalledManagedRunIssue]
+
+pub fn installed_standard_driver_recipe_capacities(Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?, Array[@execution_relation.ExecutionCapacity]?, Int, Int, Int, Int, Int, Int, Int, Bool, Int, Int, Int, Int, Int, Int, Int64) -> Result[Array[@execution_relation.ExecutionCapacity], ClientInstalledManagedRunIssue]
 
 pub fn installed_whole_source_acquisition(ClientInstalledWholeSourceCapacity) -> @client_row_source_host.RowInputAcquisition
 
@@ -873,6 +881,8 @@ pub fn restore_accounted_client_source_capture(@query_planning.QueryRequirement,
 pub fn restore_client_source_capture(@query_planning.QueryRequirement, String, String, String, String, Array[String], () -> Bool, reference_issuer? : @value_admission.ReferenceIssuer) -> Result[ClientSourceCapture, ClientSourceCaptureIssue]
 
 pub fn retain_accounted_client_source_capture_task(ClientAccountedSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Result[Unit, ClientSourceCaptureIssue]
+
+pub fn retained_installed_source_construction_capacity(@execution_relation.ExecutionCapacity) -> @execution_relation.ExecutionCapacity
 
 pub fn retire_installed_effect_capture_recovery(ClientInstalledEffectCaptureRecovery) -> Result[Unit, ClientInstalledManagedRunIssue]
 

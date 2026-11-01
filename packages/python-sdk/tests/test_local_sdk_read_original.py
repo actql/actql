@@ -9,6 +9,7 @@ from actql_sdk._local_core import (
     _PUBLICATION_COMMIT_EXPORT_SIGNATURES,
 )
 import test_local_commit_store_caller as original_fixture
+from local_abi_declaration_fixture import original_byte_fixture_port
 
 
 class SDKReadOriginalTests(unittest.TestCase):
@@ -24,7 +25,7 @@ class SDKReadOriginalTests(unittest.TestCase):
         def call(family, name, *args):
             calls.append((family, name, args))
             return status[0]
-        core._call = call
+        core._call = original_byte_fixture_port(call)
         return core, source, output, calls, status
 
     def test_closed_signature_and_exact_original_loans_are_forwarded(self):
@@ -116,7 +117,7 @@ class SDKReadOriginalProjectionTests(unittest.TestCase):
             if family == 'buffer' and name == 'byte' and args[0] in outputs:
                 return outputs[args[0]][args[1]]
             return original_call(family, name, *args)
-        core._call = call
+        core._call = original_byte_fixture_port(call)
         return core, parent, request, projection, calls, state, identity, body
 
     def test_synchronous_pair_consumption_keeps_request_and_original_parent(self):

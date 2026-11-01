@@ -16,6 +16,7 @@ import {setImmediate as yieldEventLoop} from 'node:timers/promises';
 import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
 import {validInstallationBinding} from './ordinary-source-binding.mjs';
 import {isAbsolute} from 'node:path';
+import {fileURLToPath} from 'node:url';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {prepareOriginalSourceQuery} from './original-query-preparation.mjs';
@@ -40,7 +41,7 @@ import {readBoundedConfigurationText} from './source-profile-json.mjs';
 import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
 import {bindClientSourceOperationRowRun} from './client-source-operation.mjs';
 import {assertInstalledSourceConstruction, retainInstalledSourceConstruction,
-  closeInstalledSourceConstruction, prepareInstalledSourceAcquisitionContracts} from './installed-host-services.mjs';
+  closeInstalledSourceConstruction, prepareInstalledSourceAcquisitionContracts, readInstalledSourceAcquisitionContract} from './installed-host-services.mjs';
 
 const fail = (code, cause) => {
   throw Object.assign(new Error(code, {cause}), {code});
@@ -1242,7 +1243,7 @@ export async function openRowSourceCredentialSite({profile, principalId,
 // observation remain the installed driver's responsibility; this is no grant.
 // ordinary rows use consumePage. Completion is never the driver's return alone;
 // `physicalTarget(resource, fields)` the exact target an approval covers.
-export async function createInstalledRowSource({moon, declaration,
+export async function createInstalledRowSource({moon, declaration, commands,
   declared, environmentWire, environment, sourceInitialization, connectorId, connectorRegistration,
   connectorRevision, site, authorization, readOperation, physicalTarget,
   readPages, bindingCid, limits, referenceIssuer, listingPolicy, captureContent,
@@ -1251,7 +1252,7 @@ export async function createInstalledRowSource({moon, declaration,
   prepareSourceRead, closeSourceRead, prepareKeyedSourceRead, closeKeyedSourceRead,
   originalKeyedTransport, readAsset, originalPageLimits}) {
   const readerDemand = sourceInitialization === undefined ? undefined
-    : assertInstalledSourceConstruction(sourceInitialization, declaration, declared, environment, providerReader);
+    : assertInstalledSourceConstruction(sourceInitialization, declaration, declared, environment, providerReader, undefined, commands);
   const retainedAcquisitionContracts = sourceInitialization !== undefined && prepareAcquisition === undefined;
   const prepareWithContracts = !retainedAcquisitionContracts ? undefined
     : moon.clientProgramRowSourcePrepareAcquisitionWithContracts;
@@ -1384,7 +1385,9 @@ export async function createInstalledRowSource({moon, declaration,
   }
   const [queryContract, evidenceContract] = readAsset === undefined
     ? await Promise.all(['actql-query-acquisition.json', 'actql-query-process-evidence.json']
-      .map(name => readFile(new URL(name, contractRoot), 'utf8')))
+      .map(name => retainedAcquisitionContracts
+        ? readInstalledSourceAcquisitionContract(sourceInitialization, fileURLToPath(new URL(name,contractRoot)))
+        : readFile(new URL(name, contractRoot), 'utf8')))
     : ['actql-query-acquisition.json', 'actql-query-process-evidence.json']
       .map(name => readAsset(`spec/contracts/${name}`));
   if (typeof queryContract !== 'string' || typeof evidenceContract !== 'string') {

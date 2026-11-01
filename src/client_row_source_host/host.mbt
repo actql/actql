@@ -157,7 +157,14 @@ struct RowAcquisition {
 
 ///|
 fn admit_contract(body : String) -> @identity.CanonicalValue? {
-  Some(@identity.from_json(@json.parse(body), 10000, 100, 100000)) catch {
+  Some(
+    @identity.from_json(
+      @json.parse(body),
+      row_contract_nodes,
+      row_contract_depth,
+      row_contract_input_utf16,
+    ),
+  ) catch {
     _ => None
   }
 }
@@ -173,9 +180,7 @@ pub fn admit_row_acquisition_contracts(
   guard admit_contract(query_contract_body) is Some(query_contract) &&
     admit_contract(evidence_contract_body) is Some(evidence_contract) &&
     @planning.admit_query_evidence_contracts(
-      query_contract,
-      evidence_contract,
-      { max_bytes: 100000, max_nodes: 10000, max_depth: 100, },
+      query_contract, evidence_contract, row_contract_emit_limits,
     )
     is Ok(contracts) else {
     return Err(InvalidContracts)

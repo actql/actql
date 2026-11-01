@@ -67,6 +67,12 @@ Check allowance while preserving the smaller existing metadata-response limit.
 It does not turn a report into a reusable checked Program or bypass ordinary
 submission checking and current authorization.
 
+When an in-process Local submission loses its response or refuses its response
+wire, the SDK's existing Unknown carrier retains the same underlying Local
+failure for diagnosis. That reference supplies no retry or nonexecution proof.
+Remote transport diagnostics remain private, and cancellation retains its
+original carrier rather than becoming Unknown.
+
 ## Durable SDK Run observations
 
 Fresh Local acceptance issues the existing observation counter/key marker in the
@@ -1619,7 +1625,63 @@ commit a Store, acknowledge publication, issue publisher permission or decide
 Run completion. ABI33 artifacts are rejected by the current strict loader;
 prior immutable evidence retains its original source and module identity.
 
+## Bounded ordinary transfers
+
+Private ABI82 restores bounded block transfers at the existing Python/Core
+boundary. The ordinary installed Host uses up to 16384 bytes for each input,
+output, Journal query/row and publisher-fact copy. This is physical transport
+of the same original bytes, not another decoder, Owner or authorization path.
+The same output/input reservation, fixed original VM and original scoped
+reader/transaction remain retained. All existing current checks, full row
+comparison, limits, publication facts and physical cleanup rules still apply.
+
+Core obtains only a source-pinned wasm32 payload offset through a private
+`#borrow` entrance. Python accepts only the same entered instance's exported,
+nonshared fixed memory, checks the complete bounded range, copies synchronously
+and checks original currentness/loan identity afterward. No address or view is
+public, retained beyond copying or used as a Run, grant or cleanup identity.
+An incomplete transfer refuses without caching a partial output. The original
+constructor reserves the bounded Host temporary and the small-output overlap
+before allocation; the original wire limit, pool and parent remain unchanged.
+Insufficient backing refuses instead of omitting that charge. A failure retains
+the same original ticket and cleanup duties; no physical ACK follows from
+copying bytes.
+
+The separately selected raw diagnostic facade retains `fill`, `byte` and
+`read_packed`. Ordinary input/output use `fill_block` and `read_block`; a refused
+block never falls back to scalar transfer or an older module. This changes no
+wire, CID, schema, pool allowance, fuel or Run/Read law. The block-size bound is
+a transfer bound and is not a claim about whole Python/SQLite memory or normal
+latency.
+
 ## Physical publication metadata transactions
+
+The separately selected raw diagnostic ABI retains the ABI81 transport of up to
+seven original output bytes per nonnegative
+Int64 scalar. The same instance nonce and original buffer handle are retained;
+each selected byte passes the existing Buffer Owner guard. Count, position and
+closed/foreign access still refuse without exposing a partial scalar. Python
+unpacks only into its already reserved bounded destination and retains the same
+output loan through complete copying and physical cleanup. This changes no
+wire bytes, parser, authority, pool allowance or per-operation fuel. It exposes
+no raw address or memory view and supplies no legacy-module fallback.
+
+The focused raw Wasmtime consumer also checks the external signed Int64 ABI
+with independently authored UTF-8/CRLF bytes and a packed value above 2^53.
+This unmetered diagnostic establishes neither ordinary Run funding nor a
+physical cleanup acknowledgement.
+
+
+Fixed identity fields use the existing output Owner with their original 71-byte
+SHA-256 CID or 64-byte index-key bound. Full contract bodies keep the existing
+one-MiB envelope. Both field loans and their physical copies remain retained
+through the synchronous Store consumer; a refused reservation or cleanup keeps
+the same original children. The bounded scalar constructor does not enlarge
+the pool, reduce a charge, grant a read or replace the current original view.
+Its declared bound accounts for the actual field and refuses a larger produced
+wire. Private ABI80 adds this constructor while retaining the original full
+body constructor and all existing parent/current/borrow checks.
+
 
 The installed Python Host can attach one opaque metadata batch to several
 original payload records with `LocalByteStore.compare_exchange_many_attached`.
@@ -2825,7 +2887,81 @@ This returns only their transfer allowance. Saved files, metadata originals,
 the Store, current fences and actual physical owners remain retained. A refused
 close keeps the same partial installation and cannot trigger another bootstrap.
 
+After a publication has been attempted, its Host-wide pending-write routing
+pair blocks another write until the same original observation admits and
+re-exports the complete stored index under the actual File, Store, current and
+publisher checks. Only that transient routing pair is then retired. The
+observation, original publisher, Core loans and per-publication attempted ticket
+remain retained, so the original publication cannot be replayed. Unknown,
+missing or refused index exports preserve the pending pair. The observation
+action alone is neither acknowledgement nor a public RunState observation.
+
+### Original observation data within one Host operation
+
+The ordinary Host records a private monotone operation generation only after
+entering its existing serialized operation. It is DATA, not a Run, continuation,
+request identity, grant, instruction refill or authority decision. The generation
+is cleared on exit. Raw diagnostic calls and every cleanup phase use the full
+observation path. Nested cleanup neither mints a generation nor refreshes fuel.
+
+The original binding may avoid rebinding the same input/current loans within
+that operation only after a prior reader completed successfully. Each actual SQL
+reader still checks the original file, settings, epoch and complete singleton
+adoption inventory before and after its frame. The physical metadata import
+accepts only that same original binding receiver, its currently verified reader,
+its original retained input/current loans and the currently invoking instance.
+Copied loans, changed operations, retired readers and failed frames cannot supply
+this observation witness. Nonstandard private suppliers use the full old path.
+
+The Wasm adapter retains only an alias of the first genuine immutable adoption
+row already retained by Common. Within the same verified operation it can reuse
+that DATA with fresh physical current checks on both sides. A different or zero
+generation repeats the full singleton observation. Common still compares the
+complete original Account bytes, adoption row and filesystem generation and
+independently evaluates each protected operation. No Allow, permission, result or
+mutable reader is cached. Original current/input retirement, cleanup
+acknowledgments, failed COMMIT/Unknown and Store lifetime remain unchanged.
+Private ABI83 adds the bounded i64 observation-generation import; installed
+modules must match the existing exact generated ABI contract.
+
 ### Saved Run observations and Result reads
+
+A repeated submit first observes the authenticated original submission under
+the same current Store snapshot. A ready record with the same intent returns
+its existing admission without preparation, dispatch or a new executable Run.
+A different retained intent returns the existing intent-conflict outcome;
+lookup refusal cannot fall through to fresh preparation. This DATA response
+does not supply the retained prepared input needed for executable restoration.
+
+New ready admissions retain the original bounded task-material codec wire in
+the same transaction as the Run, ready row and issuance counter. An optional
+Run-row CID binds that exact wire. Up to three immutable UTF-8 chunks preserve
+the existing 131072-byte physical row and 262144-byte logical material bounds;
+complete inventory and selected-snapshot checks reject missing, extra, foreign
+or changed chunks. Absent historical material is never regenerated or backfilled.
+
+Executable restoration uses the existing canonical decoder against the saved
+full Definition, invocation and authorization evidence. Its nominal saved
+carrier binds the same retained prepared input, original authored intent and
+document without ordinary submitted preparation or lowering. Original finite
+and publication policies are restored separately. Existing current Activation,
+control flags, Store binding and child-first retirement remain mandatory;
+reference-only status and Result reads do not acquire that executable purpose.
+Private ABI79 adds the two original restoration bindings and rejects older
+installed modules through the existing exact export/ABI contract.
+
+Cold status uses the existing reference-only submission projection and retains
+its original saved snapshot until output cleanup. It returns only a saved SDK
+state whose original observation key and public revision match the same Run.
+It neither refreshes availability nor issues an observation clock or counter.
+The existing validation export forwards both saved state and saved original
+metadata projections to the same retained-lookup validator, alongside the
+existing lookup and Result projections. Its private kind selection does not
+replace original snapshot, current, configuration, full wire or output-lifetime
+checks. Missing original snapshots still refuse before observation; no success
+or live Run can be inferred from the projection kind alone.
+Missing historical state remains unavailable, and refused validation retains
+the same output/input loans. The live Run status/observation path stays separate.
 
 A durable Client reference identifies saved originals, rather than a process-local
 Run object. The original installation binding reads the complete submitted-row

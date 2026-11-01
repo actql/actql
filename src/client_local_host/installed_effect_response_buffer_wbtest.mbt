@@ -268,3 +268,57 @@ test "standard constructor absence preserves native capacity without invented JS
   assert_true(@execution.execution_capacity_retained_bytes(input[0]) > 17L)
   assert_true(@execution.execution_capacity_execution_bytes(input[0]) > 23L)
 }
+
+///|
+test "Command recipe adds SAME native capture fixed and row quantities once without changing physical work" {
+  let zero = @execution.execution_capacity(0L, 0L).unwrap()
+  let original : Array[
+    (@execution.ExecutionCapacity, @source.ParseLimits?, @source.ParseLimits?),
+  ]? = Some([(zero, None, None), (zero, None, None)])
+  let fixed = @execution.execution_capacity(17L, 23L).unwrap()
+  let row = @execution.execution_capacity(31L, 37L).unwrap()
+  let base = installed_standard_create_recipe_capacities(
+    original, 256, 16, 4, 64, 32, 0, 0, false, 16, 7, 32, 256, 64, 4, 0L,
+  ).unwrap()
+  let selected = installed_standard_driver_recipe_capacities(
+    original,
+    Some([fixed, row]),
+    256,
+    16,
+    4,
+    64,
+    32,
+    0,
+    0,
+    false,
+    16,
+    7,
+    32,
+    256,
+    64,
+    4,
+    0L,
+  ).unwrap()
+  for index in 0..<selected.length() {
+    let extra = if index == 0 { fixed } else if index == 1 { row } else { zero }
+    assert_eq(
+      @execution.execution_capacity_retained_bytes(selected[index]),
+      @execution.execution_capacity_retained_bytes(base[index]) +
+      @execution.execution_capacity_retained_bytes(extra),
+    )
+    assert_eq(
+      @execution.execution_capacity_execution_bytes(selected[index]),
+      @execution.execution_capacity_execution_bytes(base[index]) +
+      @execution.execution_capacity_execution_bytes(extra),
+    )
+  }
+  for invalid in [None, Some([]), Some([fixed]), Some([fixed, row, fixed])] {
+    assert_true(
+      installed_standard_driver_recipe_capacities(
+        original, invalid, 256, 16, 4, 64, 32, 0, 0, false, 16, 7, 32, 256, 64, 4,
+        0L,
+      )
+      is Err(Unsupported),
+    )
+  }
+}

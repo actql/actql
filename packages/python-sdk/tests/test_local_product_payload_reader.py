@@ -11,6 +11,7 @@ from actql_sdk._local_core import LocalCoreError
 from actql_sdk._local_files import LocalFileError, LocalReaderAcquisitionError
 import test_local_product_payload_sealing as sealing_fixture
 import test_local_product_payload_copy as copy_fixture
+from local_abi_declaration_fixture import original_byte_fixture_port
 
 
 BINDING = b'{"original":"Core Sealed binding e\xcc\x81/~","null":null}'
@@ -45,7 +46,7 @@ class ProductPayloadReaderTests(unittest.TestCase):
             if name == 'length': return len(wires[args[0]])
             if name == 'close': return core._cleanup(children.pop(args[0]))
             return 0
-        core._call = call
+        core._call = original_byte_fixture_port(call)
         return host, core, held, calls, faults
 
     def test_fresh_sealed_names_and_binding_open_same_file_and_retain_eof_descriptor(self):

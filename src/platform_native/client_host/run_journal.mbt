@@ -94,6 +94,7 @@ struct NativeClientRunRecord {
   publication_binding : String?
   publication_policy_originals : String?
   effect_material_originals : String?
+  task_materials_cid : String?
   local_run_policy_originals : String?
   run_observation_originals : String?
   observation_original : NativeClientStoredRunObservation?
@@ -145,6 +146,7 @@ fn run_record_body(
       publication_binding: record.publication_binding,
       publication_policy_originals: record.publication_policy_originals,
       effect_material_originals: record.effect_material_originals,
+      task_materials_cid: record.task_materials_cid,
       checkpoint,
     },
     local_run_policy_originals=record.local_run_policy_originals,
@@ -266,6 +268,7 @@ fn read_run_record_in_mode(
     publication_binding: decoded.publication_binding,
     publication_policy_originals: decoded.publication_policy_originals,
     effect_material_originals: decoded.effect_material_originals,
+    task_materials_cid: decoded.task_materials_cid,
     local_run_policy_originals,
     run_observation_originals,
     observation_original,
@@ -339,7 +342,7 @@ fn initialize_native_client_run_journal_rows(
       "client_checkpoint_id_index", "client_run_id_index", "client_run_id_index_coverage",
       "client_run_reference_index", "client_effect_response_meta", "client_effect_response_bytes",
       "client_effect_row_receipt", "client_cancellations", "client_cancel_custody",
-      "client_cancel_originals",
+      "client_cancel_originals", "client_task_run_materials",
     ] {
     match
       scan_client_journal_value(
@@ -434,11 +437,30 @@ fn run_journal_custody(
         request: record.request,
         definition: record.definition,
         checkpoint: record.checkpoint.map(value => value.effect_ledger),
+        task_materials_cid: record.task_materials_cid,
       })
     },
     () => cancellation_custody(database, max_records, reads~).map(_ => ()),
     CustodyLost,
   )
+}
+
+///|
+fn confirm_task_material_original_custody(
+  database : @sqlite.Database,
+  record : NativeClientRunRecord,
+  reads? : NativeClientJournalReadAccess? = None,
+) -> Result[Unit, NativeClientRunJournalIssue] {
+  match record.task_materials_cid {
+    None => Ok(())
+    Some(cid) =>
+      @host.read_client_task_material_original(
+        @host.client_request_scope_cid(record.request),
+        cid,
+        (table, key) => client_journal_read(database, table, key, reads~),
+        CustodyLost,
+      ).map(_ => ())
+  }
 }
 
 ///|
@@ -767,6 +789,11 @@ fn NativeClientRunJournal::retained_with_issuance(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  match
+    confirm_task_material_original_custody(self.database, retained, reads~) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
   match confirm_effect_ledger_custody(self.database, retained, reads~) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
@@ -1019,6 +1046,7 @@ fn NativeClientRunJournal::bind_run_locked(
     publication_binding: None,
     publication_policy_originals: None,
     effect_material_originals: None,
+    task_materials_cid: None,
     local_run_policy_originals: None,
     run_observation_originals,
     observation_original,
@@ -1149,6 +1177,13 @@ fn NativeClientRunJournal::save_with_operations(
       }
     Ok(_) => return Err(Physical(@sqlite.Collision))
     Err(issue) => return Err(Physical(issue))
+  }
+  if record.task_materials_cid != before.task_materials_cid {
+    return Err(CustodyLost)
+  }
+  match confirm_task_material_original_custody(self.database, before, reads~) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
   }
   match confirm_effect_ledger_custody(self.database, record, reads~) {
     Ok(_) => ()

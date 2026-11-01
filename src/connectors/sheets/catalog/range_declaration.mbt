@@ -8,23 +8,43 @@ fn range_contract_ref(value : Json) -> Json {
 }
 
 ///|
-fn range_contract(
+fn range_declaration_names(
   connector_id : String,
-  kind : String,
-  fields : Json,
-  limits : Limits,
-) -> Result[Json, RangeFailure] {
-  range_named_contract(connector_id + ".sheets." + kind, kind, fields, limits)
+  clear : Bool,
+) -> (String, String, String, String) {
+  if clear {
+    (
+      connector_id + ".sheets.clear_range.command_input",
+      connector_id + ".sheets.clear_range.command_output",
+      "command:" + connector_id + ".sheets.clear_range.v1",
+      "sheets:cells:clear",
+    )
+  } else {
+    (
+      connector_id + ".sheets.command_input",
+      connector_id + ".sheets.command_output",
+      "command:" + connector_id + ".sheets.update_range.v0",
+      "sheets:cells:update",
+    )
+  }
 }
 
 ///|
-fn range_named_contract(
-  id : String,
-  kind : String,
-  fields : Json,
-  limits : Limits,
-) -> Result[Json, RangeFailure] {
-  let body : Json = {
+fn range_output_fields_document(clear : Bool) -> Json {
+  let fields : Map[String, Json] = Map([
+    ("spreadsheet_id", { "type": "string", "nullable": false }),
+    ("sheet_id", { "type": "number", "nullable": false }),
+  ])
+  fields[if clear { "cleared_rows" } else { "acknowledged_rows" }] = {
+    "type": "number",
+    "nullable": false,
+  }
+  Json::object(fields)
+}
+
+///|
+fn range_contract_document(id : String, kind : String, fields : Json) -> Json {
+  {
     "schema": "actql.contract/0.1",
     "id": id.to_json(),
     "version": "sheets/0.1",
@@ -36,6 +56,16 @@ fn range_named_contract(
       "fields": fields,
     },
   }
+}
+
+///|
+fn range_named_contract(
+  id : String,
+  kind : String,
+  fields : Json,
+  limits : Limits,
+) -> Result[Json, RangeFailure] {
+  let body = range_contract_document(id, kind, fields)
   let cid = match range_content_cid(body, limits) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -45,6 +75,74 @@ fn range_named_contract(
   }
   fields["cid"] = cid.to_json()
   Ok(Json::object(fields))
+}
+
+///|
+fn range_input_fields_document(
+  fields : Map[String, Json],
+  row_count : Int,
+) -> Json {
+  {
+    "rows": {
+      "type": "array",
+      "nullable": false,
+      "max_items": row_count.to_json(),
+      "items": {
+        "type": "object",
+        "nullable": false,
+        "additional_properties": false,
+        "fields": Json::object(fields),
+      },
+    },
+  }
+}
+
+///|
+fn range_command_document(
+  connector_id : String,
+  command_id : String,
+  input : Json,
+  output : Json,
+  input_fields : Json,
+  operation : String,
+) -> Json {
+  {
+    "schema": "actql.command_contract/0.1",
+    "command_id": command_id.to_json(),
+    "connector_id": connector_id.to_json(),
+    "version": "sheets/0.1",
+    "target": { "resource_kind": "sheet_range", "cardinality": "single" },
+    "input_schema": range_contract_ref(input),
+    "output_schema": range_contract_ref(output),
+    "input_contract": { "additional_properties": false, "fields": input_fields },
+    "permissions": [operation],
+    "preview": { "strength": "exact" },
+    "outcome": "synchronous",
+    "idempotency": { "support": "unsupported" },
+    "reversibility": "unknown",
+    "atomicity": "single_target",
+  }
+}
+
+///|
+fn range_command_bundle_document(
+  command : Json,
+  input : Json,
+  output : Json,
+  command_id : String,
+  cid : String,
+  body : String,
+) -> Json {
+  {
+    "command": command,
+    "contracts": [input, output],
+    "installed": {
+      "resource": "range_target",
+      "commandRef": command_id.to_json(),
+      "commandCid": cid.to_json(),
+      "body": body.to_json(),
+    },
+  }
 }
 
 ///|
@@ -75,55 +173,28 @@ pub fn range_command_json(
       "nullable": false,
     }
   }
-  let input_fields : Json = {
-    "rows": {
-      "type": "array",
-      "nullable": false,
-      "max_items": row_count.to_json(),
-      "items": {
-        "type": "object",
-        "nullable": false,
-        "additional_properties": false,
-        "fields": Json::object(fields),
-      },
-    },
-  }
+  let input_fields = range_input_fields_document(fields, row_count)
+  let (input_id, output_id, command_id, operation) = range_declaration_names(
+    connector_id, false,
+  )
   let input = match
-    range_contract(connector_id, "command_input", input_fields, limits) {
+    range_named_contract(input_id, "command_input", input_fields, limits) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
   let output = match
-    range_contract(
-      connector_id,
+    range_named_contract(
+      output_id,
       "command_output",
-      {
-        "spreadsheet_id": { "type": "string", "nullable": false },
-        "sheet_id": { "type": "number", "nullable": false },
-        "acknowledged_rows": { "type": "number", "nullable": false },
-      },
+      range_output_fields_document(false),
       limits,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let command_id = "command:" + connector_id + ".sheets.update_range.v0"
-  let body : Json = {
-    "schema": "actql.command_contract/0.1",
-    "command_id": command_id.to_json(),
-    "connector_id": connector_id.to_json(),
-    "version": "sheets/0.1",
-    "target": { "resource_kind": "sheet_range", "cardinality": "single" },
-    "input_schema": range_contract_ref(input),
-    "output_schema": range_contract_ref(output),
-    "input_contract": { "additional_properties": false, "fields": input_fields },
-    "permissions": ["sheets:cells:update"],
-    "preview": { "strength": "exact" },
-    "outcome": "synchronous",
-    "idempotency": { "support": "unsupported" },
-    "reversibility": "unknown",
-    "atomicity": "single_target",
-  }
+  let body = range_command_document(
+    connector_id, command_id, input, output, input_fields, operation,
+  )
   let cid = match range_content_cid(body, limits) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -138,16 +209,7 @@ pub fn range_command_json(
     Err(issue) => return Err(issue)
   }
   range_canonical(
-    {
-      "command": command,
-      "contracts": [input, output],
-      "installed": {
-        "resource": "range_target",
-        "commandRef": command_id.to_json(),
-        "commandCid": cid.to_json(),
-        "body": body.to_json(),
-      },
-    },
+    range_command_bundle_document(command, input, output, command_id, cid, body),
     limits,
   )
 }
@@ -218,5 +280,12 @@ pub fn range_catalog_json(
   declared["catalog_cid"] = cid.to_json()
   declared["catalog"] = catalog_wire.to_json()
   declared["contracts"] = Json::array(contract_wires)
+  // Keep the complete SAME Command beside the Catalog for the existing
+  // common Environment constructor. No Host-specific second recipe adds it.
+  let command_wire = match range_canonical(command, limits) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  declared["command_bodies"] = Json::array([command_wire.to_json()])
   range_canonical(Json::object(declared), limits)
 }

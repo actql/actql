@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 from actql_sdk._local_storage import LocalStorageError
 import test_local_product_commit_candidate as candidate_fixture
+from local_abi_declaration_fixture import original_byte_fixture_port
 
 
 INDEX_CID = b'sha256:' + b'e' * 64
@@ -58,6 +59,16 @@ class ProductStoreObservationTests(unittest.TestCase):
                 if name == 'produce_lookup_reference':
                     outputs[args[0]] = (outputs[args[0]][0], REQUEST_CID if args[2] == 0 else ATTEMPT_CID)
                     return 0
+                if name == 'produce_observed_index':
+                    # Explicit original Core export port, not an action-code
+                    # substitute for the complete stored-index validation.
+                    if 'produce_observed_index' in faults:
+                        return faults['produce_observed_index']
+                    if not stored or faults.get('finish_observation', 4) != 4:
+                        return -32
+                    outputs[args[0]] = (outputs[args[0]][0],
+                        INDEX_CID if args[2] == 3 else STORED_INDEX)
+                    return 0
                 if name == 'length': return len(outputs[args[0]][1])
                 if name == 'close': return core._cleanup(outputs.pop(args[0])[0])
                 if name == 'validate_payload_binding':
@@ -74,7 +85,7 @@ class ProductStoreObservationTests(unittest.TestCase):
                 if name == 'finish_observation': return 4 if stored else 3
                 return 0
             return previous(family, name, *args)
-        core._call = call
+        core._call = original_byte_fixture_port(call)
         return host, core, held, projection, store, scope, packets, faults, calls
 
     def test_confirmed_same_key_not_found_returns_only_owner_action_without_write_or_replay(self):

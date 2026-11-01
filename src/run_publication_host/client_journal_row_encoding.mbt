@@ -17,6 +17,7 @@ pub(all) struct ClientRunJournalEncoding {
   publication_binding : String?
   publication_policy_originals : String?
   effect_material_originals : String?
+  task_materials_cid : String?
   checkpoint : String?
 }
 
@@ -54,6 +55,9 @@ fn client_run_journal_row_body_from_wires(
   if local_run_policy_originals is Some(wire) &&
     @utf8.encode(wire).length() > 8192 {
     return Err(CapacityExceeded)
+  }
+  if record.task_materials_cid is Some(cid) && !valid_client_request_cid(cid) {
+    return Err(Encoding)
   }
   try {
     let writer = @encode.writer(131072, 32, 4)
@@ -95,6 +99,10 @@ fn client_run_journal_row_body_from_wires(
     if run_observation_originals is Some(originals) {
       @encode.key(writer, "run_observation_originals")
       @encode.string_value(writer, originals)
+    }
+    if record.task_materials_cid is Some(cid) {
+      @encode.key(writer, "task_materials_cid")
+      @encode.string_value(writer, cid)
     }
     @encode.key(writer, "version")
     @encode.string_value(writer, "actql-native-client-run-row/0.1")

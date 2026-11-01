@@ -10,6 +10,7 @@ from actql_sdk._local_core import LocalCoreError
 from actql_sdk._local_product import InstalledLocalHost
 import test_local_reader_facts as file_fixture
 import test_local_store_reconciliation as observation_fixture
+from local_abi_declaration_fixture import original_byte_fixture_port
 
 
 class ObservedIndexCallerTests(unittest.TestCase):
@@ -42,7 +43,7 @@ class ObservedIndexCallerTests(unittest.TestCase):
             if family == 'buffer' and name == 'byte' and args[0] in observed:
                 return observed[args[0]][args[1]]
             return previous(family, name, *args)
-        core._call = call
+        core._call = original_byte_fixture_port(call)
         caller.prepare()
         # Physical consumer stop allows cleanup; this scalar fixture does not
         # model the real Core's distinct observation/output borrow tickets.

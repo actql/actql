@@ -209,6 +209,8 @@ pub fn row_acquisition_column_contract(RowAcquisition, Int) -> @value_contract.C
 
 pub fn row_acquisition_columns(RowAcquisition) -> Array[String]
 
+pub fn row_acquisition_contracts_construction_capacity(Int, Int) -> @execution_relation.ExecutionCapacity?
+
 pub fn row_acquisition_execution_capacity(RowAcquisition) -> Int64
 
 pub fn row_acquisition_is_listing(RowAcquisition) -> Bool

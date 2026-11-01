@@ -355,3 +355,346 @@ pub fn sheets_append_construction_profile(
     (metadata, None, Some(response_export)),
   ])
 }
+
+///|
+/// Additional standard Source constructor DATA only. The existing reader
+/// already owns raw response parsing, provider rows and output-row workspace.
+/// This adds BOTH schema decoders, fixed grid request/output builders, Host
+/// literal decode and body encoding before the existing HTTP size refusal.
+/// It neither validates a range nor grants Source or Credential authority.
+#export_name("sheetsGridReadConstructionCapacity")
+pub fn sheets_grid_read_construction_capacity(
+  schema_bytes : Int,
+  columns : Int,
+  sheet_id : Int,
+  start_row : Int,
+  end_row : Int,
+  start_column : Int,
+  end_column : Int,
+) -> @execution.ExecutionCapacity? {
+  if schema_bytes < 1 || columns < 1 || columns > 64 {
+    return None
+  }
+  let body = @catalog.read_request_document({
+    sheet_id,
+    start_row,
+    end_row,
+    start_column,
+    end_column,
+  }).stringify()
+  let output = ({ "body": body.to_json() } : Json).stringify()
+  let b = body.length()
+  let refused = ({ "refused": issue_json(BudgetExceeded) } : Json).stringify()
+  let o = Int::max(output.length(), refused.length())
+  guard sheets_column_construction(schema_bytes, columns, 2) is Some(schema) &&
+    sheets_decoded_construction(b, 10, 4) is Some(validation) &&
+    sheets_writer_units(b, 10, 4) is Some(body_writer) &&
+    sheets_writer_units(o, 5, 2) is Some(output_writer) &&
+    @source.json_literal_construction_extent(o, 5, 2) is Some(host) else {
+    return None
+  }
+  sheets_constructor_capacity([
+    schema,
+    schema,
+    validation,
+    body_writer,
+    output_writer,
+    {
+      record_headers: host.record_headers + 2L,
+      reference_slots: host.reference_slots,
+      scalar_words: host.scalar_words,
+      owned_utf16_units: host.owned_utf16_units + schema_bytes.to_int64(),
+      owned_wire_bytes: 2L * b.to_int64(),
+    },
+  ])
+}
+
+///|
+/// Original range/clear declaration constructor only. The fixed document
+/// shapes come from their SAME Catalog builders; native Source/index, JSON
+/// trees, NFC identity copies, writers, escaped outputs and Host parser overlap
+/// are composed here before those original builders run. No Command, Catalog,
+/// permission, current observation or reservation is issued by this quote.
+#export_name("sheetsRangeDeclarationConstructionCapacity")
+pub fn sheets_range_declaration_construction_capacity(
+  schema_bytes : Int,
+  columns : Int,
+  range_bytes : Int,
+  connector_bytes : Int,
+  declared_bytes : Int,
+) -> @execution.ExecutionCapacity? {
+  if range_bytes < 1 || declared_bytes < 1 {
+    return None
+  }
+  guard @catalog.range_declaration_construction_bounds(
+      schema_bytes, columns, connector_bytes,
+    )
+    is Some(command) else {
+    return None
+  }
+  let d = declared_bytes.to_int64()
+  let c = command.bundle_bytes.to_int64()
+  // The old declaration embeds its Catalog/contracts as strings. Their
+  // aggregate decoded input is <=the original declared wire (including keys
+  // and escaping). Parse that whole inner forest conservatively as well.
+  // The final Catalog and the declared contract list both retain the added
+  // contracts. Two complete input forests cover that duplication. New
+  // Catalog/contract/Command strings add one JSON quoting layer: <=7 units
+  // per original UTF16 unit, including escaped control characters.
+  let result = 2L * 7L * (d + c) +
+    "{\"command_bodies\":[\"\"]}".length().to_int64()
+  let native_nodes = d + command.bundle_nodes.to_int64()
+  if result > 2147483647L ||
+    native_nodes > 2147483647L ||
+    8L * (d + c) > 2147483647L {
+    return None
+  }
+  let n = native_nodes.to_int()
+  // The native body parser itself rejects depths beyond32. An outer declared
+  // view adds no more than its own bounded envelope beside the inner forest.
+  let depth = 32
+  guard sheets_column_construction(schema_bytes, columns, depth) is Some(schema) &&
+    sheets_decoded_construction(range_bytes, 6, 1) is Some(range_input) &&
+    sheets_decoded_construction(declared_bytes, declared_bytes, depth)
+    is Some(declared) &&
+    sheets_decoded_construction(
+      command.bundle_bytes,
+      command.bundle_nodes,
+      command.bundle_depth,
+    )
+    is Some(bundle) &&
+    // range_configuration_value normalizes the ORIGINAL decoded key/value
+    // strings, bounded by the two input wires. Returned NFC text is retained
+    // separately below; it is not another expanded normalization input.
+    @canonical.nfc_lf_construction_scratch_extent((d + c).to_int())
+    is Some(normalization) &&
+    sheets_writer_units(result.to_int(), n, depth) is Some(writer) &&
+    @source.json_literal_construction_extent(result.to_int(), n, depth)
+    is Some(host) &&
+    @shape.collection_construction_extent({
+      records: native_nodes,
+      record_references: 2L * native_nodes,
+      record_words: 2L * native_nodes,
+      reference_arrays: native_nodes,
+      reference_items: native_nodes,
+      scalar_arrays: 0L,
+      scalar_items: 0L,
+      maps: native_nodes,
+      map_entries: native_nodes,
+    })
+    is Some(native_json) else {
+    return None
+  }
+  guard sheets_constructor_capacity([
+      schema,
+      range_input,
+      // Outer declaration, embedded Catalog/contracts and parsed native bundle.
+      declared,
+      declared,
+      bundle,
+      sheets_collection_units(native_json),
+      // Original Json, its NFC identity Json and canonical-value projection
+      // overlap. One normalization cursor is enough; retain cumulative output
+      // text separately, never normalize schema/Command meaning here.
+      sheets_collection_units(native_json),
+      sheets_collection_units(native_json),
+      {
+        record_headers: normalization.record_headers,
+        reference_slots: normalization.reference_slots,
+        scalar_words: normalization.scalar_words,
+        owned_utf16_units: normalization.owned_utf16_units + 8L * (d + c),
+        owned_wire_bytes: 0L,
+      },
+      // The six output families stay co-held, but these closed synchronous
+      // calls do not nest or return a Writer/cursor. Only one original writer
+      // workspace is live. Its quantity includes the current output; the other
+      // five complete output families retain their own String backing below.
+      // The per-contract loop contributes multiple Strings whose aggregate is
+      // bounded by the SAME complete declared wire, not one whole wire per
+      // contract. Keep their wrappers/references beside the fixed outputs.
+      writer,
+      {
+        record_headers: native_nodes + 6L,
+        reference_slots: native_nodes + 6L,
+        scalar_words: 0L,
+        owned_utf16_units: 5L * result,
+        owned_wire_bytes: 0L,
+      },
+      {
+        record_headers: host.record_headers,
+        reference_slots: host.reference_slots,
+        scalar_words: host.scalar_words,
+        owned_utf16_units: host.owned_utf16_units + result,
+        owned_wire_bytes: d +
+        c +
+        schema_bytes.to_int64() +
+        range_bytes.to_int64(),
+      },
+    ])
+    is Some(peak) &&
+    @execution.execution_capacity_inventory(
+      [
+        // Returned Host definition forest plus the final outer declaration.
+        // Replacing catalog/CID Strings adds no node; two new contract
+        // Strings and command_bodies key/Array/String add five. The shared
+        // commands Array, projected record and prepared record add three.
+        {
+          unit: @execution.ValueNodeSlots,
+          count: native_nodes + 8L,
+          copies: 1,
+        },
+        // Final wire, its parsed declaration text, parsed definition text,
+        // and the original captured columns/range wires remain co-held.
+        {
+          unit: @execution.DecodedTextBytes,
+          count: 2L * result +
+          c +
+          schema_bytes.to_int64() +
+          range_bytes.to_int64(),
+          copies: 1,
+        },
+      ],
+      [],
+      @execution.RetainedAlongsideExecution,
+    )
+    is Some(output) else {
+    return None
+  }
+  let retained = @execution.execution_capacity_retained_bytes(output)
+  @execution.execution_capacity(
+    retained,
+    Int64::max(retained, @execution.execution_capacity_execution_bytes(peak)),
+  )
+}
+
+///|
+/// The original Source Reference constructor outlives individual Readers.
+/// Its full native/Host peak is retained on the original Source initializer;
+/// the per-Run Reader quote never supplies this installation lifetime.
+#export_name("sheetsRangeReferenceConstructionCapacity")
+pub fn sheets_range_reference_construction_capacity(
+  origin_bytes : Int,
+  spreadsheet_bytes : Int,
+) -> @execution.ExecutionCapacity? {
+  guard @catalog.range_reference_construction_bounds(
+      origin_bytes, spreadsheet_bytes,
+    )
+    is Some(bounds) else {
+    return None
+  }
+  let bytes = bounds.identity_bytes
+  let nodes = bounds.identity_nodes
+  let depth = bounds.identity_depth
+  guard @canonical.nfc_lf_construction_extent(bytes) is Some(normalization) &&
+    sheets_writer_units(bytes, nodes, depth) is Some(identity_writer) &&
+    sheets_writer_units(bounds.reference_bytes, bounds.reference_nodes, 1)
+    is Some(reference_writer) &&
+    @source.json_literal_construction_extent(
+      bounds.reference_bytes,
+      bounds.reference_nodes,
+      1,
+    )
+    is Some(host) &&
+    @shape.collection_construction_extent({
+      records: nodes.to_int64(),
+      record_references: nodes.to_int64(),
+      record_words: nodes.to_int64(),
+      reference_arrays: nodes.to_int64(),
+      reference_items: nodes.to_int64(),
+      scalar_arrays: 0L,
+      scalar_items: 0L,
+      maps: nodes.to_int64(),
+      map_entries: nodes.to_int64(),
+    })
+    is Some(identity_json) else {
+    return None
+  }
+  sheets_constructor_capacity([
+    // Original identity Json, NFC copy and canonical-value projection coexist.
+    sheets_collection_units(identity_json),
+    sheets_collection_units(identity_json),
+    sheets_collection_units(identity_json),
+    {
+      record_headers: normalization.record_headers,
+      reference_slots: normalization.reference_slots,
+      scalar_words: normalization.scalar_words,
+      owned_utf16_units: normalization.owned_utf16_units + bytes.to_int64(),
+      // Both original identity hash inputs, digest buffers and prefixed CIDs
+      // coexist conservatively with the complete bounded identity spelling.
+      owned_wire_bytes: 2L * bytes.to_int64() + 2L * 32L + 4L * 71L,
+    },
+    sheets_collection_units(identity_json),
+    identity_writer,
+    identity_writer,
+    reference_writer,
+    {
+      record_headers: host.record_headers + 4L,
+      reference_slots: host.reference_slots + bounds.reference_nodes.to_int64(),
+      scalar_words: host.scalar_words,
+      owned_utf16_units: host.owned_utf16_units +
+      bounds.reference_bytes.to_int64() +
+      bytes.to_int64() +
+      4L * 71L,
+      owned_wire_bytes: bounds.reference_bytes.to_int64() + bytes.to_int64(),
+    },
+  ])
+}
+
+///|
+/// The installed range/clear Source supports BOTH the original grid rows and
+/// the one-reference metadata read. Those native callbacks are alternatives in
+/// one Reader, so take their per-dimension maximum, not two live full parses.
+/// The common preserving Reader still supplies received Bytes, Source/index,
+/// provider page/output and failed-response overlap at the unchanged bounds.
+#export_name("sheetsRangeReadConstructionCapacity")
+pub fn sheets_range_read_construction_capacity(
+  schema_bytes : Int,
+  columns : Int,
+  sheet_id : Int,
+  start_row : Int,
+  end_row : Int,
+  start_column : Int,
+  end_column : Int,
+  nodes : Int,
+  depth : Int,
+) -> @execution.ExecutionCapacity? {
+  if nodes < 1 || depth < 1 || depth == 2147483647 {
+    return None
+  }
+  let reply_bytes = ({ "refused": issue_json(BudgetExceeded) } : Json)
+    .stringify()
+    .length()
+  guard sheets_grid_read_construction_capacity(
+      schema_bytes, columns, sheet_id, start_row, end_row, start_column, end_column,
+    )
+    is Some(grid) &&
+    sheets_column_construction(schema_bytes, columns, depth) is Some(schema) &&
+    sheets_target_projection_construction(nodes, depth) is Some(target) &&
+    sheets_writer_units(reply_bytes, 5, 2) is Some(writer) &&
+    @source.json_literal_construction_extent(reply_bytes, 5, 2) is Some(host) &&
+    sheets_constructor_capacity([
+      schema,
+      target,
+      writer,
+      {
+        record_headers: host.record_headers + 2L,
+        reference_slots: host.reference_slots + 3L,
+        scalar_words: host.scalar_words,
+        owned_utf16_units: host.owned_utf16_units + schema_bytes.to_int64(),
+        owned_wire_bytes: schema_bytes.to_int64(),
+      },
+    ])
+    is Some(metadata) else {
+    return None
+  }
+  @execution.execution_capacity(
+    Int64::max(
+      @execution.execution_capacity_retained_bytes(grid),
+      @execution.execution_capacity_retained_bytes(metadata),
+    ),
+    Int64::max(
+      @execution.execution_capacity_execution_bytes(grid),
+      @execution.execution_capacity_execution_bytes(metadata),
+    ),
+  )
+}

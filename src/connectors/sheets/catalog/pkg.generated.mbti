@@ -28,6 +28,8 @@ pub fn classify_clear(Int, Bytes, String, GridRange, String, Limits) -> AppendOu
 
 pub fn clear_command_json(String, String, String, Limits) -> Result[String, RangeFailure]
 
+pub fn clear_range_construction_metadata(ClearRangeBinding) -> RangeConstructionMetadata
+
 pub fn clear_range_recovery_entry(ClearRangeBinding, String, Array[ClearRangeRequest]) -> Result[String, RangeFailure]
 
 pub fn clear_range_request_body(ClearRangeBinding, ClearRangeRequest) -> Result[String, RangeFailure]
@@ -41,6 +43,8 @@ pub fn clear_range_request_outcome(ClearRangeBinding, ClearRangeRequest, Int, By
 pub fn clear_range_target_matches(ClearRangeBinding, String) -> Bool
 
 pub fn clear_request(GridRange, Array[Column], String, Limits) -> Result[String, Issue]
+
+pub fn clear_request_document(GridRange, String) -> Json
 
 pub fn clear_request_identity(String, String, String, String) -> Result[String, RangeFailure]
 
@@ -62,6 +66,10 @@ pub fn range_catalog_json(String, String, Limits) -> Result[String, RangeFailure
 
 pub fn range_command_json(String, String, String, Limits) -> Result[String, RangeFailure]
 
+pub fn range_construction_metadata(RangeBinding) -> RangeConstructionMetadata
+
+pub fn range_declaration_construction_bounds(Int, Int, Int) -> RangeDeclarationConstructionBounds?
+
 pub fn range_failure_code(RangeFailure) -> String
 
 pub fn range_failure_refusal(RangeFailure) -> Issue?
@@ -69,6 +77,8 @@ pub fn range_failure_refusal(RangeFailure) -> Issue?
 pub fn range_recovery_entry(RangeBinding, String) -> Result[String, RangeFailure]
 
 pub fn range_reference(String, String, GridRange, String, String, Limits) -> Result[Json, RangeFailure]
+
+pub fn range_reference_construction_bounds(Int, Int) -> RangeReferenceConstructionBounds?
 
 pub fn range_request_body(RangeRequest) -> String
 
@@ -80,7 +90,11 @@ pub fn range_request_json(RangeBinding, RangeRequest) -> Result[String, RangeFai
 
 pub fn range_target_matches(RangeBinding, String) -> Bool
 
+pub fn range_write_construction_bounds(RangeConstructionMetadata, Int, Bool) -> RangeWriteConstructionBounds?
+
 pub fn read_request(GridRange, Array[Column], Limits) -> Result[String, Issue]
+
+pub fn read_request_document(GridRange) -> Json
 
 pub fn recover_clear_range_requests(ClearRangeBinding, String, String, Limits) -> Result[Array[Array[ClearRangeRequest]], RangeFailure]
 
@@ -95,6 +109,8 @@ pub fn sheet_tabs_rows_wire(SheetTabsPage, Array[String], Int, Int, Int) -> Resu
 pub fn sheet_tabs_schema_wire(Int, Int, Int) -> Result[String, SheetTabsIssue]
 
 pub fn update_request(GridRange, Array[Column], Array[Array[Json]], Limits) -> Result[String, Issue]
+
+pub fn update_request_document(GridRange, Array[Json]) -> Json
 
 // Errors
 
@@ -174,10 +190,36 @@ pub struct RangeBinding {
   limits : Limits
 }
 
+pub(all) struct RangeConstructionMetadata {
+  columns : Int
+  rows : Int
+  name_units : Int64
+  schema_bytes : Int64
+  origin_units : Int
+  spreadsheet_units : Int
+  target_units : Int
+  range : GridRange
+  limits : Limits
+}
+
+pub(all) struct RangeDeclarationConstructionBounds {
+  bundle_bytes : Int
+  bundle_nodes : Int
+  bundle_depth : Int
+}
+
 pub struct RangeFailure {
   code : String
   refusal : Issue?
 } derive(Eq, @debug.Debug)
+
+pub(all) struct RangeReferenceConstructionBounds {
+  identity_bytes : Int
+  identity_nodes : Int
+  identity_depth : Int
+  reference_bytes : Int
+  reference_nodes : Int
+}
 
 pub struct RangeRequest {
   binding : RangeBinding
@@ -185,6 +227,12 @@ pub struct RangeRequest {
   path : String
   value_wire : String
   cid : String
+}
+
+pub(all) struct RangeWriteConstructionBounds {
+  body_bytes : Int
+  body_nodes : Int
+  body_depth : Int
 }
 
 pub(all) enum SheetTabsIssue {

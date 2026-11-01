@@ -11,6 +11,7 @@ from actql_sdk._local_core import LocalCoreError, _Output
 from actql_sdk._local_storage import LocalStorageCommitUnknown, LocalStorageError
 import test_local_run as run_fixture
 import test_local_submission_append as append_fixture
+from local_abi_declaration_fixture import original_byte_fixture_port
 
 RUN_KEY = 'sha256:' + 'a' * 64
 RUN_BODY = b'{"opaque":"original Core Run and packet e\xcc\x81/~","null":null}'
@@ -72,6 +73,78 @@ class FiniteRunFacadeTests(unittest.TestCase):
 
 
 class FiniteRunSQLiteTests(unittest.TestCase):
+    def test_retained_task_chunks_commit_in_same_original_ready_transaction(self):
+        with TemporaryDirectory(prefix='actql-retained-task-') as directory:
+            host, _, output, validations, _, candidate = self.host(Path(directory))
+            chunks = [{'key': RUN_KEY + ':0', 'body': 'é' * 65536},
+                      {'key': RUN_KEY + ':1', 'body': 'original-tail'}]
+            candidate['task_materials'] = chunks
+            host._commit_original_run_rows(output)
+            store = host._installation._store
+            self.assertEqual(store.read(store.namespaced_key('client_run_custody', 'issued')).payload, b'1')
+            self.assertEqual(store.read(store.namespaced_key('client_runs', RUN_KEY)).payload, RUN_BODY)
+            self.assertEqual(store.read(store.namespaced_key('client_submitted_intents', append_fixture.REQUEST)).payload, READY)
+            for chunk in chunks:
+                saved = store.read(store.namespaced_key('client_task_run_materials', chunk['key']))
+                self.assertEqual(saved.payload, chunk['body'].encode())
+                self.assertEqual(saved.generation, 0)
+            self.assertEqual(len(validations), 2)
+            self.assertIs(host._pending_run_write, output)
+            self.assertIn(output.ticket, host._row_write_attempts)
+            self.assertTrue(host.close())
+
+    def test_retained_task_chunk_refusal_rolls_back_ready_and_preserves_original_output(self):
+        with TemporaryDirectory(prefix='actql-retained-task-refusal-') as directory:
+            host, core, output, _, statuses, candidate = self.host(Path(directory))
+            key = RUN_KEY + ':0'
+            candidate['task_materials'] = [{'key': key, 'body': 'original task material'}]
+            statuses[2] = -32
+            with self.assertRaises(LocalCoreError):
+                host._commit_original_run_rows(output)
+            store = host._installation._store
+            count, run, submitted = self.rows(host)
+            self.assertEqual((count.payload, count.generation), (b'0', 0))
+            self.assertIsNone(run)
+            self.assertEqual(submitted.payload, append_fixture.PREPARING)
+            self.assertIsNone(store.read(store.namespaced_key('client_task_run_materials', key)))
+            self.assertIs(core._loans[output.ticket], output)
+            self.assertTrue(host.close())
+
+    def test_retained_task_lost_reply_keeps_all_original_rows_without_repeating_transaction(self):
+        with TemporaryDirectory(prefix='actql-retained-task-loss-') as directory:
+            host, core, output, _, _, candidate = self.host(Path(directory))
+            key = RUN_KEY + ':0'
+            candidate['task_materials'] = [{'key': key, 'body': 'original task material'}]
+            store = host._installation._store
+            original = store.compare_exchange_many_inspected
+            def lose(*args, **kwargs):
+                original(*args, **kwargs)
+                raise LocalStorageCommitUnknown(store)
+            with patch.object(store, 'compare_exchange_many_inspected', side_effect=lose) as write:
+                with self.assertRaises(LocalStorageCommitUnknown):
+                    host._commit_original_run_rows(output)
+                with self.assertRaisesRegex(LocalStorageError, 'transport replay'):
+                    host._commit_original_run_rows(output)
+                self.assertEqual(write.call_count, 1)
+            self.assertEqual(store.read(store.namespaced_key('client_task_run_materials', key)).payload,
+                             b'original task material')
+            self.assertIs(core._loans[output.ticket], output)
+            self.assertIs(host._pending_run_write, output)
+            self.assertTrue(host.close())
+
+    def test_retained_task_chunk_shape_and_original_order_refuse_before_write(self):
+        for chunks in ([], [{'key': RUN_KEY + ':1', 'body': 'wrong ordinal'}],
+                       [{'key': RUN_KEY + ':0', 'body': 'x', 'extra': None}],
+                       [{'key': RUN_KEY + ':0', 'body': ''}],
+                       [{'key': RUN_KEY + ':' + str(i), 'body': 'x'} for i in range(4)]):
+            with self.subTest(chunks=chunks), TemporaryDirectory(prefix='actql-task-shape-') as directory:
+                host, _, output, _, _, candidate = self.host(Path(directory))
+                candidate['task_materials'] = chunks
+                with self.assertRaises(ValueError):
+                    host._commit_original_run_rows(output)
+                self.assertIsNone(self.rows(host)[1])
+                self.assertTrue(host.close())
+
     def host(self, path):
         host, core, calls, _ = append_fixture.LocalSubmissionAppendTests().host(path)
         reference = {'epoch': host.profile()['submissionEpoch'], 'nonce': 'original'}
@@ -121,7 +194,7 @@ class FiniteRunSQLiteTests(unittest.TestCase):
             if family == 'buffer' and name == 'byte' and args[0] in output_handle:
                 return json.dumps(candidate, ensure_ascii=False).encode()[args[1]]
             return original(family, name, *args)
-        core._call = call
+        core._call = original_byte_fixture_port(call)
         output = core.reserve_submitted_run_rows(7, host._configuration.handle, source, cleanup=lambda: True)
         host._row_outputs.append(output)
         self.addCleanup(host.close)
@@ -277,7 +350,7 @@ class FiniteRunAssemblyTests(unittest.TestCase):
             if family == 'buffer' and name == 'byte' and args[0] in journal_tickets:
                 return admission[args[1]]
             return previous(family, name, *args)
-        core._call = call
+        core._call = original_byte_fixture_port(call)
         return host, core, events, admission
 
     def test_preparation_write_and_saved_admission_use_same_original_assembly(self):

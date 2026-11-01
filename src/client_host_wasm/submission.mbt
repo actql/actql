@@ -7,6 +7,7 @@ priv struct StoredSubmissionProjection {
   borrow : Result[@buffers.BufferBorrow, @buffers.BufferIssue]
   slot : @buffers.BufferSlot
   mut saved_result : StoredSavedResultRead?
+  mut saved_snapshot : @host.ClientSavedSubmissionSnapshot?
   mut append_plan : @host.ClientSubmittedJournalAppendPlan?
   mut invoked : Bool
   mut produced : Bool
@@ -39,7 +40,14 @@ pub fn reserve_submission_projection(
     return -5
   }
   if (
-      kind != 1 && kind != 2 && kind != 3 && kind != 4 && kind != 5 && kind != 6
+      kind != 1 &&
+      kind != 2 &&
+      kind != 3 &&
+      kind != 4 &&
+      kind != 5 &&
+      kind != 6 &&
+      kind != 7 &&
+      kind != 8
     ) ||
     physical_ticket <= 0 ||
     value.next_handle == 2147483647 ||
@@ -57,7 +65,7 @@ pub fn reserve_submission_projection(
   let slot = match
     @buffers.reserve_output_buffer(
       value.pool,
-      if kind == 3 || kind == 4 || kind == 5 || kind == 6 {
+      if kind >= 3 && kind <= 8 {
         1048576
       } else {
         4096
@@ -79,6 +87,7 @@ pub fn reserve_submission_projection(
     borrow,
     slot,
     saved_result: None,
+    saved_snapshot: None,
     append_plan: None,
     invoked: false,
     produced: false,
@@ -99,7 +108,7 @@ pub fn produce_submission_projection(nonce : Int64, handle : Int) -> Int {
   if record.kind == 3 {
     return produce_submission_append(value, record, configuration)
   }
-  if record.kind == 4 || record.kind == 5 || record.kind == 6 {
+  if record.kind >= 4 && record.kind <= 8 {
     return produce_submission_lookup(value, record, configuration)
   }
   if record.produced {
@@ -210,12 +219,18 @@ pub fn submission_projection_length(nonce : Int64, handle : Int) -> Int {
   if record.kind == 3 ||
     record.kind == 4 ||
     record.kind == 5 ||
-    record.kind == 6 {
+    record.kind == 6 ||
+    record.kind == 7 ||
+    record.kind == 8 {
     guard value.run_configurations.get(record.configuration)
       is Some(configuration) else {
       return -2
     }
-    let current = if record.kind == 4 || record.kind == 5 || record.kind == 6 {
+    let current = if record.kind == 4 ||
+      record.kind == 5 ||
+      record.kind == 6 ||
+      record.kind == 7 ||
+      record.kind == 8 {
       submission_lookup_current(value, record, configuration)
     } else {
       submission_append_current(value, record, configuration)
@@ -268,7 +283,10 @@ pub fn close_submission_projection(nonce : Int64, handle : Int) -> Int {
     value.payload_records.values().any(child => child.request == handle) {
     return -9
   }
-  if value.runs.values().any(run => run.sdk_submission == Some(handle)) {
+  if value.runs.values().any(run => run.sdk_submission == Some(handle)) ||
+    value.restorations
+    .values()
+    .any(restoration => restoration.sdk_submission == Some(handle)) {
     return -9
   }
   if !record.output_closed {

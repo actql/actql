@@ -152,7 +152,7 @@ fn decode_client_run_journal_row_originals(
   let keys = [
     "version", "request", "run_definition", "dispatch_reserved", "physical_start_claimed",
     "cancellation_requested", "checkpoint", "publication_binding", "publication_policy_originals",
-    "effect_material_originals",
+    "effect_material_originals", "task_materials_cid",
   ]
   if allow_local_policy {
     keys.push("local_run_policy_originals")
@@ -273,6 +273,14 @@ fn decode_client_run_journal_row_originals(
     publication_binding,
     publication_policy_originals,
     effect_material_originals,
+    task_materials_cid: match @decode.lookup(object, "task_materials_cid") {
+      None => None
+      Some(value) =>
+        match @decode.text(value) {
+          Ok(cid) if valid_client_request_cid(cid) => Some(cid)
+          _ => return Err(CustodyLost)
+        }
+    },
     checkpoint,
   }
   match

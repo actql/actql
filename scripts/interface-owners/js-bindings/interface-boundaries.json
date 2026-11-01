@@ -6144,7 +6144,7 @@
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "68d81095d50b3015dd221e2a9bf46c78fc735f5e7c994465947323421b6f35cf",
+      "sha256": "2272a587afb945e1cec9f705fe3ffaaa7cfe30081f0e076ed5362beeff32ff36",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -67040,7 +67040,7 @@
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "b3a9d11f11819e13cf88c20f569568561a468651c120bbc849246ca98f4450bd",
+      "sha256": "101563a66696889883bcd1793e43265274bbc637707adcaf680fa3eca3cb1155",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -67102,6 +67102,38 @@
           "name": "captureEffectResources/captureEffectResources",
           "parameters": [
             "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureManagedDriverConstruction",
+          "parameters": [
+            "construction",
+            "definition",
+            "driver",
+            "provider"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureManagedDriverConstruction/captureManagedDriverConstruction",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureManagedDriverConstruction/own/own",
+          "parameters": [
+            "value",
+            "names"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureManagedDriverConstruction/own/own/own",
+          "parameters": [
+            "name"
           ],
           "async": false
         },
@@ -67338,7 +67370,8 @@
             "effectResources",
             "issueOriginalCollectionReference",
             "managedPlanDefinition",
-            "managedPlanRecipe"
+            "managedPlanRecipe",
+            "managedPlanConstruction"
           ],
           "async": true
         },
@@ -73024,7 +73057,11 @@
             "captureManagedPlanDefinition",
             "captureManagedPlanDefinition/array/array",
             "captureManagedPlanDefinition/fields/fields",
-            "captureManagedPlanDefinition/fields/fields/fields"
+            "captureManagedPlanDefinition/fields/fields/fields",
+            "captureManagedDriverConstruction",
+            "captureManagedDriverConstruction/captureManagedDriverConstruction",
+            "captureManagedDriverConstruction/own/own",
+            "captureManagedDriverConstruction/own/own/own"
           ],
           "exports": [],
           "attributes": {
@@ -74940,7 +74977,7 @@
     {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "d5028a7493822179d7068e75bf7a45117ee4df630768385eaa871eafb5d68ebb",
+      "sha256": "26856fcec59e5a3c8e655d73b88d96c82017c31d0b6c2f690a126c5b023adced",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -74989,6 +75026,7 @@
           "parameters": [
             "moon",
             "declaration",
+            "commands",
             "declared",
             "environmentWire",
             "environment",
@@ -76557,6 +76595,7 @@
         "node:path",
         "node:perf_hooks",
         "node:timers/promises",
+        "node:url",
         "node:util"
       ],
       "compilerFields": [],
@@ -109364,7 +109403,7 @@
     {
       "module": "packages/run-host-core/index.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "e7e8cf8a09618526dda7e5911a91fb515763b11330de546d73fa670fce3990e6",
+      "sha256": "e6872570d64052f999d5ad0ce0dac2916a137104386852b5fc73d5d907478aa4",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -109417,6 +109456,7 @@
         "effectSourceEvidenceFacts",
         "effectSourceInputBinding",
         "effectTaskKeys",
+        "effectfulFinalRunFailedState",
         "effectfulFinalRunOutcome",
         "effectfulFinalRunReconciliationState",
         "executionShape",
@@ -110081,6 +110121,15 @@
           "name": "effectFinalOriginals/own/own",
           "parameters": [
             "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "effectfulFinalRunFailedState",
+          "parameters": [
+            "receipt",
+            "updatedAt",
+            "limits"
           ],
           "async": false
         },
@@ -112903,7 +112952,8 @@
             "admitEffectfulFinalRunEvidence",
             "admitOriginalResultOccurrenceEvidence",
             "effectfulFinalRunOutcome",
-            "effectfulFinalRunReconciliationState"
+            "effectfulFinalRunReconciliationState",
+            "effectfulFinalRunFailedState"
           ],
           "attributes": {
             "responsibility": [
@@ -117120,7 +117170,8 @@
             "effectFinalOriginals",
             "effectFinalOriginals/own/own",
             "effectfulFinalRunOutcome",
-            "effectfulFinalRunReconciliationState"
+            "effectfulFinalRunReconciliationState",
+            "effectfulFinalRunFailedState"
           ],
           "exports": [],
           "attributes": {

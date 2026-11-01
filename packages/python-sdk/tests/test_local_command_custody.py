@@ -4,6 +4,7 @@ from threading import RLock
 import unittest
 
 from actql_sdk._local_core import LocalCore, LocalCoreError, _Input, _NativeAttempt
+from local_abi_declaration_fixture import original_byte_fixture_port
 
 
 class NativeCommandCustodyTests(unittest.TestCase):
@@ -40,7 +41,7 @@ class NativeCommandCustodyTests(unittest.TestCase):
                 return -9 if pending[0] else core._cleanup(2)
             raise AssertionError('Unexpected physical ABI invocation')
 
-        core._call = call
+        core._call = original_byte_fixture_port(call)
         return core, account, calls, pending
 
     def test_exact_bytes_are_cached_with_same_loan_through_pending_cleanup(self):
@@ -89,7 +90,7 @@ class NativeCommandCustodyTests(unittest.TestCase):
             if name == 'produce_command':
                 return -7
             return original(family, name, *args)
-        core._call = call
+        core._call = original_byte_fixture_port(call)
         with self.assertRaises(LocalCoreError):
             core.produce_native_command(loan)
         self.assertIs(core._loans[loan.ticket], loan)
@@ -107,7 +108,7 @@ class NativeCommandCustodyTests(unittest.TestCase):
                 if name == refusal:
                     return 100_001 if refusal == 'command_length' else -5
                 return original(family, name, *args)
-            core._call = call
+            core._call = original_byte_fixture_port(call)
             with self.assertRaises(LocalCoreError):
                 core.read_native_command(loan)
             self.assertEqual(core._inputs[loan.ticket].payload, b'')
@@ -119,7 +120,7 @@ class NativeCommandCustodyTests(unittest.TestCase):
         def trapped(*args):
             attempted.append(args)
             raise RuntimeError('Independent interrupted Core call')
-        core._call = trapped
+        core._call = original_byte_fixture_port(trapped)
         with self.assertRaises(RuntimeError):
             core.reserve_native_command(core._native_loans[17], 3, account, cleanup=lambda: True)
         self.assertEqual(len(attempted), 1)

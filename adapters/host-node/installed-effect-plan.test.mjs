@@ -515,3 +515,25 @@ test('atomic borrow reentry keeps the returned original child before the constru
     assert.equal(children[0].prepared.status().pending, false); assert.equal(f.settlements(), 1);
   }
 });
+
+
+test('automatic Command recipe forwards opaque native capture originals and separate checked input bounds once',()=>{
+  const profile={},capture={},capacities=Array.from({length:5},()=>Object.freeze({})),calls=[];
+  const providerMoon={installedStandardCreateConstructionProfile(...args){assert.equal(this,providerMoon);
+    assert.deepEqual(args,[128,16,4]);calls.push('request');return profile;},
+    installedStandardDriverCaptureConstructionCapacity(...args){assert.equal(this,providerMoon);
+      assert.deepEqual(args,[1024,64,8,128,16,4]);calls.push('capture');return capture;}};
+  const construction=Object.freeze({write:Object.freeze({operation:'write',maxRequestBytes:256,maxResponseBytes:64}),check:undefined,metadataTextUnits:0});
+  const moon={clientProgramInstalledStandardDriverRecipeCapacities(...args){assert.equal(this,moon);
+    assert.equal(args[0],profile);assert.equal(args[1],capture);assert.deepEqual(args.slice(2,10),[1024,64,8,256,64,0,0,false]);
+    calls.push('fold');return {$tag:1,_0:capacities};},
+    clientProgramInstalledStandardCreateRecipeCapacities(){assert.fail('No old fold dropping native capture');},
+    clientProgramInstalledEffectCaptureExtentPrepare(operation,fixed,row){assert.deepEqual([operation,fixed,row],['write',capacities[0],capacities[1]]);return {$tag:1,_0:{}};},
+    clientProgramInstalledEffectOperationExtentFromCapacityPrepare(operation,capacity,transfer,physical){return {$tag:1,_0:{operation,capacity,transfer,physical}};}};
+  const recipe=prepareInstalledStandardCreatePlanRecipe({moon,providerMoon,construction,
+    credentialSite:{construction:{scope:{},issuer:{},limits:{maxSecretBytes:17}}},
+    limits:{maxWireBytes:1024,maxNodes:64,maxDepth:8},requestInput:{maxWireBytes:128,maxNodes:16,maxDepth:4},resourceTextUnits:0});
+  assert.deepEqual(calls,['request','capture','fold']);assert.equal(recipe.rowOperations.length,2);
+  assert.deepEqual(recipe.credentialOperations.map(x=>x.phase),['write']);assert.equal(recipe.rowOperations[0].extent.physical,false);
+  assert.equal(recipe.rowOperations[1].extent.physical,true);assert.equal(recipe.controlsPerRow,capacities[4]);
+});

@@ -8,6 +8,7 @@ from actql_sdk._local_core import (
     LocalCore, LocalCoreError, LOCAL_CORE_ABI, _BOOTSTRAP_SIGNATURES,
     _Input, _PhysicalInput,
 )
+from local_abi_declaration_fixture import original_byte_fixture_port
 
 
 class BootstrapCustodyTests(unittest.TestCase):
@@ -48,7 +49,7 @@ class BootstrapCustodyTests(unittest.TestCase):
             if (family, name) == ('bootstrap', 'close'):
                 return 0 if core._cleanup(2) == 0 else -9
             raise AssertionError('Unexpected execution, authority or storage ABI')
-        core._call = call
+        core._call = original_byte_fixture_port(call)
         return core, source, calls, codes, payload
 
     def test_original_metadata_copy_uses_one_reserved_loan_and_no_execution(self):

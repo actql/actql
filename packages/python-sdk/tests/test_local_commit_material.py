@@ -4,6 +4,7 @@ from threading import RLock
 import unittest
 
 from actql_sdk._local_core import LocalCore, LocalCoreError, _Output
+from local_abi_declaration_fixture import original_byte_fixture_port
 
 
 class CommitMaterialCustodyTests(unittest.TestCase):
@@ -39,8 +40,39 @@ class CommitMaterialCustodyTests(unittest.TestCase):
                 return 0 if core._cleanup(8) == 0 else -9
             return state[name]
 
-        core._call = call
+        core._call = original_byte_fixture_port(call)
         return core, parent, calls, state, wire
+
+    def test_bounded_field_retains_same_original_parent_and_actual_copy_reservation(self):
+        core, parent, calls, state, _ = self.bridge()
+        previous = core._call
+        def call(family, name, *args):
+            if (family, name) == ('publication_commit_export', 'reserve_bounded'):
+                calls.append((family, name, args))
+                self.assertEqual(args[:3], (parent.handle, 8, 71))
+                self.assertGreaterEqual(args[3], 142)
+                self.assertLess(args[3], 4096)
+                return 29
+            return previous(family, name, *args)
+        core._call = original_byte_fixture_port(call)
+        output = core.reserve_publication_commit_export(parent, cleanup=lambda: True, maximum=71)
+        self.assertEqual(output.limit, 71)
+        self.assertIs(core._loans[8], output)
+        self.assertIs(core._loans[parent.ticket], parent)
+        self.assertFalse(core.close_publication_commit_export(output))
+        self.assertIs(core._loans[8], output)
+        state['close'], state['cleanup_ready'] = 0, True
+        self.assertTrue(core.close_publication_commit_export(output))
+        self.assertIs(core._loans[parent.ticket], parent)
+
+    def test_invalid_field_bounds_refuse_before_ticket_or_physical_callback(self):
+        core, parent, calls, _, _ = self.bridge()
+        for maximum in (True, 0, -1, 1048577, 1.5):
+            with self.assertRaises(ValueError):
+                core.reserve_publication_commit_export(parent, cleanup=lambda: True, maximum=maximum)
+        self.assertEqual(calls, [])
+        self.assertEqual(core._next_ticket, 8)
+        self.assertEqual(core._inputs, {})
 
     def test_count_uses_original_parent_and_current_configuration_without_execution(self):
         core, parent, calls, _, _ = self.bridge()

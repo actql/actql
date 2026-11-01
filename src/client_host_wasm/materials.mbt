@@ -20,6 +20,7 @@ priv struct StoredSubmittedMaterial {
   borrow : Result[@buffers.BufferBorrow, @buffers.BufferIssue]
   mut rows : @local_run.LocalSubmittedRunRows?
   mut sdk_wire : String?
+  mut task_materials : @local_run.LocalRunTaskMaterialsOriginal?
 }
 
 ///|
@@ -126,6 +127,7 @@ pub fn reserve_submitted_rows_material(
     borrow,
     rows: None,
     sdk_wire: None,
+    task_materials: None,
   })
   handle
 }
@@ -175,6 +177,31 @@ fn submitted_rows_material_wire(
     guard value.runs[material.run].finite_policy is Some(finite) else {
       return Err(-32)
     }
+    guard value.environments.get(preparation.environment) is Some(environment) else {
+      return Err(-2)
+    }
+    let bindings = match
+      @preparation.local_submitted_preparation_parameters_wire(original) {
+      Ok(value) => value
+      Err(_) => return Err(-31)
+    }
+    let task_materials = match submission.task_materials {
+      Some(original) => original
+      None =>
+        match
+          @local_run.capture_local_run_task_materials_original(
+            plan,
+            environment.environment,
+            environment.wire,
+            bindings,
+          ) {
+          Ok(original) => {
+            submission.task_materials = Some(original)
+            original
+          }
+          Err(_) => return Err(-34)
+        }
+    }
     @local_run.prepare_local_sdk_submitted_run_rows(
       plan,
       original,
@@ -186,6 +213,7 @@ fn submitted_rows_material_wire(
       current.context_cid,
       now,
       finite,
+      task_materials=Some(task_materials),
     )
   } else {
     @local_run.prepare_local_submitted_run_rows(
@@ -210,6 +238,11 @@ fn submitted_rows_material_wire(
     Ok(value) => value
     Err(_) => return Err(-31)
   }
+  let task_materials = match
+    @local_run.local_submitted_run_task_materials(rows, plan, original) {
+    Ok(value) => value
+    Err(_) => return Err(-31)
+  }
   let issued = if current.sdk is Some(_) {
     guard value.runs[material.run].finite_policy is Some(packet) &&
       value.runs[material.run].sdk_submission is Some(held) &&
@@ -225,7 +258,7 @@ fn submitted_rows_material_wire(
       return Err(-35)
     }
     let candidate = match
-      sdk_run_append_candidate(value, current, plan, packet) {
+      sdk_run_append_candidate(value, current, plan, packet, task_materials) {
       Ok(value) => value
       Err(code) => return Err(code)
     }
@@ -244,7 +277,9 @@ fn submitted_rows_material_wire(
     submission.rows = Some(rows)
   }
   try {
-    let writer = @encode.writer(1048576, 10, 1)
+    // At most three original chunks add one array and three closed objects.
+    // The existing complete transport byte allowance remains unchanged.
+    let writer = @encode.writer(1048576, 24, 3)
     @encode.begin_object(writer)
     for
       (key, text) in [
@@ -262,6 +297,22 @@ fn submitted_rows_material_wire(
       @encode.string_value(writer, revision.to_string())
       @encode.key(writer, "issued_body")
       @encode.string_value(writer, @utf8.decode(count))
+    }
+    if task_materials is Some(original) {
+      @encode.key(writer, "task_materials")
+      @encode.begin_array(writer)
+      for
+        (key, body) in @local_run.local_run_task_materials_original_chunks(
+          original,
+        ) {
+        @encode.begin_object(writer)
+        @encode.key(writer, "key")
+        @encode.string_value(writer, key)
+        @encode.key(writer, "body")
+        @encode.string_value(writer, body)
+        @encode.end_object(writer)
+      }
+      @encode.end_array(writer)
     }
     @encode.end_object(writer)
     Ok(@encode.finish(writer))

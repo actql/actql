@@ -12,6 +12,7 @@ fn saved_snapshot_run() -> ClientRunJournalInspection {
     request: admission.0,
     definition: saved_submission_definition(),
     checkpoint: None,
+    task_materials_cid: None,
   }
 }
 

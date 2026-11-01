@@ -1,6 +1,6 @@
 {
   "source": "d5d66cd86ac2e153f31a511e7d37c78e0cc28ae3",
-  "syntaxProjectionSha256": "4a31ecaf4ac9e25c4558a6363ef836ef44d22cbc792e2ae1cd9c05bbdc05c888",
+  "syntaxProjectionSha256": "56bce3b6b404461ef7133530cf01564cc161eec8a7df3bcd7208c699b173e32f",
   "qualification": "Source-reference coverage only; original Native/FFI/Python executions retain their own source, artifact and target qualifications. No normal funding, VM or installed product admission.",
   "generated": [
     {
@@ -65,7 +65,7 @@
     },
     {
       "module": "packages/python-sdk/src/actql_sdk/_local_wasm_abi.py",
-      "sha256": "285a2272a110d9ce43d85fb5c355071af9764279e6efaba809d9eea1e7e6d9d1",
+      "sha256": "cc9ac13ba660c1faeb86343a919cd223921c950557a49b693530c2c594af41a5",
       "generator": {
         "path": "scripts/generate-local-wasm-abi.py",
         "anchor": "def render("
@@ -4368,7 +4368,8 @@
           "async": false,
           "name": "OriginalCommitProjection/_output",
           "parameters": [
-            "self"
+            "self",
+            "maximum"
           ]
         },
         {
@@ -4647,7 +4648,7 @@
           ]
         }
       ],
-      "sha256": "c3f12e3c3ca1376ec728209d2a8fcdd05fab310f8fa1c5f0ca153fe85c349f36",
+      "sha256": "142c80a8cc835838e7a1a8d6110fbe41989d7262994ab469981debe34bbd1d6b",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -5129,6 +5130,7 @@
       "imports": [
         "._local_distribution",
         "._local_engine",
+        "._local_host_binding",
         "._local_image_recipe",
         "._local_journal_port",
         "._local_native_holding",
@@ -5174,6 +5176,24 @@
             "_physical_holding",
             "_child_control",
             "_ordinary_host"
+          ]
+        },
+        {
+          "async": false,
+          "name": "LocalCore/_bulk_memory",
+          "parameters": [
+            "self",
+            "caller",
+            "offset",
+            "length"
+          ]
+        },
+        {
+          "async": false,
+          "name": "LocalCore/_bulk_memory_current",
+          "parameters": [
+            "self",
+            "memory"
           ]
         },
         {
@@ -5276,6 +5296,26 @@
         },
         {
           "async": false,
+          "name": "LocalCore/_input_copy",
+          "parameters": [
+            "self",
+            "caller",
+            "ticket",
+            "start",
+            "offset",
+            "length"
+          ]
+        },
+        {
+          "async": false,
+          "name": "LocalCore/_input_copy_bytes",
+          "parameters": [
+            "self",
+            "payload"
+          ]
+        },
+        {
+          "async": false,
           "name": "LocalCore/_journal_begin",
           "parameters": [
             "self",
@@ -5305,7 +5345,28 @@
         },
         {
           "async": false,
+          "name": "LocalCore/_journal_copy",
+          "parameters": [
+            "self",
+            "caller",
+            "ticket",
+            "field",
+            "index",
+            "offset",
+            "length"
+          ]
+        },
+        {
+          "async": false,
           "name": "LocalCore/_journal_current",
+          "parameters": [
+            "self",
+            "ticket"
+          ]
+        },
+        {
+          "async": false,
+          "name": "LocalCore/_journal_current_operation",
           "parameters": [
             "self",
             "ticket"
@@ -5336,6 +5397,18 @@
             "ticket",
             "index",
             "byte"
+          ]
+        },
+        {
+          "async": false,
+          "name": "LocalCore/_journal_query_copy",
+          "parameters": [
+            "self",
+            "caller",
+            "ticket",
+            "index",
+            "offset",
+            "length"
           ]
         },
         {
@@ -5400,6 +5473,14 @@
           "parameters": [
             "self",
             "wasmtime"
+          ]
+        },
+        {
+          "async": false,
+          "name": "LocalCore/_output_copy_bytes",
+          "parameters": [
+            "self",
+            "limit"
           ]
         },
         {
@@ -5538,6 +5619,18 @@
         },
         {
           "async": false,
+          "name": "LocalCore/_publisher_copy",
+          "parameters": [
+            "self",
+            "caller",
+            "ticket",
+            "index",
+            "offset",
+            "length"
+          ]
+        },
+        {
+          "async": false,
           "name": "LocalCore/_publisher_current",
           "parameters": [
             "self",
@@ -5570,6 +5663,16 @@
             "family",
             "operation",
             "abi_family"
+          ]
+        },
+        {
+          "async": false,
+          "name": "LocalCore/_read_output_block",
+          "parameters": [
+            "self",
+            "value",
+            "start",
+            "length"
           ]
         },
         {
@@ -5611,7 +5714,8 @@
             "self",
             "publication",
             "family",
-            "cleanup"
+            "cleanup",
+            "maximum"
           ]
         },
         {
@@ -7301,7 +7405,8 @@
           "parameters": [
             "self",
             "publication",
-            "cleanup"
+            "cleanup",
+            "maximum"
           ]
         },
         {
@@ -7380,7 +7485,8 @@
           "parameters": [
             "self",
             "original",
-            "cleanup"
+            "cleanup",
+            "maximum"
           ]
         },
         {
@@ -7817,7 +7923,7 @@
           ]
         }
       ],
-      "sha256": "c4a0a2ef13fea396a245f9d6f00081615113bbf5a116c89ae00dfd87e51eba4a",
+      "sha256": "e81fad0d9f51cdf4dda7304277b485fbadf2399a0786f4a97e907e32adab5675",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -9223,6 +9329,14 @@
               },
               {
                 "path": "src/client_host_wasm/buffers.mbt",
+                "anchor": "pub fn read_packed("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"read_packed:actql_buffer_read_packed\""
+              },
+              {
+                "path": "src/client_host_wasm/buffers.mbt",
                 "anchor": "pub fn open_live("
               },
               {
@@ -10397,6 +10511,14 @@
               },
               {
                 "path": "src/client_host_wasm/buffers.mbt",
+                "anchor": "pub fn read_packed("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"read_packed:actql_buffer_read_packed\""
+              },
+              {
+                "path": "src/client_host_wasm/buffers.mbt",
                 "anchor": "pub fn open_live("
               },
               {
@@ -10634,6 +10756,18 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_output_scalar_transfer.py",
+                "anchor": "def test_same_original_bytes_use_bounded_seven_byte_scalars_and_keep_original_output("
+              },
+              {
+                "path": "src/client_host_wasm/packed_output_transport_wbtest.mbt",
+                "anchor": "test \"packed output transport retains original buffer guards and exact scalar byte order\""
+              },
+              {
+                "path": "scripts/fixtures/python-local-buffer-packed-abi.py",
+                "anchor": "assert packed == (0xC32F80989FF022, 0x0A0D22A9)"
               }
             ]
           }
@@ -13703,6 +13837,14 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "src/client_host_wasm/saved_lookup_validation_dispatch_wbtest.mbt",
+                "anchor": "test \"saved status exported validation reaches its existing original snapshot guard\""
+              },
+              {
+                "path": "src/client_host_wasm/submission_append.mbt",
+                "anchor": "kind: 4 | 5 | 6 | 7 | 8, .."
               }
             ]
           }
@@ -13934,6 +14076,238 @@
               {
                 "path": "packages/python-sdk/tests/test_local_check_ports.py",
                 "anchor": "def test_failed_child_cleanup_keeps_original_input_until_separate_return("
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "LocalCore/_bulk_memory",
+            "LocalCore/_bulk_memory_current",
+            "LocalCore/_input_copy",
+            "LocalCore/_input_copy_bytes",
+            "LocalCore/_journal_copy",
+            "LocalCore/_journal_query_copy",
+            "LocalCore/_output_copy_bytes",
+            "LocalCore/_publisher_copy",
+            "LocalCore/_read_output_block"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Bounded ordinary transfers"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "    def _bulk_memory("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Bounded ordinary transfers"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "    def _bulk_memory("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Bounded ordinary transfers"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "    def _bulk_memory("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Bounded ordinary transfers"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "    def _bulk_memory("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Bounded ordinary transfers"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "    def _bulk_memory("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Bounded ordinary transfers"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "    def _bulk_memory("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Bounded ordinary transfers"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "    def _bulk_memory("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Bounded ordinary transfers"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "    def _bulk_memory("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Bounded ordinary transfers"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "    def _bulk_memory("
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Bounded ordinary transfers"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "    def _bulk_memory("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_original_bulk_transfer.py",
+                "anchor": "    def test_current_or_original_output_change_during_copy_keeps_no_partial_payload("
+              },
+              {
+                "path": "src/client_host_wasm/original_bulk_output_wbtest.mbt",
+                "anchor": "test \"original bulk output keeps exact range and cleanup guards without copying or reissuing\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "LocalCore/_journal_current_operation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "def _journal_current_operation("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original observation data within one Host operation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "def _journal_current_operation("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original observation data within one Host operation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "def _journal_current_operation("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original observation data within one Host operation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "def _journal_current_operation("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original observation data within one Host operation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "def _journal_current_operation("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original observation data within one Host operation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "def _journal_current_operation("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original observation data within one Host operation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "def _journal_current_operation("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original observation data within one Host operation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "def _journal_current_operation("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original observation data within one Host operation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "def _journal_current_operation("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original observation data within one Host operation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/tests/test_local_original_operation_current.py",
+                "anchor": "def test_metadata_requires_same_verified_frame_and_cleanup_keeps_full_checks("
+              },
+              {
+                "path": "src/client_host_wasm/host_current_operation_wbtest.mbt",
+                "anchor": "test \"original operation observation reuses only admitted data and still checks current and Account\""
               }
             ]
           }
@@ -25549,24 +25923,25 @@
       "responsibilityFacet": "primary",
       "operations": [
         {
+          "async": false,
           "name": "LocalHostBindingCleanupPending",
-          "parameters": [],
-          "async": false
+          "parameters": []
         },
         {
+          "async": false,
           "name": "LocalHostBindingCleanupPending/__init__",
           "parameters": [
             "self",
             "binding"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "OriginalHostBinding",
-          "parameters": [],
-          "async": false
+          "parameters": []
         },
         {
+          "async": false,
           "name": "OriginalHostBinding/__init__",
           "parameters": [
             "self",
@@ -25583,100 +25958,124 @@
             "epoch",
             "principal",
             "connection"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
+          "name": "OriginalHostBinding/_adoption_inventory",
+          "parameters": [
+            "self",
+            "reader"
+          ]
+        },
+        {
+          "async": false,
+          "name": "OriginalHostBinding/_adoption_inventory/receive",
+          "parameters": [
+            "row"
+          ]
+        },
+        {
+          "async": false,
           "name": "OriginalHostBinding/_nominal",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "OriginalHostBinding/_physical_current",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
+          "name": "OriginalHostBinding/_require_observation_frame",
+          "parameters": [
+            "self",
+            "core",
+            "current",
+            "reader"
+          ]
+        },
+        {
+          "async": false,
           "name": "OriginalHostBinding/_reserve",
           "parameters": [
             "self",
             "acquire"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "OriginalHostBinding/_settings_inventory",
           "parameters": [
             "self",
             "reader"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "OriginalHostBinding/_settings_inventory/receive",
           "parameters": [
             "row"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "OriginalHostBinding/close",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "OriginalHostBinding/current",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "OriginalHostBinding/fenced",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "OriginalHostBinding/inspect",
           "parameters": [
             "self",
             "consume"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "OriginalHostBinding/inspect_reader",
           "parameters": [
             "self",
             "reader",
             "consume"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_body",
           "parameters": [
             "raw"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_body/pairs",
           "parameters": [
             "items"
-          ],
-          "async": false
+          ]
         }
       ],
-      "sha256": "ab609dbde341a4b56823b69859fd5791563fd17b97a3d24f819c693df92dcb0b",
+      "sha256": "a4a66958593f0e5264a82bb4d09f2ec214d85e6b9fb881b6094a42ab88526722",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -26189,6 +26588,330 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_host_binding.py",
                 "anchor": "\"\"\"Original physical Host supplier for the existing Common current/scope Owner.\"\"\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "OriginalHostBinding/_adoption_inventory"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_host_binding.py",
+                "anchor": "def _adoption_inventory("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original observation data within one Host operation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_host_binding.py",
+                "anchor": "def _adoption_inventory("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original observation data within one Host operation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_host_binding.py",
+                "anchor": "def _adoption_inventory("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original observation data within one Host operation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_host_binding.py",
+                "anchor": "def _adoption_inventory("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original observation data within one Host operation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_host_binding.py",
+                "anchor": "def _adoption_inventory("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original observation data within one Host operation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_host_binding.py",
+                "anchor": "def _adoption_inventory("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original observation data within one Host operation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_host_binding.py",
+                "anchor": "def _adoption_inventory("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original observation data within one Host operation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_host_binding.py",
+                "anchor": "def _adoption_inventory("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original observation data within one Host operation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_host_binding.py",
+                "anchor": "def _adoption_inventory("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original observation data within one Host operation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/tests/test_local_original_operation_current.py",
+                "anchor": "def test_metadata_requires_same_verified_frame_and_cleanup_keeps_full_checks("
+              },
+              {
+                "path": "src/client_host_wasm/host_current_operation_wbtest.mbt",
+                "anchor": "test \"original operation observation reuses only admitted data and still checks current and Account\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "OriginalHostBinding/_adoption_inventory/receive"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_host_binding.py",
+                "anchor": "def _adoption_inventory("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original observation data within one Host operation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_host_binding.py",
+                "anchor": "def _adoption_inventory("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original observation data within one Host operation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_host_binding.py",
+                "anchor": "def _adoption_inventory("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original observation data within one Host operation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_host_binding.py",
+                "anchor": "def _adoption_inventory("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original observation data within one Host operation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_host_binding.py",
+                "anchor": "def _adoption_inventory("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original observation data within one Host operation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_host_binding.py",
+                "anchor": "def _adoption_inventory("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original observation data within one Host operation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_host_binding.py",
+                "anchor": "def _adoption_inventory("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original observation data within one Host operation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_host_binding.py",
+                "anchor": "def _adoption_inventory("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original observation data within one Host operation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_host_binding.py",
+                "anchor": "def _adoption_inventory("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original observation data within one Host operation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/tests/test_local_original_operation_current.py",
+                "anchor": "def test_metadata_requires_same_verified_frame_and_cleanup_keeps_full_checks("
+              },
+              {
+                "path": "src/client_host_wasm/host_current_operation_wbtest.mbt",
+                "anchor": "test \"original operation observation reuses only admitted data and still checks current and Account\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "OriginalHostBinding/_require_observation_frame"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_host_binding.py",
+                "anchor": "def _require_observation_frame("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original observation data within one Host operation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_host_binding.py",
+                "anchor": "def _require_observation_frame("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original observation data within one Host operation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_host_binding.py",
+                "anchor": "def _require_observation_frame("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original observation data within one Host operation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_host_binding.py",
+                "anchor": "def _require_observation_frame("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original observation data within one Host operation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_host_binding.py",
+                "anchor": "def _require_observation_frame("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original observation data within one Host operation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_host_binding.py",
+                "anchor": "def _require_observation_frame("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original observation data within one Host operation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_host_binding.py",
+                "anchor": "def _require_observation_frame("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original observation data within one Host operation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_host_binding.py",
+                "anchor": "def _require_observation_frame("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original observation data within one Host operation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_host_binding.py",
+                "anchor": "def _require_observation_frame("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original observation data within one Host operation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/tests/test_local_original_operation_current.py",
+                "anchor": "def test_metadata_requires_same_verified_frame_and_cleanup_keeps_full_checks("
+              },
+              {
+                "path": "src/client_host_wasm/host_current_operation_wbtest.mbt",
+                "anchor": "test \"original operation observation reuses only admitted data and still checks current and Account\""
               }
             ]
           }
@@ -28399,6 +29122,15 @@
         },
         {
           "async": false,
+          "name": "_JournalCallbacks/query_copy",
+          "parameters": [
+            "self",
+            "index",
+            "payload"
+          ]
+        },
+        {
+          "async": false,
           "name": "_JournalCallbacks/release",
           "parameters": [
             "self"
@@ -28419,9 +29151,19 @@
             "field",
             "index"
           ]
+        },
+        {
+          "async": false,
+          "name": "_JournalCallbacks/row_copy",
+          "parameters": [
+            "self",
+            "field",
+            "index",
+            "length"
+          ]
         }
       ],
-      "sha256": "a8cb0c1de48b990217f942fbb130edcb02b2728dfd348b61aee555f904ad6bf6",
+      "sha256": "8dfeaa690a4dce4b602689575d8d9a34657a7c4006ca92d360ee76899769b97c",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -28662,6 +29404,123 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_journal_port.py",
                 "anchor": "\"\"\"Bounded physical query transport; original Core Owners decide inventory facts.\"\"\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "_JournalCallbacks/query_copy",
+            "_JournalCallbacks/row_copy"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Bounded ordinary transfers"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_journal_port.py",
+                "anchor": "    def query_copy("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Bounded ordinary transfers"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_journal_port.py",
+                "anchor": "    def query_copy("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Bounded ordinary transfers"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_journal_port.py",
+                "anchor": "    def query_copy("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Bounded ordinary transfers"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_journal_port.py",
+                "anchor": "    def query_copy("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Bounded ordinary transfers"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_journal_port.py",
+                "anchor": "    def query_copy("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Bounded ordinary transfers"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_journal_port.py",
+                "anchor": "    def query_copy("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Bounded ordinary transfers"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_journal_port.py",
+                "anchor": "    def query_copy("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Bounded ordinary transfers"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_journal_port.py",
+                "anchor": "    def query_copy("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Bounded ordinary transfers"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_journal_port.py",
+                "anchor": "    def query_copy("
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Bounded ordinary transfers"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_journal_port.py",
+                "anchor": "    def query_copy("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_original_bulk_transfer.py",
+                "anchor": "    def test_current_or_original_output_change_during_copy_keeps_no_partial_payload("
+              },
+              {
+                "path": "src/client_host_wasm/original_bulk_output_wbtest.mbt",
+                "anchor": "test \"original bulk output keeps exact range and cleanup guards without copying or reissuing\""
               }
             ]
           }
@@ -48774,6 +49633,28 @@
         },
         {
           "async": false,
+          "name": "InstalledLocalHost/_restore_original_run",
+          "parameters": [
+            "self",
+            "reference"
+          ]
+        },
+        {
+          "async": false,
+          "name": "InstalledLocalHost/_restore_original_run/install",
+          "parameters": [
+            "_"
+          ]
+        },
+        {
+          "async": false,
+          "name": "InstalledLocalHost/_restore_original_run/observe",
+          "parameters": [
+            "current"
+          ]
+        },
+        {
+          "async": false,
           "name": "InstalledLocalHost/_retain_intent",
           "parameters": [
             "self",
@@ -49036,7 +49917,7 @@
           ]
         }
       ],
-      "sha256": "40ccca896096a0bc8a1b822162e55957ef8efa325f0df82df95cb7bf6cdf31b5",
+      "sha256": "a59c6342ad67d4fb4d0a6665a00f3708a8f804819a2a0629548659901d659158",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -49159,7 +50040,10 @@
             "InstalledLocalHost/open",
             "InstalledLocalHost/profile",
             "_ordinary_core_limits",
-            "_state_directory_option"
+            "_state_directory_option",
+            "InstalledLocalHost/_restore_original_run",
+            "InstalledLocalHost/_restore_original_run/install",
+            "InstalledLocalHost/_restore_original_run/observe"
           ],
           "exports": [
             "InstalledLocalHost"
@@ -49487,6 +50371,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Public Local Check reporting"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_submission_lookup.py",
+                "anchor": "def test_original_selector_restores_same_saved_input_without_ordinary_preparation(self):"
               }
             ]
           }
@@ -51757,6 +52645,14 @@
         },
         {
           "async": false,
+          "name": "LocalRunCustody/_restoration",
+          "parameters": [
+            "self",
+            "value"
+          ]
+        },
+        {
+          "async": false,
           "name": "LocalRunCustody/_run",
           "parameters": [
             "self",
@@ -51773,6 +52669,15 @@
         },
         {
           "async": false,
+          "name": "LocalRunCustody/bind_restored_preparation",
+          "parameters": [
+            "self",
+            "value",
+            "preparation"
+          ]
+        },
+        {
+          "async": false,
           "name": "LocalRunCustody/close_configuration",
           "parameters": [
             "self",
@@ -51782,6 +52687,14 @@
         {
           "async": false,
           "name": "LocalRunCustody/close_physical_start",
+          "parameters": [
+            "self",
+            "value"
+          ]
+        },
+        {
+          "async": false,
+          "name": "LocalRunCustody/close_restoration",
           "parameters": [
             "self",
             "value"
@@ -51895,6 +52808,16 @@
         },
         {
           "async": false,
+          "name": "LocalRunCustody/reserve_restoration",
+          "parameters": [
+            "self",
+            "configuration",
+            "input",
+            "snapshot"
+          ]
+        },
+        {
+          "async": false,
           "name": "LocalRunCustody/reserve_sdk_physical_start",
           "parameters": [
             "self",
@@ -51924,7 +52847,29 @@
         },
         {
           "async": false,
+          "name": "LocalRunCustody/restore_materials",
+          "parameters": [
+            "self",
+            "value"
+          ]
+        },
+        {
+          "async": false,
+          "name": "LocalRunCustody/restore_run",
+          "parameters": [
+            "self",
+            "run",
+            "value"
+          ]
+        },
+        {
+          "async": false,
           "name": "_PhysicalStart",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "_Restoration",
           "parameters": []
         },
         {
@@ -51943,7 +52888,7 @@
           "parameters": []
         }
       ],
-      "sha256": "1eaccdf18928fe1af6720f243faa480736969eb67984f8aedfb0dfc8348e36cb",
+      "sha256": "a5046424aa8f91becc2b8d6930c29911276d58dbc31c72e3c8492f3879812733",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -51974,7 +52919,13 @@
             "LocalRunCustody/reserve_physical_start",
             "LocalRunCustody/reserve_sdk_physical_start",
             "LocalRunCustody/reserve_source_free_compute",
-            "LocalRunCustody/reserve_submitted_rows"
+            "LocalRunCustody/reserve_submitted_rows",
+            "LocalRunCustody/_restoration",
+            "LocalRunCustody/bind_restored_preparation",
+            "LocalRunCustody/close_restoration",
+            "LocalRunCustody/reserve_restoration",
+            "LocalRunCustody/restore_materials",
+            "LocalRunCustody/restore_run"
           ],
           "exports": [
             "LocalRunCustody"
@@ -52102,6 +53053,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_run.py",
                 "anchor": "class LocalRunCustody:"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_run.py",
+                "anchor": "def test_restored_run_keeps_same_snapshot_and_children_until_original_close(self):"
               }
             ]
           }
@@ -52739,6 +53694,138 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_run.py",
                 "anchor": "\"\"\"Private original Run/physical-start loans, not a Run state machine."
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "_Restoration"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_run.py",
+                "anchor": "class _Run:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Original execution Owner restoration"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_run.py",
+                "anchor": "class _Run:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Original execution Owner restoration"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Original execution Owner restoration"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_run.py",
+                "anchor": "class _Run:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Handles are never serialized Client references"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Original execution Owner restoration"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_run.py",
+                "anchor": "class _Run:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Failed stop or cleanup retains the same"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Original execution Owner restoration"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_run.py",
+                "anchor": "class _Run:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Original execution Owner restoration"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_run.py",
+                "anchor": "class _Run:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Interrupted physical bridge calls"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Original execution Owner restoration"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_run.py",
+                "anchor": "class _Run:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Original execution Owner restoration"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_run.py",
+                "anchor": "class _Run:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Transfer custody"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Original execution Owner restoration"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_run.py",
+                "anchor": "class _Run:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/tests/test_local_current_run.py",
+                "anchor": "def test_only_original_frame_and_setup_reach_typed_core_configuration("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_product_commit_store.py",
+                "anchor": "def test_original_fields_and_publisher_enter_same_write_frame_but_do_not_ack_run("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_run.py",
+                "anchor": "def test_original_submitted_projection_uses_nominal_run_and_current_parents("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_run.py",
+                "anchor": "class _Run:"
               }
             ]
           }
@@ -60915,7 +62002,7 @@
       "module": "packages/python-sdk/src/actql_sdk/_local_wasm_abi.py",
       "responsibilityFacet": "primary",
       "operations": [],
-      "sha256": "483a38bc1f52d2cdec1ba95d3837c90de1e13ff2d8705cde6d0b4b38f6b2df85",
+      "sha256": "cc9ac13ba660c1faeb86343a919cd223921c950557a49b693530c2c594af41a5",
       "role": "generated-binding",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -70417,5 +71504,6 @@
         }
       ]
     }
-  ]
+  ],
+  "syntaxProjectionBasis": "SHA256 of UTF-8 JSON.stringify over sorted declared {module,operations,exports,imports}; source inventory only."
 }

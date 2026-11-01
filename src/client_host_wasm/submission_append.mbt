@@ -86,6 +86,7 @@ fn submission_run_inspection_with_identity(
     request: record.request,
     definition: record.definition,
     checkpoint: None,
+    task_materials_cid: record.task_materials_cid,
   })
 }
 
@@ -286,7 +287,7 @@ pub fn validate_submission_append(
   current : Int,
 ) -> Int {
   if selected(nonce).bind(value => value.submissions.get(handle))
-    is Some({ kind: 4 | 5 | 6, .. }) {
+    is Some({ kind: 4 | 5 | 6 | 7 | 8, .. }) {
     return validate_submission_lookup(nonce, handle, current)
   }
   guard selected(nonce) is Some(value) &&

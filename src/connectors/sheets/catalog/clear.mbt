@@ -65,37 +65,43 @@ pub fn clear_request(
     Ok(value) => value
     Err(_) => return Err(BudgetExceeded)
   }
-  let body = (
-    {
-      "requests": [
-        {
-          "updateCells": {
-            "range": {
-              "sheetId": range.sheet_id.to_json(),
-              "startRowIndex": range.start_row.to_json(),
-              "endRowIndex": range.end_row.to_json(),
-              "startColumnIndex": range.start_column.to_json(),
-              "endColumnIndex": range.end_column.to_json(),
-            },
-            "rows": [],
-            "fields": "userEnteredValue",
-          },
-        },
-        {
-          "createDeveloperMetadata": {
-            "developerMetadata": {
-              "metadataKey": "actql_request",
-              "metadataValue": marker_value.to_json(),
-              "location": { "sheetId": range.sheet_id.to_json() },
-              "visibility": "DOCUMENT",
-            },
-          },
-        },
-      ],
-    } : Json).stringify()
+  let body = clear_request_document(range, marker_value).stringify()
   match admit(@utf8.encode(body), limits) {
     Ok(_) => Ok(body)
     Err(issue) => Err(issue)
+  }
+}
+
+///|
+/// Same values-only clear document and original marker envelope. This pure
+/// shape builder supplies neither a marker admission nor a cleanup result.
+pub fn clear_request_document(range : GridRange, marker_value : String) -> Json {
+  {
+    "requests": [
+      {
+        "updateCells": {
+          "range": {
+            "sheetId": range.sheet_id.to_json(),
+            "startRowIndex": range.start_row.to_json(),
+            "endRowIndex": range.end_row.to_json(),
+            "startColumnIndex": range.start_column.to_json(),
+            "endColumnIndex": range.end_column.to_json(),
+          },
+          "rows": [],
+          "fields": "userEnteredValue",
+        },
+      },
+      {
+        "createDeveloperMetadata": {
+          "developerMetadata": {
+            "metadataKey": "actql_request",
+            "metadataValue": marker_value.to_json(),
+            "location": { "sheetId": range.sheet_id.to_json() },
+            "visibility": "DOCUMENT",
+          },
+        },
+      },
+    ],
   }
 }
 

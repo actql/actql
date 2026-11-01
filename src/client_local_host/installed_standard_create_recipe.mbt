@@ -154,6 +154,99 @@ pub fn installed_standard_create_recipe_capacities(
   stored_depth : Int,
   metadata_units : Int64,
 ) -> Result[Array[@execution.ExecutionCapacity], ClientInstalledManagedRunIssue] {
+  installed_standard_recipe_capacities(
+    original,
+    None,
+    input_bytes,
+    input_nodes,
+    input_depth,
+    request_bytes,
+    response_bytes,
+    check_request_bytes,
+    check_response_bytes,
+    before_send,
+    secret_bytes,
+    secret_prefix_units,
+    header_bytes,
+    stored_bytes,
+    stored_nodes,
+    stored_depth,
+    metadata_units,
+  )
+}
+
+///|
+pub fn installed_standard_driver_recipe_capacities(
+  original : Array[
+    (@execution.ExecutionCapacity, @source.ParseLimits?, @source.ParseLimits?),
+  ]?,
+  capture_original : Array[@execution.ExecutionCapacity]?,
+  input_bytes : Int,
+  input_nodes : Int,
+  input_depth : Int,
+  request_bytes : Int,
+  response_bytes : Int,
+  check_request_bytes : Int,
+  check_response_bytes : Int,
+  before_send : Bool,
+  secret_bytes : Int,
+  secret_prefix_units : Int,
+  header_bytes : Int,
+  stored_bytes : Int,
+  stored_nodes : Int,
+  stored_depth : Int,
+  metadata_units : Int64,
+) -> Result[Array[@execution.ExecutionCapacity], ClientInstalledManagedRunIssue] {
+  guard capture_original is Some(capture) &&
+    capture.length() == 2 &&
+    check_request_bytes == 0 &&
+    check_response_bytes == 0 &&
+    !before_send else {
+    return Err(Unsupported)
+  }
+  installed_standard_recipe_capacities(
+    original,
+    Some(capture),
+    input_bytes,
+    input_nodes,
+    input_depth,
+    request_bytes,
+    response_bytes,
+    check_request_bytes,
+    check_response_bytes,
+    before_send,
+    secret_bytes,
+    secret_prefix_units,
+    header_bytes,
+    stored_bytes,
+    stored_nodes,
+    stored_depth,
+    metadata_units,
+  )
+}
+
+///|
+fn installed_standard_recipe_capacities(
+  original : Array[
+    (@execution.ExecutionCapacity, @source.ParseLimits?, @source.ParseLimits?),
+  ]?,
+  capture_original : Array[@execution.ExecutionCapacity]?,
+  input_bytes : Int,
+  input_nodes : Int,
+  input_depth : Int,
+  request_bytes : Int,
+  response_bytes : Int,
+  check_request_bytes : Int,
+  check_response_bytes : Int,
+  before_send : Bool,
+  secret_bytes : Int,
+  secret_prefix_units : Int,
+  header_bytes : Int,
+  stored_bytes : Int,
+  stored_nodes : Int,
+  stored_depth : Int,
+  metadata_units : Int64,
+) -> Result[Array[@execution.ExecutionCapacity], ClientInstalledManagedRunIssue] {
   guard original is Some(entries) &&
     input_bytes > 0 &&
     input_nodes > 0 &&
@@ -275,6 +368,22 @@ pub fn installed_standard_create_recipe_capacities(
       return Err(Unsupported)
     }
     controls = next
+  }
+  // Provider capture/recovery constructors can retain fixed metadata and
+  // native material per checked row. Keep the SAME native quantities; the
+  // existing capture template applies row multiplicity once from its Plan.
+  let (capture_fixed, capture_rows) = match capture_original {
+    None => (capture_fixed, capture_rows)
+    Some(capture) => {
+      guard capture.length() == 2 &&
+        @execution.add_execution_capacity(capture_fixed, capture[0])
+        is Some(fixed) &&
+        @execution.add_execution_capacity(capture_rows, capture[1])
+        is Some(rows) else {
+        return Err(Unsupported)
+      }
+      (fixed, rows)
+    }
   }
   let capacities = [
     capture_fixed,

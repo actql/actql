@@ -69,6 +69,46 @@ pub fn installed_source_construction_capacity(
 }
 
 ///|
+/// Same Source constructor aggregate with selected original native recipes.
+/// Each supplied native peak remains conservatively retained. Only the
+/// original caller of a closed synchronous constructor may replace its entry
+/// with retained output DATA after retaining all returned outputs. Failed,
+/// running and unproven constructors keep their full peak until retirement.
+/// This fold issues no owner, completion proof or permission.
+pub fn compose_installed_source_construction_capacity(
+  original : @execution.ExecutionCapacity,
+  providers : Array[@execution.ExecutionCapacity],
+) -> @execution.ExecutionCapacity? {
+  let mut result = original
+  for provider in providers {
+    let peak = @execution.execution_capacity_execution_bytes(provider)
+    guard @execution.execution_capacity(peak, peak) is Some(retained) &&
+      @execution.add_execution_capacity(result, retained) is Some(composed) else {
+      return None
+    }
+    result = composed
+  }
+  Some(result)
+}
+
+///|
+/// Only the retained DATA part of an original constructor quantity. This
+/// projection observes no completion, currentness, Resource or physical ACK.
+/// The original Source caller may select it only after a closed synchronous
+/// constructor has returned and all its actual output is retained. Failed or
+/// still-running constructors keep their full original quantity.
+pub fn retained_installed_source_construction_capacity(
+  original : @execution.ExecutionCapacity,
+) -> @execution.ExecutionCapacity {
+  let retained = @execution.execution_capacity_retained_bytes(original)
+  if retained == @execution.execution_capacity_execution_bytes(original) {
+    original
+  } else {
+    @execution.execution_capacity(retained, retained).unwrap()
+  }
+}
+
+///|
 /// Fund the complete next constructor peak on its original live reservation.
 /// An already sufficient debit still crosses the same original current fence;
 /// it does not resize solely to observe currentness or issue another budget.

@@ -169,6 +169,31 @@ pub fn effectful_final_run_evidence_reconciliation_state(
 }
 
 ///|
+/// Preserve the original Run and declared Results of this same complete
+/// admitted final chain. Failure cannot publish Results or acknowledge stop.
+pub fn effectful_final_run_evidence_failed_state(
+  value : EffectfulFinalRunEvidence,
+  updated_at : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, RunStateIssue] {
+  let run_id = match run_definition_run_id(value.run_definition) {
+    Err(_) => return Err(InvalidRunId)
+    Ok(value) => value
+  }
+  issue_admitted_effect_failed_run_state_wire(
+    value.outcomes,
+    run_id,
+    updated_at,
+    value.declared_results,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
 /// Only new physical publication facts are checked here. Successful validation
 /// neither commits the index nor changes the retained Effect outcome.
 pub fn validate_retained_effectful_publication_commit(

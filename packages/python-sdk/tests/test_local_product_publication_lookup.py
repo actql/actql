@@ -23,6 +23,60 @@ class ProductPublicationLookupTests(unittest.TestCase):
         host._publication_write_attempts.add(held.publication.ticket)
         return host, core, held, projection, store, scope, packets, faults, calls
 
+    def test_complete_original_index_retires_only_the_host_attempt_blocker(self):
+        with TemporaryDirectory() as directory:
+            host, core, held, projection, store, _, _, _, calls = self.host(Path(directory), stored=True)
+            publisher = host._pending_publication_publisher
+            sql = []
+            store._connection.set_trace_callback(sql.append)
+            host._ensure_original_publication_observation(projection)
+            self.assertIsNone(host._pending_publication_write)
+            self.assertIsNone(host._pending_publication_publisher)
+            observation = host._store_observations[held.publication.ticket]
+            self.assertIs(observation._projection, projection)
+            self.assertIs(observation._publisher, publisher)
+            self.assertIs(core._loans[held.record.ticket], held.record)
+            self.assertIn(held.publication.ticket, host._publication_write_attempts)
+            self.assertIn(projection, host._commit_projections)
+            self.assertIn(publisher, host._publishers)
+            self.assertEqual(sum(name == 'produce_observed_index' for _, name, _ in calls), 2)
+            self.assertFalse(any(statement.startswith(('INSERT', 'UPDATE', 'DELETE', 'COMMIT')) for statement in sql))
+            facts = host._original_commit_reader_facts(projection)
+            before = list(sql)
+            with self.assertRaises(LocalStorageError):
+                host._store_original_commit(projection, facts, ((held.row, held.capacity),), publisher)
+            self.assertEqual(sql, before)
+            self.assertTrue(host.close())
+
+    def test_index_export_refusal_keeps_exact_pending_attempt_and_original_loans(self):
+        with TemporaryDirectory() as directory:
+            host, core, held, projection, _, _, _, faults, calls = self.host(Path(directory), stored=True)
+            publisher = host._pending_publication_publisher
+            faults['produce_observed_index'] = -35
+            with self.assertRaises(LocalCoreError) as failed:
+                host._ensure_original_publication_observation(projection)
+            self.assertEqual(failed.exception.code, -35)
+            self.assertIs(host._pending_publication_write, projection)
+            self.assertIs(host._pending_publication_publisher, publisher)
+            observation = host._store_observations[held.publication.ticket]
+            self.assertIs(observation._publisher, publisher)
+            self.assertIs(core._loans[held.record.ticket], held.record)
+            self.assertIn(held.publication.ticket, host._publication_write_attempts)
+            self.assertEqual(sum(name == 'produce_observed_index' for _, name, _ in calls), 1)
+            self.assertTrue(host.close())
+
+    def test_unknown_action_does_not_retire_pending_attempt_or_export_an_index(self):
+        with TemporaryDirectory() as directory:
+            host, _, held, projection, _, _, _, faults, calls = self.host(Path(directory), stored=True)
+            publisher = host._pending_publication_publisher
+            faults['finish_observation'] = 1
+            host._ensure_original_publication_observation(projection)
+            self.assertIs(host._pending_publication_write, projection)
+            self.assertIs(host._pending_publication_publisher, publisher)
+            self.assertIn(held.publication.ticket, host._publication_write_attempts)
+            self.assertFalse(any(name == 'produce_observed_index' for _, name, _ in calls))
+            self.assertTrue(host.close())
+
     def test_same_pending_write_looks_up_actual_older_index_once_without_replay_or_ack(self):
         with TemporaryDirectory() as directory:
             host, core, held, projection, store, scope, packets, _, calls = self.host(Path(directory), stored=True)
@@ -38,8 +92,9 @@ class ProductPublicationLookupTests(unittest.TestCase):
             self.assertFalse(any(statement.startswith(('INSERT', 'UPDATE', 'DELETE', 'COMMIT')) for statement in sql))
             self.assertFalse(any(family in ('source', 'task', 'compute') for family, _, _ in calls[before:]))
             self.assertFalse(any(name == 'finish_commit' for _, name, _ in calls[before:]))
-            self.assertIs(host._pending_publication_write, projection)
-            self.assertIs(host._pending_publication_publisher, host._publishers[0])
+            self.assertIsNone(host._pending_publication_write)
+            self.assertIsNone(host._pending_publication_publisher)
+            self.assertIs(host._store_observations[held.publication.ticket]._publisher, host._publishers[0])
             before_queries = list(sql)
             host._ensure_original_publication_observation(projection)
             self.assertEqual(sql, before_queries)

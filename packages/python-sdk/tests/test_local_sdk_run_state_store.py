@@ -17,6 +17,7 @@ from actql_sdk._local_storage import LocalStorageCommitUnknown
 from actql_sdk._values import wire_bytes
 import test_local_public_run_observation as fixture
 import test_local_submission_append as submission_fixture
+from local_abi_declaration_fixture import original_byte_fixture_port
 
 SAVED_STATE = b'{"opaque":"same original Core saved state","revision":0}'
 
@@ -37,7 +38,7 @@ class SDKRunStateStoreTests(unittest.IsolatedAsyncioTestCase):
                         return -41
                     entered.append(callbacks.reader)
                 return original(family, name, *args)
-            core._call = guarded
+            core._call = original_byte_fixture_port(guarded)
             states = []
             def consume(raw):
                 core.validate_publication_run(
@@ -70,7 +71,7 @@ class SDKRunStateStoreTests(unittest.IsolatedAsyncioTestCase):
                     self.assertEqual(callbacks.check_current(), 0)
                     return -2
                 return original(family, name, *args)
-            core._call = refuse
+            core._call = original_byte_fixture_port(refuse)
             states = []
             def consume(raw):
                 core.validate_publication_run(host._commit_projections[0]._publication,
@@ -143,7 +144,7 @@ class SDKRunStateStoreTests(unittest.IsolatedAsyncioTestCase):
             if family == 'buffer' and name == 'byte' and args[0] in packets:
                 return packets[args[0]][args[1]]
             return previous(family, name, *args)
-        core._call = call
+        core._call = original_byte_fixture_port(call)
         def observe(consume):
             InstalledLocalHost._project_original_sdk_run_state(host, run, projection, consume)
         return host, core, client, run, store, key, calls, codes, observe
