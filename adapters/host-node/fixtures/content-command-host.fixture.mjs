@@ -25,7 +25,7 @@ import {canonical, cid, resource, token} from './file-listing-source.fixture.mjs
 export async function openContentCommandHost({scratch, generated, keys, entrance,
   allowSourceRead = true, fault, modelInstallation, registerModelProviders, hostCapacityPolicy,
   faultInjection, modelApprovalRequired = false, generatedCommand = false,
-  onPrepareContent, prepareContentChild, originalContentValue}) {
+  onPrepareContent, prepareContentChild, originalContentValue, installEffects = true}) {
   const content = JSON.parse(generated.description.wire);
   const destination = resource('d');
   const fixture = contentCommandFixture({contentMime: 'text/csv', inputMime: 'text/csv',
@@ -225,7 +225,8 @@ export async function openContentCommandHost({scratch, generated, keys, entrance
     sourceOrigin: managedSource.origin, queryAliases}));
   await writeFile(effectProfilePath, canonical({version: effectVersion}));
   const installation = {directory: join(scratch.path, 'host'), connectorTable, sourceProfilePath,
-      effectProfilePath, modelInstallation, registerModelProviders, hostCapacityPolicy,
+      ...(installEffects ? {effectProfilePath} : {}),
+      modelInstallation, registerModelProviders, hostCapacityPolicy,
       resolveSourceSecret: managedSource.resolveSecret,
       authorization: {accountConfiguration: account,
         faultInjection: Object.assign(async (event, facts) => {
