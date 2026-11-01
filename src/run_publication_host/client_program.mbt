@@ -829,6 +829,20 @@ pub fn measure_prepared_client_task_pipeline_construction(
     Ok(input) => input
     Err(issue) => return Err(issue)
   }
+  measure_client_task_pipeline_construction(
+    input, max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+// SAME original selected pipeline measurement for ordinary tasks and private
+// Content/Model prefix constructors. No pipeline wire or identity is issued.
+fn measure_client_task_pipeline_construction(
+  input : ClientTaskPipelineInput,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[((Int, Int, Int), (Int, Int, Int)), ClientTaskPipelineIssue] {
   let initial = match
     measure_client_task_pipeline_input(
       input, max_wire_bytes, max_nodes, max_depth,

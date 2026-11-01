@@ -199,12 +199,22 @@ const hostEnd = hostSource.indexOf('    prepareManagedComputeRun(runtime,', host
 const retireStart = hostSource.indexOf('    retireManagedComputeRun(prepared) {');
 const retireEnd = hostSource.indexOf('    isOriginalManagedComputePreparationRefusal(', retireStart);
 assert(hostStart >= 0 && hostEnd > hostStart && retireStart >= 0 && retireEnd > retireStart);
-function hostFixture({refuse, failAfterAdopt = false} = {}) {
+function hostFixture({refuse, failAfterAdopt = false, retainedSelection = false, missingSelectionRetirement = false} = {}) {
   const prepared = {}, request = {}, sdkRequest = {}, original = {}, value = {}, parent = {}, input = {}, compilation = {};
   const scope = {}, calls = [], model = {compiled: {}, runDefinition: {}, graph: {}, scope: undefined};
-  const record = {mockSourceProfile: {}}, originalInstallation = {}, originals = {};
+  const record = {mockSourceProfile: {}}, originalInstallation = {releaseRequestDomainAliases() {}}, originals = {};
+  if (missingSelectionRetirement) delete originalInstallation.releaseRequestDomainAliases;
   const primary = new Error('original-check-after-adopt');
   let finish = true, physicalDone = false, payloadSevered = false, severFailure;
+  const selections = new WeakMap(), earlyPlans = new WeakMap();
+  if (retainedSelection) {
+    selections.set(prepared, {graph: model.graph, providerBinding: {}, account: {}});
+    earlyPlans.set(prepared, {compiled: model.compiled, definition: model.runDefinition});
+    originalInstallation.releaseRequestDomainAliases = p => {
+      assert.equal(p, prepared); assert(physicalDone);
+      selections.delete(p); earlyPlans.delete(p); calls.push('selection-aliases');
+    };
+  }
   const control = {
     finishCheckedClientInferOriginalReadScope(c, d, g, s, complete) {
       assert.deepEqual([c, d, g, s, complete], [model.compiled, model.runDefinition, model.graph, scope, true]);
@@ -245,7 +255,7 @@ function hostFixture({refuse, failAfterAdopt = false} = {}) {
   const construct = (o, run, actual, c, p, i) => {
     assert.deepEqual([o, actual, c, p, i], [originals, model, compilation, parent, input]);
     assert.equal(record.computeRuns.get(prepared), run); calls.push('construct');
-    run.preparedSequences = {}; run.modelPlan = {}; run.modelAcquisitions = [{}];
+    run.preparedSequences = {}; run.modelPlan = {};
     return run.modelPlan;
   };
   const ports = {sourceManaged: manager, moon, record, originalInstallation, originals, finishInstalledEffectModelScope,
@@ -264,7 +274,8 @@ function hostFixture({refuse, failAfterAdopt = false} = {}) {
     begin: () => object.prepareManagedModelRun(moon, prepared, request, model),
     retire: () => object.retireManagedComputeRun(prepared),
     finishScope: () => {model.scopeFinished = true;}, setFinish: value => {finish = value;},
-    failSever: failure => {severFailure = failure;}};
+    failSever: failure => {severFailure = failure;},
+    selectionHeld: () => selections.has(prepared) || earlyPlans.has(prepared)};
 }
 
 test('Host Model adoption uses its existing run bag and retains transient originals until actual adoption succeeds', () => {
@@ -295,13 +306,69 @@ test('Host Model retains the original alias receiver across a consumed preparati
 test('Host Model failed construction retains its original Scope and partial module until the same Scope acknowledges cleanup', () => {
   const primary = new Error('original-model-completion'), f = hostFixture({refuse: primary});
   assert.throws(f.begin, error => error === primary); const run = f.record.computeRuns.get(f.prepared);
-  assert(run.preparedSequences); assert(run.modelAcquisitions);
+  assert(run.preparedSequences); assert.equal(run.modelAcquisitions, undefined);
   assert.equal(f.model.scope, f.scope); assert.throws(f.begin, error => error === primary);
   f.setFinish(false); assert.throws(f.retire, {code: 'InstalledMockModelCleanupPending'});
   assert.equal(f.record.computeRuns.get(f.prepared), run); assert(!f.calls.includes('aliases'));
   f.setFinish(true); f.retire();
   assert.equal(f.record.computeRuns.has(f.prepared), false); assert.equal(f.record.computeLiveRuns.size, 0);
   assert.equal(run.closed, true); assert(!f.calls.includes('retire')); assert(!f.calls.includes('sever'));
+});
+
+test('Host Model releases retained selection and early Plan before consumed parent return while keeping pending originals', () => {
+  const f = hostFixture({retainedSelection: true}), run = f.begin();
+  assert(f.selectionHeld());
+  assert.throws(f.retire, {message: 'OriginalChildrenPending'});
+  assert(f.selectionHeld());
+  f.finishScope();
+  const primary = new Error('original consumed parent return'); f.failSever(primary);
+  assert.throws(f.retire, cause => cause === primary);
+  assert.equal(f.selectionHeld(), false, 'Prepared is still held; its WeakMap values must be cut');
+  assert.deepEqual(f.calls.slice(-3), ['aliases', 'selection-aliases', 'sever']);
+  assert.equal(run.model, undefined);
+  const finish = f.retire(); finish();
+  assert.equal(f.calls.filter(value => value === 'selection-aliases').length, 1);
+  const failure = new Error('original pre-adoption refusal'), partial = hostFixture({refuse: failure, retainedSelection: true});
+  assert.throws(partial.begin, cause => cause === failure);
+  partial.setFinish(false); assert.throws(partial.retire, {code: 'InstalledMockModelCleanupPending'});
+  assert(partial.selectionHeld());
+  partial.setFinish(true); partial.retire(); assert.equal(partial.selectionHeld(), false);
+});
+
+test('Host Model refuses missing original alias retirement before retaining a child or entering its constructor', () => {
+  const f = hostFixture({missingSelectionRetirement: true});
+  assert.throws(f.begin, {code: 'NodeManagedRunRuntimeUnavailable'});
+  assert.equal(f.record.computeRuns, undefined);
+  assert.deepEqual(f.calls, []);
+});
+
+test('Model fixed alias cut removes only the same Mock selection and early Plan and remains spent', () => {
+  let declaration;
+  const walk = node => {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'FunctionDeclaration' && node.id.name === 'releaseRequestModelAliases') {
+      assert.equal(declaration, undefined); declaration = node;
+    }
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(walk);
+      else if (value && typeof value === 'object') walk(value);
+    }
+  };
+  walk(parse(hostSource, {ecmaVersion: 'latest', sourceType: 'module'}));
+  assert(declaration);
+  const inferSelections = new WeakMap(), earlyMockInferPlans = new WeakMap();
+  const prepared = {}, other = {}, physical = {};
+  for (const key of [prepared, other]) {
+    inferSelections.set(key, {localMock: true, graph: {}, providerBinding: {}});
+    earlyMockInferPlans.set(key, {plan: {compiled: {}, runDefinition: {}}});
+  }
+  inferSelections.set(physical, {localMock: false, provider: {}});
+  const release = Function('inferSelections', 'earlyMockInferPlans',
+    `return ${hostSource.slice(declaration.start, declaration.end)};`)(inferSelections, earlyMockInferPlans);
+  release(prepared); release(prepared);
+  assert.equal(inferSelections.has(prepared), false); assert.equal(earlyMockInferPlans.has(prepared), false);
+  assert.equal(inferSelections.has(other), true); assert.equal(earlyMockInferPlans.has(other), true);
+  release(physical); assert.equal(inferSelections.has(physical), true);
 });
 
 test('actual Model custody selector borrows original handler and dispatch tokens while Effect and Content stay unselected', () => {

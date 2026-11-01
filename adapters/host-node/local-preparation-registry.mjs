@@ -3,9 +3,10 @@
 import {createLocalPreparationCustody} from './local-preparation-custody.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 const payloadFields = Object.freeze(['input', 'parameters']);
-export function installLocalPreparationRegistry(select, retirePrepared, resource) {
+export function installLocalPreparationRegistry(select, retirePrepared, resource, retireInitialAliases) {
   if (typeof select !== 'function') throw new TypeError('InvalidLocalPreparationSelection');
   if (retirePrepared !== undefined && typeof retirePrepared !== 'function') throw new TypeError('InvalidLocalPreparationRetirement');
+  if (retireInitialAliases !== undefined && typeof retireInitialAliases !== 'function') throw new TypeError('InvalidLocalPreparationRetirement');
   if (resource !== undefined && (typeof resource.borrow !== 'function' ||
       typeof resource.runtime?.clientProgramPreparationBorrowRead !== 'function' ||
       typeof resource.runtime?.clientProgramPreparationBorrowReturn !== 'function' ||
@@ -94,15 +95,21 @@ export function installLocalPreparationRegistry(select, retirePrepared, resource
     return entry.custody.handle;
   };
   const read = value => handles.has(value) ? payload(handles.get(value)).prepared : value;
-  const retireUndispatched = entry => {
+  const retireUndispatched = (entry, retiringOriginal = false) => {
     if (entry.handlerOwned && !entry.handlerFinished) {
       throw new Error('LocalPreparationHandlerCleanupPending');
     }
     if (!entry.retirementStarted) {
-      const finish = retirePrepared?.(entry.owner.prepared.prepared);
+      const prepared = entry.owner.prepared.prepared;
+      const finish = retirePrepared?.(prepared);
       if (finish !== undefined && typeof finish !== 'function') {
         throw new TypeError('InvalidLocalPreparationRetirementContinuation');
       }
+      // Only retireRetiringOriginal reaches this fixed cut after checking the
+      // SAME Core handler's retirement phase. A pre-record constructor failure
+      // has no managed Run or Content record to carry its early Plan alias.
+      // Spend that alias before the original handler return can consume/throw.
+      if (retiringOriginal) retireInitialAliases?.(prepared);
       entry.finishRetirement = finish;
       entry.retirementStarted = true;
       entry.custody.requestRetirement();
@@ -152,7 +159,7 @@ export function installLocalPreparationRegistry(select, retirePrepared, resource
           resource.runtime.clientProgramPreparationBorrowRetirementStarted(entry.coreHandler) !== true)) {
         throw new Error('LocalPreparationRetirementNotStarted');
       }
-      retireUndispatched(entry);
+      retireUndispatched(entry, true);
     },
     // Fixed installation-close hook only: callers first stop new operations and
     // await handler/dispatch quiescence. Handler completion alone is NOT an ACK

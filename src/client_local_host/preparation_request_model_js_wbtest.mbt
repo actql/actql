@@ -6,12 +6,13 @@ fn request_model_input_fixture(
   captured? : Bool = false,
   with_query_time? : Bool = false,
   current? : () -> Bool = () => true,
+  declaration? : @row_source_host.RowDeclaration? = None,
 ) -> (
   ClientRequestPreparation[Array[Int]],
   Array[Int],
   @publication_host.PreparedClientProgram,
 ) raise {
-  let (environment, _) = effect_model_plan_source()
+  let (environment, _) = effect_model_plan_source(declaration~)
   let document = if captured {
     (
       #|{"version":"actql/0.1","id":"request-model-captures","stages":[{"id":"left","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id >= 0"},{"select":["id","amount"],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id","amount"]}}},{"id":"right","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id >= 0"},{"select":["id","amount"],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id","amount"]}}},{"id":"classify","inputs":{"left":{"result":{"stage":"left","result":"rows"}},"right":{"result":{"stage":"right","result":"rows"}}},"steps":[{"from":"left","join":{"with":"right","kind":"inner","on":[{"left":"id","right":"id"}],"select":{"id":"left.id"}}},{"derive":{"text":{"literal":"hello"}}},{"assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"classified"}],"results":{"rows":{"from":"classified","fields":["id","outcome","value"]}}}],"results":{"rows":{"from":{"stage":"classify","result":"rows"}}}}
@@ -20,6 +21,14 @@ fn request_model_input_fixture(
     (
       #|{"version":"actql/0.1","id":"request-model-values","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"text":{"type":"string","nullable":true}},"rows":[{"id":1,"text":"hello"}]},"as":"seed"},{"assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"classified"}],"results":{"rows":{"from":"classified","fields":["id","outcome","value"]}}}],"results":{"rows":{"from":{"stage":"main","result":"rows"}}}}
     )
+  }
+  let document = match declaration {
+    Some(original) =>
+      document.replace_all(
+        old="\"connector\":\"crm/main\"",
+        new="\"connector\":\"" + original.connector_id + "\"",
+      )
+    None => document
   }
   let document = if with_query_time {
     assert_false(captured)
@@ -105,9 +114,11 @@ fn request_model_fixture(
   ClientInstalledManagedModelPlan,
   @resources.PreparationBodyBorrow[@publication_host.PreparedClientProgram],
 ) raise {
+  let declaration = request_model_module_declaration()
   let (parent, input, prepared) = request_model_input_fixture(
     captured~,
     current~,
+    declaration=if model_input && captured { Some(declaration) } else { None },
   )
   let construction = if model_input {
     borrow_request_model_plan_input(parent, input).unwrap()
@@ -123,15 +134,34 @@ fn request_model_fixture(
     cost_units: 0L,
     duration_ms: 1000L,
   }).unwrap()
-  let (occurrence, graph) = request_model_graph_fixture(prepared)
+  let contracts = request_program_module_contracts()
+  let manifests = request_program_module_manifests()
+  let compilation_limits = @publication_host.client_standard_pure_compilation_limits()
+  let (occurrence, graph) = if model_input {
+    let (occurrence, execution) = request_model_graph_inputs(prepared)
+    (
+      occurrence,
+      prepare_request_model_graph(
+        parent,
+        input,
+        occurrence,
+        execution,
+        contracts,
+        manifests~,
+        compilation_limits~,
+      ).unwrap(),
+    )
+  } else {
+    request_model_graph_fixture(prepared)
+  }
   let compilation = if model_input {
     prepare_request_model_compilation(
       parent,
       input,
       graph,
-      request_program_module_contracts(),
-      manifests=request_program_module_manifests(),
-      compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+      contracts,
+      manifests~,
+      compilation_limits~,
     ).unwrap()
   } else {
     @publication_host.issue_prepared_client_multi_infer_compilation(
@@ -162,64 +192,91 @@ fn request_model_fixture(
     "request-model",
   ).unwrap()
   let assets = @publication_host.client_local_product_assets()
-  let contracts = request_program_module_contracts()
   let factory_calls = Ref(0)
   let factory = (_ : @execution.ExecutionCapacity) => {
     factory_calls.val += 1
     []
   }
   let plan = if captured {
-    let captures = Array::makei(2, index => {
-      let requirement = prepare_local_query_requirement(
-        prepared,
-        index,
+    let original = if model_input {
+      prepare_request_model_capture_module(
+        parent,
+        input,
+        request,
+        compiled,
+        definition,
+        compilation,
+        [declaration, declaration],
+        original_row_query_contract_fixture,
+        original_row_evidence_contract_fixture,
+        [4096L, 4096L],
+        [2048L, 2048L],
+        contracts,
+        true,
         0,
+        factory,
+      ).unwrap()
+    } else {
+      let captures = Array::makei(2, index => {
+        let requirement = prepare_local_query_requirement(
+          prepared,
+          index,
+          0,
+          contracts,
+          assets.values,
+          Some(assets.fragment),
+          assets.ordered,
+        ).unwrap()
+        installed_row_capture_capacity(
+          original_row_acquisition_fixture(requirement),
+        ).unwrap()
+      })
+      prepare_installed_mock_model_capture_plan(
+        prepared,
+        request,
+        compilation,
+        captures,
+        [4096L, 4096L],
+        [2048L, 2048L],
         contracts,
         assets.values,
         Some(assets.fragment),
         assets.ordered,
+        retained_output=true,
+        provider_factory=factory,
       ).unwrap()
-      installed_row_capture_capacity(
-        original_row_acquisition_fixture(requirement),
-      ).unwrap()
-    })
-    let original = prepare_installed_mock_model_capture_plan(
-      prepared,
-      request,
-      compilation,
-      captures,
-      [4096L, 4096L],
-      [2048L, 2048L],
-      contracts,
-      assets.values,
-      Some(assets.fragment),
-      assets.ordered,
-      retained_output=true,
-      provider_factory=factory,
-    ).unwrap()
+    }
     prepare_installed_mock_model_capture_plan_binding(
       original, compiled, definition, occurrence, graph, effect_model_plan_limits,
       500L, 700L, 20, 20, 20,
     ).unwrap()
   } else {
-    let original = prepare_installed_mock_model_source_free_with_contracts(
-      prepared,
-      compilation,
-      contracts,
-      assets.values,
-      Some(assets.fragment),
-      assets.ordered,
-      retained_output=true,
-      provider_factory=factory,
-    ).unwrap()
+    let original = if model_input {
+      prepare_request_model_source_free_module(
+        parent, input, request, compiled, definition, compilation, contracts, true,
+        0, factory,
+      ).unwrap()
+    } else {
+      prepare_installed_mock_model_source_free_with_contracts(
+        prepared,
+        compilation,
+        contracts,
+        assets.values,
+        Some(assets.fragment),
+        assets.ordered,
+        retained_output=true,
+        provider_factory=factory,
+      ).unwrap()
+    }
     prepare_installed_mock_model_source_free_plan(
       original, request, compiled, definition, occurrence, graph, effect_model_plan_limits,
       500L, 700L, 20, 20, 20,
     ).unwrap()
   }
   assert_eq(factory_calls.val, 1)
-  // Runtime bodies use their own reservations after adoption. This fixture
-  // supplies no whole-Plan prepayment or spare Scope/census backing.
+  // These same-Request constructors retain actual Graph/module backing.
+  // Runtime reservations and Scope/census still keep their separate duties;
+  // the fixture's installation/Resource admission is not ordinary IO.
   (parent, input, plan, construction)
 }
 

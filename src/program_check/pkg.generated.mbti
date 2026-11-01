@@ -853,6 +853,8 @@ pub fn sequence_limit_selection(SequenceLimit) -> @pipeline_check_context.Sequen
 
 pub fn sequence_limit_source(SequenceLimit) -> UnitOperationSource
 
+pub fn serialization_source_policy_construction(CheckedProgram, Int) -> SerializationPolicyConstruction?
+
 pub fn source_catalog_closed_values_dependencies(PreparedSourceCatalog, Int) -> @check_environment.ClosedValuesCatalogDependencies?
 
 pub fn source_catalog_contracts(PreparedSourceCatalog) -> @check_environment.SourceRequestContracts
@@ -1737,6 +1739,15 @@ pub(all) enum SearchInputSide {
 } derive(Eq, @debug.Debug)
 
 type SequenceLimit
+
+pub(all) struct SerializationPolicyConstruction {
+  collections : @decode_shape.CollectionConstructionInventory
+  key_utf16_units : Int64
+  effective : (Int, Int, Int)
+  response_total : (Int, Int, Int)?
+  response_max : (Int, Int, Int)?
+  bodies : Int
+}
 
 pub(all) struct SourceCatalogLimits {
   max_work : Int

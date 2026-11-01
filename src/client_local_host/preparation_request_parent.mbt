@@ -19,6 +19,7 @@ priv enum ClientRequestPreparationPhase {
   EffectModelScopeQuoted
   EffectBodyReady
   EffectBodyFailed
+  EffectCaptureRecovery
   ProgramPlanQuoted
   ProgramPlanReserved
   ModelPlanReserved
@@ -36,11 +37,31 @@ priv enum ClientRequestPreparationPhase {
 // slot. Both selected compiler inputs have the same four original fields;
 // no additional parent, phase, retained controller or parameter cache exists.
 priv enum ClientRequestDomainCompilationInputs {
+  // Read-only recovery retains the existing journal-selected originals. It
+  // never continues into a compiler, Source/Model/Effect Plan or send owner.
+  RequestEffectCaptureRecovery(
+    @publication_host.ClientRequestIdentity,
+    @publication.PublicationContract
+  )
   RequestModelCompilation(
     @publication_host.ClientCompilationManifests,
     @publication_host.ClientPureCompilationLimits,
     ClientInstalledSequenceContracts,
     @publication_host.ClientInferPlanGraph
+  )
+  // The original component is already backed before the caller can compile
+  // it. Reuse this same four-reference slot, then transfer it to that compiler.
+  RequestModelGraph(
+    @publication_host.ClientCompilationManifests,
+    @publication_host.ClientPureCompilationLimits,
+    ClientInstalledSequenceContracts,
+    @publication_host.ClientInferPlanGraph
+  )
+  RequestSerializationGraph(
+    @publication_host.ClientCompilationManifests,
+    @publication_host.ClientPureCompilationLimits,
+    ClientInstalledSequenceContracts,
+    @publication_host.ClientSerializationPlanGraph
   )
   RequestSerializationCompilation(
     @publication_host.ClientCompilationManifests,
@@ -100,7 +121,7 @@ struct ClientRequestPreparation[I] {
   mut program_data : @checked.ParsedCheckDataEstimate?
   mut program_plan_quote : (Int64, Int64)?
   mut program_measurement_quote : (Int64, Int64)?
-  // Model Scope and Content Plan are exclusive domain constructors. Retain
+  // Graph, Model Scope and Content Plan are exclusive domain constructors. Retain
   // their absolute target in the same prepaid slot across a declined grow.
   mut program_domain_quote : (Int64, Int64)?
   mut program_artifact_geometry : @publication_host.ClientPureCompilationConstruction?
@@ -299,9 +320,10 @@ pub fn client_request_preparation_control_capacity(
     is Some(retained) else {
     return None
   }
-  // One trusted invocation-control group, including its bounded sizing controls,
-  // native Option carriers and lean Host view. This is installed coarse control
-  // overhead, not a per-closure census or variable wire/body admission.
+  // One trusted private control group: invocation sizing/Option/lean view, or
+  // the exclusive read-only capture-recovery quote/reader controls, or the
+  // pre-compiler Content Graph measurement/selection call frame. This is
+  // installed coarse control overhead, not variable wire/body admission.
   if retained > limits.retained_bytes {
     return None
   }

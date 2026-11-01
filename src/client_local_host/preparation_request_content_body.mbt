@@ -141,7 +141,11 @@ fn[I] prepare_request_serialization_compilation_owned(
     owner.compiled_program is Some(prepared) &&
     physical_equal(component.owner, prepared) &&
     owner.program_compilation is None &&
-    owner.program_content is NoContent &&
+    (
+      owner.program_content is NoContent ||
+      (keyed is Some(selected) && owner.program_content is KeyedContent(original, None) &&
+       physical_equal(original, selected))
+    ) &&
     !owner.program_body_attempted &&
     owner.program_artifact_work is None &&
     owner.program_artifact_work_issue is None else {
@@ -161,12 +165,42 @@ fn[I] prepare_request_serialization_compilation_owned(
     Some(selected) => {
       guard physical_equal(selected.prepared, prepared) &&
         component.task == selected.serialization_task &&
-        component.step == selected.serialization_step else {
+        component.step == selected.serialization_step &&
+        (selected.prefix is None ||
+          (owner.program_content is KeyedContent(original, None) &&
+           physical_equal(original, selected))) else {
         return Err(Preparation(ForeignOriginal))
       }
     }
   }
   match owner.program_domain_compilation_inputs {
+    Some(
+      RequestSerializationGraph(
+        old_manifests,
+        old_limits,
+        old_contracts,
+        old_component
+      )
+    ) => {
+      guard physical_equal(old_manifests, manifests) &&
+        old_limits == compilation_limits &&
+        physical_equal(old_contracts, contracts) &&
+        physical_equal(old_component, component) else {
+        return Err(Preparation(ForeignOriginal))
+      }
+      owner.program_domain_compilation_inputs = Some(
+        match keyed {
+          None =>
+            RequestSerializationCompilation(
+              manifests, compilation_limits, contracts, component,
+            )
+          Some(selected) =>
+            RequestKeyedSerializationCompilation(
+              manifests, compilation_limits, selected, component,
+            )
+        },
+      )
+    }
     Some(
       RequestSerializationCompilation(
         old_manifests,
@@ -262,7 +296,13 @@ pub fn[I] complete_request_content_preparation(
     owner.compiled_program is Some(prepared) &&
     owner.program_source_free is None &&
     owner.program_captured is None &&
-    owner.program_content is NoContent else {
+    (
+      (owner.program_content is NoContent && selected.prefix is None) ||
+      (owner.program_content is KeyedContent(original, None) &&
+       physical_equal(original, selected) &&
+       owner.program_content_request is Some(original_request) &&
+       physical_equal(original_request, request))
+    ) else {
     return Err(WrongPhase)
   }
   guard owner.input is Some(original) &&
@@ -517,6 +557,7 @@ pub fn[I] begin_request_content_managed_run(
       owner.program_artifact_geometry = None
       owner.program_artifact_quote = None
       owner.program_measurement_quote = None
+      owner.program_invocation_quote = None
       owner.native_parameters = None
       owner.native_query_declarations = None
       owner.native_parameters_ready = false

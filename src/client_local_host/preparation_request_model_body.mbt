@@ -87,6 +87,36 @@ pub fn[I] prepare_request_model_compilation(
     return Err(Installed(Unsupported))
   }
   match owner.program_domain_compilation_inputs {
+    Some(RequestModelGraph(old_manifests, old_limits, old_contracts, original)) => {
+      guard physical_equal(old_manifests, manifests) &&
+        old_limits == compilation_limits &&
+        physical_equal(old_contracts, contracts) &&
+        physical_equal(original, graph) else {
+        return Err(Preparation(ForeignOriginal))
+      }
+      owner.program_domain_compilation_inputs = Some(
+        RequestModelCompilation(manifests, compilation_limits, contracts, graph),
+      )
+    }
+    Some(
+      RequestSerializationGraph(
+        old_manifests,
+        old_limits,
+        old_contracts,
+        component
+      )
+    ) => {
+      guard physical_equal(old_manifests, manifests) &&
+        old_limits == compilation_limits &&
+        physical_equal(old_contracts, contracts) &&
+        graph.serialization is Some(original) &&
+        physical_equal(original, component) else {
+        return Err(Preparation(ForeignOriginal))
+      }
+      owner.program_domain_compilation_inputs = Some(
+        RequestModelCompilation(manifests, compilation_limits, contracts, graph),
+      )
+    }
     Some(
       RequestModelCompilation(
         old_manifests,
@@ -154,6 +184,23 @@ pub fn[I] prepare_request_model_read_scope(
   ClientInstalledManagedRunIssue,
 ] {
   let quoted = owner.phase == ModelScopeQuoted
+  // This Request retained the actual funded module before Plan/Scope entry.
+  // A separately reconstructed module with the same compiler is still foreign.
+  guard (match
+    (
+      plan.source_free,
+      plan.captured,
+      owner.program_source_free,
+      owner.program_captured,
+    ) {
+    (Some(selected), None, Some(original), None) =>
+      physical_equal(selected, original)
+    (None, Some(selected), None, Some(original)) =>
+      physical_equal(selected, original)
+    _ => false
+  }) else {
+    return Err(ForeignOriginal)
+  }
   guard (
       (
         owner.phase == ModelPlanReserved &&
@@ -297,6 +344,7 @@ pub fn[I] complete_request_model_preparation(
     owner.program_artifact_geometry = None
     owner.program_artifact_quote = None
     owner.program_measurement_quote = None
+    owner.program_invocation_quote = None
   }
   result
 }

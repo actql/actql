@@ -9,10 +9,10 @@ const source = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'u
 const node = parse(source, {ecmaVersion: 'latest', sourceType: 'module'}).body
   .find(value => value.type === 'FunctionDeclaration' && value.id.name === 'prepareRequestMockModelPlan');
 assert(node);
-function fixture({count = 0, timed = false, missingCapacity = false, expire = false} = {}) {
+function fixture({count = 0, timed = false, refuseCapture, expire = false, missingModule = false} = {}) {
   const parent = {}, input = {}, prepared = {}, request = {}, compilation = {}, module = {}, plan = {};
   const graph = {}, occurrence = {}, bounds = {}, q = {}, admission = {}, initialControl = {};
-  const declarations = [{}, {}], requirements = [{}, {}], acquisitions = [{}, {}], capacities = [{}, {}];
+  const declarations = [{}, {}];
   const calls = [], model = {graph, occurrence, compiled: {}, runDefinition: {}, scope: undefined};
   const run = {prepared, request, model, queryTimePreparation: timed ? q : undefined};
   let current = true;
@@ -38,37 +38,29 @@ function fixture({count = 0, timed = false, missingCapacity = false, expire = fa
     clientProgramComposedInferRetainedLimits(value) {
       assert.equal(value, bounds); return [11n, 12n, 13n, 14n, 15n, 16n, 17n, 18n, 19n];
     },
-    clientProgramPrepareInstalledMockModelSourceFreeWithContracts(...args) {
-      assert.deepEqual(args, [prepared, compilation, admission, 'values', 'fragment', 'ordered', true]);
+    clientProgramPrepareRequestModelSourceFreeModule(...args) {
+      assert.deepEqual(args, [parent, input, request, model.compiled, model.runDefinition,
+        compilation, admission, true, timed ? q : undefined]);
       assert.equal(model.selectedBounds, bounds); assert.equal(model.budget.readRetainedBytes, 13n);
       calls.push('source-free-module'); if (expire) current = false; return ok(module);
     },
-    clientProgramPrepareLocalQueryRequirement(...args) {
-      const stage = args[1]; assert.equal(timed, false);
-      assert.deepEqual(args, [prepared, stage, 0, admission, 'values', 'fragment', 'ordered']);
-      calls.push('requirement'+stage); return ok(requirements[stage]);
-    },
-    clientProgramPrepareLocalQueryRequirementAtQueryTime(...args) {
-      const stage = args[1]; assert.equal(timed, true);
-      assert.deepEqual(args, [prepared, stage, 0, q, request, admission, 'values', 'fragment', 'ordered']);
-      calls.push('timed-requirement'+stage); return ok(requirements[stage]);
-    },
-    clientProgramRowSourcePrepareAcquisition(declaration, requirement, query, evidence) {
-      const index = declarations.indexOf(declaration); assert(index >= 0);
-      assert.equal(requirement, requirements[index]); assert.equal(query, 'query'); assert.equal(evidence, 'evidence');
-      calls.push('acquisition'+index); return ok(acquisitions[index]);
-    },
-    clientProgramInstalledRowCaptureCapacity(acquisition) {
-      const index = acquisitions.indexOf(acquisition); assert(index >= 0);
-      calls.push('capacity'+index); return missingCapacity && index === 1 ? undefined : capacities[index];
-    },
-    clientProgramInstalledMockModelCapturePlanPrepare(...args) {
-      assert.deepEqual(args, [prepared, request, compilation, capacities,
-        [1048576n, 1048576n], [1048576n, 1048576n], admission, 'values', 'fragment', 'ordered', true, timed ? q : undefined]);
-      assert.equal(args[4], args[5], 'Reuse the original fixed document bound vector');
-      calls.push('captured-module'); return ok(module);
+    clientProgramPrepareRequestModelCaptureModule(...args) {
+      assert.deepEqual(args, [parent, input, request, model.compiled, model.runDefinition, compilation,
+        declarations, 'query', 'evidence', [1048576n, 1048576n], [1048576n, 1048576n],
+        admission, true, timed ? q : undefined]);
+      assert.equal(args[9], args[10], 'Reuse the original fixed document bound vector');
+      calls.push('captured-module'); if (refuseCapture) throw refuseCapture;
+      if (expire) current = false; return ok(module);
     },
   };
+  for (const name of ['clientProgramPrepareInstalledMockModelSourceFreeWithContracts',
+    'clientProgramInstalledMockModelCapturePlanPrepare', 'clientProgramPrepareLocalQueryRequirement',
+    'clientProgramPrepareLocalQueryRequirementAtQueryTime', 'clientProgramRowSourcePrepareAcquisition',
+    'clientProgramInstalledRowCaptureCapacity']) moon[name] = () => assert.fail('legacy unbacked Model constructor');
+  if (missingModule) {
+    delete moon.clientProgramPrepareRequestModelSourceFreeModule;
+    delete moon.clientProgramPrepareRequestModelCaptureModule;
+  }
   run.runtime = moon;
   const originals = {installation: {projectRuntime: moon, initialControl, retainedRelationOutput: true,
     computeRuns: new WeakMap([[prepared, run]])}};
@@ -85,7 +77,7 @@ function fixture({count = 0, timed = false, missingCapacity = false, expire = fa
     return path.endsWith('actql-query-acquisition.json') ? 'query' : 'evidence';
   }};
   const construct = Function(...Object.keys(ports), `return (${source.slice(node.start, node.end)});`)(...Object.values(ports));
-  return {run, model, compilation, module, plan, bounds, capacities, acquisitions, calls, primary,
+  return {run, model, compilation, module, plan, bounds, calls, primary,
     construct: () => construct(originals, run, model, compilation, parent, input)};
 }
 
@@ -98,22 +90,27 @@ test('Request Model constructs its actual source-free module from the original c
     maxReservations: 17, maxHoldings: 18, maxDelegations: 19});
 });
 
-test('Request Model retains both actual query acquisitions and its original optional QueryTime before binding', () => {
+test('Request Model constructs both actual query acquisitions only inside same Request module with original QueryTime', () => {
   for (const timed of [false, true]) {
     const f = fixture({count: 2, timed}); assert.equal(f.construct(), f.plan);
-    assert.deepEqual(f.run.modelAcquisitions.map(value => value.acquisition), f.acquisitions);
-    assert.deepEqual(f.run.modelAcquisitions.map(value => value.capacity), f.capacities);
-    assert.deepEqual(f.calls, ['bounds', (timed ? 'timed-' : '')+'requirement0', 'acquisition0', 'capacity0',
-      (timed ? 'timed-' : '')+'requirement1', 'acquisition1', 'capacity1', 'captured-module', 'bind-captured']);
+    assert.equal(f.run.modelAcquisitions, undefined);
+    assert.deepEqual(f.calls, ['bounds', 'captured-module', 'bind-captured']);
   }
 });
 
-test('Request Model keeps partial original acquisitions and module output when later validation fails', () => {
-  const f = fixture({count: 2, missingCapacity: true});
-  assert.throws(f.construct, {code: 'InstalledSourceCapacityUnavailable'});
-  assert.equal(f.run.modelAcquisitions[1].acquisition, f.acquisitions[1]);
-  assert.equal(f.run.modelAcquisitions[1].capacity, undefined);
-  assert(!f.calls.includes('captured-module'));
+test('Request Model keeps original native refusal and retained module output for same Request cleanup', () => {
+  const primary = new Error('original Request capture refusal'), f = fixture({count: 2, refuseCapture: primary});
+  assert.throws(f.construct, cause => cause === primary);
+  assert.equal(f.run.preparedSequences, undefined); assert.equal(f.run.modelAcquisitions, undefined);
+  assert.deepEqual(f.calls, ['bounds', 'captured-module']);
   const g = fixture({expire: true}); assert.throws(g.construct, error => error === g.primary);
   assert.equal(g.run.preparedSequences, g.module); assert(!g.calls.includes('bind-source-free'));
+});
+
+test('Request Model refuses absent Request module ports before any legacy constructor can run', () => {
+  for (const count of [0, 2]) {
+    const f = fixture({count, missingModule: true});
+    assert.throws(f.construct, {code: count === 0 ? 'NodeManagedRunRuntimeUnavailable' : 'InstalledMockModelOperationalAdmissionUnavailable'});
+    assert.deepEqual(f.calls, ['bounds']); assert.equal(f.run.preparedSequences, undefined);
+  }
 });

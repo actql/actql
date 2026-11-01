@@ -54,12 +54,14 @@ import {
   "actql/actql/local_veca_provider" @nearest_provider,
   "actql/actql/sha256" @sha,
   "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/debug",
   "actql/actql/connectors/kintone/host" @kintone_host,
   "actql/actql/connectors/kintone/catalog" @kintone_catalog,
 } for "wbtest"
 
 options(
   targets: {
+    "preparation_effect_capture_recovery_js_wbtest.mbt": [ "js" ],
     "installed_whole_source_publication_js_wbtest.mbt": [ "js" ],
     "installed_whole_source_result_js_wbtest.mbt": [ "js" ],
     "installed_whole_source_query_time_js_wbtest.mbt": [ "js" ],
@@ -93,6 +95,8 @@ options(
     "preparation_request_capture_body_js_wbtest.mbt": [ "js" ],
     "preparation_request_model_js_wbtest.mbt": [ "js" ],
     "preparation_request_content_body_js_wbtest.mbt": [ "js" ],
+    "preparation_request_keyed_content_js_wbtest.mbt": [ "js" ],
+    "preparation_request_keyed_prefix_js_wbtest.mbt": [ "js" ],
     "preparation_request_serialization_compilation_js_wbtest.mbt": [ "js" ],
     "installed_keyed_content_originals_js_wbtest.mbt": [ "js" ],
     "installed_capture_original_row_js_wbtest.mbt": [ "js" ],

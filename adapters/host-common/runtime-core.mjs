@@ -1938,7 +1938,7 @@ function publicationControl(moon) {
     }
     return value;
   };
-  const prepareSerializationGraph = (checkedProgram, options, intermediate) => {
+  const prepareSerializationGraph = (checkedProgram, options, intermediate, request) => {
     const original = options?.resultDataPolicy;
     if (original?.kind !== 'data_policy' || typeof original.cid !== 'string' ||
         typeof original.wire !== 'string' ||
@@ -1947,10 +1947,19 @@ function publicationControl(moon) {
           options[key] <= 2147483647)) {
       throw new TypeError('Invalid Content compilation options');
     }
-    const issue = intermediate ? moon.clientProgramSerializationPlanComponent
-      : moon.clientProgramSerializationPlanGraph;
-    const graph = compiledRunResult(issue(checkedProgram, options.task, options.step,
-      original.cid, original.wire, options.maxRows, options.maxBytes), 'RunHostContentPlanRejected');
+    let graph;
+    if (request === undefined) {
+      const issue = intermediate ? moon.clientProgramSerializationPlanComponent
+        : moon.clientProgramSerializationPlanGraph;
+      graph = compiledRunResult(issue(checkedProgram, options.task, options.step,
+        original.cid, original.wire, options.maxRows, options.maxBytes), 'RunHostContentPlanRejected');
+    } else {
+      const issue = moon.clientProgramPrepareRequestSerializationGraph;
+      if (typeof issue !== 'function') throw new TypeError('Request Content Graph constructor unavailable');
+      graph = compiledRunResult(Reflect.apply(issue, moon, [request.parent, request.input,
+        options.task, options.step, original.cid, original.wire, options.maxRows,
+        options.maxBytes, !intermediate, request.contracts]), 'RunHostContentPlanRejected');
+    }
     const selected = Object.freeze({task: options.task, step: options.step,
       wire: moon.clientProgramSerializationPlanGraphWire(graph)});
     serializationPlanTokens.set(selected, graph);
@@ -1966,15 +1975,24 @@ function publicationControl(moon) {
         'Client Content capture unavailable');
     });
   };
-  const prepareAcquiredSerializationGraph = (checkedProgram, options, intermediate) => {
+  const prepareAcquiredSerializationGraph = (checkedProgram, options, intermediate, request) => {
     if (!['task', 'step', 'maxRows', 'maxBytes'].every(key =>
       Number.isInteger(options?.[key]) && options[key] >= 0 && options[key] <= 2147483647)) {
       throw new TypeError('Invalid acquired Content compilation options');
     }
-    const issue = intermediate ? moon.clientProgramAcquiredSerializationPlanComponent
-      : moon.clientProgramAcquiredSerializationPlanGraph;
-    const graph = compiledRunResult(issue(checkedProgram, options.task, options.step,
-      options.maxRows, options.maxBytes), 'RunHostContentPlanRejected');
+    let graph;
+    if (request === undefined) {
+      const issue = intermediate ? moon.clientProgramAcquiredSerializationPlanComponent
+        : moon.clientProgramAcquiredSerializationPlanGraph;
+      graph = compiledRunResult(issue(checkedProgram, options.task, options.step,
+        options.maxRows, options.maxBytes), 'RunHostContentPlanRejected');
+    } else {
+      const issue = moon.clientProgramPrepareRequestAcquiredSerializationGraph;
+      if (typeof issue !== 'function') throw new TypeError('Request acquired Content Graph constructor unavailable');
+      graph = compiledRunResult(Reflect.apply(issue, moon, [request.parent, request.input,
+        options.task, options.step, options.maxRows, options.maxBytes,
+        !intermediate, request.contracts]), 'RunHostContentPlanRejected');
+    }
     const selected = Object.freeze({task: options.task, step: options.step,
       wire: moon.clientProgramSerializationPlanGraphWire(graph)});
     serializationPlanTokens.set(selected, graph);
@@ -2404,6 +2422,9 @@ function publicationControl(moon) {
     prepareCheckedClientSerializationComponent(checkedProgram, options) {
       return prepareSerializationGraph(checkedProgram, options, true);
     },
+    prepareCheckedClientRequestSerializationGraph(parent, input, contracts, checkedProgram, options, intermediate) {
+      return prepareSerializationGraph(checkedProgram, options, intermediate, {parent, input, contracts});
+    },
     prepareCheckedClientSerializedInferGraph(occurrence, selected, execution) {
       const graph = serializationPlanTokens.get(selected);
       if (graph === undefined) throw new TypeError('Foreign Content compilation graph');
@@ -2487,6 +2508,9 @@ function publicationControl(moon) {
     },
     prepareCheckedClientAcquiredSerializationComponent(checkedProgram, options) {
       return prepareAcquiredSerializationGraph(checkedProgram, options, true);
+    },
+    prepareCheckedClientRequestAcquiredSerializationGraph(parent, input, contracts, checkedProgram, options, intermediate) {
+      return prepareAcquiredSerializationGraph(checkedProgram, options, intermediate, {parent, input, contracts});
     },
     readCurrentClientRunView(runDefinition, prepared, authorization, ref, state, snapshotCid, limits) {
       if (typeof moon.clientProgramCurrentRunView !== 'function') {
@@ -4101,6 +4125,16 @@ function publicationControl(moon) {
       return checked(moon.strategyCapturedEffectSourceMatchesPreview(ownedPreview,
         memberIndex, token(invocation), effectSourceToken(source),
         localEffectSourceToken(localEvidence), storeAuthorityCid,
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+    },
+    reserveEffectCaptureRecovery(parent, input, request, runDefinition, encryptedBytes, limits) {
+      issuanceLimits(limits, 'Effect capture recovery');
+      if (!Number.isSafeInteger(encryptedBytes) || encryptedBytes < 0 || encryptedBytes > 2147483647 ||
+          typeof moon.clientProgramReserveRequestEffectCaptureRecovery !== 'function') {
+        throw new TypeError('Invalid Effect capture recovery Resource');
+      }
+      return checked(moon.clientProgramReserveRequestEffectCaptureRecovery(
+        parent, input, request, token(runDefinition), encryptedBytes,
         limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
     },
     admitCapturedEffectSourceFromCapture(preview, memberIndex, invocation,
@@ -6533,6 +6567,26 @@ export function contentGenerationControl(moon, publications) {
       return publications.prepareCheckedClientRequestSerializationPlan(parent, input, request, compiled,
         definition, limits, workspace === undefined ? undefined : workspaces.get(workspace));
     },
+    prepareRequestKeyedPlan(parent, input, request, keyed, directDeclaration, contentDeclaration,
+      maxBytes, maxWork, queryContract, evidenceContract, transfers, executions, contracts, task, step,
+      limits, workspace) {
+      const prepare = moon.clientProgramPrepareRequestKeyedContentPlan;
+      if (typeof prepare !== 'function') throw new TypeError('Request keyed Content constructor unavailable');
+      if (!quantity(maxBytes) || !quantity(maxWork, 1) ||
+          !quantity(limits?.maxRows) || !quantity(limits?.maxWork, 1) ||
+          !quantity(limits?.maxEntries, 1) || !quantity(limits?.maxValueBytes) ||
+          !quantity(limits?.maxValueNodes, 1) || !quantity(limits?.maxValueDepth) ||
+          !quantity(limits?.maxFrames, 1)) throw new TypeError('Invalid Content prefix limits');
+      if (workspace !== undefined && !workspaces.has(workspace)) {
+        throw new TypeError('Foreign Content workspace capacity');
+      }
+      return checked(Reflect.apply(prepare, moon, [parent, input, request, keyed,
+        directDeclaration, contentDeclaration, maxBytes, maxBytes, maxWork,
+        queryContract, evidenceContract, transfers, executions, maxBytes, maxWork,
+        contracts, task, step, limits.maxRows, limits.maxWork, limits.maxEntries,
+        limits.maxValueBytes, limits.maxValueNodes, limits.maxValueDepth, limits.maxFrames,
+        workspace === undefined ? undefined : workspaces.get(workspace)]));
+    },
     requestPrefixCapacity(selected) {
       const value = moon.clientProgramPreparedInstalledSerializationPrefixRequirements(selected);
       if (!Array.isArray(value) || value.length !== 6 ||
@@ -6548,6 +6602,23 @@ export function contentGenerationControl(moon, publications) {
     },
     cleanupRequestPrefix(run, selected) {
       return checked(moon.clientProgramInstalledManagedSerializationPrefixCleanup(run, selected));
+    },
+    requestKeyedPrefixCapacity(selected) {
+      const value = checked(moon.clientProgramPreparedInstalledKeyedPrefixRequirements(selected));
+      if (!Array.isArray(value) || value.length !== 6 ||
+          value.some(n => typeof n !== 'bigint' || n < 0n || n > 9223372036854775807n) ||
+          value[0] !== 0n || value[1] !== 1n || value[2] !== 0n || value[3] !== 0n) {
+        throw new TypeError('Invalid keyed Content prefix requirements');
+      }
+      return Object.freeze({retainedBytes: value[4], executionBytes: value[5]});
+    },
+    startRequestKeyedPrefix(run, program, selected, source, lookup) {
+      const prefix = checked(moon.clientProgramInstalledManagedKeyedSerializationPrefixStart(
+        run, program, selected, source, lookup));
+      prefixes.add(prefix); return prefix;
+    },
+    cleanupRequestKeyedPrefix(run, selected) {
+      return checked(moon.clientProgramInstalledManagedKeyedSerializationPrefixCleanup(run, selected));
     },
     prefix(program, task, step, bodies, limits, ledger, workspace, source, keyed) {
       // Revalidate through the same provider before reserve/start. Capacity

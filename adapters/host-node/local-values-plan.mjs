@@ -674,6 +674,9 @@ export function selectInstalledSerializationGraph(options, component = false) {
   const selected = {task: runtimeField(occurrence, 0), step: runtimeField(occurrence, 1),
       maxRows: localOutputLimits.maxRows, maxBytes: localOutputLimits.maxWireBytes,
       resultDataPolicy: options.resultDataPolicy ?? inferResultPolicy};
+  if (options.prepareSerializationGraph !== undefined) {
+    return options.prepareSerializationGraph(selected, component);
+  }
   const serializationGraph = moon.clientProgramAcquisitionCount(preparedProgram) === 0
     ? component
       ? control.prepareCheckedClientSerializationComponent(preparedProgram, selected)

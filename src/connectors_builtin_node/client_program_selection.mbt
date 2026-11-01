@@ -173,6 +173,12 @@ fn installed_client_family_providers(
 }
 
 ///|
+// Same compiled composition before constructing its original providers.
+fn installed_client_family_provider_count() -> Int {
+  installed_client_family_composition.length()
+}
+
+///|
 fn selected_client_sga_providers(
   generated : Array[@execution.GeneratedSequence],
   execution : @execution.SequenceExecutionLimits,
