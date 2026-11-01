@@ -58558,11 +58558,11 @@
               },
               {
                 "path": "packages/python-sdk/tests/test_local_snapshot_transport.py",
-                "anchor": "def test_current_query_keeps_three_currents_and_actual_row_with_same_snapshot_metadata("
+                "anchor": "def test_current_query_keeps_entry_and_return_currents_and_actual_row_with_same_snapshot_metadata("
               },
               {
                 "path": "packages/python-sdk/tests/test_local_snapshot_transport.py",
-                "anchor": "def test_current_query_refuses_metadata_mutation_at_each_current_boundary("
+                "anchor": "def test_consumer_query_refuses_metadata_mutation_at_each_current_boundary("
               },
               {
                 "path": "packages/python-sdk/tests/test_local_snapshot_transport.py",
@@ -60351,11 +60351,11 @@
               },
               {
                 "path": "packages/python-sdk/tests/test_local_snapshot_transport.py",
-                "anchor": "def test_current_query_keeps_three_currents_and_actual_row_with_same_snapshot_metadata("
+                "anchor": "def test_current_query_keeps_entry_and_return_currents_and_actual_row_with_same_snapshot_metadata("
               },
               {
                 "path": "packages/python-sdk/tests/test_local_snapshot_transport.py",
-                "anchor": "def test_current_query_refuses_metadata_mutation_at_each_current_boundary("
+                "anchor": "def test_consumer_query_refuses_metadata_mutation_at_each_current_boundary("
               },
               {
                 "path": "packages/python-sdk/tests/test_local_snapshot_transport.py",
