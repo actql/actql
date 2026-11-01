@@ -56,6 +56,63 @@ class OriginalHostBindingTests(unittest.TestCase):
         self.assertIsNone(core._journal_callbacks(binding._current.ticket).reader)
         self.assertTrue(binding.close())
 
+    def test_owned_inventory_return_observes_changed_file_and_temp_schema(self):
+        for mutation in ('file', 'temp-schema'):
+            with self.subTest(mutation=mutation):
+                path, store, core, _, _, _, _, calls, _, _, binding = self.fixture()
+                raw = type(store._physical).scan_range
+                queries = []
+                def changed(database, *args, **kwargs):
+                    result = raw(database, *args, **kwargs)
+                    queries.append(True)
+                    if mutation == 'file':
+                        (path / 'source' / 'account.json').write_bytes(b'changed-original')
+                    else:
+                        store._connection.execute('CREATE TEMP TABLE core_bytes(key, generation, payload)')
+                    return result
+                before = len(calls)
+                error = LocalFileError if mutation == 'file' else LocalStorageError
+                original = binding._current
+                with patch.object(type(store._physical), 'scan_range', changed):
+                    with self.assertRaises(error):
+                        binding.inspect(lambda _: self.fail('Changed original inventory reached Core'))
+                self.assertEqual(len(queries), 1)
+                self.assertEqual(len(calls), before)
+                self.assertIs(core._loans[original.ticket], original)
+                self.assertIsNone(core._journal_callbacks(original.ticket).reader)
+                self.assertFalse(store._connection.in_transaction)
+                self.assertTrue(binding.close())
+
+    def test_owned_inventory_sql_failure_keeps_original_cause_without_fallback(self):
+        import sqlite3
+        _, store, core, _, _, _, _, calls, _, _, binding = self.fixture()
+        failure = sqlite3.OperationalError('original owned inventory read failure')
+        original = binding._current
+        before = len(calls)
+        with patch.object(type(store._physical), 'scan_range', side_effect=failure) as read:
+            with self.assertRaises(sqlite3.OperationalError) as caught:
+                binding.inspect(lambda _: self.fail('Failed inventory reached Core'))
+        self.assertIs(caught.exception, failure)
+        self.assertEqual(read.call_count, 1)
+        self.assertEqual(len(calls), before)
+        self.assertIs(core._loans[original.ticket], original)
+        self.assertIsNone(core._journal_callbacks(original.ticket).reader)
+        self.assertFalse(store._connection.in_transaction)
+        self.assertTrue(binding.close())
+
+    def test_owned_inventory_direct_rows_keep_independent_physical_adapter_checks(self):
+        _, store, _, _, _, _, _, _, _, _, binding = self.fixture()
+        database = store._physical
+        class ExistingPhysicalPort:
+            def __getattr__(self, name):
+                return getattr(database, name)
+        store._physical = ExistingPhysicalPort()
+        seen = []
+        binding.inspect(lambda current: seen.append(current))
+        self.assertEqual(seen, [binding._current])
+        self.assertFalse(store._connection.in_transaction)
+        self.assertTrue(binding.close())
+
     def fixture(self, *, create=True):
         directory = TemporaryDirectory(prefix='actql-original-host-binding-')
         self.addCleanup(directory.cleanup)
