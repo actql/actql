@@ -6385,7 +6385,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "c53de29760f58a59bedb1bf2100dad13deb3e1a629526fb422931d85c6dca092",
+      "sha256": "26f14d096d864cc421f3b7fdd5beae9a17ce19db797aba5b1a3347bb78ab68e6",
       "exports": [
         "admitOriginalHostRootFormat",
         "assertInitialControlHostPreparation",
@@ -10365,6 +10365,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "inputsOutputs": [
@@ -10451,6 +10455,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "identity": [
@@ -10553,6 +10561,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "ownership": [
@@ -10643,6 +10655,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "synchronization": [
@@ -10737,6 +10753,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "failure": [
@@ -10819,6 +10839,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "cancellation": [
@@ -10897,6 +10921,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "resources": [
@@ -10995,6 +11023,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "extension": [
@@ -11077,6 +11109,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "verification": [
@@ -11243,6 +11279,14 @@
               {
                 "path": "adapters/host-node/content-preparation-retirement.test.mjs",
                 "anchor": "retired keyed Content does not exhaust the unchanged 4096 live-preparation limit"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request acquired Model Content borrows"
               }
             ]
           }
@@ -11334,6 +11378,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "inputsOutputs": [
@@ -11360,6 +11408,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "identity": [
@@ -11406,6 +11458,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "ownership": [
@@ -11440,6 +11496,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "synchronization": [
@@ -11466,6 +11526,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "failure": [
@@ -11488,6 +11552,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "cancellation": [
@@ -11510,6 +11578,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "resources": [
@@ -11544,6 +11616,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "extension": [
@@ -11566,6 +11642,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "verification": [
@@ -11600,6 +11680,14 @@
               {
                 "path": "adapters/host-node/content-preparation-retirement.test.mjs",
                 "anchor": "retired keyed Content does not exhaust the unchanged 4096 live-preparation limit"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request acquired Model Content borrows"
               }
             ]
           }
@@ -11618,54 +11706,90 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "identity": [
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "failure": [
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "resources": [
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "extension": [
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "verification": [
@@ -11676,6 +11800,14 @@
               {
                 "path": "adapters/host-node/rest-source-initial-material.test.mjs",
                 "anchor": "REST factory forwards the same managed CA bytes to its original Site service"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request acquired Model Content borrows"
               }
             ]
           }
@@ -11702,6 +11834,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "// Both Mock and configured Sources follow the checked capture inventory,"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "inputsOutputs": [
@@ -11712,6 +11848,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "const sourceRef = moon.clientProgramQueryRequirementSourceRef(requirement);"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "identity": [
@@ -11722,30 +11862,50 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "const sourceRef = moon.clientProgramQueryRequirementSourceRef(requirement);"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
                 "anchor": "child.reader = actual;"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
                 "anchor": "if (child.flight !== undefined) return Object.freeze({pending: true});"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "failure": [
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
                 "anchor": "if (pending(observed)) return Object.freeze({pending: true});"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
                 "anchor": "child.closing = true;"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "resources": [
@@ -11756,12 +11916,20 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "This projection remains managed demand, not a physical supplier or read grant."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "separate and never follows merely from installing a normal Local Source."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "verification": [
@@ -11780,6 +11948,14 @@
               {
                 "path": "adapters/host-node/client-mock-source-occurrences.test.mjs",
                 "anchor": "test('Mock JOIN occurrences follow checked order, not installed catalogue order', async () => {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request acquired Model Content borrows"
               }
             ]
           }
@@ -11826,6 +12002,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "inputsOutputs": [
@@ -11836,6 +12016,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "identity": [
@@ -11846,6 +12030,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "ownership": [
@@ -11856,6 +12044,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "synchronization": [
@@ -11866,6 +12058,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "failure": [
@@ -11876,6 +12072,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "cancellation": [
@@ -11886,6 +12086,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "resources": [
@@ -11896,6 +12100,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "extension": [
@@ -11906,6 +12114,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "verification": [
@@ -11924,6 +12136,14 @@
               {
                 "path": "adapters/host-node/content-preparation-retirement.test.mjs",
                 "anchor": "retired keyed Content does not exhaust the unchanged 4096 live-preparation limit"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request acquired Model Content borrows"
               }
             ]
           }
@@ -11956,6 +12176,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "const admissionFailures = new WeakMap();"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "inputsOutputs": [
@@ -11966,6 +12190,10 @@
               {
                 "path": "adapters/host-node/client-submission.mjs",
                 "anchor": "const admissionCandidate = admitPreparedSubmission === undefined ? undefined :"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "identity": [
@@ -11980,6 +12208,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "if (this !== admitPreparedSubmission) return false;"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "ownership": [
@@ -11994,6 +12226,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "admissionFailures.delete(submission);"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "synchronization": [
@@ -12008,6 +12244,10 @@
               {
                 "path": "adapters/host-node/client-submission.mjs",
                 "anchor": "Reflect.apply(originalPreparationRefusal, admitPreparedSubmission,"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "failure": [
@@ -12022,6 +12262,10 @@
               {
                 "path": "adapters/host-node/client-submission.mjs",
                 "anchor": "error?.cleanupPending === true || error?.cleanupHandle !== undefined) throw error;"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "cancellation": [
@@ -12036,6 +12280,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "run.preAdmissionRefusal = undefined;"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "resources": [
@@ -12050,6 +12298,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "run.original !== undefined || run.admission !== undefined || run.value !== undefined ||"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "extension": [
@@ -12064,6 +12316,10 @@
               {
                 "path": "adapters/host-node/client-submission.mjs",
                 "anchor": "const originalPreparationRefusal = refusalProperty !== undefined &&"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "verification": [
@@ -12086,6 +12342,14 @@
               {
                 "path": "adapters/host-node/client-submission.test.mjs",
                 "anchor": "test('paired pre-admission original refusal is retained without entering the Run owner', async t => {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request acquired Model Content borrows"
               }
             ]
           }
@@ -12108,6 +12372,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "inputsOutputs": [
@@ -12122,6 +12390,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "identity": [
@@ -12136,6 +12408,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "ownership": [
@@ -12150,6 +12426,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "synchronization": [
@@ -12168,6 +12448,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "failure": [
@@ -12182,6 +12466,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "cancellation": [
@@ -12196,6 +12484,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "resources": [
@@ -12210,6 +12502,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "extension": [
@@ -12228,6 +12524,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "verification": [
@@ -12242,6 +12542,14 @@
               {
                 "path": "adapters/host-node/content-preparation-retirement.test.mjs",
                 "anchor": "retired keyed Content does not exhaust the unchanged 4096 live-preparation limit"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request acquired Model Content borrows"
               }
             ]
           }
@@ -12264,6 +12572,10 @@
               {
                 "path": "adapters/host-common/observation.mjs",
                 "anchor": "export function captureManagedRunObservation(projection, ref, readUsage) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "inputsOutputs": [
@@ -12274,6 +12586,10 @@
               {
                 "path": "src/client_local_host/installed_managed_run.mbt",
                 "anchor": "pub fn installed_managed_run_accounting("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "identity": [
@@ -12284,6 +12600,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "bindManagedComputeRunObservation(prepared, ref) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "ownership": [
@@ -12294,6 +12614,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "for (const key of Object.keys(record)) record[key] = undefined;"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "synchronization": [
@@ -12304,6 +12628,10 @@
               {
                 "path": "adapters/host-node/in-process-client.mjs",
                 "anchor": "try { yield* (original === undefined ? response.frames : contextualFrames(response.frames)); consumed = true; }"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "failure": [
@@ -12314,6 +12642,10 @@
               {
                 "path": "adapters/host-common/observation.mjs",
                 "anchor": "catch {drop('resourceUnavailable'); return;}"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "cancellation": [
@@ -12324,6 +12656,10 @@
               {
                 "path": "adapters/host-node/in-process-result-observation.test.mjs",
                 "anchor": "test('partial or failed rows never fabricate quiescent usage and observation errors preserve rows'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "resources": [
@@ -12334,6 +12670,10 @@
               {
                 "path": "adapters/host-common/observation.mjs",
                 "anchor": "const snapshot = {'actql.resource.scope': 'managed-run-ledger'};"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "extension": [
@@ -12344,6 +12684,10 @@
               {
                 "path": "src/client_local_host/installed_managed_run.mbt",
                 "anchor": "/// These are managed accounting values, not a measurement of process memory"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "verification": [
@@ -12358,6 +12702,14 @@
               {
                 "path": "adapters/host-node/embedded-local-operation-observation.test.mjs",
                 "anchor": "test('Result operation capture forwards the same installed optional holder on demand'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request acquired Model Content borrows"
               }
             ]
           }
@@ -12379,24 +12731,40 @@
               {
                 "path": "docs/design/local-capacity-plan.md",
                 "anchor": "An ordinary installed Source uses the existing Host Source/Compute manager and"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/local-capacity-plan.md",
                 "anchor": "opaque capture capacity for that actual QueryRequirement plus its existing"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/local-capacity-plan.md",
                 "anchor": "Each real prepared Source is privately associated with its original checked"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/local-capacity-plan.md",
                 "anchor": "The existing dispatch retirement predicate first settles actual Source/Compute"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "synchronization": [
@@ -12407,6 +12775,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "## Managed Source parent current callbacks"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "failure": [
@@ -12417,24 +12789,40 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "if (record.computeRuns?.get(prepared) !== run || run.closed ||"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/local-capacity-plan.md",
                 "anchor": "children and unresolved cleanup. Only then may its existing preparation holder"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/local-capacity-plan.md",
                 "anchor": "Actual selected capacities must fit that original Ledger before dispatch; a"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-capacity-plan.md",
                 "anchor": "Source-empty Program. Unsupported installations keep their existing refusal."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "verification": [
@@ -12445,6 +12833,14 @@
               {
                 "path": "adapters/host-node/installed-managed-source.test.mjs",
                 "anchor": "test('Host Source current callback cannot retire or replace its original parent before preparation'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request acquired Model Content borrows"
               }
             ]
           }
@@ -12487,6 +12883,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "inputsOutputs": [
@@ -12505,6 +12905,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "identity": [
@@ -12523,6 +12927,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "ownership": [
@@ -12541,6 +12949,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "synchronization": [
@@ -12559,6 +12971,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "failure": [
@@ -12577,6 +12993,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "cancellation": [
@@ -12595,6 +13015,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "resources": [
@@ -12613,6 +13037,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "extension": [
@@ -12631,6 +13059,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "verification": [
@@ -12653,6 +13085,14 @@
               {
                 "path": "adapters/host-node/content-preparation-retirement.test.mjs",
                 "anchor": "retired keyed Content does not exhaust the unchanged 4096 live-preparation limit"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request acquired Model Content borrows"
               }
             ]
           }
@@ -12695,6 +13135,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Model prefix on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "inputsOutputs": [
@@ -12725,6 +13169,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Model prefix on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "identity": [
@@ -12755,6 +13203,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Model prefix on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "ownership": [
@@ -12785,6 +13237,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Model prefix on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "synchronization": [
@@ -12815,6 +13271,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Model prefix on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "failure": [
@@ -12845,6 +13305,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Model prefix on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "cancellation": [
@@ -12875,6 +13339,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Model prefix on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "resources": [
@@ -12905,6 +13373,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Model prefix on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "extension": [
@@ -12935,6 +13407,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Model prefix on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "verification": [
@@ -12969,6 +13445,14 @@
               {
                 "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
                 "anchor": "Host unadopted Model Scope cleanup fences"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request acquired Model Content borrows"
               }
             ]
           }
@@ -12987,6 +13471,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "effectManagedPlanRun(runtime, prepared, request)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "inputsOutputs": [
@@ -12997,6 +13485,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "effectManagedPlanRun(runtime, prepared, request)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "identity": [
@@ -13007,6 +13499,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "effectManagedPlanRun(runtime, prepared, request)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "ownership": [
@@ -13017,6 +13513,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "effectManagedPlanRun(runtime, prepared, request)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "synchronization": [
@@ -13027,6 +13527,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "effectManagedPlanRun(runtime, prepared, request)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "failure": [
@@ -13037,6 +13541,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "effectManagedPlanRun(runtime, prepared, request)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "cancellation": [
@@ -13047,6 +13555,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "effectManagedPlanRun(runtime, prepared, request)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "resources": [
@@ -13057,6 +13569,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "effectManagedPlanRun(runtime, prepared, request)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "extension": [
@@ -13067,6 +13583,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "effectManagedPlanRun(runtime, prepared, request)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "verification": [
@@ -13077,6 +13597,14 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "effectManagedPlanRun(runtime, prepared, request)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request acquired Model Content borrows"
               }
             ]
           }
@@ -13100,6 +13628,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "inputsOutputs": [
@@ -13110,6 +13642,10 @@
               {
                 "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
                 "anchor": "Effect plan is retained before Request adoption and remains the same execution scope"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "identity": [
@@ -13120,6 +13656,10 @@
               {
                 "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
                 "anchor": "Effect plan is retained before Request adoption and remains the same execution scope"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "ownership": [
@@ -13130,6 +13670,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "synchronization": [
@@ -13140,6 +13684,10 @@
               {
                 "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
                 "anchor": "Effect plan is retained before Request adoption and remains the same execution scope"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "failure": [
@@ -13150,6 +13698,10 @@
               {
                 "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
                 "anchor": "Effect plan is retained before Request adoption and remains the same execution scope"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "cancellation": [
@@ -13160,6 +13712,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "resources": [
@@ -13170,6 +13726,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "extension": [
@@ -13180,6 +13740,10 @@
               {
                 "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
                 "anchor": "Effect plan is retained before Request adoption and remains the same execution scope"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "verification": [
@@ -13190,6 +13754,14 @@
               {
                 "path": "adapters/host-node/installed-effect-model-plan-consumer.test.mjs",
                 "anchor": "Model Effect retains one demand Plan parent and original Scope before Source work"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request acquired Model Content borrows"
               }
             ]
           }
@@ -13218,6 +13790,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Local file bytes and publication"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "inputsOutputs": [
@@ -13228,6 +13804,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Local file bytes and publication"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "identity": [
@@ -13238,6 +13818,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Local file bytes and publication"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "ownership": [
@@ -13248,6 +13832,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Local file bytes and publication"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "synchronization": [
@@ -13258,6 +13846,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Local file bytes and publication"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "failure": [
@@ -13268,6 +13860,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Local file bytes and publication"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "cancellation": [
@@ -13278,6 +13874,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Local file bytes and publication"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "resources": [
@@ -13288,6 +13888,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Local file bytes and publication"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "extension": [
@@ -13298,12 +13902,24 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Local file bytes and publication"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "verification": [
               {
                 "path": "adapters/host-node/local-file-effect-host-original.test.mjs",
                 "anchor": "test('Local Effect Host binds the winning original Journal"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request acquired Model Content borrows"
               }
             ]
           }
@@ -13319,60 +13935,104 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Project Local Files original Run and physical retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Project Local Files original Run and physical retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Project Local Files original Run and physical retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Project Local Files original Run and physical retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Project Local Files original Run and physical retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Project Local Files original Run and physical retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Project Local Files original Run and physical retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Project Local Files original Run and physical retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Project Local Files original Run and physical retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "verification": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Project Local Files original Run and physical retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request acquired Model Content borrows"
               }
             ]
           }
@@ -13413,6 +14073,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The same Run holder can retain a pure preparation refusal before Resource"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "inputsOutputs": [
@@ -13435,6 +14099,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "function installedManagedRunContracts(originals) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "identity": [
@@ -13457,6 +14125,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "run.preAdmissionRefusal = Object.freeze({error, prepared: checkedPrepared,"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "ownership": [
@@ -13479,6 +14151,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "run.preAdmissionRefusal = undefined;"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "synchronization": [
@@ -13497,6 +14173,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "Installed contract originals contain validated immutable contract data."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "failure": [
@@ -13531,6 +14211,10 @@
               {
                 "path": "adapters/host-node/managed-output-mode.test.mjs",
                 "anchor": "test('source-free quote refuses a missing or non-Boolean original mode before construction'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "cancellation": [
@@ -13549,6 +14233,10 @@
               {
                 "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
                 "anchor": "installed static contract aliases survive pending child cleanup and cut at actual retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "resources": [
@@ -13587,6 +14275,10 @@
               {
                 "path": "src/connectors_builtin_node/client_program_bridge.mbt",
                 "anchor": "#export_name(\"clientProgramInstalledManagedRunAccounting\")"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "extension": [
@@ -13601,6 +14293,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "Installed contract originals contain validated immutable contract data."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "verification": [
@@ -13655,6 +14351,14 @@
               {
                 "path": "adapters/host-node/managed-output-mode.test.mjs",
                 "anchor": "test('normal installed output mode is explicit before the same source-free preparation quote'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request acquired Model Content borrows"
               }
             ]
           }
@@ -13670,12 +14374,20 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The selected ordinary Local factory supplies the existing finite"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/installed-host-policy.mjs",
                 "anchor": "export function localFilesLookupExecutionPolicy(sourceLimits) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "identity": [
@@ -13686,6 +14398,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "belong to the same runtime and remain current. This is a managed service"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "ownership": [
@@ -13696,12 +14412,20 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "const bundle = projectSourcePreparation.originalsForRuntime(moon);"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "assertSourceManagedInstallationCurrent(sourceManaged, originals);"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "failure": [
@@ -13712,12 +14436,20 @@
               {
                 "path": "adapters/host-node/local-files-lookup-policy.test.mjs",
                 "anchor": "test('explicit valid Host lookup policy wins and explicit refusal cannot become an omitted default',()=>{"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "and installation retire. Managed reference retirement is not a native ACK."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "resources": [
@@ -13728,6 +14460,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "uses one attempt per request and the declared file, page, byte and duration"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "extension": [
@@ -13738,6 +14474,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "and Mock-only paths retain unresolved absence and Common's `MissingPolicy`"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "verification": [
@@ -13748,6 +14488,14 @@
               {
                 "path": "adapters/host-node/local-files-lookup-policy.test.mjs",
                 "anchor": "test('selected lookup limits enter the same canonical Environment without changing generic absence',()=>{"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request acquired Model Content borrows"
               }
             ]
           }
@@ -13765,54 +14513,90 @@
               {
                 "path": "docs/design/typed-publication-resource.md",
                 "anchor": "## Scope and responsibility"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/typed-publication-resource.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/typed-publication-resource.md",
                 "anchor": "## Original identity"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/typed-publication-resource.md",
                 "anchor": "## Ownership and handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/typed-publication-resource.md",
                 "anchor": "## Synchronization and currentness"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/typed-publication-resource.md",
                 "anchor": "## Failure and uncertainty"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/typed-publication-resource.md",
                 "anchor": "## Cancellation and retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/typed-publication-resource.md",
                 "anchor": "## Resources and scratch cut"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/typed-publication-resource.md",
                 "anchor": "## Extension and pending work"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "verification": [
@@ -13823,6 +14607,14 @@
               {
                 "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
                 "anchor": "test('typed retained chain and commit consume original contracts without numeric limit relay'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request acquired Model Content borrows"
               }
             ]
           }
@@ -13843,6 +14635,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### First timed Request invocation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "inputsOutputs": [
@@ -13853,6 +14649,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### First timed Request invocation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "identity": [
@@ -13863,6 +14663,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### First timed Request invocation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "ownership": [
@@ -13873,6 +14677,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### First timed Request invocation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "synchronization": [
@@ -13883,6 +14691,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### First timed Request invocation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "failure": [
@@ -13893,6 +14705,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### First timed Request invocation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "cancellation": [
@@ -13903,6 +14719,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### First timed Request invocation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "resources": [
@@ -13913,6 +14733,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### First timed Request invocation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "extension": [
@@ -13923,6 +14747,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### First timed Request invocation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "verification": [
@@ -13937,6 +14765,14 @@
               {
                 "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
                 "anchor": "timed installing caller keeps immutable view through pending retirement then clears at original sever"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request acquired Model Content borrows"
               }
             ]
           }
@@ -13953,6 +14789,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Ordinary Host composition"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "inputsOutputs": [
@@ -13963,12 +14803,20 @@
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function prepareManagedMockModelRun("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "identity": [
               {
                 "path": "src/client_local_host/preparation_request_model_body.mbt",
                 "anchor": "pub fn[I] prepare_request_model_read_scope("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "ownership": [
@@ -13979,12 +14827,20 @@
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function retireModelRead(model) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "failure": [
@@ -13995,12 +14851,20 @@
               {
                 "path": "adapters/host-node/mock-model-early-run-custody.test.mjs",
                 "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function retireModelRead(model) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "resources": [
@@ -14011,12 +14875,20 @@
               {
                 "path": "src/client_local_host/preparation_request_model_body.mbt",
                 "anchor": "pub fn[I] prepare_request_model_read_scope("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Ordinary Host composition"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "verification": [
@@ -14031,6 +14903,14 @@
               {
                 "path": "adapters/host-node/ordinary-project-source-managed.test.mjs",
                 "anchor": "test('Project Source distinguishes same-declaration occurrences and preserves pending child custody'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request acquired Model Content borrows"
               }
             ]
           }
@@ -14056,6 +14936,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "inputsOutputs": [
@@ -14070,6 +14954,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "identity": [
@@ -14084,6 +14972,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "ownership": [
@@ -14098,6 +14990,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "synchronization": [
@@ -14112,6 +15008,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "failure": [
@@ -14126,6 +15026,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "cancellation": [
@@ -14140,6 +15044,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "resources": [
@@ -14154,6 +15062,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "extension": [
@@ -14168,6 +15080,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "verification": [
@@ -14186,6 +15102,14 @@
               {
                 "path": "adapters/host-node/content-preparation-retirement.test.mjs",
                 "anchor": "retired keyed Content does not exhaust the unchanged 4096 live-preparation limit"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request acquired Model Content borrows"
               }
             ]
           }
@@ -14204,60 +15128,104 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "## Standard Local Account initialization"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/ordinary-local-account.mjs",
                 "anchor": "export async function prepareOrdinaryLocalAccount({root, principal, preparedOriginal,"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "identity": [
               {
                 "path": "adapters/host-node/ordinary-local-account.mjs",
                 "anchor": "adopted.initialization_cid !== initializationCid"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/host-node/ordinary-local-account.mjs",
                 "anchor": "const current = () => assertOriginalPreparedLocalPublicationStoreOwnership("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/host-node/ordinary-local-account.mjs",
                 "anchor": "await adoptHostRootAccount(root, preparedOriginal, record);"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "failure": [
               {
                 "path": "adapters/host-node/ordinary-local-account.mjs",
                 "anchor": "if (rootCreation !== 'new') fail('LocalAccountFirstInitializationUnavailable');"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/host-node/ordinary-local-account.mjs",
                 "anchor": "Reflect.apply(originalStatus, originalStore, []).closed !== false"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "resources": [
               {
                 "path": "adapters/host-node/ordinary-local-account.mjs",
                 "anchor": "const maximum = 1_000_000;"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "extension": [
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "policy-routing.standard-local-bootstrap"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "verification": [
               {
                 "path": "adapters/host-node/ordinary-local-account.test.mjs",
                 "anchor": "test('ordinary Local preserves current Deny on the same Host and after reopening'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request acquired Model Content borrows"
               }
             ]
           }
@@ -14272,54 +15240,90 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Preparation responsibility belongs to the existing Host instance"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "readAsset(path) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "identity": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "return readInitialControlInstallationAsset(control, originals, path);"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Reference ownership follows the actual Host record and its real children."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Synchronization snapshots each selected method and receiver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "failure": [
               {
                 "path": "adapters/host-node/initial-control-fixed-assets.test.mjs",
                 "anchor": "missing captured fixed asset never falls back to a pathname and retains the original cleanup duty"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/host-node/initial-control-fixed-assets.test.mjs",
                 "anchor": "current refusal after a fixed asset callback preserves the same original pending custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Resource coverage distinguishes managed work/data limits"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "verification": [
@@ -14334,6 +15338,14 @@
               {
                 "path": "adapters/host-node/initial-control-fixed-assets.test.mjs",
                 "anchor": "a retired preparation cannot borrow any fixed asset after its same original close"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request acquired Model Content borrows"
               }
             ]
           }
@@ -14348,54 +15360,90 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Preparation responsibility belongs to the existing Host instance"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "const environmentSource = preparation === undefined ? await readFile(join(packageRoot,"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "identity": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "return readInitialControlInstallationAsset(control, originals,"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Reference ownership follows the actual Host record and its real children."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/host-node/initial-control-installation-owner.cjs",
                 "anchor": "assertCurrent(scope, originals);"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "failure": [
               {
                 "path": "adapters/host-node/initial-control-environment-source.test.mjs",
                 "anchor": "test('prepared Host has no pathname fallback when its original asset is unavailable'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/host-node/initial-control-environment-source.test.mjs",
                 "anchor": "test('closing during the original read refuses handoff without acknowledging the remaining duty'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Resource coverage distinguishes managed work/data limits"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "verification": [
@@ -14406,6 +15454,14 @@
               {
                 "path": "adapters/host-node/initial-control-environment-source.test.mjs",
                 "anchor": "test('foreign or copied scope and each changed original refuse before environment selection'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request acquired Model Content borrows"
               }
             ]
           }
@@ -14422,12 +15478,20 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Preparation responsibility belongs to the existing Host instance and its"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "export function connectInitialControlHostPreparation(kind, rawInput) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "identity": [
@@ -14438,42 +15502,70 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "options = readInitialControlInstallationInput(control, originals);"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Reference ownership follows the actual Host record and its real children."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "try { record.openWorkingDirectory = resolve('.'); }"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "failure": [
               {
                 "path": "adapters/host-node/initial-control-host-input-routing.test.mjs",
                 "anchor": "test('open never drops fields from a nonempty supplier packet'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/host-node/initial-control-host-input-routing.test.mjs",
                 "anchor": "test('failed original initialization retains the open path aliases until its original cleanup confirms'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Resource coverage distinguishes managed work/data limits and actual owned"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "verification": [
@@ -14488,6 +15580,14 @@
               {
                 "path": "adapters/host-node/initial-control-host-input-routing.test.mjs",
                 "anchor": "test('captured open refuses inherited options added during initialization without reading them'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request acquired Model Content borrows"
               }
             ]
           }
@@ -14506,6 +15606,10 @@
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
                 "anchor": "export async function loadInstalledProjectModelTasks(moon, project, providers,"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "inputsOutputs": [
@@ -14516,6 +15620,10 @@
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
                 "anchor": "projectEnvironmentForRuntime(runtime, wire, evidenceCid) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "identity": [
@@ -14530,6 +15638,10 @@
               {
                 "path": "src/run_publication_host/client_project_model_task_selection.mbt",
                 "anchor": "pub fn client_project_model_task_selection_for("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "ownership": [
@@ -14544,6 +15656,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "The existing Host shutdown drops project/Task aliases only after its original"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "synchronization": [
@@ -14558,6 +15674,10 @@
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
                 "anchor": "originalsForRuntime(runtime);"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "failure": [
@@ -14568,6 +15688,10 @@
               {
                 "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
                 "anchor": "test('actual project rejects missing Provider or applicable handling original without invoking it'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "cancellation": [
@@ -14578,6 +15702,10 @@
               {
                 "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
                 "anchor": "test('actual project keeps pending FD cleanup responsibility and refuses malformed UTF8'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "resources": [
@@ -14592,6 +15720,10 @@
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
                 "anchor": "const tasks = [];"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "extension": [
@@ -14602,6 +15734,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "This connection supplies static checked materials, not execution dependencies,"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "verification": [
@@ -14616,6 +15752,14 @@
               {
                 "path": "adapters/host-node/project-model-task-host.actual.test.mjs",
                 "anchor": "for(const scenario of ['checked','changed-registry','wrong-task','missing-provider'])"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request acquired Model Content borrows"
               }
             ]
           }
@@ -14634,54 +15778,90 @@
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "The ordinary Local Mock Host retains its packaged finite signing policy and"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "answer port selects an original Checkpoint from that Host; it neither exports"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "binds those originals to the same Store and private-key generation. A missing"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "the key nor accepts an arbitrary signing preimage. Run-read, resolve and key-sign"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "and purpose-bound operation, then commits each exact preimage's one-use claim"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "before native signing. A claimed or uncertain outcome cannot be replaced by a"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "authority are checked before key observation and around asynchronous work."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "The same Checkpoint Journal retains the original decision, clock sample, expiry"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "an Effect send permit: the existing signed Resolution admission and current"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "verification": [
@@ -14692,6 +15872,14 @@
               {
                 "path": "adapters/host-node/local-checkpoint-signing-custody.test.mjs",
                 "anchor": "test('same original signing claim and saved outcome survive actual Journal close and reopen'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request acquired Model Content borrows"
               }
             ]
           }
@@ -14707,6 +15895,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "### Original INFER materials in the installed Host"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "inputsOutputs": [
@@ -14717,6 +15909,10 @@
               {
                 "path": "adapters/host-node/local-values-plan.mjs",
                 "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "identity": [
@@ -14727,6 +15923,10 @@
               {
                 "path": "adapters/host-node/infer-run-original-host.test.mjs",
                 "anchor": "test('Common compiled Infer projection rejects foreign nominal preparation and copied compilation'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "ownership": [
@@ -14737,6 +15937,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "const restoredInferRuns = new WeakSet();"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "synchronization": [
@@ -14747,6 +15951,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "const admitted = journal.resolveDefinition(requested.requested,"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "failure": [
@@ -14757,12 +15965,20 @@
               {
                 "path": "adapters/host-node/infer-run-original-host.test.mjs",
                 "anchor": "test('restored Infer plan refuses equal-byte foreign graph or original caller preparation substitution'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "physical-input, reservation, claim, cancellation and cleanup gates remain."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "resources": [
@@ -14773,6 +15989,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "reference retirement are neither zero cost, GC evidence nor physical ACK."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "extension": [
@@ -14783,6 +16003,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "compilation and existing custody path."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "verification": [
@@ -14797,6 +16021,14 @@
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
                 "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request acquired Model Content borrows"
               }
             ]
           }
@@ -14827,6 +16059,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "inputsOutputs": [
@@ -14841,6 +16077,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "identity": [
@@ -14855,6 +16095,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "ownership": [
@@ -14869,6 +16113,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "synchronization": [
@@ -14883,6 +16131,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "failure": [
@@ -14897,6 +16149,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "cancellation": [
@@ -14911,6 +16167,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "resources": [
@@ -14925,6 +16185,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "extension": [
@@ -14939,6 +16203,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "verification": [
@@ -14953,6 +16221,14 @@
               {
                 "path": "adapters/host-node/request-content-caller.test.mjs",
                 "anchor": "Request Content manager compiles one original graph"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request acquired Model Content borrows"
               }
             ]
           }
@@ -14967,6 +16243,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "For a newly selected Run, an original submitted request for a commit stop"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "inputsOutputs": [
@@ -14977,48 +16257,80 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "assertRequestedStopAvailable() {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "identity": [
               {
                 "path": "adapters/host-node/client-effect-run.mjs",
                 "anchor": "requestedStop = moon.clientSubmittedIntentRequestsCommitStop(intent);"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/host-node/client-effect-run.mjs",
                 "anchor": "const accepted = await journal.admitOrLookupDefinition(identity, {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/host-node/client-effect-run.mjs",
                 "anchor": "if (requestedStop) assertRequestedStopAvailable?.();"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "failure": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "clientOperationError('RequestedEffectStopUnavailable'));"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "settlement service; the original Run Journal retains its physical-stop duties."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "it does not start Source/Compute work merely to discover the missing signer."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The Journal's existing-Run lookup does not issue a replacement Run or invoke"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "verification": [
@@ -15029,6 +16341,14 @@
               {
                 "path": "adapters/host-node/local-checkpoint-answer.actual.test.mjs",
                 "anchor": "test('actual Local Mock answers its original Checkpoint after reopen"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request acquired Model Content borrows"
               }
             ]
           }
@@ -15047,6 +16367,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "inputsOutputs": [
@@ -15057,6 +16381,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "identity": [
@@ -15067,6 +16395,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "ownership": [
@@ -15077,6 +16409,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "synchronization": [
@@ -15091,6 +16427,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "failure": [
@@ -15101,6 +16441,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "cancellation": [
@@ -15111,6 +16455,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "resources": [
@@ -15121,6 +16469,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "extension": [
@@ -15131,6 +16483,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "verification": [
@@ -15145,6 +16501,14 @@
               {
                 "path": "adapters/host-node/request-content-caller.test.mjs",
                 "anchor": "Request Content manager compiles one original graph"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request acquired Model Content borrows"
               }
             ]
           }
@@ -15172,6 +16536,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "inputsOutputs": [
@@ -15186,6 +16554,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "identity": [
@@ -15196,6 +16568,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "ownership": [
@@ -15210,6 +16586,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "synchronization": [
@@ -15220,6 +16600,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "failure": [
@@ -15234,6 +16618,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "cancellation": [
@@ -15244,6 +16632,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "resources": [
@@ -15258,6 +16650,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "extension": [
@@ -15268,6 +16664,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "verification": [
@@ -15286,6 +16686,14 @@
               {
                 "path": "adapters/host-node/ordinary-project-source-managed.test.mjs",
                 "anchor": "test('Project Source distinguishes same-declaration occurrences and preserves pending child custody'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request acquired Model Content borrows"
               }
             ]
           }
@@ -15315,6 +16723,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "inputsOutputs": [
@@ -15329,6 +16741,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "identity": [
@@ -15343,6 +16759,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "ownership": [
@@ -15357,6 +16777,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "synchronization": [
@@ -15371,6 +16795,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "failure": [
@@ -15385,6 +16813,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "cancellation": [
@@ -15399,6 +16831,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "resources": [
@@ -15413,6 +16849,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "extension": [
@@ -15427,6 +16867,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "verification": [
@@ -15441,6 +16885,14 @@
               {
                 "path": "adapters/host-node/content-preparation-retirement.test.mjs",
                 "anchor": "retired keyed Content does not exhaust the unchanged 4096 live-preparation limit"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request acquired Model Content borrows"
               }
             ]
           }
@@ -15460,6 +16912,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "inputsOutputs": [
@@ -15478,6 +16934,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "identity": [
@@ -15492,6 +16952,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "ownership": [
@@ -15506,6 +16970,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "synchronization": [
@@ -15516,6 +16984,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "failure": [
@@ -15530,6 +17002,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "cancellation": [
@@ -15540,6 +17016,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "resources": [
@@ -15558,6 +17038,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "extension": [
@@ -15572,6 +17056,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "verification": [
@@ -15594,6 +17082,14 @@
               {
                 "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
                 "anchor": "installed Model caller cuts"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request acquired Model Content borrows"
               }
             ]
           }
@@ -15612,6 +17108,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "inputsOutputs": [
@@ -15626,6 +17126,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "identity": [
@@ -15636,6 +17140,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "ownership": [
@@ -15650,6 +17158,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "synchronization": [
@@ -15660,6 +17172,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "failure": [
@@ -15670,6 +17186,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "cancellation": [
@@ -15684,6 +17204,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "resources": [
@@ -15698,6 +17222,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "extension": [
@@ -15708,6 +17236,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "verification": [
@@ -15726,6 +17258,14 @@
               {
                 "path": "adapters/host-node/content-preparation-retirement.test.mjs",
                 "anchor": "retired keyed Content does not exhaust the unchanged 4096 live-preparation limit"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request acquired Model Content borrows"
               }
             ]
           }
@@ -15744,60 +17284,104 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original whole-Source caller connection"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original whole-Source caller connection"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original whole-Source caller connection"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original whole-Source caller connection"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original whole-Source caller connection"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original whole-Source caller connection"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original whole-Source caller connection"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original whole-Source caller connection"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original whole-Source caller connection"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "verification": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original whole-Source caller connection"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request acquired Model Content borrows"
               }
             ]
           }
@@ -15814,12 +17398,20 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Preparation responsibility belongs to the existing Host instance"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/initial-control-host-input.mjs",
                 "anchor": "export function snapshotInitialControlHostInput(input, limits) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "identity": [
@@ -15830,42 +17422,70 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "options = readInitialControlInstallationInput(control, originals);"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Reference ownership follows the actual Host record and its real children."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "const begun = beginInitialControlInstallation(originals, options);"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "failure": [
               {
                 "path": "adapters/host-node/initial-control-host-input.test.mjs",
                 "anchor": "test('unsupported Proxy and accessor inputs refuse without executing traps or getters'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/host-node/initial-control-host-input-routing.test.mjs",
                 "anchor": "test('current refusal after initialization prevents the original packet from reaching Host copies'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Resource coverage distinguishes managed work/data limits"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "verification": [
@@ -15876,6 +17496,14 @@
               {
                 "path": "adapters/host-node/initial-control-host-input-routing.test.mjs",
                 "anchor": "test('Host passes raw input before awaiting and consumes only the same captured packet afterwards'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request acquired Model Content borrows"
               }
             ]
           }
@@ -15888,12 +17516,20 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Preparation responsibility belongs to the existing Host instance"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/initial-control-host-input.mjs",
                 "anchor": "export function snapshotInitialControlHostInput(input, limits) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "identity": [
@@ -15904,42 +17540,70 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "options = readInitialControlInstallationInput(control, originals);"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Reference ownership follows the actual Host record and its real children."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "const begun = beginInitialControlInstallation(originals, options);"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "failure": [
               {
                 "path": "adapters/host-node/initial-control-host-input.test.mjs",
                 "anchor": "test('unsupported Proxy and accessor inputs refuse without executing traps or getters'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/host-node/initial-control-host-input-routing.test.mjs",
                 "anchor": "test('current refusal after initialization prevents the original packet from reaching Host copies'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Resource coverage distinguishes managed work/data limits"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "verification": [
@@ -15950,6 +17614,14 @@
               {
                 "path": "adapters/host-node/initial-control-host-input-routing.test.mjs",
                 "anchor": "test('Host passes raw input before awaiting and consumes only the same captured packet afterwards'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request acquired Model Content borrows"
               }
             ]
           }
@@ -15968,6 +17640,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "inputsOutputs": [
@@ -15978,6 +17654,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "identity": [
@@ -15988,6 +17668,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "ownership": [
@@ -15998,6 +17682,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "synchronization": [
@@ -16008,6 +17696,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "failure": [
@@ -16018,6 +17710,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "cancellation": [
@@ -16028,6 +17724,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "resources": [
@@ -16038,6 +17738,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "extension": [
@@ -16048,12 +17752,24 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "verification": [
               {
                 "path": "adapters/host-node/installed-infer-compilation-selection.test.mjs",
                 "anchor": "Host Model admission forwards the same original Request artifact"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request acquired Model Content borrows"
               }
             ]
           }
@@ -16091,6 +17807,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "inputsOutputs": [
@@ -16109,6 +17829,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "identity": [
@@ -16127,6 +17851,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "ownership": [
@@ -16145,6 +17873,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "synchronization": [
@@ -16163,6 +17895,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "failure": [
@@ -16181,6 +17917,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "cancellation": [
@@ -16199,6 +17939,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "resources": [
@@ -16217,6 +17961,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "extension": [
@@ -16235,6 +17983,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "verification": [
@@ -16253,6 +18005,14 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request acquired Model Content borrows"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               },
               {
                 "path": "adapters/host-node/request-content-caller.test.mjs",
@@ -16288,6 +18048,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "inputsOutputs": [
@@ -16306,6 +18070,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "identity": [
@@ -16324,6 +18092,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "ownership": [
@@ -16342,6 +18114,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "synchronization": [
@@ -16360,6 +18136,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "failure": [
@@ -16378,6 +18158,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "cancellation": [
@@ -16396,6 +18180,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "resources": [
@@ -16414,6 +18202,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "extension": [
@@ -16432,6 +18224,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "verification": [
@@ -16446,6 +18242,14 @@
               {
                 "path": "adapters/host-node/content-preparation-retirement.test.mjs",
                 "anchor": "retired keyed Content does not exhaust the unchanged 4096 live-preparation limit"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request acquired Model Content borrows"
               }
             ]
           }
@@ -16472,6 +18276,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "inputsOutputs": [
@@ -16486,6 +18294,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "identity": [
@@ -16500,6 +18312,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "ownership": [
@@ -16514,6 +18330,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "synchronization": [
@@ -16528,6 +18348,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "failure": [
@@ -16542,6 +18366,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "cancellation": [
@@ -16556,6 +18384,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "resources": [
@@ -16570,6 +18402,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "extension": [
@@ -16584,6 +18420,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "verification": [
@@ -16594,6 +18434,14 @@
               {
                 "path": "adapters/host-node/content-preparation-retirement.test.mjs",
                 "anchor": "retired keyed Content does not exhaust the unchanged 4096 live-preparation limit"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request acquired Model Content borrows"
               }
             ]
           }
@@ -16613,6 +18461,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "inputsOutputs": [
@@ -16623,6 +18475,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "identity": [
@@ -16633,6 +18489,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "ownership": [
@@ -16643,6 +18503,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "synchronization": [
@@ -16653,6 +18517,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "failure": [
@@ -16663,6 +18531,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "cancellation": [
@@ -16673,6 +18545,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "resources": [
@@ -16683,6 +18559,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "extension": [
@@ -16693,12 +18573,24 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "verification": [
               {
                 "path": "adapters/host-node/content-preparation-retirement.test.mjs",
                 "anchor": "retired keyed Content does not exhaust the unchanged 4096 live-preparation limit"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request acquired Model Content borrows"
               }
             ]
           }
@@ -16789,6 +18681,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "inputsOutputs": [
@@ -16875,6 +18771,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "identity": [
@@ -16977,6 +18877,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "ownership": [
@@ -17067,6 +18971,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "synchronization": [
@@ -17161,6 +19069,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "failure": [
@@ -17243,6 +19155,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "cancellation": [
@@ -17321,6 +19237,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "resources": [
@@ -17419,6 +19339,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "extension": [
@@ -17501,6 +19425,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "verification": [
@@ -17667,6 +19595,14 @@
               {
                 "path": "adapters/host-node/content-preparation-retirement.test.mjs",
                 "anchor": "retired keyed Content does not exhaust the unchanged 4096 live-preparation limit"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request acquired Model Content borrows"
               }
             ]
           }

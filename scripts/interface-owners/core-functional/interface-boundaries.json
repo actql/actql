@@ -42760,7 +42760,7 @@
     },
     {
       "module": "src/client_local_host/installed_capture_plan.mbt",
-      "sha256": "3d338f67af891c0d1b433112774726dee656857030b7ceae52de5191fd95f7bc",
+      "sha256": "7987a43d0d0c55a250ea9fa81cd5d9d5b7e5b74069db294f71d479b9fd7e836e",
       "exports": [],
       "operations": [
         {
@@ -42828,6 +42828,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Model prefix on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "inputsOutputs": [
@@ -42838,6 +42842,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Model prefix on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "identity": [
@@ -42848,6 +42856,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Model prefix on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "ownership": [
@@ -42858,6 +42870,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Model prefix on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "synchronization": [
@@ -42868,6 +42884,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Model prefix on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "failure": [
@@ -42878,6 +42898,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Model prefix on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "cancellation": [
@@ -42888,6 +42912,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Model prefix on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "resources": [
@@ -42898,6 +42926,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Model prefix on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "extension": [
@@ -42908,6 +42940,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Model prefix on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "verification": [
@@ -42934,6 +42970,14 @@
               {
                 "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
                 "anchor": "same Request acquired Model prefix"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
+                "anchor": "plain Model module retains"
               }
             ]
           }
@@ -49730,7 +49774,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
-      "sha256": "a5744aa4cbe8b25d8906967b4bae783a627e20d1f195c312cd716f41b41a9599",
+      "sha256": "cc7a5a220709f6dd1787b267ab66a598e325e5ac7e86b9343bd79fa8378382c3",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "D — original installed Effect Plan and Model demand correspondence",
@@ -49765,6 +49809,10 @@
           "declaration": "client_program_prepare_request_model_provider_capture_module ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , compilation : @ publication_host . ClientTaskCompilation , declaration : @ client_row_source_host . RowDeclaration , provider : @ execution . ExecutionCapacity ? , query_contract_body : String , evidence_contract_body : String , transport_bytes : Int64 , transport_execution_bytes : Int64 , contracts : @ client_local_host . ClientInstalledSequenceContracts , retained_output : Bool , query_time : @ publication_host . ClientQueryTimePreparation ? , ) - > Result [ @ client_local_host . ClientInstalledManagedCapturePlan , ClientRequestProgramModuleBridgeIssue , ]"
         },
         {
+          "name": "client_program_prepare_request_model_provider_component_capture_module",
+          "declaration": "client_program_prepare_request_model_provider_component_capture_module ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , compilation : @ publication_host . ClientTaskCompilation , declaration : @ client_row_source_host . RowDeclaration , provider : @ execution . ExecutionCapacity ? , query_contract_body : String , evidence_contract_body : String , transport_bytes : Int64 , transport_execution_bytes : Int64 , contracts : @ client_local_host . ClientInstalledSequenceContracts , retained_output : Bool , query_time : @ publication_host . ClientQueryTimePreparation ? , construct : ( @ execution . ExecutionCapacity , @ execution . GeneratedSequence , @ execution . GeneratedSequence ? , ) - > @ local . ManagedProvider , ) - > Result [ @ client_local_host . ClientInstalledManagedCapturePlan , ClientRequestProgramModuleBridgeIssue , ]"
+        },
+        {
           "name": "client_program_prepare_request_model_source_free_plan",
           "declaration": "client_program_prepare_request_model_source_free_plan ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , original : @ client_local_host . ClientInstalledManagedSourceFreePreparation , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , occurrence : @ publication_host . ClientInferOccurrence , graph : @ publication_host . ClientInferPlanGraph , selected : @ infer_host . Limits , ) - > Result [ @ client_local_host . ClientInstalledManagedModelPlan , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
@@ -49775,6 +49823,14 @@
         {
           "name": "client_program_prepare_request_node_model_source_free_plan",
           "declaration": "client_program_prepare_request_node_model_source_free_plan ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , original : @ client_local_host . ClientInstalledManagedSourceFreePreparation , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , occurrence : @ publication_host . ClientInferOccurrence , graph : @ publication_host . ClientInferPlanGraph , selected : @ infer_host . Limits , layout : @ publication_host . ClientNodeModelPreparationLayout ? , installation : @ check_environment . ModelResponseProfileInstallation , runtime_artifact_cid : String , layout_artifact_cid : String , probability : @ check_environment . DecisionProbabilityProfile ? , model_retained_bytes : Int64 , model_execution_bytes : Int64 , max_reservations : Int , max_holdings : Int , max_delegations : Int , ) - > Result [ @ client_local_host . ClientInstalledManagedModelPlan , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_prepared_request_model_input_prefix",
+          "declaration": "client_program_prepared_request_model_input_prefix ( original : @ client_local_host . ClientInstalledManagedCapturePlan , ) - > Result [ @ execution . GeneratedSequence , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_prepared_request_model_input_suffix",
+          "declaration": "client_program_prepared_request_model_input_suffix ( original : @ client_local_host . ClientInstalledManagedCapturePlan , ) - > Result [ @ execution . GeneratedSequence ? , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
           "name": "installed_effect_model_plan_from_original_sources",
@@ -49792,9 +49848,12 @@
             "client_program_installed_effect_plan_matches_model_demand",
             "client_program_installed_mock_model_capture_plan_bind",
             "client_program_prepare_request_model_provider_capture_module",
+            "client_program_prepare_request_model_provider_component_capture_module",
             "client_program_prepare_request_model_source_free_plan",
             "client_program_prepare_request_node_model_capture_plan",
             "client_program_prepare_request_node_model_source_free_plan",
+            "client_program_prepared_request_model_input_prefix",
+            "client_program_prepared_request_model_input_suffix",
             "installed_effect_model_plan_from_original_sources"
           ],
           "exports": [],
@@ -49819,6 +49878,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "inputsOutputs": [
@@ -49841,6 +49904,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "identity": [
@@ -49863,6 +49930,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "ownership": [
@@ -49885,6 +49956,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "synchronization": [
@@ -49907,6 +49982,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "failure": [
@@ -49929,6 +50008,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "cancellation": [
@@ -49951,6 +50034,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "resources": [
@@ -49973,6 +50060,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "extension": [
@@ -49995,6 +50086,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "verification": [
@@ -50025,6 +50120,14 @@
               {
                 "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
                 "anchor": "Request acquired Node Model binds"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
+                "anchor": "plain Model module retains"
               }
             ]
           }
@@ -52936,7 +53039,7 @@
     },
     {
       "module": "src/client_local_host/installed_whole_source_plan.mbt",
-      "sha256": "3fc0429e03fd88ad499e50d7e59135ba48beea98ee30b136fc4c0965f4211c65",
+      "sha256": "2656d6378cb0b9969135c717fc651087c975f54f86e01752c22edccc1bf105ed",
       "exports": [],
       "operations": [
         {
@@ -53023,8 +53126,8 @@
             "prepare_installed_managed_whole_source_plan_owned",
             "prepare_installed_whole_source_capacity",
             "select_installed_effect_source_input",
-            "start_installed_whole_source_read_rows",
-            "select_installed_source_input_graph"
+            "select_installed_source_input_graph",
+            "start_installed_whole_source_read_rows"
           ],
           "exports": [],
           "attributes": {
@@ -53032,42 +53135,70 @@
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "The existing RowRun has a complete-input alternative"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "same acquisition, request wire and provider"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "exact supplied-read"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "same original Request supplies the Run ledger"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "Current callbacks may reenter close"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "validation failure or cancellation retains them"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "Retirement invalidates new reads"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "resources": [
@@ -53078,18 +53209,34 @@
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "existing capacity calculation and Request reservation."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "native file listings require their different Resource"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "verification": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "focused Core and explicit-port Node cases"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
+                "anchor": "plain Model module retains"
               }
             ]
           }
@@ -53108,12 +53255,20 @@
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "Prepared/Request selector reads that Result placement before Query lowering"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "same acquisition, request wire and provider"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "identity": [
@@ -53124,42 +53279,70 @@
               {
                 "path": "src/client_local_host/installed_whole_source_plan.mbt",
                 "anchor": "@strategy.graph_requires_acquisition_result_publication(graph)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "same original Request supplies the Run ledger"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "Current callbacks may reenter close"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "validation failure or cancellation retains them"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "Retirement invalidates new reads"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "existing capacity functions and units"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "native file listings require their different Resource"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "verification": [
@@ -53178,6 +53361,14 @@
               {
                 "path": "src/client_local_host/installed_capture_original_row_js_wbtest.mbt",
                 "anchor": "Its root belongs to the later Compute stage"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
+                "anchor": "plain Model module retains"
               }
             ]
           }
@@ -53192,60 +53383,104 @@
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "Timed whole-input construction consumes"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "same opaque original invocation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "same Prepared, Request,"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "same Request keeps the"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "Original current and retirement fences"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "A missing or foreign invocation refuses"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "Returning a body does not acknowledge physical stop"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "Constructor and held-output overlap must already be backed"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "The untimed constructor retains its"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
               }
             ],
             "verification": [
               {
                 "path": "src/client_local_host/installed_whole_source_query_time_js_wbtest.mbt",
                 "anchor": "whole Source timed Plan and module retain the first original invocation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
+                "anchor": "plain Model module retains"
               }
             ]
           }
@@ -58705,6 +58940,125 @@
               {
                 "path": "packages/run-host-core/effect-publication.test.mjs",
                 "anchor": "test('retained public full-chain evidence performs one full admission"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/preparation_request_model_module.mbt",
+      "sha256": "41ca4499214e8e2e22d6592fe8c27ac7f3e54b1531d0c63908d83d256726d190",
+      "operations": [
+        {
+          "name": "[I]begin_request_model_module",
+          "declaration": "[ I ] begin_request_model_module ( owner : ClientRequestPreparation [ I ] , input : I , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , compilation : @ publication_host . ClientTaskCompilation , contracts : ClientInstalledSequenceContracts , captures : Int , installed_providers : Int , query_time : @ publication_host . ClientQueryTimePreparation ? , provider_captures ? : Int"
+        },
+        {
+          "name": "[I]prepare_request_model_capture_module",
+          "declaration": "[ I ] prepare_request_model_capture_module ( owner : ClientRequestPreparation [ I ] , input : I , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , compilation : @ publication_host . ClientTaskCompilation , declarations : Array [ @ row_source_host . RowDeclaration ] , query_contract_body : String , evidence_contract_body : String , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , contracts : ClientInstalledSequenceContracts , retained_output : Bool , installed_providers : Int , provider_factory : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , query_time ? : @ publication_host . ClientQueryTimePreparation ?"
+        },
+        {
+          "name": "[I]prepare_request_model_source_free_module",
+          "declaration": "[ I ] prepare_request_model_source_free_module ( owner : ClientRequestPreparation [ I ] , input : I , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , compilation : @ publication_host . ClientTaskCompilation , contracts : ClientInstalledSequenceContracts , retained_output : Bool , installed_providers : Int , provider_factory : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , query_time ? : @ publication_host . ClientQueryTimePreparation ?"
+        },
+        {
+          "name": "prepared_request_model_input_prefix",
+          "declaration": "prepared_request_model_input_prefix ( original : ClientInstalledManagedCapturePlan , ) - > Result [ @ execution . GeneratedSequence , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "prepared_request_model_input_suffix",
+          "declaration": "prepared_request_model_input_suffix ( original : ClientInstalledManagedCapturePlan , ) - > Result [ @ execution . GeneratedSequence ? , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "request_model_module_container_bytes",
+          "declaration": "request_model_module_container_bytes ( tasks : Int , captures : Int , installed_providers : Int , provider_captures ? : Int"
+        }
+      ],
+      "exports": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I]begin_request_model_module",
+            "[I]prepare_request_model_capture_module",
+            "[I]prepare_request_model_source_free_module",
+            "prepared_request_model_input_prefix",
+            "prepared_request_model_input_suffix",
+            "request_model_module_container_bytes"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
+                "anchor": "plain Node Model input lowering is backed"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
+                "anchor": "plain Model component factory receives"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
+                "anchor": "plain Model refused input construction"
               }
             ]
           }
