@@ -1496,3 +1496,68 @@ test "timed invocation backing survives original Module adoption and pending pay
   retire_installed_managed_run(run).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }
+
+///|
+test "source-free adoption checks exact initial limits before transferring its original custody" {
+  let (parent, input, prepared) = request_program_body_fixture()
+  reserve_request_program_plan(parent, input).unwrap()
+  let original = request_program_installed_plan(prepared)
+  let available = @resources.node_local_preparation_limits(
+    parent.initial,
+    input,
+  ).unwrap()
+  // White-box boundary: alter only the quoted DATA, not the operational grant.
+  // No execution/normal-installation acceptance is claimed by this fixture.
+  let oversized = {
+    ..original,
+    limits: {
+      ..original.limits,
+      execution_bytes: available.execution_bytes + 1L,
+    },
+  }
+  complete_request_program_preparation(parent, input, oversized).unwrap()
+  let request = @publication_host.prepare_source_free_client_request_identity(
+    prepared,
+    "sha256:" + "a".repeat(64),
+    "capacity-before-adoption",
+  ).unwrap()
+  let before = @resources.ledger_usage(parent.ledger)
+  assert_true(
+    begin_request_program_managed_run(parent, request)
+    is Err(InsufficientCapacity),
+  )
+  assert_true(parent.phase == ProgramBodyReady)
+  assert_true(physical_equal(parent.program_source_free.unwrap(), oversized))
+  let after = @resources.ledger_usage(parent.ledger)
+  assert_eq(after.reserved_retention_bytes, before.reserved_retention_bytes)
+  assert_eq(after.reserved_execution_bytes, before.reserved_execution_bytes)
+  assert_eq(after.live_reservations, before.live_reservations)
+  assert_true(
+    begin_preparation_owned_installed_managed_run(
+      parent.initial,
+      [1],
+      parent.program_capacity.unwrap(),
+      prepared,
+      request,
+      oversized,
+    )
+    is Err(Resource(_)),
+  )
+  let (foreign_parent, foreign_input, foreign_prepared) = request_program_body_fixture()
+  let foreign = request_program_installed_plan(foreign_prepared)
+  assert_true(
+    begin_preparation_owned_installed_managed_run(
+      parent.initial,
+      input,
+      parent.program_capacity.unwrap(),
+      prepared,
+      request,
+      foreign,
+    )
+    is Err(ForeignOriginal),
+  )
+  abort_request_preparation_after_cleanup(foreign_parent).unwrap()
+  ignore(foreign_input)
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}

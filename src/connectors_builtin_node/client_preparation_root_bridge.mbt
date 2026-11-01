@@ -1038,8 +1038,32 @@ pub fn client_program_request_program_module_issue_code(
   result : Result[Unit, ClientRequestProgramModuleBridgeIssue],
 ) -> String? {
   match result {
+    Err(Preparation(CapacityExceeded(_))) =>
+      Some("source_free_capacity_exceeded")
     Err(Preparation(Installed(Sequence(ValuesFailure(_, ValuesLimit))))) =>
       Some("values_profile_unsupported")
+    _ => None
+  }
+}
+
+///|
+/// Diagnostic DATA from this exact typed module refusal, never an allowance.
+#export_name("clientProgramRequestProgramModuleCapacityRefusal")
+pub fn client_program_request_program_module_capacity_refusal(
+  result : Result[Unit, ClientRequestProgramModuleBridgeIssue],
+) -> (String, String, Int64, Int64, Int64, Int64)? {
+  match result {
+    Err(Preparation(CapacityExceeded(value))) =>
+      Some(
+        (
+          value.phase,
+          value.dimension,
+          value.required_retention,
+          value.required_execution,
+          value.available_retention,
+          value.available_execution,
+        ),
+      )
     _ => None
   }
 }

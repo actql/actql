@@ -482,6 +482,18 @@ never larger than the general 20,000-node envelope. Missing schemas, nested or
 other value contracts, and out-of-range products retain the general envelope.
 This is an implementation capacity derivation, not a language restriction.
 
+For source-free Request preparation, the configured Plan's complete execution
+and retention requirements must fit the same original initial admission before
+its module body completes or its custody transfers to a Run. A known byte
+refusal is reported as `ClientProgramRejected` / `operation_failed`, not as an
+invalid or unsupported Program. The existing bounded Host diagnostic observer
+can receive the best-effort event `preparation_capacity_refused` with immutable phase, dimension, and decimal
+required/available byte quantities. These diagnostic facts neither increase
+capacity nor authorize a retry. The public submission wire retains its existing
+coarse Problem shape; saved older failed Runs keep their original terminal
+projection. Unclassified, foreign, currentness and cleanup failures remain
+uncertain rather than becoming capacity refusals.
+
 The pre-admission inventory and configured providers/imports/exports use the
 same checked-sequence derivation. Text, expression/intermediate execution,
 serialized-value measurement, row, work, and the 512 MiB retained-store ceilings

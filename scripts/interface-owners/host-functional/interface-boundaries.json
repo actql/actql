@@ -27063,13 +27063,14 @@
     {
       "module": "adapters/host-node/client-program-preparation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "78ced8995f78622b05f5eb65cb1324bb522a241f87547d1d49f118f9a3d0d7f1",
+      "sha256": "0a82b6326493db90a840db66229b32ad217d8c944e1585aced685c1b3c64ecde",
       "role": "physical-io",
       "owner": "Existing static checker/Frontend/compiled preparation Owners; no Run permission",
       "exports": [
         "checkedRequestProgramPreparation",
         "installNodeClientEffectProgramPreparation",
-        "installNodeClientProgramPreparation"
+        "installNodeClientProgramPreparation",
+        "requestProgramCapacityRefusal"
       ],
       "operations": [
         {
@@ -27277,6 +27278,35 @@
           "name": "installNodeClientProgramPreparation/publicSourcePreparation/publicSourcePreparation",
           "parameters": [
             "selectedEnvironment"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectCapacityRefusal",
+          "parameters": [
+            "moon",
+            "result"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectCapacityRefusal/amounts/amounts",
+          "parameters": [
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectCapacityRefusal/projectCapacityRefusal",
+          "parameters": [
+            "amount"
+          ],
+          "async": false
+        },
+        {
+          "name": "requestProgramCapacityRefusal",
+          "parameters": [
+            "error"
           ],
           "async": false
         },
@@ -28612,6 +28642,95 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request refusal projection"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "projectCapacityRefusal",
+            "projectCapacityRefusal/amounts/amounts",
+            "projectCapacityRefusal/projectCapacityRefusal",
+            "requestProgramCapacityRefusal"
+          ],
+          "exports": [
+            "requestProgramCapacityRefusal"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/development.md",
+                "anchor": "For source-free Request preparation, the configured Plan's complete execution"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "function projectCapacityRefusal(moon, result) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "const capacityRefusals = new WeakMap();"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "capacityRefusals.set(error, capacity);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "const category = projectIssue.call(moon, result);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "if (category === 'source_free_capacity_exceeded') {"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "anchor": "// Best-effort diagnostics have no authority over execution. One bounded queue"
+              },
+              {
+                "path": "docs/development.md",
+                "anchor": "uncertain rather than becoming capacity refusals."
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "return Object.freeze({phase, dimension,"
+              },
+              {
+                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "anchor": "if (closed || active !== undefined && queue.length >= maxQueued) {"
+              },
+              {
+                "path": "docs/development.md",
+                "anchor": "capacity nor authorize a retry. The public submission wire retains its existing"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/development.md",
+                "anchor": "coarse Problem shape; saved older failed Runs keep their original terminal"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/preparation-capacity-refusal.test.mjs",
+                "anchor": "test('only an original typed module capacity refusal becomes an operation refusal'"
+              },
+              {
+                "path": "adapters/host-node/request-preparation-parent.test.mjs",
+                "anchor": "test('normal first Request Plan keeps its original typed row refusal"
               }
             ]
           }
@@ -106923,7 +107042,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-source-managed.mjs",
-      "sha256": "3032028c990857f704fb22b7c47edab37155967840315097dfca3d2bf837470e",
+      "sha256": "d92df7a0a4e5a05de99be585ae5078f8aa321ee516c031ec1837a13167ec5892",
       "exports": [
         "assertOrdinarySourcePreparationCurrent",
         "prepareOrdinaryProjectSourceManagedInstallation",
@@ -107134,6 +107253,13 @@
           "name": "prepareOrdinaryManagedInstallation/releaseFinishedProducer/releaseFinishedProducer",
           "parameters": [
             "producer"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/reportCapacityRefusal/reportCapacityRefusal",
+          "parameters": [
+            "cause"
           ],
           "async": false
         },
@@ -107703,6 +107829,7 @@
       "imports": [
         "../../packages/sdk/internal/private-source-preparation.mjs",
         "../host-common/compiler-binding.generated.mjs",
+        "../host-common/diagnostic-observer.mjs",
         "../host-common/runtime-result.mjs",
         "../local-node/request-preparation-adapter.mjs",
         "./client-program-preparation.mjs",
@@ -110759,6 +110886,90 @@
               {
                 "path": "adapters/host-node/request-content-caller.test.mjs",
                 "anchor": "Request Content manager compiles one original graph"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "prepareOrdinaryManagedInstallation/reportCapacityRefusal/reportCapacityRefusal"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/development.md",
+                "anchor": "For source-free Request preparation, the configured Plan's complete execution"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "if (capacity !== undefined) diagnostic('preparation_capacity_refused', capacity);"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "function projectCapacityRefusal(moon, result) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "const capacityRefusals = new WeakMap();"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "const diagnostic = diagnosticObserver(originals.installation?.authorization?.observe);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "anchor": "Promise.resolve().then(() => {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "if (category === 'source_free_capacity_exceeded') {"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "anchor": "// Best-effort diagnostics have no authority over execution. One bounded queue"
+              },
+              {
+                "path": "docs/development.md",
+                "anchor": "uncertain rather than becoming capacity refusals."
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "anchor": "if (closed || active !== undefined && queue.length >= maxQueued) {"
+              },
+              {
+                "path": "docs/development.md",
+                "anchor": "capacity nor authorize a retry. The public submission wire retains its existing"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/development.md",
+                "anchor": "coarse Problem shape; saved older failed Runs keep their original terminal"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/preparation-capacity-refusal.test.mjs",
+                "anchor": "test('only an original typed module capacity refusal becomes an operation refusal'"
+              },
+              {
+                "path": "adapters/host-node/request-preparation-parent.test.mjs",
+                "anchor": "test('normal first Request Plan keeps its original typed row refusal"
               }
             ]
           }

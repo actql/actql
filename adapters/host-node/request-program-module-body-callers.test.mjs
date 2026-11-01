@@ -92,9 +92,9 @@ test('funded caller passes the same installed mode to one original Request compi
     const producer = {receipt, request, kind: 'program', body: captured, preparation: state};
     const originals = {installation: {sequenceContractOriginal: {moon, admission}}};
     const read = Function('current', 'producerForRequest', 'fail', 'originals', 'checked',
-      'checkedRequestProgramPreparation', 'requestPreparationAvailable',
+      'checkedRequestProgramPreparation', 'requestPreparationAvailable', 'reportCapacityRefusal',
       `const closing=false,closed=false;return ({${body}}).fundedPreparation;`)(() => {}, () => producer, fail,
-      originals, value => value, (_moon, value) => value, requestPreparationAvailable);
+      originals, value => value, (_moon, value) => value, requestPreparationAvailable, () => {});
     for(let i=0;i<2;i++){
       const original=await read(request, environment);
       assert.strictEqual(original.prepared, prepared);

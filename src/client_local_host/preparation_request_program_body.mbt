@@ -346,6 +346,7 @@ fn[I] complete_request_program_preparation_owned(
 
 ///|
 pub suberror ClientRequestProgramPlanIssue {
+  CapacityExceeded(ClientPreparationCapacityRefusal)
   Preparation(ClientRequestPreparationIssue)
   Installed(ClientInstalledManagedRunIssue)
   Construction(@publication_host.ClientValuesExecutablePlanIssue)
@@ -694,6 +695,37 @@ fn[I] prepare_request_program_module_body_owned(
               }
           },
         )
+      }
+      // This exact configured Plan is already retained by the Request. Check
+      // the same initial admission before completing its body or adopting a Run.
+      // These immutable quantities neither grant bytes nor establish currentness.
+      if plan is Some(original) {
+        let available = match
+          @resources.node_local_preparation_limits(owner.initial, input) {
+          Err(issue) => return Err(Installed(Resource(issue)))
+          Ok(value) => value
+        }
+        let required = original.limits
+        if required.retained_bytes > available.retained_bytes ||
+          required.execution_bytes > available.execution_bytes {
+          return Err(
+            CapacityExceeded({
+              phase: "source_free_plan",
+              dimension: if required.retained_bytes > available.retained_bytes {
+                "retention"
+              } else {
+                "execution"
+              },
+              required_retention: required.retained_bytes,
+              required_execution: required.execution_bytes,
+              available_retention: available.retained_bytes,
+              available_execution: available.execution_bytes,
+            }),
+          )
+        }
+        if !installed_effect_limits_fit(required, available) {
+          return Err(Installed(InsufficientCapacity))
+        }
       }
       let artifact = match
         prepare_request_compilation_owned(

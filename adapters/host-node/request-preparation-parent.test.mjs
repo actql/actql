@@ -12,7 +12,7 @@ const input = () => ({version:'actql/0.1',id:'parent',stages:[{id:'main',inputs:
   schema:{n:{type:'number',nullable:false}},rows:[{n:1}],
 }}],results:{rows:{from:'v',fields:['n']}}}],results:{answer:{from:{stage:'main',result:'rows'}}}});
 const connection = Object.freeze({mode:'local',owner:'local',consentRefs:Object.freeze([]),runners:Object.freeze([])});
-async function fixture({beginFailure, environment, control=[1024n,0n], policyLimits=[10000n,10000n,10000n,100000n,100000n,100000n]}={}) {
+async function fixture({beginFailure, environment, observe, control=[1024n,0n], policyLimits=[10000n,10000n,10000n,100000n,100000n,100000n]}={}) {
   const calls=[],shapes=[],policy={},parent={};let admission;
   const stop = () => {
     assert.equal(admission.ports.report(0,0,0,0n,0n,0n,0n,0n,0n,0n,0,0,0),0);
@@ -59,7 +59,7 @@ async function fixture({beginFailure, environment, control=[1024n,0n], policyLim
     clientProgramAdoptRequestProgramPreparation(){assert.fail('No Run adoption selected');},
   };
   const context=Object.freeze({runtime:moon,environment,preparedEnvironment:{},retainedRelationOutput:false});
-  const originals={};const view=await prepareOrdinarySourceManagedInstallation(originals,{
+  const originals=observe===undefined?{}:{installation:{authorization:{observe}}};const view=await prepareOrdinarySourceManagedInstallation(originals,{
     validator(actual){assert.equal(actual,originals);},
     preparationContext(actual){assert.equal(actual,originals);return context;},
     retireInitialPreparation(actual,prepared){assert.equal(actual,originals);assert.ok(prepared);calls.push('retire-registry-original');},
@@ -867,9 +867,14 @@ test('normal JSON and YAML Source forwards one captured document and Parameters 
 test('normal first Request Plan keeps its original typed row refusal or unclassified failure without rebuilding', async () => {
   for (const [category, code] of [
     ['values_profile_unsupported', 'ClientProgramUnsupported'],
+    ['source_free_capacity_exceeded', 'ClientProgramRejected'],
     [undefined, 'MoonBitHostFailure'],
   ]) {
-    const f = await fixture(), moon = f.context.runtime, request = {};
+    const diagnostics=[];
+    const f = await fixture({observe:(event,facts)=>{
+      diagnostics.push({event,facts});
+      throw new Error('Observer failure cannot change original refusal');
+    }}), moon = f.context.runtime, request = {};
     const receipt = f.view.beforeSourceSnapshot('program', input(), {}, connection);
     const body = f.view.captureSourceSnapshot(receipt,
       {kind: 'program', input: input(), parameters: null}, snapshotClientRequest);
@@ -888,6 +893,12 @@ test('normal first Request Plan keeps its original typed row refusal or unclassi
     };
     moon.clientProgramRequestProgramModuleIssueCode = function(original) {
       assert.equal(this, moon); assert.equal(original, result); projections++; return category;
+    };
+    moon.clientProgramRequestProgramModuleCapacityRefusal = function(original) {
+      assert.equal(this,moon); assert.equal(original,result);
+      assert.equal(category,'source_free_capacity_exceeded');
+      return {_0:'source_free_plan',_1:'execution',_2:203770432n,_3:703186240n,
+        _4:536870912n,_5:536870912n};
     };
     const prepared = {}, holder = {};
     moon.clientProgramBorrowRequestProgramPlanInput = (parent, original) => {
@@ -909,6 +920,14 @@ test('normal first Request Plan keeps its original typed row refusal or unclassi
         });
       }
       assert.deepEqual([checks, modules, projections], [1, 1, 1]);
+      assert.equal(diagnostics.length,category==='source_free_capacity_exceeded'?1:0);
+      if(diagnostics.length) {
+        assert.equal(diagnostics[0].event,'preparation_capacity_refused');
+        assert.ok(Object.isFrozen(diagnostics[0].facts));
+        assert.deepEqual(diagnostics[0].facts,{phase:'source_free_plan',dimension:'execution',
+          requiredRetentionBytes:'203770432',requiredExecutionBytes:'703186240',
+          availableRetentionBytes:'536870912',availableExecutionBytes:'536870912'});
+      }
     } finally { f.view.finishSourceProducer(receipt, 'failed'); await f.view.close(); }
   }
 });

@@ -46,3 +46,70 @@ test('pre-body initial cleanup needs no registry callback or fabricated Prepared
  const state={parent,context:{runtime:{clientProgramAbortRequestPreparation(original){assert.equal(original,parent);aborts++;return {$tag:1,_0:undefined};}}}};
  cleanupRequestInput(state);assert.equal(aborts,1);assert.equal(state.parent,undefined);
 });
+
+import {checkedRequestProgramPreparation, requestProgramCapacityRefusal}
+  from './client-program-preparation.mjs';
+
+test('only an original typed module capacity refusal becomes an operation refusal', () => {
+  const issue = {}, result = {$tag:0,_0:issue};
+  const moon = {
+    clientProgramRequestPreparationIssueCode(original) {
+      assert.equal(original,result); return 'source_free_capacity_exceeded';
+    },
+    clientProgramRequestProgramModuleCapacityRefusal(original) {
+      assert.equal(original,result);
+      return {_0:'source_free_plan',_1:'execution',_2:203770432n,_3:703186240n,
+        _4:536870912n,_5:536870912n};
+    },
+  };
+  let error;
+  assert.throws(() => checkedRequestProgramPreparation(moon,result), value => {
+    error=value; return value.code==='ClientProgramRejected' && value.cause===issue;
+  });
+  const facts=requestProgramCapacityRefusal(error);
+  assert.ok(Object.isFrozen(facts));
+  assert.deepEqual(facts,{phase:'source_free_plan',dimension:'execution',
+    requiredRetentionBytes:'203770432',requiredExecutionBytes:'703186240',
+    availableRetentionBytes:'536870912',availableExecutionBytes:'536870912'});
+  error.capacity={dimension:'retention'};
+  assert.equal(requestProgramCapacityRefusal(error),facts);
+  assert.equal(requestProgramCapacityRefusal({code:error.code,capacity:facts}),undefined);
+  assert.equal(requestProgramCapacityRefusal(new Error('PreparationCapacityExceeded')),undefined);
+});
+
+test('unknown foreign current and cleanup module failures do not become capacity refusals', () => {
+  for(const issue of [{code:'InsufficientCapacity'}, {code:'ForeignOriginal'},
+    {code:'CurrentChanged'}, {code:'CleanupPending',cleanupPending:true}]) {
+    const result={$tag:0,_0:issue};
+    const moon={clientProgramRequestPreparationIssueCode:()=>undefined,
+      clientProgramRequestProgramModuleCapacityRefusal:()=>assert.fail('Do not project an unrelated issue')};
+    assert.throws(()=>checkedRequestProgramPreparation(moon,result),error=>
+      error.code==='MoonBitHostFailure' && error.cause===issue && requestProgramCapacityRefusal(error)===undefined);
+  }
+});
+
+test('invalid or missing original module quantities never certify a capacity refusal', () => {
+  for(const value of [undefined,{_0:'source_free_plan',_1:'execution',_2:0n,_3:1n,_4:2n,_5:2n},
+    {_0:'source_free_plan',_1:'retention',_2:1,_3:3n,_4:0n,_5:2n}]) {
+    const moon={clientProgramRequestPreparationIssueCode:()=> 'source_free_capacity_exceeded',
+      clientProgramRequestProgramModuleCapacityRefusal:()=>value};
+    assert.throws(()=>checkedRequestProgramPreparation(moon,{$tag:0,_0:{}}),error=>
+      error.code==='InvalidHostRuntimeResult' && requestProgramCapacityRefusal(error)===undefined);
+  }
+});
+
+test('retention is the first exact exceeded dimension when both byte requirements fail', () => {
+  const result={$tag:0,_0:{}};
+  const moon={clientProgramRequestPreparationIssueCode:()=> 'source_free_capacity_exceeded',
+    clientProgramRequestProgramModuleCapacityRefusal:()=>({_0:'source_free_plan',_1:'retention',
+      _2:537000000n,_3:800000000n,_4:536870912n,_5:536870912n})};
+  assert.throws(()=>checkedRequestProgramPreparation(moon,result),error=>{
+    assert.deepEqual(requestProgramCapacityRefusal(error),{phase:'source_free_plan',dimension:'retention',
+      requiredRetentionBytes:'537000000',requiredExecutionBytes:'800000000',
+      availableRetentionBytes:'536870912',availableExecutionBytes:'536870912'});
+    return error.code==='ClientProgramRejected';
+  });
+  moon.clientProgramRequestProgramModuleCapacityRefusal=()=>({_0:'source_free_plan',_1:'execution',
+    _2:537000000n,_3:800000000n,_4:536870912n,_5:536870912n});
+  assert.throws(()=>checkedRequestProgramPreparation(moon,result),{code:'InvalidHostRuntimeResult'});
+});
