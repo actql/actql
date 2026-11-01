@@ -163,7 +163,8 @@ async function fixture({changedAfterFactory=false,failBegin=false,denied=false,s
   const resource={$actql_ref:'resource',version:'actql-resource-ref/0.1',provider_namespace:'local',
     resource_kind:'file',provider_identity_cid:scopeCid,authority_scope_cid:contextCid,
     boundary_cid:scopeCid,identity_cid:cid({root_scope:scopeCid,path:'one.txt'})};
-  return{profile,options,prepared,request,keyed,recipe,keyedRequest,read,resource,version,bytes,calls,raws,decision,authorization,
+  return{profile,options,prepared,request,keyed,recipe,serializationGraph,contentPreparation,
+    keyedRequest,read,resource,version,bytes,calls,raws,decision,authorization,
     acknowledgeClose(){closeAllowed=true;},get nativeReads(){return nativeReads;},
     prepare:(intent=request)=>profile.prepareManagedContentRun(prepared,intent,recipe,serializationGraph,contentPreparation),
     setRunCheck(value){runCheck=value;},invalidateCurrent(){current=false;},
@@ -205,6 +206,15 @@ test('Local Content prior reuse refuses a foreign request through that same Core
   const f=await fixture();f.prepare();const before=f.calls.filter(name=>name==='core-bound-check').length;
   assert.throws(()=>f.prepare({}),{code:'MoonBitHostFailure'});
   assert.equal(f.calls.filter(name=>name==='core-bound-check').length-before,1);
+  await f.profile.close();
+});
+test('Local Content direct prior reuse refuses explicit undefined without substituting the retained Request',async()=>{
+  const f=await fixture();f.prepare();const before=f.calls.filter(name=>name==='core-bound-check').length;
+  // Call the actual installed entry directly: fixture.prepare has a default
+  // argument and must not hide this missing-input distinction.
+  assert.throws(()=>f.profile.prepareManagedContentRun(f.prepared,undefined,f.recipe,
+    f.serializationGraph,f.contentPreparation),{code:'ForeignLocalFilesContentPreparation'});
+  assert.equal(f.calls.filter(name=>name==='core-bound-check').length,before);
   await f.profile.close();
 });
 test('Local Content prior reuse rechecks original identity after Core callback reentry',async()=>{
