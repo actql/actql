@@ -68507,8 +68507,12 @@
                 "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
               },
               {
-                "path": "adapters/host-node/ordinary-source-managed.test.mjs",
-                "anchor": "test('ordinary Mock purpose retains one request original and both real Source children without conversion'"
+                "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
+                "anchor": "test('Local Model retains the exact Request carrier before the actual Host constructor and never issues a standalone Run'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-project-source-managed.test.mjs",
+                "anchor": "test('Project Source distinguishes same-declaration occurrences and preserves pending child custody'"
               }
             ]
           }
@@ -69402,12 +69406,16 @@
                 "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
               },
               {
-                "path": "adapters/host-node/ordinary-source-managed.test.mjs",
-                "anchor": "test('ordinary Mock purpose retains one request original and both real Source children without conversion'"
+                "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
+                "anchor": "Local Model pending Sources"
               },
               {
                 "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
-                "anchor": "Local Model pending Sources"
+                "anchor": "test('Local Model retains the exact Request carrier before the actual Host constructor and never issues a standalone Run'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-project-source-managed.test.mjs",
+                "anchor": "test('Project Source distinguishes same-declaration occurrences and preserves pending child custody'"
               }
             ]
           }
@@ -69530,12 +69538,16 @@
                 "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
               },
               {
-                "path": "adapters/host-node/ordinary-source-managed.test.mjs",
-                "anchor": "test('ordinary Mock purpose retains one request original and both real Source children without conversion'"
+                "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
+                "anchor": "Local Model pending Sources"
               },
               {
                 "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
-                "anchor": "Local Model pending Sources"
+                "anchor": "test('Local Model retains the exact Request carrier before the actual Host constructor and never issues a standalone Run'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-project-source-managed.test.mjs",
+                "anchor": "test('Project Source distinguishes same-declaration occurrences and preserves pending child custody'"
               }
             ]
           }
@@ -69658,12 +69670,16 @@
                 "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
               },
               {
-                "path": "adapters/host-node/ordinary-source-managed.test.mjs",
-                "anchor": "test('ordinary Mock purpose retains one request original and both real Source children without conversion'"
+                "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
+                "anchor": "Local Model pending Sources"
               },
               {
                 "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
-                "anchor": "Local Model pending Sources"
+                "anchor": "test('Local Model retains the exact Request carrier before the actual Host constructor and never issues a standalone Run'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-project-source-managed.test.mjs",
+                "anchor": "test('Project Source distinguishes same-declaration occurrences and preserves pending child custody'"
               }
             ]
           }
@@ -108691,16 +108707,20 @@
                 "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
               },
               {
-                "path": "adapters/host-node/ordinary-source-managed.test.mjs",
-                "anchor": "test('ordinary Mock purpose retains one request original and both real Source children without conversion'"
-              },
-              {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
               },
               {
                 "path": "adapters/host-node/request-content-caller.test.mjs",
                 "anchor": "Request Content manager compiles one original graph"
+              },
+              {
+                "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
+                "anchor": "test('Local Model retains the exact Request carrier before the actual Host constructor and never issues a standalone Run'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-project-source-managed.test.mjs",
+                "anchor": "test('Project Source distinguishes same-declaration occurrences and preserves pending child custody'"
               }
             ]
           }
