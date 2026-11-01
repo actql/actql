@@ -245,6 +245,18 @@ test "same-stage acquired serialized Model preserves original capture module inp
     physical_equal(prefix._observed_definition, definition),
   )
   let provider = @execution.execution_capacity(7L, 9L).unwrap()
+  let dag = @publication_host.prepared_client_graph(prepared)
+  let tasks = @strategy.graph_task_count(dag)
+  let captures = @strategy.graph_captured_prefix(dag)
+  assert_eq(tasks, 1)
+  assert_eq(captures, 1)
+  assert_true(parent.phase == ModelPlanReserved)
+  let containers = request_model_module_container_bytes(
+    tasks,
+    captures,
+    0,
+    provider_captures=1,
+  )
   let calls = Ref(0)
   let result = prepare_request_model_capture_module(
     parent,
@@ -267,6 +279,9 @@ test "same-stage acquired serialized Model preserves original capture module inp
     },
     providers=Some([Some(provider)]),
   )
+  let stopped_before_construction = parent.phase == ModelPlanReserved &&
+    parent.program_captured is None &&
+    calls.val == 0
   // Return this exact held input and settle its parent even when the real
   // constructor refuses. Debug renders the typed issue in this own fixture;
   // no JS enum/Option layout or old ordinary state is inspected.
@@ -276,8 +291,12 @@ test "same-stage acquired serialized Model preserves original capture module inp
   match result {
     Err(Preparation(ForeignOriginal)) =>
       fail("same-stage capture module: Preparation.ForeignOriginal")
-    Err(Installed(Unsupported)) =>
-      fail("same-stage capture module: Installed.Unsupported")
+    Err(Installed(Unsupported)) => {
+      assert_true(stopped_before_construction && containers is None)
+      fail(
+        "same-stage capture module: tasks1/captures1 container refusal BEFORE factory",
+      )
+    }
     Err(ModelQuery(Sequences)) =>
       fail("same-stage capture module: ModelQuery.Sequences")
     Err(ModelQuery(_)) =>
@@ -288,6 +307,7 @@ test "same-stage acquired serialized Model preserves original capture module inp
       fail("same-stage capture module: CapacityExceeded")
     Err(_) => fail("same-stage capture module: other typed refusal")
     Ok(original) => {
+      assert_true(containers is Some(bytes) && bytes > 0L)
       assert_eq(calls.val, 1)
       assert_true(
         physical_equal(original.prepared, prepared) &&
