@@ -4714,3 +4714,20 @@ failed read construction and Scope binding attached to that same original.
 Only actual read settlement and the original Scope census can mark those duties
 finished. This handoff issues neither an independent Scope nor a replacement
 Run, and a missing or foreign selected carrier cannot fall back to one.
+
+
+The normal source-free installed Model caller retains its carrier in the
+existing early-Plan inventory before the compiler/Definition call. Its same
+Host Run bag owns partial module, Plan and Scope construction; a serialized
+component additionally retains its original Content record before entry. A
+previously started saved Run stays with its existing recovery owner and cannot
+receive a newly issued Scope from fresh admission.
+
+The Scope precedes prefix execution, but its read descriptor follows prefix
+Ledger mutations. The descriptor then retains the actual complete read envelope
+immediately before the original Model claim. Issuing it before prefix execution
+would leave a changed-original snapshot; that failed read is retired, never
+refreshed. If cleanup wins while a prefix await unwinds, the same original Scope
+is retired and no subsequent read or fallback Model start is allowed. An adopted
+but never-entered Scope is closed by the existing Host retirement path before
+its native Run and input borrower; callback reentry keeps the same record.
