@@ -46,7 +46,8 @@ const make=compileFunction(`return async function(input){
   const closeHostRequestJournal=()=>journal.close();
   const sourceProfile=input.source,installedEffect=undefined,diagnostic=undefined,observation=undefined;
   const fixtureRequestPreparation=Object.freeze(Object.fromEntries(
-    ['beforeSourceSnapshot','bindSourceSnapshot','bindSourceRequest','finishSourceProducer','intentCid']
+    ['beforeSourceSnapshot','bindSourceSnapshot','bindSourceRequest','finishSourceProducer','intentCid',
+      'captureSourceSnapshot','assertSourceSnapshotCurrent','publishSourceSnapshot']
       .map(name=>[name,()=>{throw Error('No business Source in this fixture');}])));
   const preparation=input.selected===false?undefined:{initialControl:input.initialControl,
     fundedPreparation(){throw Error('No business funding in this fixture');},
@@ -57,6 +58,7 @@ const make=compileFunction(`return async function(input){
   ${source.slice(installedEntryGuard.start,installedEntryGuard.end)}
   const originalSourcePreparation=input.withSource===false?undefined:fixtureRequestPreparation;
   const ${declaration('originalRequestPreparation')};
+  const ${declaration('localSigningRecoveries')};
   let modelRuntimeClosing=false,activationFlight,activationFailure,store;
   const retireModelRuntime=input.retire;
   const initializePublicationServices=()=>input.initialize(host,value=>{store=value;});
