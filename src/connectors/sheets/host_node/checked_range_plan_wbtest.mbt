@@ -421,3 +421,302 @@ test "completed native Json envelope dominates current pinned maps arrays and sc
     }
   }
 }
+
+///|
+let sheets_checked_clear_plan_program : String =
+  #|{"version":"actql/0.1","id":"sheets-range-clear","stages":[{"id":"capture","inputs":{"range":{"connector":"sheets-book","resource":"range_target"}},"steps":[{"filter":"true","as":"scanned"},{"select":["target"],"as":"out"}],"results":{"r":{"from":"out","fields":["target"]}}},{"id":"clear","inputs":{"captured":{"result":{"stage":"capture","result":"r"}}},"steps":[{"values":{"schema":{"receipt":{"type":"string","nullable":false}},"rows":[{"receipt":"clear-request"}]},"as":"values"},{"from":"values","cross_join":{"with":"captured","max_output_rows":1,"select":{"target":"right.target","receipt":"left.receipt"}},"as":"out"}],"results":{"r":{"from":"out","fields":["target","receipt"]},"answer":{"from":"out","fields":["receipt"]}},"effects":{"clear":{"command":{"from":{"result":"r"},"target":{"field":"target"},"contract":"__COMMAND__","input":{}}}}}],"results":{"answer":{"from":{"stage":"clear","result":"answer"}}}}
+
+///|
+test "authored clear Program quotes original empty input Command and installed Source inventory" {
+  let schema = "{\"target\":{\"nullable\":false,\"resource_kind\":\"sheet_range\",\"type\":\"resource_ref\"}}"
+  let schema_cid = "sha256:" + @sha.hex(@utf8.encode(schema))
+  let views : Json = {
+    "views": [
+      {
+        "resource": "range_target",
+        "resource_kind": "sheet_range",
+        "schema_wire": schema.to_json(),
+        "schema_cid": schema_cid.to_json(),
+      },
+    ],
+  }
+  // SAME two views selected by installed-sheets.restore for rangeCommand.
+  let row_schema = "{\"flag\":{\"nullable\":true,\"type\":\"boolean\"},\"number\":{\"nullable\":true,\"type\":\"number\"},\"text\":{\"nullable\":false,\"type\":\"string\"}}"
+  let row_schema_cid = "sha256:" + @sha.hex(@utf8.encode(row_schema))
+  guard views is Object(view_root) && view_root["views"] is Array(view_entries) else {
+    fail("authored views")
+  }
+  view_root["views"] = Json::array(
+    [
+      {
+        "resource": "rows",
+        "resource_kind": "sheet_rows",
+        "schema_wire": row_schema.to_json(),
+        "schema_cid": row_schema_cid.to_json(),
+      },
+      ..view_entries,
+    ],
+  )
+  let declaration = @row_source_host.restore_relation_row_declaration(
+    "sheets-book",
+    "sheets",
+    "sheets/0.1",
+    sheets_checked_plan_wire(views),
+    None,
+  ).unwrap()
+  let columns = "[{\"name\":\"text\",\"type\":\"string\",\"nullable\":false},{\"name\":\"number\",\"type\":\"number\",\"nullable\":true},{\"name\":\"flag\",\"type\":\"boolean\",\"nullable\":true}]"
+  let rectangle = "{\"sheetId\":7,\"startRow\":2,\"endRow\":4,\"startColumn\":1,\"endColumn\":4}"
+  let limits : @catalog.Limits = {
+    max_bytes: 300000,
+    max_nodes: 200000,
+    max_depth: 32,
+    max_cells: 6400,
+  }
+  let command_wire = @catalog.clear_command_json(
+    "sheets-book", columns, rectangle, limits,
+  ).unwrap()
+  let declared_wire = sheets_checked_plan_wire({
+    "catalog": declaration.catalog.to_json(),
+    "contracts": Json::array(declaration.contracts.map(wire => wire.to_json())),
+  })
+  guard @json.parse(
+      @catalog.range_catalog_json(declared_wire, command_wire, limits).unwrap(),
+    )
+    is Object(declared) else {
+    fail("generated range declaration")
+  }
+  guard @json.parse(command_wire) is Object(command_bundle) &&
+    command_bundle["command"] is Object(command) &&
+    command["command_id"] is String(command_id) else {
+    fail("generated range Command")
+  }
+  guard declared["catalog"] is String(catalog) &&
+    declared["contracts"] is Array(contracts) else {
+    fail("generated range catalog")
+  }
+  let (schemas, capabilities) = @row_source_host.row_declaration_evidence_members(
+    declaration,
+  )
+  guard @json.parse(sheets_checked_plan_environment) is Object(base) else {
+    fail("public Environment")
+  }
+  base.remove("evidence_bundle_cid") |> ignore
+  base["schema_snapshots"] = sheets_checked_plan_members(schemas)
+  base["connector_capabilities"] = sheets_checked_plan_members(capabilities)
+  base["source_views"] = sheets_checked_plan_members(declaration.view_bodies)
+  base["contract_registry"] = sheets_checked_plan_members(
+    contracts.map(value => {
+      guard value is String(wire) else { fail("contract wire") }
+      wire
+    }),
+  )
+  base["connector_catalogs"] = Json::array([@json.parse(catalog)])
+  base["connector_manifest"] = {
+    "version": "actql-connectors/0.1",
+    "connectors": Json::array([@json.parse(declaration.manifest_entry)]),
+  }
+  base["command_contracts"] = Json::array([Json::object(command)])
+  let evidence = "sha256:" +
+    @sha.hex(@utf8.encode(sheets_checked_plan_wire(Json::object(base))))
+  base["evidence_bundle_cid"] = evidence.to_json()
+  let environment = @publication_host.admit_client_check_environment(
+    sheets_checked_plan_wire(Json::object(base)),
+    evidence,
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+  ).unwrap()
+  let document = sheets_checked_clear_plan_program.replace(
+    old="__COMMAND__",
+    new=command_id,
+  )
+  let prepared = @publication_host.prepare_client_effect_computation(
+    document,
+    Json,
+    environment,
+    None,
+    [],
+    @publication_host.client_standard_effect_computation_limits(),
+  ).unwrap()
+  let request = @publication_host.prepare_client_effect_request_identity(
+    prepared,
+    "sha256:" + "a".repeat(64),
+    "sheets-range-clear",
+    "sha256:" + "b".repeat(64),
+  ).unwrap()
+  let contracts = @client_host.prepare_installed_sequence_contracts(
+    sheets_checked_plan_registry,
+    sheets_checked_plan_values,
+    Some(sheets_checked_plan_fragment),
+    None,
+  ).unwrap()
+  let target = @catalog.range_reference(
+      "https://sheets.example.test",
+      "book",
+      { sheet_id: 7, start_row: 2, end_row: 4, start_column: 1, end_column: 4, },
+      "sha256:" + "a".repeat(64),
+      "sha256:" + "b".repeat(64),
+      limits,
+    )
+    .unwrap()
+    .stringify()
+  let configuration = "{\"origin\":\"https://sheets.example.test\",\"spreadsheetId\":\"book\",\"range\":" +
+    rectangle +
+    ",\"columns\":" +
+    columns +
+    "}"
+  guard command["contract_cid"] is String(command_cid) else {
+    fail("Command CID")
+  }
+  let binding = @catalog.admit_clear_range_binding(
+    configuration,
+    command_cid,
+    "sha256:" + "b".repeat(64),
+    target,
+    limits,
+  ).unwrap()
+  let native = sheets_clear_construction_profile(
+    binding, 100000, 10000, 16, 2000000, 200000, 32,
+  )
+  let capture = sheets_clear_capture_construction_profile(
+    binding, 1000000, 100000, 64, 100000, 10000, 16, 2000000, 200000, 32,
+  )
+  // Same standard driver quote. Secret=1/metadata=0 and transport=0 are
+  // deliberate lower bounds, not an installed configuration or allowance.
+  let capacities = @client_host.installed_standard_driver_recipe_capacities(
+    native,
+    capture,
+    1000000,
+    100000,
+    64,
+    100000,
+    10000,
+    16,
+    300000,
+    2000000,
+    0,
+    0,
+    false,
+    1,
+    7,
+    16384,
+    1000000,
+    64,
+    4,
+    0L,
+    response_read_quantum=16384,
+  ).unwrap()
+  let capture_body = @client_host.prepare_installed_effect_capture_recipe_extent(
+    "sheets.clear_range", capacities,
+  ).unwrap()
+  let request_body = @client_host.prepare_installed_effect_operation_extent(
+    "sheets.clear_range",
+    capacities[2],
+    0L,
+    false,
+  ).unwrap()
+  let physical = @client_host.prepare_installed_effect_operation_extent(
+    "sheets.clear_range",
+    capacities[3],
+    2300001L,
+    true,
+  ).unwrap()
+  let demand = @client_host.prepare_installed_effect_operation_demand_with_controls(
+    prepared,
+    1,
+    "clear",
+    [capture_body],
+    [request_body, physical],
+    capacities[4],
+  ).unwrap()
+  // Exact original sheetsGridReaderLimits vector, including its existing
+  // default65536 secret bound. No cap or policy is reduced for this case.
+  let reader_limits : Array[Int] = [
+    2000000, 2000000, 200000, 32, 100, 100, 1, 100, 1, 1, 544, 1, 2000000, 12009902,
+    401, 4,
+  ]
+  let request_quote = sheets_range_read_construction_capacity(
+    149, 3, 7, 2, 4, 1, 4, 200000, 32,
+  )
+  let request_capacity = request_quote.unwrap()
+  let common_reader = @client_host.installed_preserving_json_source_reader_capacity_with_request(
+    reader_limits,
+    3,
+    65536,
+    Some(@execution.execution_capacity(0L, 0L).unwrap()),
+  ).unwrap()
+  println(
+    "CHECKED_SOURCE_REQUEST retained=\{@execution.execution_capacity_retained_bytes(request_capacity)} execution=\{@execution.execution_capacity_execution_bytes(request_capacity)}",
+  )
+  println(
+    "CHECKED_SOURCE_COMMON retained=\{@execution.execution_capacity_retained_bytes(common_reader)} execution=\{@execution.execution_capacity_execution_bytes(common_reader)}",
+  )
+  let reader = @client_host.installed_preserving_json_source_reader_capacity_with_request(
+    reader_limits, 3, 65536, request_quote,
+  ).unwrap()
+  println(
+    "CHECKED_SOURCE_READER retained=\{@execution.execution_capacity_retained_bytes(reader)} execution=\{@execution.execution_capacity_execution_bytes(reader)}",
+  )
+  let plan = match
+    @client_host.prepare_installed_effect_managed_plan(
+      prepared,
+      request,
+      [declaration],
+      sheets_checked_plan_query,
+      sheets_checked_plan_evidence,
+      [2000000L],
+      [2000000L],
+      contracts,
+      sheets_checked_plan_values,
+      Some(sheets_checked_plan_fragment),
+      None,
+      [demand],
+      source_providers=Some([reader]),
+      provider_factory=_ => [],
+    ) {
+    Ok(value) => value
+    Err(Unsupported) => fail("checked original Plan: Unsupported")
+    Err(ForeignOriginal) => fail("checked original Plan: ForeignOriginal")
+    Err(SourceAcquisition(_)) =>
+      fail("checked original Plan: SourceAcquisition")
+    Err(_) => fail("checked original Plan: other typed refusal")
+  }
+  let (rows, members, held) = @client_host.prepared_installed_effect_managed_shape(
+    plan,
+  )
+  assert_eq(rows, 1)
+  assert_eq(members, 1)
+  assert_true(held > 0)
+  let (original, requirement, acquisition, _) = @client_host.prepared_installed_effect_managed_source(
+    plan, 0,
+  ).unwrap()
+  assert_true(physical_equal(original, declaration))
+  @row_source_host.check_row_acquisition_original(
+    acquisition, original, requirement,
+  ).unwrap()
+  |> ignore
+  for index, quote in capture.unwrap() {
+    println(
+      "CHECKED_CLEAR_NATIVE_CAPTURE slot=\{index} retained=\{@execution.execution_capacity_retained_bytes(quote)} execution=\{@execution.execution_capacity_execution_bytes(quote)}",
+    )
+  }
+  for index, quote in capacities {
+    println(
+      "CHECKED_CLEAR_DRIVER slot=\{index} retained=\{@execution.execution_capacity_retained_bytes(quote)} execution=\{@execution.execution_capacity_execution_bytes(quote)}",
+    )
+  }
+  let required = @client_host.prepared_installed_effect_managed_requirements(
+    plan,
+  )
+  println("CHECKED_CLEAR_PLAN retained=\{required[4]} execution=\{required[5]}")
+  let original = @client_host.client_local_preparation_initial_limits(
+    @client_host.client_local_resource_policy(),
+  ).unwrap()
+  assert_true(
+    required[4] <= original.retained_bytes,
+    msg=required[4].to_string(),
+  )
+  assert_true(
+    required[5] <= original.execution_bytes,
+    msg=required[5].to_string(),
+  )
+}

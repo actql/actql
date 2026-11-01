@@ -12,7 +12,8 @@ function fixture({pendingRead, pendingBinding = false} = {}) {
   const events = [], raw = {grant: {}, scope: {operation: 'read'}}, credential = {}, capacity = {}, charge = {}, began = deferred();
   const response = Object.freeze({body: Buffer.from('same received bytes')});
   let current = true, bindingCanClose = !pendingBinding, providerRetired = false, requestSignal;
-  let retainedOptions, cleanup, coreRetired = false;
+  let retainedOptions, cleanup, coreRetired = false, preparedReader;
+  let captureCleanupReady = true;
   const site = {}, acquisition = Object.freeze({credential, close() {
     assert.equal(this, acquisition); events.push('binding-close'); return bindingCanClose ? 'closed' : 'pending';
   }});
@@ -63,10 +64,41 @@ function fixture({pendingRead, pendingBinding = false} = {}) {
     },
     clientProgramRowSourceCaptureCleanup() {return ok(true);},
   };
+  const captured = {}, capturedSource = {}, identity = {}, logicalInput = {}, attempt = {};
+  const evidence = {}, checkedOwner = {}, requirement = {};
+  Object.assign(moon, {
+    clientProgramRowSourceFinish: () => ok(undefined),
+    clientProgramRowSourceAttempt: () => attempt,
+    clientProgramRowSourceCaptureBegin: () => ok(undefined),
+    clientProgramRowSourceCaptureAdvance: () => ok({_0:true,_1:1n}),
+    clientProgramRowSourceCapture: () => ok(captured),
+    clientProgramRowSourceCaptureSource(actual) {
+      assert.equal(actual,captured);
+      return coreRetired ? error('original Core capture retired') : ok(capturedSource);
+    },
+    clientProgramEffectCapturedSourceMatches: () => true,
+    clientProgramIdentifyCapturedEffectSourceRelation: () => ok(identity),
+    clientProgramEffectIssueCapturedSourceLogical: () => ok(logicalInput),
+    clientProgramRowSourceIssueSourceEvidence() {
+      assert.equal(coreRetired,false);events.push('source-evidence');return ok(evidence);
+    },
+    clientProgramRowSourceCaptureCleanupAdvance() {return ok(captureCleanupReady);},
+  });
   const session = startInstalledRowRun({moon, acquisition: source, nonce: 'one', ledger,
     capacity: {provider: capacity, transferBytes: 100n, executionBytes: 100n}});
   return {factory, options, events, session, response, readBegan: began.promise,
-    read() {return session.readProvider({prepare: factory.prepare, receiver: factory, options});},
+    // Observe the exact returned original; read/stop/observe are never wrapped
+    // or replaced. This is fixture custody, not an installed supplier overlay.
+    read() {return session.readProvider({prepare(actual) {
+      assert.equal(this,factory);
+      preparedReader=Reflect.apply(factory.prepare,factory,[actual]);return preparedReader;
+    },receiver:factory,options});},
+    reader:()=>preparedReader,
+    complete() {return session.complete({owner:{checkedOwner,effectful:true,requirement,
+      occurrence:{task:0}},prepared:{checkedSource:{}},registry:'registry',values:'values',
+      currentRead:async()=>{}});},
+    capturedSource,evidence,
+    captureCleanupReady(value) {captureCleanupReady=value;},
     bindingRetires() {bindingCanClose = true;},
     inspect() {return {coreRetired, providerRetired, retainedOptions, stopped:requestSignal?.aborted === true};}};
 }
@@ -186,4 +218,47 @@ test('managed Source accounting refusal cannot acknowledge unresolved accounting
   f.retireBinding();
   assert.throws(() => f.session.close(), {code:'MoonBitHostFailure'});
   assert.equal(f.inspect().retired,false);assert.equal(f.inspect().sent,1);
+});
+
+
+// Safer current-code controls: actual Reader + actual RowRun JS, explicit
+// Core/authority/transport ports. No reservation bytes are returned here.
+test('original Reader can retire after capture while SAME Source and evidence remain live',async()=>{
+  const f=fixture();await f.read();const captured=await f.complete();
+  assert.equal(captured.capture.source(),f.capturedSource);
+  const reader=f.reader();reader.requestStop();
+  assert.equal(reader.observe().cleanupConfirmed,true);
+  assert.equal(f.inspect().coreRetired,false);
+  assert.equal(f.inspect().retainedOptions,undefined);
+  assert.equal(captured.capture.source(),f.capturedSource);
+  assert.equal(await captured.issueSourceEvidence({authorityScopeCid:'scope',effectiveDataPolicyCid:'policy'}),f.evidence);
+  assert.equal(await f.session.cleanup(),true);
+  assert.equal(f.inspect().coreRetired,true);
+  assert.throws(()=>captured.capture.source(),{code:'MoonBitHostFailure'});
+  assert.equal(f.events.filter(value=>value==='bind').length,1);
+});
+
+test('original Reader pending binding preserves live Source and SAME cleanup without another read',async()=>{
+  const f=fixture({pendingBinding:true});await f.read();const captured=await f.complete();
+  f.reader().requestStop();
+  assert.equal(f.reader().observe().cleanupConfirmed,false);
+  assert.equal(await f.session.cleanup(),false);
+  assert.equal(f.inspect().coreRetired,false);
+  assert.equal(captured.capture.source(),f.capturedSource);
+  f.bindingRetires();
+  assert.equal(await f.session.cleanup(),true);
+  assert.equal(f.inspect().coreRetired,true);
+  assert.equal(f.events.filter(value=>value==='provider-read').length,1);
+});
+
+test('retired original Reader observer stays usable while Core capture cleanup remains pending',async()=>{
+  const f=fixture();await f.read();const captured=await f.complete();
+  f.reader().requestStop();assert.equal(f.reader().observe().cleanupConfirmed,true);
+  f.captureCleanupReady(false);
+  assert.equal(await f.session.cleanup(),false);
+  assert.equal(f.inspect().coreRetired,false);
+  assert.equal(captured.capture.source(),f.capturedSource);
+  f.captureCleanupReady(true);
+  assert.equal(await f.session.cleanup(),true);
+  assert.equal(f.inspect().coreRetired,true);
 });
