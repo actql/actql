@@ -14,6 +14,31 @@ import test_local_submission_lookup as lookup_fixture
 
 
 class SnapshotTransportTests(unittest.TestCase):
+    def test_query_current_is_observed_at_each_physical_boundary_without_adjacent_duplicates(self):
+        with TemporaryDirectory(prefix='actql-query-current-') as directory:
+            store = LocalByteStore(Path(directory) / 'original.sqlite', max_records=8,
+                max_record_bytes=4096, max_payload_bytes=16384)
+            self.addCleanup(store.close)
+            store.compare_exchange('epoch', None, b'original-epoch')
+            store.compare_exchange(store.namespaced_key('original', 'one'), None, b'original-row')
+            observations = []
+            def current():
+                observations.append('original-current')
+            callbacks = _JournalCallbacks(current, store)
+            def inspect(reader):
+                callbacks.reader = reader
+                self.assertEqual(callbacks.begin(1, 8, 3), 0)
+                self.assertEqual(callbacks.query_copy(0, b'originalone'), 11)
+                before = len(observations)
+                self.assertEqual(callbacks.query(), 0)
+                # Before physical read, after physical read, after consumption.
+                # The outer current and full SQL-fence checks remain separate.
+                self.assertEqual(len(observations) - before, 3)
+                self.assertEqual(callbacks.row_copy(1, 0, 12), b'original-row')
+                self.assertEqual(callbacks.release(), 0)
+            store.inspect_namespaces((ByteFence('epoch', 0, b'original-epoch'),),
+                inspect=inspect, current=current)
+
     def test_frame_copy_thread_and_read_reentry_poison_only_the_original_reader(self):
         for mode in ('copy', 'thread', 'reentry'):
             with self.subTest(mode=mode), TemporaryDirectory(prefix='actql-frame-original-') as directory:
