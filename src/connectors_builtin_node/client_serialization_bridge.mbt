@@ -572,6 +572,22 @@ pub fn client_program_installed_managed_serialization_prefix_cleanup(
 }
 
 ///|
+#export_name("clientProgramInstalledManagedAcquiredSerializationPrefixStart")
+pub fn client_program_installed_managed_acquired_serialization_prefix_start(
+  run : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  selected : @client_local_host.ClientInstalledManagedSerializationPreparation,
+  capture : @client_row_source_host.RowSourceCapture,
+) -> Result[
+  @client_local_host.ClientSerializationPrefix,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.start_installed_managed_acquired_serialization_prefix(
+    run, prepared, selected, capture,
+  )
+}
+
+///|
 #export_name("clientProgramSerializationPrefixCapacity")
 pub fn client_program_serialization_prefix_capacity(
   program : @publication_host.PreparedClientProgram,

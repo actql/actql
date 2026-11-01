@@ -536,6 +536,266 @@ test "one acquired serialized Model retains its original Query module and prefix
 }
 
 ///|
+// Actual accounted RowRun/capture on the SAME Request Model Scope. The
+// installation/profile/Resource and transport verifier remain explicit test
+// ports; these tests issue no normal Account grant, Model send or physical IO.
+priv struct RequestAcquiredModelCaptureFixture {
+  original : RequestSerializedModelFixture
+  prefix : ClientInstalledManagedSerializationPreparation
+  module_plan : ClientInstalledManagedCapturePlan
+  scope : @publication_host.ClientModelReadScope
+  run : ClientInstalledManagedRun
+  source : @row_source_host.RowRun
+  capture : @row_source_host.RowSourceCapture
+  verify_hook : Ref[(() -> Unit)?]
+}
+
+///|
+fn request_acquired_model_capture_fixture(
+  current? : () -> Bool = () => true,
+) -> RequestAcquiredModelCaptureFixture raise {
+  let f = request_serialized_model_fixture(single_capture=true, current~)
+  let (_, execution, measurement) = client_local_execution_limits(max_rows=1)
+  let prefix = prepare_request_model_serialization_plan(
+    f.parent,
+    f.input,
+    f.request,
+    f.compiled,
+    f.definition,
+    execution,
+    measurement,
+    None,
+    None,
+  ).unwrap()
+  let module_plan = prepare_request_model_capture_module(
+    f.parent,
+    f.input,
+    f.request,
+    f.compiled,
+    f.definition,
+    f.compilation,
+    [f.declaration.unwrap()],
+    original_row_query_contract_fixture,
+    original_row_evidence_contract_fixture,
+    [4096L],
+    [2048L],
+    f.contracts,
+    true,
+    0,
+    _ => [],
+  ).unwrap()
+  let plan = prepare_installed_mock_model_capture_plan_binding(
+    module_plan,
+    f.compiled,
+    f.definition,
+    f.occurrence,
+    f.graph,
+    effect_model_plan_limits,
+    500L,
+    700L,
+    20,
+    20,
+    20,
+    content_prefix=Some(prefix),
+  ).unwrap()
+  let scope = prepare_request_model_read_scope(f.parent, f.input, plan).unwrap()
+  complete_request_model_preparation(f.parent, f.input, plan).unwrap()
+  assert_false(@resources.return_preparation_body_borrow(f.holder).unwrap())
+  let run = begin_request_model_managed_run(f.parent, f.request, scope).unwrap()
+  let verify_hook : Ref[(() -> Unit)?] = Ref(None)
+  let source = start_client_original_row_acquisition(
+    scope,
+    f.compiled,
+    f.definition,
+    f.graph,
+    f.prepared,
+    module_plan.captures[0].acquisition.unwrap(),
+    "same-request-acquired-model",
+    _ => {
+      if verify_hook.val is Some(hook) {
+        hook()
+      }
+      true
+    },
+    4096L,
+    2048L,
+  ).unwrap()
+  @row_source_host.begin_row_run(source, 128, 1, 1).unwrap()
+  assert_eq(
+    @row_source_host.accept_row_run_page(
+      source,
+      @utf8.encode("[{\"id\":1,\"amount\":7}]"),
+    ).unwrap(),
+    1,
+  )
+  @row_source_host.finish_row_run(source).unwrap()
+  @row_source_host.begin_row_capture(source).unwrap()
+  let mut complete = false
+  for _ in 0..<10000 {
+    if @row_source_host.advance_row_capture(source, 7).unwrap().0 {
+      complete = true
+      break
+    }
+  }
+  assert_true(complete)
+  let capture = @row_source_host.capture_row_run(source).unwrap()
+  {
+    original: f,
+    prefix,
+    module_plan,
+    scope,
+    run,
+    source,
+    capture,
+    verify_hook,
+  }
+}
+
+///|
+fn request_acquired_model_capture_close(
+  f : RequestAcquiredModelCaptureFixture,
+) -> Unit raise {
+  f.verify_hook.val = None
+  assert_true(
+    cleanup_installed_managed_serialization_prefix(f.run, f.prefix).unwrap(),
+  )
+  @row_source_host.close_accounted_row_run(f.source).unwrap()
+  let original = f.original
+  assert_true(
+    @publication_host.finish_client_model_read_scope(
+      f.scope,
+      original.compiled,
+      original.definition,
+      original.graph,
+      true,
+    ).unwrap(),
+  )
+  retire_installed_managed_run(f.run).unwrap()
+  assert_eq(
+    @resources.ledger_usage(original.parent.ledger).live_reservations,
+    0,
+  )
+}
+
+///|
+test "same Request acquired Model prefix binds the retained original Query and keeps Source until child cleanup" {
+  let f = request_acquired_model_capture_fixture()
+  let original = f.original
+  let ledger = original.parent.ledger
+  let before = @resources.ledger_usage(ledger)
+  // Empty-input entry cannot consume an acquired prefix or reserve its slot.
+  assert_true(
+    start_installed_managed_serialization_prefix(
+      f.run,
+      original.prepared,
+      f.prefix,
+    )
+    is Err(ForeignOriginal),
+  )
+  assert_true(f.run.serialization_prefix is None)
+  let prefix = start_installed_managed_acquired_serialization_prefix(
+    f.run,
+    original.prepared,
+    f.prefix,
+    f.capture,
+  ).unwrap()
+  assert_true(physical_equal(prefix.ledger, ledger))
+  assert_true(
+    f.run.serialization_prefix is Some(same) && physical_equal(same, prefix),
+  )
+  assert_true(
+    f.run.captured_preparation is Some(same) &&
+    physical_equal(same, f.module_plan),
+  )
+  let mut output : @execution.CompletedOutput? = None
+  for _ in 0..<1000 {
+    match advance_client_serialization_prefix(prefix, 1).unwrap() {
+      @local.Complete(value, ..) => {
+        output = Some(value)
+        break
+      }
+      @local.Continue(..) | @local.Waiting(..) | @local.Settling(_, ..) => ()
+      _ =>
+        fail("same Request original acquired prefix failed before completion")
+    }
+  }
+  assert_eq(@execution.completed_row_count(output.unwrap()), 1)
+  assert_eq(
+    @execution.completed_output_row_wire(output.unwrap(), 0, 10000, 1000, 100).unwrap(),
+    "{\"id\":1,\"text\":\"hello\"}",
+  )
+  assert_eq(
+    @resources.ledger_usage(ledger).transferred_bytes,
+    before.transferred_bytes,
+  )
+  assert_eq(@resources.ledger_usage(ledger).holdings, before.holdings)
+  assert_true(
+    cleanup_installed_managed_serialization_prefix(f.run, f.prefix).unwrap(),
+  )
+  assert_eq(
+    @query.captured_source_row_count(
+      @row_source_host.row_capture_source(f.capture).unwrap(),
+    ),
+    Some(1),
+  )
+  request_acquired_model_capture_close(f)
+}
+
+///|
+test "same Request acquired Model prefix refuses foreign live capture before reserving its original child" {
+  let f = request_acquired_model_capture_fixture()
+  let foreign = request_acquired_model_capture_fixture()
+  let before = @resources.ledger_usage(f.original.parent.ledger)
+  assert_true(
+    start_installed_managed_acquired_serialization_prefix(
+      f.run,
+      f.original.prepared,
+      f.prefix,
+      foreign.capture,
+    )
+    is Err(ForeignOriginal),
+  )
+  assert_true(f.run.serialization_prefix is None)
+  assert_eq(@resources.ledger_usage(f.original.parent.ledger), before)
+  request_acquired_model_capture_close(foreign)
+  request_acquired_model_capture_close(f)
+}
+
+///|
+test "same Request acquired Model prefix retains its reserved child through input current refusal" {
+  let current = Ref(true)
+  let f = request_acquired_model_capture_fixture(current=() => current.val)
+  let observed = Ref(false)
+  f.verify_hook.val = Some(() => {
+    if f.run.serialization_prefix is Some(prefix) {
+      observed.val = true
+      assert_true(prefix.child is None)
+      assert_false(
+        cleanup_installed_managed_serialization_prefix(f.run, f.prefix).unwrap(),
+      )
+      current.val = false
+    }
+  })
+  assert_true(
+    start_installed_managed_acquired_serialization_prefix(
+      f.run,
+      f.original.prepared,
+      f.prefix,
+      f.capture,
+    )
+    is Err(_),
+  )
+  assert_true(observed.val)
+  assert_true(
+    f.run.serialization_prefix is Some(prefix) &&
+    prefix.child is None &&
+    prefix.child_cleaned,
+  )
+  current.val = true
+  request_acquired_model_capture_close(f)
+}
+
+///|
 test "serialized Model adopts the same Request Content prefix and retains both original cleanup duties" {
   let f = request_serialized_model_fixture()
   let (_, execution, measurement) = client_local_execution_limits(max_rows=1)
