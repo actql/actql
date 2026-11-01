@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {parse} from 'acorn';
+import {openNodeComposedInferProvider} from './infer-operation.mjs';
 
 // Actual Host constructor with explicit Core/current/installation ports.
 // This does not issue Common originals or prove physical constructor backing.
@@ -10,11 +11,12 @@ const node = parse(source, {ecmaVersion: 'latest', sourceType: 'module'}).body
   .find(value => value.type === 'FunctionDeclaration' && value.id.name === 'prepareRequestMockModelPlan');
 assert(node);
 function fixture({count = 0, timed = false, refuseCapture, expire = false, missingModule = false,
-  serialized = false, expirePrefix = false, missingPrefix = false, physical = false, missingPhysical = false, missingProvider = false, expireProvider = false} = {}) {
+  serialized = false, expirePrefix = false, missingPrefix = false, physical = false, missingPhysical = false, missingProvider = false, expireProvider = false, expireComponent = false, missingComponent = false} = {}) {
   const parent = {}, input = {}, prepared = {}, request = {}, compilation = {}, module = {}, plan = {};
   const graph = {}, occurrence = {}, bounds = {}, q = {}, admission = {}, initialControl = {};
   const declarations = [{}, {}], provider = {}, sourceRef = {}, selectedSource = {};
   const sourceProfile = {sources: []};
+  const inputPrefix = {}, componentProvider = {}, suffixBinder = () => assert.fail('construction does not execute suffix');
   const calls = [], model = {graph, occurrence, compiled: {}, runDefinition: {}, scope: undefined};
   const run = {prepared, request, model, queryTimePreparation: timed ? q : undefined};
   const serializationGraph = {}, prefix = {}, prefixLimits = {}, workspace = {};
@@ -70,8 +72,25 @@ function fixture({count = 0, timed = false, refuseCapture, expire = false, missi
       delete control.prepareCheckedClientRequestNodeModelCapturePlan;
     }
   }
+  if (count === 1 && !serialized) model.selection = Object.freeze({graph, occurrence, provider: {}});
   model.control = control;
   const moon = {
+    clientProgramComposedInferLocalProvider(actualOccurrence, _open, _issue, _retain, _cleanup, actualPrefix) {
+      assert.strictEqual(actualOccurrence, occurrence); assert.strictEqual(actualPrefix, inputPrefix);
+      calls.push('component provider');
+      if (expireComponent) current = false;
+      return componentProvider;
+    },
+    clientProgramPrepareRequestModelProviderComponentCaptureModule(...args) {
+      assert.deepEqual(args.slice(0, 15), [parent, input, request, model.compiled, model.runDefinition, compilation,
+        declarations[0], provider, 'query', 'evidence', 512n, 256n,
+        admission, true, timed ? q : undefined]);
+      assert.equal(args.length, 16); assert.equal(model.component, undefined);
+      calls.push('backed component module');
+      assert.strictEqual(args[15]({}, inputPrefix, suffixBinder), componentProvider);
+      assert.strictEqual(model.component.provider, componentProvider);
+      return ok(module);
+    },
     clientProgramSelectInstalledSourceInput(p, stage, index) {
       assert.equal(p, prepared); assert.equal(stage, 0); assert.equal(index, 0); return ok(selectedSource);
     },
@@ -116,6 +135,7 @@ function fixture({count = 0, timed = false, refuseCapture, expire = false, missi
     delete moon.clientProgramPrepareRequestModelCaptureModule;
     delete moon.clientProgramPrepareRequestModelProviderCaptureModule;
   }
+  if (missingComponent) delete moon.clientProgramPrepareRequestModelProviderComponentCaptureModule;
   run.runtime = moon;
   const originals = {installation: {projectRuntime: moon, initialControl, retainedRelationOutput: true,
     computeRuns: new WeakMap([[prepared, run]]), managedSourceProfile: sourceProfile}};
@@ -126,7 +146,7 @@ function fixture({count = 0, timed = false, refuseCapture, expire = false, missi
     return Object.freeze({declaration: declarations[0], provider: missingProvider ? undefined : provider,
       transferBytes: 512n, executionBytes: 256n});
   }};
-  const ports = {assertSourceManagedHostPreparation(value) {
+  const ports = {openNodeComposedInferProvider, assertSourceManagedHostPreparation(value) {
     assert.equal(value, originals); if (!current) throw primary;
   }, originalSourceManagedHostRequest(value, p) {assert.equal(value, originals); assert.equal(p, prepared);},
   prepareInstalledSequenceContractOriginal: () => ({moon, control: initialControl, contracts, admission}),
@@ -282,4 +302,23 @@ test('Request acquired Node Model facade unwraps only same registered compiler a
   assert.throws(() => bind(compiled, {...definition}), /Foreign Definition/); assert.equal(calls, 1);
   delete moon.clientProgramPrepareRequestNodeModelCapturePlan;
   assert.throws(() => bind(), /Installed Node Model Plan unavailable/); assert.equal(calls, 1);
+});
+
+
+test('Request plain Node Model constructs and retains its original component only inside the backed module factory', () => {
+  const f = fixture({count: 1, physical: true, timed: true});
+  assert.strictEqual(f.construct(), f.plan);
+  assert.strictEqual(f.run.preparedSequences, f.module);
+  assert(f.model.component);
+  assert.deepEqual(f.calls, ['bounds', 'original provider selection', 'backed component module',
+    'component provider', 'bind-Node-capture-layout']);
+});
+
+test('Request plain Node Model retains its partial deferred component through original current refusal', () => {
+  const f = fixture({count: 1, physical: true, expireComponent: true});
+  assert.throws(f.construct, error => error === f.primary);
+  assert(f.model.component);
+  assert.strictEqual(f.run.preparedSequences, undefined);
+  assert.strictEqual(f.run.modelPlan, undefined);
+  assert.deepEqual(f.calls, ['bounds', 'original provider selection', 'backed component module', 'component provider']);
 });
