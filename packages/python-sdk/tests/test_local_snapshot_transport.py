@@ -1,6 +1,7 @@
 """Actual SQLite frame counters with explicit Core ports, not installed authority."""
 from pathlib import Path
 import sqlite3
+import sys
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 import unittest
@@ -206,6 +207,35 @@ class SnapshotTransportTests(unittest.TestCase):
                     self.assertEqual(len(calls) - before, 3)
                     self.assertEqual(sum(query.lstrip().upper().startswith(('SELECT', 'WITH')) for query in sql), 43)
                 store.inspect_namespaces(fences, inspect=inspect, current=current)
+
+    @unittest.skipUnless(hasattr(sys, 'getrefcount'), 'CPython reference observer only')
+    def test_grouped_fence_releases_observed_payload_before_stepping_next_row(self):
+        with TemporaryDirectory(prefix='actql-fence-observed-row-overlap-') as directory:
+            store = LocalByteStore(Path(directory) / 'original.sqlite', max_records=16,
+                max_record_bytes=512, max_payload_bytes=8192)
+            self.addCleanup(store.close)
+            fences = tuple(ByteFence('epoch:' + str(i), 0, b'original-' + str(i).encode())
+                           for i in range(7))
+            for fence in fences: store.compare_exchange(fence.key, None, fence.payload)
+            previous = []
+            references = []
+            def observe(cursor, row):
+                if cursor.description[0][0] == 'position':
+                    if previous:
+                        self.assertIsNot(previous[0], row[3])
+                        references.append(sys.getrefcount(previous[0]))
+                    previous[:] = [row[3]]
+                return row  # SAME real SQLite row, no value/codec replacement
+            store._physical.begin_read()
+            store._connection.row_factory = observe
+            try:
+                self.assertTrue(store._fences_match_locked(fences, group_reads=True))
+            finally:
+                store._connection.row_factory = None
+                store._physical.finish_read()
+            # The observer's explicit one reference plus getrefcount's argument;
+            # neither the matcher nor generator may still hold that old BLOB.
+            self.assertEqual(references, [2] * 6)
 
     def test_snapshot_reuse_refuses_mutation_in_current_and_latches_original_failure(self):
         from actql_sdk._local_storage import LocalStorageError
