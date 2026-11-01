@@ -15,6 +15,27 @@ from local_abi_declaration_fixture import original_byte_fixture_port
 
 
 class SDKDeliveryStorageTests(unittest.TestCase):
+    def test_one_six_row_proposal_keeps_complete_facts_at_group_and_commit_boundaries(self):
+        helper = file_fixture.ReaderFactsTests()
+        with helper.file() as (_, root, _, final):
+            holder, store, core, observation, request, _, _, _, rows = self.bridge(
+                root, helper.transfer_ready(root, final))
+            sql = []
+            store._connection.set_trace_callback(sql.append)
+            with patch.object(observation, '_validate_facts', wraps=observation._validate_facts) as facts:
+                self.assertEqual(holder.persist(request, 37), (0,) * 6)
+                # Original preparation; bounded proposal before/after; original
+                # precommit lookup and its independent post-producer validation.
+                self.assertEqual(facts.call_count, 5)
+            self.assertEqual(sql.count('COMMIT'), 1)
+            for row in rows:
+                self.assertEqual(store.read(store.namespaced_key(row['table'], row['key'])),
+                    StoredBytes(0, row['body'].encode()))
+            first = holder.original_first_output(request)
+            self.assertIs(core._loans[first.ticket], first)
+            self.assertIs(core._loans[request.ticket], request)
+            self.assertTrue(holder.close())
+
     def rows(self, revision=None):
         cids = ['sha256:' + c * 64 for c in '123']
         tables = ['publication_contract'] * 3 + ['delivery_attempt', 'result_read_grant_usage', 'delivery_record_head']
