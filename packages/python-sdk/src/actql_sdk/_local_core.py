@@ -432,6 +432,11 @@ class LocalCore:
         self._ordinary_host = _ordinary_host
         self._host_fuel_phase: str | None = 'initial' if _ordinary_host else None
         self._host_initial_claimed = False
+        # One bounded same-instance observation generation, never a grant,
+        # Run identity, submitted continuation or independent fuel allowance.
+        self._host_operation_sequence = 0
+        self._host_operation_id = 0
+        self._host_cleanup_depth = 0
         self._engine: Any = None
         self._engine_configuration: Any = None
         self._pool_configuration: Any = None
@@ -516,6 +521,7 @@ class LocalCore:
                                        ('publisher_begin', self._publisher_begin),
                                        ('publisher_finish', self._publisher_finish),
                                        ('journal_current', self._journal_current),
+                                       ('journal_current_operation', self._journal_current_operation),
                                        ('journal_begin', self._journal_begin),
                                        ('journal_query', self._journal_query),
                                        ('journal_length', self._journal_length),
@@ -690,17 +696,23 @@ class LocalCore:
                 raise RuntimeError('Original Host operation is already active')
             if self._closed or self._retired or self._closing:
                 raise RuntimeError('Original Host normal work is fenced')
+            sequence = getattr(self, '_host_operation_sequence', 0)
+            if type(sequence) is not int or not 0 <= sequence < 2**63 - 1:
+                raise RuntimeError('Original Host operation observation identity exhausted')
             if initial:
                 if self._host_initial_claimed:
                     raise RuntimeError('Original Host bootstrap was already attempted')
                 self._host_initial_claimed = True
             else:
                 self._store.set_fuel(_NORMAL_HOST_OPERATION_FUEL)
+            self._host_operation_sequence = sequence + 1
+            self._host_operation_id = sequence + 1
             self._host_fuel_phase = 'operation'
         try:
             yield
         finally:
             with self._lock:
+                self._host_operation_id = 0
                 self._host_fuel_phase = None
 
     @contextmanager
@@ -713,14 +725,16 @@ class LocalCore:
             if self._invoking:
                 raise RuntimeError('Original Host callback cannot start cleanup')
             joined = self._host_fuel_phase is not None
+            self._host_cleanup_depth = getattr(self, '_host_cleanup_depth', 0) + 1
             if not joined:
                 self._store.set_fuel(_NORMAL_HOST_CLEANUP_FUEL)
                 self._host_fuel_phase = 'cleanup'
         try:
             yield
         finally:
-            if not joined:
-                with self._lock:
+            with self._lock:
+                self._host_cleanup_depth -= 1
+                if not joined:
                     self._host_fuel_phase = None
 
     @staticmethod
@@ -902,6 +916,34 @@ class LocalCore:
     def _journal_current(self, ticket: int) -> int:
         callbacks = self._journal_callbacks(ticket)
         return -41 if callbacks is None else callbacks.check_current()
+
+    def _journal_current_operation(self, ticket: int) -> int:
+        """Fresh original current plus this entered Host operation's DATA.
+
+        Zero selects complete original observation for raw/cleanup callers.
+        It is not an Allow, permission cache, reader handle or continuation.
+        """
+        callbacks = self._journal_callbacks(ticket)
+        if callbacks is None or callbacks.check_current() != 0:
+            return -41
+        loan = self._loans.get(ticket)
+        if type(loan) is not _Output or loan.family != 'current':
+            return -41
+        try:
+            self._owned_output(loan, 'current')
+        except ValueError:
+            return -41
+        if (not getattr(self, '_ordinary_host', False)
+                or self._host_fuel_phase != 'operation'
+                or getattr(self, '_host_cleanup_depth', 0) != 0
+                or self._closing or self._closed or self._retired):
+            return 0
+        operation = getattr(self, '_host_operation_id', 0)
+        if (not self._invoking or type(operation) is not int
+                or not 0 < operation < 2**63
+                or operation != self._host_operation_sequence):
+            return -41
+        return operation
 
     def _journal_begin(self, ticket: int, mode: int, namespace_bytes: int, key_bytes: int) -> int:
         callbacks = self._journal_callbacks(ticket)

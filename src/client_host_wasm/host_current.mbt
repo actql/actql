@@ -18,6 +18,10 @@ priv struct StoredHostCurrent {
   mut principal : String?
   mut connection : String?
   mut material : @host.ClientLocalAdoptedHostMaterial[Ref[Int], Int]?
+  // Alias only the first genuine row also retained by the original Common
+  // material. Later observations never retain another body or copied payload.
+  mut original_adoption_row : @host.ClientJournalPhysicalRow?
+  mut observed_operation : Int64
 }
 
 ///|
@@ -38,6 +42,42 @@ fn host_current_physical(
 }
 
 ///|
+// A fresh physical current/fence check plus DATA from this entered Host's
+// existing operation. Zero deliberately keeps the complete raw/cleanup path.
+fn host_current_checked_operation(
+  value : Instance,
+  record : StoredHostCurrent,
+) -> Result[Int64, Int] {
+  if value.closing ||
+    value.runtime_closing ||
+    record.closing ||
+    record.output_closed {
+    record.observed_operation = 0L
+    return Err(-5)
+  }
+  let operation = physical_journal_current_operation(record.physical)
+  if operation < 0L {
+    record.observed_operation = 0L
+    Err(-41)
+  } else {
+    Ok(operation)
+  }
+}
+
+///|
+fn host_current_observation_reusable(
+  record : StoredHostCurrent,
+  operation : Int64,
+) -> Bool {
+  operation > 0L &&
+  record.observed_operation == operation &&
+  !record.closing &&
+  !record.output_closed &&
+  record.material is Some(_) &&
+  record.original_adoption_row is Some(_)
+}
+
+///|
 /// Core selects the singleton namespace/cursor. The trusted Host current port
 /// retains original filesystem/settings/epoch/generation and same-Store fences.
 /// It cannot return a caller permission boolean or authenticate a malicious Host.
@@ -51,6 +91,26 @@ fn host_current_observation(
     record.generation is Some(generation) else {
     return Err(-33)
   }
+  let operation = match host_current_checked_operation(value, record) {
+    Ok(value) => value
+    Err(code) => return Err(code)
+  }
+  if host_current_observation_reusable(record, operation) &&
+    record.original_adoption_row is Some(row) {
+    // Common still compares full original row/account/generation and decides
+    // each protected operation. Only immutable already-admitted DATA is reused.
+    match host_current_checked_operation(value, record) {
+      Ok(after) if after == operation =>
+        return Ok(
+          @host.Observed(record.store, account, original, row, generation),
+        )
+      _ => {
+        record.observed_operation = 0L
+        return Err(-41)
+      }
+    }
+  }
+  record.observed_operation = 0L
   let current = () => host_current_physical(value, record)
   let row = match
     physical_journal_row(
@@ -80,10 +140,24 @@ fn host_current_observation(
     Err(code) => return Err(code)
   }
   match current() {
-    Ok(_) =>
-      Ok(@host.Observed(record.store, account, original, row, generation))
-    Err(code) => Err(code)
+    Err(code) => return Err(code)
+    Ok(_) => ()
   }
+  let after = match host_current_checked_operation(value, record) {
+    Ok(value) => value
+    Err(code) => return Err(code)
+  }
+  if after != operation {
+    return Err(-41)
+  }
+  // The initial constructor and its Common material share this SAME actual
+  // immutable row. Keep only that alias under the original input/current
+  // lifetime; repeated frames cannot add another retained payload.
+  if record.original_adoption_row is None {
+    record.original_adoption_row = Some(row)
+  }
+  record.observed_operation = operation
+  Ok(@host.Observed(record.store, account, original, row, generation))
 }
 
 ///|
@@ -160,6 +234,8 @@ pub fn reserve_host_current(
     principal: None,
     connection: None,
     material: None,
+    original_adoption_row: None,
+    observed_operation: 0L,
   }
   value.copies[handle] = (slot, physical_ticket)
   value.next_handle += 1
@@ -312,6 +388,7 @@ pub fn close_host_current(nonce : Int64, handle : Int) -> Int {
     return -2
   }
   record.closing = true
+  record.observed_operation = 0L
   if value.run_configurations
     .values()
     .any(configuration => configuration.host_current == Some(handle)) {

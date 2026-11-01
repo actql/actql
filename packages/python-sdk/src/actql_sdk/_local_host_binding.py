@@ -93,6 +93,7 @@ class OriginalHostBinding:
         self._uncertain_ticket: int | None = None
         self._active = False
         self._frame_epoch: ByteFence | None = None
+        self._bound_operation: tuple[int, _Output, _Input] | None = None
         self._closing = False
         self._fences: tuple[ByteFence, ...] = ()
         try:
@@ -167,6 +168,11 @@ class OriginalHostBinding:
         self._nominal()
         if self._closing:
             raise ValueError('Original Local Host supplier is closing')
+        if self._current is not None:
+            if self._input is None:
+                raise ValueError('Original Local current input is unavailable')
+            self._core._owned_output(self._current, 'current')
+            self._core._owned_input(self._input)
         self._source.require_current_originals((self._account, *self._selected))
         self._state.require_current_originals((self._staged_account, self._initialization,
                                               self._configuration, self._journal))
@@ -258,26 +264,51 @@ class OriginalHostBinding:
         Store retains transaction/COMMIT/cleanup responsibility, and Core reads
         original inventory/admission/commit materials through this same reader.
         """
+        prior = self._bound_operation
+        self._bound_operation = None
         self._nominal()
         if (not self._active or self._current is None or self._frame_epoch is None
+                or self._input is None
                 or type(reader) is not _NamespaceReader or reader.owner is not self._store
                 or not callable(consume)):
             raise ValueError('Original Local Host transaction reader is unavailable')
+        self._core._owned_output(self._current, 'current')
+        self._core._owned_input(self._input)
+        self._physical_current()
         required = (*self._fences, self._frame_epoch)
         reader.check_fences(reader, required)
         self._settings_inventory(reader)
+        operation = getattr(self._core, '_host_operation_id', 0)
+        normal = (getattr(self._core, '_ordinary_host', False)
+                  and self._core._host_fuel_phase == 'operation'
+                  and getattr(self._core, '_host_cleanup_depth', 0) == 0
+                  and not self._core._closing
+                  and type(operation) is int and 0 < operation < 2**63)
+        same = (normal and prior is not None and prior[0] == operation
+                and prior[1] is self._current and prior[2] is self._input)
         with self._core.host_current_frame(self._current, reader):
-            self._core.bind_host_current(self._current)
+            # Only the same completed original binding within this existing
+            # operation is reusable. Every actual reader/current/files/settings
+            # fence still runs, and Core owns each protected Account decision.
+            if not same:
+                self._core.bind_host_current(self._current)
             consume(self._current)
-            self._core.validate_host_current(self._current)
+            self._physical_current()
+            if not same:
+                self._core.validate_host_current(self._current)
+            if normal and self._core._host_operation_id != operation:
+                raise ValueError('Original Host operation changed during current binding')
         self._settings_inventory(reader)
         reader.check_fences(reader, required)
+        if normal:
+            self._bound_operation = (operation, self._current, self._input)
 
     def close(self) -> bool:
         """Release these loans only; preserve saved files, Store and original Run."""
         with self._core._lock:
             self._nominal()
             self._closing = True
+            self._bound_operation = None
             if self._active:
                 return False
             if self._core._closed:

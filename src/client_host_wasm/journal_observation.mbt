@@ -2,6 +2,9 @@
 fn physical_journal_current(ticket : Int) -> Int = "actql_host" "journal_current"
 
 ///|
+fn physical_journal_current_operation(ticket : Int) -> Int64 = "actql_host" "journal_current_operation"
+
+///|
 fn physical_journal_begin(
   ticket : Int,
   mode : Int,
