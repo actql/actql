@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {join} from 'node:path';
 import test from 'node:test';
 import {compileFunction} from 'node:vm';
 import {parse} from 'acorn';
@@ -16,8 +15,11 @@ const variable = (body, name) => body.body.flatMap(node =>
 const opening = declaration('openInstalledHost');
 assert.ok(opening);
 const environmentSource = variable(opening.body, 'environmentSource');
+const selectedLookupPolicy = variable(opening.body, 'selectedLookupPolicy');
 const environmentWire = variable(opening.body, 'baseEnvironmentWire');
-assert.ok(environmentSource && environmentWire);
+assert.ok(environmentSource && selectedLookupPolicy && environmentWire);
+const entryGuard = opening.body.body[0];
+assert.equal(entryGuard.type, 'IfStatement');
 const connecting = declaration('openPreparedInstalledHost');
 assert.ok(connecting);
 const preparation = variable(connecting.body, 'preparation').declarations[0].init;
@@ -29,18 +31,20 @@ assert.ok(method?.method && method.value.params.length === 0);
 // This does not load a Common runtime or issue the selected preload admission.
 // The real private Owner below tests original scope/current/custody semantics;
 // its test instance cannot add membership to the operational preload instance.
-function route({scope, originals, readAsset, readFile = () => {
-  assert.fail('A prepared Host must not reread the pathname');
-}, select = (moon, wire) => wire} = {}) {
+function route({scope, originals, readAsset, select = (moon, wire) => wire} = {}) {
   const readEnvironmentSource = compileFunction(
     'return function () {' + source.slice(method.value.body.start + 1, method.value.body.end - 1) + '};',
     ['readInitialControlInstallationAsset', 'control', 'originals'],
   )(readAsset, scope, originals);
   const read = compileFunction('return async function (preparation, moon, hostCapacityPolicy, hostLookupExecutionPolicy) {' +
+    source.slice(entryGuard.start, entryGuard.end) + '\n' +
     source.slice(environmentSource.start, environmentSource.end) + '\n' +
+    source.slice(selectedLookupPolicy.start, selectedLookupPolicy.end) + '\n' +
     source.slice(environmentWire.start, environmentWire.end) + '\nreturn baseEnvironmentWire;};',
-  ['readFile', 'join', 'packageRoot', 'selectInstalledHostEnvironment'])(readFile, join, '/selected-package', select);
-  return {preparation: Object.freeze({readEnvironmentSource}), read};
+  ['selectInstalledLocalMaterializationEnvironment'])(select);
+  return {preparation: Object.freeze({readEnvironmentSource,
+    fundedPreparation() {assert.fail('No Request compile in this routing component');},
+    requestPreparation() {assert.fail('No Request issuance in this routing component');}}), read};
 }
 
 function fixture() {
@@ -127,17 +131,9 @@ test('closing during the original read refuses handoff without acknowledging the
   assert.equal(f.closes, 1);
 });
 
-test('independent unprepared Host entry retains its existing file acquisition without borrowing a Scope', async () => {
-  const moon = {}, capacity = {}, lookup = {};
-  let reads = 0, selected = 0;
-  const r = route({readAsset() {assert.fail('No implicit embedded admission');},
-    async readFile(path, encoding) {
-      reads++; assert.equal(path, '/selected-package/spec/local-check-environment.json');
-      assert.equal(encoding, 'utf8'); return ' {"independent":true}\n';
-    }, select(runtime, wire, actualCapacity, actualLookup) {
-      selected++; assert.equal(runtime, moon); assert.equal(actualCapacity, capacity); assert.equal(actualLookup, lookup);
-      assert.equal(wire, ' {"independent":true}'); return wire;
-    }});
-  assert.equal(await r.read(undefined, moon, capacity, lookup), ' {"independent":true}');
-  assert.equal(reads, 1); assert.equal(selected, 1);
+test('installed environment rejects an absent preparation owner before asset or pathname work', async () => {
+  let assets = 0, selections = 0;
+  const r = route({readAsset() {assets++;}, select() {selections++;}});
+  await assert.rejects(r.read(undefined, {}, {}, {}), /InstalledRequestPreparationUnavailable/u);
+  assert.equal(assets, 0); assert.equal(selections, 0);
 });

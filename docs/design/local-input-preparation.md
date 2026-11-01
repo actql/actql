@@ -5093,6 +5093,21 @@ exercise the installed entry/forwarding and exact dispatch borrow helpers;
 they grant no Resource or Account authority and do not establish a packed Host,
 physical stop, Saved result or Native/Resident ordinary qualification.
 
+
+### Installed environment image has one original route
+
+After the installed entry requires its existing preparation owner, both Local
+and HTTP borrow that owner's selected startup environment image. The old
+unprepared pathname branch is removed from this caller. Failure or retirement
+of the original Scope cannot fall back to reading the package pathname. The
+existing environment selector still receives the same runtime and explicit
+capacity/lookup policy DATA; Source/custody/currentness and close duties do not
+change. Public publication and standalone compiler readers remain separate.
+The corresponding routing fixture selects the actual entry precondition and
+current lookup-policy expression, preserves its original Scope/current/closing
+controls, and rejects a missing owner before asset, pathname or selector work.
+These are source/Owner component controls, not normal startup admission.
+
 ## Effect signing consumes the same live recovery
 
 The Local signing loader keeps the original recovered capture, schema/material
