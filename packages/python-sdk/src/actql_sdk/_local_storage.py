@@ -176,13 +176,28 @@ class LocalByteStore:
                     self._connection.execute(_SCHEMA)
                     self._connection.execute(_CAPACITY_SCHEMA)
                     self._connection.execute(f'PRAGMA application_id = {_APPLICATION_ID}')
+                    version = 2
                     if _new_file is not None:
+                        # Probe only the original library before schema mutation.
+                        # Missing optional JSON support keeps the existing full
+                        # legacy route; unrelated failure is never a fallback.
+                        try:
+                            probe = self._connection.execute(
+                                "SELECT json_extract(json_extract('{\"run_definition\":\"{\\\"run_definition_cid\\\":\\\"probe\\\"}\"}',"
+                                "'$.run_definition'),'$.run_definition_cid')").fetchone()
+                        except sqlite3.OperationalError as error:
+                            if (getattr(error, 'sqlite_errorcode', None) != sqlite3.SQLITE_ERROR
+                                    or str(error) != 'no such function: json_extract'):
+                                raise
+                        else:
+                            if probe != ('probe',):
+                                raise LocalStorageError('Original index expression probe was inconsistent')
+                            version = 3
+                    if version == 3:
                         # Only the existing one-time original file acquisition
                         # creates this format. Reopen never installs or repairs it.
                         self._connection.execute(_RUN_DEFINITION_INDEX)
-                        self._connection.execute('PRAGMA user_version = 3')
-                    else:
-                        self._connection.execute('PRAGMA user_version = 2')
+                    self._connection.execute(f'PRAGMA user_version = {version}')
                 else:
                     try:
                         database._journal_schema()
