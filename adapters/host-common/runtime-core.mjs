@@ -3450,10 +3450,10 @@ function publicationControl(moon) {
       limits, workspace, queryTime) {
       const value = compiledRunTokens.get(compiled);
       if (value === undefined || compiled.kind !== 'infer') {
-        throw new TypeError('Foreign Client compiled Content preparation');
+        throw new TypeError('Foreign Client compiled Infer preparation');
       }
       const prepare = moon.clientProgramPrepareRequestModelSerializationPlan;
-      if (typeof prepare !== 'function') throw new TypeError('Request Content Plan unavailable');
+      if (typeof prepare !== 'function') throw new TypeError('Request Model Content Plan unavailable');
       return checked(Reflect.apply(prepare, moon, [parent, input, request, value, token(definition),
         limits.maxRows, limits.maxWork, limits.maxEntries, limits.maxValueBytes,
         limits.maxValueNodes, limits.maxValueDepth, limits.maxFrames, workspace, queryTime]));

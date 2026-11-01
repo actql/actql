@@ -300,7 +300,7 @@ test('actual Request Model prefix binding unwraps only registered compiler and D
   const invoke = (c = compiled, d = definition) => control.prepareCheckedClientRequestModelSerializationPlan(
     parent, input, request, c, d, limits, workspace, queryTime);
   assert.equal(invoke(), selected);
-  assert.throws(() => invoke({...compiled}), /Foreign Client compiled Content preparation/);
+  assert.throws(() => invoke({...compiled}), /Foreign Client compiled Infer preparation/);
   assert.throws(() => invoke(compiled, {...definition}), /Foreign publication contract/);
   assert.equal(calls, 1);
   primary = {original: 'prefix constructor'};
