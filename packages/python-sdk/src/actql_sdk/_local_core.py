@@ -1940,17 +1940,22 @@ class LocalCore:
             return True
 
     def reserve_publication_commit_export(self, publication: _Output, *,
-                                          cleanup: Callable[[], bool]) -> _Output:
-        """Read the original validated candidate; grants no Store permission."""
-        return self._reserve_publication_read_export(publication, 'publication', cleanup)
+                                          cleanup: Callable[[], bool],
+                                          maximum: int = 1_048_576) -> _Output:
+        """Read the original candidate within its reserved field byte bound."""
+        return self._reserve_publication_read_export(publication, 'publication', cleanup, maximum)
 
     def reserve_saved_result_export(self, original: _Output, *,
-                                    cleanup: Callable[[], bool]) -> _Output:
-        """Borrow the nominal saved-read Owner; Core refuses other lookups."""
-        return self._reserve_publication_read_export(original, 'submission_lookup', cleanup)
+                                    cleanup: Callable[[], bool],
+                                    maximum: int = 1_048_576) -> _Output:
+        """Borrow the same saved-read Owner within its bounded field output."""
+        return self._reserve_publication_read_export(original, 'submission_lookup', cleanup, maximum)
 
     def _reserve_publication_read_export(self, publication: _Output, family: str,
-                                         cleanup: Callable[[], bool]) -> _Output:
+                                         cleanup: Callable[[], bool],
+                                         maximum: int = 1_048_576) -> _Output:
+        if type(maximum) is not int or not 1 <= maximum <= 1_048_576:
+            raise ValueError('Invalid original publication field output bound')
         with self._lock:
             self._owned_output(publication, family)
             if self._closing:
@@ -1959,13 +1964,15 @@ class LocalCore:
             if ticket >= 2**31:
                 raise RuntimeError('Local Core input identity exhausted')
             self._next_ticket += 1
-            limit = 1_048_576
+            limit = maximum
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
             physical_bytes = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
                               + sys.getsizeof(_Output(self._identity, ticket, 0, limit,
                                                       'publication_commit_export')))
-            handle = self._call('publication_commit_export', 'reserve',
-                                publication.handle, ticket, physical_bytes)
+            handle = (self._call('publication_commit_export', 'reserve',
+                                 publication.handle, ticket, physical_bytes) if limit == 1_048_576
+                      else self._call('publication_commit_export', 'reserve_bounded',
+                                      publication.handle, ticket, limit, physical_bytes))
             if handle <= 0:
                 del self._inputs[ticket]
                 raise LocalCoreError('reserve_publication_commit_export', handle)

@@ -1627,6 +1627,17 @@ prior immutable evidence retains its original source and module identity.
 
 ## Physical publication metadata transactions
 
+Fixed identity fields use the existing output Owner with their original 71-byte
+SHA-256 CID or 64-byte index-key bound. Full contract bodies keep the existing
+one-MiB envelope. Both field loans and their physical copies remain retained
+through the synchronous Store consumer; a refused reservation or cleanup keeps
+the same original children. The bounded scalar constructor does not enlarge
+the pool, reduce a charge, grant a read or replace the current original view.
+Its declared bound accounts for the actual field and refuses a larger produced
+wire. Private ABI80 adds this constructor while retaining the original full
+body constructor and all existing parent/current/borrow checks.
+
+
 The installed Python Host can attach one opaque metadata batch to several
 original payload records with `LocalByteStore.compare_exchange_many_attached`.
 The existing SQLite byte Store checks every original record's exact bytes and

@@ -51,6 +51,25 @@ pub fn reserve_publication_commit_export(
   physical_ticket : Int,
   physical_copy_bytes : Int64,
 ) -> Int {
+  reserve_bounded_publication_commit_export(
+    nonce, publication, physical_ticket, 1048576, physical_copy_bytes,
+  )
+}
+
+///|
+/// The same output Owner admits a smaller physical field bound. This is DATA,
+/// not a read grant or a larger parent allowance; production still checks the
+/// original view/current and refuses a wire larger than this reserved buffer.
+pub fn reserve_bounded_publication_commit_export(
+  nonce : Int64,
+  publication : Int,
+  physical_ticket : Int,
+  max_wire_bytes : Int,
+  physical_copy_bytes : Int64,
+) -> Int {
+  if max_wire_bytes < 1 || max_wire_bytes > 1048576 {
+    return -3
+  }
   guard selected(nonce) is Some(value) else { return -2 }
   let live = value.publications.get(publication)
     is Some(
@@ -82,9 +101,12 @@ pub fn reserve_publication_commit_export(
     return -3
   }
   let slot = match
-    @buffers.reserve_output_buffer(value.pool, 1048576, physical_copy_bytes, () => {
-      physical_input_cleanup(physical_ticket) == 0
-    }) {
+    @buffers.reserve_output_buffer(
+      value.pool,
+      max_wire_bytes,
+      physical_copy_bytes,
+      () => physical_input_cleanup(physical_ticket) == 0,
+    ) {
     Ok(slot) => slot
     Err(issue) => return issue_code(issue)
   }

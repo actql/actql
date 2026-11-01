@@ -192,6 +192,7 @@ options(
         "publication_commit_progress:actql_publication_commit_progress",
         "finish_publication_commit:actql_publication_finish_commit",
         "reserve_publication_commit_export:actql_publication_commit_export_reserve",
+        "reserve_bounded_publication_commit_export:actql_publication_commit_export_reserve_bounded",
         "publication_commit_export_count:actql_publication_commit_export_count",
         "publication_commit_export_result_count:actql_publication_commit_export_result_count",
         "produce_publication_commit_material:actql_publication_commit_export_produce_material",

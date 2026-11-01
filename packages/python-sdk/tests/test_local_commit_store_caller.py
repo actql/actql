@@ -50,9 +50,11 @@ class OriginalCommitStoreCallerTests(unittest.TestCase):
             if name == 'count':
                 self.assertEqual(args, (23, 31))
                 return state['count']
-            if name == 'reserve':
+            if name in ('reserve', 'reserve_bounded'):
                 self.assertEqual(args[0], 23)
-                self.assertGreaterEqual(args[2], 2 * 1048576)
+                maximum, physical = ((1048576, args[2]) if name == 'reserve' else args[2:])
+                self.assertGreaterEqual(physical, 2 * maximum)
+                self.assertTrue(type(maximum) is int and 1 <= maximum <= 1048576)
                 self.assertLessEqual(len(handles), 1)
                 if args[1] == state['reserve_fail_at']:
                     return -4
@@ -253,7 +255,7 @@ class OriginalCommitStoreCallerTests(unittest.TestCase):
         self.assertEqual((pending[0].ticket, pending[0].handle), (8, 208))
         self.assertNotIn(9, core._inputs)
         self.assertTrue(caller.close())
-        self.assertEqual(len([c for c in calls if c[1] == 'reserve']), 2)
+        self.assertEqual(len([c for c in calls if c[1] in ('reserve', 'reserve_bounded')]), 2)
 
     def test_consumer_error_and_cancel_propagate_with_original_pair_retained(self):
         for error in (OSError('Physical consumer failed'), asyncio.CancelledError()):
@@ -411,7 +413,7 @@ class OriginalCommitStoreCallerTests(unittest.TestCase):
                 self.assertEqual(issue.exception.code, -35)
                 self.assertIsNone(store.read('namespace:20:publication_contract:' + identities[0].decode()))
                 self.assertEqual(store.read('payload'), StoredBytes(0, b'original'))
-                self.assertEqual(len([c for c in calls if c[1] == 'reserve']), 2)
+                self.assertEqual(len([c for c in calls if c[1] in ('reserve', 'reserve_bounded')]), 2)
                 self.assertEqual(caller.pending_outputs, ())
 
     def test_schema_uses_original_receipt_pair_and_separate_physical_namespace(self):
