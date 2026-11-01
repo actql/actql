@@ -57,7 +57,11 @@ test "same-stage acquired serialized Model preserves original capture module inp
           "Source.SourceView.InvalidLimits"
         @checked.Source(
           @checked.SourceView(
-            @context.Program(@stage_results.Pipeline(stage, issue))
+            @context.SourceViewContextIssue::Program(
+              @context.SourceViewProgramIssue::Program(
+                @stage_results.LocalProgramIssue::Pipeline(stage, issue)
+              )
+            )
           )
         ) =>
           "Source.SourceView.Program.Pipeline/" +
