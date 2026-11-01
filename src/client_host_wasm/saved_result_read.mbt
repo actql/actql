@@ -304,6 +304,93 @@ fn prepare_saved_result_read(
 }
 
 ///|
+// Pack only a bounded same-namespace set before any physical IO. Binary/large
+// fields and single rows keep the old scalar algorithm, not an error fallback.
+fn saved_result_fence_packet(
+  fences : Array[(String, String, Int64, Bytes)],
+  start : Int,
+) -> (String, Int)? {
+  if start < 0 || start >= fences.length() {
+    return None
+  }
+  try {
+    let writer = @encode.writer(4096, 129, 2)
+    @encode.begin_array(writer)
+    let mut used = 2
+    let mut end = start
+    let names : Array[String] = []
+    while end < fences.length() && end - start < 32 {
+      let (table, key, revision, body) = fences[end]
+      if table != "publication_contract" || revision < 0L || names.contains(key) {
+        break
+      }
+      let text = @utf8.decode(body) catch { _ => break }
+      let document = try {
+        let row = @encode.writer(4096, 4, 1)
+        @encode.begin_array(row)
+        @encode.string_value(row, key)
+        @encode.string_value(row, revision.to_string())
+        @encode.string_value(row, text)
+        @encode.end_array(row)
+        Some(@encode.finish_document(row))
+      } catch {
+        _ => None
+      }
+      guard document is Some(document) else { break }
+      let bytes = @encode.document_bytes(document) + if end == start { 0 } else { 1 }
+      if bytes > 4096 - used {
+        break
+      }
+      @encode.emit_document(writer, document)
+      used += bytes
+      names.push(key)
+      end += 1
+    }
+    if end - start < 2 {
+      return None
+    }
+    @encode.end_array(writer)
+    Some((@encode.finish(writer), end))
+  } catch {
+    _ => None
+  }
+}
+
+///|
+// Actual same-current physical observations, not retained current results.
+// Every original fence still participates in exact key/revision/body equality.
+fn validate_saved_result_fences(
+  fences : Array[(String, String, Int64, Bytes)],
+  read : (String, String) -> Result[@host.ClientJournalPhysicalRow?, Int],
+  packet : (String) -> Result[Bool?, Int],
+) -> Result[Unit, Int] {
+  let mut index = 0
+  while index < fences.length() {
+    match saved_result_fence_packet(fences, index) {
+      Some((wire, end)) =>
+        match packet(wire) {
+          Err(code) => return Err(code)
+          Ok(Some(false)) => return Err(-32)
+          Ok(Some(true)) => {
+            index = end
+            continue
+          }
+          Ok(None) => ()
+        }
+      None => ()
+    }
+    let (table, key, revision, body) = fences[index]
+    match read(table, key) {
+      Ok(Some(row)) if row.key == key && row.revision == revision && row.body == body => ()
+      Err(code) => return Err(code)
+      _ => return Err(-32)
+    }
+    index += 1
+  }
+  Ok(())
+}
+
+///|
 fn validate_saved_result_read(
   value : Instance,
   record : StoredSubmissionProjection,
@@ -340,14 +427,13 @@ fn validate_saved_result_read(
     Ok(None) => return Err(-42)
     Err(code) => return Err(code)
   }
-  for (table, key, revision, body) in retained.fences {
-    match physical_journal_row(current.physical, check, 1, table, key) {
-      Ok(Some(row)) if row.key == key &&
-        row.revision == revision &&
-        row.body == body => ()
-      Err(code) => return Err(code)
-      _ => return Err(-32)
-    }
+  match validate_saved_result_fences(
+    retained.fences,
+    (table, key) => physical_journal_row(current.physical, check, 1, table, key),
+    wire => physical_journal_fence_packet(current.physical, check, wire),
+  ) {
+    Err(code) => return Err(code)
+    Ok(_) => ()
   }
   if owner.observed_result_read_materials(view, retained.result_name, 16)
     is Err(_) {
