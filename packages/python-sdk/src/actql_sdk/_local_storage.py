@@ -51,6 +51,10 @@ class _NamespaceReader:
     query_current: Callable[['_NamespaceReader', int, str, str,
                              Callable[[], object]], tuple[str, StoredBytes] | None] | None = None
 
+    # Actual same-transaction catalog observation, not an indexed-custody proof.
+    # Absence keeps existing private suppliers on their full legacy route.
+    journal_schema: Callable[['_NamespaceReader', Callable[[], object]], int] | None = None
+
 
 _InventoryInspection = Callable[[_NamespaceReader], object]
 
@@ -1076,6 +1080,33 @@ class LocalByteStore:
                 failure = error
                 raise
 
+        def journal_schema(view: _NamespaceReader, required_current: Callable[[], object]) -> int:
+            nonlocal failure, reading, reads
+            entered = False
+            try:
+                check_frame(view)
+                if not callable(required_current):
+                    raise ValueError('Invalid original Journal schema current')
+                if reads >= self._max_inspection_queries:
+                    raise LocalStorageError('Local inventory inspection capacity exceeded')
+                reading = entered = True
+                fence(required_current, reuse_snapshot=True)
+                value = database._journal_schema() if type(database) is _SQLiteByteDatabase else 0
+                reads += 1
+                fence(required_current, reuse_snapshot=True)
+                if failure is not None:
+                    raise failure
+                if type(value) is not int or value not in (0, 1):
+                    raise ValueError('Invalid original Journal physical schema observation')
+                return value
+            except BaseException as error:
+                if failure is None:
+                    failure = error
+                raise failure
+            finally:
+                if entered:
+                    reading = False
+
         def scan_after(namespace: str, after: str, consume: _NamespaceConsumer) -> None:
             observe(namespace, after, consume, scan=True)
 
@@ -1088,7 +1119,8 @@ class LocalByteStore:
                 scan_after=scan_after, read=read,
                 owner=self, current=current_snapshot, check_fences=check_fences,
                 check_fences_and_current=check_fences_and_current,
-                check_frame=check_frame, query_current=query_current)
+                check_frame=check_frame, query_current=query_current,
+                journal_schema=journal_schema)
             result = inspect(reader)
             if failure is not None:
                 raise failure

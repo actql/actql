@@ -61,6 +61,26 @@ class _JournalCallbacks:
         except BaseException as error:
             return self._fail(error)
 
+    def schema(self) -> int:
+        """Observe only the actual borrowed catalog, never return an Allow."""
+        if self.failure is not None:
+            return -41
+        try:
+            reader = self.reader
+            if reader is None or reader.owner is not self.store:
+                raise ValueError('Original Local Journal schema reader is unavailable')
+            observe = getattr(reader, 'journal_schema', None)
+            if observe is None:
+                # An older private supplier keeps the complete original path.
+                # A failed observation never falls through to this branch.
+                return 0 if self.check_current() == 0 else -41
+            value = observe(reader, self.current)
+            if self.reader is not reader or type(value) is not int or value not in (0, 1):
+                raise ValueError('Invalid original Journal schema observation')
+            return value
+        except BaseException as error:
+            return self._fail(error)
+
     def begin(self, mode: int, namespace_length: int, key_length: int) -> int:
         try:
             if (self.request is not None or self.queried or self.row is not None
