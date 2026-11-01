@@ -380,14 +380,15 @@ fn installed_standard_recipe_capacities(
       },
     )
     is Some(stored_buffers) &&
-    standard_create_sum_capacities([
-      write_receive,
-      secret,
-      constructors[write_output],
-    ])
-    is Some(write_body) &&
-    // A stored response read/project need not borrow the write occurrence.
-    // Keep its actual Ledger-bound input and native projector on pre-body
+    // The actual claimed write first captures its physical response, then
+    // invokes owned.project through its SAME controlConstruction frame. The
+    // projector below is already completely on that original control token.
+    // Keep HTTP buffers/secret and physical cleanup here; do not reserve the
+    // one synchronous Native projector on both simultaneous tokens.
+    standard_create_sum_capacities([write_receive, secret]) is Some(write_body) &&
+    // Warm and stored response projection use this SAME original frame; a
+    // stored response read/project need not borrow a physical write occurrence.
+    // Keep its actual Ledger-bound input and Native projector on pre-body
     // controls rather than inventing another physical write or cleanup ACK.
     // The original Ledger admit/read returns before the original provider
     // projector is called. Their Unicode Owner scratch cannot escape either

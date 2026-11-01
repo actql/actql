@@ -536,8 +536,9 @@ test "stored Ledger admission and original projector keep all outputs without su
     )
   }
   // The unchanged stored input owns more scratch than either small projector.
-  // Their original callbacks are serial. The whole physical body still keeps
-  // its original complete allowance; this counter issues no Run or permission.
+  // Their original callbacks are serial. Physical HTTP/secret backing stays
+  // complete; the one Native projector belongs only to the control frame.
+  // This counter issues no Run or permission.
   assert_eq(
     @execution.execution_capacity_retained_bytes(selected[1][4]),
     @execution.execution_capacity_retained_bytes(selected[0][4]),
@@ -550,7 +551,7 @@ test "stored Ledger admission and original projector keep all outputs without su
   assert_eq(
     @execution.execution_capacity_execution_bytes(selected[1][3]) -
     @execution.execution_capacity_execution_bytes(selected[0][3]),
-    20L,
+    0L,
   )
 }
 
@@ -571,5 +572,58 @@ test "stored control sequential scratch keeps retained and execution overflow cl
       sequential_workspace=true,
     )
     is None,
+  )
+}
+
+///|
+test "standard write projection belongs to its existing control frame rather than both reservations" {
+  let profiles = [
+    @execution.execution_capacity(2000L, 3000L).unwrap(),
+    @execution.execution_capacity(1000000L, 9000000000L).unwrap(),
+  ]
+  let selections = profiles.map(response => {
+    installed_standard_create_recipe_capacities(
+      Some([
+        (@execution.execution_capacity(100L, 200L).unwrap(), None, None),
+        (response, None, None),
+      ]),
+      1024,
+      64,
+      8,
+      2048,
+      4096,
+      0,
+      0,
+      false,
+      17,
+      7,
+      32,
+      1024,
+      64,
+      4,
+      0L,
+    ).unwrap()
+  })
+  // Synthetic opaque Native capacities establish only this constructor-fold
+  // relation. No selected provider/Run, input, grant or allocation is issued.
+  // Normal writes already call the SAME owned.project through the existing
+  // controlConstruction frame after their physical response is captured.
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(selections[0][3]),
+    @execution.execution_capacity_retained_bytes(selections[1][3]),
+  )
+  assert_eq(
+    @execution.execution_capacity_execution_bytes(selections[0][3]),
+    @execution.execution_capacity_execution_bytes(selections[1][3]),
+  )
+  // The real original Native bound is still fully on its pre-call control
+  // reservation. This is relocation of one owner, never deletion of work.
+  assert_true(
+    @execution.execution_capacity_retained_bytes(selections[1][4]) >
+    @execution.execution_capacity_retained_bytes(selections[0][4]),
+  )
+  assert_true(
+    @execution.execution_capacity_execution_bytes(selections[1][4]) >
+    @execution.execution_capacity_execution_bytes(selections[0][4]),
   )
 }

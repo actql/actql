@@ -2609,6 +2609,17 @@ Existing payload severing, failed initialization and physical cleanup duties
 remain on their original records.
 
 
+The ordinary claimed write captures its original physical response before
+calling the original provider projector in the same control-construction
+frame. The standard recipe therefore assigns the Native response constructor
+once to that existing frame, for both warm and stored responses. Its physical
+write extent keeps the full HTTP receiver, header and secret construction;
+metadata/read occurrences keep their separately selected Native work. All
+projector outputs and invalid/failed synchronous prefixes retain the original
+control backing. No native response callback executes without that frame on
+the managed route, and no Promise, byte result or this quantity relocation
+acknowledges physical cleanup or returns attempts/transfer.
+
 The stored-response standard recipe retains every original Ledger/native/output
 holder and both saved response buffers. The original Ledger evidence admission
 returns before its provider projector; only the Unicode Owner's nonescaping
