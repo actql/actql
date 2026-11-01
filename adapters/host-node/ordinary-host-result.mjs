@@ -16,7 +16,6 @@ export function prepareOrdinaryHostResult(originals, subject, requirements, effe
   let keyOperationPending = false;
   const keyDuty = Object.freeze({status: () => Object.freeze({pending: keyOperationPending})});
   let keyDutyRetained = false;
-  let operations = 0;
   let admittedRuns = new WeakMap();
   const current = () => {
     if (closing || closed) throw Object.assign(new Error('HostResultPublicationUnavailable'),
@@ -147,8 +146,6 @@ export function prepareOrdinaryHostResult(originals, subject, requirements, effe
     },
     beforeOperation() {
       current();
-      if (operations === 4096) throw new TypeError('HostResultOperationLimit');
-      operations++;
     },
     admitRun(prepared) {
       current();
