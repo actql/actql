@@ -158,6 +158,13 @@ pub fn range_target_matches(
   binding : RangeBinding,
   target_wire : String,
 ) -> Bool {
+  // The original binding admitted and canonicalized this immutable DATA.
+  // Exact spelling reuses that completed fact; changed/noncanonical inputs
+  // retain their full old admission path. Permission/current and original
+  // request ownership are separate boundaries and are not reused here.
+  if target_wire == binding.target_wire {
+    return true
+  }
   guard range_parse(
       target_wire,
       binding.limits,

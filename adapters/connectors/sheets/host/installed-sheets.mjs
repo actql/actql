@@ -352,7 +352,10 @@ function sheetsGridReaderLimits(site, publication, secretBytes, rangeCommand = f
     // Positive unused dimensions satisfy the common recipe grammar; these
     // are not cell-value limits (including a declared column named "id").
     maxCursorBytes:1,maxIdentityBytes:1,
-    maxTargetBytes:Buffer.byteLength(JSON.stringify(target)),
+    // The other declared relation has a single field named "target". Its
+    // name may be longer than this grid's complete projected name vector.
+    maxTargetBytes:Buffer.byteLength(JSON.stringify(target))+
+      (rangeCommand?Buffer.byteLength(JSON.stringify(['target'])):0),
     maxValueNodes:1,maxValueTextBytes:SHEETS_LIMITS.maxResponseBytes,
     // The scalar values borrow at most the original response text. Each
     // original UTF16 unit may escape to six ASCII units; repeated column keys

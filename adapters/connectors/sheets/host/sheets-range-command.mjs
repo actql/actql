@@ -45,12 +45,24 @@ export function createSheetsRangeDriver({moon, site, command, bindingCid, target
     if (!moon.sheetsRangeTargetMatches(binding, wire(target))) fail('SheetsRangeReferenceUnavailable');
   };
   const admitRequest = request => {
-    admitTarget(request.target);
-    return ownedSheetsRequestCid(request, binding);
+    current();
+    try {
+      // The private projection retains the SAME native request and binding;
+      // its immutable target was admitted by that original constructor. Do
+      // not parse/canonicalize it again on each CID/read/send boundary.
+      return ownedSheetsRequestCid(request, binding);
+    } catch (cause) {
+      // Preserve the existing target-first refusal for foreign/copied input.
+      // This failed path never upgrades a projection to an original request.
+      admitTarget(request.target);
+      throw cause;
+    }
   };
   return Object.freeze({kinds: ['command'], writeOperation: () => SHEETS_UPDATE_OPERATION,
     prepareRequest({member, value, selector}) {
       if (member.resource !== 'range_target') fail('UndeclaredSheetsResource');
+      // Preserve target refusal before value encoding or marker creation.
+      // Native matches the original canonical spelling without re-parsing it.
       admitTarget(selector);
       const request = prepareSheetsUpdate({moon, binding, value, target: selector});
       return {request, requestCid: request.requestCid};

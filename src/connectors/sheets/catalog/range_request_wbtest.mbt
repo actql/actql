@@ -303,3 +303,19 @@ test "Sheets original range input refusal codes and scalar cell reasons are pres
     assert_true(range_failure_refusal(issue) is Some(_))
   }
 }
+
+///|
+test "original canonical target facts are reused without restricting equivalent noncanonical input" {
+  let binding = owned_binding()
+  assert_true(range_target_matches(binding, binding.target_wire))
+  assert_true(range_target_matches(binding, " \n" + binding.target_wire + " \r\n"))
+  assert_false(range_target_matches(binding, binding.target_wire + "0"))
+  assert_false(range_target_matches(binding, "{}"))
+  let foreign = owned_binding(binding_cid="sha256:" + "c".repeat(64))
+  assert_false(range_target_matches(binding, foreign.target_wire))
+  let request = prepare_range_request(binding, owned_value(), binding.target_wire).unwrap()
+  // Same data equality is not an original request/installation admission.
+  let equal = owned_binding()
+  assert_true(range_target_matches(equal, binding.target_wire))
+  assert_true(admit_range_request(equal, request) is Err(_))
+}

@@ -1860,6 +1860,20 @@ without turning its later result into an admitted construction. Original Site
 close, physical stop, Request admission and managed driver Plan construction
 remain distinct obligations.
 
+An original range/clear request retains its native binding and immutable
+projected target. Subsequent CID, recheck and send boundaries use the existing
+private original-request association and native binding admission, with current
+installation checks kept separately. They do not reparse the same admitted
+target before every CID access. A new selector still passes the original native
+request constructor's target check. Foreign/copied failure paths retain the
+existing target-first diagnostic and cannot acquire original provenance by
+passing that diagnostic check. New-selector refusal still precedes value
+encoding and clear-marker generation. Within the original private binding,
+exact canonical text reuses its admitted immutable DATA; different spellings
+retain the previous complete parse/canonical comparison, including accepted
+noncanonical equivalents. This does not retain current permission or a physical
+read decision.
+
 A range/clear Source uses the same managed Reader for both grid rows and its
 single metadata-verified range reference. Metadata GET construction is shared
 with the existing Effect metadata check; callback return is not response charge
