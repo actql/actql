@@ -67,6 +67,14 @@ fn observe_submission_lookup(
       1024, scan, read, -31, -42,
     )
   }
+  // The original physical reader observes its actual same-transaction schema.
+  // This is only algorithm-selection DATA; every Account/current/epoch and
+  // selected nested-original validator below still runs. Errors never mean
+  // legacy absence or permission to prepare another Run.
+  let physical_schema = physical_journal_schema(current.physical)
+  if physical_schema != 0 && physical_schema != 1 {
+    return Err(-41)
+  }
   // Reuse only immutable request/Definition DATA from this already completed
   // saved source. Initial inventory rows and selected revalidation rows are
   // still physically read; foreign/changed identity takes full admission.
@@ -113,6 +121,7 @@ fn observe_submission_lookup(
       inspect_run,
       cancellation,
       original_identity=identity,
+      physical_schema~,
     )
     return match check() {
       Ok(_) => observed
@@ -131,9 +140,21 @@ fn observe_submission_lookup(
     configuration.authority_scope_cid {
     return Err(-32)
   }
-  let observed = @host.inspect_client_saved_submission(
-    reference, 1024, scan, read, inspect_run, cancellation, -31,
-  )
+  let observed = if physical_schema == 1 {
+    match
+      @host.read_client_saved_submission(reference, read, inspect_run, -31) {
+      Err(code) => Err(code)
+      Ok(snapshot) =>
+        match cancellation() {
+          Ok(_) => Ok(snapshot)
+          Err(code) => Err(code)
+        }
+    }
+  } else {
+    @host.inspect_client_saved_submission(
+      reference, 1024, scan, read, inspect_run, cancellation, -31,
+    )
+  }
   if observed is Ok(Some(snapshot)) &&
     @host.client_saved_submission_run_row(snapshot) is Some(row) {
     guard @host.decode_client_run_journal_row_with_observation_originals(
@@ -171,8 +192,25 @@ fn submission_run_reference_snapshot(
     @host.ClientRequestIdentity,
     @publication.PublicationContract,
   )? = None,
+  physical_schema? : Int = 0,
 ) -> Result[@host.ClientSavedSubmissionSnapshot?, Int] {
+  if physical_schema != 0 && physical_schema != 1 {
+    return Err(-41)
+  }
   guard original is Some(before) else {
+    if physical_schema == 1 {
+      let selected = match
+        @host.read_client_saved_run_reference(
+          namespace, scope, definition, read, inspect_run, -31,
+        ) {
+        Ok(value) => value
+        Err(code) => return Err(code)
+      }
+      return match cancellation() {
+        Ok(_) => Ok(Some(selected))
+        Err(code) => Err(code)
+      }
+    }
     return @host.inspect_client_saved_run_reference(
       namespace, scope, definition, 1024, scan, read, inspect_run, cancellation,
       -31,

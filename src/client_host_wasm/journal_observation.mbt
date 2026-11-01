@@ -5,6 +5,10 @@ fn physical_journal_current(ticket : Int) -> Int = "actql_host" "journal_current
 fn physical_journal_current_operation(ticket : Int) -> Int64 = "actql_host" "journal_current_operation"
 
 ///|
+// Same original reader's actual physical format DATA, not current authority.
+fn physical_journal_schema(ticket : Int) -> Int = "actql_host" "journal_schema"
+
+///|
 fn physical_journal_begin(
   ticket : Int,
   mode : Int,
