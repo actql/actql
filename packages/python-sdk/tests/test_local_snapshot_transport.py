@@ -14,6 +14,31 @@ import test_local_submission_lookup as lookup_fixture
 
 
 class SnapshotTransportTests(unittest.TestCase):
+    def test_semantic_current_reuses_only_unchanged_sql_snapshot_and_keeps_each_current(self):
+        with TemporaryDirectory(prefix='actql-same-sql-snapshot-') as directory:
+            store = LocalByteStore(Path(directory) / 'original.sqlite', max_records=8,
+                max_record_bytes=4096, max_payload_bytes=16384)
+            self.addCleanup(store.close)
+            store.compare_exchange('epoch', None, b'original-epoch')
+            store.compare_exchange(store.namespaced_key('original', 'one'), None, b'original-row')
+            currents = []
+            def current(): currents.append(True)
+            def inspect(reader):
+                reader.read('original', 'one', lambda _: None)
+                before = len(currents)
+                with patch.object(store, '_read_bytes_locked', wraps=store._read_bytes_locked) as sql:
+                    for _ in range(5):
+                        reader.check_fences(reader, (ByteFence('epoch', 0, b'original-epoch'),))
+                    self.assertEqual(len(currents) - before, 5)
+                    self.assertEqual(sql.call_count, 0)
+                with patch.object(store, '_read_bytes_locked', wraps=store._read_bytes_locked) as sql:
+                    reader.read('original', 'one', lambda _: None)
+                    # The three original query boundaries still each read both
+                    # sides of mutable current; no query/commit fence is removed.
+                    self.assertEqual(sql.call_count, 6)
+            store.inspect_namespaces((ByteFence('epoch', 0, b'original-epoch'),),
+                inspect=inspect, current=current)
+
     def test_query_keeps_distinct_current_and_refuses_at_every_existing_boundary(self):
         for stop in (None, 1, 2, 3):
             with self.subTest(stop=stop), TemporaryDirectory(prefix='actql-query-refusal-') as directory:
