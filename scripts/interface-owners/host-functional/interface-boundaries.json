@@ -43451,7 +43451,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local-lifecycle.mjs",
-                "anchor": "original.request === request ||"
+                "anchor": "entry.handling.get(original.pending) !== original) preparationChanged();"
               },
               {
                 "path": "docs/design/reference-host.md",
