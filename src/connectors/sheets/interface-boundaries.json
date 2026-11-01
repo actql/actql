@@ -952,7 +952,7 @@
   {
     "module": "adapters/connectors/sheets/host/sheets-range-command.mjs",
     "responsibilityFacet": "primary",
-    "sha256": "57679e78f74e607a000bbdda4830433d30dcd56efb1f4427c06e5fae3ea8a568",
+    "sha256": "5394a7a5b7e35b88edc4513584829052b5f6ebb87c851fd8ac049f9d03c3090b",
     "exports": [
       "createSheetsRangeDriver",
       "sheetsRangeCommand",
@@ -7429,11 +7429,11 @@
   {
     "module": "src/connectors/sheets/host_node/range_construction.mbt",
     "responsibilityFacet": "primary",
-    "sha256": "ee697fce6cd776c4bc2afd8fc36ef0acbebae31e11f900ebce715e81f3f30603",
+    "sha256": "18edfc161cc16a736bee15fd7d3b99c32df868c2ff38a491cde7944bb1334895",
     "operations": [
       {
         "name": "sheets_clear_capture_construction_profile",
-        "declaration": "sheets_clear_capture_construction_profile ( binding : @ catalog . ClearRangeBinding , capture_bytes : Int , capture_nodes : Int , capture_depth : Int , input_bytes : Int , input_nodes : Int , input_depth : Int , ) - > Array [ @ execution . ExecutionCapacity ] ?"
+        "declaration": "sheets_clear_capture_construction_profile ( binding : @ catalog . ClearRangeBinding , capture_bytes : Int , capture_nodes : Int , capture_depth : Int , input_bytes : Int , input_nodes : Int , input_depth : Int , recovery_bytes : Int , recovery_nodes : Int , recovery_depth : Int , ) - > Array [ @ execution . ExecutionCapacity ] ?"
       },
       {
         "name": "sheets_clear_construction_profile",
@@ -7441,11 +7441,11 @@
       },
       {
         "name": "sheets_range_capture_construction_profile",
-        "declaration": "sheets_range_capture_construction_profile ( binding : @ catalog . RangeBinding , capture_bytes : Int , capture_nodes : Int , capture_depth : Int , input_bytes : Int , input_nodes : Int , input_depth : Int , ) - > Array [ @ execution . ExecutionCapacity ] ?"
+        "declaration": "sheets_range_capture_construction_profile ( binding : @ catalog . RangeBinding , capture_bytes : Int , capture_nodes : Int , capture_depth : Int , input_bytes : Int , input_nodes : Int , input_depth : Int , recovery_bytes : Int , recovery_nodes : Int , recovery_depth : Int , ) - > Array [ @ execution . ExecutionCapacity ] ?"
       },
       {
         "name": "sheets_range_capture_profile",
-        "declaration": "sheets_range_capture_profile ( metadata : @ catalog . RangeConstructionMetadata , capture_bytes : Int , capture_nodes : Int , capture_depth : Int , input_bytes : Int , input_nodes : Int , input_depth : Int , clear : Bool , ) - > Array [ @ execution . ExecutionCapacity ] ?"
+        "declaration": "sheets_range_capture_profile ( metadata : @ catalog . RangeConstructionMetadata , capture_bytes : Int , capture_nodes : Int , capture_depth : Int , input_bytes : Int , input_nodes : Int , input_depth : Int , recovery_bytes : Int , recovery_nodes : Int , recovery_depth : Int , clear : Bool , ) - > Array [ @ execution . ExecutionCapacity ] ?"
       },
       {
         "name": "sheets_range_construction_profile",

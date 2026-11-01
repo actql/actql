@@ -239,9 +239,17 @@ fn sheets_range_capture_profile(
   input_bytes : Int,
   input_nodes : Int,
   input_depth : Int,
+  recovery_bytes : Int,
+  recovery_nodes : Int,
+  recovery_depth : Int,
   clear : Bool,
 ) -> Array[@execution.ExecutionCapacity]? {
-  if capture_bytes < 1 || capture_nodes < 1 || capture_depth < 1 {
+  if capture_bytes < 1 ||
+    capture_nodes < 1 ||
+    capture_depth < 1 ||
+    recovery_bytes < 1 ||
+    recovery_nodes < 1 ||
+    recovery_depth < 1 {
     return None
   }
   // Saved recovery serializes complete original Preview/description input,
@@ -255,8 +263,12 @@ fn sheets_range_capture_profile(
   if wire > 2147483647L || nodes > 2147483647L {
     return None
   }
-  let b = Int::min(wire.to_int(), metadata.limits.max_bytes)
-  let n = Int::min(nodes.to_int(), metadata.limits.max_nodes)
+  // These are the SAME explicit limits supplied to recover_*_range_requests.
+  // The binding's byte limit belongs to outgoing request construction; it
+  // does not cap the independent incoming effects/recovery forests.
+  let b = Int::min(wire.to_int(), recovery_bytes)
+  let n = Int::min(nodes.to_int(), recovery_nodes)
+  let binding_bytes = Int::min(wire.to_int(), metadata.limits.max_bytes)
   // range_recovery_entry first canonicalizes within the original binding's
   // byte guard, before configuration NFC. Saved range recovery checks its
   // independent wire-byte guard before parsing/normalizing a supplied entry,
@@ -267,12 +279,11 @@ fn sheets_range_capture_profile(
     wire.to_int()
   } else {
     Int::max(
-      b,
+      binding_bytes,
       Int::min(wire.to_int(), @catalog.range_saved_recovery_wire_byte_limit()),
     )
   }
-  guard sheets_decoded_construction(b, n, metadata.limits.max_depth)
-    is Some(input) &&
+  guard sheets_decoded_construction(b, n, recovery_depth) is Some(input) &&
     sheets_range_json_inventory(wire.to_int(), nodes.to_int()) is Some(native) &&
     @canonical.nfc_lf_construction_extent(normalization_bytes)
     is Some(normalization) &&
@@ -402,6 +413,9 @@ pub fn sheets_range_capture_construction_profile(
   input_bytes : Int,
   input_nodes : Int,
   input_depth : Int,
+  recovery_bytes : Int,
+  recovery_nodes : Int,
+  recovery_depth : Int,
 ) -> Array[@execution.ExecutionCapacity]? {
   sheets_range_capture_profile(
     @catalog.range_construction_metadata(binding),
@@ -411,6 +425,9 @@ pub fn sheets_range_capture_construction_profile(
     input_bytes,
     input_nodes,
     input_depth,
+    recovery_bytes,
+    recovery_nodes,
+    recovery_depth,
     false,
   )
 }
@@ -425,6 +442,9 @@ pub fn sheets_clear_capture_construction_profile(
   input_bytes : Int,
   input_nodes : Int,
   input_depth : Int,
+  recovery_bytes : Int,
+  recovery_nodes : Int,
+  recovery_depth : Int,
 ) -> Array[@execution.ExecutionCapacity]? {
   sheets_range_capture_profile(
     @catalog.clear_range_construction_metadata(binding),
@@ -434,6 +454,9 @@ pub fn sheets_clear_capture_construction_profile(
     input_bytes,
     input_nodes,
     input_depth,
+    recovery_bytes,
+    recovery_nodes,
+    recovery_depth,
     true,
   )
 }

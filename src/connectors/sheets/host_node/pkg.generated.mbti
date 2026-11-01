@@ -18,7 +18,7 @@ pub fn sheets_append_request_json(String, String, Int, Int, Int, Int, Int) -> St
 
 pub fn sheets_clear_binding(String, String, String, String, Int, Int, Int, Int) -> Result[@catalog.ClearRangeBinding, @catalog.RangeFailure]
 
-pub fn sheets_clear_capture_construction_profile(@catalog.ClearRangeBinding, Int, Int, Int, Int, Int, Int) -> Array[@execution_relation.ExecutionCapacity]?
+pub fn sheets_clear_capture_construction_profile(@catalog.ClearRangeBinding, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Array[@execution_relation.ExecutionCapacity]?
 
 pub fn sheets_clear_command_json(String, String, String, Int, Int, Int, Int) -> Result[String, @catalog.RangeFailure]
 
@@ -50,7 +50,7 @@ pub fn sheets_project_tabs(Bytes, String, Int, Int, Int, Int, Int, Int) -> Resul
 
 pub fn sheets_range_binding(String, String, String, String, Int, Int, Int, Int) -> Result[@catalog.RangeBinding, @catalog.RangeFailure]
 
-pub fn sheets_range_capture_construction_profile(@catalog.RangeBinding, Int, Int, Int, Int, Int, Int) -> Array[@execution_relation.ExecutionCapacity]?
+pub fn sheets_range_capture_construction_profile(@catalog.RangeBinding, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Array[@execution_relation.ExecutionCapacity]?
 
 pub fn sheets_range_catalog_json(String, String, Int, Int, Int, Int) -> Result[String, @catalog.RangeFailure]
 

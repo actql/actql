@@ -54,7 +54,10 @@ export function sheetsRangeDriverConstruction({moon, binding, site, command, bin
     if (typeof captureOriginal !== 'function' || nodeTypes.isProxy(captureOriginal) || nodeTypes.isAsyncFunction(captureOriginal)) {
       fail('InstalledStandardCreateRuntimeUnavailable');
     }
-    return Reflect.apply(captureOriginal,moon,[binding,captureBytes,captureNodes,captureDepth,inputBytes,inputNodes,inputDepth]);
+    // SAME limits as recoverRequests below; the binding instead bounds
+    // outgoing requests and cannot stand in for the cold input decoder.
+    return Reflect.apply(captureOriginal,moon,[binding,captureBytes,captureNodes,captureDepth,inputBytes,inputNodes,inputDepth,
+      SHEETS_LIMITS.maxResponseBytes,SHEETS_LIMITS.maxNodes,SHEETS_LIMITS.maxDepth]);
   }});
   const definition = Object.freeze({kind:'command',memberOperations:Object.freeze([]),
     rowOperations:Object.freeze([Object.freeze({role:'write',operation})])});

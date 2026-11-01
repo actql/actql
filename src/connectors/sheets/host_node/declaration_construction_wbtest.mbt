@@ -90,10 +90,10 @@ test "range and clear driver profiles retain original binding constructor and in
   ]
   let captures = [
     sheets_range_capture_construction_profile(
-      binding, 1000000, 100000, 64, 100000, 10000, 16,
+      binding, 1000000, 100000, 64, 100000, 10000, 16, 2000000, 200000, 32,
     ).unwrap(),
     sheets_clear_capture_construction_profile(
-      clear, 1000000, 100000, 64, 100000, 10000, 16,
+      clear, 1000000, 100000, 64, 100000, 10000, 16, 2000000, 200000, 32,
     ).unwrap(),
   ]
   for index in 0..<2 {
@@ -122,7 +122,7 @@ test "range and clear driver profiles retain original binding constructor and in
   )
   assert_true(
     sheets_clear_capture_construction_profile(
-      clear, 0, 100000, 64, 100000, 10000, 16,
+      clear, 0, 100000, 64, 100000, 10000, 16, 2000000, 200000, 32,
     )
     is None,
   )
@@ -297,7 +297,7 @@ test "range recovery does not normalize the whole encoded Preview forest" {
     },
   }
   let capture = sheets_range_capture_profile(
-      metadata, 1000000, 100000, 64, 100000, 10000, 16, false,
+      metadata, 1000000, 100000, 64, 100000, 10000, 16, 100000, 200000, 32, false,
     ).unwrap()[0]
   // The whole encoded forest includes payload and JSON String escaping.
   // The original recovery entry is bounded before configuration NFC; only
@@ -360,6 +360,9 @@ fn recovery_guard_test_fixed(
     100000,
     10000,
     16,
+    bytes,
+    200000,
+    32,
     clear,
   ).unwrap()[0]
 }
@@ -460,4 +463,42 @@ test "range native input decoders do not retain impossible container populations
     original.retained_bytes,
     msg=@execution.execution_capacity_retained_bytes(slice).to_string(),
   )
+}
+
+///|
+test "range capture quotes the actual incoming recovery limits independently from outgoing binding" {
+  let metadata = recovery_guard_test_metadata(300000)
+  let narrow = sheets_range_capture_profile(
+      metadata, 1000000, 100000, 64, 100000, 10000, 16, 100000, 100000, 32, false,
+    ).unwrap()[0]
+  let actual = sheets_range_capture_profile(
+      metadata, 1000000, 100000, 64, 100000, 10000, 16, 2000000, 200000, 32, false,
+    ).unwrap()[0]
+  let narrow_input = sheets_constructor_capacity([
+    sheets_decoded_construction(100000, 100000, 32).unwrap(),
+    sheets_decoded_construction(100000, 100000, 32).unwrap(),
+  ]).unwrap()
+  let actual_input = sheets_constructor_capacity([
+    sheets_decoded_construction(2000000, 100044, 32).unwrap(),
+    sheets_decoded_construction(2000000, 100044, 32).unwrap(),
+  ]).unwrap()
+  assert_eq(
+    @execution.execution_capacity_execution_bytes(actual) -
+    @execution.execution_capacity_execution_bytes(narrow),
+    @execution.execution_capacity_execution_bytes(actual_input) -
+    @execution.execution_capacity_execution_bytes(narrow_input),
+  )
+  for
+    (bytes, nodes, depth) in [
+      (0, 200000, 32),
+      (2000000, 0, 32),
+      (2000000, 200000, 0),
+    ] {
+    assert_true(
+      sheets_range_capture_profile(
+        metadata, 1000000, 100000, 64, 100000, 10000, 16, bytes, nodes, depth, false,
+      )
+      is None,
+    )
+  }
 }
