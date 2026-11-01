@@ -1,6 +1,6 @@
 {
   "source": "d5d66cd86ac2e153f31a511e7d37c78e0cc28ae3",
-  "syntaxProjectionSha256": "de95e5a80976fcefb4aff5d8018e9a23a3b1ab26fb9f9e49a4ed3b8b412a65bd",
+  "syntaxProjectionSha256": "773d45adcbf7a12f8327d884ddfa6cec9e052cd5fdd4797623e4cc8eaeae1ff2",
   "qualification": "Source-reference coverage only; original Native/FFI/Python executions retain their own source, artifact and target qualifications. No normal funding, VM or installed product admission.",
   "generated": [
     {
@@ -57427,6 +57427,13 @@
         },
         {
           "async": false,
+          "name": "_SQLiteByteDatabase/_snapshot_identity",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
           "name": "_SQLiteByteDatabase/begin_immediate",
           "parameters": [
             "self"
@@ -57584,7 +57591,7 @@
           ]
         }
       ],
-      "sha256": "254da2b62b893c66c13e42d83e507c92555bd43b54ab201a0fb10eff3dce09e6",
+      "sha256": "4ff471dd5883f0f6161db0fc3826284f8606668ffade56a55a15377d9ce15842",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -57983,6 +57990,7 @@
           "operations": [
             "_SQLiteByteDatabase",
             "_SQLiteByteDatabase/__init__",
+            "_SQLiteByteDatabase/_snapshot_identity",
             "_SQLiteByteDatabase/begin_immediate",
             "_SQLiteByteDatabase/begin_read",
             "_SQLiteByteDatabase/capacity_usage",
@@ -58013,6 +58021,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Physical persistence"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Within that same live reader, the exact stdlib SQLite adapter can retain a"
               }
             ],
             "inputsOutputs": [
@@ -58023,6 +58035,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Physical persistence"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Within that same live reader, the exact stdlib SQLite adapter can retain a"
               }
             ],
             "identity": [
@@ -58037,6 +58053,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Handles are never serialized Client references"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Within that same live reader, the exact stdlib SQLite adapter can retain a"
               }
             ],
             "ownership": [
@@ -58051,6 +58071,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Failed stop or cleanup retains the same"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Within that same live reader, the exact stdlib SQLite adapter can retain a"
               }
             ],
             "synchronization": [
@@ -58061,6 +58085,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_storage_physical.py",
                 "anchor": "class _SQLiteByteDatabase:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Within that same live reader, the exact stdlib SQLite adapter can retain a"
               }
             ],
             "failure": [
@@ -58075,6 +58103,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Interrupted physical bridge calls"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Within that same live reader, the exact stdlib SQLite adapter can retain a"
               }
             ],
             "cancellation": [
@@ -58085,6 +58117,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_storage_physical.py",
                 "anchor": "class _SQLiteByteDatabase:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Within that same live reader, the exact stdlib SQLite adapter can retain a"
               }
             ],
             "resources": [
@@ -58099,6 +58135,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Transfer custody"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Within that same live reader, the exact stdlib SQLite adapter can retain a"
               }
             ],
             "extension": [
@@ -58109,6 +58149,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_storage_physical.py",
                 "anchor": "class _SQLiteByteDatabase:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Within that same live reader, the exact stdlib SQLite adapter can retain a"
               }
             ],
             "verification": [
@@ -58119,6 +58163,26 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_storage_physical.py",
                 "anchor": "class _SQLiteByteDatabase:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Within that same live reader, the exact stdlib SQLite adapter can retain a"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_snapshot_transport.py",
+                "anchor": "def test_semantic_current_reuses_only_unchanged_sql_snapshot_and_keeps_each_current("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_snapshot_transport.py",
+                "anchor": "def test_snapshot_schema_change_refuses_even_without_a_row_mutation("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_snapshot_transport.py",
+                "anchor": "def test_snapshot_equal_markers_on_different_connection_do_not_supply_original_reader("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_snapshot_transport.py",
+                "anchor": "def test_schema_probe_failure_is_not_cached_success_or_permission("
               }
             ]
           }
@@ -58429,7 +58493,15 @@
           "async": false,
           "name": "LocalByteStore/_inspect_namespace_locked/fence",
           "parameters": [
-            "required_current"
+            "required_current",
+            "reuse_snapshot"
+          ]
+        },
+        {
+          "async": false,
+          "name": "LocalByteStore/_inspect_namespace_locked/metadata_fence",
+          "parameters": [
+            "reuse_snapshot"
           ]
         },
         {
@@ -59053,7 +59125,7 @@
           "parameters": []
         }
       ],
-      "sha256": "f98dee343d4fc12a8f55bfd7587566d246a8a62437f7ac239c0362bc8b5364ce",
+      "sha256": "754b515d22195038b36394f3c37ab49566c8ebfcf7deed074cfd92a14c0cfbe6",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -59614,6 +59686,7 @@
             "LocalByteStore/_inspect_namespace_locked/check_frame",
             "LocalByteStore/_inspect_namespace_locked/current_snapshot",
             "LocalByteStore/_inspect_namespace_locked/fence",
+            "LocalByteStore/_inspect_namespace_locked/metadata_fence",
             "LocalByteStore/_inspect_namespace_locked/observe",
             "LocalByteStore/_inspect_namespace_locked/query_current",
             "LocalByteStore/_inspect_publication_projected",
@@ -59686,6 +59759,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Physical persistence"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Within that same live reader, the exact stdlib SQLite adapter can retain a"
               }
             ],
             "inputsOutputs": [
@@ -59696,6 +59773,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Physical persistence"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Within that same live reader, the exact stdlib SQLite adapter can retain a"
               }
             ],
             "identity": [
@@ -59710,6 +59791,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Handles are never serialized Client references"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Within that same live reader, the exact stdlib SQLite adapter can retain a"
               }
             ],
             "ownership": [
@@ -59724,6 +59809,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Failed stop or cleanup retains the same"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Within that same live reader, the exact stdlib SQLite adapter can retain a"
               }
             ],
             "synchronization": [
@@ -59734,6 +59823,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
                 "anchor": "class LocalByteStore:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Within that same live reader, the exact stdlib SQLite adapter can retain a"
               }
             ],
             "failure": [
@@ -59748,6 +59841,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Interrupted physical bridge calls"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Within that same live reader, the exact stdlib SQLite adapter can retain a"
               }
             ],
             "cancellation": [
@@ -59758,6 +59855,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
                 "anchor": "class LocalByteStore:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Within that same live reader, the exact stdlib SQLite adapter can retain a"
               }
             ],
             "resources": [
@@ -59772,6 +59873,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Transfer custody"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Within that same live reader, the exact stdlib SQLite adapter can retain a"
               }
             ],
             "extension": [
@@ -59782,6 +59887,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
                 "anchor": "class LocalByteStore:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Within that same live reader, the exact stdlib SQLite adapter can retain a"
               }
             ],
             "verification": [
@@ -59804,6 +59913,26 @@
               {
                 "path": "packages/python-sdk/tests/test_local_snapshot_transport.py",
                 "anchor": "class SnapshotTransportTests(unittest.TestCase):"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Within that same live reader, the exact stdlib SQLite adapter can retain a"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_snapshot_transport.py",
+                "anchor": "def test_semantic_current_reuses_only_unchanged_sql_snapshot_and_keeps_each_current("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_snapshot_transport.py",
+                "anchor": "def test_snapshot_schema_change_refuses_even_without_a_row_mutation("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_snapshot_transport.py",
+                "anchor": "def test_snapshot_equal_markers_on_different_connection_do_not_supply_original_reader("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_snapshot_transport.py",
+                "anchor": "def test_schema_probe_failure_is_not_cached_success_or_permission("
               }
             ]
           }

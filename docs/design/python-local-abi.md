@@ -1971,6 +1971,25 @@ keeps the original outer before/after checks. Neither shape returns bytes after
 a latched failure, changes query/copy bounds or turns a physical miss into a
 semantic absence fact.
 
+Within that same live reader, the exact stdlib SQLite adapter can retain a
+completed immutable metadata-fence observation. Reuse requires the same
+physical adapter and connection, unchanged original transaction sequence and
+actual schema version, plus SQLite's unchanged total row-change count. The
+bounded schema-version PRAGMA still runs before and after every mutable current
+observation; it is counted separately from metadata-row queries. DDL can leave
+`total_changes` unchanged and is therefore never inferred absent from that
+counter. A schema/transaction/connection replacement refuses, and any row
+change requires complete metadata validation again. Savepoint rollback does
+not reset SQLite's total-change count. Another reader starts without an
+observation, and physical suppliers without this exact port keep full checks.
+
+Every physical/current callback still runs, including file/settings/epoch and
+Account checks. Actual row queries retain all three complete before/after SQL
+fences and their mutable-current calls; the outer read/write and precommit
+fences remain complete. Copy/thread/reentry, retired transaction, callback or
+schema-probe failure poisons the same reader. There is no current/Allow cache,
+new owner, retry, changed bound, Native ABI, or persistent snapshot token.
+
 The standard original operation metadata callback joins its adjacent current
 and required-frame fence checks in one complete observation of the same reader.
 It accepts only the captured original current callback and retains the complete

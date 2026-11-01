@@ -908,7 +908,7 @@ class LocalByteStore:
         database = self._physical
         original_snapshot = (database._snapshot_identity()
                              if type(database) is _SQLiteByteDatabase else None)
-        last_fenced_snapshot: tuple[object, int, int] | None = None
+        last_fenced_snapshot: tuple[object, int, int, int] | None = None
 
         def metadata_fence(*, reuse_snapshot: bool) -> None:
             nonlocal last_fenced_snapshot
@@ -919,8 +919,9 @@ class LocalByteStore:
             snapshot = (database._snapshot_identity()
                         if type(database) is _SQLiteByteDatabase else None)
             if snapshot is not None and (original_snapshot is None
-                    or snapshot[0] is not original_snapshot[0] or snapshot[1] != original_snapshot[1]):
-                raise LocalStorageError('Original Local transaction snapshot was replaced')
+                    or snapshot[0] is not original_snapshot[0] or snapshot[1] != original_snapshot[1]
+                    or snapshot[3] != original_snapshot[3]):
+                raise LocalStorageError('Original Local transaction or schema snapshot was replaced')
             if not reuse_snapshot or snapshot is None or snapshot != last_fenced_snapshot:
                 if not self._fences_match_locked(fences, successors):
                     raise LocalStorageError('Original Local inventory metadata changed')

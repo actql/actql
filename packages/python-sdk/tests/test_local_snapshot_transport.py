@@ -177,6 +177,50 @@ class SnapshotTransportTests(unittest.TestCase):
                 store.inspect_namespaces((ByteFence('epoch', 0, b'original-epoch'),),
                     inspect=inspect, current=lambda: None)
 
+    def test_same_snapshot_counts_all_sql_schema_probes_separately_from_metadata_rows(self):
+        with TemporaryDirectory(prefix='actql-sql-snapshot-census-') as directory:
+            store = LocalByteStore(Path(directory) / 'original.sqlite', max_records=16,
+                max_record_bytes=4096, max_payload_bytes=16384)
+            self.addCleanup(store.close)
+            fences = tuple(ByteFence('original-' + str(i), 0, b'original-metadata') for i in range(7))
+            for fence in fences: store.compare_exchange(fence.key, None, fence.payload)
+            currents = []
+            def inspect(reader):
+                reader.read('original', 'one', lambda _: None)
+                sql = []
+                before = len(currents)
+                store._connection.set_trace_callback(sql.append)
+                try:
+                    for _ in range(5): reader.check_fences(reader, fences)
+                finally:
+                    store._connection.set_trace_callback(None)
+                self.assertEqual(len(currents) - before, 5)
+                self.assertEqual(len(sql), 10)
+                self.assertTrue(all(query == 'PRAGMA schema_version' for query in sql))
+            store.inspect_namespaces(fences, inspect=inspect, current=lambda: currents.append(True))
+
+    def test_schema_probe_failure_is_not_cached_success_or_permission(self):
+        import sqlite3
+        with TemporaryDirectory(prefix='actql-sql-schema-denied-') as directory:
+            store = LocalByteStore(Path(directory) / 'original.sqlite', max_records=8,
+                max_record_bytes=4096, max_payload_bytes=16384)
+            self.addCleanup(store.close)
+            store.compare_exchange('epoch', None, b'original-epoch')
+            def inspect(reader):
+                reader.read('original', 'one', lambda _: None)
+                def deny_schema(action, name, *_):
+                    return sqlite3.SQLITE_DENY if action == sqlite3.SQLITE_PRAGMA else sqlite3.SQLITE_OK
+                store._connection.set_authorizer(deny_schema)
+                try:
+                    reader.current()
+                finally:
+                    store._connection.set_authorizer(None)
+            with self.assertRaises(sqlite3.DatabaseError):
+                store.inspect_namespaces((ByteFence('epoch', 0, b'original-epoch'),),
+                    inspect=inspect, current=lambda: None)
+            self.assertFalse(store._physical.in_transaction)
+            self.assertEqual(store.read('epoch').payload, b'original-epoch')
+
     def test_query_keeps_distinct_current_and_refuses_at_every_existing_boundary(self):
         for stop in (None, 1, 2, 3):
             with self.subTest(stop=stop), TemporaryDirectory(prefix='actql-query-refusal-') as directory:
