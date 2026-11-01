@@ -4637,7 +4637,7 @@
     {
       "module": "adapters/store-local/delivery-attempt-index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1407f63cc7cb011c29969dd5799bdd04647b696f2dcba780f6de47941d515316",
+      "sha256": "16e5e1858909630ef079b3e74b5d040b5afa92c786e9fa1f30d36d8015c03b04",
       "exports": [
         "openDeliveryAttemptIndex"
       ],
@@ -6873,12 +6873,16 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "native Index confirmation retains its same cleanup through two committed lost replies"
+              },
+              {
+                "path": "adapters/store-local/delivery-attempt-index.test.mjs",
+                "anchor": "completion receipt statement is acquired once per original connection"
               }
             ]
           }
         }
       ],
-      "referenceQualification": "Format 15 receipt ownership repair reviewed against the existing Store contract: identical receipt bodies may belong to distinct attempts; exact attempt/record ACK ownership is unchanged. Removed private-version upgrade callbacks are not retained. Fresh initialization and same-version recovery retain the existing single contract assignment; public exports and normative 0.1 contracts are unchanged. Syntax/hash evidence is not runtime acceptance."
+      "referenceQualification": "Format 15 receipt ownership repair reviewed against the existing Store contract: identical receipt bodies may belong to distinct attempts; exact attempt/record ACK ownership is unchanged. Removed private-version upgrade callbacks are not retained. Fresh initialization and same-version recovery retain the existing single contract assignment; public exports and normative 0.1 contracts are unchanged. Syntax/hash evidence is not runtime acceptance. Receipt-conflict SQL is prepared on first use by the existing connection holder and retired with that same owner; transaction, conflict, COMMIT and Unknown boundaries are unchanged."
     },
     {
       "module": "adapters/store-local/publication-store.mjs",
