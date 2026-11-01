@@ -57955,7 +57955,7 @@
           ]
         }
       ],
-      "sha256": "4ff471dd5883f0f6161db0fc3826284f8606668ffade56a55a15377d9ce15842",
+      "sha256": "9b4c8a82bbe75dfe5758ad6b549a040f52be57e33fbef5c2d9612d79c52056da",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -58547,6 +58547,30 @@
               {
                 "path": "packages/python-sdk/tests/test_local_snapshot_transport.py",
                 "anchor": "def test_schema_probe_failure_is_not_cached_success_or_permission("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_snapshot_transport.py",
+                "anchor": "def test_temp_schema_shadow_cannot_reuse_main_metadata_as_current("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_snapshot_transport.py",
+                "anchor": "def test_schema_probe_cannot_return_a_replaced_original_connection_or_transaction("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_snapshot_transport.py",
+                "anchor": "def test_current_query_keeps_three_currents_and_actual_row_with_same_snapshot_metadata("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_snapshot_transport.py",
+                "anchor": "def test_current_query_refuses_metadata_mutation_at_each_current_boundary("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_snapshot_transport.py",
+                "anchor": "def test_current_query_refreshes_changed_metadata_and_never_reuses_actual_row("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_snapshot_transport.py",
+                "anchor": "def test_raw_and_other_physical_queries_keep_complete_metadata_reads("
               }
             ]
           }
@@ -59489,7 +59513,7 @@
           "parameters": []
         }
       ],
-      "sha256": "79af90361c7c2ca635d4b7f9116a3f6303e4c0cd1ae396696b8a80e18c0d8981",
+      "sha256": "5b6f08a347b422b7150aaa14a59219c8b1797028bd1699a01340a69b4cdc3758",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -60297,6 +60321,30 @@
               {
                 "path": "packages/python-sdk/tests/test_local_snapshot_transport.py",
                 "anchor": "def test_schema_probe_failure_is_not_cached_success_or_permission("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_snapshot_transport.py",
+                "anchor": "def test_temp_schema_shadow_cannot_reuse_main_metadata_as_current("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_snapshot_transport.py",
+                "anchor": "def test_schema_probe_cannot_return_a_replaced_original_connection_or_transaction("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_snapshot_transport.py",
+                "anchor": "def test_current_query_keeps_three_currents_and_actual_row_with_same_snapshot_metadata("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_snapshot_transport.py",
+                "anchor": "def test_current_query_refuses_metadata_mutation_at_each_current_boundary("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_snapshot_transport.py",
+                "anchor": "def test_current_query_refreshes_changed_metadata_and_never_reuses_actual_row("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_snapshot_transport.py",
+                "anchor": "def test_raw_and_other_physical_queries_keep_complete_metadata_reads("
               }
             ]
           }
