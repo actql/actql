@@ -47,6 +47,11 @@ test "same Request acquired Graph reserves its provenance and keeps original com
     compilation_limits=limits,
   ).unwrap()
   assert_true(
+    parent.program_invocation_quote is Some((r, e)) &&
+    @resources.preparation_capacity_working_extents(capacity, input) ==
+    Ok((r, e)),
+  )
+  assert_true(
     @publication_host.client_task_compilation_serialization(compiled)
     is Some(original) &&
     physical_equal(original, graph),

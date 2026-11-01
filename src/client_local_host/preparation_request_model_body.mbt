@@ -184,6 +184,23 @@ pub fn[I] prepare_request_model_read_scope(
   ClientInstalledManagedRunIssue,
 ] {
   let quoted = owner.phase == ModelScopeQuoted
+  // This Request retained the actual funded module before Plan/Scope entry.
+  // A separately reconstructed module with the same compiler is still foreign.
+  guard (match
+    (
+      plan.source_free,
+      plan.captured,
+      owner.program_source_free,
+      owner.program_captured,
+    ) {
+    (Some(selected), None, Some(original), None) =>
+      physical_equal(selected, original)
+    (None, Some(selected), None, Some(original)) =>
+      physical_equal(selected, original)
+    _ => false
+  }) else {
+    return Err(ForeignOriginal)
+  }
   guard (
       (
         owner.phase == ModelPlanReserved &&
@@ -327,6 +344,7 @@ pub fn[I] complete_request_model_preparation(
     owner.program_artifact_geometry = None
     owner.program_artifact_quote = None
     owner.program_measurement_quote = None
+    owner.program_invocation_quote = None
   }
   result
 }

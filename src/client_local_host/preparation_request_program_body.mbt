@@ -355,6 +355,8 @@ pub suberror ClientRequestProgramPlanIssue {
   SerializationGraph(@publication_host.ClientSerializationPlanGraphIssue)
   ModelGraph(@publication_host.ClientInferPlanGraphIssue)
   ModelBinding(@publication.RunEvidenceValueIssue)
+  ModelQuery(ClientLocalQueryIssue)
+  ModelSource(@row_source_host.RowHostIssue)
 }
 
 ///|
@@ -986,8 +988,73 @@ fn[I] prepare_request_compilation_owned(
   }
   if attempted is Ok(artifact) {
     owner.program_compilation = Some(artifact)
+    if domain is Some(RequestModelCompilation(_, _, _, _)) ||
+      domain is Some(RequestSerializationCompilation(_, _, _, _)) ||
+      domain is Some(RequestKeyedSerializationCompilation(_, _, _, _)) {
+      // These actual callers issue their first compiled Run/Definition just
+      // after receiving this artifact. Back that co-held metadata NOW, rather
+      // than treating a raw TaskCompilation as constructor funding.
+      match
+        reserve_request_domain_run_metadata(owner, input, prepared, artifact) {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
+      }
+    }
   }
   attempted
+}
+
+///|
+// Same existing bounded compiled/admission/Definition packet as the timed
+// ordinary constructor, once for the actual Model/Content Run. No invocation
+// is issued here and no QueryTime is sampled. The original compiler/Graph,
+// material and all earlier grows coexist with these native/JS representations.
+fn[I] reserve_request_domain_run_metadata(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  prepared : @publication_host.PreparedClientProgram,
+  artifact : @publication_host.ClientRunCompilation,
+) -> Result[Unit, ClientRequestProgramPlanIssue] {
+  guard owner.phase == Selecting &&
+    owner.input is Some(original) &&
+    physical_equal(original, input) &&
+    owner.compiled_program is Some(original_prepared) &&
+    physical_equal(original_prepared, prepared) &&
+    owner.program_capacity is Some(capacity) &&
+    owner.program_artifact_geometry is Some(geometry) &&
+    owner.program_compilation is Some(original_artifact) &&
+    physical_equal(original_artifact, artifact) &&
+    owner.program_invocation_quote is None &&
+    request_query_time_invocation_extent(geometry)
+    is Some((retained, execution)) else {
+    return Err(Preparation(ForeignOriginal))
+  }
+  let (r, e) = match
+    @resources.preparation_capacity_working_extents(capacity, input) {
+    Err(issue) => return Err(Preparation(Capacity(issue)))
+    Ok(value) => value
+  }
+  guard @execution.checked_preparation_add_product(r, retained, 1L) is Some(r) &&
+    @execution.checked_preparation_add_product(e, execution, 1L) is Some(e) else {
+    return Err(Preparation(Policy))
+  }
+  owner.program_invocation_quote = Some((r, e))
+  let result = @resources.reserve_working_preparation_phase(
+    capacity, input, r, e,
+  )
+  guard owner.phase == Selecting &&
+    owner.input is Some(same_input) &&
+    physical_equal(same_input, input) &&
+    owner.compiled_program is Some(same_prepared) &&
+    physical_equal(same_prepared, prepared) &&
+    owner.program_capacity is Some(same_capacity) &&
+    physical_equal(same_capacity, capacity) &&
+    owner.program_compilation is Some(same_artifact) &&
+    physical_equal(same_artifact, artifact) &&
+    owner.program_invocation_quote == Some((r, e)) else {
+    return Err(Preparation(ForeignOriginal))
+  }
+  result.map_err(issue => Preparation(Capacity(issue)))
 }
 
 ///|

@@ -255,7 +255,7 @@ function hostFixture({refuse, failAfterAdopt = false, retainedSelection = false,
   const construct = (o, run, actual, c, p, i) => {
     assert.deepEqual([o, actual, c, p, i], [originals, model, compilation, parent, input]);
     assert.equal(record.computeRuns.get(prepared), run); calls.push('construct');
-    run.preparedSequences = {}; run.modelPlan = {}; run.modelAcquisitions = [{}];
+    run.preparedSequences = {}; run.modelPlan = {};
     return run.modelPlan;
   };
   const ports = {sourceManaged: manager, moon, record, originalInstallation, originals, finishInstalledEffectModelScope,
@@ -306,7 +306,7 @@ test('Host Model retains the original alias receiver across a consumed preparati
 test('Host Model failed construction retains its original Scope and partial module until the same Scope acknowledges cleanup', () => {
   const primary = new Error('original-model-completion'), f = hostFixture({refuse: primary});
   assert.throws(f.begin, error => error === primary); const run = f.record.computeRuns.get(f.prepared);
-  assert(run.preparedSequences); assert(run.modelAcquisitions);
+  assert(run.preparedSequences); assert.equal(run.modelAcquisitions, undefined);
   assert.equal(f.model.scope, f.scope); assert.throws(f.begin, error => error === primary);
   f.setFinish(false); assert.throws(f.retire, {code: 'InstalledMockModelCleanupPending'});
   assert.equal(f.record.computeRuns.get(f.prepared), run); assert(!f.calls.includes('aliases'));

@@ -669,47 +669,31 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
     maxReservations: Number(limits[6]), maxHoldings: Number(limits[7]), maxDelegations: Number(limits[8])});
   current();
   if (count === 0) {
-    if (typeof moon.clientProgramPrepareInstalledMockModelSourceFreeWithContracts !== 'function') {
+    if (typeof moon.clientProgramPrepareRequestModelSourceFreeModule !== 'function') {
       throw clientOperationError('NodeManagedRunRuntimeUnavailable');
     }
-    run.preparedSequences = checked(moon.clientProgramPrepareInstalledMockModelSourceFreeWithContracts(
-      run.prepared, compilation, installed.admission, contracts.values,
-      contracts.expression, contracts.ordered, retainedRelationOutput));
+    run.preparedSequences = checked(moon.clientProgramPrepareRequestModelSourceFreeModule(
+      parent, input, run.request, model.compiled, model.runDefinition, compilation,
+      installed.admission, retainedRelationOutput, run.queryTimePreparation));
     current();
     run.modelPlan = model.control.prepareCheckedClientMockModelSourceFreePlan(run.preparedSequences,
       run.request, model.compiled, model.runDefinition, model.occurrence, model.graph, model.selectedBounds);
   } else {
     const sources = readInstalledMockPreparation(originals).sources;
-    if (sources.length !== 2 || typeof moon.clientProgramInstalledMockModelCapturePlanPrepare !== 'function') {
+    if (sources.length !== 2 || typeof moon.clientProgramPrepareRequestModelCaptureModule !== 'function') {
       throw clientOperationError('InstalledMockModelOperationalAdmissionUnavailable');
     }
     const query = readInitialControlInstallationAsset(initialControl, originals,
       'spec/contracts/actql-query-acquisition.json');
     const evidence = readInitialControlInstallationAsset(initialControl, originals,
       'spec/contracts/actql-query-process-evidence.json');
-    const acquisitions = run.modelAcquisitions = [];
-    for (let stage = 0; stage < 2; stage++) {
-      const requirement = checked(run.queryTimePreparation === undefined
-        ? moon.clientProgramPrepareLocalQueryRequirement(run.prepared, stage, 0,
-          installed.admission, contracts.values, contracts.expression, contracts.ordered)
-        : moon.clientProgramPrepareLocalQueryRequirementAtQueryTime(run.prepared, stage, 0,
-          run.queryTimePreparation, run.request, installed.admission,
-          contracts.values, contracts.expression, contracts.ordered));
-      const held = {requirement, acquisition: undefined, capacity: undefined};
-      acquisitions.push(held);
-      held.acquisition = checked(moon.clientProgramRowSourcePrepareAcquisition(
-        sources[stage].declaration, requirement, query, evidence));
-      held.capacity = moon.clientProgramInstalledRowCaptureCapacity(held.acquisition);
-      if (held.capacity === undefined) throw clientOperationError('InstalledSourceCapacityUnavailable');
-      current();
-    }
     // Same fixed Mock document limits as its real original reader. These
     // supply demand to Core; no row, Source observation or ACK is fabricated.
     const documentBytes = Object.freeze([1048576n, 1048576n]);
-    run.preparedSequences = checked(moon.clientProgramInstalledMockModelCapturePlanPrepare(
-      run.prepared, run.request, compilation, acquisitions.map(value => value.capacity),
-      documentBytes, documentBytes, installed.admission, contracts.values,
-      contracts.expression, contracts.ordered, retainedRelationOutput, run.queryTimePreparation));
+    run.preparedSequences = checked(moon.clientProgramPrepareRequestModelCaptureModule(
+      parent, input, run.request, model.compiled, model.runDefinition, compilation,
+      sources.map(value => value.declaration), query, evidence,
+      documentBytes, documentBytes, installed.admission, retainedRelationOutput, run.queryTimePreparation));
     current();
     run.modelPlan = model.control.bindCheckedClientMockModelCapturePlan(run.preparedSequences,
       model.compiled, model.runDefinition, model.occurrence, model.graph, model.selectedBounds);
@@ -6122,7 +6106,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
           (parent, input, compilation) => prepareRequestMockModelPlan(originals,
             run, model, compilation, parent, input));
         run.original = adopted.original; run.value = adopted.value; run.preparationFunded = true;
-        run.preparedSequences = run.modelPlan = run.modelAcquisitions = undefined;
+        run.preparedSequences = run.modelPlan = undefined;
         checked(Reflect.apply(run.check, runtime, [run.value, prepared, request]));
         assertSourceManagedInstallationCurrent(manager, originals);
         return run;

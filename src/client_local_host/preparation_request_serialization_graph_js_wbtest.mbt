@@ -99,6 +99,11 @@ test "same Request reserves Content Graph before issuer and transfers original c
     compilation_limits=limits,
   ).unwrap()
   assert_true(
+    parent.program_invocation_quote is Some((r, e)) &&
+    @resources.preparation_capacity_working_extents(capacity, input) ==
+    Ok((r, e)),
+  )
+  assert_true(
     physical_equal(
       @publication_host.client_task_compilation_serialization(compilation).unwrap(),
       graph,

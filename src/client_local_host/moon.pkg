@@ -54,6 +54,7 @@ import {
   "actql/actql/local_veca_provider" @nearest_provider,
   "actql/actql/sha256" @sha,
   "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/debug",
   "actql/actql/connectors/kintone/host" @kintone_host,
   "actql/actql/connectors/kintone/catalog" @kintone_catalog,
 } for "wbtest"
