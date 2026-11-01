@@ -1604,6 +1604,8 @@ pub fn client_program_installed_json_effect_response_construction_capacity(@exec
 
 pub fn client_program_installed_json_source_reader_capacity(Array[Int], Int, Int) -> @execution_relation.ExecutionCapacity?
 
+pub fn client_program_installed_json_source_reader_capacity_with_request(Array[Int], Int, Int, @execution_relation.ExecutionCapacity?) -> @execution_relation.ExecutionCapacity?
+
 pub fn client_program_installed_json_source_reader_profile(Int, Int) -> Array[Int]?
 
 pub fn client_program_installed_keyed_source_read_acquisition(@client_local_host.ClientInstalledKeyedSourceRead) -> Result[@client_row_source_host.RowKeyedAcquisition, @client_local_host.ClientInstalledSourceReadIssue]

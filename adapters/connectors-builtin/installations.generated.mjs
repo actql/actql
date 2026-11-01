@@ -217,6 +217,7 @@ export const installedConnectors = Object.freeze([
       Object.freeze({path: "adapters/connectors/sheets/host/sheets-range-command.mjs", href: new URL("../connectors/sheets/host/sheets-range-command.mjs", import.meta.url).href}),
       Object.freeze({path: "adapters/connectors/sheets/site/sheets-clear-request.mjs", href: new URL("../connectors/sheets/site/sheets-clear-request.mjs", import.meta.url).href}),
       Object.freeze({path: "adapters/connectors/sheets/site/sheets-exchange.mjs", href: new URL("../connectors/sheets/site/sheets-exchange.mjs", import.meta.url).href}),
+      Object.freeze({path: "adapters/connectors/sheets/site/sheets-grid-pages.mjs", href: new URL("../connectors/sheets/site/sheets-grid-pages.mjs", import.meta.url).href}),
       Object.freeze({path: "adapters/connectors/sheets/site/sheets-owned-request.mjs", href: new URL("../connectors/sheets/site/sheets-owned-request.mjs", import.meta.url).href}),
     ]),
     providerBundle: "connectors/sheets/host_node",

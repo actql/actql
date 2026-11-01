@@ -82,6 +82,8 @@ pub fn range_target_matches(RangeBinding, String) -> Bool
 
 pub fn read_request(GridRange, Array[Column], Limits) -> Result[String, Issue]
 
+pub fn read_request_document(GridRange) -> Json
+
 pub fn recover_clear_range_requests(ClearRangeBinding, String, String, Limits) -> Result[Array[Array[ClearRangeRequest]], RangeFailure]
 
 pub fn recover_range_requests(RangeBinding, String, String, Limits) -> Result[Array[Array[RangeRequest]], RangeFailure]

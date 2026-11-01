@@ -2,7 +2,7 @@
   {
     "module": "adapters/connectors/sheets/host/installed-sheets.mjs",
     "responsibilityFacet": "primary",
-    "sha256": "36c5e129c4fb1618fb48f77696e1d07bdd6f47b363ef58fc54834796e1a211fb",
+    "sha256": "fa001b04b04f97aa9fded2a9210f9d1aa23d72e6a6d95d7341bdc3d16e1f2309",
     "exports": [
       "SHEETS_EFFECT_VERSION",
       "SHEETS_SITE_VERSION",
@@ -43,6 +43,14 @@
         "name": "bindSheetsAppendConstructionProfile/init:installedStandardCreateConstructionProfile/init:installedStandardCreateConstructionProfile",
         "parameters": [
           "inputWireBytes"
+        ],
+        "async": false
+      },
+      {
+        "name": "checkedSourceMethod",
+        "parameters": [
+          "receiver",
+          "name"
         ],
         "async": false
       },
@@ -225,6 +233,46 @@
         "async": false
       },
       {
+        "name": "loadManagedSheetsGridSource",
+        "parameters": [
+          "profile",
+          "options",
+          "site",
+          "publication",
+          "prepared"
+        ],
+        "async": true
+      },
+      {
+        "name": "loadManagedSheetsGridSource/init:physicalTarget/init:physicalTarget",
+        "parameters": [
+          "resource",
+          "fields"
+        ],
+        "async": false
+      },
+      {
+        "name": "loadManagedSheetsGridSource/init:preparePageReader/init:preparePageReader",
+        "parameters": [
+          "resource",
+          "columns",
+          "applySynchronousProjection"
+        ],
+        "async": false
+      },
+      {
+        "name": "loadManagedSheetsGridSource/loadManagedSheetsGridSource",
+        "parameters": [
+          "n"
+        ],
+        "async": false
+      },
+      {
+        "name": "loadManagedSheetsGridSource/services/services",
+        "parameters": [],
+        "async": false
+      },
+      {
         "name": "mappingOf",
         "parameters": [
           "moon",
@@ -400,6 +448,30 @@
         "async": false
       },
       {
+        "name": "sheetsGridReaderLimits",
+        "parameters": [
+          "site",
+          "publication",
+          "secretBytes"
+        ],
+        "async": false
+      },
+      {
+        "name": "sheetsGridReaderLimits/names/names",
+        "parameters": [
+          "column"
+        ],
+        "async": false
+      },
+      {
+        "name": "sheetsGridReaderLimits/nameUnits/nameUnits",
+        "parameters": [
+          "sum",
+          "name"
+        ],
+        "async": false
+      },
+      {
         "name": "text/text",
         "parameters": [
           "value"
@@ -410,11 +482,13 @@
     "imports": [
       "../../../host-common/runtime-result.mjs",
       "../../../host-node/installed-host-cleanup.mjs",
+      "../../../host-node/installed-host-services.mjs",
       "../../../host-node/installed-row-effect.mjs",
       "../../../host-node/installed-row-source.mjs",
       "../../../host-node/local-account-config.mjs",
       "../../../host-node/source-profile-json.mjs",
       "../site/sheets-exchange.mjs",
+      "../site/sheets-grid-pages.mjs",
       "./sheets-clear-command.mjs",
       "./sheets-range-command.mjs",
       "node:crypto",
@@ -457,7 +531,11 @@
           "bindSheetsAppendConstructionProfile/init:installedStandardCreateConstructionProfile/init:installedStandardCreateConstructionProfile",
           "readSite/columns/columns",
           "mappingOf/sources/sources",
-          "readSite/readers/readers"
+          "readSite/readers/readers",
+          "checkedSourceMethod",
+          "sheetsGridReaderLimits",
+          "sheetsGridReaderLimits/names/names",
+          "sheetsGridReaderLimits/nameUnits/nameUnits"
         ],
         "exports": [
           "SHEETS_EFFECT_VERSION",
@@ -608,7 +686,12 @@
           "publishInstalledSheetsSource/publishInstalledSheetsSource",
           "load/init:body/init:body",
           "load/init:project/init:project",
-          "load/readers/readers"
+          "load/readers/readers",
+          "loadManagedSheetsGridSource",
+          "loadManagedSheetsGridSource/init:physicalTarget/init:physicalTarget",
+          "loadManagedSheetsGridSource/init:preparePageReader/init:preparePageReader",
+          "loadManagedSheetsGridSource/loadManagedSheetsGridSource",
+          "loadManagedSheetsGridSource/services/services"
         ],
         "exports": [
           "loadInstalledSheetsEffect",
@@ -2147,7 +2230,7 @@
   {
     "module": "src/connectors/sheets/catalog/cells.mbt",
     "responsibilityFacet": "primary",
-    "sha256": "a31f8a7806d91491212813204b01f58fa209e647a9f2dd897034d9a19255cd84",
+    "sha256": "45e8fcc2cb10872278fc569c1ad04282692f7fdf4b3422bb79a7c112135032b4",
     "operations": [
       {
         "name": "admit",
@@ -2218,6 +2301,10 @@
         "declaration": "read_request ( range : GridRange , columns : Array [ Column ] , limits : Limits , ) - > Result [ String , Issue ]"
       },
       {
+        "name": "read_request_document",
+        "declaration": "read_request_document ( range : GridRange ) - > Json"
+      },
+      {
         "name": "update_request",
         "declaration": "update_request ( range : GridRange , columns : Array [ Column ] , rows : Array [ Array [ Json ] ] , limits : Limits , ) - > Result [ String , Issue ]"
       }
@@ -2247,7 +2334,8 @@
           "read_request",
           "update_request",
           "append_request_document",
-          "literal_cell_document"
+          "literal_cell_document",
+          "read_request_document"
         ],
         "exports": [],
         "attributes": {
@@ -2360,7 +2448,7 @@
   {
     "module": "src/connectors/sheets/catalog/pkg.generated.mbti",
     "responsibilityFacet": "primary",
-    "sha256": "9315a89b6daebaa9f482c269be2497d6023484e2e75c7b48475a07c759fb0a1a",
+    "sha256": "d45e1c02994c9f6dd4f8fcf0b2659e9e2d0afb3af4a28cd645c45e4c56e3397f",
     "exports": [
       "pub fn admit_clear_range_binding(String, String, String, String, Limits) -> Result[ClearRangeBinding, RangeFailure]",
       "pub fn admit_clear_range_request(ClearRangeBinding, ClearRangeRequest) -> Result[Unit, RangeFailure]",
@@ -2400,6 +2488,7 @@
       "pub fn range_request_json(RangeBinding, RangeRequest) -> Result[String, RangeFailure]",
       "pub fn range_target_matches(RangeBinding, String) -> Bool",
       "pub fn read_request(GridRange, Array[Column], Limits) -> Result[String, Issue]",
+      "pub fn read_request_document(GridRange) -> Json",
       "pub fn recover_clear_range_requests(ClearRangeBinding, String, String, Limits) -> Result[Array[Array[ClearRangeRequest]], RangeFailure]",
       "pub fn recover_range_requests(RangeBinding, String, String, Limits) -> Result[Array[Array[RangeRequest]], RangeFailure]",
       "pub fn sheet_tabs_column_names() -> Array[String]",
@@ -2569,6 +2658,10 @@
         "declaration": "pub fn read_request(GridRange, Array[Column], Limits) -> Result[String, Issue]"
       },
       {
+        "name": "read_request_document",
+        "declaration": "pub fn read_request_document(GridRange) -> Json"
+      },
+      {
         "name": "recover_clear_range_requests",
         "declaration": "pub fn recover_clear_range_requests(ClearRangeBinding, String, String, Limits) -> Result[Array[Array[ClearRangeRequest]], RangeFailure]"
       },
@@ -2648,7 +2741,8 @@
           "pub struct RangeRequest {",
           "pub fn append_request_identity(String, String, String) -> Result[String, RangeFailure]",
           "pub fn append_request_document(Int, Array[Json]) -> Json",
-          "pub fn literal_cell_document(CellType, Json) -> Json?"
+          "pub fn literal_cell_document(CellType, Json) -> Json?",
+          "pub fn read_request_document(GridRange) -> Json"
         ],
         "attributes": {
           "responsibility": [
@@ -2768,7 +2862,8 @@
           "page_rows",
           "project_grid",
           "read_request",
-          "update_request"
+          "update_request",
+          "read_request_document"
         ],
         "exports": [
           "pub fn append_request(Int, Array[Column], Array[Json], Limits) -> Result[String, Issue]",
@@ -3797,7 +3892,7 @@
   {
     "module": "src/connectors/sheets/host_node/pkg.generated.mbti",
     "responsibilityFacet": "primary",
-    "sha256": "b47249991a3f6fbf86e878b633a9c7bc0f89da68e61c92b80251e626ec5b2f29",
+    "sha256": "8904cf4c0d3feb02e7ff0682a8f77364dab4e913e78c806ee727602118d9d269",
     "exports": [
       "pub fn sheets_append_construction_profile(Int, Int, Int, Int, Int, Int, Int) -> Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?",
       "pub fn sheets_append_outcome_json(Int, Bytes, String, Int, Int, Int, Int) -> String",
@@ -3814,6 +3909,7 @@
       "pub fn sheets_clear_request_json(@catalog.ClearRangeBinding, @catalog.ClearRangeRequest) -> Result[String, @catalog.RangeFailure]",
       "pub fn sheets_clear_target_matches(@catalog.ClearRangeBinding, String) -> Bool",
       "pub fn sheets_grid_page_json(Bytes, String, String, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> String",
+      "pub fn sheets_grid_read_construction_capacity(Int, Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?",
       "pub fn sheets_grid_request_json(String, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> String",
       "pub fn sheets_project_tabs(Bytes, String, Int, Int, Int, Int, Int, Int) -> Result[@catalog.SheetTabsPage, @catalog.SheetTabsIssue]",
       "pub fn sheets_range_binding(String, String, String, String, Int, Int, Int, Int) -> Result[@catalog.RangeBinding, @catalog.RangeFailure]",
@@ -3895,6 +3991,10 @@
       {
         "name": "sheets_grid_page_json",
         "declaration": "pub fn sheets_grid_page_json(Bytes, String, String, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> String"
+      },
+      {
+        "name": "sheets_grid_read_construction_capacity",
+        "declaration": "pub fn sheets_grid_read_construction_capacity(Int, Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?"
       },
       {
         "name": "sheets_grid_request_json",
@@ -4013,7 +4113,8 @@
           "pub fn sheets_range_request_json(@catalog.RangeBinding, @catalog.RangeRequest) -> Result[String, @catalog.RangeFailure]",
           "pub fn sheets_range_target_matches(@catalog.RangeBinding, String) -> Bool",
           "pub fn sheets_append_request_identity(String, String, String) -> Result[String, @catalog.RangeFailure]",
-          "pub fn sheets_append_construction_profile(Int, Int, Int, Int, Int, Int, Int) -> Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?"
+          "pub fn sheets_append_construction_profile(Int, Int, Int, Int, Int, Int, Int) -> Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?",
+          "pub fn sheets_grid_read_construction_capacity(Int, Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?"
         ],
         "attributes": {
           "responsibility": [
@@ -4131,7 +4232,8 @@
           "sheets_grid_page_json",
           "sheets_grid_request_json",
           "sheets_target_json",
-          "sheets_update_request_json"
+          "sheets_update_request_json",
+          "sheets_grid_read_construction_capacity"
         ],
         "exports": [
           "pub fn sheets_append_outcome_json(Int, Bytes, String, Int, Int, Int, Int) -> String",
@@ -6423,7 +6525,7 @@
   {
     "module": "src/connectors/sheets/host_node/append_construction.mbt",
     "responsibilityFacet": "primary",
-    "sha256": "04271309086fdf5fd49178b16e8ddd36837df6ec5294ae2e9600cbcf34d4ca7a",
+    "sha256": "a8ad9fb1a74ee3b5c2e74223b33bc7d78f4b529ad00738f304c2657f8213595c",
     "operations": [
       {
         "name": "sheets_append_construction_profile",
@@ -6444,6 +6546,10 @@
       {
         "name": "sheets_decoded_construction",
         "declaration": "sheets_decoded_construction ( bytes : Int , nodes : Int , depth : Int , ) - > @ execution . PreparationRepresentationUnits ?"
+      },
+      {
+        "name": "sheets_grid_read_construction_capacity",
+        "declaration": "sheets_grid_read_construction_capacity ( schema_bytes : Int , columns : Int , sheet_id : Int , start_row : Int , end_row : Int , start_column : Int , end_column : Int , ) - > @ execution . ExecutionCapacity ?"
       },
       {
         "name": "sheets_target_projection_construction",
@@ -6524,6 +6630,68 @@
             {
               "path": "src/connectors/sheets/host_node/bridge_wbtest.mbt",
               "anchor": "test \"Sheets original native profile composes through the actual standard Host constructor owner\""
+            }
+          ]
+        }
+      },
+      {
+        "operations": [
+          "sheets_grid_read_construction_capacity"
+        ],
+        "exports": [],
+        "attributes": {
+          "responsibility": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Managed Sheets grid Source uses the common standard page Reader"
+            }
+          ],
+          "inputsOutputs": [
+            {
+              "path": "src/connectors/sheets/host_node/append_construction.mbt",
+              "anchor": "pub fn sheets_grid_read_construction_capacity("
+            }
+          ],
+          "identity": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Managed Sheets grid Source uses the common standard page Reader"
+            }
+          ],
+          "ownership": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Managed Sheets grid Source uses the common standard page Reader"
+            }
+          ],
+          "synchronization": {
+            "notApplicable": "Synchronous immutable quantities; no callback, scheduler transition, permission or current observation."
+          },
+          "failure": [
+            {
+              "path": "src/client_local_host/installed_source_reader_capacity.mbt",
+              "anchor": "guard request is Some(request)"
+            }
+          ],
+          "cancellation": {
+            "notApplicable": "Quantity composition issues no cancellation, retirement or physical acknowledgement."
+          },
+          "resources": [
+            {
+              "path": "src/client_local_host/installed_source_reader_capacity.mbt",
+              "anchor": "@execution.add_execution_capacity(reader, request)"
+            }
+          ],
+          "extension": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Managed Sheets grid Source uses the common standard page Reader"
+            }
+          ],
+          "verification": [
+            {
+              "path": "src/connectors/sheets/host_node/source_read_construction_wbtest.mbt",
+              "anchor": "test \"Sheets standard Source request constructor composes through same Core reader without an HTTP grant\""
             }
           ]
         }

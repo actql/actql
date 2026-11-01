@@ -1790,6 +1790,21 @@ present output still adds the original Host literal-JSON constructor. These
 quantities do not by themselves prove installation prelude, complete concurrent
 request/response/failed-child backing, ordinary execution or physical release.
 
+Managed Sheets grid Source uses the common standard page Reader for its single
+bounded POST. Before opening the Site, its native request constructor quantity
+is composed once with the original JSON reader quantity; the same opaque
+capacity and immutable request-byte bound reach the original Reader factory.
+An operation name or an HTTP body limit alone is not that constructor quantity.
+Replacing the selected constructor refuses without repeating the quote. The
+native quantity shares the actual grid request document builder and owns its
+schema decoding, request forest, writers and UTF8 buffers. The existing reader
+owns response parsing, projection and row work, so they are not counted again
+as another request parser. The grid retains no paging cursor or row-identity
+strings; those unused representation dimensions do not constrain cell values.
+All declared cells remain admitted before requested-column projection. Site
+authorization, acquisition admission, before-send current checks, response
+charging and failed-child retirement remain with their original owners.
+
 A synchronous request constructor returning a native Promise is invalid, but
 its original task stays in the same capture child until settlement. Observation
 uses the captured native Promise method before any replaceable public `then`.

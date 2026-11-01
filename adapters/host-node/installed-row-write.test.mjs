@@ -941,3 +941,46 @@ test('Sheets original Mapping constructor preserves thrown undefined without ano
     initializedSheetsSite(),{},original);}catch(error){caught=true;failure=error;}
   assert.equal(caught,true);assert.equal(failure,undefined);
 });
+
+test('actual managed Sheets Source selects same original request quantity before Site and common reader', async () => {
+  const source=readFileSync(new URL('../connectors/sheets/host/installed-sheets.mjs',import.meta.url),'utf8');
+  const selected=new Set(['loadManagedSheetsGridSource','sheetsGridReaderLimits','checkedSourceMethod']);
+  const bodies=parse(source,{ecmaVersion:'latest',sourceType:'module'}).body
+    .filter(n=>n.type==='FunctionDeclaration'&&selected.has(n.id.name)).map(n=>source.slice(n.start,n.end)).join('\n');
+  assert.equal(selected.size,3);
+  const {captureInstalledSourceServices}=await import('./installed-host-services.mjs');
+  const site=initializedSheetsSite(),scope={},installation={},quantity=Object.freeze({}),capacity=Object.freeze({}),
+    reader=Object.freeze({capacity}),runAcquisitionLimits=Object.freeze({}),implementation={capacity,runAcquisitionLimits},
+    authorization={},physicalSite={},calls=[],adapter={};
+  const environment={wire:'original-env'},prepared={declaration:{},declared:{catalog_cid:providerCid},environment};
+  const moon={clientProgramInstalledSourceReaderPolicy(){assert.equal(this,moon);calls.push('policy');return[65536,100000,100];}};
+  const native={sheetsGridReadConstructionCapacity(...args){assert.equal(this,native);calls.push('quote');
+    assert.deepEqual(args,[Buffer.byteLength(JSON.stringify(site.columns)),1,0,0,1,0,1]);return quantity;}};
+  const services={sourceReaderImplementationProfile(){assert.fail('Existing Sheets bounds must not be substituted');},
+    sourceReaderImplementation(input){assert.equal(this,services);calls.push('implementation');
+      assert.equal(input.sourceInitialization,scope);assert.equal(input.installation,installation);
+      assert.equal(input.requestConstruction.capacity,quantity);assert.equal(input.requestConstruction.maxRequestBytes,300000);
+      assert.equal(input.limits.maxResponseBytes,2000000);assert.equal(input.limits.maxPages,1);
+      assert.equal(input.limits.maxIdentityBytes,1);assert.equal(input.limits.maxCursorBytes,1);
+      assert.equal(input.limits.maxValueTextBytes,2000000);return implementation;},
+    openRowSite(){assert.fail('Actual openSite body is an explicit port in this caller counter');},
+    createSourceReader(input){assert.equal(this,services);calls.push('reader');assert.equal(input.implementation,implementation);
+      assert.equal(input.sourceInitialization,scope);assert.equal(input.site,physicalSite);
+      assert.equal(input.operation,SHEETS_READ_OPERATION);assert.equal(typeof input.preparePageReader,'function');
+      assert.equal(Object.hasOwn(input,'readPages'),false);return reader;}};
+  const open=Function('nodeTypes','captureInstalledSourceServices','SHEETS_LIMITS','SHEETS_READ_OPERATION','registration','revision',
+    'targetVersion','bindingFacts','fail','openSite','createInstalledRowSource','prepareSheetsGridPages','retainInstalledHostInitializationFailure',
+    bodies+'\nreturn loadManagedSheetsGridSource;')(
+    nodeTypes,captureInstalledSourceServices,SHEETS_LIMITS,SHEETS_READ_OPERATION,'sheets','sheets/0.1','target',
+    value=>({columns:value.columns}),code=>{throw Object.assign(new Error(code),{code});},
+    async(profile,actualSite,options,publication,actualServices)=>{calls.push('site');assert.equal(actualSite,site);
+      assert.equal(options.runAcquisitionLimits,runAcquisitionLimits);assert.equal(actualServices,services);
+      return{site:physicalSite,authorization,bindingCid:providerCid};},
+    async input=>{calls.push('adapter');assert.equal(input.providerReader,reader);assert.equal(input.environment,environment);
+      assert.equal(input.declaration,prepared.declaration);assert.equal(input.declared,prepared.declared);
+      assert.equal(input.sourceInitialization,scope);assert.equal(input.site,physicalSite);return adapter;},
+    ()=>assert.fail('No callback before the common reader prepares its original acquisition'),async error=>{throw error;});
+  const result=await open({connectorId:'sheet'},{moon,providerMoon:native,sourceInitialization:scope,installation,
+    installationServices:services},site,{catalogCid:providerCid},prepared);
+  assert.equal(result,adapter);assert.deepEqual(calls,['policy','quote','implementation','site','reader','adapter']);
+});

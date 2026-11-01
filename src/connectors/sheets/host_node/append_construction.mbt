@@ -355,3 +355,56 @@ pub fn sheets_append_construction_profile(
     (metadata, None, Some(response_export)),
   ])
 }
+
+///|
+/// Additional standard Source constructor DATA only. The existing reader
+/// already owns raw response parsing, provider rows and output-row workspace.
+/// This adds BOTH schema decoders, fixed grid request/output builders, Host
+/// literal decode and body encoding before the existing HTTP size refusal.
+/// It neither validates a range nor grants Source or Credential authority.
+#export_name("sheetsGridReadConstructionCapacity")
+pub fn sheets_grid_read_construction_capacity(
+  schema_bytes : Int,
+  columns : Int,
+  sheet_id : Int,
+  start_row : Int,
+  end_row : Int,
+  start_column : Int,
+  end_column : Int,
+) -> @execution.ExecutionCapacity? {
+  if schema_bytes < 1 || columns < 1 || columns > 64 {
+    return None
+  }
+  let body = @catalog.read_request_document({
+    sheet_id,
+    start_row,
+    end_row,
+    start_column,
+    end_column,
+  }).stringify()
+  let output = ({ "body": body.to_json() } : Json).stringify()
+  let b = body.length()
+  let refused = ({ "refused": issue_json(BudgetExceeded) } : Json).stringify()
+  let o = Int::max(output.length(), refused.length())
+  guard sheets_column_construction(schema_bytes, columns, 2) is Some(schema) &&
+    sheets_decoded_construction(b, 10, 4) is Some(validation) &&
+    sheets_writer_units(b, 10, 4) is Some(body_writer) &&
+    sheets_writer_units(o, 5, 2) is Some(output_writer) &&
+    @source.json_literal_construction_extent(o, 5, 2) is Some(host) else {
+    return None
+  }
+  sheets_constructor_capacity([
+    schema,
+    schema,
+    validation,
+    body_writer,
+    output_writer,
+    {
+      record_headers: host.record_headers + 2L,
+      reference_slots: host.reference_slots,
+      scalar_words: host.scalar_words,
+      owned_utf16_units: host.owned_utf16_units + schema_bytes.to_int64(),
+      owned_wire_bytes: 2L * b.to_int64(),
+    },
+  ])
+}

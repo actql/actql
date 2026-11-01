@@ -408,3 +408,22 @@ pub fn installed_slack_source_reader_capacity(
   }
   @execution.add_execution_capacity(json, sequence)
 }
+
+///|
+/// Add the selected implementation's original request-constructor DATA to
+/// the SAME existing JSON reader recipe. This neither issues capacity nor
+/// infers HTTP permission from a byte limit; Core still admits the full reader
+/// on its original acquisition. Missing/overflowing constructors fail closed.
+pub fn installed_json_source_reader_capacity_with_request(
+  limits : Array[Int],
+  columns : Int,
+  secret_bytes : Int,
+  request : @execution.ExecutionCapacity?,
+) -> @execution.ExecutionCapacity? {
+  guard request is Some(request) &&
+    installed_json_source_reader_capacity(limits, columns, secret_bytes)
+    is Some(reader) else {
+    return None
+  }
+  @execution.add_execution_capacity(reader, request)
+}

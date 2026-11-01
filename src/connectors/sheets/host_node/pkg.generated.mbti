@@ -38,6 +38,8 @@ pub fn sheets_clear_target_matches(@catalog.ClearRangeBinding, String) -> Bool
 
 pub fn sheets_grid_page_json(Bytes, String, String, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> String
 
+pub fn sheets_grid_read_construction_capacity(Int, Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
+
 pub fn sheets_grid_request_json(String, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> String
 
 pub fn sheets_project_tabs(Bytes, String, Int, Int, Int, Int, Int, Int) -> Result[@catalog.SheetTabsPage, @catalog.SheetTabsIssue]

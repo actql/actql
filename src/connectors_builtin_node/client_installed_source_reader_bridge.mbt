@@ -55,3 +55,16 @@ pub fn client_program_installed_slack_source_reader_capacity(
     limits, columns, secret_bytes, protocol_pages,
   )
 }
+
+///|
+#export_name("clientProgramInstalledJsonSourceReaderCapacityWithRequest")
+pub fn client_program_installed_json_source_reader_capacity_with_request(
+  limits : Array[Int],
+  columns : Int,
+  secret_bytes : Int,
+  request : @execution.ExecutionCapacity?,
+) -> @execution.ExecutionCapacity? {
+  @client_local_host.installed_json_source_reader_capacity_with_request(
+    limits, columns, secret_bytes, request,
+  )
+}

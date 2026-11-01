@@ -55579,7 +55579,7 @@
     },
     {
       "module": "src/client_local_host/installed_source_reader_capacity.mbt",
-      "sha256": "d289a6470927ce5558ce0dab27fdfbe6673c737362b3a67adf1b15c280df1e05",
+      "sha256": "6a25530e58d1cfffddf94f7240815b94192f7bc251a3d1b4ca9b74c9c0021d16",
       "operations": [
         {
           "name": "installed_gmail_thread_reader_capacity",
@@ -55588,6 +55588,10 @@
         {
           "name": "installed_json_source_reader_capacity",
           "declaration": "installed_json_source_reader_capacity ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "installed_json_source_reader_capacity_with_request",
+          "declaration": "installed_json_source_reader_capacity_with_request ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , request : @ execution . ExecutionCapacity ? , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "installed_slack_source_reader_capacity",
@@ -55679,12 +55683,74 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "installed_json_source_reader_capacity_with_request"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Managed Sheets grid Source uses the common standard page Reader"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/installed_source_reader_capacity.mbt",
+                "anchor": "pub fn installed_json_source_reader_capacity_with_request("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Managed Sheets grid Source uses the common standard page Reader"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Managed Sheets grid Source uses the common standard page Reader"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Synchronous immutable quantities; no callback, scheduler transition, permission or current observation."
+            },
+            "failure": [
+              {
+                "path": "src/client_local_host/installed_source_reader_capacity.mbt",
+                "anchor": "guard request is Some(request)"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Quantity composition issues no cancellation, retirement or physical acknowledgement."
+            },
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_source_reader_capacity.mbt",
+                "anchor": "@execution.add_execution_capacity(reader, request)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Managed Sheets grid Source uses the common standard page Reader"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/sheets/host_node/source_read_construction_wbtest.mbt",
+                "anchor": "test \"Sheets standard Source request constructor composes through same Core reader without an HTTP grant\""
+              }
+            ]
+          }
         }
       ]
     },
     {
       "module": "src/connectors_builtin_node/client_installed_source_reader_bridge.mbt",
-      "sha256": "4593df941a5c737f7393d7e7c3f2def6d4314ced68e8f608abec7fa2b7e161ff",
+      "sha256": "8794ac88b314cd3cc20b2db225b9beab09066e940ad810272f43538bf69abb2a",
       "operations": [
         {
           "name": "client_program_installed_gmail_thread_reader_capacity",
@@ -55693,6 +55759,10 @@
         {
           "name": "client_program_installed_json_source_reader_capacity",
           "declaration": "client_program_installed_json_source_reader_capacity ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_installed_json_source_reader_capacity_with_request",
+          "declaration": "client_program_installed_json_source_reader_capacity_with_request ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , request : @ execution . ExecutionCapacity ? , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "client_program_installed_json_source_reader_profile",
@@ -55781,6 +55851,68 @@
               {
                 "path": "adapters/connectors/slack/test/slack-source-read.test.mjs",
                 "anchor": "test('managed Slack messages keeps original channel history reply and nanosecond coalescence'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_installed_json_source_reader_capacity_with_request"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Managed Sheets grid Source uses the common standard page Reader"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors_builtin_node/client_installed_source_reader_bridge.mbt",
+                "anchor": "pub fn client_program_installed_json_source_reader_capacity_with_request("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Managed Sheets grid Source uses the common standard page Reader"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Managed Sheets grid Source uses the common standard page Reader"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Synchronous immutable quantities; no callback, scheduler transition, permission or current observation."
+            },
+            "failure": [
+              {
+                "path": "src/client_local_host/installed_source_reader_capacity.mbt",
+                "anchor": "guard request is Some(request)"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Quantity composition issues no cancellation, retirement or physical acknowledgement."
+            },
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_source_reader_capacity.mbt",
+                "anchor": "@execution.add_execution_capacity(reader, request)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Managed Sheets grid Source uses the common standard page Reader"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/sheets/host_node/source_read_construction_wbtest.mbt",
+                "anchor": "test \"Sheets standard Source request constructor composes through same Core reader without an HTTP grant\""
               }
             ]
           }

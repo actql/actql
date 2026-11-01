@@ -872,6 +872,7 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
   const sourcePolicy = moon.clientProgramInstalledSourceReaderPolicy;
   const sourceProfile = moon.clientProgramInstalledJsonSourceReaderProfile;
   const sourceCapacity = moon.clientProgramInstalledJsonSourceReaderCapacity;
+  const sourceRequestCapacity = moon.clientProgramInstalledJsonSourceReaderCapacityWithRequest;
   const gmailThreadCapacity = moon.clientProgramInstalledGmailThreadReaderCapacity;
   const slackCapacity = moon.clientProgramInstalledSlackSourceReaderCapacity;
   const current = () => {
@@ -920,13 +921,29 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
         fail('InvalidInstalledSourceReaderSelection');
       }
       const fields = Object.getOwnPropertyDescriptors(options ?? {});
-      if (Reflect.ownKeys(fields).length !== (Object.hasOwn(fields, 'sourceInitialization') ? 4 : 3) || ['installation', 'limits', 'columnCount'].some(name =>
+      if (Reflect.ownKeys(fields).length !== (Object.hasOwn(fields, 'sourceInitialization') ? 4 : 3) +
+          (Object.hasOwn(fields, 'requestConstruction') ? 1 : 0) || ['installation', 'limits', 'columnCount'].some(name =>
         !Object.hasOwn(fields[name] ?? {}, 'value'))) fail('InvalidInstalledSourceReaderSelection');
       if (nodeTypes.isProxy(fields.limits.value ?? {})) fail('InvalidInstalledSourceReaderSelection');
       const installation = fields.installation.value, runtimeBundleCid = selected.get(installation);
       if (runtimeBundleCid === undefined) fail('ForeignInstalledHostServiceInstallation');
       const selection = requireSourceConstructor(services, installation, fields);
       const columns = fields.columnCount.value;
+      let requestConstruction;
+      if (Object.hasOwn(fields, 'requestConstruction')) {
+        const field = fields.requestConstruction;
+        if (!Object.hasOwn(field, 'value') || !field.value || nodeTypes.isProxy(field.value) ||
+            !Object.isFrozen(field.value)) fail('InvalidInstalledSourceRequestConstruction');
+        const original = Object.getOwnPropertyDescriptors(field.value);
+        if (Reflect.ownKeys(original).length !== 2 ||
+            !Object.hasOwn(original.capacity ?? {}, 'value') ||
+            !Object.hasOwn(original.maxRequestBytes ?? {}, 'value') ||
+            !Number.isSafeInteger(original.maxRequestBytes.value) ||
+            original.maxRequestBytes.value < 1 || original.maxRequestBytes.value > 2147483647) {
+          fail('InvalidInstalledSourceRequestConstruction');
+        }
+        requestConstruction = field.value;
+      }
       const profile = sourceProfiles.get(selection);
       let supplied = Object.getOwnPropertyDescriptors(fields.limits.value ?? {}), calendarLimits, nestedLimits, threadLimits, slackLimits;
       if (Object.getOwnPropertyDescriptor(installation, 'registration')?.value === 'gmail' &&
@@ -951,6 +968,10 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
         calendarLimits = projected.original;
         supplied = Object.getOwnPropertyDescriptors(projected.limits);
       }
+      if (requestConstruction !== undefined &&
+          (calendarLimits !== undefined || nestedLimits !== undefined || threadLimits !== undefined || slackLimits !== undefined)) {
+        fail('InstalledSourceReaderRequestConstructionChanged');
+      }
       const names = [...installedJsonSourceReaderLimitNames, 'maxSecretBytes'];
       if (names.some(name => !Object.hasOwn(supplied[name] ?? {}, 'value') ||
           !Number.isSafeInteger(supplied[name].value) || supplied[name].value < 1 || supplied[name].value > 2147483647)) {
@@ -961,7 +982,7 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
             !(nestedLimits !== undefined && name === 'maxPages') && supplied[name].value > profile.value[name]))) {
         fail('InstalledSourceReaderImplementationBoundsExceeded');
       }
-      if ([sourcePolicy, sourceCapacity].some(port => typeof port !== 'function')) fail('InstalledSourceReaderRuntimeUnavailable');
+      if ([sourcePolicy, requestConstruction === undefined ? sourceCapacity : sourceRequestCapacity].some(port => typeof port !== 'function')) fail('InstalledSourceReaderRuntimeUnavailable');
       const policy = Reflect.apply(sourcePolicy, moon, []);
       if (!Array.isArray(policy) || policy.length !== 3 || policy.some(value =>
         !Number.isSafeInteger(value) || value < 1 || value > 2147483647) ||
@@ -970,7 +991,8 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
       const limits = Object.freeze(Object.fromEntries(names.map(name => [name, supplied[name].value])));
       const previous = sourceImplementations.get(selection);
       if (previous !== undefined) {
-        if (previous.runtimeBundleCid !== runtimeBundleCid || previous.columns !== columns ||
+        if (previous.requestConstruction !== requestConstruction ||
+            previous.runtimeBundleCid !== runtimeBundleCid || previous.columns !== columns ||
             (previous.nestedLimits === undefined) !== (nestedLimits === undefined) ||
             nestedLimits !== undefined && Object.keys(nestedLimits.original).some(function sequenceSelectionChanged(name) {
               return previous.nestedLimits.original[name] !== nestedLimits.original[name];
@@ -992,13 +1014,15 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
       }
       if (threadLimits !== undefined && typeof gmailThreadCapacity !== 'function') fail('InstalledSourceReaderRuntimeUnavailable');
       if (slackLimits !== undefined && typeof slackCapacity !== 'function') fail('InstalledSourceReaderRuntimeUnavailable');
-      const capacity = Reflect.apply(slackLimits !== undefined ? slackCapacity : threadLimits === undefined ? sourceCapacity : gmailThreadCapacity, moon,
+      const capacity = Reflect.apply(slackLimits !== undefined ? slackCapacity : threadLimits === undefined ? requestConstruction === undefined ? sourceCapacity : sourceRequestCapacity : gmailThreadCapacity, moon,
         [nestedLimits?.quote ?? installedJsonSourceReaderLimitNames.map(name => limits[name]), columns, limits.maxSecretBytes,
-          ...(slackLimits !== undefined ? [slackLimits.original.maxPages] : threadLimits === undefined ? [] : [threadLimits.original.maxPages,threadLimits.original.maxMailboxBytes])]);
+          ...(slackLimits !== undefined ? [slackLimits.original.maxPages] : threadLimits === undefined
+            ? requestConstruction === undefined ? [] : [requestConstruction.capacity]
+            : [threadLimits.original.maxPages,threadLimits.original.maxMailboxBytes])]);
       if (capacity === undefined || capacity === null) fail('InstalledSourceReaderCapacityUnavailable');
       const value = Object.freeze({capacity, limits, runAcquisitionLimits: Object.freeze({
         maxBindings: policy[1], maxSecretBytes: limits.maxSecretBytes})});
-      current(); sourceImplementations.set(selection, Object.freeze({runtimeBundleCid, columns, calendarLimits, nestedLimits, threadLimits, slackLimits, value}));
+      current(); sourceImplementations.set(selection, Object.freeze({runtimeBundleCid, columns, calendarLimits, nestedLimits, threadLimits, slackLimits, requestConstruction, value}));
       return value;
     },
     createSourceReader(options) {
@@ -1023,6 +1047,7 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
       // sequence. Keep this entry refused until that same Source recipe owns
       // constructor, prefix, output and failed-child overlap before use.
       if (managedSequence && implementation.threadLimits === undefined && implementation.slackLimits === undefined) fail('InstalledSourceReaderReadChildCapacityUnavailable');
+      if (implementation.requestConstruction !== undefined && !standard) fail('InstalledSourceReaderStandardSelectionRequired');
       if (implementation.nestedLimits !== undefined && !managedSequence) fail('InstalledSourceReaderSequenceSelectionRequired');
       if (implementation.slackLimits !== undefined && !managedSequence) fail('InstalledSourceReaderSequenceSelectionRequired');
       if (implementation.threadLimits !== undefined && !managedSequence) fail('InstalledSourceReaderSequenceSelectionRequired');
@@ -1034,6 +1059,7 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
         originalSite, [readerField]: fields[readerField].value, assertCurrent: current,
         maxResponses: nested?.responses ?? limits.maxPages,
         ...(standard ? {operation: fields.operation.value,
+          ...(implementation.requestConstruction === undefined ? {} : {maxRequestBytes:implementation.requestConstruction.maxRequestBytes}),
           maxResponseBytes: limits.maxResponseBytes, maxTotalResponseBytes: limits.maxTotalResponseBytes,
           maxSecretBytes: limits.maxSecretBytes} : {}),
         ...(managedSequence ? {maxResponseBytes: limits.maxResponseBytes,

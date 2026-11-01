@@ -119748,7 +119748,7 @@
     },
     {
       "module": "adapters/host-node/installed-host-services.mjs",
-      "sha256": "ebcdc4731bed592ed91ab82bd3fda98af55bd796db15baa21a31b25913a552d1",
+      "sha256": "88daabd534fd0d54d4696c0773db51e6aa85965bfddd4ebdc3fa27d1ccbb1113",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",

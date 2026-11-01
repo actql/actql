@@ -13,6 +13,8 @@ import {createInstalledRowSource, installRowSourceAuthorization,
   openRowSourceCredentialSite, rowSourceCheckEnvironment, rowSourceMapping}
   from '../../../host-node/installed-row-source.mjs';
 import {createInstalledRowEffect} from '../../../host-node/installed-row-effect.mjs';
+import {captureInstalledSourceServices} from '../../../host-node/installed-host-services.mjs';
+import {prepareSheetsGridPages} from '../site/sheets-grid-pages.mjs';
 import {checkSheetsGridConfiguration, checkSheetsTarget, prepareSheetsAppend,
   projectSheetsAppend, prepareSheetsTargetRequest, projectSheetsTarget, readSheetsGrid, SHEETS_APPEND_OPERATION,
   SHEETS_READ_OPERATION, SHEETS_LIMITS, readSheetsRangeTarget} from '../site/sheets-exchange.mjs';
@@ -200,6 +202,7 @@ async function openSite(profile, site, options, publication, installationService
       installation,
       ...(options.sourceInitialization === undefined ? {} : {sourceInitialization: options.sourceInitialization}),
       accountConfiguration: profile.accountConfigurationWire,
+      ...(options.runAcquisitionLimits === undefined ? {} : {runAcquisitionLimits:options.runAcquisitionLimits}),
       connection, ...configuration}]));
   } else {
     authorization = await installRowSourceAuthorization({
@@ -294,6 +297,82 @@ function bindSheetsAppendConstructionProfile(providerMoon, columns) {
   }});
 }
 
+// Preserve this implementation's existing response/cell limits. These are
+// rejection/representation bounds, not user resource knobs or an admission.
+function sheetsGridReaderLimits(site, publication, secretBytes) {
+  const rows = SHEETS_LIMITS.maxRows, columns = site.columns.length;
+  const names = site.columns.map(column => column.name);
+  const target = {version: targetVersion, catalog_cid: publication.catalogCid,
+    binding: bindingFacts(site), fields: names};
+  const nameUnits = names.reduce((sum, name) => sum + name.length, 0);
+  return Object.freeze({maxResponseBytes:SHEETS_LIMITS.maxResponseBytes,
+    maxTotalResponseBytes:SHEETS_LIMITS.maxResponseBytes,
+    maxNodes:SHEETS_LIMITS.maxNodes,maxDepth:SHEETS_LIMITS.maxDepth,
+    maxRows:rows,maxTotalRows:rows,maxPages:1,pageSize:rows,
+    // This one-page grid reader retains no cursor or row-identity strings.
+    // Positive unused dimensions satisfy the common recipe grammar; these
+    // are not cell-value limits (including a declared column named "id").
+    maxCursorBytes:1,maxIdentityBytes:1,
+    maxTargetBytes:Buffer.byteLength(JSON.stringify(target)),
+    maxValueNodes:1,maxValueTextBytes:SHEETS_LIMITS.maxResponseBytes,
+    // The scalar values borrow at most the original response text. Each
+    // original UTF16 unit may escape to six ASCII units; repeated column keys
+    // and row punctuation are bounded independently by this exact schema.
+    maxRowsWireBytes:6*SHEETS_LIMITS.maxResponseBytes + rows*(6*nameUnits+4*columns+3)+2,
+    maxRowsWireNodes:1+rows*(columns+1),maxRowsWireDepth:4,maxSecretBytes:secretBytes});
+}
+
+async function loadManagedSheetsGridSource(profile, options, site, publication, prepared) {
+  const {moon,providerMoon,sourceInitialization,installation,installationServices}=options;
+  const services=captureInstalledSourceServices(installationServices,()=>Object.assign(
+    new Error('InstalledSheetsSourceServicesUnavailable'),{code:'InstalledSheetsSourceServicesUnavailable'}));
+  const policy=checkedSourceMethod(moon,'clientProgramInstalledSourceReaderPolicy');
+  const selected=Reflect.apply(policy,moon,[]);
+  if(!Array.isArray(selected)||selected.length!==3||selected.some(n=>!Number.isSafeInteger(n)||n<1)) {
+    fail('InstalledSheetsSourcePolicyUnavailable');
+  }
+  const quote=checkedSourceMethod(providerMoon,'sheetsGridReadConstructionCapacity');
+  const requestCapacity=Reflect.apply(quote,providerMoon,[Buffer.byteLength(JSON.stringify(site.columns)),
+    site.columns.length,...[site.gridRange.sheetId,site.gridRange.startRow,site.gridRange.endRow,
+      site.gridRange.startColumn,site.gridRange.endColumn]]);
+  const limits=sheetsGridReaderLimits(site,publication,selected[0]);
+  const requestConstruction=Object.freeze({capacity:requestCapacity,maxRequestBytes:SHEETS_LIMITS.maxRequestBytes});
+  const implementation=services('sourceReaderImplementation',{installation,sourceInitialization,limits,
+    columnCount:site.columns.length,requestConstruction});
+  let opened,providerReader;
+  try {
+    opened=await openSite(profile,site,{...options,runAcquisitionLimits:implementation.runAcquisitionLimits},
+      publication,installationServices);
+    providerReader=services('createSourceReader',{installation,sourceInitialization,implementation,site:opened.site,
+      operation:SHEETS_READ_OPERATION,preparePageReader({resource,columns},applySynchronousProjection){
+        if(resource!=='rows')fail('UndeclaredSheetsResource');
+        return prepareSheetsGridPages({moon:providerMoon,spreadsheetId:site.spreadsheetId,
+          columns:site.columns,range:site.gridRange,names:columns,limits:SHEETS_LIMITS},applySynchronousProjection);
+      }});
+    if(providerReader.capacity!==implementation.capacity)fail('InstalledSheetsReaderImplementationMismatch');
+    const {declaration,declared,environment}=prepared;
+    return await createInstalledRowSource({moon,declaration,declared,environment,environmentWire:environment.wire,
+      sourceInitialization,connectorId:profile.connectorId,connectorRegistration:registration,connectorRevision:revision,
+      site:opened.site,authorization:opened.authorization,readOperation:SHEETS_READ_OPERATION,bindingCid:opened.bindingCid,
+      physicalTarget(resource,fields){if(resource!=='rows')fail('UndeclaredSheetsResource');
+        return Object.freeze({version:targetVersion,catalog_cid:publication.catalogCid,
+          binding:bindingFacts(site),fields:Object.freeze([...fields])});},
+      limits:{maxPages:1,maxPageBytes:SHEETS_LIMITS.maxResponseBytes,maxPageRows:SHEETS_LIMITS.maxRows,
+        maxCaptureRows:SHEETS_LIMITS.maxRows},providerReader});
+  }catch(cause){throw await retainInstalledHostInitializationFailure(cause,
+    {sourceReader:providerReader,sourceProfile:opened?.site});}
+}
+
+function checkedSourceMethod(receiver,name) {
+  if(receiver===null||!['object','function'].includes(typeof receiver)||nodeTypes.isProxy(receiver)) {
+    fail('InstalledSheetsSourceRuntimeUnavailable');
+  }
+  const field=Object.getOwnPropertyDescriptor(receiver,name);
+  if(!field||!Object.hasOwn(field,'value')||typeof field.value!=='function'||
+      nodeTypes.isProxy(field.value)||nodeTypes.isAsyncFunction(field.value))fail('InstalledSheetsSourceRuntimeUnavailable');
+  return field.value;
+}
+
 async function load(profile, options, effect) {
   const {moon, providerMoon, baseEnvironmentWire, sourceInitialization, configurationReader} = options;
   if (sourceInitialization !== undefined && configurationReader === undefined) {
@@ -322,6 +401,9 @@ async function load(profile, options, effect) {
     }
     const value = {...body, command_contracts: [rangeCommand.command]};
     environment = {wire: canonicalJson({...value, evidence_bundle_cid: contentCid(value)})};
+  }
+  if (!effect && rangeCommand === undefined && sourceInitialization !== undefined) {
+    return loadManagedSheetsGridSource(profile, options, site, publication, restored);
   }
   const opened = await openSite(profile, site, options, publication,
     effect && rangeCommand === undefined ? options.installationServices : undefined);
