@@ -73463,7 +73463,7 @@
             "cancellation": [
               {
                 "path": "src/client_host_wasm/submission_lookup.mbt",
-                "anchor": "return cancellation().map(_ => Some(selected))"
+                "anchor": "return match cancellation() {"
               },
               {
                 "path": "src/client_host_wasm/submission_lookup.mbt",
@@ -73506,7 +73506,7 @@
     },
     {
       "module": "src/client_host_wasm/submission_lookup.mbt",
-      "sha256": "abad7499bbfca1160c5c83a4a06498760478ef6ce39b0613c12588e2471e5a4e",
+      "sha256": "8311d9382d2dedf284359c75a7072b071b1a9c4aab22ca7e76e36e381f343845",
       "exports": [],
       "operations": [
         {
@@ -73614,7 +73614,7 @@
             "cancellation": [
               {
                 "path": "src/client_host_wasm/submission_lookup.mbt",
-                "anchor": "return cancellation().map(_ => Some(selected))"
+                "anchor": "return match cancellation() {"
               },
               {
                 "path": "src/client_host_wasm/submission_lookup.mbt",

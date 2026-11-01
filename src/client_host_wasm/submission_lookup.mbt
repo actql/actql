@@ -144,7 +144,11 @@ fn observe_submission_lookup(
     match
       @host.read_client_saved_submission(reference, read, inspect_run, -31) {
       Err(code) => Err(code)
-      Ok(snapshot) => cancellation().map(_ => snapshot)
+      Ok(snapshot) =>
+        match cancellation() {
+          Ok(_) => Ok(snapshot)
+          Err(code) => Err(code)
+        }
     }
   } else {
     @host.inspect_client_saved_submission(
@@ -202,7 +206,10 @@ fn submission_run_reference_snapshot(
         Ok(value) => value
         Err(code) => return Err(code)
       }
-      return cancellation().map(_ => Some(selected))
+      return match cancellation() {
+        Ok(_) => Ok(Some(selected))
+        Err(code) => Err(code)
+      }
     }
     return @host.inspect_client_saved_run_reference(
       namespace, scope, definition, 1024, scan, read, inspect_run, cancellation,
