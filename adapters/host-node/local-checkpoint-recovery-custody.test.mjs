@@ -54,24 +54,30 @@ function fixture({wrongPreview = false, releaseFailure, trackResource = false} =
     recoveredCount: () => recoveredCount, resourceClosed: () => resourceClosed, failRelease(value) {fail = value;}, revoke() {current = false;}};
 }
 
-test('signing recovery relinquishes only its original temporary schema custody before returning metadata', async () => {
-  const f = fixture(), result = await f.load(f.view);
-  assert.strictEqual(result.materials, f.recovered.materials);
-  assert.strictEqual(result.invocation, f.recovered.computation.invocation);
+test('signing recovery relinquishes only its original temporary schema custody after consuming metadata', async () => {
+  const f = fixture(); let observation;
+  const result = await f.load(f.view, undefined, async original => {
+    assert.strictEqual(original.materials, f.recovered.materials);
+    assert.strictEqual(original.invocation, f.recovered.computation.invocation);
+    assert(f.localSigningRecoveries.has(f.recovered)); original.assertCurrent();
+    observation = original.assertCurrent; return 'original bounded answer';
+  });
+  assert.equal(result, 'original bounded answer');
   assert.equal(f.localSigningRecoveries.size, 0); assert.equal(f.calls.length, 1);
-  assert.equal(f.recoveredCount(), 1); result.assertCurrent();
+  assert.equal(f.recoveredCount(), 1);
+  assert.throws(observation, {code: 'LocalSigningOriginalConflict'});
 });
 
 test('foreign Preview refusal still releases its already acquired original recovery', async () => {
   const f = fixture({wrongPreview: true});
-  await assert.rejects(f.load(f.view), {code: 'LocalSigningOriginalConflict'});
+  await assert.rejects(f.load(f.view, undefined, () => assert.fail('foreign Preview cannot enter consumer')), {code: 'LocalSigningOriginalConflict'});
   assert.equal(f.localSigningRecoveries.size, 0); assert.equal(f.calls.length, 1);
 });
 
 test('failed recovery release stays with the same Host and retries without reacquisition or current authority', async () => {
   const failure = new Error('Original temporary schema close failed');
   const f = fixture({wrongPreview: true, releaseFailure: failure});
-  await assert.rejects(f.load(f.view), error => {
+  await assert.rejects(f.load(f.view, undefined, () => assert.fail('foreign Preview cannot enter consumer')), error => {
     assert.equal(error.code, 'LocalSigningCaptureCleanupPending');
     assert.equal(error.cause.code, 'LocalSigningOriginalConflict');
     assert.strictEqual(error.errors[1], failure); return true;
