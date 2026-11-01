@@ -663,10 +663,22 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
   if (!Array.isArray(limits) || limits.length !== 9 ||
       limits.some(value => typeof value !== 'bigint' || value < 0n || value > 9223372036854775807n) ||
       limits.slice(6).some(value => value > 2147483647n)) throw clientOperationError('InvalidHostRuntimeResult');
+  const physical = model.originalReadInstallation;
+  if (physical !== undefined && (count !== 0 ||
+      typeof model.control.prepareCheckedClientRequestNodeModelSourceFreePlan !== 'function')) {
+    throw clientOperationError('NodeManagedRunRuntimeUnavailable');
+  }
+  // The installed Node read's declared complete envelope stays beside its
+  // actual Graph/Request originals. Native Plan validation preserves the
+  // checked non-byte dimensions and refuses insufficient physical extents.
   model.budget = Object.freeze({bootstrapRetainedBytes: limits[0], bootstrapExecutionBytes: limits[1],
-    readRetainedBytes: limits[2], readExecutionBytes: limits[3],
-    modelRetainedBytes: limits[4], modelExecutionBytes: limits[5],
-    maxReservations: Number(limits[6]), maxHoldings: Number(limits[7]), maxDelegations: Number(limits[8])});
+    readRetainedBytes: physical === undefined ? limits[2] : physical.nodeInstallation.layout.retained_bytes,
+    readExecutionBytes: physical === undefined ? limits[3] : physical.nodeInstallation.layout.execution_bytes,
+    modelRetainedBytes: physical === undefined ? limits[4] : physical.modelRetainedBytes,
+    modelExecutionBytes: physical === undefined ? limits[5] : physical.modelExecutionBytes,
+    maxReservations: physical === undefined ? Number(limits[6]) : Math.max(Number(limits[6]), physical.bootstrap.maxReservations),
+    maxHoldings: physical === undefined ? Number(limits[7]) : Math.max(Number(limits[7]), physical.bootstrap.maxHoldings),
+    maxDelegations: physical === undefined ? Number(limits[8]) : Math.max(Number(limits[8]), physical.bootstrap.maxDelegations)});
   current();
   if (count === 0) {
     if (typeof moon.clientProgramPrepareRequestModelSourceFreeModule !== 'function') {
@@ -691,9 +703,13 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
       parent, input, run.request, model.compiled, model.runDefinition, compilation,
       installed.admission, retainedRelationOutput, run.queryTimePreparation));
     current();
-    run.modelPlan = model.control.prepareCheckedClientRequestModelSourceFreePlan(parent, input,
-      run.preparedSequences, run.request, model.compiled, model.runDefinition,
-      model.occurrence, model.graph, model.selectedBounds);
+    run.modelPlan = physical === undefined
+      ? model.control.prepareCheckedClientRequestModelSourceFreePlan(parent, input,
+        run.preparedSequences, run.request, model.compiled, model.runDefinition,
+        model.occurrence, model.graph, model.selectedBounds)
+      : model.control.prepareCheckedClientRequestNodeModelSourceFreePlan(parent, input,
+        run.preparedSequences, run.request, model.compiled, model.runDefinition,
+        model.occurrence, model.graph, model.selectedBounds, physical);
   } else {
     const sources = readInstalledMockPreparation(originals).sources;
     if (sources.length !== 2 || typeof moon.clientProgramPrepareRequestModelCaptureModule !== 'function') {

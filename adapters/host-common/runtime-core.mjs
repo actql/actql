@@ -3483,6 +3483,24 @@ function publicationControl(moon) {
       return checked(Reflect.apply(prepare, moon, [parent, input, original, request, value,
         token(definition), occurrence, graph, selected]));
     },
+    prepareCheckedClientRequestNodeModelSourceFreePlan(parent, input, original, request, compiled, definition,
+      occurrence, graph, selected, installation) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      const prepare = moon.clientProgramPrepareRequestNodeModelSourceFreePlan;
+      if (typeof prepare !== 'function') throw new TypeError('Installed Node Model Plan unavailable');
+      const node = installation.nodeInstallation, census = installation.bootstrap;
+      // SAME immutable installed declaration and opaque selected bounds. The
+      // typed constructor validates layout/originals and the Request admits
+      // these actual extents before Scope/read; no JS Ledger is constructed.
+      return checked(Reflect.apply(prepare, moon, [parent, input, original, request, value,
+        token(definition), occurrence, graph, selected, node.layout, node.installation,
+        node.runtimeArtifactCid, node.layoutArtifactCid, node.probability,
+        installation.modelRetainedBytes, installation.modelExecutionBytes,
+        census.maxReservations, census.maxHoldings, census.maxDelegations]));
+    },
     bindCheckedClientMockModelCapturePlan(original, compiled, definition,
       occurrence, graph, selected) {
       const value = compiledRunTokens.get(compiled);
