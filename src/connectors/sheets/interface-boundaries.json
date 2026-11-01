@@ -7501,7 +7501,7 @@
   {
     "module": "src/connectors/sheets/host_node/range_construction.mbt",
     "responsibilityFacet": "primary",
-    "sha256": "0d9f41cad943b513c51edc571134082888f3ca8cd5ef1db59f42690bcb065a33",
+    "sha256": "de688159914ecc12490cd1e4678e90b65d0c509585c77de913c4b82c781290ef",
     "operations": [
       {
         "name": "sheets_clear_ack_marker_construction",
@@ -7514,6 +7514,10 @@
       {
         "name": "sheets_clear_construction_profile",
         "declaration": "sheets_clear_construction_profile ( binding : @ catalog . ClearRangeBinding , input_bytes : Int , input_nodes : Int , input_depth : Int , response_bytes : Int , response_nodes : Int , response_depth : Int , ) - > Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ?"
+      },
+      {
+        "name": "sheets_clear_recovery_marker_capacity",
+        "declaration": "sheets_clear_recovery_marker_capacity ( depth : Int , ) - > @ execution . ExecutionCapacity ?"
       },
       {
         "name": "sheets_range_ack_projection_construction",
@@ -7565,7 +7569,7 @@
       },
       {
         "name": "sheets_range_recovery_metadata_text_units",
-        "declaration": "sheets_range_recovery_metadata_text_units ( metadata : @ catalog . RangeConstructionMetadata , clear : Bool , ) - > Int64 ?"
+        "declaration": "sheets_range_recovery_metadata_text_units ( metadata : @ catalog . RangeConstructionMetadata , ) - > Int64 ?"
       },
       {
         "name": "sheets_range_request_capacity",
@@ -7804,6 +7808,74 @@
             {
               "path": "docs/design/reference-host.md",
               "anchor": "The native range/clear request profile returns its nominal request quantity"
+            }
+          ]
+        }
+      },
+      {
+        "operations": [
+          "sheets_clear_recovery_marker_capacity"
+        ],
+        "exports": [],
+        "attributes": {
+          "responsibility": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Clear recovery metadata separates its original binding from request markers."
+            }
+          ],
+          "inputsOutputs": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Clear recovery metadata separates its original binding from request markers."
+            }
+          ],
+          "identity": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Clear recovery metadata separates its original binding from request markers."
+            }
+          ],
+          "ownership": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Clear recovery metadata separates its original binding from request markers."
+            }
+          ],
+          "synchronization": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Clear recovery metadata separates its original binding from request markers."
+            }
+          ],
+          "failure": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Clear recovery metadata separates its original binding from request markers."
+            }
+          ],
+          "cancellation": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Clear recovery metadata separates its original binding from request markers."
+            }
+          ],
+          "resources": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Clear recovery metadata separates its original binding from request markers."
+            }
+          ],
+          "extension": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Clear recovery metadata separates its original binding from request markers."
+            }
+          ],
+          "verification": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Clear recovery metadata separates its original binding from request markers."
             }
           ]
         }

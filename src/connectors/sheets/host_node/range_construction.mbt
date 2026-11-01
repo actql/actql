@@ -578,13 +578,13 @@ fn sheets_range_capture_normalization_inputs(
 }
 
 ///|
-// Metadata text already admitted by this SAME binding. Clear validates all
-// 36-ASCII markers and canonical(expected)==wire BEFORE normalizing expected;
+// Fixed metadata text already admitted by this SAME binding. Clear validates
+// its row markers and canonical(expected)==wire BEFORE normalizing expected;
 // unrelated fields in a supplied recovery tree never reach that NFC call.
+// Marker text and metadata-node growth are charged per checked request row.
 // effect_id alone is supplied later by the SAME checked member template.
 fn sheets_range_recovery_metadata_text_units(
   metadata : @catalog.RangeConstructionMetadata,
-  clear : Bool,
 ) -> Int64? {
   guard @execution.checked_preparation_add_product(
       1024L,
@@ -618,15 +618,7 @@ fn sheets_range_recovery_metadata_text_units(
     is Some(total) else {
     return None
   }
-  if clear {
-    @execution.checked_preparation_add_product(
-      total,
-      metadata.limits.max_cells.to_int64(),
-      @catalog.clear_marker_text_units().to_int64(),
-    )
-  } else {
-    Some(total)
-  }
+  Some(total)
 }
 
 ///|
@@ -657,6 +649,72 @@ fn sheets_range_effect_id_capacity() -> @execution.ExecutionCapacity? {
       ),
       owned_wire_bytes: 0L,
     },
+    retained_nodes: 0L,
+    workspace_nodes: 0L,
+    retained_bytes: 0L,
+    workspace_bytes: 0L,
+  })
+}
+
+///|
+// One original validated UUID marker belongs to one checked request row.
+// Compose its additive metadata families through their existing Owners. The
+// enclosing member retains its full wire/forest bounds; this is only the
+// proportional fresh/saved metadata workspace, with no new policy or grant.
+fn sheets_clear_recovery_marker_capacity(
+  depth : Int,
+) -> @execution.ExecutionCapacity? {
+  let units = @catalog.clear_marker_text_units()
+  // The marker is ASCII, but preserve the general JSON escaping envelope.
+  let bytes = 6 * units + 3
+  guard sheets_range_parsed_construction(bytes, 1, depth) is Some(parsed) &&
+    sheets_range_json_inventory(bytes, 1) is Some(native) &&
+    sheets_range_canonical_construction(1, depth) is Some(canonical) &&
+    sheets_writer_units(bytes, 1, depth) is Some(writer) &&
+    sheets_range_normalization_construction(units) is Some(normalization) &&
+    @canonical.nfc_lf_construction_extent(units) is Some(text) &&
+    @shape.collection_construction_extent({
+      // Marker selection, seen-map admission and original ordered vectors.
+      records: 2L,
+      record_references: 4L,
+      record_words: 2L,
+      reference_arrays: 3L,
+      reference_items: 3L,
+      scalar_arrays: 0L,
+      scalar_items: 0L,
+      maps: 1L,
+      map_entries: 1L,
+    })
+    is Some(slots) &&
+    @execution.compose_preparation_representation([
+      parsed,
+      native,
+      native,
+      canonical,
+      writer,
+      writer,
+      normalization,
+      sheets_collection_units(slots),
+      {
+        record_headers: 1L,
+        reference_slots: 0L,
+        scalar_words: 0L,
+        owned_utf16_units: text.max_output_utf16_units,
+        owned_wire_bytes: 0L,
+      },
+    ])
+    is Some(workspace) else {
+    return None
+  }
+  @execution.preparation_execution_capacity({
+    retained: {
+      record_headers: 0L,
+      reference_slots: 0L,
+      scalar_words: 0L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    },
+    workspace,
     retained_nodes: 0L,
     workspace_nodes: 0L,
     retained_bytes: 0L,
@@ -706,7 +764,7 @@ fn sheets_range_capture_profile(
   let (_, entry_bytes) = sheets_range_capture_normalization_inputs(
     binding_bytes, b, clear,
   )
-  guard sheets_range_recovery_metadata_text_units(metadata, clear)
+  guard sheets_range_recovery_metadata_text_units(metadata)
     is Some(metadata_text_units) else {
     return None
   }
@@ -725,8 +783,7 @@ fn sheets_range_capture_profile(
   // UTF8 input is <=3*the retained original UTF16 units. No new input cap.
   let metadata_nodes = 4L * metadata.columns.to_int64() +
     3L * metadata.target_units.to_int64() +
-    64L +
-    (if clear { metadata.limits.max_cells.to_int64() } else { 0L })
+    64L
   if metadata_nodes > 2147483643L {
     return None
   }
@@ -886,6 +943,16 @@ fn sheets_range_capture_profile(
     is Some(row_slots) &&
     @execution.add_execution_capacity(row, row_slots) is Some(row) else {
     return None
+  }
+  let row = if clear {
+    guard sheets_clear_recovery_marker_capacity(metadata.limits.max_depth)
+      is Some(marker) &&
+      @execution.add_execution_capacity(row, marker) is Some(combined) else {
+      return None
+    }
+    combined
+  } else {
+    row
   }
   guard sheets_range_effect_id_capacity() is Some(effect_id) else {
     return None

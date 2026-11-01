@@ -2412,3 +2412,15 @@ Execution and close record failure presence separately from their thrown value:
 execution failure unchanged. A failed or pending close keeps the SAME cleanup
 handle and original primary cause, without projecting a stored response or
 turning cleanup uncertainty into an acknowledgement.
+
+
+Clear recovery metadata separates its original binding from request markers.
+The fixed capture term covers the complete incoming forests, byte refusal,
+original target/columns and returned wire. Each checked request row adds its
+one validated UUID marker, ordered marker/seen-map storage, metadata node,
+canonical writer and NFC construction through the existing representation
+Owners. The same completed Plan resolves this term once with its row inventory;
+the range's cell ceiling remains its independent rejection guard and is not a
+request count. Metadata canonical equality still precedes NFC. The public
+recipe positions and physical attempts/transfers are unchanged; the per-row
+term is temporary constructor workspace, not another grant or cleanup owner.
