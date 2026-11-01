@@ -353,7 +353,7 @@ test('ordinary custody enables its original code cache before compiling the Host
     // This is only byte/module custody, not an operational Host admission.
     // It must load the already-captured helper, not replacement pathname bytes.
     'require("node:fs").writeFileSync(' + JSON.stringify(join(f.root, 'adapters/host-node/compile-cache.mjs')) +
-      ',"throw new Error(\\\"ReplacementCacheMustNotLoad\\\")");',
+      ',' + JSON.stringify('throw new Error("ReplacementCacheMustNotLoad")') + ');',
     'const first=selected.initializeHostNamespace();',
     'assert.deepEqual(coldOrder,["helper","enable","dependency","host"]);',
     'assert.strictEqual(selected.initializeHostNamespace(),first);',
