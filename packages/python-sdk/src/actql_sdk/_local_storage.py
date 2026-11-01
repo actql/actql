@@ -908,7 +908,7 @@ class LocalByteStore:
         database = self._physical
         original_snapshot = (database._snapshot_identity()
                              if type(database) is _SQLiteByteDatabase else None)
-        last_fenced_snapshot: tuple[object, int, int, int] | None = None
+        last_fenced_snapshot: tuple[object, int, int, tuple[int, int]] | None = None
 
         def metadata_fence(*, reuse_snapshot: bool) -> None:
             nonlocal last_fenced_snapshot
