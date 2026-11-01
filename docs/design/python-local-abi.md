@@ -3229,3 +3229,28 @@ full checks. This supplies no active custody transport or lifetime optimization,
 capacity, permission, current-row proof or physical acknowledgment. ABI78 and
 its full public Core validators remain unchanged; no private combined-export,
 ABI82 behavior or runtime timing equivalence is implied.
+
+### Synchronous Saved payload access
+
+A Saved payload access check separates complete stored-original observation from
+fresh current-purpose checks. The private synchronous frame observes the full
+saved chain before and after its read-only delivery/grant validation. It returns
+no successful result, advances no encoder and discloses no payload bytes before
+the final original-chain observation. The existing check after returning the
+physical clock loan remains separate, since that return can invoke cleanup.
+
+Each nested decision still validates the same live parent, original Source,
+finite policy, publication owner/view and current configuration. Run and Result
+Account evaluation, Source/view validity and actual Host current checks remain
+fresh. Physical metadata queries retain their own original before/after current
+fences; delivery heads, cancellation and grant checks are not replaced by a
+saved success. No row, permission or current result survives this synchronous
+frame, and no callback is retained for a later operation.
+
+The Live publication path keeps its existing callback and validation work. The
+Saved frame is private to the selected byte-preparation caller, not an author
+extension point, new original, read grant or capacity service. An initial
+original refusal prevents nested reads; a nested read/current failure remains
+the first failure and is not replaced by a later observation or retry. Changed
+final originals refuse before encoder advancement, while all existing retained
+loans and child-first cleanup duties remain with their original owners.

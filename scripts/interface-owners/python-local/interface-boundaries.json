@@ -1,6 +1,6 @@
 {
   "source": "d5d66cd86ac2e153f31a511e7d37c78e0cc28ae3",
-  "syntaxProjectionSha256": "63d97bbfffc2717d804bbd5fe613afa030ea32a9580b156b982ad0eeb1111e23",
+  "syntaxProjectionSha256": "bd4dd8b0e05c4a0ae6314499b85962187d60346cd3dc74254e6a2bae96d36afc",
   "qualification": "Source-reference coverage only; original Native/FFI/Python executions retain their own source, artifact and target qualifications. No normal funding, VM or installed product admission.",
   "generated": [
     {
@@ -72773,6 +72773,180 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed Guest current observation"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_host_wasm/sdk_payload_bytes.mbt",
+      "sha256": "56d21fbd53950eacf05c3c630b4704eea0205b2189288fac17c79baf1cc81198",
+      "exports": [],
+      "operations": [
+        {
+          "name": "confirm_publication_sdk_payload_chunk",
+          "declaration": "confirm_publication_sdk_payload_chunk ( nonce : Int64 , handle : Int , ) - > Int64"
+        },
+        {
+          "name": "prepare_publication_sdk_payload_input",
+          "declaration": "prepare_publication_sdk_payload_input ( nonce : Int64 , first_handle : Int , clock_input : Int , current_configuration : Int , ) - > Int"
+        },
+        {
+          "name": "produce_publication_sdk_payload_chunk",
+          "declaration": "produce_publication_sdk_payload_chunk ( nonce : Int64 , handle : Int , first_handle : Int , input : Int , clock_input : Int , eof : Int , current_configuration : Int , ) - > Int"
+        },
+        {
+          "name": "produce_publication_sdk_payload_receipt",
+          "declaration": "produce_publication_sdk_payload_receipt ( nonce : Int64 , handle : Int , first_handle : Int , clock_input : Int , current_configuration : Int , ) - > Int"
+        },
+        {
+          "name": "sdk_payload_access_current",
+          "declaration": "sdk_payload_access_current ( value : Instance , first : StoredPublicationCommitExport , context : OriginalSDKReadContext , clock : @ buffers . BufferBorrow , current_configuration : Int , ) - > Result [ Unit , Int ]"
+        },
+        {
+          "name": "sdk_payload_encoding_issue",
+          "declaration": "sdk_payload_encoding_issue ( issue : @ local_run . LocalSDKPayloadEncodingIssue , ) - > Int"
+        },
+        {
+          "name": "sdk_payload_owned_bytes",
+          "declaration": "sdk_payload_owned_bytes ( value : Instance , raw : @ buffers . BufferBorrow , ) - > Result [ Bytes , Int ]"
+        },
+        {
+          "name": "sdk_payload_read_current_frame",
+          "declaration": "sdk_payload_read_current_frame ( original_current : ( ) - > Result [ Unit , Int ] , current : ( ) - > Result [ Unit , Int ] , observe : ( ( ) - > Result [ Unit , Int ] ) - > Result [ Unit , Int ] , ) - > Result [ Unit , Int ]"
+        },
+        {
+          "name": "sdk_payload_return_previous_clock",
+          "declaration": "sdk_payload_return_previous_clock ( value : Instance , output : StoredPublicationCommitExport , clock_input : Int , ) - > Int"
+        },
+        {
+          "name": "sdk_payload_saved_read_current",
+          "declaration": "sdk_payload_saved_read_current ( value : Instance , first : StoredPublicationCommitExport , context : OriginalSDKReadContext , current_configuration : Int , ) - > Result [ Unit , Int ]"
+        }
+      ],
+      "role": "physical-io",
+      "owner": "D / existing Saved SDK read, payload buffer, publication and current Owners",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "confirm_publication_sdk_payload_chunk",
+            "prepare_publication_sdk_payload_input",
+            "produce_publication_sdk_payload_chunk",
+            "produce_publication_sdk_payload_receipt",
+            "sdk_payload_access_current",
+            "sdk_payload_encoding_issue",
+            "sdk_payload_owned_bytes",
+            "sdk_payload_read_current_frame",
+            "sdk_payload_return_previous_clock",
+            "sdk_payload_saved_read_current"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Synchronous Saved payload access"
+              },
+              {
+                "path": "src/client_host_wasm/sdk_payload_bytes.mbt",
+                "anchor": "fn sdk_payload_read_current_frame("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_host_wasm/sdk_payload_bytes.mbt",
+                "anchor": "fn sdk_payload_access_current("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Synchronous Saved payload access"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_host_wasm/sdk_payload_bytes.mbt",
+                "anchor": "physical_equal(source, context.source)"
+              },
+              {
+                "path": "src/client_host_wasm/sdk_payload_bytes.mbt",
+                "anchor": "physical_equal(owner, context.owner)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_host_wasm/sdk_payload_bytes.mbt",
+                "anchor": "first.sdk_payload_tick_borrow = Some(clock)"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Synchronous Saved payload access"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_host_wasm/sdk_payload_bytes.mbt",
+                "anchor": "first.pending = true"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Synchronous Saved payload access"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_host_wasm/sdk_payload_bytes.mbt",
+                "anchor": "match observe(current) {"
+              },
+              {
+                "path": "src/client_host_wasm/sdk_payload_access_frame_wbtest.mbt",
+                "anchor": "test \"saved payload access frame preserves the original read failure without replacement or retry\""
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_host_wasm/sdk_payload_bytes.mbt",
+                "anchor": "if value.closing || value.runtime_closing || first.closing {"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Synchronous Saved payload access"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_host_wasm/sdk_payload_bytes.mbt",
+                "anchor": "let clock = match"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Synchronous Saved payload access"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_host_wasm/sdk_payload_bytes.mbt",
+                "anchor": "if value.publications.contains(first.publication) {"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Synchronous Saved payload access"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_host_wasm/sdk_payload_access_frame_wbtest.mbt",
+                "anchor": "test \"saved payload access frame observes originals at boundaries and current at every nested decision\""
+              },
+              {
+                "path": "src/client_host_wasm/sdk_payload_access_frame_wbtest.mbt",
+                "anchor": "test \"saved payload access frame retains current revocation and stops further reads\""
+              },
+              {
+                "path": "src/client_host_wasm/sdk_payload_access_frame_wbtest.mbt",
+                "anchor": "test \"saved payload access frame rejects changed final originals before encoder advancement\""
               }
             ]
           }
