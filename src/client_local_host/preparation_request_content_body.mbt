@@ -168,6 +168,33 @@ fn[I] prepare_request_serialization_compilation_owned(
   }
   match owner.program_domain_compilation_inputs {
     Some(
+      RequestSerializationGraph(
+        old_manifests,
+        old_limits,
+        old_contracts,
+        old_component
+      )
+    ) => {
+      guard physical_equal(old_manifests, manifests) &&
+        old_limits == compilation_limits &&
+        physical_equal(old_contracts, contracts) &&
+        physical_equal(old_component, component) else {
+        return Err(Preparation(ForeignOriginal))
+      }
+      owner.program_domain_compilation_inputs = Some(
+        match keyed {
+          None =>
+            RequestSerializationCompilation(
+              manifests, compilation_limits, contracts, component,
+            )
+          Some(selected) =>
+            RequestKeyedSerializationCompilation(
+              manifests, compilation_limits, selected, component,
+            )
+        },
+      )
+    }
+    Some(
       RequestSerializationCompilation(
         old_manifests,
         old_limits,

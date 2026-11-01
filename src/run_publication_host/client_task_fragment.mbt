@@ -268,24 +268,78 @@ pub fn measure_prepared_client_task_fragment_construction(
   if max_wire_bytes <= 0 || max_nodes <= 0 || max_depth <= 0 {
     return Err(InvalidLimits)
   }
+  let input = match
+    prepare_prepared_client_task_pipeline_input(value, task, sequence_limits) {
+    Ok(input) => input
+    Err(issue) => return Err(Pipeline(issue))
+  }
+  guard @strategy.graph_task_owner(value.graph, task) is Some(owner) &&
+    client_task_output_target(value.graph, task) is Some(target) else {
+    return Err(MissingTask)
+  }
+  measure_client_task_fragment_construction(
+    owner,
+    target,
+    @strategy.graph_task_selected_step(value.graph, task),
+    client_compilation_task_node_id(task),
+    input,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
+// Private shared measurement of the same fragment emitter. Prefix callers
+// supply their original checked owner/target, not a fabricated Prepared/Graph.
+fn measure_client_task_fragment_construction(
+  owner : @lower.BoundPrepared,
+  target : @pipeline.Target,
+  selected : Int?,
+  node_id : String,
+  input : ClientTaskPipelineInput,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  serialization_input? : @lower.PreparedSerialization? = None,
+) -> Result[ClientTaskFragmentConstruction, ClientTaskFragmentIssue] {
   let (initial, pipeline) = match
-    measure_prepared_client_task_pipeline_construction(
-      value, task, sequence_limits, max_wire_bytes, max_nodes, max_depth,
+    measure_client_task_pipeline_construction(
+      input, max_wire_bytes, max_nodes, max_depth,
     ) {
     Ok(geometry) => geometry
     Err(issue) => return Err(Pipeline(issue))
   }
-  guard @strategy.graph_task_owner(value.graph, task) is Some(owner) &&
-    client_task_output_target(value.graph, task) is Some(target) &&
+  guard physical_equal(input.owner, owner) &&
     client_task_target_port(@lower.bound_preparation(owner), target)
     is Some(output_port) else {
     return Err(MissingTask)
   }
-  let selected = @strategy.graph_task_selected_step(value.graph, task)
-  let node_id = client_compilation_task_node_id(task)
   let prepared = @lower.bound_preparation(owner)
-  guard @lower.preparation_carrier_at(prepared, target) is Some(output_carrier) &&
-    measure_client_task_carrier_contract(
+  let output_carrier = match serialization_input {
+    Some(barrier) => {
+      guard physical_equal(@lower.serialization_owner(barrier), owner) &&
+        target == @pipeline.Step(@lower.serialization_step(barrier)) &&
+        @pipeline.serialization_sort(@lower.serialization_checked(barrier))
+        is Some(_) else {
+        return Err(MissingOutput)
+      }
+      @carrier.relation(
+        @carrier.typed_rows(
+          @pipeline.serialization_input_schema(
+            @lower.serialization_checked(barrier),
+          ),
+        ),
+      )
+    }
+    None => {
+      guard @lower.preparation_carrier_at(prepared, target) is Some(carrier) else {
+        return Err(MissingOutput)
+      }
+      carrier
+    }
+  }
+  guard measure_client_task_carrier_contract(
       output_carrier, max_wire_bytes, max_nodes, max_depth,
     )
     is Some(output_contract) else {

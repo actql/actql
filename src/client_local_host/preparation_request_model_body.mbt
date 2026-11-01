@@ -87,6 +87,36 @@ pub fn[I] prepare_request_model_compilation(
     return Err(Installed(Unsupported))
   }
   match owner.program_domain_compilation_inputs {
+    Some(RequestModelGraph(old_manifests, old_limits, old_contracts, original)) => {
+      guard physical_equal(old_manifests, manifests) &&
+        old_limits == compilation_limits &&
+        physical_equal(old_contracts, contracts) &&
+        physical_equal(original, graph) else {
+        return Err(Preparation(ForeignOriginal))
+      }
+      owner.program_domain_compilation_inputs = Some(
+        RequestModelCompilation(manifests, compilation_limits, contracts, graph),
+      )
+    }
+    Some(
+      RequestSerializationGraph(
+        old_manifests,
+        old_limits,
+        old_contracts,
+        component
+      )
+    ) => {
+      guard physical_equal(old_manifests, manifests) &&
+        old_limits == compilation_limits &&
+        physical_equal(old_contracts, contracts) &&
+        graph.serialization is Some(original) &&
+        physical_equal(original, component) else {
+        return Err(Preparation(ForeignOriginal))
+      }
+      owner.program_domain_compilation_inputs = Some(
+        RequestModelCompilation(manifests, compilation_limits, contracts, graph),
+      )
+    }
     Some(
       RequestModelCompilation(
         old_manifests,

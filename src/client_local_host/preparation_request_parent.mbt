@@ -49,6 +49,20 @@ priv enum ClientRequestDomainCompilationInputs {
     ClientInstalledSequenceContracts,
     @publication_host.ClientInferPlanGraph
   )
+  // The original component is already backed before the caller can compile
+  // it. Reuse this same four-reference slot, then transfer it to that compiler.
+  RequestModelGraph(
+    @publication_host.ClientCompilationManifests,
+    @publication_host.ClientPureCompilationLimits,
+    ClientInstalledSequenceContracts,
+    @publication_host.ClientInferPlanGraph
+  )
+  RequestSerializationGraph(
+    @publication_host.ClientCompilationManifests,
+    @publication_host.ClientPureCompilationLimits,
+    ClientInstalledSequenceContracts,
+    @publication_host.ClientSerializationPlanGraph
+  )
   RequestSerializationCompilation(
     @publication_host.ClientCompilationManifests,
     @publication_host.ClientPureCompilationLimits,
@@ -107,7 +121,7 @@ struct ClientRequestPreparation[I] {
   mut program_data : @checked.ParsedCheckDataEstimate?
   mut program_plan_quote : (Int64, Int64)?
   mut program_measurement_quote : (Int64, Int64)?
-  // Model Scope and Content Plan are exclusive domain constructors. Retain
+  // Graph, Model Scope and Content Plan are exclusive domain constructors. Retain
   // their absolute target in the same prepaid slot across a declined grow.
   mut program_domain_quote : (Int64, Int64)?
   mut program_artifact_geometry : @publication_host.ClientPureCompilationConstruction?
@@ -307,7 +321,8 @@ pub fn client_request_preparation_control_capacity(
     return None
   }
   // One trusted private control group: invocation sizing/Option/lean view, or
-  // the exclusive read-only capture-recovery quote/reader controls. This is
+  // the exclusive read-only capture-recovery quote/reader controls, or the
+  // pre-compiler Content Graph measurement/selection call frame. This is
   // installed coarse control overhead, not variable wire/body admission.
   if retained > limits.retained_bytes {
     return None

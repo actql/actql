@@ -678,6 +678,33 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         originalInputs: Object.freeze({environment, parameters: undefined,
           parametersCursor: state.parametersCursor})});
     },
+    prepareModelGraph(prepared, request, occurrence, execution) {
+      current();
+      const producer = producerForRequest(request), state = producer?.preparation;
+      if (state?.preparationFailed) throw state.preparationFailure;
+      if (state === undefined || state.prepared !== prepared || state.compilationFamily !== 'model' ||
+          state.holder === undefined || state.inventoryHolder !== undefined || state.adopting ||
+          state.preparing || state.modelGraph !== undefined) fail('ForeignInstalledSourceProducer');
+      const moon = state.context.runtime, contracts = originals.installation.sequenceContractOriginal;
+      if (contracts?.moon !== moon || moon.clientProgramPreparationBorrowRead(state.holder) !== prepared) {
+        fail('ForeignInstalledSourceProducer');
+      }
+      const construct = moon.clientProgramPrepareRequestModelGraph;
+      const issue = moon.clientProgramRequestProgramModuleIssueCode;
+      if (typeof construct !== 'function' || typeof issue !== 'function') fail('NodeManagedRunRuntimeUnavailable');
+      state.preparing = true;
+      try {
+        state.modelGraph = checkedRequestProgramPreparation(moon, Reflect.apply(construct, moon,
+          [state.parent, producer.receipt, occurrence, execution, contracts.admission]), issue);
+        if (state.modelGraph === undefined) fail('NodeManagedRunCompilationUnavailable');
+        current();
+        if (producer.finished || producer.preparation !== state || state.prepared !== prepared ||
+            moon.clientProgramPreparationBorrowRead(state.holder) !== prepared) fail('ForeignInstalledSourceProducer');
+        return state.modelGraph;
+      } catch (cause) {
+        state.preparationFailed = true; state.preparationFailure = cause; throw cause;
+      } finally {state.preparing = false;}
+    },
     prepareModelCompilation(prepared, request, graph) {
       current();
       const producer = producerForRequest(request), state = producer?.preparation;
@@ -714,6 +741,34 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       } catch (cause) {
         state.preparationFailed = true; state.preparationFailure = cause;
         throw cause;
+      } finally {state.preparing = false;}
+    },
+    prepareContentGraph(prepared, request, constructOriginal) {
+      current();
+      const producer = producerForRequest(request), state = producer?.preparation;
+      if (state?.preparationFailed) throw state.preparationFailure;
+      if (state === undefined) return undefined;
+      if (state.prepared !== prepared || !['content', 'model'].includes(state.compilationFamily) ||
+          state.holder === undefined || state.inventoryHolder !== undefined || state.adopting ||
+          state.preparing || typeof constructOriginal !== 'function') fail('ForeignInstalledSourceProducer');
+      const moon = state.context.runtime, contracts = originals.installation.sequenceContractOriginal;
+      if (contracts?.moon !== moon || moon.clientProgramPreparationBorrowRead(state.holder) !== prepared) {
+        fail('ForeignInstalledSourceProducer');
+      }
+      if (state.contentGraph !== undefined) return state.contentGraph;
+      state.preparing = true;
+      try {
+        // Retain before post-callback current can fail. This same Request's
+        // original cleanup owns the native component and its partial peak.
+        state.contentGraph = Reflect.apply(constructOriginal, undefined,
+          [state.parent, producer.receipt, contracts.admission]);
+        if (state.contentGraph === undefined) fail('NodeManagedRunCompilationUnavailable');
+        current();
+        if (producer.finished || producer.preparation !== state || state.prepared !== prepared ||
+            moon.clientProgramPreparationBorrowRead(state.holder) !== prepared) fail('ForeignInstalledSourceProducer');
+        return state.contentGraph;
+      } catch (cause) {
+        state.preparationFailed = true; state.preparationFailure = cause; throw cause;
       } finally {state.preparing = false;}
     },
     prepareContentCompilation(prepared, request, graph, compileOriginal) {
@@ -931,7 +986,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
           children: [], fileIdentity: undefined, value};
         producer.liveRuns++;
         runs.set(prepared, run); liveRuns.add(run);
-        state.modelCompilation = state.modelGraph = state.modelPlan = undefined;
+        state.modelCompilation = state.modelGraph = state.modelPlan = state.contentGraph = undefined;
         return run;
       } catch (cause) {
         state.adopting = false;
@@ -961,7 +1016,8 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       if (state?.preparationFailed) throw state.preparationFailure;
       if (state === undefined || state.prepared !== prepared || state.compilationFamily !== 'content' ||
           state.holder === undefined || state.inventoryHolder !== undefined || state.adopting ||
-          state.preparing || state.contentGraph !== undefined || state.contentPreparation !== contentPreparation ||
+          state.preparing || state.contentGraph !== undefined && state.contentGraph !== graph ||
+          state.contentPreparation !== contentPreparation ||
           typeof constructPlan !== 'function' || typeof compileOriginal !== 'function') {
         fail('ForeignInstalledSourceProducer');
       }

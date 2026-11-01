@@ -538,16 +538,9 @@ fn issue_client_infer_plan_graph_for_occurrence(
   }
   try {
     let request_writer = @encode.writer(max_wire_bytes, max_nodes, max_depth)
-    @encode.begin_object(request_writer)
-    for index in 0..<@infer.input_binding_count(infer) {
-      guard @infer.input_binding_at(infer, index) is Some(binding) &&
-        @lower.infer_input_expression_at(mappings, index) is Some(expression) else {
-        return Err(Encoding)
-      }
-      @encode.key(request_writer, @infer.input_binding_role(binding))
-      @lower.emit_expression(expression, request_writer)
+    if !emit_client_infer_request_body(infer, mappings, request_writer) {
+      return Err(Encoding)
     }
-    @encode.end_object(request_writer)
     guard parse_plan_identity_value(
         @encode.finish(request_writer),
         max_wire_bytes,
@@ -564,62 +557,20 @@ fn issue_client_infer_plan_graph_for_occurrence(
       request, max_wire_bytes, max_nodes, max_depth,
     )
     let barrier_writer = @encode.writer(max_wire_bytes, max_nodes, max_depth)
-    @encode.begin_object(barrier_writer)
-    @encode.key(barrier_writer, "egress_requirements_cid")
-    @encode.string_value(barrier_writer, egress_requirements_cid)
-    @encode.key(barrier_writer, "input_contract_cid")
-    @encode.string_value(barrier_writer, prefix.output_contract_cid)
-    @encode.key(barrier_writer, "input_fragment_cid")
-    @encode.string_value(barrier_writer, prefix.logical_cid)
-    @encode.key(barrier_writer, "input_roles")
-    @encode.begin_object(barrier_writer)
-    for index in 0..<@infer.input_binding_count(infer) {
-      let role = @infer.input_binding_role(
-        @infer.input_binding_at(infer, index).unwrap(),
-      )
-      @encode.key(barrier_writer, role)
-      @encode.string_value(
-        barrier_writer,
-        "/" + role.replace(old="~", new="~0").replace(old="/", new="~1"),
-      )
-    }
-    @encode.end_object(barrier_writer)
-    @encode.key(barrier_writer, "key_fields")
-    @encode.begin_array(barrier_writer)
-    for index in 0..<@infer.key_count(infer) {
-      @encode.string_value(
-        barrier_writer,
-        @schema.reference_name(@infer.key_at(infer, index).unwrap().field),
-      )
-    }
-    @encode.end_array(barrier_writer)
-    @encode.key(barrier_writer, "limits_cid")
-    @encode.string_value(barrier_writer, limits_cid)
-    @encode.key(barrier_writer, "model_execution_contract_cid")
-    @encode.string_value(
+    emit_client_infer_barrier_body(
       barrier_writer,
+      infer,
+      egress_requirements_cid,
+      prefix.output_contract_cid,
+      prefix.logical_cid,
+      limits_cid,
       @environment.model_execution_cid(execution),
-    )
-    @encode.key(barrier_writer, "model_task_contract_cid")
-    @encode.string_value(
-      barrier_writer,
       @environment.model_task_identity(@infer.model_task(infer)).2,
+      output_contract_cid,
+      request_cid,
+      None,
+      (cid, writer) => @encode.string_value(writer, cid),
     )
-    @encode.key(barrier_writer, "on_non_success")
-    @encode.string_value(
-      barrier_writer,
-      match @infer.result_mode(infer) {
-        Outcomes => "outcomes"
-        Fail => "fail"
-      },
-    )
-    @encode.key(barrier_writer, "output_contract_cid")
-    @encode.string_value(barrier_writer, output_contract_cid)
-    @encode.key(barrier_writer, "request_fragment_cid")
-    @encode.string_value(barrier_writer, request_cid)
-    @encode.key(barrier_writer, "version")
-    @encode.string_value(barrier_writer, "actql-inference-barrier/0.1")
-    @encode.end_object(barrier_writer)
     guard parse_plan_identity_value(
         @encode.finish(barrier_writer),
         max_wire_bytes,
@@ -764,37 +715,16 @@ fn issue_client_infer_plan_graph_for_occurrence(
       }
     }
     let node_writer = @encode.writer(max_wire_bytes, max_nodes, max_depth)
-    @encode.begin_object(node_writer)
-    @encode.key(node_writer, "barrier")
-    @canonical.emit_value(barrier, node_writer)
-    @encode.key(node_writer, "barrier_contract_cid")
-    @encode.string_value(
+    emit_client_infer_node_body(
       node_writer,
-      @environment.compiler_inference_barrier_contract_cid(),
+      barrier,
+      @canonical.emit_value,
+      barrier_id,
+      output_port,
+      prefix.output_contract_cid,
+      output_contract_cid,
+      (cid, writer) => @encode.string_value(writer, cid),
     )
-    @encode.key(node_writer, "input_contracts")
-    @encode.begin_object(node_writer)
-    @encode.key(node_writer, "input_0")
-    @encode.string_value(node_writer, prefix.output_contract_cid)
-    @encode.end_object(node_writer)
-    @encode.key(node_writer, "input_refs")
-    @encode.begin_array(node_writer)
-    @encode.string_value(node_writer, "input_0")
-    @encode.end_array(node_writer)
-    @encode.key(node_writer, "kind")
-    @encode.string_value(node_writer, "acquisition_barrier")
-    @encode.key(node_writer, "node_id")
-    @encode.string_value(node_writer, barrier_id)
-    @encode.key(node_writer, "output_contracts")
-    @encode.begin_object(node_writer)
-    @encode.key(node_writer, output_port)
-    @encode.string_value(node_writer, output_contract_cid)
-    @encode.end_object(node_writer)
-    @encode.key(node_writer, "output_ref")
-    @encode.string_value(node_writer, output_port)
-    @encode.key(node_writer, "profile_id")
-    @encode.string_value(node_writer, "actql-infer/0.1")
-    @encode.end_object(node_writer)
     let barrier_wire = @encode.finish(node_writer)
     guard parse_plan_identity_value(
         barrier_wire, max_wire_bytes, max_nodes, max_depth,

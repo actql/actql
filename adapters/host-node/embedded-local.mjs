@@ -2646,7 +2646,9 @@ async function openInstalledHost(originalInstallation, preparation) {
         const segments = checked((effectful ? moon.clientProgramPrepareEffectInferSegments
           : moon.clientProgramPrepareComposedInferSegments)(preparedProgram,
           occurrence, registry, values, fragment, ordered));
-        const graph = checked(moon.clientProgramInstalledComposedInferPlanGraph(occurrence, execution));
+        const graph = !effectful && preparation !== undefined
+          ? preparation.prepareManagedModelGraph(moon, preparedProgram, occurrence, execution)
+          : checked(moon.clientProgramInstalledComposedInferPlanGraph(occurrence, execution));
         const observeAccount = () => observeInstalledAccount(moon, authorization);
         const account = observeAccount();
         const providerBinding = admitInstalledModelProviderBinding(moon, 'mock', {
@@ -2703,7 +2705,10 @@ async function openInstalledHost(originalInstallation, preparation) {
           : prepareSubmit.kindOf(preparedProgram) !== 'effectful' &&
           moon.clientProgramSerializationOccurrences(preparedProgram).length !== 0
           ? selectInstalledSerializationGraph({moon, control, preparedProgram,
-            resultDataPolicy: installedResultDataPolicy}, true) : undefined;
+            resultDataPolicy: installedResultDataPolicy,
+            prepareSerializationGraph: preparation === undefined ? undefined :
+              (options, intermediate) => preparation.prepareManagedContentGraph(
+                moon, preparedProgram, options, intermediate)}, true) : undefined;
         const segments = occurrence === undefined || serializationGraph !== undefined ? undefined : checked(
           (prepareSubmit.kindOf(preparedProgram) === 'effectful'
             ? moon.clientProgramPrepareEffectInferSegments : moon.clientProgramPrepareComposedInferSegments)(preparedProgram, occurrence,
@@ -3143,7 +3148,10 @@ async function openInstalledHost(originalInstallation, preparation) {
         // Select the component once. Its original Request compiler and the
         // Task issuer below must consume the SAME checked graph.
         const serializationGraph = selectInstalledSerializationGraph({...common,
-          resultDataPolicy: installedResultDataPolicy});
+          resultDataPolicy: installedResultDataPolicy,
+          prepareSerializationGraph: preparation === undefined ? undefined :
+            (options, intermediate) => preparation.prepareManagedContentGraph(
+              moon, preparedProgram, options, intermediate)});
         const compilationOriginal = moon.clientProgramAcquisitionCount(preparedProgram) === 0
           ? preparation?.prepareManagedContentCompilation?.(moon, preparedProgram, serializationGraph)
           : preparation === undefined ? undefined : runContent.prepareManagedKeyedCompilation({
@@ -6366,6 +6374,21 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       return runtimeCore(runtime).publicationControl.checkedClientManagedQueryInvocationOriginal(
         run.value, prepared, run.queryInvocation);
     },
+    prepareManagedContentGraph(runtime, prepared, options, intermediate) {
+      const manager = sourceManaged ?? computeManaged;
+      if (runtime !== moon || manager === undefined || typeof manager.prepareContentGraph !== 'function') {
+        throw clientOperationError('NodeManagedRunCompilationUnavailable');
+      }
+      (sourceManaged === undefined ? assertManagedComputeInstallationCurrent
+        : assertSourceManagedInstallationCurrent)(manager, originals);
+      const control = runtimeCore(runtime).publicationControl;
+      return manager.prepareContentGraph(prepared, originalSourceManagedHostRequest(originals, prepared),
+        (parent, input, contracts) => runtime.clientProgramAcquisitionCount(prepared) === 0
+          ? control.prepareCheckedClientRequestSerializationGraph(
+            parent, input, contracts, prepared, options, intermediate)
+          : control.prepareCheckedClientRequestAcquiredSerializationGraph(
+            parent, input, contracts, prepared, options, intermediate));
+    },
     prepareManagedContentCompilation(runtime, prepared, graph) {
       const manager = sourceManaged ?? computeManaged;
       if (runtime !== moon || manager === undefined || typeof manager.prepareContentCompilation !== 'function') {
@@ -6377,6 +6400,16 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       return manager.prepareContentCompilation(prepared, originalSourceManagedHostRequest(originals, prepared), graph,
         (parent, input, originalGraph, contracts) => control.prepareCheckedClientRequestSerializationCompilation(
           parent, input, originalGraph, contracts));
+    },
+    prepareManagedModelGraph(runtime, prepared, occurrence, execution) {
+      const manager = computeManaged ?? sourceManaged;
+      if (runtime !== moon || manager === undefined || typeof manager.prepareModelGraph !== 'function') {
+        throw clientOperationError('NodeManagedRunCompilationUnavailable');
+      }
+      (computeManaged === undefined ? assertSourceManagedInstallationCurrent
+        : assertManagedComputeInstallationCurrent)(manager, originals);
+      return manager.prepareModelGraph(prepared,
+        originalSourceManagedHostRequest(originals, prepared), occurrence, execution);
     },
     prepareManagedModelCompilation(runtime, prepared, graph) {
       const manager = computeManaged ?? sourceManaged;

@@ -1938,7 +1938,7 @@ function publicationControl(moon) {
     }
     return value;
   };
-  const prepareSerializationGraph = (checkedProgram, options, intermediate) => {
+  const prepareSerializationGraph = (checkedProgram, options, intermediate, request) => {
     const original = options?.resultDataPolicy;
     if (original?.kind !== 'data_policy' || typeof original.cid !== 'string' ||
         typeof original.wire !== 'string' ||
@@ -1947,10 +1947,19 @@ function publicationControl(moon) {
           options[key] <= 2147483647)) {
       throw new TypeError('Invalid Content compilation options');
     }
-    const issue = intermediate ? moon.clientProgramSerializationPlanComponent
-      : moon.clientProgramSerializationPlanGraph;
-    const graph = compiledRunResult(issue(checkedProgram, options.task, options.step,
-      original.cid, original.wire, options.maxRows, options.maxBytes), 'RunHostContentPlanRejected');
+    let graph;
+    if (request === undefined) {
+      const issue = intermediate ? moon.clientProgramSerializationPlanComponent
+        : moon.clientProgramSerializationPlanGraph;
+      graph = compiledRunResult(issue(checkedProgram, options.task, options.step,
+        original.cid, original.wire, options.maxRows, options.maxBytes), 'RunHostContentPlanRejected');
+    } else {
+      const issue = moon.clientProgramPrepareRequestSerializationGraph;
+      if (typeof issue !== 'function') throw new TypeError('Request Content Graph constructor unavailable');
+      graph = compiledRunResult(Reflect.apply(issue, moon, [request.parent, request.input,
+        options.task, options.step, original.cid, original.wire, options.maxRows,
+        options.maxBytes, !intermediate, request.contracts]), 'RunHostContentPlanRejected');
+    }
     const selected = Object.freeze({task: options.task, step: options.step,
       wire: moon.clientProgramSerializationPlanGraphWire(graph)});
     serializationPlanTokens.set(selected, graph);
@@ -1966,15 +1975,24 @@ function publicationControl(moon) {
         'Client Content capture unavailable');
     });
   };
-  const prepareAcquiredSerializationGraph = (checkedProgram, options, intermediate) => {
+  const prepareAcquiredSerializationGraph = (checkedProgram, options, intermediate, request) => {
     if (!['task', 'step', 'maxRows', 'maxBytes'].every(key =>
       Number.isInteger(options?.[key]) && options[key] >= 0 && options[key] <= 2147483647)) {
       throw new TypeError('Invalid acquired Content compilation options');
     }
-    const issue = intermediate ? moon.clientProgramAcquiredSerializationPlanComponent
-      : moon.clientProgramAcquiredSerializationPlanGraph;
-    const graph = compiledRunResult(issue(checkedProgram, options.task, options.step,
-      options.maxRows, options.maxBytes), 'RunHostContentPlanRejected');
+    let graph;
+    if (request === undefined) {
+      const issue = intermediate ? moon.clientProgramAcquiredSerializationPlanComponent
+        : moon.clientProgramAcquiredSerializationPlanGraph;
+      graph = compiledRunResult(issue(checkedProgram, options.task, options.step,
+        options.maxRows, options.maxBytes), 'RunHostContentPlanRejected');
+    } else {
+      const issue = moon.clientProgramPrepareRequestAcquiredSerializationGraph;
+      if (typeof issue !== 'function') throw new TypeError('Request acquired Content Graph constructor unavailable');
+      graph = compiledRunResult(Reflect.apply(issue, moon, [request.parent, request.input,
+        options.task, options.step, options.maxRows, options.maxBytes,
+        !intermediate, request.contracts]), 'RunHostContentPlanRejected');
+    }
     const selected = Object.freeze({task: options.task, step: options.step,
       wire: moon.clientProgramSerializationPlanGraphWire(graph)});
     serializationPlanTokens.set(selected, graph);
@@ -2404,6 +2422,9 @@ function publicationControl(moon) {
     prepareCheckedClientSerializationComponent(checkedProgram, options) {
       return prepareSerializationGraph(checkedProgram, options, true);
     },
+    prepareCheckedClientRequestSerializationGraph(parent, input, contracts, checkedProgram, options, intermediate) {
+      return prepareSerializationGraph(checkedProgram, options, intermediate, {parent, input, contracts});
+    },
     prepareCheckedClientSerializedInferGraph(occurrence, selected, execution) {
       const graph = serializationPlanTokens.get(selected);
       if (graph === undefined) throw new TypeError('Foreign Content compilation graph');
@@ -2487,6 +2508,9 @@ function publicationControl(moon) {
     },
     prepareCheckedClientAcquiredSerializationComponent(checkedProgram, options) {
       return prepareAcquiredSerializationGraph(checkedProgram, options, true);
+    },
+    prepareCheckedClientRequestAcquiredSerializationGraph(parent, input, contracts, checkedProgram, options, intermediate) {
+      return prepareAcquiredSerializationGraph(checkedProgram, options, intermediate, {parent, input, contracts});
     },
     readCurrentClientRunView(runDefinition, prepared, authorization, ref, state, snapshotCid, limits) {
       if (typeof moon.clientProgramCurrentRunView !== 'function') {

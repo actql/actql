@@ -78,6 +78,35 @@ pub fn client_program_borrow_request_model_plan_input(
 }
 
 ///|
+#export_name("clientProgramPrepareRequestModelGraph")
+pub fn client_program_prepare_request_model_graph(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  occurrence : @publication_host.ClientInferOccurrence,
+  execution : @check_environment.ModelExecutionContract,
+  contracts : @client_local_host.ClientInstalledSequenceContracts,
+) -> Result[
+  @publication_host.ClientInferPlanGraph,
+  ClientRequestProgramModuleBridgeIssue,
+] {
+  let manifests = match client_generated_compilation_manifests() {
+    Ok(value) => value
+    Err(issue) => return Err(Manifests(issue))
+  }
+  @client_local_host.prepare_request_model_graph(
+    parent,
+    input,
+    occurrence,
+    execution,
+    contracts,
+    manifests~,
+    compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+  ).map_err(issue => Preparation(issue))
+}
+
+///|
 #export_name("clientProgramPrepareRequestModelCompilation")
 pub fn client_program_prepare_request_model_compilation(
   parent : @client_local_host.ClientRequestPreparation[
@@ -1350,6 +1379,81 @@ pub fn client_program_complete_request_serialization_preparation(
   @client_local_host.complete_request_serialization_preparation(
     parent, input, selected,
   )
+}
+
+///|
+/// The original Request owns measurement, Graph construction and later compilation.
+#export_name("clientProgramPrepareRequestSerializationGraph")
+pub fn client_program_prepare_request_serialization_graph(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  task : Int,
+  step : Int,
+  policy_cid : String,
+  policy_wire : String,
+  max_rows : Int,
+  max_bytes : Int,
+  include_results : Bool,
+  contracts : @client_local_host.ClientInstalledSequenceContracts,
+) -> Result[
+  @publication_host.ClientSerializationPlanGraph,
+  ClientRequestProgramModuleBridgeIssue,
+] {
+  let manifests = match client_generated_compilation_manifests() {
+    Ok(value) => value
+    Err(issue) => return Err(Manifests(issue))
+  }
+  @client_local_host.prepare_request_serialization_graph(
+    parent,
+    input,
+    task,
+    step,
+    policy_cid,
+    policy_wire,
+    max_rows,
+    max_bytes,
+    include_results,
+    contracts,
+    manifests~,
+    compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+  ).map_err(issue => Preparation(issue))
+}
+
+///|
+#export_name("clientProgramPrepareRequestAcquiredSerializationGraph")
+pub fn client_program_prepare_request_acquired_serialization_graph(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  task : Int,
+  step : Int,
+  max_rows : Int,
+  max_bytes : Int,
+  include_results : Bool,
+  contracts : @client_local_host.ClientInstalledSequenceContracts,
+) -> Result[
+  @publication_host.ClientSerializationPlanGraph,
+  ClientRequestProgramModuleBridgeIssue,
+] {
+  let manifests = match client_generated_compilation_manifests() {
+    Ok(value) => value
+    Err(issue) => return Err(Manifests(issue))
+  }
+  @client_local_host.prepare_request_acquired_serialization_graph(
+    parent,
+    input,
+    task,
+    step,
+    max_rows,
+    max_bytes,
+    include_results,
+    contracts,
+    manifests~,
+    compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+  ).map_err(issue => Preparation(issue))
 }
 
 ///|
