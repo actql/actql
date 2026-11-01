@@ -129,6 +129,28 @@ class SnapshotTransportTests(unittest.TestCase):
                 store.inspect_namespaces((ByteFence('epoch', 0, b'original-epoch'),),
                     inspect=inspect, current=lambda: None)
 
+    def test_temp_schema_shadow_cannot_reuse_main_metadata_as_current(self):
+        from actql_sdk._local_storage import LocalStorageError
+        with TemporaryDirectory(prefix='actql-sql-temp-schema-shadow-') as directory:
+            store = LocalByteStore(Path(directory) / 'original.sqlite', max_records=8,
+                max_record_bytes=4096, max_payload_bytes=16384)
+            self.addCleanup(store.close)
+            store.compare_exchange('epoch', None, b'original-epoch')
+            def inspect(reader):
+                reader.read('original', 'one', lambda _: None)
+                reader.check_fences(reader, (ByteFence('epoch', 0, b'original-epoch'),))
+                schema = store._connection.execute('PRAGMA schema_version').fetchone()[0]
+                changes = store._connection.total_changes
+                store._connection.execute('CREATE TEMP TABLE core_bytes(key TEXT, generation INTEGER, payload BLOB)')
+                self.assertEqual(store._connection.total_changes, changes)
+                self.assertEqual(store._connection.execute('PRAGMA schema_version').fetchone()[0], schema)
+                with self.assertRaises(LocalStorageError): reader.current()
+            with self.assertRaises(LocalStorageError):
+                store.inspect_namespaces((ByteFence('epoch', 0, b'original-epoch'),),
+                    inspect=inspect, current=lambda: None)
+            self.assertFalse(store._physical.in_transaction)
+            self.assertEqual(store.read('epoch').payload, b'original-epoch')
+
     def test_snapshot_savepoint_rollback_invalidates_without_reusing_a_mutated_row(self):
         with TemporaryDirectory(prefix='actql-sql-savepoint-') as directory:
             store = LocalByteStore(Path(directory) / 'original.sqlite', max_records=8,
