@@ -1,4 +1,27 @@
 ///|
+// range_parse retains no decoder Cursor. Its original Source parser supplies
+// the bounded grammar/key/text proof before the native Json constructor.
+fn sheets_range_parsed_construction(
+  bytes : Int,
+  nodes : Int,
+  depth : Int,
+) -> @execution.PreparationRepresentationUnits? {
+  guard @decode.preserving_json_parser_construction_inventory(
+      bytes, nodes, depth,
+    )
+    is Some(original) else {
+    return None
+  }
+  Some({
+    record_headers: original.record_headers,
+    reference_slots: original.reference_slots,
+    scalar_words: original.scalar_words,
+    owned_utf16_units: original.owned_utf16_units,
+    owned_wire_bytes: 0L,
+  })
+}
+
+///|
 // Native Json trees, their canonical projection and the original indexed
 // Source are distinct constructors. Reuse the shared representation units;
 // no byte tariff, Resource, admission or physical authority is defined here.
@@ -55,9 +78,9 @@ pub fn sheets_range_installation_construction_capacity(
       origin_bytes, spreadsheet_bytes,
     )
     is Some(target) &&
-    sheets_decoded_construction(configuration_bytes, 10 + 4 * columns, 32)
+    sheets_range_parsed_construction(configuration_bytes, 10 + 4 * columns, 32)
     is Some(configuration) &&
-    sheets_decoded_construction(
+    sheets_range_parsed_construction(
       target.reference_bytes,
       target.reference_nodes,
       32,
@@ -149,8 +172,8 @@ fn sheets_range_request_capacity(
     facts_nodes > 2147483647L {
     return None
   }
-  guard sheets_decoded_construction(b, n, d) is Some(input) &&
-    sheets_decoded_construction(
+  guard sheets_range_parsed_construction(b, n, d) is Some(input) &&
+    sheets_range_parsed_construction(
       Int::min(target_bytes.to_int(), metadata.limits.max_bytes),
       Int::min(n, metadata.limits.max_nodes),
       metadata.limits.max_depth,
@@ -214,6 +237,85 @@ fn sheets_range_request_capacity(
 }
 
 ///|
+// classify_append opens one root Map. classify_clear opens at most five
+// root/second/create/metadata/location Maps. Their fields are disjoint Source
+// nodes; entries across all maps cannot exceed the SAME total node bound.
+// elements(replies) does materialize every supplied reply Cursor before its
+// later cardinality refusal, so retain that entire Array and every Cursor.
+fn sheets_range_ack_projection_construction(
+  nodes : Int,
+  depth : Int,
+) -> @execution.PreparationRepresentationUnits? {
+  let cursor = @decode.cursor_construction_extent()
+  let child = @decode.indexed_child_construction_extent()
+  let n = nodes.to_int64()
+  guard @shape.collection_construction_extent({
+      records: n * cursor.record_headers,
+      record_references: n * cursor.reference_slots,
+      record_words: n * cursor.scalar_words,
+      reference_arrays: 1L,
+      reference_items: n,
+      scalar_arrays: 0L,
+      scalar_items: 0L,
+      maps: 5L,
+      map_entries: n,
+    })
+    is Some(collections) &&
+    @decode.issue_construction_extent(depth + 1) is Some(issue) else {
+    return None
+  }
+  @execution.compose_preparation_representation([
+    sheets_collection_units(collections),
+    sheets_collection_units(issue),
+    // The ten original lookups plus their scalar/Option/result carriers fit
+    // within the original sixteen-child envelope, co-held with all maps.
+    {
+      record_headers: 16L * child.record_headers,
+      reference_slots: 16L * child.reference_slots,
+      scalar_words: 16L * child.scalar_words,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    },
+  ])
+}
+
+///|
+// clear_marker_value has exactly eight Json nodes, seven fields and two
+// objects. Its canonical projection borrows all original text (data_keys),
+// retains seventeen value/FrozenArray/pair records and the two field vectors.
+// Back its live depth-two BuildFrames, seen-key Maps and current sort scratch
+// through the SAME collection/iterator owners, not another parser/index.
+fn sheets_clear_ack_marker_construction() -> @execution.PreparationRepresentationUnits? {
+  guard @shape.collection_construction_extent({
+      records: 17L + 5L + 1L + 6L,
+      record_references: 24L + 15L + 8L,
+      record_words: 16L + 10L + 3L + 6L,
+      // Two output field arrays, one pending-frame array, one sort scratch.
+      reference_arrays: 4L,
+      reference_items: 7L + 5L + 7L,
+      scalar_arrays: 0L,
+      scalar_items: 0L,
+      maps: 2L,
+      map_entries: 7L,
+    })
+    is Some(body) else {
+    return None
+  }
+  let iter = @shape.reference_map_iterator_construction_extent()
+  let next = @shape.reference_map_iterator_next_construction_extent()
+  @execution.compose_preparation_representation([
+    sheets_collection_units(body),
+    {
+      record_headers: 2L * iter.record_headers + next.record_headers,
+      reference_slots: 2L * iter.reference_slots + next.reference_slots,
+      scalar_words: 2L * iter.scalar_words + next.scalar_words,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    },
+  ])
+}
+
+///|
 fn sheets_range_response_capacity(
   bytes : Int,
   nodes : Int,
@@ -223,11 +325,37 @@ fn sheets_range_response_capacity(
     return None
   }
   guard sheets_decoded_construction(bytes, nodes, depth) is Some(input) &&
-    sheets_target_projection_construction(nodes, depth) is Some(projection) &&
-    sheets_writer_units(64, 3, 1) is Some(writer) else {
+    sheets_range_ack_projection_construction(nodes, depth) is Some(projection) &&
+    sheets_writer_units(64, 3, 1) is Some(writer) &&
+    // Clear additionally canonicalizes the fixed marker+five-coordinate
+    // object. A36-ASCII marker, Int coordinates and original field syntax
+    // fit256 bytes/eight nodes/depth2. Range safely shares this closed bound.
+    sheets_range_json_inventory(256, 8) is Some(marker) &&
+    sheets_clear_ack_marker_construction() is Some(marker_projection) &&
+    sheets_writer_units(256, 8, 2) is Some(marker_writer) &&
+    @execution.compose_preparation_representation([
+      input, projection, marker, marker_projection, marker_writer, writer,
+    ])
+    is Some(workspace) else {
     return None
   }
-  sheets_constructor_capacity([input, projection, writer])
+  // Only the Native outcome String escapes this synchronous projection.
+  // The input Source/index/maps/reply Cursors and failure path do not escape.
+  // Common separately backs its declared64-byte Host output JSON projection.
+  @execution.preparation_execution_capacity({
+    retained: {
+      record_headers: 1L,
+      reference_slots: 0L,
+      scalar_words: 0L,
+      owned_utf16_units: 64L,
+      owned_wire_bytes: 0L,
+    },
+    workspace,
+    retained_nodes: 0L,
+    workspace_nodes: 0L,
+    retained_bytes: 0L,
+    workspace_bytes: 0L,
+  })
 }
 
 ///|
@@ -283,7 +411,7 @@ fn sheets_range_capture_profile(
       Int::min(wire.to_int(), @catalog.range_saved_recovery_wire_byte_limit()),
     )
   }
-  guard sheets_decoded_construction(b, n, recovery_depth) is Some(input) &&
+  guard sheets_range_parsed_construction(b, n, recovery_depth) is Some(input) &&
     sheets_range_json_inventory(wire.to_int(), nodes.to_int()) is Some(native) &&
     @canonical.nfc_lf_construction_extent(normalization_bytes)
     is Some(normalization) &&

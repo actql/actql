@@ -33,7 +33,21 @@ fn range_parse(
   limits : Limits,
   code : String,
 ) -> Result[Json, RangeFailure] {
-  guard admit(@utf8.encode(wire), limits) is Ok(_) else {
+  // The preserving Source parser already checks UTF8, duplicate keys,
+  // node count and container depth. Its decoded text occupies no more UTF8
+  // bytes than the original JSON: escapes never increase that total. With
+  // both decoder text limits equal to max_bytes, the discarded index below
+  // used to repeat those same checks without supplying a retained Cursor.
+  // Keep the original limit validation and byte refusal before parsing.
+  let body = @utf8.encode(wire)
+  guard check_limits(limits) is Ok(_) else { return Err(range_failure(code)) }
+  guard body.length() <= limits.max_bytes &&
+    @source.parse_json_bytes_preserving(body, {
+      max_input_bytes: limits.max_bytes,
+      max_nodes: limits.max_nodes,
+      max_depth: limits.max_depth,
+    })
+    is Ok(_) else {
     return Err(range_failure(code))
   }
   Ok(@json.parse(wire)) catch {
@@ -132,7 +146,10 @@ fn range_json_value(range : GridRange) -> Json {
 }
 
 ///|
-fn range_provider_identity_document(origin : String, spreadsheet_id : String) -> Json {
+fn range_provider_identity_document(
+  origin : String,
+  spreadsheet_id : String,
+) -> Json {
   {
     "version": "actql-sheets-provider/0.1",
     "api_origin": origin.to_json(),
@@ -182,14 +199,15 @@ pub fn range_reference(
     Err(issue) => return Err(issue)
   }
   let identity_cid = match
-    range_content_cid(
-      range_identity_document(range),
-      limits,
-    ) {
+    range_content_cid(range_identity_document(range), limits) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  Ok(range_reference_document(provider_cid, identity_cid, catalog_cid, binding_cid))
+  Ok(
+    range_reference_document(
+      provider_cid, identity_cid, catalog_cid, binding_cid,
+    ),
+  )
 }
 
 ///|

@@ -3641,7 +3641,7 @@
   {
     "module": "src/connectors/sheets/catalog/range_identity.mbt",
     "responsibilityFacet": "primary",
-    "sha256": "a3a8ccca7348a22797bf37e5ed681f9e73277575c5639ad05d188ec81afb6a1e",
+    "sha256": "71524b9c45a5780ca9fad995fb9af5c3d3e02bb31790375557dacd023af8d409",
     "operations": [
       {
         "name": "append_request_identity",
@@ -3693,7 +3693,7 @@
       },
       {
         "name": "range_provider_identity_document",
-        "declaration": "range_provider_identity_document ( origin : String , spreadsheet_id : String ) - > Json"
+        "declaration": "range_provider_identity_document ( origin : String , spreadsheet_id : String , ) - > Json"
       },
       {
         "name": "range_reference",
@@ -7429,8 +7429,12 @@
   {
     "module": "src/connectors/sheets/host_node/range_construction.mbt",
     "responsibilityFacet": "primary",
-    "sha256": "18edfc161cc16a736bee15fd7d3b99c32df868c2ff38a491cde7944bb1334895",
+    "sha256": "256288586e884e8f372ed0fbbe9b55ae79e4c9edbb89f5390ff13e635396aa23",
     "operations": [
+      {
+        "name": "sheets_clear_ack_marker_construction",
+        "declaration": "sheets_clear_ack_marker_construction ( ) - > @ execution . PreparationRepresentationUnits ?"
+      },
       {
         "name": "sheets_clear_capture_construction_profile",
         "declaration": "sheets_clear_capture_construction_profile ( binding : @ catalog . ClearRangeBinding , capture_bytes : Int , capture_nodes : Int , capture_depth : Int , input_bytes : Int , input_nodes : Int , input_depth : Int , recovery_bytes : Int , recovery_nodes : Int , recovery_depth : Int , ) - > Array [ @ execution . ExecutionCapacity ] ?"
@@ -7438,6 +7442,10 @@
       {
         "name": "sheets_clear_construction_profile",
         "declaration": "sheets_clear_construction_profile ( binding : @ catalog . ClearRangeBinding , input_bytes : Int , input_nodes : Int , input_depth : Int , response_bytes : Int , response_nodes : Int , response_depth : Int , ) - > Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ?"
+      },
+      {
+        "name": "sheets_range_ack_projection_construction",
+        "declaration": "sheets_range_ack_projection_construction ( nodes : Int , depth : Int , ) - > @ execution . PreparationRepresentationUnits ?"
       },
       {
         "name": "sheets_range_capture_construction_profile",
@@ -7458,6 +7466,10 @@
       {
         "name": "sheets_range_json_inventory",
         "declaration": "sheets_range_json_inventory ( bytes : Int , nodes : Int , ) - > @ execution . PreparationRepresentationUnits ?"
+      },
+      {
+        "name": "sheets_range_parsed_construction",
+        "declaration": "sheets_range_parsed_construction ( bytes : Int , nodes : Int , depth : Int , ) - > @ execution . PreparationRepresentationUnits ?"
       },
       {
         "name": "sheets_range_request_capacity",
@@ -7484,7 +7496,10 @@
           "sheets_range_installation_construction_capacity",
           "sheets_range_json_inventory",
           "sheets_range_request_capacity",
-          "sheets_range_response_capacity"
+          "sheets_range_response_capacity",
+          "sheets_range_parsed_construction",
+          "sheets_range_ack_projection_construction",
+          "sheets_clear_ack_marker_construction"
         ],
         "exports": [],
         "attributes": {

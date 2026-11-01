@@ -237,3 +237,29 @@ test "clear acknowledgement requires the same marker geometry and complete atomi
     Unknown,
   )
 }
+
+///|
+test "clear acknowledgement marker canonical projection has its original fixed geometry" {
+  let marker = clear_fixed_marker()
+  let value = clear_marker_value(
+    {
+      sheet_id: 2147483647,
+      start_row: 2147483646,
+      end_row: 2147483647,
+      start_column: 2147483646,
+      end_column: 2147483647,
+    },
+    marker,
+  )
+  assert_eq(range_template_nodes(value), 8)
+  assert_eq(range_template_depth(value), 2)
+  let wire = range_canonical(value, clear_limits()).unwrap()
+  assert_true(@utf8.encode(wire).length() <= 256)
+  let canonical = @canonical.from_json(value, 8, 2, 256, data_keys=true) catch {
+    _ => fail("same closed value")
+  }
+  let extent = @canonical.representation_extent(canonical, 8, 2, 256).unwrap()
+  assert_eq(extent.nodes, 8L)
+  assert_eq(extent.objects, 2L)
+  assert_eq(extent.arrays, 0L)
+}

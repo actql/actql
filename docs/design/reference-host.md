@@ -2291,3 +2291,20 @@ endpoints bound each coordinate. Parser and decoder maps are sequential and
 use one active-depth peak. Original text, Source/index backing, UTF8 checks,
 growth and failed-prefix controls remain included. This changes neither input
 limits nor the shared byte tariff or Run allowance.
+
+The native range/clear parser uses the preserving Source parser's original
+UTF8, duplicate-key, node and depth checks directly. A discarded indexed
+Cursor supplies no additional range fact: both index text limits were equal
+to the input byte limit, and decoded JSON key/value UTF8 totals cannot exceed
+their original encoded spelling. The original limit/byte refusal and native
+JSON construction stay in order; codecs which actually use a Cursor retain
+indexed admission. The range constructor therefore selects the parser-only
+projection of that same inventory.
+
+Range acknowledgement construction follows `classify_append`; clear follows
+`classify_clear`. The latter opens at most five maps whose total fields belong
+to the one admitted input tree. Reply Cursor materialization remains bounded
+by all supplied nodes, including later cardinality refusal. The closed clear
+marker projection retains its eight-node, seven-field, depth-two construction
+and canonical writer. Only the Native outcome String escapes; input indexes,
+maps, reply cursors and failed-prefix paths remain temporary workspace.

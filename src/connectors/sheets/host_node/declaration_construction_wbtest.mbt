@@ -372,7 +372,7 @@ fn recovery_guard_test_decoder_pair(
   bytes : Int,
 ) -> @execution.ExecutionCapacity {
   // The original complete forest's node envelope is100000+4*3+32.
-  let input = sheets_decoded_construction(bytes, 100044, 32).unwrap()
+  let input = sheets_range_parsed_construction(bytes, 100044, 32).unwrap()
   sheets_constructor_capacity([input, input]).unwrap()
 }
 
@@ -451,7 +451,7 @@ test "clear recovery keeps its distinct original normalization envelope" {
 test "range native input decoders do not retain impossible container populations" {
   // Necessary lower slice of the actual range fixed quote: binding300000,
   // at least100000 nodes and depth32. No policy ceiling is changed here.
-  let one = sheets_decoded_construction(300000, 100000, 32).unwrap()
+  let one = sheets_range_parsed_construction(300000, 100000, 32).unwrap()
   let normalized = recovery_guard_test_nfc(300000)
   let inputs = sheets_constructor_capacity([one, one]).unwrap()
   let slice = @execution.add_execution_capacity(inputs, normalized).unwrap()
@@ -475,12 +475,12 @@ test "range capture quotes the actual incoming recovery limits independently fro
       metadata, 1000000, 100000, 64, 100000, 10000, 16, 2000000, 200000, 32, false,
     ).unwrap()[0]
   let narrow_input = sheets_constructor_capacity([
-    sheets_decoded_construction(100000, 100000, 32).unwrap(),
-    sheets_decoded_construction(100000, 100000, 32).unwrap(),
+    sheets_range_parsed_construction(100000, 100000, 32).unwrap(),
+    sheets_range_parsed_construction(100000, 100000, 32).unwrap(),
   ]).unwrap()
   let actual_input = sheets_constructor_capacity([
-    sheets_decoded_construction(2000000, 100044, 32).unwrap(),
-    sheets_decoded_construction(2000000, 100044, 32).unwrap(),
+    sheets_range_parsed_construction(2000000, 100044, 32).unwrap(),
+    sheets_range_parsed_construction(2000000, 100044, 32).unwrap(),
   ]).unwrap()
   assert_eq(
     @execution.execution_capacity_execution_bytes(actual) -
@@ -501,4 +501,21 @@ test "range capture quotes the actual incoming recovery limits independently fro
       is None,
     )
   }
+}
+
+///|
+test "range acknowledgement does not construct a target metadata map for every response node" {
+  let actual = sheets_range_response_capacity(2000000, 200000, 32).unwrap()
+  let input = sheets_decoded_construction(2000000, 200000, 32).unwrap()
+  let target = sheets_target_projection_construction(200000, 32).unwrap()
+  let writer = sheets_writer_units(64, 3, 1).unwrap()
+  let distinct_target = sheets_constructor_capacity([input, target, writer]).unwrap()
+  assert_true(
+    @execution.execution_capacity_execution_bytes(actual) <
+    @execution.execution_capacity_execution_bytes(distinct_target),
+  )
+  assert_true(
+    @execution.execution_capacity_retained_bytes(actual) <
+    @execution.execution_capacity_execution_bytes(actual),
+  )
 }
