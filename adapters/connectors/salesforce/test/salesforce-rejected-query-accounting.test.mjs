@@ -76,7 +76,7 @@ test('actual Salesforce caller selects the same complete native Reader before pu
       assert.equal(input.readSequenceConstruction.originalLimits, limits);
       assert.deepEqual(input.readSequenceConstruction.sequence, {operation, maxUses: 10,
         children: [{operation: 'salesforce:catalog:describe', maxUses: 2}]});
-      events.push('implementation');selected = Object.freeze({capacity,
+      events.push('implementation');selected = Object.freeze({capacity, limits: input.limits,
         runAcquisitionLimits: Object.freeze({maxBindings: policy[1], maxSecretBytes: policy[0]})});return selected;
     },
     createSourceReader(input) {
@@ -98,6 +98,13 @@ test('actual Salesforce caller selects the same complete native Reader before pu
   await create({moon, queryMoon: {}, site, authorization: {}, declaration: {}, recover() {}, discovery: {},
     construction, readerPolicy: policy, resources: Object.freeze(['Account']), generationCid: 'generation', catalogCid: 'catalog', connectorId: 'crm'});
   assert.equal(row.providerReader, providerReader);assert.equal(Object.hasOwn(row, 'readPages'), false);
+  // The ordinary Row Source consumes the SAME Reader's whole response
+  // inventory. Native query uses remain ten; the two metadata responses
+  // belong to that original shared twelve-response demand too.
+  assert.equal(row.limits.maxPages, selected.limits.maxPages);
+  assert.equal(row.limits.maxPageBytes, selected.limits.maxResponseBytes);
+  assert.equal(row.limits.maxPageRows, selected.limits.maxRows);
+  assert.equal(row.limits.maxCaptureRows, selected.limits.maxTotalRows);
   assert.equal(row.projectSite().referenceCurrent, site.referenceCurrent);
   for (const name of ['managedCaptureCapacity', 'managedWholeSourceCapacity', 'managedEffectPlanSelection']) {
     assert.ok(row.publicationSurface.includes(name), `Normal caller retains ${name}`);

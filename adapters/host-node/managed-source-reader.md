@@ -305,6 +305,9 @@ is introduced. The complete page is counted before total-row refusal.
 The initial Describe, independent pre-query Describe and all query responses
 execute inside the one original managed Reader. Salesforce's former
 pre-admission Describe and direct `readPages` path are replaced for this caller.
+The Row Source receives that same twelve-response inventory, including both
+metadata observations. The native query's ten-page bound and original query
+grant's ten uses remain separate in the original sequence declaration.
 The remaining preparation callback returns only the original acquisition,
 approval, Resource and invocation facts; the shared Row Source invokes it after
 the same Run's reservation, inside its original failure/retirement continuation.

@@ -2834,7 +2834,7 @@
     },
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
-      "sha256": "677e8fdef0121e5d4286a37c329fe7c06b08527db7da1e56012ad8895cab3844",
+      "sha256": "68dd917ad394be3d03449a0f94d3dad4e15a9f00877324707cf7121f276364f8",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "Existing published Salesforce source installation; provider protocol stays Salesforce and RowRun remains the capture owner",
