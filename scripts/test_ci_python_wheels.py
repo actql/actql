@@ -194,6 +194,34 @@ class FailureLocationTests(unittest.TestCase):
         self.assertLessEqual(len(stream.getvalue().encode()), diagnostics.MAX_OUTPUT_BYTES)
         self.assertEqual(len(stream.getvalue().splitlines()), diagnostics.MAX_CONTEXTS)
 
+    def test_retained_original_error_is_observed_without_values_or_mutation(self):
+        import io
+        diagnostics = load('ci_installed_retained_error', SCRIPTS / 'fixtures/ci-python-installed-run.py')
+        try:
+            raise ValueError('private retained message')
+        except ValueError as caught:
+            original = caught
+        outer = RuntimeError('public unknown')
+        outer.original_error = original
+        self.assertIsNone(outer.__context__)
+        stream = io.StringIO()
+        diagnostics.report_contexts(outer, stream)
+        self.assertIs(outer.original_error, original)
+        text = stream.getvalue()
+        self.assertNotIn('private retained message', text)
+        records = [json.loads(line) for line in text.splitlines()]
+        self.assertEqual([record['exception_type'] for record in records], ['RuntimeError', 'ValueError'])
+        self.assertTrue(records[1]['frames'])
+        outer.original_error = {'credential': 'private non-exception value'}
+        stream = io.StringIO()
+        diagnostics.report_contexts(outer, stream)
+        self.assertEqual(len(stream.getvalue().splitlines()), 1)
+        self.assertNotIn('private non-exception value', stream.getvalue())
+        outer.original_error = outer
+        stream = io.StringIO()
+        diagnostics.report_contexts(outer, stream)
+        self.assertEqual(len(stream.getvalue().splitlines()), 1)
+
     def test_cycle_is_not_repeated(self):
         import io
         diagnostics = load('ci_installed_run_cycle', SCRIPTS / 'fixtures/ci-python-installed-run.py')
