@@ -194,6 +194,7 @@ import {canonicalJson, contentCid, createLocalAuthorizationGate,
 import {createLocalReadAuthorizations} from './local-result-authorization.mjs';
 import {prepareOrdinaryLocalAccount} from './ordinary-local-account.mjs';
 import {prepareInstalledPublicationRoot} from './installed-publication-root.mjs';
+import {localHostStoreAuthorityCid} from './host-store-identity.mjs';
 import {localContractLimits, localOutputLimits,
   sourceFreeValuesPlan, sourceFreeValuesAdmissionEvidence, sourceFreePlanOriginal, sourceFreeTaskPlan, prepareTimedClientInvocation,
   sourceFreeEffectPublicationPlan, acquiredEffectPublicationAdmission,
@@ -268,8 +269,7 @@ export function readHostResultPublicationPreparation(originals) {
   const control = runtimeCore(runtime).publicationControl;
   return Object.freeze({runtime, control, root: journal.root, principalId: journal.principalId,
     privateEvidenceKey: originals.installation.mockAccount?.evidenceKey.key,
-    storeAuthorityCid: cid({version: 'actql-local-store-owner/0.1',
-      root: journal.root, principalId: journal.principalId})});
+    storeAuthorityCid: localHostStoreAuthorityCid(journal.root, journal.principalId)});
 }
 
 // Only the fixed startup calls this after the same pending SDK request has
@@ -1929,8 +1929,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       {hostCapacityPolicyCid: effectiveHostCapacityPolicyCid}),
     ...(hostLookupExecutionPolicy === undefined ? {} :
       {hostLookupExecutionPolicyCid: contentCid(hostLookupExecutionPolicy)})});
-  const storeAuthorityCid = cid({version: 'actql-local-store-owner/0.1',
-    root, principalId});
+  const storeAuthorityCid = localHostStoreAuthorityCid(root, principalId);
   let journal;
   let originalJournalClose, publicationOwnership;
   let unselectedJournalAttempted = false, unselectedJournalFailure;

@@ -31,7 +31,7 @@ async function prepareLater(root) {
   }
 }
 
-test('fresh publication saves only Account intent and releases original exclusion', async t => {
+test('fresh publication saves pending initialization and releases original exclusion', async t => {
   const f = await fixture(t);
   await prepareInstalledPublicationRoot(f.root, 'person');
   const intent = JSON.parse(await readFile(f.intent));
@@ -39,7 +39,7 @@ test('fresh publication saves only Account intent and releases original exclusio
   assert.equal(intent.principal, 'person');
   assert.equal((await stat(f.intent)).mode & 0o777, 0o600);
   assert.deepEqual((await readdir(f.root)).sort(),
-    ['account-initialization.json', 'host-format.json', 'publication']);
+    ['account-initialization.json', 'checkpoints', 'host-format.json', 'publication']);
   assert.deepEqual(await readdir(join(f.root, 'publication')), []);
   assert.equal(typeof (await prepareLater(f.root)).adopt, 'function');
 });
