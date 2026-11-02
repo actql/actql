@@ -128,7 +128,7 @@ fn observe_submission_lookup(
       Err(code) => Err(code)
     }
   }
-  guard record.kind == 4 &&
+  guard (record.kind == 4 || record.kind == 9) &&
     @decode.closed_object(cursor, ["reference"]) is Ok(object) &&
     required_text(object, "reference") is Some(wire) &&
     @host.admit_client_submission_reference_record(wire) is Ok(reference) else {
@@ -319,6 +319,8 @@ fn submission_lookup_wire(
           writer,
           if record.run_admission is Some(_) {
             "ready"
+          } else if record.preparation_problem is Some(_) {
+            "preparation_failed"
           } else {
             "preparing"
           },
@@ -328,6 +330,12 @@ fn submission_lookup_wire(
           writer,
           @host.client_submitted_intent_cid(record.intent),
         )
+        if record.preparation_problem is Some((code, classification)) {
+          @encode.key(writer, "problemCode")
+          @encode.string_value(writer, code)
+          @encode.key(writer, "problemClassification")
+          @encode.string_value(writer, classification)
+        }
         if record.run_admission is Some(_) {
           let admission = match
             @host.client_saved_submission_admission_wire(snapshot) {

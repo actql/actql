@@ -58,6 +58,8 @@ fn saved_lookup_validation_dispatch_case(kind : Int) -> (Int, Int) raise {
     saved_result: None,
     saved_snapshot: None,
     append_plan: None,
+    failure_preparation: None,
+    failure_plan: None,
     invoked: true,
     produced: true,
     output_closed: false,

@@ -303,6 +303,7 @@ options(
         "source_publication_length:actql_source_publication_length",
         "close_source_publication:actql_source_publication_close",
         "reserve_submission_projection:actql_submission_reserve",
+        "reserve_submission_preparation_failure:actql_submission_reserve_failure",
         "produce_submission_projection:actql_submission_produce",
         "submission_projection_length:actql_submission_length",
         "retire_submission_output:actql_submission_retire_output",

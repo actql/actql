@@ -402,7 +402,10 @@ pub fn prepared_tasks(nonce : Int64, handle : Int) -> Int {
 pub fn close_preparation(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) else { return -1 }
   guard value.preparations.get(handle) is Some(record) else { return -2 }
-  if value.runs.values().any(run => run.preparation == handle) {
+  if value.runs.values().any(run => run.preparation == handle) ||
+    value.submissions
+    .values()
+    .any(child => child.failure_preparation == Some(handle)) {
     return -9
   }
   let result = status(@buffers.return_buffer_borrow(value.pool, record.borrow))
@@ -439,5 +442,29 @@ pub fn prepared_outcome(nonce : Int64, handle : Int) -> Int {
     None => 0
     Some(Ok(_)) => 1
     Some(Err(_)) => 2
+  }
+}
+
+///|
+// Public problem DATA from the SAME retained typed issue, never an exception
+// code, message, new Check or second parse. Other known Owner failures retain
+// their operational classification rather than being guessed as invalid text.
+fn preparation_failure_problem(record : StoredPreparation) -> (String, String)? {
+  match record.outcome {
+    Some(Err(@preparation.Frontend(QuerySyntax(_))))
+    | Some(Err(@preparation.Preparation(Syntax(_)))) =>
+      Some(("ClientProgramInvalidInput", "invalid_input"))
+    Some(Err(@preparation.Preparation(NeedsInputs(_)))) =>
+      Some(("ClientProgramRequirements", "requirements"))
+    Some(
+      Err(
+        @preparation.Preparation(
+          EffectNotSupported(_)
+          | ValuesProfileUnsupported
+        )
+      )
+    ) => Some(("ClientProgramImplementationLimit", "implementation_limit"))
+    Some(Err(_)) => Some(("ClientProgramPreparationFailed", "operation_failed"))
+    _ => None
   }
 }
