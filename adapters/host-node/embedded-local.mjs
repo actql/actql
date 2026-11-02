@@ -1845,15 +1845,6 @@ async function openInstalledHost(originalInstallation, preparation) {
   let environment;
   let evidenceCid;
   let sourcePublication;
-  function getPreparedSourceEnvironment() {
-    if (modelRuntimeClosing) throw clientOperationError('ClientHostClosing');
-    const original = preparedSourceEnvironment;
-    if (original === undefined || original.host !== host || original.moon !== moon ||
-        original.environment !== environment || original.publication !== sourcePublication) {
-      throw clientOperationError('InstalledPublicSourceEnvironmentChanged');
-    }
-    return original.preparedEnvironment;
-  }
   try {
     if (environmentBody === undefined) {
       const {evidence_bundle_cid: selectedEvidenceCid, ...selectedBody} = JSON.parse(environmentWire);
@@ -2281,10 +2272,9 @@ async function openInstalledHost(originalInstallation, preparation) {
   updateTargetOriginals = installUpdateTargetOriginals({moon, control, installedEffect,
     limits: localContractLimits});
   const prepareSubmit = installNodeClientProgramPreparation({moon,
-    environment, sourcePublication, valuesMaxRows, check,
+    environment, valuesMaxRows,
     getFundedPreparation: (request, selectedEnvironment, originalVerifier, signal) =>
       preparation.fundedPreparation(request, selectedEnvironment, originalVerifier, signal),
-    ...(preparedSourceEnvironment?.preparedEnvironment === undefined ? {} : {getPreparedSourceEnvironment}),
     verifyRequestValuePolicy, restoreEffectOriginal: updateTargetOriginals.restorePrepared,
     restoreInferOriginal: (original, definition, request, evidence) =>
       control.admitStoredClientInferRunOriginal(original, definition, request, evidence,

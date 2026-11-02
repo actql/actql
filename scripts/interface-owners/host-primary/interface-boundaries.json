@@ -6918,11 +6918,6 @@
           "async": true
         },
         {
-          "name": "openInstalledHost/getPreparedSourceEnvironment",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "openInstalledHost/hostConnection/hostConnection",
           "parameters": [
             "actual",
@@ -10276,7 +10271,6 @@
             "openInstalledHost/bootstrapIngress/bootstrapIngress#3",
             "openInstalledHost/bootstrapIngress/init:performInstalledRequest/init:performInstalledRequest",
             "openInstalledHost/bootstrapPort/init:perform/init:perform",
-            "openInstalledHost/getPreparedSourceEnvironment",
             "openInstalledHost/hostConnection/hostConnection",
             "openInstalledHost/init:closePublicationStore/init:closePublicationStore",
             "openInstalledHost/init:prepareShutdown/init:prepareShutdown",
@@ -10672,7 +10666,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "function getPreparedSourceEnvironment() {"
+                "anchor": "export function readLocalPreparationContext(originals) {"
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
@@ -10794,11 +10788,11 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "original.environment !== environment || original.publication !== sourcePublication)"
+                "anchor": "if (context === undefined || context.runtime !== installation.projectRuntime ||"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "if (original === undefined || original.host !== host || original.moon !== moon ||"
+                "anchor": "context.control !== installation.initialControl ||"
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
@@ -11030,7 +11024,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "...(preparedSourceEnvironment?.preparedEnvironment === undefined ? {} : {getPreparedSourceEnvironment}),"
+                "anchor": "getFundedPreparation: (request, selectedEnvironment, originalVerifier, signal) =>"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -11132,11 +11126,11 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "throw clientOperationError('InstalledPublicSourceEnvironmentChanged');"
+                "anchor": "throw new TypeError('InstalledRequestPreparationUnavailable');"
               },
               {
                 "path": "adapters/host-node/embedded-source-environment-scope.test.mjs",
-                "anchor": "assert.throws(host.get,{code:'InstalledPublicSourceEnvironmentChanged'});"
+                "anchor": "assert.equal(outerTry.block.body.some(node=>node.type==='FunctionDeclaration'&&node.id.name==='getPreparedSourceEnvironment'),false);"
               },
               {
                 "path": "adapters/host-node/client-run-state-revision.test.mjs",
@@ -11238,7 +11232,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-source-environment-scope.test.mjs",
-                "anchor": "host.stop();assert.throws(host.get,{code:'ClientHostClosing'});"
+                "anchor": "host.stop();assert.strictEqual(host.slot.preparedEnvironment,original.preparedEnvironment);"
               },
               {
                 "path": "docs/design/interactive-run-control.md",
@@ -11624,7 +11618,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-source-environment-scope.test.mjs",
-                "anchor": "test('actual Host enclosing scopes bind its prepared Source Environment getter to installed originals',async()=>{"
+                "anchor": "test('actual Host enclosing scopes retain original Source material without a legacy execution getter',async()=>{"
               },
               {
                 "path": "adapters/host-node/client-run-observation-reuse.test.mjs",
@@ -16716,80 +16710,6 @@
           }
         },
         {
-          "operations": [],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Preparation responsibility belongs to the existing Host instance"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/initial-control-host-input.mjs",
-                "anchor": "export function snapshotInitialControlHostInput(input, limits) {"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/initial-control-host-input.mjs",
-                "anchor": "originals[originals.length] = freeze({path: freeze(path), original: value});"
-              },
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "options = readInitialControlInstallationInput(control, originals);"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Reference ownership follows the actual Host record and its real children."
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const begun = beginInitialControlInstallation(originals, options);"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/initial-control-host-input.test.mjs",
-                "anchor": "test('unsupported Proxy and accessor inputs refuse without executing traps or getters'"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/initial-control-host-input-routing.test.mjs",
-                "anchor": "test('current refusal after initialization prevents the original packet from reaching Host copies'"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Resource coverage distinguishes managed work/data limits"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/initial-control-host-input.test.mjs",
-                "anchor": "test('exact counted bounds pass and each smaller total refuses without truncation'"
-              },
-              {
-                "path": "adapters/host-node/initial-control-host-input-routing.test.mjs",
-                "anchor": "test('Host passes raw input before awaiting and consumes only the same captured packet afterwards'"
-              }
-            ]
-          }
-        },
-        {
           "operations": [
             "openPreparedInstalledHost/preparation/init:prepareManagedModelCompilation/init:prepareManagedModelCompilation"
           ],
@@ -17818,7 +17738,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "function getPreparedSourceEnvironment() {"
+                "anchor": "export function readLocalPreparationContext(originals) {"
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
@@ -17916,11 +17836,11 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "original.environment !== environment || original.publication !== sourcePublication)"
+                "anchor": "if (context === undefined || context.runtime !== installation.projectRuntime ||"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "if (original === undefined || original.host !== host || original.moon !== moon ||"
+                "anchor": "context.control !== installation.initialControl ||"
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
@@ -18104,7 +18024,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "...(preparedSourceEnvironment?.preparedEnvironment === undefined ? {} : {getPreparedSourceEnvironment}),"
+                "anchor": "getFundedPreparation: (request, selectedEnvironment, originalVerifier, signal) =>"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -18186,11 +18106,11 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "throw clientOperationError('InstalledPublicSourceEnvironmentChanged');"
+                "anchor": "throw new TypeError('InstalledRequestPreparationUnavailable');"
               },
               {
                 "path": "adapters/host-node/embedded-source-environment-scope.test.mjs",
-                "anchor": "assert.throws(host.get,{code:'InstalledPublicSourceEnvironmentChanged'});"
+                "anchor": "assert.equal(outerTry.block.body.some(node=>node.type==='FunctionDeclaration'&&node.id.name==='getPreparedSourceEnvironment'),false);"
               },
               {
                 "path": "adapters/host-node/client-run-state-revision.test.mjs",
@@ -18268,7 +18188,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-source-environment-scope.test.mjs",
-                "anchor": "host.stop();assert.throws(host.get,{code:'ClientHostClosing'});"
+                "anchor": "host.stop();assert.strictEqual(host.slot.preparedEnvironment,original.preparedEnvironment);"
               },
               {
                 "path": "docs/design/interactive-run-control.md",
@@ -18586,7 +18506,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-source-environment-scope.test.mjs",
-                "anchor": "test('actual Host enclosing scopes bind its prepared Source Environment getter to installed originals',async()=>{"
+                "anchor": "test('actual Host enclosing scopes retain original Source material without a legacy execution getter',async()=>{"
               },
               {
                 "path": "adapters/host-node/client-run-observation-reuse.test.mjs",
@@ -18896,7 +18816,7 @@
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "e1d149ff1c0508a19d63a7b5a6a8d1f6b4203cf230db6383b24e0979c5e984cf"
+      "sha256": "d417fb293264e55e56222601d8b7d4ab83b1939d26079ca41505d88f7b9a98f5"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",

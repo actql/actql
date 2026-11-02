@@ -174,13 +174,14 @@
     {
       "module": "src/client_row_source_host/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "44acde4f556ffef51dad2f98bd304b03a08036bcac403fd052ab9c9ffaf9a073",
+      "sha256": "a4779a330e8c32e8e0a2005654700a797bedb360361ff0deb859723c28943aaa",
       "role": "common-semantics",
       "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
       "exports": [
         "pub fn abort_row_run(RowRun) -> Unit",
         "pub fn accept_charged_mock_churn_risk_document(RowRun, RowPageCharge, RowAcquisition, RowDeclaration, RowDeclaration, Bytes, Int) -> Result[Int, RowHostIssue]",
         "pub fn accept_charged_row_run_page(RowRun, RowPageCharge, Bytes) -> Result[Int, RowHostIssue]",
+        "pub fn accept_charged_row_run_projected_page(RowRun, RowPageCharge, RowSourceProjectedJsonPage) -> Result[Int, RowHostIssue]",
         "pub fn accept_charged_row_run_values(RowRun, RowPageCharge, Array[String], Array[Array[@value_admission.CheckedValue]]) -> Result[Int, RowHostIssue]",
         "pub fn accept_keyed_row_page(RowSourceRead, Bytes) -> Result[Int, RowSourceIssue]",
         "pub fn accept_row_run_page(RowRun, Bytes) -> Result[Int, RowHostIssue]",
@@ -263,6 +264,7 @@
         "pub fn prepare_row_source(@query_planning.QueryRequirement, RowDeclaration) -> Result[RowSourcePreparation, RowSourceIssue]",
         "pub fn project_row_declaration(String, String, String, String, String, Array[String], Array[RowDeclaredView], Array[String], String, String) -> Result[RowDeclaration, RowDeclarationIssue]",
         "pub fn project_row_source_json_page(Bytes, Array[String], Bool, Array[String], Int, Int, Int, Int, Int) -> Result[RowSourceJsonPage, RowSourceJsonPageIssue]",
+        "pub fn project_row_source_typed_json_page(Bytes, Array[String], Bool, Array[String], Int, Int, Int, Int, Int) -> Result[RowSourceProjectedJsonPage, RowSourceJsonPageIssue]",
         "pub fn restore_relation_row_declaration(String, String, String, String, String?) -> Result[RowDeclaration, RowHostIssue]",
         "pub fn restore_row_declaration(String, String, String, String, String?) -> Result[RowDeclaration, RowHostIssue]",
         "pub fn restore_row_original_read(@query_planning.QueryRequirement, String, String, Array[String], () -> Bool, reference_issuer? : @value_admission.ReferenceIssuer) -> Result[RowRestoredOriginalInput, RowOriginalCaptureIssue]",
@@ -302,10 +304,14 @@
         "pub fn row_source_columns(RowSourcePreparation) -> Array[String]",
         "pub fn row_source_json_page_has_next_cursor(RowSourceJsonPage) -> Bool",
         "pub fn row_source_json_page_next_cursor(RowSourceJsonPage) -> Result[String, RowSourceJsonPageIssue]",
+        "pub fn row_source_json_page_original(RowSourceJsonPage) -> RowSourceProjectedJsonPage",
         "pub fn row_source_json_page_row_count(RowSourceJsonPage) -> Int",
         "pub fn row_source_json_page_rows_wire(RowSourceJsonPage) -> String",
         "pub fn row_source_requirement(RowSourcePreparation) -> @query_planning.QueryRequirement",
         "pub fn row_source_target(RowDeclaration, @query_planning.QueryRequirement) -> Result[(String, Array[String]), RowHostIssue]",
+        "pub fn row_source_typed_json_page_has_next_cursor(RowSourceProjectedJsonPage) -> Bool",
+        "pub fn row_source_typed_json_page_next_cursor(RowSourceProjectedJsonPage) -> Result[String, RowSourceJsonPageIssue]",
+        "pub fn row_source_typed_json_page_row_count(RowSourceProjectedJsonPage) -> Int",
         "pub fn start_accounted_keyed_row_acquisition(RowKeyedAcquisition, String, (RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64, (RowAttempt) -> Bool) -> Result[RowRun, RowHostIssue]",
         "pub fn start_accounted_listing_row_acquisition(RowAcquisition, @execution_relation.ExecutionCapacity?, String, (RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64) -> Result[RowRun, RowHostIssue]",
         "pub fn start_accounted_provider_row_acquisition(RowAcquisition, @execution_relation.ExecutionCapacity?, String, (RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64) -> Result[RowRun, RowHostIssue]",
@@ -337,6 +343,10 @@
         {
           "name": "accept_charged_row_run_page",
           "declaration": "pub fn accept_charged_row_run_page(RowRun, RowPageCharge, Bytes) -> Result[Int, RowHostIssue]"
+        },
+        {
+          "name": "accept_charged_row_run_projected_page",
+          "declaration": "pub fn accept_charged_row_run_projected_page(RowRun, RowPageCharge, RowSourceProjectedJsonPage) -> Result[Int, RowHostIssue]"
         },
         {
           "name": "accept_charged_row_run_values",
@@ -667,6 +677,10 @@
           "declaration": "pub fn project_row_source_json_page(Bytes, Array[String], Bool, Array[String], Int, Int, Int, Int, Int) -> Result[RowSourceJsonPage, RowSourceJsonPageIssue]"
         },
         {
+          "name": "project_row_source_typed_json_page",
+          "declaration": "pub fn project_row_source_typed_json_page(Bytes, Array[String], Bool, Array[String], Int, Int, Int, Int, Int) -> Result[RowSourceProjectedJsonPage, RowSourceJsonPageIssue]"
+        },
+        {
           "name": "restore_relation_row_declaration",
           "declaration": "pub fn restore_relation_row_declaration(String, String, String, String, String?) -> Result[RowDeclaration, RowHostIssue]"
         },
@@ -823,6 +837,10 @@
           "declaration": "pub fn row_source_json_page_next_cursor(RowSourceJsonPage) -> Result[String, RowSourceJsonPageIssue]"
         },
         {
+          "name": "row_source_json_page_original",
+          "declaration": "pub fn row_source_json_page_original(RowSourceJsonPage) -> RowSourceProjectedJsonPage"
+        },
+        {
           "name": "row_source_json_page_row_count",
           "declaration": "pub fn row_source_json_page_row_count(RowSourceJsonPage) -> Int"
         },
@@ -837,6 +855,18 @@
         {
           "name": "row_source_target",
           "declaration": "pub fn row_source_target(RowDeclaration, @query_planning.QueryRequirement) -> Result[(String, Array[String]), RowHostIssue]"
+        },
+        {
+          "name": "row_source_typed_json_page_has_next_cursor",
+          "declaration": "pub fn row_source_typed_json_page_has_next_cursor(RowSourceProjectedJsonPage) -> Bool"
+        },
+        {
+          "name": "row_source_typed_json_page_next_cursor",
+          "declaration": "pub fn row_source_typed_json_page_next_cursor(RowSourceProjectedJsonPage) -> Result[String, RowSourceJsonPageIssue]"
+        },
+        {
+          "name": "row_source_typed_json_page_row_count",
+          "declaration": "pub fn row_source_typed_json_page_row_count(RowSourceProjectedJsonPage) -> Int"
         },
         {
           "name": "start_accounted_keyed_row_acquisition",
@@ -3267,6 +3297,86 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "accept_charged_row_run_projected_page",
+            "project_row_source_typed_json_page",
+            "row_source_json_page_original",
+            "row_source_typed_json_page_has_next_cursor",
+            "row_source_typed_json_page_next_cursor",
+            "row_source_typed_json_page_row_count"
+          ],
+          "exports": [
+            "pub fn accept_charged_row_run_projected_page(RowRun, RowPageCharge, RowSourceProjectedJsonPage) -> Result[Int, RowHostIssue]",
+            "pub fn project_row_source_typed_json_page(Bytes, Array[String], Bool, Array[String], Int, Int, Int, Int, Int) -> Result[RowSourceProjectedJsonPage, RowSourceJsonPageIssue]",
+            "pub fn row_source_json_page_original(RowSourceJsonPage) -> RowSourceProjectedJsonPage",
+            "pub fn row_source_typed_json_page_has_next_cursor(RowSourceProjectedJsonPage) -> Bool",
+            "pub fn row_source_typed_json_page_next_cursor(RowSourceProjectedJsonPage) -> Result[String, RowSourceJsonPageIssue]",
+            "pub fn row_source_typed_json_page_row_count(RowSourceProjectedJsonPage) -> Int"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ]
+          }
         }
       ]
     },
@@ -3719,7 +3829,7 @@
     },
     {
       "module": "src/client_local_host/provider_capture_capacity.mbt",
-      "sha256": "c305ee8cbc9f928ca4848eb8843d124d335caac1ebff56dab3f2fe0165ec3ddd",
+      "sha256": "9ef6dbd18b4d059418a44d71ca730c49e13bc988d7405169a448e747f3effab8",
       "operations": [
         {
           "name": "installed_provider_row_capture_capacity",
@@ -4374,7 +4484,7 @@
     {
       "module": "src/check_environment/source_view_shape.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "3bf3bb67bab2c8618dec48468a959b4cf151db96003f39df7f1395ceaae2d59b",
+      "sha256": "c162757ad113af9a98da7de038aebebfee71cc2627f7582be0076b75d343ef67",
       "role": "common-semantics",
       "owner": "Existing Check Environment generated SourceView shape Owner; schema roles/current authority remain separate",
       "exports": [],
@@ -4394,6 +4504,14 @@
         {
           "name": "check_source_view_shapes",
           "declaration": "check_source_view_shapes ( values : ProtocolValueContracts , limits : SourceViewShapeLimits , ) - > Result [ SourceViewShapes , SourceViewShapeIssue ]"
+        },
+        {
+          "name": "observe_source_view_shapes",
+          "declaration": "observe_source_view_shapes ( values : ProtocolValueContracts , limits : SourceViewShapeLimits , ) - > ( Result [ SourceViewShapes , SourceViewShapeIssue ] , Int )"
+        },
+        {
+          "name": "read_source_view_shapes",
+          "declaration": "read_source_view_shapes ( values : ProtocolValueContracts , limits : SourceViewShapeLimits , budget : ViewShapeBudget , ) - > Result [ SourceViewShapes , SourceViewShapeIssue ]"
         },
         {
           "name": "source_view_shape_at",
@@ -4510,6 +4628,75 @@
               {
                 "path": "src/check_environment/source_view_shape_wbtest.mbt",
                 "anchor": "test \"Resource identity subtree uses the same generated SourceView rule and work budget\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "observe_source_view_shapes",
+            "read_source_view_shapes"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
               }
             ]
           }

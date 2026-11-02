@@ -2867,3 +2867,20 @@ fixed Host control allowance is charged once. The normalizing Ledger peak and
 that complete Receipt-family envelope are alternative bounds of the same
 control frame, not separately issued reservations. Physical saved response
 buffers, native projection results and distinct Grants remain additive.
+
+### Request-owned execution preparation
+
+The ordinary execution installer requires its existing Request preparation
+owner. It receives that owner's original checked/compiler result and retains
+the original Environment, Parameters cursor and restoration associations.
+Raw checker/compiler APIs remain separate; absence of the execution owner
+cannot select serialization, standalone preparation or another Run admission.
+
+A fresh preparation refusal projects the same Request's checked result for
+the current audience. The Journal write separates two real observation
+boundaries; re-projecting that result after the write neither parses nor checks
+the Program again. An unavailable original projection remains unavailable and
+cannot select an independent checker. Later retained lookup keeps its separate
+current-audience disclosure boundary and never re-prepares or executes input.
+All original Request, physical cleanup and uncertain-failure duties remain with
+their existing owners.

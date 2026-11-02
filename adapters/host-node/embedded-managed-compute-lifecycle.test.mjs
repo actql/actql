@@ -50,15 +50,8 @@ function preparedEnvironmentLifetime({missing = false, retire = () => {},
   assert.deepEqual(opening.params.map(node => node.name), ['originalInstallation', 'preparation']);
   const functions = new Map(opening.body.body.filter(node => node.type === 'FunctionDeclaration')
     .map(node => [node.id.name,node]));
-  let getter;
-  visit(opening.body,node => {
-    if (node.type === 'FunctionDeclaration' && node.id.name === 'getPreparedSourceEnvironment') {
-      assert.equal(getter,undefined);
-      getter = node;
-    }
-  });
   const retirement = functions.get('retireModelPreparationReferences');
-  assert(getter && retirement);
+  assert(retirement);
   let capture, installation, retain, consumerCapture;
   visit(opening.body,node => {
     if (node.type === 'VariableDeclaration' && node.declarations.length === 1) {
@@ -88,6 +81,11 @@ function preparedEnvironmentLifetime({missing = false, retire = () => {},
     let environment=original.environment,sourcePublication=original.publication;
     let preparedSourceEnvironment,clientProgramPreparationReferences,modelRuntimeClosing=false;
     let modelSdkStaticOriginals,originalInstallation={},registerModelProviders,modelProviders;
+    const installationServices={},environmentWire='{}';
+    const completeInstalledSourceInitialization=(services,installation,prepared,wire)=>{
+      if(services!==installationServices||installation!==originalInstallation||
+          prepared!==original.preparedEnvironment||wire!==environmentWire)throw Error('ForeignSourceInitialization');
+    };
     let projectTasks,projectProfile,projectRuntime,project;
     const mockEffectRuns=new Map(),localFileEffectRuns=new Map();
     let mockEffectOriginals,localFileEffectOriginals,localFileEffectInstallation;
@@ -106,13 +104,12 @@ function preparedEnvironmentLifetime({missing = false, retire = () => {},
       };
       return holder;
     };
-    ${text(getter)}
     ${text(retirement)}
     ${text(capture)}
     ${text(retain)}
     let selectedPreparation;
     ${install ? `{${text(installation)}\n${consumerCapture === undefined ? '' : text(consumerCapture)}\nselectedPreparation=prepareSubmit;}` : ''}
-    return {get:getPreparedSourceEnvironment,retire:retireModelPreparationReferences,
+    return {retire:retireModelPreparationReferences,
       get slot(){return preparedSourceEnvironment;},options:selectedPreparation,
       stop(){modelRuntimeClosing=true;},replaceEnvironment(value){environment=value;},
       replacePublication(value){sourcePublication=value;}};
@@ -121,12 +118,12 @@ function preparedEnvironmentLifetime({missing = false, retire = () => {},
     get reads(){return reads;},get retirements(){return retirements;}};
 }
 
-test('Host prepared Environment keeps one original and forwards only its cheap lifetime getter', () => {
+test('Host prepared Environment keeps one original and execution forwards only the Request owner', () => {
   const f = preparedEnvironmentLifetime();
   assert.equal(f.reads,1);
-  assert.strictEqual(f.fixture.options.getPreparedSourceEnvironment,f.fixture.get);
-  assert.equal(Object.hasOwn(f.fixture.options,'getFundedPreparation'),false, 'The actual optional preparation argument is absent, not a fabricated funded parent');
-  for (let index=0;index<8;index++) assert.strictEqual(f.fixture.get(),f.original.preparedEnvironment);
+  assert.equal(Object.hasOwn(f.fixture.options, 'getPreparedSourceEnvironment'), false);
+  assert.equal(typeof f.fixture.options.getFundedPreparation, 'function', 'The actual execution caller always selects its original Request owner');
+  assert.strictEqual(f.fixture.slot.preparedEnvironment, f.original.preparedEnvironment);
   assert.equal(f.reads,1,'unchanged Host use does not re-read, encode or prepare its publication');
   assert.equal(f.retirements,0);
   const legacy = preparedEnvironmentLifetime({missing:true});
@@ -143,7 +140,7 @@ test('Host prepared Environment waits for the original child shutdown before cut
   await assert.rejects(shutdown.close(),error=>error.code==='InstalledHostCleanupPending');
   assert.equal(closes,1);assert.equal(storeCloses,1,'independent Store cleanup is still attempted');
   assert.equal(f.retirements,0);assert.ok(f.fixture.slot);
-  assert.throws(f.fixture.get,{code:'ClientHostClosing'});
+  assert.ok(f.fixture.slot, 'A pending original cleanup retains its original material');
   await shutdown.close();
   assert.equal(f.retirements,1);assert.equal(f.fixture.slot,undefined);
   assert.equal(closes,2);assert.equal(storeCloses,1);
@@ -154,9 +151,9 @@ test('Host prepared Environment refuses changed originals and retires only its c
   const marker=new Error('OriginalAssociationRetirement');let attempts=0;
   const f=preparedEnvironmentLifetime({retire(){if(++attempts===1)throw marker;}});
   f.fixture.replaceEnvironment({});
-  assert.throws(f.fixture.get,{code:'InstalledPublicSourceEnvironmentChanged'});
+  assert.strictEqual(f.fixture.slot.preparedEnvironment, f.original.preparedEnvironment, 'Changing an unrelated binding does not reissue the original material');
   f.fixture.replacePublication({});
-  assert.throws(f.fixture.get,{code:'InstalledPublicSourceEnvironmentChanged'});
+  assert.strictEqual(f.fixture.slot.preparedEnvironment, f.original.preparedEnvironment, 'Changing an unrelated binding does not reissue the original material');
   assert.throws(f.fixture.retire,error=>error===marker);
   assert.ok(f.fixture.slot,'a failed reference-cut callback retains the same original for retry');
   f.fixture.retire();assert.equal(f.fixture.slot,undefined);assert.equal(f.retirements,2);

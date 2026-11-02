@@ -4463,14 +4463,14 @@
   {
     "module": "src/connectors/sheets/host_node/pkg.generated.mbti",
     "responsibilityFacet": "primary",
-    "sha256": "c03f7437c9c4bdaa77071711888adbfe08a1631ff2c98dee4fef4860355b6531",
+    "sha256": "7e2d25bd63682b141af091d3c7370fb678085935dd568d8260927c2c5a1c7f3e",
     "exports": [
       "pub fn sheets_append_construction_profile(Int, Int, Int, Int, Int, Int, Int) -> Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?",
       "pub fn sheets_append_outcome_json(Int, Bytes, String, Int, Int, Int, Int) -> String",
       "pub fn sheets_append_request_identity(String, String, String) -> Result[String, @catalog.RangeFailure]",
       "pub fn sheets_append_request_json(String, String, Int, Int, Int, Int, Int) -> String",
       "pub fn sheets_clear_binding(String, String, String, String, Int, Int, Int, Int) -> Result[@catalog.ClearRangeBinding, @catalog.RangeFailure]",
-      "pub fn sheets_clear_capture_construction_profile(@catalog.ClearRangeBinding, Int, Int, Int, Int, Int, Int) -> Array[@execution_relation.ExecutionCapacity]?",
+      "pub fn sheets_clear_capture_construction_profile(@catalog.ClearRangeBinding, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Array[@execution_relation.ExecutionCapacity]?",
       "pub fn sheets_clear_command_json(String, String, String, Int, Int, Int, Int) -> Result[String, @catalog.RangeFailure]",
       "pub fn sheets_clear_construction_profile(@catalog.ClearRangeBinding, Int, Int, Int, Int, Int, Int) -> Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?",
       "pub fn sheets_clear_outcome_json(@catalog.ClearRangeBinding, @catalog.ClearRangeRequest, Int, Bytes) -> Result[String, @catalog.RangeFailure]",
@@ -4486,7 +4486,7 @@
       "pub fn sheets_grid_request_json(String, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> String",
       "pub fn sheets_project_tabs(Bytes, String, Int, Int, Int, Int, Int, Int) -> Result[@catalog.SheetTabsPage, @catalog.SheetTabsIssue]",
       "pub fn sheets_range_binding(String, String, String, String, Int, Int, Int, Int) -> Result[@catalog.RangeBinding, @catalog.RangeFailure]",
-      "pub fn sheets_range_capture_construction_profile(@catalog.RangeBinding, Int, Int, Int, Int, Int, Int) -> Array[@execution_relation.ExecutionCapacity]?",
+      "pub fn sheets_range_capture_construction_profile(@catalog.RangeBinding, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Array[@execution_relation.ExecutionCapacity]?",
       "pub fn sheets_range_catalog_json(String, String, Int, Int, Int, Int) -> Result[String, @catalog.RangeFailure]",
       "pub fn sheets_range_command_json(String, String, String, Int, Int, Int, Int) -> Result[String, @catalog.RangeFailure]",
       "pub fn sheets_range_construction_profile(@catalog.RangeBinding, Int, Int, Int, Int, Int, Int) -> Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?",
@@ -4533,7 +4533,7 @@
       },
       {
         "name": "sheets_clear_capture_construction_profile",
-        "declaration": "pub fn sheets_clear_capture_construction_profile(@catalog.ClearRangeBinding, Int, Int, Int, Int, Int, Int) -> Array[@execution_relation.ExecutionCapacity]?"
+        "declaration": "pub fn sheets_clear_capture_construction_profile(@catalog.ClearRangeBinding, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Array[@execution_relation.ExecutionCapacity]?"
       },
       {
         "name": "sheets_clear_command_json",
@@ -4597,7 +4597,7 @@
       },
       {
         "name": "sheets_range_capture_construction_profile",
-        "declaration": "pub fn sheets_range_capture_construction_profile(@catalog.RangeBinding, Int, Int, Int, Int, Int, Int) -> Array[@execution_relation.ExecutionCapacity]?"
+        "declaration": "pub fn sheets_range_capture_construction_profile(@catalog.RangeBinding, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Array[@execution_relation.ExecutionCapacity]?"
       },
       {
         "name": "sheets_range_catalog_json",
@@ -4733,9 +4733,7 @@
           "pub fn sheets_append_construction_profile(Int, Int, Int, Int, Int, Int, Int) -> Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?",
           "pub fn sheets_grid_read_construction_capacity(Int, Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?",
           "pub fn sheets_range_declaration_construction_capacity(Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?",
-          "pub fn sheets_clear_capture_construction_profile(@catalog.ClearRangeBinding, Int, Int, Int, Int, Int, Int) -> Array[@execution_relation.ExecutionCapacity]?",
           "pub fn sheets_clear_construction_profile(@catalog.ClearRangeBinding, Int, Int, Int, Int, Int, Int) -> Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?",
-          "pub fn sheets_range_capture_construction_profile(@catalog.RangeBinding, Int, Int, Int, Int, Int, Int) -> Array[@execution_relation.ExecutionCapacity]?",
           "pub fn sheets_range_construction_profile(@catalog.RangeBinding, Int, Int, Int, Int, Int, Int) -> Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?",
           "pub fn sheets_range_installation_construction_capacity(Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?",
           "pub fn sheets_range_read_construction_capacity(Int, Int, Int, Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?",
@@ -5171,6 +5169,75 @@
             {
               "path": "adapters/connectors/sheets/test/sheets-tabs-pages.actual.test.mjs",
               "anchor": "actual Sheets tabs ABI and callbacks retain all typed columns tab identity exact title and nongrid null counts"
+            }
+          ]
+        }
+      },
+      {
+        "operations": [],
+        "exports": [
+          "pub fn sheets_clear_capture_construction_profile(@catalog.ClearRangeBinding, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Array[@execution_relation.ExecutionCapacity]?",
+          "pub fn sheets_range_capture_construction_profile(@catalog.RangeBinding, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Array[@execution_relation.ExecutionCapacity]?"
+        ],
+        "attributes": {
+          "responsibility": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Request-owned execution preparation"
+            }
+          ],
+          "inputsOutputs": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Request-owned execution preparation"
+            }
+          ],
+          "identity": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Request-owned execution preparation"
+            }
+          ],
+          "ownership": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Request-owned execution preparation"
+            }
+          ],
+          "synchronization": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Request-owned execution preparation"
+            }
+          ],
+          "failure": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Request-owned execution preparation"
+            }
+          ],
+          "cancellation": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Request-owned execution preparation"
+            }
+          ],
+          "resources": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Request-owned execution preparation"
+            }
+          ],
+          "extension": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Request-owned execution preparation"
+            }
+          ],
+          "verification": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Request-owned execution preparation"
             }
           ]
         }

@@ -2005,7 +2005,7 @@
     },
     {
       "module": "src/connectors/kintone/host/record_create_mapping.mbt",
-      "sha256": "022d8640e3c9e80399db2f9c885f2a3885bb20fc61a69451a68aa0916327123c",
+      "sha256": "eebebbdc1d04d60dd884e370bd1150deadfb3df2f66d8f40e4709819c4c4e371",
       "exports": [],
       "operations": [
         {
@@ -2027,6 +2027,10 @@
         {
           "name": "record_create_mapping_matches_request",
           "declaration": "record_create_mapping_matches_request ( value : RecordCreateMapping , request : @ catalog . RecordCreateRequest , ) - > Bool"
+        },
+        {
+          "name": "record_create_mapping_resource",
+          "declaration": "record_create_mapping_resource ( mapping : RecordCreateMapping , ) - > Result [ String , RecordCreateExecutionIssue ]"
         }
       ],
       "responsibilityFacet": "primary",
@@ -2105,18 +2109,207 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "record_create_mapping_resource"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ]
+          }
         }
       ]
     },
     {
       "module": "adapters/connectors/kintone/site/kintone-create-execution.mjs",
-      "sha256": "1499f6cf445f9a27df3a239c1be5fd9ed1bda0bb5580866e1585a6704230ace9",
+      "sha256": "2be710576aa06977b020a7603cc06ad347c90a763f19fc060249123e2876417a",
       "exports": [
+        "createMappedKintoneCreateWrite",
         "prepareMappedKintoneCreate",
+        "prepareMappedKintoneCreateFormCheck",
         "projectMappedKintoneCreateOutcome",
+        "projectMappedKintoneCreateResponseOutcome",
         "sendMappedKintoneCreate"
       ],
       "operations": [
+        {
+          "name": "createMappedKintoneCreateWrite",
+          "parameters": [
+            "moon",
+            "mapping",
+            "declaration",
+            "resource",
+            "formResource",
+            "origin",
+            "guestSpaceId",
+            "boundaryCid",
+            "supplied"
+          ],
+          "async": false
+        },
+        {
+          "name": "createMappedKintoneCreateWrite/bytesOf/bytesOf",
+          "parameters": [
+            "wire"
+          ],
+          "async": false
+        },
+        {
+          "name": "createMappedKintoneCreateWrite/createMappedKintoneCreateWrite",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createMappedKintoneCreateWrite/createMappedKintoneCreateWrite#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createMappedKintoneCreateWrite/createMappedKintoneCreateWrite#3",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createMappedKintoneCreateWrite/data/data",
+          "parameters": [
+            "value",
+            "names"
+          ],
+          "async": false
+        },
+        {
+          "name": "createMappedKintoneCreateWrite/data/data/data",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createMappedKintoneCreateWrite/init:body/init:body",
+          "parameters": [
+            "context"
+          ],
+          "async": false
+        },
+        {
+          "name": "createMappedKintoneCreateWrite/init:classify/init:classify",
+          "parameters": [
+            "context"
+          ],
+          "async": false
+        },
+        {
+          "name": "createMappedKintoneCreateWrite/init:project/init:project",
+          "parameters": [
+            "context"
+          ],
+          "async": false
+        },
+        {
+          "name": "createMappedKintoneCreateWrite/init:request/init:request",
+          "parameters": [
+            "selectedResource",
+            "value",
+            "proposalWire"
+          ],
+          "async": false
+        },
+        {
+          "name": "createMappedKintoneCreateWrite/invalid/invalid",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createMappedKintoneCreateWrite/limits/limits",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createMappedKintoneCreateWrite/retain/retain",
+          "parameters": [
+            "request",
+            "value",
+            "native"
+          ],
+          "async": false
+        },
+        {
+          "name": "createMappedKintoneCreateWrite/selected/selected",
+          "parameters": [
+            "selectedResource",
+            "request",
+            "value"
+          ],
+          "async": false
+        },
         {
           "name": "fail/fail",
           "parameters": [
@@ -2166,6 +2359,38 @@
           "async": false
         },
         {
+          "name": "prepareMappedKintoneCreateFormCheck",
+          "parameters": [
+            "moon",
+            "mapping",
+            "declaration",
+            "request",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareMappedKintoneCreateFormCheck/init:project/init:project",
+          "parameters": [
+            "observation"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareMappedKintoneCreateFormCheck/prepareMappedKintoneCreateFormCheck",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareMappedKintoneCreateFormCheck/prepareMappedKintoneCreateFormCheck#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
           "name": "projectMappedKintoneCreateOutcome",
           "parameters": [
             "moon",
@@ -2189,6 +2414,32 @@
         },
         {
           "name": "projectMappedKintoneCreateOutcome/projectMappedKintoneCreateOutcome#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectMappedKintoneCreateResponseOutcome",
+          "parameters": [
+            "moon",
+            "mapping",
+            "declaration",
+            "request",
+            "observation",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectMappedKintoneCreateResponseOutcome/projectMappedKintoneCreateResponseOutcome",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectMappedKintoneCreateResponseOutcome/projectMappedKintoneCreateResponseOutcome#2",
           "parameters": [
             "name"
           ],
@@ -2365,17 +2616,130 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "createMappedKintoneCreateWrite",
+            "createMappedKintoneCreateWrite/bytesOf/bytesOf",
+            "createMappedKintoneCreateWrite/createMappedKintoneCreateWrite",
+            "createMappedKintoneCreateWrite/createMappedKintoneCreateWrite#2",
+            "createMappedKintoneCreateWrite/createMappedKintoneCreateWrite#3",
+            "createMappedKintoneCreateWrite/data/data",
+            "createMappedKintoneCreateWrite/data/data/data",
+            "createMappedKintoneCreateWrite/init:body/init:body",
+            "createMappedKintoneCreateWrite/init:classify/init:classify",
+            "createMappedKintoneCreateWrite/init:project/init:project",
+            "createMappedKintoneCreateWrite/init:request/init:request",
+            "createMappedKintoneCreateWrite/invalid/invalid",
+            "createMappedKintoneCreateWrite/limits/limits",
+            "createMappedKintoneCreateWrite/retain/retain",
+            "createMappedKintoneCreateWrite/selected/selected",
+            "prepareMappedKintoneCreateFormCheck",
+            "prepareMappedKintoneCreateFormCheck/init:project/init:project",
+            "prepareMappedKintoneCreateFormCheck/prepareMappedKintoneCreateFormCheck",
+            "prepareMappedKintoneCreateFormCheck/prepareMappedKintoneCreateFormCheck#2",
+            "projectMappedKintoneCreateResponseOutcome",
+            "projectMappedKintoneCreateResponseOutcome/projectMappedKintoneCreateResponseOutcome",
+            "projectMappedKintoneCreateResponseOutcome/projectMappedKintoneCreateResponseOutcome#2"
+          ],
+          "exports": [
+            "createMappedKintoneCreateWrite",
+            "prepareMappedKintoneCreateFormCheck",
+            "projectMappedKintoneCreateResponseOutcome"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ]
+          }
         }
       ]
     },
     {
       "module": "src/connectors_builtin_node_rela/client_kintone_create_execution_bridge.mbt",
-      "sha256": "0741c5c912d79390d76a4a9280b7746d7c20bc6944694cd43caa198a2df6c1ee",
+      "sha256": "97722262dd2512abc01097abb0f2a6f9ac224cdd5d8d4847581932345e825695",
       "exports": [],
       "operations": [
         {
+          "name": "client_program_kintone_create_effect_outcome",
+          "declaration": "client_program_kintone_create_effect_outcome ( request : @ kintone_catalog . RecordCreateRequest , response : @ kintone_catalog . RecordCreateAcknowledgement , limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_catalog . RecordCreateEffectOutcome , @ kintone_catalog . RecordMutationIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_create_effect_outcome_matches_request",
+          "declaration": "client_program_kintone_create_effect_outcome_matches_request ( value : @ kintone_catalog . RecordCreateEffectOutcome , request : @ kintone_catalog . RecordCreateRequest , ) - > Bool"
+        },
+        {
+          "name": "client_program_kintone_create_effect_outcome_response_sha256",
+          "declaration": "client_program_kintone_create_effect_outcome_response_sha256 ( value : @ kintone_catalog . RecordCreateEffectOutcome , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_create_effect_outcome_wire",
+          "declaration": "client_program_kintone_create_effect_outcome_wire ( value : @ kintone_catalog . RecordCreateEffectOutcome , ) - > String"
+        },
+        {
           "name": "client_program_kintone_create_execution_request",
           "declaration": "client_program_kintone_create_execution_request ( mapping : @ kintone_host . RecordCreateMapping , bytes : Bytes , max_input_bytes : Int , write_limits : @ kintone_catalog . RecordWriteLimits , request_limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_catalog . RecordCreateRequest , @ kintone_host . RecordCreateExecutionIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_create_form_recheck_construction_capacity",
+          "declaration": "client_program_kintone_create_form_recheck_construction_capacity ( mapping : @ kintone_host . RecordCreateMapping , limits : @ kintone_catalog . FormFieldLimits , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "client_program_kintone_create_mapping_body",
@@ -2388,6 +2752,10 @@
         {
           "name": "client_program_kintone_create_mapping_matches_request",
           "declaration": "client_program_kintone_create_mapping_matches_request ( mapping : @ kintone_host . RecordCreateMapping , request : @ kintone_catalog . RecordCreateRequest , ) - > Bool"
+        },
+        {
+          "name": "client_program_kintone_create_mapping_resource",
+          "declaration": "client_program_kintone_create_mapping_resource ( mapping : @ kintone_host . RecordCreateMapping , ) - > Result [ String , @ kintone_host . RecordCreateExecutionIssue ]"
         },
         {
           "name": "client_program_kintone_create_preview_outcome",
@@ -2410,12 +2778,32 @@
           "declaration": "client_program_kintone_create_preview_outcome_wire ( value : @ kintone_host . RecordCreatePreviewOutcome , ) - > String"
         },
         {
+          "name": "client_program_kintone_create_proposal_construction_capacity",
+          "declaration": "client_program_kintone_create_proposal_construction_capacity ( mapping : @ kintone_host . RecordCreateMapping , max_input_bytes : Int , write : @ kintone_catalog . RecordWriteLimits , request : @ kintone_catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_kintone_create_request_construction_capacity",
+          "declaration": "client_program_kintone_create_request_construction_capacity ( mapping : @ kintone_host . RecordCreateMapping , max_input_bytes : Int , write : @ kintone_catalog . RecordWriteLimits , request : @ kintone_catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_kintone_create_response_construction_capacity",
+          "declaration": "client_program_kintone_create_response_construction_capacity ( mapping : @ kintone_host . RecordCreateMapping , limits : @ kintone_catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
           "name": "client_program_kintone_create_values_json",
           "declaration": "client_program_kintone_create_values_json ( request : @ kintone_catalog . RecordCreateRequest , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , @ kintone_catalog . RecordCreateJsonIssue ]"
         },
         {
+          "name": "client_program_kintone_prepare_create_execution_proposal",
+          "declaration": "client_program_kintone_prepare_create_execution_proposal ( mapping : @ kintone_host . RecordCreateMapping , bytes : Bytes , max_input_bytes : Int , write_limits : @ kintone_catalog . RecordWriteLimits , request_limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_catalog . RecordCreateRequest , @ kintone_host . RecordCreateExecutionIssue , ]"
+        },
+        {
           "name": "client_program_kintone_prepare_create_mapping",
           "declaration": "client_program_kintone_prepare_create_mapping ( original : @ kintone_host . RecordDeclaration , resource : String , sources : Array [ @ client_row_source_host . RowMappingSource ] , approval : String , limits : @ client_row_source_host . RowDeclarationLimits , ) - > Result [ @ kintone_host . RecordCreateMapping , @ client_row_source_host . RowMappingIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_restore_create_execution_proposal",
+          "declaration": "client_program_kintone_restore_create_execution_proposal ( mapping : @ kintone_host . RecordCreateMapping , bytes : Bytes , original_body : String , max_input_bytes : Int , write_limits : @ kintone_catalog . RecordWriteLimits , request_limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_catalog . RecordCreateRequest , @ kintone_host . RecordCreateExecutionIssue , ]"
         }
       ],
       "responsibilityFacet": "primary",
@@ -2564,6 +2952,84 @@
               {
                 "path": "docs/design/kintone-record-mutations.md",
                 "anchor": "- CREATE outcome verification:"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_kintone_create_effect_outcome",
+            "client_program_kintone_create_effect_outcome_matches_request",
+            "client_program_kintone_create_effect_outcome_response_sha256",
+            "client_program_kintone_create_effect_outcome_wire",
+            "client_program_kintone_create_form_recheck_construction_capacity",
+            "client_program_kintone_create_mapping_resource",
+            "client_program_kintone_create_proposal_construction_capacity",
+            "client_program_kintone_create_request_construction_capacity",
+            "client_program_kintone_create_response_construction_capacity",
+            "client_program_kintone_prepare_create_execution_proposal",
+            "client_program_kintone_restore_create_execution_proposal"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
               }
             ]
           }
@@ -2572,12 +3038,32 @@
     },
     {
       "module": "src/connectors_builtin_node/client_kintone_create_execution_bridge.mbt",
-      "sha256": "dcae62a1c2aa60938eb86d30d820e38152c0fb0d9e12c2fe9b2b999091de8129",
+      "sha256": "b5a3c5ff47bad0f2685b48a7c6443588fca848a8bd6fd476b3c4d23520cb214c",
       "exports": [],
       "operations": [
         {
+          "name": "client_program_kintone_create_effect_outcome",
+          "declaration": "client_program_kintone_create_effect_outcome ( request : @ kintone_catalog . RecordCreateRequest , response : @ kintone_catalog . RecordCreateAcknowledgement , limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_catalog . RecordCreateEffectOutcome , @ kintone_catalog . RecordMutationIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_create_effect_outcome_matches_request",
+          "declaration": "client_program_kintone_create_effect_outcome_matches_request ( value : @ kintone_catalog . RecordCreateEffectOutcome , request : @ kintone_catalog . RecordCreateRequest , ) - > Bool"
+        },
+        {
+          "name": "client_program_kintone_create_effect_outcome_response_sha256",
+          "declaration": "client_program_kintone_create_effect_outcome_response_sha256 ( value : @ kintone_catalog . RecordCreateEffectOutcome , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_create_effect_outcome_wire",
+          "declaration": "client_program_kintone_create_effect_outcome_wire ( value : @ kintone_catalog . RecordCreateEffectOutcome , ) - > String"
+        },
+        {
           "name": "client_program_kintone_create_execution_request",
           "declaration": "client_program_kintone_create_execution_request ( mapping : @ kintone_host . RecordCreateMapping , bytes : Bytes , max_input_bytes : Int , write_limits : @ kintone_catalog . RecordWriteLimits , request_limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_catalog . RecordCreateRequest , @ kintone_host . RecordCreateExecutionIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_create_form_recheck_construction_capacity",
+          "declaration": "client_program_kintone_create_form_recheck_construction_capacity ( mapping : @ kintone_host . RecordCreateMapping , limits : @ kintone_catalog . FormFieldLimits , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "client_program_kintone_create_mapping_body",
@@ -2590,6 +3076,10 @@
         {
           "name": "client_program_kintone_create_mapping_matches_request",
           "declaration": "client_program_kintone_create_mapping_matches_request ( mapping : @ kintone_host . RecordCreateMapping , request : @ kintone_catalog . RecordCreateRequest , ) - > Bool"
+        },
+        {
+          "name": "client_program_kintone_create_mapping_resource",
+          "declaration": "client_program_kintone_create_mapping_resource ( mapping : @ kintone_host . RecordCreateMapping , ) - > Result [ String , @ kintone_host . RecordCreateExecutionIssue ]"
         },
         {
           "name": "client_program_kintone_create_preview_outcome",
@@ -2612,12 +3102,32 @@
           "declaration": "client_program_kintone_create_preview_outcome_wire ( value : @ kintone_host . RecordCreatePreviewOutcome , ) - > String"
         },
         {
+          "name": "client_program_kintone_create_proposal_construction_capacity",
+          "declaration": "client_program_kintone_create_proposal_construction_capacity ( mapping : @ kintone_host . RecordCreateMapping , max_input_bytes : Int , write : @ kintone_catalog . RecordWriteLimits , request : @ kintone_catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_kintone_create_request_construction_capacity",
+          "declaration": "client_program_kintone_create_request_construction_capacity ( mapping : @ kintone_host . RecordCreateMapping , max_input_bytes : Int , write : @ kintone_catalog . RecordWriteLimits , request : @ kintone_catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_kintone_create_response_construction_capacity",
+          "declaration": "client_program_kintone_create_response_construction_capacity ( mapping : @ kintone_host . RecordCreateMapping , limits : @ kintone_catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
           "name": "client_program_kintone_create_values_json",
           "declaration": "client_program_kintone_create_values_json ( request : @ kintone_catalog . RecordCreateRequest , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , @ kintone_catalog . RecordCreateJsonIssue ]"
         },
         {
+          "name": "client_program_kintone_prepare_create_execution_proposal",
+          "declaration": "client_program_kintone_prepare_create_execution_proposal ( mapping : @ kintone_host . RecordCreateMapping , bytes : Bytes , max_input_bytes : Int , write_limits : @ kintone_catalog . RecordWriteLimits , request_limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_catalog . RecordCreateRequest , @ kintone_host . RecordCreateExecutionIssue , ]"
+        },
+        {
           "name": "client_program_kintone_prepare_create_mapping",
           "declaration": "client_program_kintone_prepare_create_mapping ( original : @ kintone_host . RecordDeclaration , resource : String , sources : Array [ @ client_row_source_host . RowMappingSource ] , approval : String , limits : @ client_row_source_host . RowDeclarationLimits , ) - > Result [ @ kintone_host . RecordCreateMapping , @ client_row_source_host . RowMappingIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_restore_create_execution_proposal",
+          "declaration": "client_program_kintone_restore_create_execution_proposal ( mapping : @ kintone_host . RecordCreateMapping , bytes : Bytes , original_body : String , max_input_bytes : Int , write_limits : @ kintone_catalog . RecordWriteLimits , request_limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_catalog . RecordCreateRequest , @ kintone_host . RecordCreateExecutionIssue , ]"
         }
       ],
       "responsibilityFacet": "primary",
@@ -2766,6 +3276,84 @@
               {
                 "path": "docs/design/kintone-record-mutations.md",
                 "anchor": "- CREATE outcome verification:"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_kintone_create_effect_outcome",
+            "client_program_kintone_create_effect_outcome_matches_request",
+            "client_program_kintone_create_effect_outcome_response_sha256",
+            "client_program_kintone_create_effect_outcome_wire",
+            "client_program_kintone_create_form_recheck_construction_capacity",
+            "client_program_kintone_create_mapping_resource",
+            "client_program_kintone_create_proposal_construction_capacity",
+            "client_program_kintone_create_request_construction_capacity",
+            "client_program_kintone_create_response_construction_capacity",
+            "client_program_kintone_prepare_create_execution_proposal",
+            "client_program_kintone_restore_create_execution_proposal"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
               }
             ]
           }
@@ -3026,12 +3614,24 @@
     },
     {
       "module": "src/connectors/kintone/host/record_create_execution.mbt",
-      "sha256": "958fa1c4142c8ef0b28e91536ac828b71cb4efd8c9b19647b74a13cdf1cbd1ac",
+      "sha256": "d6763398e24b0991ca1546c6293b496a8413bd695d042bb5a0b0bf9c87341ddb",
       "exports": [],
       "operations": [
         {
+          "name": "prepare_record_create_execution_proposal",
+          "declaration": "prepare_record_create_execution_proposal ( mapping : RecordCreateMapping , bytes : Bytes , max_input_bytes : Int , write_limits : @ catalog . RecordWriteLimits , request_limits : @ catalog . RecordMutationLimits , ) - > Result [ @ catalog . RecordCreateRequest , RecordCreateExecutionIssue ]"
+        },
+        {
           "name": "prepare_record_create_execution_request",
           "declaration": "prepare_record_create_execution_request ( mapping : RecordCreateMapping , bytes : Bytes , max_input_bytes : Int , write_limits : @ catalog . RecordWriteLimits , request_limits : @ catalog . RecordMutationLimits , ) - > Result [ @ catalog . RecordCreateRequest , RecordCreateExecutionIssue ]"
+        },
+        {
+          "name": "restore_record_create_execution_proposal",
+          "declaration": "restore_record_create_execution_proposal ( mapping : RecordCreateMapping , bytes : Bytes , original_body : String , max_input_bytes : Int , write_limits : @ catalog . RecordWriteLimits , request_limits : @ catalog . RecordMutationLimits , ) - > Result [ @ catalog . RecordCreateRequest , RecordCreateExecutionIssue ]"
+        },
+        {
+          "name": "restore_record_create_execution_request",
+          "declaration": "restore_record_create_execution_request ( mapping : RecordCreateMapping , bytes : Bytes , original_body : String , max_input_bytes : Int , write_limits : @ catalog . RecordWriteLimits , request_limits : @ catalog . RecordMutationLimits , ) - > Result [ @ catalog . RecordCreateRequest , RecordCreateExecutionIssue ]"
         }
       ],
       "responsibilityFacet": "primary",
@@ -3103,6 +3703,76 @@
               {
                 "path": "docs/design/kintone-record-mutations.md",
                 "anchor": "- Mapped CREATE verification:"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "prepare_record_create_execution_proposal",
+            "restore_record_create_execution_proposal",
+            "restore_record_create_execution_request"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
               }
             ]
           }
@@ -4227,7 +4897,7 @@
     },
     {
       "module": "src/connectors/kintone/catalog/record_mutation.mbt",
-      "sha256": "bb613769bf909c455dda637a14a7c42d0eb836be5d9d5e71e1d636edb6c31e40",
+      "sha256": "398720854d993a89f60f49150a5cd5e95f9261ca7037d442bbe81ded00c8b0b1",
       "exports": [],
       "operations": [
         {

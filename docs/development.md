@@ -1553,3 +1553,17 @@ unreachable installation/publication branch is not a supported alternative.
 Existing restored Review cleanup and resume remain owned by their original
 runtime objects. Lower-level mapped Read/FD acquisition and cleanup tests remain
 component ownership evidence; they do not establish a production Review issuer.
+
+### Original Request preparation and historical probes
+
+Ordinary Local and HTTP execution require the installed original Request
+preparation owner. Missing that owner is an invalid installation, never a
+selection of raw serialization, standalone preparation or a second diagnostic
+check. Independent checker/compiler APIs still accept raw inputs for their
+separate purposes; a compiled value cannot substitute for an admitted Request.
+The private legacy `installNodeClientEffectProgramPreparation` export and the
+old `measure-local-preparation.mjs` standalone-Run probe have been retired.
+Historical reports retain their original source qualification. Use the existing
+`health:quick` or `health:release` collectors for current ordinary preparation
+measurement; do not compare their whole-operation observations to that old
+compiler/Plan probe as if the methodologies matched.
