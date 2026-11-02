@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
+import {spawnSync} from 'node:child_process';
 import {mkdtemp, mkdir, readFile, rm, writeFile} from 'node:fs/promises';
 import {arch, cpus, platform, release, tmpdir, totalmem} from 'node:os';
 import {join} from 'node:path';
@@ -187,3 +188,19 @@ for (const [label, literal] of [
     assert.deepEqual(trace.map(event => event.kind), ['open', 'submit', 'close']);
   });
 }
+
+test('record-only process CLI retains an undefined close failure and exits nonzero', async t => {
+  const options = await fixture(t, {mode: 'record-only', operation: 'first-init', closeFailure: 'undefined'});
+  const child = spawnSync(process.execPath, ['scripts/benchmark-node-process-operations.mjs',
+    '--manifest', options.manifestPath, '--consumer', options.consumer, '--output', options.output,
+    '--controls', options.controlsPath, '--mode', options.mode, '--operation', options.operation],
+  {encoding: 'utf8', timeout: 20_000});
+  assert.equal(child.error, undefined);
+  assert.equal(child.status, 1, child.stderr);
+  const report = JSON.parse(await readFile(join(options.output, 'measurements.json')));
+  assert(report.firstFailure); assert.equal(report.measurements, undefined);
+  const row = report.latency[0].samples[0];
+  assert.equal(row.childObservation.cleanup.closed, false);
+  assert.equal(typeof row.childObservation.cleanup.failure.message, 'string');
+  assert.deepEqual((await events(row.stateId)).map(event => event.kind), ['open', 'submit', 'close']);
+});
