@@ -1,5 +1,5 @@
 import {runNativeQueryTests} from './native-query-coverage.mjs';
-import {nativeFilesystemTestRoot, nativePackageStoreRoot, nativePrivateHostFixture} from './native-private-host-fixture.mjs';
+import {nativeFilesystemTestRoot, nativePackageStoreRoot, nativePrivateHostFixture, nativeOriginalSigningFixture} from './native-private-host-fixture.mjs';
 import assert from 'node:assert/strict';
 import {execFileSync, spawn} from 'node:child_process';
 import {
@@ -1275,7 +1275,10 @@ verification: try {
       env: packagePath === 'src/platform_native/filesystem'
         ? {...testEnvironment, ...nativePrivateHostFixture(root),
           ACTQL_TEST_NATIVE_STORE_ROOT: filesystemTestRoot}
-        : {...testEnvironment, ACTQL_TEST_NATIVE_STORE_ROOT: packageStoreRoot},
+        : {...testEnvironment,
+          ...(packagePath === 'src/platform_native/signature'
+            ? nativeOriginalSigningFixture(root) : {}),
+          ACTQL_TEST_NATIVE_STORE_ROOT: packageStoreRoot},
       stdio: 'inherit',
     });
     const [code, signal] = await once(child, 'exit');
