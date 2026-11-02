@@ -8558,7 +8558,7 @@
     {
       "module": "adapters/site-node/sqlite-dispatch-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "4161dce5f8e1d197acd47f96a93bd98de9b9e677d97ec622f79b155ebdd19086",
+      "sha256": "601ded2f68d0d6d03fef300aca676be0691c8a0069d882f8ab7f935e4677e104",
       "exports": [
         "openSqliteDispatchJournal"
       ],
@@ -8889,14 +8889,6 @@
             "value"
           ],
           "async": false
-        },
-        {
-          "name": "transaction",
-          "parameters": [
-            "database",
-            "body"
-          ],
-          "async": false
         }
       ],
       "role": "physical-io",
@@ -8947,8 +8939,7 @@
             "openSqliteDispatchJournal/stateFromRow/stateFromRow",
             "openSqliteDispatchJournal/stateFromRow/stateFromRow/stateFromRow",
             "syncDirectory",
-            "text/text",
-            "transaction"
+            "text/text"
           ],
           "exports": [
             "openSqliteDispatchJournal"
@@ -9087,6 +9078,7 @@
       ],
       "imports": [
         "../host-common/remote-dispatch-wire.mjs",
+        "../host-common/sqlite-transaction.mjs",
         "node:fs",
         "node:path",
         "node:sqlite"
