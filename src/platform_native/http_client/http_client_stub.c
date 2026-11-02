@@ -886,6 +886,17 @@ int64_t actql_native_http_test_live_children(actql_native_http_library *library)
   return count;
 }
 
+// Test expectation DATA from this exact admitted image, not a cleanup result
+// or permission to unload a different/system TLS backend.
+int32_t actql_native_http_test_has_tls_cleanup(actql_native_http_library *library) {
+  if (!library || library->original_process != getpid()) return false;
+  actql_http_library_lock(library);
+  bool available = actql_http_library_current(library) &&
+    library->tls_owned && library->tls_api != NULL;
+  actql_http_library_unlock(library);
+  return available;
+}
+
 moonbit_bytes_t actql_native_http_library_error(actql_native_http_library *library) {
   return library == NULL ? actql_copy_bytes(NULL, 0) :
     actql_copy_diagnostic(library->error, library->diagnostic_ceiling);

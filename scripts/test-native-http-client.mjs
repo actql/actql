@@ -39,7 +39,8 @@ import {pinnedEngineContracts} from
   '../adapters/connectors/duckdb/node/test/pinned-engine-contracts.mjs';
 
 const focus = process.env.ACTQL_TEST_NATIVE_HTTP_FOCUS;
-if (focus !== undefined && focus !== 'remote-client-poll') {
+if (focus !== undefined &&
+    !['remote-client-poll', 'http-retirement'].includes(focus)) {
   throw new Error('unsupported native HTTP test focus');
 }
 const focusedRequests = [];
@@ -1081,6 +1082,29 @@ verification: try {
       '/outbound/poll', '/outbound/query', '/probe', '/outbound/observation',
       '/outbound/status-observation', '/outbound/status-observation',
     ]);
+    break verification;
+  }
+  if (focus === 'http-retirement') {
+    // This exact file uses only the original HTTPS peer and selected libcurl.
+    // No Common, DuckDB, Resident or other package supplier is built or run.
+    const child = spawn(process.execPath, ['--input-type=module', '-e',
+      "import {runFocusedTests} from './scripts/test-execution.mjs'; " +
+      "process.exitCode=runFocusedTests('moon',['--target','native','--jobs','1'," +
+      "'src/platform_native/http_client/transport_retirement_native_wbtest.mbt']," +
+      "{cwd:process.cwd(),timeout:120000});"], {
+      cwd: new URL('../', import.meta.url), stdio: 'inherit',
+      env: {
+        ...process.env,
+        ACTQL_TEST_NATIVE_HTTP_LIBRARY: library,
+        ACTQL_TEST_NATIVE_HTTP_URL: nativeHttpOrigin,
+        ACTQL_TEST_NATIVE_HTTP_CA: join(root, 'ca.crt'),
+        ACTQL_TEST_NATIVE_HTTP_CERT: join(root, 'client.crt'),
+        ACTQL_TEST_NATIVE_HTTP_KEY: join(root, 'client.key'),
+      },
+    });
+    const [code, signal] = await once(child, 'exit');
+    assert.equal(code, 0,
+      `focused HTTP retirement tests failed: ${code ?? signal}`);
     break verification;
   }
   execFileSync(moon, [
