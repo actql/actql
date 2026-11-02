@@ -306,6 +306,37 @@ try {
 `);
   const catalogCid = (await runChild('publish.mjs', childEnvironment)).trim();
   assert.match(catalogCid, /^sha256:[0-9a-f]{64}$/u);
+  // First publication must preserve both existing initializers before a
+  // default Host starts. These are identity checks, never key disclosure.
+  const initializationRoot = childEnvironment.ACTQL_LOCAL_STATE_DIR;
+  const accountIntentPath = join(initializationRoot, 'account-initialization.json');
+  const privateIntentPath = join(initializationRoot, 'checkpoints', 'private-evidence-initialization.json');
+  const accountIntent = await readFile(accountIntentPath, 'utf8');
+  const privateIntent = await readFile(privateIntentPath, 'utf8');
+  const initializationCid = wire => 'sha256:' + createHash('sha256').update(wire).digest('hex');
+  const privateKeyCid = async () => {
+    const bytes = await readFile(join(initializationRoot, 'checkpoints', 'private-evidence.key'));
+    try {assert.equal(bytes.length, 32); return initializationCid(bytes);}
+    finally {bytes.fill(0);}
+  };
+  const firstKeyCid = await privateKeyCid();
+  assert.equal(JSON.parse(privateIntent).keyId, firstKeyCid);
+  await assert.rejects(readFile(join(initializationRoot, 'account', 'account.json')), {code: 'ENOENT'});
+  await assert.rejects(readFile(join(initializationRoot, 'checkpoints', 'private-evidence-adopted.json')),
+    {code: 'ENOENT'});
+  const assertSameInitializationAdopted = async () => {
+    assert.equal(await readFile(accountIntentPath, 'utf8'), accountIntent);
+    assert.equal(await readFile(privateIntentPath, 'utf8'), privateIntent);
+    assert.equal(await privateKeyCid(), firstKeyCid);
+    const marker = JSON.parse(await readFile(join(initializationRoot, 'host-format.json'), 'utf8'));
+    assert.equal(marker.account_bootstrap.initialization_cid, initializationCid(accountIntent));
+    const adopted = JSON.parse(await readFile(join(initializationRoot, 'checkpoints',
+      'private-evidence-adopted.json'), 'utf8'));
+    assert.equal(adopted.intentCid, initializationCid(privateIntent));
+    assert.equal(adopted.keyId, firstKeyCid);
+    assert.equal(adopted.storeAuthorityCid, JSON.parse(privateIntent).storeAuthorityCid);
+  };
+
   assert.deepEqual(server.seen.map(item => item.path), [
     '/services/data/v62.0/sobjects/Test_Record__c/describe',
     '/services/data/v62.0/sobjects/Other_Record__c/describe']);
@@ -313,6 +344,7 @@ try {
   // and discovery answers from it; only the Program's acquisition reads.
   const output = (await runChild('read.mjs', childEnvironment))
     .trim().split('\n');
+  await assertSameInitializationAdopted();
   assert.equal(output[0], 'discovered');
   assert.deepEqual(JSON.parse(output[1]),
     [['key-1', 'record-1'], ['key-3', 'record-3']]);
@@ -439,6 +471,7 @@ console.log(JSON.stringify(published.mappings.map(mapping =>
 
   const coinstalledRead = (await runChild('read.mjs', effectEnvironment))
     .trim().split('\n');
+  await assertSameInitializationAdopted();
   assert.equal(coinstalledRead[0], 'discovered');
   assert.deepEqual(JSON.parse(coinstalledRead[1]),
     [['key-1', 'record-1'], ['key-3', 'record-3']]);

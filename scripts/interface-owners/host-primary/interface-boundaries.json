@@ -18834,6 +18834,7 @@
         "./embedded-local-lifecycle.mjs",
         "./entry.mjs",
         "./host-root-format.mjs",
+        "./host-store-identity.mjs",
         "./http-request-preparation.mjs",
         "./in-process-client.mjs",
         "./infer-evaluation-evidence.mjs",
@@ -18860,6 +18861,7 @@
         "./installed-project-configuration.mjs",
         "./installed-project-model-tasks.mjs",
         "./installed-project-profile.mjs",
+        "./installed-publication-root.mjs",
         "./installed-row-effect.mjs",
         "./installed-source.mjs",
         "./installed-update-originals.mjs",
@@ -18896,7 +18898,90 @@
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "e1d149ff1c0508a19d63a7b5a6a8d1f6b4203cf230db6383b24e0979c5e984cf"
+      "sha256": "9b948b2f14d7e7309232c2434204d188b2c4084bd035a994d626c8464b3f39c2"
+    },
+    {
+      "module": "adapters/host-node/host-store-identity.mjs",
+      "sha256": "41e9962d9ef8710435d54bc1cfb09e3a88d33ea14187a5969b3b84c0304ea66d",
+      "exports": [
+        "localHostStoreAuthorityCid"
+      ],
+      "operations": [
+        {
+          "name": "localHostStoreAuthorityCid/localHostStoreAuthorityCid",
+          "parameters": [
+            "root",
+            "principalId"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "node:crypto"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "physical-io",
+      "owner": "Existing Local Host and publication Store identity owner",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "localHostStoreAuthorityCid/localHostStoreAuthorityCid"
+          ],
+          "exports": [
+            "localHostStoreAuthorityCid"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/host-store-identity.mjs",
+                "anchor": "// The existing Host Store identity preimage, shared by first publication and"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/host-store-identity.mjs",
+                "anchor": "export const localHostStoreAuthorityCid = (root, principalId) =>"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/host-store-identity.test.mjs",
+                "anchor": "sha256:39340574936a32d36841727a6bba39b48500ebff672a5e2103a7492230075865"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "storeAuthorityCid: localHostStoreAuthorityCid(journal.root, journal.principalId)"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Pure synchronous existing-preimage derivation; no asynchronous operation, shared mutable state, or physical ownership transition."
+            },
+            "failure": {
+              "notApplicable": "Serialization and platform hashing errors propagate directly without fallback, replay, or replacement identity."
+            },
+            "cancellation": {
+              "notApplicable": "Synchronous identity derivation issues no cancellation or physical-stop acknowledgement."
+            },
+            "resources": {
+              "notApplicable": "Derives identity from the same existing Host root and principal values; acquires no physical resource or capacity authority."
+            },
+            "extension": {
+              "notApplicable": "Shares the existing exact ordered JSON preimage without introducing canonicalization, normalization, a new version, or an identity domain."
+            },
+            "verification": [
+              {
+                "path": "adapters/host-node/host-store-identity.test.mjs",
+                "anchor": "test('Host Store identity retains its existing exact JSON preimage'"
+              }
+            ]
+          }
+        }
+      ]
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
@@ -19825,6 +19910,142 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
+    },
+    {
+      "module": "adapters/host-node/installed-publication-root.mjs",
+      "sha256": "6ce7f7b963f37b356c284727a44ee6d64eda56ea6b30ac84ff8b015b1c0eada2",
+      "exports": [
+        "prepareInstalledPublicationRoot"
+      ],
+      "operations": [
+        {
+          "name": "prepareInstalledPublicationRoot",
+          "parameters": [
+            "root",
+            "principal"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareInstalledPublicationRoot/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledPublicationRoot/init:assertFirstInitialization/init:assertFirstInitialization",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledPublicationRoot/publicationOwnership/init:close/init:close",
+          "parameters": [],
+          "async": true
+        }
+      ],
+      "imports": [
+        "../store-local/publication-store.mjs",
+        "./host-root-format.mjs",
+        "./host-store-identity.mjs",
+        "./installed-host-cleanup.mjs",
+        "./local-continuation-evidence.mjs",
+        "./ordinary-local-account.mjs",
+        "node:path"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "physical-io",
+      "owner": "Existing Host first-initialization and publication Store exclusion owners",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "prepareInstalledPublicationRoot",
+            "prepareInstalledPublicationRoot/current/current",
+            "prepareInstalledPublicationRoot/init:assertFirstInitialization/init:assertFirstInitialization",
+            "prepareInstalledPublicationRoot/publicationOwnership/init:close/init:close"
+          ],
+          "exports": [
+            "prepareInstalledPublicationRoot"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "## Standard Local Account initialization"
+              },
+              {
+                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "anchor": "// The same ordinary Host/Store initializer selects an installation key, not"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-publication-root.mjs",
+                "anchor": "export async function prepareInstalledPublicationRoot(root, principal)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-publication-root.mjs",
+                "anchor": "if (rootCreation !== 'new') return;"
+              },
+              {
+                "path": "adapters/host-node/installed-publication-root.mjs",
+                "anchor": "assertFirstInitialization() {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-publication-root.mjs",
+                "anchor": "const original = await prepareLocalPublicationStoreOwnership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-publication-root.mjs",
+                "anchor": "await publicationOwnership.close();"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-publication-root.mjs",
+                "anchor": "throw await retainInstalledHostInitializationFailure(cause, {publicationOwnership});"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "This private pre-publication initializer creates no Run, provider request, or cancellation authority. Original initialization failure cleanup and exclusion acknowledgement remain mandatory before provider continuation."
+            },
+            "resources": [
+              {
+                "path": "adapters/host-node/ordinary-local-account.mjs",
+                "anchor": "const maximum = 1_000_000;"
+              },
+              {
+                "path": "adapters/host-node/installed-publication-root.mjs",
+                "anchor": "keyInstallation?.key.fill(0);"
+              }
+            ],
+            "extension": {
+              "notApplicable": "Fixed existing fresh-Host initialization handoff only. No public authorization option, missing-file inference, existing-root backfill, or new bootstrap policy."
+            },
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-publication-root.test.mjs",
+                "anchor": "test('pending intent writer retains exclusion and original primary failure until actual close'"
+              },
+              {
+                "path": "adapters/host-node/installed-publication-private-evidence.test.mjs",
+                "anchor": "test('fresh publication passes its exact private generation to normal Store adoption and reopen'"
+              },
+              {
+                "path": "adapters/host-node/installed-publication-private-evidence.test.mjs",
+                "anchor": "test('a saved Account intent cannot authorize a missing private-key generation'"
+              }
+            ]
+          }
+        }
+      ]
     },
     {
       "module": "adapters/host-node/local-values-plan.mjs",
