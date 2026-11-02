@@ -14,7 +14,7 @@ const nativeThen = Promise.prototype.then;
 // Pure configuration validation precedes admission. The opaque preparation
 // snapshots every value used by spawn and the handshake, including the URL.
 export function prepareManagedExecution({ entry, runtime, run, frames, maxRequests, graceMs, startupMs,
-  hostService, maxHostCalls = 0, accounting, beforeBodyAllocation, bodyReceived }) {
+  hostService, maxHostCalls = 0, accounting, beforeBodyAllocation, bodyReceived, constructionObserver }) {
   frames = validateFrameLimits(frames);
   const budget = accounting === undefined ? undefined : Object.freeze({
     limits: encodeProcessLimits(accounting.limits), report: accounting.report,
@@ -36,9 +36,11 @@ export function prepareManagedExecution({ entry, runtime, run, frames, maxReques
         utilTypes.isAsyncFunction(beforeBodyAllocation))) ||
       (bodyReceived !== undefined && (typeof bodyReceived !== 'function' ||
         utilTypes.isAsyncFunction(bodyReceived))) ||
-      (service === undefined ? maxHostCalls !== 0 :
-        maxHostCalls < 1 || typeof service.invoke !== 'function' ||
-        typeof service.status !== 'function' || typeof service.retry !== 'function')) {
+      (constructionObserver !== undefined && (typeof constructionObserver !== 'function' ||
+        utilTypes.isAsyncFunction(constructionObserver) || service !== undefined)) ||
+      (service === undefined && constructionObserver === undefined ? maxHostCalls !== 0 : maxHostCalls < 1) ||
+      (service !== undefined && (typeof service.invoke !== 'function' ||
+        typeof service.status !== 'function' || typeof service.retry !== 'function'))) {
     throw new ProcessProtocolError('InvalidExecutionConfiguration');
   }
   const session = randomUUID();
@@ -52,7 +54,7 @@ export function prepareManagedExecution({ entry, runtime, run, frames, maxReques
   const hello = encodeProcessFrame(envelope('hello', 0, budget ? {resourceLimits: budget.limits} : null), frames);
   const prepared = Object.freeze({});
   preparations.set(prepared, { executable, runtimePath, hello, envelope, frames, session, run, maxRequests, graceMs, startupMs,
-    service, maxHostCalls, budget, beforeBodyAllocation, bodyReceived });
+    service, maxHostCalls, budget, beforeBodyAllocation, bodyReceived, constructionObserver });
   return prepared;
 }
 
@@ -63,7 +65,7 @@ export async function startManagedExecution(configuration, signal, beforeSpawn) 
   signal?.throwIfAborted();
   const prepared = preparations.has(configuration) ? configuration : prepareManagedExecution(configuration);
   const { executable, runtimePath, hello, envelope, frames, session, run, maxRequests, graceMs, startupMs,
-    service, maxHostCalls, budget, beforeBodyAllocation, bodyReceived } = preparations.get(prepared);
+    service, maxHostCalls, budget, beforeBodyAllocation, bodyReceived, constructionObserver } = preparations.get(prepared);
   preparations.delete(prepared);
   signal?.throwIfAborted();
   // Installed Host accounting records the attempted physical handoff after
@@ -188,6 +190,10 @@ export async function startManagedExecution(configuration, signal, beforeSpawn) 
       throw error;
     }
   };
+  // The selected Table constructor may use the EXISTING bounded Host-call
+  // continuation for geometry, not delegated budget accounting. It shares
+  // this process's original callback/invalid-task custody and issues no grant.
+  const observeConstruction = bodyEntry(constructionObserver);
   const reader = createProcessFrameReader(frames, message => {
     if (!message || message.protocol !== executionProtocol || message.session !== session ||
         message.run !== run || !Number.isSafeInteger(message.sequence) ||
@@ -214,7 +220,8 @@ export async function startManagedExecution(configuration, signal, beforeSpawn) 
       return;
     }
     if (message.kind === 'host-request') {
-      if (!service || stopped || !pending || message.sequence !== pending.sequence || hostWork ||
+      if (service === undefined && observeConstruction === undefined || stopped || !pending ||
+          message.sequence !== pending.sequence || hostWork ||
           !message.body || Object.keys(message.body).sort().join(',') !== 'call,payload' ||
           message.body.call !== hostCalls + 1 || hostCalls >= maxHostCalls) {
         throw failure('InvalidHostServiceRequest');
@@ -228,12 +235,24 @@ export async function startManagedExecution(configuration, signal, beforeSpawn) 
       hostWork = Promise.resolve().then(async () => {
         try {
           controller.signal.throwIfAborted();
-          const value = await service.invoke(message.body.payload, controller.signal,
-            Object.freeze({session, run, sequence: requestSequence, call}));
+          let value;
+          if (observeConstruction === undefined) {
+            value = await service.invoke(message.body.payload, controller.signal,
+              Object.freeze({session, run, sequence: requestSequence, call}));
+          } else {
+            // Synchronous backing must finish before the child resumes. A null
+            // continuation carries no quantity, permission or cleanup fact.
+            observeConstruction(message.body.payload);
+            value = null;
+          }
           controller.signal.throwIfAborted();
           if (!exited) await send(envelope('host-reply', requestSequence, {call, value}));
         } catch (error) {
-          if (!exited && !stopped) await send(envelope('host-failed', requestSequence,
+          if (observeConstruction !== undefined) {
+            // Retain the actual original cause and process cleanup locally;
+            // a worker code cannot replace a refused constructor admission.
+            broken(error);
+          } else if (!exited && !stopped) await send(envelope('host-failed', requestSequence,
             {call, code: typeof error?.code === 'string' ? error.code.slice(0, 256) : 'HostServiceFailed'})).catch(broken);
         } finally {
           hostController = undefined;

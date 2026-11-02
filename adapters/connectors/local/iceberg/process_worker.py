@@ -20,6 +20,10 @@ class ProtocolRefusal(ValueError):
     pass
 
 
+class _ProcessStopped(Exception):
+    """Only the original Host stop; this carries no resource-return fact."""
+
+
 def exact_keys(value, keys):
     if not isinstance(value, dict) or set(value) != set(keys):
         raise ProtocolRefusal("TableProcessShape")
@@ -120,13 +124,18 @@ def write_frame(stream, value):
     stream.flush()
 
 
-def dispatch(body, catalog_factory=None):
+def dispatch(body, catalog_factory=None, before_materialization=None):
     # Import the optional physical libraries only after the ordinary bounded
     # handshake. Starting the channel neither opens the Catalog nor stages data.
     from catalog import TableCatalog
     from physical import PhysicalRefusal
 
-    exact_keys(body, {"catalog", "command", "payload"})
+    observed = isinstance(body, dict) and "construction_observations" in body
+    exact_keys(body, {"catalog", "command", "payload"} |
+               ({"construction_observations"} if observed else set()))
+    if observed and (body["construction_observations"] is not True or
+                     not callable(before_materialization)):
+        raise ProtocolRefusal("TableProcessConstructionObserver")
     config, payload, command = body["catalog"], body["payload"], body["command"]
     exact_keys(config, {"database", "warehouse", "catalogCid", "limits"})
     for name in ("database", "warehouse"):
@@ -144,7 +153,10 @@ def dispatch(body, catalog_factory=None):
         raise ProtocolRefusal("TableProcessCommand")
     exact_keys(payload, shapes[command])
     factory = TableCatalog if catalog_factory is None else catalog_factory
-    catalog = factory(config["database"], config["warehouse"], config["catalogCid"], config["limits"])
+    # The observer is an original Host continuation, not an amount, delegated
+    # execution budget or permission. Legacy explicit physical calls omit it.
+    constructor = {} if not observed else {"before_materialization": before_materialization}
+    catalog = factory(config["database"], config["warehouse"], config["catalogCid"], config["limits"], **constructor)
     try:
         try:
             if command == "write":
@@ -199,8 +211,37 @@ def serve(stream, catalog_factory=None):
         if sequence != 0 or message["kind"] != "execute" or message["sequence"] != 1:
             raise ProtocolRefusal("TableProcessSequence")
         sequence = 1
+        calls = 0
+
+        def observe(geometry):
+            nonlocal calls
+            # Reuse the original bounded Host service port. The Host must
+            # complete its same-parent constructor admission before this exact
+            # physical call continues; null carries no budget or authority.
+            calls += 1
+            reply("host-request", sequence, {"call": calls, "payload": geometry})
+            continuation = read_frame(stream)
+            exact_keys(continuation, ENVELOPE)
+            if any(continuation[name] != hello[name] for name in ("protocol", "session", "run")) or \
+                    type(continuation["sequence"]) is not int or continuation["sequence"] != sequence:
+                raise ProtocolRefusal("TableProcessForeignContinuation")
+            if continuation["kind"] == "stop" and continuation["body"] is None:
+                raise _ProcessStopped()
+            body = continuation["body"]
+            exact_keys(body, {"call", "value"})
+            if continuation["kind"] != "host-reply" or type(body["call"]) is not int or \
+                    body["call"] != calls or body["value"] is not None:
+                raise ProtocolRefusal("TableProcessConstructionContinuation")
+
         try:
-            result = dispatch(message["body"], catalog_factory)
+            observed = isinstance(message["body"], dict) and \
+                message["body"].get("construction_observations") is True
+            if observed:
+                result = dispatch(message["body"], catalog_factory, before_materialization=observe)
+            else:
+                result = dispatch(message["body"], catalog_factory)
+        except _ProcessStopped:
+            return
         except Exception:
             # Unexpected I/O errors do not establish noncommit. Do not disclose
             # SQL, paths, credentials or exception text on the response channel.

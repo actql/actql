@@ -334,6 +334,11 @@
       },
       {
         "async": false,
+        "name": "_ProcessStopped",
+        "parameters": []
+      },
+      {
+        "async": false,
         "name": "check_shape",
         "parameters": [
           "value",
@@ -346,7 +351,8 @@
         "name": "dispatch",
         "parameters": [
           "body",
-          "catalog_factory"
+          "catalog_factory",
+          "before_materialization"
         ]
       },
       {
@@ -396,6 +402,13 @@
       },
       {
         "async": false,
+        "name": "serve/observe",
+        "parameters": [
+          "geometry"
+        ]
+      },
+      {
+        "async": false,
         "name": "serve/reply",
         "parameters": [
           "kind",
@@ -419,7 +432,7 @@
         ]
       }
     ],
-    "sha256": "0383cd098aa290804686bacc81d1e8079696c5cc498d37a1d85e9ff4343e6ac7",
+    "sha256": "839d7f0729ee3c1239410b0d307edfb32eb1a456f23e1076b6e32c40d60ae40f",
     "role": "physical-io",
     "owner": "Local Table physical data and managed-process adapter",
     "contracts": [
@@ -437,7 +450,9 @@
           "serve",
           "serve/reply",
           "unique_object",
-          "write_frame"
+          "write_frame",
+          "_ProcessStopped",
+          "serve/observe"
         ],
         "exports": [
           "ENVELOPE",
@@ -470,6 +485,10 @@
             {
               "path": "spec/contracts/actql-local-table-iceberg.json",
               "anchor": "\"operations\""
+            },
+            {
+              "path": "docs/design/table-materialization.md",
+              "anchor": "### Original constructor observations on the existing Host port"
             }
           ],
           "inputsOutputs": [
@@ -480,6 +499,10 @@
             {
               "path": "adapters/connectors/local/iceberg/README.md",
               "anchor": "Only flat Boolean"
+            },
+            {
+              "path": "docs/design/table-materialization.md",
+              "anchor": "{call: originalCall, value: null}"
             }
           ],
           "identity": [
@@ -494,6 +517,10 @@
             {
               "path": "adapters/connectors/local/iceberg/physical.py",
               "anchor": "StorageMappingIdentity"
+            },
+            {
+              "path": "adapters/host-node/process-channel.mjs",
+              "anchor": "message.sequence !== pending.sequence"
             }
           ],
           "ownership": [
@@ -508,6 +535,10 @@
             {
               "path": "adapters/connectors/local/host/iceberg-process.mjs",
               "anchor": "const preparations = new WeakMap"
+            },
+            {
+              "path": "adapters/host-node/process-channel.mjs",
+              "anchor": "bodyAdmissionOriginal = result"
             }
           ],
           "synchronization": [
@@ -518,6 +549,10 @@
             {
               "path": "adapters/connectors/local/host/iceberg-process.mjs",
               "anchor": "owned.attempted"
+            },
+            {
+              "path": "adapters/host-node/process-channel.mjs",
+              "anchor": "observeConstruction(message.body.payload)"
             }
           ],
           "failure": [
@@ -532,6 +567,10 @@
             {
               "path": "adapters/connectors/local/iceberg/README.md",
               "anchor": "Missing, malformed, foreign or unconfirmed responses"
+            },
+            {
+              "path": "adapters/host-node/process-channel.test.mjs",
+              "anchor": "constructor observer ${label} refusal stops the same child"
             }
           ],
           "cancellation": [
@@ -542,6 +581,10 @@
             {
               "path": "adapters/connectors/local/iceberg/README.md",
               "anchor": "Cancellation and channel closure"
+            },
+            {
+              "path": "adapters/connectors/local/iceberg/process_worker.py",
+              "anchor": "except _ProcessStopped:"
             }
           ],
           "resources": [
@@ -560,6 +603,10 @@
             {
               "path": "adapters/connectors/local/iceberg/README.md",
               "anchor": "No new capacity coefficients"
+            },
+            {
+              "path": "docs/design/table-materialization.md",
+              "anchor": "The installed Host fixes its finite"
             }
           ],
           "extension": [
@@ -574,6 +621,10 @@
             {
               "path": "adapters/connectors/local/iceberg/README.md",
               "anchor": "Unsupported types"
+            },
+            {
+              "path": "docs/design/table-materialization.md",
+              "anchor": "delegated execution-budget handshakes"
             }
           ],
           "verification": [
@@ -588,6 +639,10 @@
             {
               "path": "adapters/connectors/local/iceberg/process_worker_test.py",
               "anchor": "class ProcessTests"
+            },
+            {
+              "path": "adapters/connectors/local/iceberg/process_worker_test.py",
+              "anchor": "def test_constructor_geometry_uses_same_host_call_before_original_dispatch_continues"
             }
           ]
         }

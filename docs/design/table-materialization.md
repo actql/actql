@@ -510,3 +510,37 @@ reading from a different Run after the source Run releases its resources.
 
 The adopted October 1 Table materialization design is retained in the external
 workspace review archive. It is the design antecedent, not runtime evidence.
+
+
+### Original constructor observations on the existing Host port
+
+A selected Table process may request a constructor observation through the
+existing `host-request`/`host-reply` continuation, under the original session,
+run, sequence and increasing call number. The installed Host fixes its finite
+`maxHostCalls` before launch. The private `constructionObserver` is captured
+once, must return `undefined` synchronously, and shares the original process's
+callback and invalid-task custody. It is mutually exclusive with a separately
+selected Host service; it is not a second dispatcher or resource owner.
+
+The worker selects this connection only with the private execute field
+`construction_observations: true`. Its original dispatch receives the same
+`before_materialization` callback; an omitted field preserves the explicit
+physical diagnostic path. A successful continuation is exactly
+`{call: originalCall, value: null}`. It carries no capacity, permission,
+publication outcome or physical return acknowledgement. A foreign tuple,
+repeated call, extra field or non-null value cannot continue construction.
+The ordinary hello body remains null; delegated execution-budget handshakes
+are still refused.
+
+The installing caller must derive the constructor quantity from the actual
+selected geometry and grow its same-parent backing before returning. Merely
+selecting this continuation neither quotes nor funds a Catalog, Parquet,
+Arrow or output constructor. Received-byte charging and final row admission
+remain separate original obligations.
+
+A constructor refusal stops the original child and retains the exact local
+cause, including `undefined` or a frozen exception. A returned asynchronous
+value refuses admission and remains on the same process cleanup record until
+its original settlement. Host stop while waiting for continuation returns no
+worker success or material acknowledgement. Only the existing process/capture
+retirement path can discharge the corresponding cleanup responsibility.

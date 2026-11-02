@@ -2,6 +2,7 @@ import io
 import json
 import struct
 import unittest
+from unittest.mock import patch
 
 from process_worker import (MAX_BYTES, PROTOCOL, ProtocolRefusal, read_frame,
                             serve, write_frame)
@@ -74,6 +75,89 @@ class ProcessTests(unittest.TestCase):
         serve(stream, unopened)
         stream.outgoing.seek(0)
         self.assertEqual(read_frame(stream.outgoing), {**hello, "kind": "ready"})
+
+    def test_constructor_geometry_uses_same_host_call_before_original_dispatch_continues(self):
+        hello = {"protocol": PROTOCOL, "session": "original-session", "run": "original-run",
+                 "kind": "hello", "sequence": 0, "body": None}
+        execute = {**hello, "kind": "execute", "sequence": 1,
+                   "body": {"construction_observations": True}}
+        continuations = [{**hello, "kind": "host-reply", "sequence": 1,
+                          "body": {"call": index, "value": None}} for index in (1, 2)]
+        stop = {**hello, "kind": "stop", "sequence": 1}
+        stream = Duplex(b"".join(encoded(json.dumps(value))
+                                 for value in [hello, execute, *continuations, stop]))
+        seen = []
+        def original_dispatch(body, catalog_factory, before_materialization=None):
+            self.assertEqual(body, execute["body"])
+            self.assertTrue(callable(before_materialization))
+            for geometry in ({"phase": "metadata-wire", "bytes": 19, "rows": 0, "columns": 0},
+                             {"phase": "arrow-rows", "bytes": 23, "rows": 2, "columns": 3}):
+                before_materialization(geometry)
+                seen.append(geometry)
+            return {"ok": True, "result": "same-dispatch"}
+        with patch("process_worker.dispatch", side_effect=original_dispatch):
+            serve(stream)
+        self.assertEqual(len(seen), 2)
+        stream.outgoing.seek(0)
+        self.assertEqual(read_frame(stream.outgoing), {**hello, "kind": "ready"})
+        for index, geometry in enumerate(seen, 1):
+            self.assertEqual(read_frame(stream.outgoing),
+                {**hello, "kind": "host-request", "sequence": 1,
+                 "body": {"call": index, "payload": geometry}})
+        self.assertEqual(read_frame(stream.outgoing),
+            {**hello, "kind": "reply", "sequence": 1,
+             "body": {"ok": True, "result": "same-dispatch"}})
+        self.assertEqual(stream.incoming.tell(), len(stream.incoming.getvalue()))
+
+    def test_constructor_foreign_or_value_continuation_cannot_start_material(self):
+        hello = {"protocol": PROTOCOL, "session": "session", "run": "run",
+                 "kind": "hello", "sequence": 0, "body": None}
+        execute = {**hello, "kind": "execute", "sequence": 1,
+                   "body": {"construction_observations": True}}
+        valid = {**hello, "kind": "host-reply", "sequence": 1,
+                 "body": {"call": 1, "value": None}}
+        for invalid in ({**valid, "session": "foreign"}, {**valid, "sequence": True},
+                        {**valid, "body": {"call": True, "value": None}},
+                        {**valid, "body": {"call": 2, "value": None}},
+                        {**valid, "body": {"call": 1, "value": {"bytes": 999}}},
+                        {**valid, "body": {"call": 1, "value": None, "allow": True}},
+                        {**valid, "kind": "reply"}):
+            with self.subTest(invalid=invalid):
+                started = []
+                def original_dispatch(body, catalog_factory, before_materialization=None):
+                    before_materialization({"phase": "metadata-wire", "bytes": 19, "rows": 0, "columns": 0})
+                    started.append(True)
+                    return None
+                stream = Duplex(b"".join(encoded(json.dumps(value)) for value in [hello, execute, invalid]))
+                with patch("process_worker.dispatch", side_effect=original_dispatch):
+                    serve(stream)
+                self.assertEqual(started, [])
+                stream.outgoing.seek(0)
+                self.assertEqual(read_frame(stream.outgoing)["kind"], "ready")
+                self.assertEqual(read_frame(stream.outgoing)["kind"], "host-request")
+                failure = read_frame(stream.outgoing)
+                self.assertEqual(failure["kind"], "failed")
+                self.assertEqual(failure["body"], {"code": "TablePhysicalUnknown"})
+
+    def test_original_host_stop_during_constructor_continuation_has_no_success_reply(self):
+        hello = {"protocol": PROTOCOL, "session": "session", "run": "run",
+                 "kind": "hello", "sequence": 0, "body": None}
+        execute = {**hello, "kind": "execute", "sequence": 1,
+                   "body": {"construction_observations": True}}
+        stop = {**hello, "kind": "stop", "sequence": 1}
+        started = []
+        def original_dispatch(body, catalog_factory, before_materialization=None):
+            before_materialization({"phase": "arrow-rows", "bytes": 23, "rows": 2, "columns": 3})
+            started.append(True)
+            return None
+        stream = Duplex(b"".join(encoded(json.dumps(value)) for value in [hello, execute, stop]))
+        with patch("process_worker.dispatch", side_effect=original_dispatch):
+            serve(stream)
+        self.assertEqual(started, [])
+        stream.outgoing.seek(0)
+        self.assertEqual(read_frame(stream.outgoing)["kind"], "ready")
+        self.assertEqual(read_frame(stream.outgoing)["kind"], "host-request")
+        self.assertEqual(stream.outgoing.read(), b"", "stop is not a material, result or resource acknowledgement")
 
     def test_foreign_or_budgeted_handshake_rejected_without_dispatch(self):
         hello = {"protocol": PROTOCOL, "session": "session", "run": "run",

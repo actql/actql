@@ -441,3 +441,61 @@ test('Table actual read and prepared operations forward original received-byte o
   await reject(()=>bridge.reconcile(prepared));await reject(()=>bridge.cleanup(prepared));
   assert.equal(received,7);
 });
+
+
+test('original constructor observer uses the existing Host call before a worker can continue', async t => {
+  const geometry = {phase: 'arrow-rows', bytes: 17, rows: 2, columns: 3};
+  const seen = [];
+  const config = {...configuration(), maxHostCalls: 1,
+    constructionObserver(value) {assert.strictEqual(this, undefined);seen.push(value);}};
+  const prepared = prepareManagedExecution(config);
+  config.constructionObserver = () => assert.fail('replacement observer');
+  const channel = await startManagedExecution(prepared);
+  t.after(() => channel.close());
+  assert.deepEqual(seen, [], 'preparation and handshake allocate no selected worker material');
+  const response = await channel.request({command: 'host-call', value: geometry});
+  assert.equal(response.value, null, 'the existing continuation carries no amount, grant or result evidence');
+  assert.deepEqual(seen, [Object.assign(Object.create(null), geometry)]);
+  assert.equal(channel.status().hostCalls, 1);
+  await channel.close();assert.equal(channel.cleanupHandle.status().pending, false);
+});
+
+for (const [label, primary] of [['frozen', Object.freeze(new Error('MaterialCapacityRefused'))], ['undefined', undefined]]) {
+  test(`constructor observer ${label} refusal stops the same child and preserves its original cause`, async t => {
+    let entries = 0;
+    const channel = await startManagedExecution({...configuration(), maxHostCalls: 1,
+      constructionObserver() {entries++;throw primary;}});
+    t.after(() => channel.close());
+    let failure;
+    try {await channel.request({command: 'host-call', value: {phase: 'metadata-wire', bytes: 19}});}
+    catch (cause) {failure = cause;}
+    assert.equal(entries, 1);assert.equal(failure.code, 'ExecutionChannelFailure');
+    assert.equal(Object.hasOwn(failure, 'cause'), true);assert.strictEqual(failure.cause, primary);
+    assert.strictEqual(failure.cleanupHandle, channel.cleanupHandle);
+    await failure.cleanupHandle.retry();assert.equal(failure.cleanupHandle.status().pending, false);
+    await assert.rejects(channel.request({command: 'echo', value: 'never'}), {code: 'ExecutionNotReady'});
+  });
+}
+
+test('invalid asynchronous constructor observer stays on original process custody through settlement', async t => {
+  let settle;
+  const original = new Promise(resolve => {settle = resolve;});
+  const channel = await startManagedExecution({...configuration(), maxHostCalls: 1,
+    constructionObserver() {return original;}});
+  t.after(() => channel.close());
+  await assert.rejects(channel.request({command: 'host-call', value: {phase: 'metadata-wire', bytes: 7}}),
+    {code: 'ExecutionChannelFailure'});
+  await channel.cleanupHandle.whenStopped();
+  assert.equal(channel.status().exited, true);
+  assert.equal(channel.cleanupHandle.status().pending, true, 'exit does not retire the original observer task');
+  settle();await channel.cleanupHandle.retry();assert.equal(channel.cleanupHandle.status().pending, false);
+});
+
+test('constructor observer configuration keeps one existing Host port and its finite call bound', () => {
+  const cleanupHandle = {status: () => ({pending: false}), retry: async () => {}};
+  for (const extra of [{constructionObserver: async () => {}, maxHostCalls: 1},
+    {constructionObserver() {}}, {constructionObserver() {}, maxHostCalls: 1,
+      hostService: {invoke: async () => null, cleanupHandle}}]) {
+    assert.throws(() => prepareManagedExecution({...configuration(), ...extra}), {code: 'InvalidExecutionConfiguration'});
+  }
+});

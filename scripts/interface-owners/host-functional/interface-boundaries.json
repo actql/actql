@@ -87515,7 +87515,7 @@
     {
       "module": "adapters/host-node/process-channel.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a2b3d5562843e922aef01a4716b41622341c657f934f6cc96478d4baa24426ee",
+      "sha256": "c0ad06de0ec0c79a8f379eeda025ea2247910e32aa88f853a79a9ccf2c4d55fa",
       "role": "physical-io",
       "owner": "Existing Physical Resource/ExecutionDelegation Owner and managed child transport",
       "exports": [
@@ -87537,7 +87537,8 @@
             "maxHostCalls",
             "accounting",
             "beforeBodyAllocation",
-            "bodyReceived"
+            "bodyReceived",
+            "constructionObserver"
           ],
           "async": false
         },
@@ -87869,6 +87870,10 @@
               {
                 "path": "src/physical_resources/pkg.generated.mbti",
                 "anchor": "pub fn[P, C, R] admit_backed_execution_live_child(BackedExecutionLiveAccess[P, C, R], R) -> Result[BackedExecutionLiveProjection[P, C, R], BackedExecutionIssue]"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "### Original constructor observations on the existing Host port"
               }
             ],
             "inputsOutputs": [
@@ -87883,6 +87888,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Acquisition and realization resource scopes"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "{call: originalCall, value: null}"
               }
             ],
             "identity": [
@@ -87897,6 +87906,10 @@
               {
                 "path": "src/physical_resources/pkg.generated.mbti",
                 "anchor": "pub fn[P, C, R] admit_backed_execution_live_child(BackedExecutionLiveAccess[P, C, R], R) -> Result[BackedExecutionLiveProjection[P, C, R], BackedExecutionIssue]"
+              },
+              {
+                "path": "adapters/host-node/process-channel.mjs",
+                "anchor": "message.sequence !== pending.sequence"
               }
             ],
             "ownership": [
@@ -87911,6 +87924,10 @@
               {
                 "path": "docs/design/local-provider-work-accounting.md",
                 "anchor": "# Local provider work accounting"
+              },
+              {
+                "path": "adapters/host-node/process-channel.mjs",
+                "anchor": "bodyAdmissionOriginal = result"
               }
             ],
             "synchronization": [
@@ -87925,6 +87942,10 @@
               {
                 "path": "src/physical_resources/pkg.generated.mbti",
                 "anchor": "pub fn[P, C, R] admit_backed_execution_live_child(BackedExecutionLiveAccess[P, C, R], R) -> Result[BackedExecutionLiveProjection[P, C, R], BackedExecutionIssue]"
+              },
+              {
+                "path": "adapters/host-node/process-channel.mjs",
+                "anchor": "observeConstruction(message.body.payload)"
               }
             ],
             "failure": [
@@ -87939,6 +87960,10 @@
               {
                 "path": "src/physical_resources/pkg.generated.mbti",
                 "anchor": "pub fn[P, C, R] admit_backed_execution_live_child(BackedExecutionLiveAccess[P, C, R], R) -> Result[BackedExecutionLiveProjection[P, C, R], BackedExecutionIssue]"
+              },
+              {
+                "path": "adapters/host-node/process-channel.test.mjs",
+                "anchor": "constructor observer ${label} refusal stops the same child"
               }
             ],
             "cancellation": [
@@ -87953,6 +87978,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Acquisition and realization resource scopes"
+              },
+              {
+                "path": "adapters/connectors/local/iceberg/process_worker.py",
+                "anchor": "except _ProcessStopped:"
               }
             ],
             "resources": [
@@ -87971,6 +88000,10 @@
               {
                 "path": "docs/design/table-materialization.md",
                 "anchor": "The private IPC reader can enter the caller's original synchronous body backing"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "The installed Host fixes its finite"
               }
             ],
             "extension": [
@@ -87985,6 +88018,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Acquisition and realization resource scopes"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "delegated execution-budget handshakes"
               }
             ],
             "verification": [
@@ -88003,6 +88040,10 @@
               {
                 "path": "adapters/host-node/process-channel.test.mjs",
                 "anchor": "test('returned asynchronous body backing never admits a frame or releases its process cleanup early', async () => {"
+              },
+              {
+                "path": "adapters/connectors/local/iceberg/process_worker_test.py",
+                "anchor": "def test_constructor_geometry_uses_same_host_call_before_original_dispatch_continues"
               }
             ]
           }
