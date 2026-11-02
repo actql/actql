@@ -3600,6 +3600,33 @@ original preparation admission, controller/constructor/output overlap and
 failure retirement to these claims. Equal byte counts alone cannot replace that
 connection. Node and mapped/native backing retain their own existing contracts.
 
+#### Staged platform input construction
+
+Platform input sealing owns its decoded input tree before a Request can borrow
+it. The transfer's two wire copies alone do not cover that tree. The original
+Buffer slot therefore retains a separate demand-sized working claim on the
+same VM capacity. The existing Source preflight-control inventory and actual
+wire length fund UTF-8 decoding and initial scalar preflight. The preflight's
+observed node/depth geometry then selects the existing preserving-parser
+construction inventory before grammar/tree allocation. Long scalar text is
+not treated as one node per character, and the unused configured node/depth
+limits are not allocated in advance.
+
+The same Source cursor transfers once from preflight to grammar. The selected
+data-key mode preserves original Unicode and keys; the default scalar, imported
+and Native input paths keep their existing decoder. Original bounded polls
+report their work on the same Root, without changing policy, engine, fuel or
+VM geometry. This does not qualify the later Request/Plan work admission.
+
+The Buffer slot retains its working claim and any failed/interrupted cursor
+before those constructors can trap. A started failed parser is not replaced
+by another seal on the same handle. Existing borrowers and the original input
+cleanup must finish before the slot cuts its parser/tree aliases and returns
+that suballocation. Returning a Buffer borrow does not itself retire the tree.
+Parser capacity refusal, input error and physical cleanup pending keep their
+existing distinct Host codes. Neither successful sealing nor cleanup grants
+Source checking, Run execution or physical Store retirement.
+
 #### Original Request admission and demand growth
 
 The fixed platform preparation connection uses the existing backed region,

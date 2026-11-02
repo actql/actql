@@ -1,6 +1,6 @@
 {
   "source": "d5d66cd86ac2e153f31a511e7d37c78e0cc28ae3",
-  "syntaxProjectionSha256": "687690de926b50ebdb2a8d042056586f03c3eae0b192d278be402778259427f4",
+  "syntaxProjectionSha256": "5550910a867632e1a3370613cf2f8fc2de223eed03fd6138443403666687c9f6",
   "qualification": "Source-reference coverage only; original Native/FFI/Python executions retain their own source, artifact and target qualifications. No normal funding, VM or installed product admission.",
   "generated": [
     {
@@ -79308,7 +79308,7 @@
     },
     {
       "module": "scripts/check-python-local-core.mjs",
-      "sha256": "07e7bbdaea50a5bd5cf1107cdcfdeaa6be927c8b717001168cde972c21848954",
+      "sha256": "812ab5856068af641d67294968c87e45bde2ac2290777e2d68e000b0bada2dd0",
       "exports": [],
       "operations": [
         {
@@ -79451,6 +79451,221 @@
               {
                 "path": "src/physical_resources/platform_vm_capacity_wbtest.mbt",
                 "anchor": "test \"platform VM capacity binds exact original Root"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "exports": [
+        "LocalCore",
+        "Path",
+        "PhysicalFixture",
+        "PlatformInputFixture",
+        "cases",
+        "failed",
+        "fixture",
+        "handle",
+        "hashlib",
+        "json",
+        "module",
+        "payload",
+        "reader",
+        "result",
+        "retained",
+        "selected",
+        "sys",
+        "wasmtime"
+      ],
+      "imports": [
+        "actql_sdk._local_core",
+        "hashlib",
+        "json",
+        "pathlib",
+        "python_local_physical",
+        "sys",
+        "wasmtime"
+      ],
+      "module": "scripts/fixtures/python-local-platform-input-abi.py",
+      "operations": [
+        {
+          "async": false,
+          "name": "PlatformInputFixture",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "PlatformInputFixture/__init__",
+          "parameters": [
+            "self",
+            "module",
+            "nonce"
+          ]
+        },
+        {
+          "async": false,
+          "name": "PlatformInputFixture/call",
+          "parameters": [
+            "self",
+            "name",
+            "*arguments"
+          ]
+        },
+        {
+          "async": false,
+          "name": "PlatformInputFixture/platform_vm_observation",
+          "parameters": [
+            "self",
+            "caller",
+            "nonce",
+            "ordinal"
+          ]
+        },
+        {
+          "async": false,
+          "name": "PlatformInputFixture/stage",
+          "parameters": [
+            "self",
+            "ticket",
+            "payload"
+          ]
+        }
+      ],
+      "sha256": "022787aa6baa193eaa470610a2fc659adac4c16662dad80cb8a5e61b25597c7b",
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing raw-Wasm physical fixture and fixed platform VM input owners",
+      "referenceQualification": "Actual original VM input/parser component only; explicit nominal external cleanup ports, unmetered diagnostic Engine, no normal Request/Run/Store ACK.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "PlatformInputFixture",
+            "PlatformInputFixture/__init__",
+            "PlatformInputFixture/call",
+            "PlatformInputFixture/platform_vm_observation",
+            "PlatformInputFixture/stage"
+          ],
+          "exports": [
+            "LocalCore",
+            "Path",
+            "PhysicalFixture",
+            "PlatformInputFixture",
+            "cases",
+            "failed",
+            "fixture",
+            "handle",
+            "hashlib",
+            "json",
+            "module",
+            "payload",
+            "reader",
+            "result",
+            "retained",
+            "selected",
+            "sys",
+            "wasmtime"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Staged platform input construction"
+              },
+              {
+                "path": "scripts/fixtures/python-local-platform-input-abi.py",
+                "anchor": "class PlatformInputFixture(PhysicalFixture):"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Staged platform input construction"
+              },
+              {
+                "path": "scripts/fixtures/python-local-platform-input-abi.py",
+                "anchor": "class PlatformInputFixture(PhysicalFixture):"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Staged platform input construction"
+              },
+              {
+                "path": "scripts/fixtures/python-local-platform-input-abi.py",
+                "anchor": "class PlatformInputFixture(PhysicalFixture):"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Staged platform input construction"
+              },
+              {
+                "path": "scripts/fixtures/python-local-platform-input-abi.py",
+                "anchor": "class PlatformInputFixture(PhysicalFixture):"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Staged platform input construction"
+              },
+              {
+                "path": "scripts/fixtures/python-local-platform-input-abi.py",
+                "anchor": "class PlatformInputFixture(PhysicalFixture):"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Staged platform input construction"
+              },
+              {
+                "path": "scripts/fixtures/python-local-platform-input-abi.py",
+                "anchor": "class PlatformInputFixture(PhysicalFixture):"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Staged platform input construction"
+              },
+              {
+                "path": "scripts/fixtures/python-local-platform-input-abi.py",
+                "anchor": "class PlatformInputFixture(PhysicalFixture):"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Staged platform input construction"
+              },
+              {
+                "path": "scripts/fixtures/python-local-platform-input-abi.py",
+                "anchor": "class PlatformInputFixture(PhysicalFixture):"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Staged platform input construction"
+              },
+              {
+                "path": "scripts/fixtures/python-local-platform-input-abi.py",
+                "anchor": "class PlatformInputFixture(PhysicalFixture):"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Staged platform input construction"
+              },
+              {
+                "path": "scripts/fixtures/python-local-platform-input-abi.py",
+                "anchor": "if 'capacity' in selected:"
               }
             ]
           }

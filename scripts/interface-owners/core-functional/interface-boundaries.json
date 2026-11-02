@@ -70464,7 +70464,7 @@
           }
         }
       ],
-      "sha256": "23fc3bb977ecc3a6628c85974aa92fe67ecb41d20b0a4afda8faeb83bc0a49a1",
+      "sha256": "89c5eb32f2aa47aed16a531423eb096f89f74f7258dbfbd670f8da896778ee96",
       "operations": [
         {
           "name": "borrow_buffer",
@@ -72244,6 +72244,147 @@
         {
           "name": "shared_capacity_usage",
           "declaration": "shared_capacity_usage ( owner : SharedCapacity ) - > SharedCapacityUsage"
+        }
+      ],
+      "exports": []
+    },
+    {
+      "module": "src/client_host_buffers/platform_input.mbt",
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Buffer, Source parser and platform VM Resource owners",
+      "referenceQualification": "New actual fixed-VM input parser/coexistence component with explicit physical stop/cleanup fixture ports; not ordinary Request/Run, normal image, permission or physical Store ACK.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "platform_buffer_issue",
+            "platform_input_entry_bytes",
+            "platform_input_parser_bytes",
+            "seal_platform_buffer"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Staged platform input construction"
+              },
+              {
+                "path": "src/client_host_buffers/platform_input.mbt",
+                "anchor": "fn seal_platform_buffer("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Staged platform input construction"
+              },
+              {
+                "path": "src/client_host_buffers/platform_input.mbt",
+                "anchor": "fn seal_platform_buffer("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Staged platform input construction"
+              },
+              {
+                "path": "src/client_host_buffers/platform_input.mbt",
+                "anchor": "fn seal_platform_buffer("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Staged platform input construction"
+              },
+              {
+                "path": "src/client_host_buffers/platform_input.mbt",
+                "anchor": "fn seal_platform_buffer("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Staged platform input construction"
+              },
+              {
+                "path": "src/client_host_buffers/platform_input.mbt",
+                "anchor": "fn seal_platform_buffer("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Staged platform input construction"
+              },
+              {
+                "path": "src/client_host_buffers/platform_input.mbt",
+                "anchor": "fn seal_platform_buffer("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Staged platform input construction"
+              },
+              {
+                "path": "src/client_host_buffers/platform_input.mbt",
+                "anchor": "fn seal_platform_buffer("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Staged platform input construction"
+              },
+              {
+                "path": "src/client_host_buffers/platform_input.mbt",
+                "anchor": "fn seal_platform_buffer("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Staged platform input construction"
+              },
+              {
+                "path": "src/client_host_buffers/platform_input.mbt",
+                "anchor": "fn seal_platform_buffer("
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Staged platform input construction"
+              },
+              {
+                "path": "scripts/fixtures/python-local-platform-input-abi.py",
+                "anchor": "if 'capacity' in selected:"
+              }
+            ]
+          }
+        }
+      ],
+      "sha256": "cdf695ffbd41885df9fed8b70b16597c17da9102959e98ce44d75de396fbba64",
+      "operations": [
+        {
+          "name": "platform_buffer_issue",
+          "declaration": "platform_buffer_issue ( issue : @ resources . ImportedChildLedgerIssue , ) - > BufferIssue"
+        },
+        {
+          "name": "platform_input_entry_bytes",
+          "declaration": "platform_input_entry_bytes ( bytes : Int ) - > Int64 ?"
+        },
+        {
+          "name": "platform_input_parser_bytes",
+          "declaration": "platform_input_parser_bytes ( geometry : @ source . JsonSourceGeometry , max_nodes : Int , max_depth : Int , ) - > Int64 ?"
+        },
+        {
+          "name": "seal_platform_buffer",
+          "declaration": "seal_platform_buffer ( pool : BufferPool , slot : BufferSlot , original : @ resources . PlatformVMCapacity , max_nodes : Int , max_depth : Int , ) - > Result [ Unit , BufferIssue ]"
         }
       ],
       "exports": []
