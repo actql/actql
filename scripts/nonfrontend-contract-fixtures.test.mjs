@@ -55,7 +55,7 @@ test('resident physical Source environments advertise their exact normative two-
 
 test('current Catalog dependency fixtures pin the normative environment grammar', () => {
   const expected = cid(json('spec/contracts/actql-check-environment.json'));
-  assert.equal(expected, 'sha256:ec175d305964139d025054f925bf269d83bb76b88b1460b864d0c315f35331ec');
+  assert.equal(expected, 'sha256:971a37d4a819157f4016cfe804084ebe828dd07df287214e19cb8ed0483a13b9');
   for (const name of ['catalog_body_dependencies_test', 'lookup_body_dependencies_test']) {
     hasPin('src/check_environment/' + name + '.mbt', expected);
   }
