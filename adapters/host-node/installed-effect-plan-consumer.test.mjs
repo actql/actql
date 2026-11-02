@@ -708,7 +708,8 @@ test('retained manager decodes only after its same parent and keeps exact intent
   assert.deepEqual(f.calls, ['open-parent', 'retain-original', 'decode']);
   assert.equal(f.counts.current, 1, 'one current check at the shared producer entrance');
   assert.equal(result.body.input.text, "SELECT 'e\u0301😀'");
-  assert.equal(Object.hasOwn(result.body, 'parameters'), false, 'durable null remains native absence');
+  assert.equal(Object.hasOwn(result.body, 'parameters'), true);
+  assert.strictEqual(result.body.parameters, null, 'the actual native bridge recognizes literal null as absent, not undefined');
   assert.strictEqual(producer.body, result.body); assert.strictEqual(producer.preparation.snapshot, result.body);
   assert.equal(producer.preparation.snapshotDocument, f.wire); assert.equal(producer.preparation.preparing, false);
   assert.strictEqual(f.requestProducers.get(f.request).deref(), producer);

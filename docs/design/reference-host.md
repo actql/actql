@@ -2993,8 +2993,9 @@ counts then select the existing native snapshot envelope before native decoding.
 Long Text is not counted as a tree node per character. The sequential preflight
 and snapshot peaks share the larger reservation rather than adding both.
 The wire remains borrowed from its original Journal custody; native decoded
-values are separately covered by that snapshot envelope. Durable null Parameters
-project to ordinary native absence without changing the retained intent.
+values are separately covered by that snapshot envelope. Literal null Parameters
+remain unchanged: the existing native bridge uses that same SDK sentinel for
+absent values; undefined must not replace it or bypass supplied-input admission.
 
 The same normal semantic/check/compiler continuation retains the original
 Environment and published Catalog, then borrows the actual Effect Plan input.

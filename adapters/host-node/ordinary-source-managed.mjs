@@ -515,9 +515,8 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         const wire = Reflect.apply(intentWire, moon, [intent]);
         if (typeof wire !== 'string') fail('InvalidHostRuntimeResult');
         const body = JSON.parse(wire);
-        // The admitted durable envelope spells absent Parameters as null.
-        // The existing native input bridge receives ordinary JS absence.
-        if (body.parameters === null) delete body.parameters;
+        // Keep the SDK envelope's literal null sentinel. The same native
+        // bridge treats only null as absent; undefined is supplied input.
         freezeInput(body);
         producer.kind = body.kind;
         state.snapshot = producer.body = body;
