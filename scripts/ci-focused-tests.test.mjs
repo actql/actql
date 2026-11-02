@@ -54,7 +54,7 @@ function selection(changes = [change()], options = {}) {
   return selectTargets(paths, {focusedChanges: changes, focusedTests: readFocusedTests(paths, changes, git), ...options});
 }
 const results = value => Object.fromEntries(gateJobs.map(name => [name, {result:
-  ['select-targets', 'preflight', 'lint', 'spec'].includes(name) || name === 'focused-tests' && value.profile === 'focused-tests'
+  ['select-targets', 'preflight', 'lint', 'spec'].includes(name) || name === 'focused-tests' && ['focused-tests', 'draft-focused'].includes(value.profile)
     || name !== 'focused-tests' && value.profile === 'full' && (name !== 'native-macos' || value.macos) ? 'success' : 'skipped'}]));
 
 test('registered family includes existing siblings and NEW fixed-compute/join tests', () => {

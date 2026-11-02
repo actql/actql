@@ -6,7 +6,7 @@ import {spawnSync} from 'node:child_process';
 import {runInNewContext} from 'node:vm';
 import test from 'node:test';
 import {parse} from 'yaml';
-import {pullRequestDraft, readChanges, selectTargets, validateSelection, verifyGate, maintenanceFiles, gateJobs} from './ci-targets.mjs';
+import {pullRequestDraft, readChanges, selectTargets, validateSelection, verifyGate, maintenanceFiles, gateJobs, pythonWheelAcceptanceRequired} from './ci-targets.mjs';
 import {occurrences} from './check-owned-contract-versions.mjs';
 const all = ['js', 'wasm', 'native'];
 const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
@@ -181,7 +181,7 @@ const head = 'b'.repeat(40);
 const plan = selection => ({sourceRevision: head, selection});
 const context = {event: 'pull_request', sourceRevision: head};
 const results = selection => Object.fromEntries(gateJobs.map(name => [name, {result:
-  ['select-targets', 'preflight', 'lint', 'spec'].includes(name) || selection.profile === 'full' && name !== 'focused-tests' &&
+  ['select-targets', 'preflight', 'lint', 'spec'].includes(name) || name === 'python-wheels' && pythonWheelAcceptanceRequired(selection) || selection.profile === 'full' && name !== 'focused-tests' &&
     (name !== 'native-macos' || selection.macos) ? 'success' : 'skipped'}]));
 const changes = paths => paths.map(path => ({path, before: {mode: '100644', object: 'c'.repeat(40)},
   after: {mode: '100644', object: 'd'.repeat(40)}}));
@@ -412,7 +412,7 @@ test('every heavy primitive is selected as one complete job and lint/spec always
   for (const name of heavy) {
     assert(jobs[name].needs.includes('select-targets'));
     assert.equal(scheduled(name, {'select-targets': {outputs: {profile: 'maintenance', macos: 'false'}}}), false);
-    assert.equal(scheduled(name, {'select-targets': {outputs: {profile: 'full', macos: 'true'}}}), true);
+    assert.equal(scheduled(name, {'select-targets': {outputs: {profile: 'full', python_wheels: 'true', macos: 'true'}}}), true);
     assert.equal(scheduled(name, {'select-targets': {outputs: {profile: '', macos: 'true'}}}), false);
   }
   assert.deepEqual(jobs.check.needs, gateJobs);
@@ -556,7 +556,7 @@ test('PR lifecycle uses current event Draft state; ready and later heads retain 
   assert.equal(selectTargets(product, {event: 'workflow_dispatch', draft: true}).profile, 'full');
 });
 
-test('Draft cannot start product, packed, proof or backend jobs; final gate still runs', () => {
+test('Unrelated Draft cannot start product, packed, proof or backend jobs; final gate still runs', () => {
   const heavy = ['core', 'host', 'client-packages', 'client-distribution', 'client-packed', 'client-salesforce',
     'native', 'session-evidence', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity',
     'pipeline-capacity-mutants', 'pipeline-validation', 'native-macos', 'python-wheels', 'native-separated-network',
@@ -681,6 +681,7 @@ test('main CLI selects full checks from a fresh checkout without API token or pr
   assert.equal(result.status, 0, result.stderr);
   const plan = JSON.parse(readFileSync(output, 'utf8').split('\n').find(row => row.startsWith('plan=')).slice(5));
   assert.equal(plan.sourceRevision, revision);
+  assert.match(readFileSync(output, 'utf8'), /^python_wheels=true$/mu);
   assert.equal(plan.selection.profile, 'full');
   assert.deepEqual(plan.selection.targets, ['js', 'wasm', 'native']);
   assert.equal(plan.selection.macos, true);
@@ -692,7 +693,7 @@ test('normal Python wheels are mandatory for full profiles independently of opti
   const job = jobs['python-wheels'];
   assert.equal(job['runs-on'], 'macos-14');
   assert.deepEqual(job.needs, ['select-targets', 'preflight']);
-  assert.equal(scheduled('python-wheels', {'select-targets': {outputs: {profile: 'full', macos: 'false'}}}), true);
+  assert.equal(scheduled('python-wheels', {'select-targets': {outputs: {profile: 'full', python_wheels: 'true', macos: 'false'}}}), true);
   assert(job.steps.some(step => step.run?.includes('test "$(uname -m)" = arm64')));
   assert(job.steps.some(step => step.run === 'python3 -B scripts/ci-python-wheels.py --destination "$RUNNER_TEMP/python-wheel-acceptance"'));
   assert(jobs.lint.steps.some(step => step.run === 'python3 -B scripts/test_ci_python_wheels.py'));
@@ -700,5 +701,53 @@ test('normal Python wheels are mandatory for full profiles independently of opti
   for (const result of ['failure', 'cancelled', 'skipped']) {
     const needs = results(selection); needs['python-wheels'].result = result;
     assert.throws(() => verifyGate(plan(selection), needs, {...context, event: 'workflow_dispatch'}), /python-wheels/);
+  }
+});
+
+test('Draft normal Python and CI changes automatically select real wheel acceptance without Ready', () => {
+  for (const path of ['.github/workflows/ci.yml', '.github/actions/setup-toolchain/action.yml',
+    'scripts/ci-targets.mjs', 'scripts/ci-preflight.mjs', 'scripts/ci-focused-tests.mjs',
+    'scripts/ci-python-wheels.py', 'scripts/test_ci_python_wheels.py',
+    'scripts/fixtures/ci-python-installed-audit.py', 'scripts/fixtures/ci-python-installed-health.py',
+    'scripts/fixtures/python-product-installed.py', 'scripts/fixtures/python-local-duckdb-physical.py',
+    'scripts/build-python-product-wheels.py', 'scripts/produce-python-local-runtime.py',
+    'scripts/compile-python-local-image.py', 'scripts/prepare-python-local-runtime.py',
+    'scripts/python_release_cohort.py', 'scripts/python_interface_inventory.py',
+    'scripts/generate-local-wasm-abi.py', 'scripts/release-version.mjs',
+    'toolchain.json', 'moon.mod', 'package.json', 'package-lock.json',
+    'packages/python-sdk/src/example.py', 'packages/python-product/pyproject.toml',
+    'packages/python-local-runtime/new.py']) {
+    const selection = selectTargets([path], {draft: true});
+    assert.equal(pythonWheelAcceptanceRequired(selection), true, path);
+    assert.equal(scheduled('python-wheels', {'select-targets': {outputs: {
+      profile: 'draft', python_wheels: String(pythonWheelAcceptanceRequired(selection)), macos: 'false'}}}), true);
+    assert.throws(() => verifyGate(plan(selection), results(selection), {...context, draft: true}), /awaiting ready_for_review/);
+    for (const result of ['failure', 'cancelled', 'skipped', undefined]) {
+      const needs = results(selection); needs['python-wheels'].result = result;
+      assert.throws(() => verifyGate(plan(selection), needs, {...context, draft: true}), /python-wheels: expected success/);
+    }
+  }
+  for (const path of ['README.md', 'docs/development.md', 'src/source_span/span.mbt',
+    'packages/node-sdk/index.mjs', 'scripts/unrelated.mjs', 'packages/python-sdk-other/test.py']) {
+    assert.equal(pythonWheelAcceptanceRequired(selectTargets([path], {draft: true})), false, path);
+  }
+  for (const paths of [[], null, ['../invalid']]) {
+    assert.equal(pythonWheelAcceptanceRequired(selectTargets(paths, {draft: true})), true);
+  }
+  assert.equal(pythonWheelAcceptanceRequired(maintenanceSelection(['docs/development.md'])), false);
+});
+
+test('deleted or renamed Python inputs remain in the tested merge diff and select acceptance', () => {
+  for (const paths of [['scripts/ci-python-wheels.py'],
+    ['scripts/ci-python-wheels.py', 'scripts/renamed-wheel-acceptance.py'],
+    ['scripts/old.py', 'packages/python-sdk/new.py']]) {
+    const git = args => {
+      if (args[0] === 'rev-parse') return head;
+      assert(args.includes('--no-renames'));
+      return args.includes('--name-only') ? paths.join('\0') + '\0' : '-deleted old input\n+new input\n';
+    };
+    const changed = readChanges({pull_request: {base: {sha: 'a'.repeat(40)}}}, git);
+    assert.deepEqual(changed.paths, paths);
+    assert.equal(pythonWheelAcceptanceRequired(selectTargets(changed.paths, {draft: true})), true);
   }
 });

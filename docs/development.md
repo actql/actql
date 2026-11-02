@@ -1094,8 +1094,13 @@ write permissions, or `pull_request_target` execution are introduced.
 ### Draft preparation and Ready verification
 
 Drafts run preparation (`select-targets`, `preflight`, `lint`, `spec`, and the
-aggregate `check`). Only an exact registered fixed-request test family adds
-its focused JS tests. These are not full product verification: the aggregate
+aggregate `check`). An exact registered fixed-request test family adds
+its focused JS tests. Changes to normal Python packages, producers, acceptance
+fixtures, or their CI/toolchain inputs also run the genuine macOS wheel lane
+automatically, including in Draft. Unrelated Draft changes do not start that
+lane; this targeted exception is not complete Draft product coverage. The
+source-bound selection drives both scheduling and required-job checks. These
+checks are not full product verification: the aggregate
 intentionally fails with “awaiting ready_for_review”. Marking Ready triggers
 the normal applicable coverage; subsequent non-Draft pushes rerun it. Returning
 to Draft cancels the superseded PR run through the existing concurrency group.

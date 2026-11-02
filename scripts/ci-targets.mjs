@@ -45,6 +45,30 @@ const reviewedPortableFiles = new Set([
   'src/source_span/span.mbt',
   'scripts/worktree-inventory.mjs',
 ]);
+// A targeted Draft acceptance lane, not a claim of complete Draft product coverage.
+// Shared core changes still receive full applicable verification when Ready/main.
+const pythonWheelInputs = new Set([
+  '.github/workflows/ci.yml', '.github/actions/setup-toolchain/action.yml',
+  'scripts/ci-targets.mjs', 'scripts/ci-targets.test.mjs', 'scripts/ci-preflight.mjs',
+  'scripts/ci-preflight.test.mjs', 'scripts/ci-focused-tests.mjs',
+  'scripts/ci-python-wheels.py', 'scripts/test_ci_python_wheels.py',
+  'scripts/fixtures/ci-python-installed-audit.py', 'scripts/fixtures/ci-python-installed-health.py',
+  'scripts/fixtures/python-product-installed.py', 'scripts/fixtures/python-local-duckdb-physical.py',
+  'scripts/build-python-product-wheels.py', 'scripts/produce-python-local-runtime.py',
+  'scripts/compile-python-local-image.py', 'scripts/python_release_cohort.py',
+  'scripts/prepare-python-local-runtime.py', 'scripts/generate-local-wasm-abi.py',
+  'scripts/python_interface_inventory.py', 'scripts/release-version.mjs',
+  'scripts/setup-moonbit.mjs', 'toolchain.json', 'moon.mod', 'package.json', 'package-lock.json',
+]);
+export function pythonWheelAcceptanceRequired(selection) {
+  validateSelection(selection);
+  if (selection.profile === 'full') return true;
+  if (!selection.profile.startsWith('draft')) return false;
+  // Failed/unavailable diff cannot silently omit the lane. --no-renames keeps
+  // deleted old paths and added new paths in this same source-bound inventory.
+  return selection.paths.length === 0 || selection.paths.some(path => pythonWheelInputs.has(path)
+    || /^packages\/python-(?:product|sdk|local-runtime)\//u.test(path));
+}
 export function pullRequestDraft(event, payload) {
   if (event !== 'pull_request') return null;
   assert(['opened', 'synchronize', 'reopened', 'ready_for_review', 'converted_to_draft'].includes(payload?.action), 'Unsupported PR lifecycle event');
@@ -74,7 +98,7 @@ export function selectTargets(paths, {draft = null, event = 'pull_request', main
       if (!failure && focusedTests && eligibleFocusedChanges(paths, focusedChanges)) {
         try { validateFocusedTests(paths, focusedChanges, focusedTests); focused = true; } catch {}
       }
-      return {...full('Draft preparation only: normal required verification deferred until ready_for_review; not mergeable'),
+      return {...full('Draft preparation with targeted Python acceptance when applicable; full verification deferred until ready_for_review; not mergeable'),
         profile: focused ? 'draft-focused' : 'draft', targets: ['js'], macos: false,
         focusedChanges: focused ? focusedChanges : null, focusedTests: focused ? focusedTests : null};
     }
@@ -150,18 +174,19 @@ export function verifyGate(plan, needs, {event, sourceRevision, draft = null}) {
   assert(sha.test(sourceRevision) && plan.sourceRevision === sourceRevision, 'Selection belongs to another checkout');
   const selection = validateSelection(plan.selection);
   assert.equal(selection.event, event, 'Selection belongs to another event');
-  assert(draft !== true && !selection.profile.startsWith('draft'),
-    'Draft preparation is not merge verification: awaiting ready_for_review to execute normal required coverage');
   assert.deepEqual(Object.keys(needs ?? {}).sort(), [...gateJobs].sort(), 'Incomplete gate dependency inventory');
   const lines = [];
   for (const name of gateJobs) {
     const required = ['select-targets', 'preflight', 'lint', 'spec'].includes(name)
-      || selection.profile === 'focused-tests' && name === 'focused-tests'
+      || ['focused-tests', 'draft-focused'].includes(selection.profile) && name === 'focused-tests'
+      || name === 'python-wheels' && pythonWheelAcceptanceRequired(selection)
       || selection.profile === 'full' && name !== 'focused-tests' && (name !== 'native-macos' || selection.macos);
     const expected = required ? 'success' : 'skipped';
     assert.equal(needs[name]?.result, expected, `${name}: expected ${expected}`);
     lines.push(`${required ? 'PASS' : 'NOT APPLICABLE'} ${name}: ${required ? 'required job completed' : selection.reason}`);
   }
+  assert(draft !== true && !selection.profile.startsWith('draft'),
+    'Draft preparation is not merge verification: awaiting ready_for_review to execute normal required coverage');
   return lines;
 }
 export function readChanges(payload, git = args => execFileSync('git', args,
@@ -250,9 +275,9 @@ async function main() {
   const sourceRevision = execFileSync('git', ['rev-parse', 'HEAD'], {encoding: 'utf8'}).trim();
   assert(sha.test(sourceRevision) && sourceRevision === process.env.GITHUB_SHA, 'Unexpected tested checkout');
   const plan = {sourceRevision, selection: selected};
-  appendFileSync(process.env.GITHUB_OUTPUT, `targets=${JSON.stringify(selected.targets)}\nmacos=${selected.macos}\nprofile=${selected.profile}\nplan=${JSON.stringify(plan)}\n`);
+  appendFileSync(process.env.GITHUB_OUTPUT, `targets=${JSON.stringify(selected.targets)}\nmacos=${selected.macos}\nprofile=${selected.profile}\npython_wheels=${pythonWheelAcceptanceRequired(selected)}\nplan=${JSON.stringify(plan)}\n`);
   console.log(JSON.stringify(selected, null, 2));
   if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY,
-    `Job profile: ${selected.profile}\n\nCore targets when selected: ${selected.targets.join(', ')}\n\nmacOS: ${selected.macos ? 'required' : 'not applicable for this run'}\n\n${selected.reason}\n\nUnselected families produce no execution evidence. Selected proof campaigns retain all three targets.\n`);
+    `Job profile: ${selected.profile}\n\nCore targets when selected: ${selected.targets.join(', ')}\n\nNative macOS diagnostic: ${selected.macos ? 'required' : 'not applicable for this run'}\n\nPython wheel acceptance: ${pythonWheelAcceptanceRequired(selected) ? "required" : "not selected"}\n\n${selected.reason}\n\nUnselected families produce no execution evidence. Selected proof campaigns retain all three targets.\n`);
 }
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) await main();

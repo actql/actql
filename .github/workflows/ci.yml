@@ -83,6 +83,7 @@ jobs:
       macos: ${{ steps.select.outputs.macos }}
       profile: ${{ steps.select.outputs.profile }}
       plan: ${{ steps.select.outputs.plan }}
+      python_wheels: ${{ steps.select.outputs.python_wheels }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -1178,7 +1179,7 @@ jobs:
             npm run check:native-http-client
   python-wheels:
     needs: [select-targets, preflight]
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.python_wheels == 'true' }}
     runs-on: macos-14
     timeout-minutes: 40
     steps:
