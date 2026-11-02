@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import {gunzipSync} from 'node:zlib';
-import {execFileSync} from 'node:child_process';
 import {dirname, relative} from 'node:path';
 import test from 'node:test';
 import {machineCid} from './actql-spec-family.mjs';
@@ -371,9 +370,8 @@ test('current manifest metadata and canonical fixtures bind the complete documen
 });
 
 test('signed-source-zero note preserves productions and the complete original identity transition', () => {
-  // This exact transition belongs to its admitted public source. Current
-  // selected contracts remain checked by the independent current oracle below.
-  const read = path => JSON.parse(execFileSync('git', ['show', `7d6c74baa222df78621b3f41d82f92ff7b369b0a:${path}`], {encoding: 'utf8', maxBuffer: 8 * 1024 * 1024}));
+  // The retained corpus binds this complete transition without requiring
+  // unavailable Git objects. Current selected inputs are checked separately.
   const transition = read('scripts/fixtures/signed-source-zero-grammar/identity-transition.json');
   assert.equal(transition.source_commit, 'dbe458ba94ffd4e4693592abf7540a9b2a1b88e6');
   assert.equal(transition.source_tree, '1debbdb7f02cdbcb0136b278328235d32bc4d246');
@@ -407,7 +405,6 @@ test('signed-source-zero note preserves productions and the complete original id
   }));
   const next = Object.fromEntries(after.additional_contracts.map(record => {
     assert.equal(machineCid(record.body), record.cid);
-    assert.deepEqual(record.body, read(record.path));
     return [record.path, record.body];
   }));
   const operation = 'ACTQL.expression_fragment/0.1';
@@ -432,6 +429,7 @@ test('signed-source-zero note preserves productions and the complete original id
   const expectedEnvironment = structuredClone(previous[environmentPath]);
   expectedEnvironment.pushdown_contract_bodies.semantic_dependencies.expression_contract.cid = after.expression_contract_cid;
   assert.deepEqual(next[environmentPath], expectedEnvironment);
+  assert.deepEqual(next[environmentPath], read(environmentPath));
   for (const [name, previousVectors] of Object.entries(before.stage_vectors)) {
     const currentVectors = after.stage_vectors[name];
     assert.deepEqual(currentVectors, read(`portability/corpus/${name}.json`));
@@ -456,7 +454,8 @@ test('signed-source-zero note preserves productions and the complete original id
     expression_contract_cid: after.expression_contract_cid,
     expression_text_grammar_sha256: after.grammar_sha256});
   assert.deepEqual(after.grammar_manifest, read('spec/manifests/actql-grammar-0.1.json'));
-  assert.deepEqual(after.sequence_values, read('scripts/fixtures/current-sequence-values-identities.json'));
+  assert.deepEqual(after.sequence_values.grammar, after.grammar_manifest);
+  assert.equal(after.sequence_values.aoa_contract_cid, machineCid(next[aoaPath]));
   // The prior authored current fixture lagged actual structural/Program inputs;
   // retain it as recorded, rather than relabel it as the actual parent manifest.
   assert.equal(before.sequence_fixture_equals_actual_manifest, false);
@@ -491,22 +490,14 @@ test('inference barrier binds the existing model Plan and adjacent fragment', ()
     {name: 'inference_barrier', contract_cid: cid});
 });
 
-test('published STORE keeps the original Program schema and advances only current grammar pins', () => {
+test('published STORE retains the complete Program schema and grammar identity transition', () => {
   const vector = read('scripts/fixtures/published-store-grammar/manifest-identities.json');
   const prior = read(vector.prior_program_schema_file);
-  const current = read('portability/fixtures/program-grammar-before-published-command.json');
-  assert.deepEqual(current, JSON.parse(execFileSync('git', ['show',
-    '585c4be8ecbe1bf30883bd4d716fb83b4fb97a6c:spec/contracts/actql-protocol-schemas.json'],
-    {encoding:'utf8',maxBuffer:16*1024*1024})).artifact_schemas.executable_plan.properties.execution_material.properties.program);
+  // These complete schemas and manifests retain the STORE transition;
+  // later COMMAND and current contracts remain independent.
+  const after = read('portability/fixtures/program-grammar-before-published-command.json');
   assert.equal(machineCid(prior), vector.prior_program_schema_cid);
-  assert.equal(machineCid(current), vector.current_program_schema_cid);
-  assert.deepEqual(prior, JSON.parse(execFileSync('git', ['show',
-    `${vector.prior_schema_source}:spec/contracts/actql-protocol-schemas.json`],
-  {encoding: 'utf8', maxBuffer: 16 * 1024 * 1024})).artifact_schemas
-    .executable_plan.properties.execution_material.properties.program);
-  assert.deepEqual(vector.before, JSON.parse(execFileSync('git', ['show',
-    `${vector.before_source}:spec/manifests/actql-grammar-0.1.json`],
-  {encoding: 'utf8'})));
+  assert.equal(machineCid(after), vector.current_program_schema_cid);
   for (const manifest of [vector.before, vector.after]) {
     const {grammar_manifest_cid, ...body} = manifest;
     assert.equal(sha(canonicalText(body)), grammar_manifest_cid);
@@ -523,7 +514,7 @@ test('published STORE keeps the original Program schema and advances only curren
   // retained exactly, rather than reconstructed from an old CID or a new name.
   assert.deepEqual(vector.program_schema_change_pointers,
     ['/properties/effects/additionalProperties/oneOf/4/properties/command/properties/target']);
-  const restored = structuredClone(current);
+  const restored = structuredClone(after);
   const target = restored.properties.effects.additionalProperties.oneOf[4]
     .properties.command.properties;
   assert.equal(target.target.oneOf.length, 2);
