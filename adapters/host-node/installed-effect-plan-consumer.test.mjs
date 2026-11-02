@@ -460,3 +460,81 @@ test('recovered Effect binds its existing managed Plan to the same saved Definit
   assert.equal(await f.owner.cleanup(), true);
   assert.deepEqual(f.events, ['ledger-open', 'ledger-close']);
 });
+
+
+// Actual installed original-material helper and normal validateRun caller.
+// Native codec/selection/data ports are explicit; this proves JS handoff and
+// no legacy compiler fallback, not an installation or capacity admission.
+function installedOriginalCompilerFixture({available = true, refusal} = {}) {
+  const source = readFileSync(new URL('./installed-update-originals.mjs', import.meta.url), 'utf8');
+  const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
+  const found = new Map();
+  (function visit(node) {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'VariableDeclaration' && node.declarations.length === 1 &&
+        ['admitWithCompilation', 'restoreEffectMaterials', 'restoreRun'].includes(node.declarations[0].id.name)) {
+      const name = node.declarations[0].id.name; assert(!found.has(name)); found.set(name, node);
+    }
+    if (node.type === 'Property' && node.key?.name === 'validateRun') found.set('validateRun', node);
+    for (const child of Object.values(node)) if (Array.isArray(child)) child.forEach(visit);
+    else if (child && typeof child === 'object') visit(child);
+  })(ast);
+  assert.equal(found.size, 4);
+  const prepared = {}, compilation = {}, allowed = {}, identity = {}, definition = {};
+  const selections = [], materials = {}, original = {materialsWire: 'original-materials', installations: []};
+  const runDefinition = {identity: 'original-definition'}, binding = {}, calls = [];
+  const fail = () => {throw Object.assign(new Error('InstalledEffectOriginalSelectionChanged'),
+    {code: 'InstalledEffectOriginalSelectionChanged'});};
+  const moon = {clientProgramAdmitEffectRunMaterials(wire, run, ...args) {
+    assert.deepEqual([wire, run], [original.materialsWire, runDefinition.identity]);
+    assert.strictEqual(args.at(-1), identity); calls.push('wire-only'); return ok(materials);
+  }, clientProgramEffectRunMaterialsPrepared: value => {assert.strictEqual(value, materials); return prepared;},
+    clientProgramEffectRunMaterialsCompilation: value => {assert.strictEqual(value, materials); return compilation;},
+    clientProgramEffectRunMaterialsAllowed: value => {assert.strictEqual(value, materials); return allowed;},
+    clientProgramEffectRunMaterialsDefinition: value => {assert.strictEqual(value, materials); return definition;},
+    clientProgramEffectRunMaterialsTargetSelections: value => {assert.strictEqual(value, materials); return ok(selections);}};
+  if (available) moon.clientProgramAdmitEffectRunMaterialsWithCompilation = function(wire, run, original, request, ...flags) {
+    assert.strictEqual(this, moon); assert.strictEqual(original, compilation); assert.strictEqual(request, identity);
+    assert.equal(wire, 'original-materials'); assert.equal(run, runDefinition.identity);
+    assert.deepEqual(flags, [false, true, true, true, true, false, false]);
+    calls.push('same-original'); if (refusal !== undefined) throw refusal; return ok(materials);
+  };
+  const ports = {moon, features: [false, true, true, true, true, false, false], checked, fail,
+    runUpdateSelectionCid: () => 'original-selection', updateTargetRunOriginalShape: () => true,
+    selectionsOf: value => {assert.strictEqual(value, prepared); return selections;},
+    updateTargetSelectionsCid: value => {assert.strictEqual(value, selections); return 'original-selection';},
+    updateTargetSelectionMatchesRun: (selected, value, run) => selected === selections && value === prepared && run === definition,
+    bind: () => binding, compilations: new WeakMap(),
+    capturePrepared(value, original) {assert.strictEqual(value, prepared); assert.strictEqual(original, compilation); return binding;},
+    same: (left, right) => left === right};
+  const nodes = ['admitWithCompilation', 'restoreEffectMaterials', 'restoreRun'].map(name => found.get(name));
+  const code = nodes.map(node => source.slice(node.start, node.end)).join('\n') +
+    ';return {restoreEffectMaterials,validateRun:({' + source.slice(found.get('validateRun').start, found.get('validateRun').end) + '}).validateRun};';
+  const owner = new Function(...Object.keys(ports), code)(...Object.values(ports));
+  return {owner, moon, prepared, compilation, identity, original, runDefinition, binding, calls,
+    validate() {return owner.validateRun({prepared, compilation, evidence: {updateTargetRunOriginal: original}, runDefinition, identity});}};
+}
+
+test('installed original Run validation binds its same compiler once and never rechecks through the wire-only codec', () => {
+  const f = installedOriginalCompilerFixture();
+  f.moon.clientProgramAdmitEffectRunMaterialsWithCompilation = () => assert.fail('No changed implementation lookup');
+  f.moon.clientProgramAdmitEffectRunMaterials = () => assert.fail('No duplicate check or compiler');
+  assert.strictEqual(f.validate(), f.binding);
+  assert.deepEqual(f.calls, ['same-original']);
+});
+
+test('installed original Run validation refuses a missing typed binding and preserves refusal without compiler fallback', () => {
+  const missing = installedOriginalCompilerFixture({available: false});
+  assert.throws(missing.validate, {code: 'InstalledEffectOriginalSelectionChanged'});
+  assert.deepEqual(missing.calls, []);
+  const refusal = new Error('OriginalBoundMaterialsRefused'), f = installedOriginalCompilerFixture({refusal});
+  assert.throws(f.validate, error => error === refusal);
+  assert.deepEqual(f.calls, ['same-original']);
+});
+
+test('independent wire-only material restoration remains on its existing declared codec', () => {
+  const f = installedOriginalCompilerFixture({available: false});
+  const restored = f.owner.restoreEffectMaterials('original-materials', f.runDefinition, f.identity);
+  assert.strictEqual(restored.prepared, f.prepared); assert.strictEqual(restored.compilation, f.compilation);
+  assert.deepEqual(f.calls, ['wire-only']);
+});

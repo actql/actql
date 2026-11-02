@@ -304,3 +304,232 @@ test "original Effect materials reject a foreign Run and request before encoding
   )
   assert_true(projection is Err(Request(_)))
 }
+
+///|
+// The compiler is an explicit original here, not a Resource admission. The
+// eventual Request caller must retain and fund it before entering this codec.
+test "Effect material binding uses the supplied original compilation without rechecking its Program" {
+  let (prepared, allowed, definition) = original_effect_materials_fixture()
+  let request = prepare_client_effect_request_identity(
+    prepared,
+    "sha256:" + "c".repeat(64),
+    "original-compiled-materials",
+    source_free_caller_input_intent_cid(),
+  ).unwrap()
+  let wire = issue_prepared_client_effect_run_materials(
+    allowed,
+    definition,
+    request=Some(request),
+  ).unwrap()
+  let (_, _, effect_limits) = client_composed_effect_base_fixture()
+  let restored = admit_client_effect_run_materials(
+    wire,
+    @publication.publication_contract_identity(definition),
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+    run_materials_manifests(),
+    run_materials_limits(),
+    effect_limits,
+    original_compilation=Some(allowed.compilation),
+    expected_request=Some(request),
+  ).unwrap()
+  assert_true(physical_equal(restored.prepared, prepared))
+  assert_true(physical_equal(restored.compilation, allowed.compilation))
+  assert_eq(restored.request, Some(request))
+  assert_eq(
+    @publication.publication_contract_identity(restored.run_definition),
+    @publication.publication_contract_identity(definition),
+  )
+}
+
+///|
+test "Effect material binding rejects changed authored input without a second Program parser" {
+  let (prepared, allowed, definition) = original_effect_materials_fixture()
+  let request = prepare_client_effect_request_identity(
+    prepared,
+    "sha256:" + "c".repeat(64),
+    "original-compiled-materials",
+    source_free_caller_input_intent_cid(),
+  ).unwrap()
+  let wire = issue_prepared_client_effect_run_materials(
+    allowed,
+    definition,
+    request=Some(request),
+  ).unwrap()
+  let body = parse_plan_identity_value(wire, 100000, 10000, 100).unwrap()
+  let body = @canonical.object_without_field(body, "program").unwrap()
+  let changed = @canonical.object_with_string_field(
+    body, "program", "this is deliberately not a Program",
+  ).unwrap()
+  let changed = @canonical.stringify_value(changed, 100000, 10000, 100)
+  let (_, _, effect_limits) = client_composed_effect_base_fixture()
+  assert_true(
+    admit_client_effect_run_materials(
+      changed,
+      @publication.publication_contract_identity(definition),
+      { text_time: false, veca: false, },
+      { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+      run_materials_manifests(),
+      run_materials_limits(),
+      effect_limits,
+      original_compilation=Some(allowed.compilation),
+      expected_request=Some(request),
+    )
+    is Err(RunMismatch),
+  )
+}
+
+///|
+test "Effect material binding requires the independently selected original Request" {
+  let (prepared, allowed, definition) = original_effect_materials_fixture()
+  let request = prepare_client_effect_request_identity(
+    prepared,
+    "sha256:" + "c".repeat(64),
+    "original-compiled-materials",
+    source_free_caller_input_intent_cid(),
+  ).unwrap()
+  let foreign = prepare_client_effect_request_identity(
+    prepared,
+    "sha256:" + "c".repeat(64),
+    "foreign-compiled-materials",
+    source_free_caller_input_intent_cid(),
+  ).unwrap()
+  let wire = issue_prepared_client_effect_run_materials(
+    allowed,
+    definition,
+    request=Some(request),
+  ).unwrap()
+  let (_, _, effect_limits) = client_composed_effect_base_fixture()
+  for expected in [None, Some(foreign)] {
+    assert_true(
+      admit_client_effect_run_materials(
+        wire,
+        @publication.publication_contract_identity(definition),
+        { text_time: false, veca: false, },
+        {
+          rela: true,
+          sga: false,
+          tea: false,
+          calendar: false,
+          text_rank: false,
+        },
+        run_materials_manifests(),
+        run_materials_limits(),
+        effect_limits,
+        original_compilation=Some(allowed.compilation),
+        expected_request=expected,
+      )
+      is Err(Request(IdentityMismatch)),
+    )
+  }
+}
+
+///|
+test "Effect material binding rejects a different original compiler without rebuilding it" {
+  let (prepared, allowed, definition) = original_effect_materials_fixture()
+  let (_, foreign, _) = original_effect_materials_fixture(alternate=true)
+  let request = prepare_client_effect_request_identity(
+    prepared,
+    "sha256:" + "c".repeat(64),
+    "original-compiled-materials",
+    source_free_caller_input_intent_cid(),
+  ).unwrap()
+  let wire = issue_prepared_client_effect_run_materials(
+    allowed,
+    definition,
+    request=Some(request),
+  ).unwrap()
+  let (_, _, effect_limits) = client_composed_effect_base_fixture()
+  assert_true(
+    admit_client_effect_run_materials(
+      wire,
+      @publication.publication_contract_identity(definition),
+      { text_time: false, veca: false, },
+      { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+      run_materials_manifests(),
+      run_materials_limits(),
+      effect_limits,
+      original_compilation=Some(foreign.compilation),
+      expected_request=Some(request),
+    )
+    is Err(Binding(_)),
+  )
+}
+
+///|
+test "Effect material binding reuses live custody and never displaces it with another Request" {
+  let (prepared, allowed, definition) = original_effect_materials_fixture(
+    normalized=true,
+  )
+  let request = prepare_client_effect_request_identity(
+    prepared,
+    "sha256:" + "c".repeat(64),
+    "bound-original",
+    source_free_caller_input_intent_cid(),
+  ).unwrap()
+  let foreign = prepare_client_effect_request_identity(
+    prepared,
+    "sha256:" + "c".repeat(64),
+    "other-original",
+    source_free_caller_input_intent_cid(),
+  ).unwrap()
+  let normalization = issue_prepared_client_effect_normalization(prepared).unwrap()
+  let issued = issue_prepared_client_effect_normalization_materials(
+    allowed,
+    definition,
+    normalization,
+    request=Some(request),
+  ).unwrap()
+  let bound = bind_prepared_client_effect_original_materials(
+    allowed,
+    definition,
+    issued,
+    request=Some(request),
+  ).unwrap()
+  let wire = client_effect_issued_normalization_materials_wire(issued)
+  let (_, _, effect_limits) = client_composed_effect_base_fixture()
+  let restored = admit_client_effect_run_materials(
+    wire,
+    @publication.publication_contract_identity(definition),
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+    run_materials_manifests(),
+    run_materials_limits(),
+    effect_limits,
+    original_compilation=Some(allowed.compilation),
+    original_materials=Some(issued),
+    expected_request=Some(request),
+  ).unwrap()
+  assert_true(
+    physical_equal(
+      restored.normalization.unwrap(),
+      bound.normalization.unwrap(),
+    ),
+  )
+  let foreign_wire = issue_prepared_client_effect_run_materials(
+    allowed,
+    definition,
+    normalization=Some(normalization),
+    request=Some(foreign),
+  ).unwrap()
+  assert_true(
+    admit_client_effect_run_materials(
+      foreign_wire,
+      @publication.publication_contract_identity(definition),
+      { text_time: false, veca: false, },
+      { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+      run_materials_manifests(),
+      run_materials_limits(),
+      effect_limits,
+      original_compilation=Some(allowed.compilation),
+      expected_request=Some(foreign),
+    )
+    is Err(Normalization(ForeignMaterials)),
+  )
+  assert_true(
+    physical_equal(
+      prepared.normalization_custody.unwrap(),
+      bound.normalization.unwrap(),
+    ),
+  )
+}

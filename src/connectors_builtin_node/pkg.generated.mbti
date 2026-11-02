@@ -294,6 +294,8 @@ pub fn client_program_admit_effect_risk_acceptance_body(String, Int, Int, Int) -
 
 pub fn client_program_admit_effect_run_materials(String, String, Bool, Bool, Bool, Bool, Bool, Bool, Bool, @run_publication_host.ClientRequestIdentity?) -> Result[@run_publication_host.ClientEffectRunMaterials, ClientEffectOriginalBridgeIssue]
 
+pub fn client_program_admit_effect_run_materials_with_compilation(String, String, @run_publication_host.ClientEffectCompilation, @run_publication_host.ClientRequestIdentity, Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> Result[@run_publication_host.ClientEffectRunMaterials, ClientEffectOriginalBridgeIssue]
+
 pub fn client_program_admit_effect_serialization_captured_input(@run_publication_host.ClientCompiledRun, @run_publication_host.PreparedClientEffectComputation, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement, @run_publication.RunEvidenceValue, String, String, String, String) -> Result[@run_publication_host.ClientSerializationCapturedInput, @run_publication.RunEvidenceValueIssue]
 
 pub fn client_program_admit_infer_captured_input(@run_publication_host.PreparedClientProgram, Int, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, String, String, String, String) -> Result[@run_publication_host.ClientInferCapturedInput, @run_publication_host.ClientInferCallScopeIssue]

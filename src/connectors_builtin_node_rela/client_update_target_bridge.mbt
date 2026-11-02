@@ -146,6 +146,46 @@ pub fn client_program_admit_effect_run_materials(
 }
 
 ///|
+
+///|
+/// Reuse the exact already-backed compiler original from this Request. The
+/// existing materials Owner still binds saved evidence, full inputs and the
+/// independently selected Request/Run; no compiler, Run or grant is issued.
+#export_name("clientProgramAdmitEffectRunMaterialsWithCompilation")
+pub fn client_program_admit_effect_run_materials_with_compilation(
+  wire : String,
+  expected_run_cid : String,
+  compilation : @publication_host.ClientEffectCompilation,
+  expected_request : @publication_host.ClientRequestIdentity,
+  text_time : Bool,
+  veca : Bool,
+  rela : Bool,
+  sga : Bool,
+  tea : Bool,
+  calendar : Bool,
+  text_rank : Bool,
+) -> Result[
+  @publication_host.ClientEffectRunMaterials,
+  ClientEffectOriginalBridgeIssue,
+] {
+  let manifests = match client_effect_original_manifests() {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  @publication_host.admit_client_effect_run_materials(
+    wire,
+    expected_run_cid,
+    { text_time, veca, },
+    { rela, sga, tea, calendar, text_rank, },
+    manifests,
+    client_effect_original_limits(),
+    client_program_effect_limits(),
+    expected_request=Some(expected_request),
+    original_compilation=Some(compilation),
+  ).map_err(issue => Materials(issue))
+}
+
+///|
 #export_name("clientProgramEffectRunMaterialsPrepared")
 pub fn client_program_effect_run_materials_prepared(
   value : @publication_host.ClientEffectRunMaterials,

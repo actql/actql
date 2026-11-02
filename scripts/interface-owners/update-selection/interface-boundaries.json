@@ -437,7 +437,7 @@
     },
     {
       "module": "adapters/host-node/installed-update-originals.mjs",
-      "sha256": "44f3d66f4c2afeb396debb5e84d8016f1504a0b86a2bb9ceb5d87fd549d3240e",
+      "sha256": "cb7c21be820a6523f85c130edeb0f00736c178b9f485ff602f7d10be70d08d67",
       "exports": [
         "installUpdateTargetOriginals"
       ],
@@ -589,7 +589,8 @@
           "parameters": [
             "wire",
             "runDefinition",
-            "identity"
+            "identity",
+            "originalCompilation"
           ],
           "async": false
         },
@@ -605,7 +606,8 @@
           "parameters": [
             "original",
             "runDefinition",
-            "identity"
+            "identity",
+            "originalCompilation"
           ],
           "async": false
         },

@@ -188,6 +188,34 @@ connection alone does not prove that trusted transport, physical Native review,
 approval, Provider execution or public Cloud Effect is installed. Previously
 issued Runs do not acquire the new profile or a new identity during recovery.
 
+### Binding materials to a retained compilation
+
+A Host that already retains and funds the original `ClientEffectCompilation`
+passes it to the existing material codec as `original_compilation`. The Node and
+RelA `clientProgramAdmitEffectRunMaterialsWithCompilation` entries require that
+opaque compiler and the independently retained `ClientRequestIdentity` directly;
+JavaScript does not construct an Option or recreate either original.
+
+This route uses the compiler's same prepared Owner and compares the complete
+canonical material, saved Run and original Request, including Program,
+Parameters, Environment, Source selection and compiler policy. It does not parse
+or check the Program again, restore another policy compiler input, or compile a
+replacement. A different compiler, request, material or normalization profile
+refuses. A supplied original Source must also retain the same prepared Owner.
+
+An existing live material custody is reused only for the same compiler,
+Run, Request, complete material CID and journal bytes. A new binding cannot
+displace it. This admission neither returns physical resources nor grants
+current authority, an approval or permission to write.
+
+The existing installed `validateRun` caller supplies its already-owned compiler
+through this route. Its method and receiver are captured at installation;
+a missing typed entry or refused binding does not fall back to wire-only
+preparation. Independent wire-only callers retain their existing restoration
+contract. Connecting a cold Host's same-Request Plan construction and adoption
+remains a separate caller obligation: this projection does not create that Plan,
+fund its constructors or establish ordinary restoration acceptance.
+
 ### Original request in the Source dispatch binding
 
 For an explicitly selected completion-free Run, the existing Effect Source
