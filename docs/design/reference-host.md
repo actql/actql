@@ -324,6 +324,13 @@ resource limits. A shared module/runtime cache does not become a Host child
 that must be unloaded before close. A new Host cannot reset a retained Run's
 budget, request identity, send state or adoption history.
 
+Ordinary Result service admission checks the same Host and Journal's current
+state for every operation. Completed, failed and cancelled requests do not
+consume a lifetime operation allowance or require the Host to reopen. Each
+Run's original admission, Store capacity and pending resource cleanup remain
+independent; no attempt budget or physical duty is reset by this service.
+Explicitly selected startup recipes retain their separately declared budgets.
+
 The final installed Check Environment and query-name publication retain their
 pure Common preparation for that Host's lifetime. Declaration admission and
 catalog/index construction happen once for those same immutable originals,
