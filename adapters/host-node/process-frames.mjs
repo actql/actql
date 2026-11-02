@@ -88,8 +88,11 @@ export function encodeProcessFrame(value, inputLimits) {
   return frame;
 }
 
-export function createProcessFrameReader(inputLimits, accept) {
+export function createProcessFrameReader(inputLimits, accept, beforeBodyAllocation) {
   const limits = validateFrameLimits(inputLimits);
+  if (beforeBodyAllocation !== undefined && typeof beforeBodyAllocation !== 'function') {
+    fail('InvalidFrameCapacityHandoff');
+  }
   const header = Buffer.alloc(4);
   let headerBytes = 0;
   let body;
@@ -112,6 +115,14 @@ export function createProcessFrameReader(inputLimits, accept) {
           if (length < 1 || length > limits.maxBytes) fail('FrameByteLimit');
           // Length is checked before allocating a payload, including a peer
           // which announces a huge message and never sends its body.
+          // An installed consumer can enter its SAME original backing here,
+          // before the raw body, UTF8 String or JSON tree exists. This trusted
+          // private entry is synchronous; its return is not an admission proof.
+          if (beforeBodyAllocation !== undefined) {
+            beforeBodyAllocation(length);
+            // Its original Resource/current callback may close this reader.
+            if (closed) fail('FrameReaderClosed');
+          }
           body = Buffer.allocUnsafe(length);
         }
         const size = Math.min(body.length - bodyBytes, chunk.length - offset);

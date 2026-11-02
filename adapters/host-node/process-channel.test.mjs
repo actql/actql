@@ -223,3 +223,104 @@ test('rejected handoff consumes its prepared token without launching or replayin
   await new Promise(resolve => setImmediate(resolve));
   assert.equal(spawns, 0);
 });
+
+test('prepared process retains the original synchronous body backing entry through handshake and response', async t => {
+  const lengths=[];
+  const config={...configuration(),beforeBodyAllocation(length){lengths.push(length);}};
+  const prepared=prepareManagedExecution(config);
+  config.beforeBodyAllocation=()=>assert.fail('a replaced configuration cannot supply another original');
+  assert.deepEqual(lengths,[],'pure configuration preparation receives no frame');
+  const channel=await startManagedExecution(prepared);
+  t.after(()=>channel.close());
+  assert.equal(lengths.length,1,'the original ready frame is backed too');
+  const original='e\u0301\r\n';
+  assert.equal((await channel.request({command:'echo',value:original})).value,original);
+  assert.equal(lengths.length,2);
+  assert(lengths.every(value=>Number.isSafeInteger(value)&&value>0&&value<=config.frames.maxBytes));
+  await channel.close();assert.equal(channel.status().exited,true);assert.equal(channel.cleanupHandle.status().pending,false);
+});
+
+for(const [kind,original] of [['frozen',Object.freeze(new Error('OriginalBodyBackingRefusal'))],['undefined',undefined]]){
+  test(`process body backing ${kind} refusal retains original cause and SAME exit cleanup`,async()=>{
+    let entries=0,failure;
+    try{await startManagedExecution({...configuration(),beforeBodyAllocation(){entries++;throw original;}});}
+    catch(error){failure=error;}
+    assert.equal(entries,1);assert.equal(failure.code,'ExecutionChannelFailure');
+    assert.equal(Object.hasOwn(failure,'cause'),true);assert.strictEqual(failure.cause,original);
+    const cleanup=failure.cleanupHandle;assert.equal(typeof cleanup.retry,'function');
+    await cleanup.retry();assert.strictEqual(failure.cleanupHandle,cleanup);assert.equal(cleanup.status().pending,false);
+    assert.strictEqual(failure.cause,original);
+  });
+}
+
+test('returned asynchronous body backing never admits a frame or releases its process cleanup early', async () => {
+  let release;
+  const original=new Promise(resolve=>{release=resolve;});
+  let channel,failure;
+  try {
+    try{channel=await startManagedExecution({...configuration(),beforeBodyAllocation(){return original;}});}
+    catch(error){failure=error;}
+    if(failure===undefined){await channel.close();assert.fail('an asynchronous backing handoff cannot dispatch ready');}
+    assert.equal(failure.code,'ExecutionChannelFailure');
+    assert.equal(failure.cause?.message,'InvalidFrameCapacityHandoff');
+    const cleanup=failure.cleanupHandle;
+    const finishing=cleanup.retry();
+    await cleanup.whenStopped();
+    assert.equal(cleanup.status().pending,true,'process exit alone cannot retire the original callback task');
+    release();await finishing;
+    assert.equal(cleanup.status().pending,false);
+  } finally {release();if(channel)await channel.close();}
+});
+
+test('declared async frame entry is refused during inert process preparation', () => {
+  let calls=0;
+  assert.throws(()=>prepareManagedExecution({...configuration(),async beforeBodyAllocation(){calls++;}}),{code:'InvalidExecutionConfiguration'});
+  assert.equal(calls,0);
+});
+
+test('Table bridge forwards the same read body backing entry to the original process owner', async () => {
+  const {createIcebergPhysicalBridge}=await import('../connectors/local/host/iceberg-process.mjs');
+  const cid=digit=>`sha256:${digit.repeat(64)}`;
+  const bridge=createIcebergPhysicalBridge({python:pathToFileURL(process.execPath),run:'table-backing-read',
+    entry:new URL('./process-fixture.mjs',import.meta.url),
+    catalog:{database:'/UNOPENED/table.db',warehouse:'/UNOPENED/warehouse',catalogCid:cid('a'),limits:{bytes:1,files:1,operations:1}}});
+  const original=Object.freeze(new Error('OriginalTableBodyBackingRefusal'));let calls=0,failure;
+  try{await bridge.read({}, {}, undefined,()=>{calls++;throw original;});}catch(error){failure=error;}
+  try{assert.equal(calls,1);assert.strictEqual(failure?.cause,original);assert.equal(failure.cleanupHandle.status().pending,false);}
+  finally{if(failure?.cleanupHandle)await failure.cleanupHandle.retry();}
+});
+
+test('Table prepared and readonly operations keep the original per-call body entry outside wire DATA', async () => {
+  const [{createIcebergPhysicalBridge},{createHash}]=await Promise.all([
+    import('../connectors/local/host/iceberg-process.mjs'),import('node:crypto')]);
+  const cid=digit=>`sha256:${digit.repeat(64)}`;
+  const original=Object.freeze(new Error('OriginalTableBodyBackingRefusal'));let calls=0;
+  const beforeBodyAllocation=()=>{calls++;throw original;};
+  const make=()=>createIcebergPhysicalBridge({python:pathToFileURL(process.execPath),run:'table-backing-prepared',
+    entry:new URL('./process-fixture.mjs',import.meta.url),
+    catalog:{database:'/UNOPENED/table.db',warehouse:'/UNOPENED/warehouse',catalogCid:cid('a'),limits:{bytes:1,files:1,operations:1}}});
+  const refused=async action=>{
+    const before=calls;let failure;
+    try{await action();}catch(error){failure=error;}
+    try{assert.equal(calls,before+1);assert.strictEqual(failure?.cause,original);assert.equal(failure.cleanupHandle.status().pending,false);}
+    finally{if(failure?.cleanupHandle)await failure.cleanupHandle.retry();}
+  };
+  const bridge=make();
+  const selector={catalog_identity_cid:cid('a'),namespace:['analytics'],table_name:'rows',
+    table_uuid:'00000000-0000-0000-0000-000000000001',schema_cid:cid('b')};
+  await refused(()=>bridge.resolveGeneration(selector,undefined,beforeBodyAllocation));
+  await refused(()=>bridge.reconcileOperation({request_cid:cid('c')},undefined,beforeBodyAllocation));
+  // A transport-bound shape only: no Common Mapping/operation admission or
+  // Catalog command is supplied, and the first incoming ready frame refuses.
+  const schemaWire='{"fields":[]}',schemaCid=`sha256:${createHash('sha256').update(schemaWire).digest('hex')}`;
+  const input={operation:{action:'create',request_cid:cid('c'),schema_cid:schemaCid,input_carrier:{kind:'relation',cid:cid('d')}},
+    mapping:{},rows:[],reservation:{bytes:1,files:1},schemaWire,beforeBodyAllocation};
+  const prepared=bridge.prepareWrite(input);
+  input.beforeBodyAllocation=()=>assert.fail('mutated DATA cannot replace the selected original');
+  await refused(()=>bridge.inspect(prepared));
+  await refused(()=>bridge.execute(prepared,{useCid:cid('e')}));
+  assert.deepEqual(bridge.status(prepared),{attempted:true,stopped:true});
+  await refused(()=>bridge.reconcile(prepared));
+  await refused(()=>bridge.cleanup(prepared));
+  assert.equal(calls,6);
+});

@@ -78,3 +78,44 @@ test('pure configuration snapshots preserve frame refusal boundaries', () => {
     assert.throws(() => snapshotProcessValue(input, limits), {code: expected});
   }
 });
+
+test('original frame body admission runs before its first body allocation and preserves the original refusal', () => {
+  const original = Object.freeze(new Error('OriginalFrameCapacityRefusal'));
+  const lengths = [], allocations = [];
+  const reader = createProcessFrameReader(limits, () => assert.fail('refused body cannot dispatch'), length => {
+    lengths.push(length); throw original;
+  });
+  const header = Buffer.alloc(4); header.writeUInt32BE(100);
+  const allocate = Buffer.allocUnsafe;
+  let failure;
+  try {
+    Buffer.allocUnsafe = function(size) { allocations.push(size); return Reflect.apply(allocate, this, [size]); };
+    try { reader.feed(header); } catch (error) { failure = error; }
+  } finally { Buffer.allocUnsafe = allocate; }
+  assert.strictEqual(failure, original);
+  assert.deepEqual(lengths, [100]);
+  assert.deepEqual(allocations, []);
+  assert.throws(() => reader.feed(Buffer.from('null')), {code:'FrameReaderClosed'});
+});
+
+test('frame body admission is once per complete header across byte splits and stays behind byte limits', () => {
+  const frame = encodeProcessFrame({value:'e\u0301\r\n'}, limits), lengths = [], values = [];
+  const reader = createProcessFrameReader(limits, value => values.push(value), length => lengths.push(length));
+  for (const byte of frame) reader.feed(Buffer.from([byte]));
+  reader.end();
+  assert.deepEqual(lengths,[frame.length-4]);
+  assert.equal(values[0].value,'e\u0301\r\n');
+  for (const length of [0,limits.maxBytes+1]) {
+    const invalid = Buffer.alloc(4);invalid.writeUInt32BE(length);
+    assert.throws(()=>createProcessFrameReader(limits,()=>assert.fail('invalid dispatch'),()=>assert.fail('invalid allocation handoff')).feed(invalid),{code:'FrameByteLimit'});
+  }
+});
+
+test('current callback cannot allocate a frame after closing the same reader', () => {
+  let reader;
+  reader = createProcessFrameReader(limits,()=>assert.fail('closed dispatch'),()=>{
+    assert.throws(()=>reader.end(),{code:'TruncatedFrame'});
+  });
+  const header=Buffer.alloc(4);header.writeUInt32BE(4);
+  assert.throws(()=>reader.feed(header),{code:'FrameReaderClosed'});
+});

@@ -597,7 +597,7 @@
   {
     "module": "adapters/connectors/local/host/iceberg-process.mjs",
     "responsibilityFacet": "primary",
-    "sha256": "76cb7289b393492b15c7b6686a49d077fa3048bc728b5534a61a1ea85b36ceb6",
+    "sha256": "e86547b8663af772b52305468b76e07d8d6c15f542f63797dda3f61c36793678",
     "exports": [
       "admitIcebergStorageMapping",
       "createIcebergPhysicalBridge",
@@ -705,7 +705,8 @@
           "mapping",
           "rows",
           "reservation",
-          "schemaWire"
+          "schemaWire",
+          "beforeBodyAllocation"
         ],
         "async": false
       },
@@ -721,7 +722,8 @@
         "parameters": [
           "receipt",
           "mapping",
-          "signal"
+          "signal",
+          "beforeBodyAllocation"
         ],
         "async": true
       },
@@ -737,7 +739,8 @@
         "name": "createIcebergPhysicalBridge/bridge/init:resolveGeneration/init:resolveGeneration",
         "parameters": [
           "selector",
-          "signal"
+          "signal",
+          "beforeBodyAllocation"
         ],
         "async": true
       },
@@ -766,7 +769,8 @@
           "command",
           "payload",
           "signal",
-          "stopped"
+          "stopped",
+          "beforeBodyAllocation"
         ],
         "async": true
       },
@@ -789,7 +793,8 @@
         "name": "createIcebergPhysicalBridge/reconcileOperation/reconcileOperation",
         "parameters": [
           "operation",
-          "signal"
+          "signal",
+          "beforeBodyAllocation"
         ],
         "async": false
       },

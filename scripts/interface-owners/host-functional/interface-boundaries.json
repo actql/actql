@@ -87407,7 +87407,7 @@
     {
       "module": "adapters/host-node/process-channel.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "eb7562a91c1a8ec6310715d74d5942156f948ea74a9b63cdc15d3880959b8d5f",
+      "sha256": "0a6c69c35363fe7928e028eb81d2a6419ff6c200420ddf5fd7c9dc6d6db8754c",
       "role": "physical-io",
       "owner": "Existing Physical Resource/ExecutionDelegation Owner and managed child transport",
       "exports": [
@@ -87427,7 +87427,8 @@
             "startupMs",
             "hostService",
             "maxHostCalls",
-            "accounting"
+            "accounting",
+            "beforeBodyAllocation"
           ],
           "async": false
         },
@@ -87548,6 +87549,25 @@
           "name": "startManagedExecution/reader/reader/reader",
           "parameters": [],
           "async": true
+        },
+        {
+          "name": "startManagedExecution/reader/reader/reader/settled/settled",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "startManagedExecution/reader/reader/reader#2",
+          "parameters": [
+            "resolve"
+          ],
+          "async": false
+        },
+        {
+          "name": "startManagedExecution/reader/reader#2",
+          "parameters": [
+            "length"
+          ],
+          "async": false
         },
         {
           "name": "startManagedExecution/readyPromise/readyPromise",
@@ -87695,6 +87715,9 @@
             "startManagedExecution/init:request/init:request/result/result/result",
             "startManagedExecution/reader/reader",
             "startManagedExecution/reader/reader/reader",
+            "startManagedExecution/reader/reader/reader/settled/settled",
+            "startManagedExecution/reader/reader/reader#2",
+            "startManagedExecution/reader/reader#2",
             "startManagedExecution/readyPromise/readyPromise",
             "startManagedExecution/rejectPending/rejectPending",
             "startManagedExecution/send/send",
@@ -87831,6 +87854,10 @@
               {
                 "path": "docs/design/local-provider-work-accounting.md",
                 "anchor": "# Local provider work accounting"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "The private IPC reader can enter the caller's original synchronous body backing"
               }
             ],
             "extension": [
@@ -87859,6 +87886,10 @@
               {
                 "path": "adapters/host-node/process-channel.test.mjs",
                 "anchor": "test('rejected handoff consumes its prepared token without launching or replaying', async t => {"
+              },
+              {
+                "path": "adapters/host-node/process-channel.test.mjs",
+                "anchor": "test('returned asynchronous body backing never admits a frame or releases its process cleanup early', async () => {"
               }
             ]
           }
@@ -88027,7 +88058,7 @@
     {
       "module": "adapters/host-node/process-frames.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a885a1e002182efdfc764bb24d2a0872e789776016fcb243e0aa5683b80210b2",
+      "sha256": "8d7a7b67f14cc5c45509284782d5b8c8c3580e5b0f5b5f1c3e9c35a599736b9b",
       "role": "physical-io",
       "owner": "Existing Physical Resource/ExecutionDelegation Owner and managed child transport",
       "exports": [
@@ -88043,7 +88074,8 @@
           "name": "createProcessFrameReader",
           "parameters": [
             "inputLimits",
-            "accept"
+            "accept",
+            "beforeBodyAllocation"
           ],
           "async": false
         },

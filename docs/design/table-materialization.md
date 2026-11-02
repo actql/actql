@@ -430,6 +430,25 @@ an atomic filesystem/executable attestation. Changes to external Python library
 bytes behind the same executable path are outside this package inventory; the
 Host installs the supplied hashed lock explicitly and governs that environment.
 
+The private IPC reader can enter the caller's original synchronous body backing
+after checking an announced length and before allocating the body Buffer,
+decoded String or JSON tree. The prepared process captures this entry once.
+The Table bridge forwards the same entry with each read or original prepared
+write, target inspection, reconciliation and cleanup; it is not serialized in
+operation DATA. The entry must complete synchronously and return no value.
+It issues no permission, Plan or capacity. Its installing caller must bind the
+actual original Request/Run and admit the simultaneous constructor material
+before returning. Omitting the optional transport entry preserves the existing
+transport behavior but does not establish managed Table backing.
+
+A refused entry dispatches no body. Its original cause, including immutable
+errors and thrown undefined, remains attached to the same process cleanup.
+A mistakenly returned task cannot stand in for backing: the existing process
+owner keeps that original task pending through process exit and joins its
+settlement before reporting cleanup complete. An unjoined foreign task remains
+pending. Process exit, capacity admission, Catalog cleanup and durable outcome
+evidence remain separate obligations.
+
 The adapter package carries only the reviewed Python worker modules and pinned
 requirements. It carries no virtualenv, Catalog, credential, fixture data or
 automatic dependency installer. Python libraries remain an explicit dependency
