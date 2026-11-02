@@ -98,7 +98,8 @@ fn seal_platform_buffer(
     Ok(value) => value
   }
   slot.parser_preflight = Some(preflight)
-  let geometry = while true {
+  let mut observed : @source.JsonSourceGeometry? = None
+  while observed is None {
     match @source.advance_json_source_preflight(preflight, 4096).unwrap() {
       @source.JsonSourceContinue(work~) =>
         match @resources.charge_planning(pool.ledger, work) {
@@ -113,10 +114,11 @@ fn seal_platform_buffer(
       @source.JsonSourceReady(geometry, work~) =>
         match @resources.charge_planning(pool.ledger, work) {
           Err(issue) => return Err(Resource(issue))
-          Ok(_) => break geometry
+          Ok(_) => observed = Some(geometry)
         }
     }
   }
+  let geometry = observed.unwrap()
   guard platform_input_parser_bytes(geometry, max_nodes, max_depth)
     is Some(peak) else {
     return Err(InvalidLimits)
@@ -128,7 +130,7 @@ fn seal_platform_buffer(
   let parser = @source.take_json_source_parser(preflight).unwrap()
   slot.parser = Some(parser)
   slot.parser_preflight = None
-  let node = while true {
+  while slot.source is None {
     match @source.advance_json_parse(parser, 4096).unwrap() {
       @source.JsonParseContinue(work~) =>
         match @resources.charge_planning(pool.ledger, work) {
@@ -143,11 +145,10 @@ fn seal_platform_buffer(
       @source.JsonParseComplete(parsed, work~) =>
         match @resources.charge_planning(pool.ledger, work) {
           Err(issue) => return Err(Resource(issue))
-          Ok(_) => break parsed.node
+          Ok(_) => slot.source = Some(parsed.node)
         }
     }
   }
-  slot.source = Some(node)
   slot.parser = None
   slot.bytes = []
   slot.input_complete = true
