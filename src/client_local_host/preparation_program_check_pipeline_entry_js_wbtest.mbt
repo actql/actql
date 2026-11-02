@@ -30,7 +30,7 @@ test "same Request pipeline entry one-short preserves original reader receipt an
         limits.retained_bytes -
         usage.held_bytes -
         usage.reserved_retention_bytes -
-        12496L +
+        12528L +
         1L
       } else {
         0L
@@ -38,7 +38,7 @@ test "same Request pipeline entry one-short preserves original reader receipt an
       if retention {
         0L
       } else {
-        limits.execution_bytes - usage.reserved_execution_bytes - 12496L + 1L
+        limits.execution_bytes - usage.reserved_execution_bytes - 12528L + 1L
       },
     ).unwrap()
     let result = advance_program_check_source_topology(owner)
