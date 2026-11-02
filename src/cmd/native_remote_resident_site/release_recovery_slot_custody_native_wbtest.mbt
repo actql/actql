@@ -65,7 +65,7 @@ test "release recovery refuses a locked stale inode and retires that same Slot w
   }
   assert_true(physical_equal(original.slot, original_slot))
   assert_eq(original.failure, "release recovery Slot current hold unconfirmed")
-  assert_eq(original.slot_issue, Some(@slot.Replaced))
+  assert_eq(original.slot.verify_current_hold(), Err(@slot.Replaced))
   assert_true(original.journal.val is None)
   assert_true(original.bundles is None)
   assert_false(original.slot_closed)
@@ -73,7 +73,7 @@ test "release recovery refuses a locked stale inode and retires that same Slot w
   assert_eq(replacement.verify_current_hold(), Ok(()))
   assert_true(retry_release_recovery_open_cleanup(original))
   assert_true(original.slot_closed)
-  assert_eq(original.slot_issue, Some(@slot.Replaced))
+  assert_eq(original.failure, "release recovery Slot current hold unconfirmed")
   assert_false(original.slot_close_unknown)
   assert_true(retry_release_recovery_open_cleanup(original))
   assert_eq(replacement.verify_current_hold(), Ok(()))
