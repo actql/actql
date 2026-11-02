@@ -3600,6 +3600,40 @@ original preparation admission, controller/constructor/output overlap and
 failure retirement to these claims. Equal byte counts alone cannot replace that
 connection. Node and mapped/native backing retain their own existing contracts.
 
+#### Original Request admission and demand growth
+
+The fixed platform preparation connection uses the existing backed region,
+execution delegation, read use, live projection and `BackedPreparationAdmission`.
+It does not create another admission framework or Root. Its caller already
+funds the complete entry prefix, including region, origin, callback and receipt
+controls. The region snapshots those original entry extents once. Only one
+exclusive child can use this working claim; its extent describes current
+allocation coordinates, not a mapped address or a promise to allocate policy
+ceilings. Mapped and Native regions keep their existing fixed-window rules.
+
+The existing delegation still reserves and reports the same nonbyte quotas on
+the parent. Its existing logical byte projection avoids charging VM backing a
+second time. Full child byte usage remains bounded and retained separately.
+For a platform region, every canonical reservation or byte resize first claims
+the entry prefix plus the child's complete retained/scratch coexistence from
+the same VM. That fixed private Resource cut invokes no external callback
+between validating demand and committing the ledger mutation. If physical
+coexistence is insufficient, the old usage, serial and allocation remain
+unchanged. Other imported origins have no platform binding and keep their
+existing mutation path.
+
+Reports cannot grow this claim or substitute for backing before construction.
+Closing forbids new admission while existing covered disposal remains possible.
+Original construction and body borrowers must retire before the child becomes
+quiescent. The same enclosing owner then supplies its actual runtime/reader
+retirement to the existing after-owner-ACK boundary, returns the read borrow,
+settles the original delegation and closes its region. Only then can it finish
+cleanup of the working suballocation. Neither logical quiescence nor a successful
+report acknowledges physical Store destruction or returns the VM reservation.
+The ordinary Host must retain this complete original chain before entering the
+shared Request driver; numeric limits or a detached prepared value do not
+replace that connection.
+
 A platform input pool claims its actual mutable/immutable wire overlap from the
 same existing VM capacity rather than reserving another whole execution pool.
 Its separately supplied external-copy allowance remains separately charged on

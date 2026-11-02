@@ -57935,7 +57935,7 @@
     },
     {
       "module": "src/physical_resources/backed_live_child.mbt",
-      "sha256": "2b3e350b3fb42c9083f0c57a4411fa04cbb73404659bcef132d7cac4240daff8",
+      "sha256": "f9d38436283e3ed133c92d217b207a66d0f765ab47988c997235a25d36d696c8",
       "exports": [],
       "operations": [
         {
@@ -58552,7 +58552,7 @@
           }
         }
       ],
-      "sha256": "21f3edbd4d3caeed5f56288e480a5c1f88cb899797fb53bba0c8493c59d3ceaf",
+      "sha256": "2e63a22d903767ba92d6e2f4c3f024f4ce7d8083c64647590a46219ca5a58ad8",
       "exports": [],
       "operations": [
         {
@@ -70874,7 +70874,8 @@
             "close_platform_vm_working_capacity_after_cleanup",
             "grow_platform_vm_working_capacity",
             "platform_vm_working_original",
-            "reserve_platform_vm_working_capacity"
+            "reserve_platform_vm_working_capacity",
+            "grow_platform_vm_working_capacity_current"
           ],
           "exports": [],
           "attributes": {
@@ -70981,7 +70982,7 @@
           }
         }
       ],
-      "sha256": "da6ee2bcc8bc31fc1ef750c1468fc3564913cfdd021059eb2d777afbb06450a3",
+      "sha256": "2d59da65863012b5e00089bff06420ae7a7ff6b55f12cc6be5ca6fc36f2df5e8",
       "operations": [
         {
           "name": "borrow_platform_vm_working_capacity",
@@ -70996,12 +70997,1253 @@
           "declaration": "grow_platform_vm_working_capacity ( owner : PlatformVMWorkingCapacity , retained : Int64 , execution : Int64 , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
         },
         {
+          "name": "grow_platform_vm_working_capacity_current",
+          "declaration": "grow_platform_vm_working_capacity_current ( owner : PlatformVMWorkingCapacity , retained : Int64 , execution : Int64 , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
+        },
+        {
           "name": "platform_vm_working_original",
           "declaration": "platform_vm_working_original ( owner : PlatformVMWorkingCapacity , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
         },
         {
           "name": "reserve_platform_vm_working_capacity",
           "declaration": "reserve_platform_vm_working_capacity ( vm : PlatformVMCapacity , retained : Int64 , execution : Int64 , ) - > Result [ PlatformVMWorkingCapacity , ImportedChildLedgerIssue ]"
+        }
+      ],
+      "exports": []
+    },
+    {
+      "module": "src/physical_resources/backed_delegation.mbt",
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Resource VM, backed Request and capacity reservation owners",
+      "referenceQualification": "Source and nominal VM Request admission/canonical reservation/retirement component only; no ordinary Python/Run, permission or physical Store ACK qualification.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[P,C]backed_child_current",
+            "[P,C]backed_child_usage_unreported",
+            "[P,C]backed_execution_delegation_description",
+            "[P,C]backed_region_current",
+            "[P,C]backed_usage_valid",
+            "[P,C]check_backed_execution_delegation_current",
+            "[P,C]check_backed_region_current",
+            "[P,C]close_backed_execution_region",
+            "[P,C]issue_backed_execution_region",
+            "[P,C]report_backed_execution_delegation",
+            "[P,C]reserve_backed_execution_delegation",
+            "[P,C]settle_backed_execution_after_owner_ack",
+            "backed_extent_valid",
+            "backed_final_usage_equal",
+            "backed_logical_usage"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/backed_delegation.mbt",
+                "anchor": "pub fn[P, C] issue_backed_execution_region("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/backed_delegation.mbt",
+                "anchor": "pub fn[P, C] issue_backed_execution_region("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/backed_delegation.mbt",
+                "anchor": "pub fn[P, C] issue_backed_execution_region("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/backed_delegation.mbt",
+                "anchor": "pub fn[P, C] issue_backed_execution_region("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/backed_delegation.mbt",
+                "anchor": "pub fn[P, C] issue_backed_execution_region("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/backed_delegation.mbt",
+                "anchor": "pub fn[P, C] issue_backed_execution_region("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/backed_delegation.mbt",
+                "anchor": "pub fn[P, C] issue_backed_execution_region("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/backed_delegation.mbt",
+                "anchor": "pub fn[P, C] issue_backed_execution_region("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/backed_delegation.mbt",
+                "anchor": "pub fn[P, C] issue_backed_execution_region("
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/physical_resources/platform_vm_preparation_region_wbtest.mbt",
+                "anchor": "test \"platform Request admission grows canonical reservation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              }
+            ]
+          }
+        }
+      ],
+      "sha256": "a57e8f7f1b1dc127eb7ee0e72d816c7a0a6d01e7b0e8917cea1db8aad0cef620",
+      "operations": [
+        {
+          "name": "[P,C]backed_child_current",
+          "declaration": "[ P , C ] backed_child_current ( region : BackedExecutionRegion [ P , C ] , provider : P , child : C , ticket : BackedExecutionDelegation [ P , C ] , ) - > Result [ ( SharedCapacity , SharedBorrow , ExecutionDelegation ) , BackedExecutionIssue , ]"
+        },
+        {
+          "name": "[P,C]backed_child_usage_unreported",
+          "declaration": "[ P , C ] backed_child_usage_unreported ( ticket : BackedExecutionDelegation [ P , C ] , ) - > Bool"
+        },
+        {
+          "name": "[P,C]backed_execution_delegation_description",
+          "declaration": "[ P , C ] backed_execution_delegation_description ( region : BackedExecutionRegion [ P , C ] , provider : P , child : C , ticket : BackedExecutionDelegation [ P , C ] , ) - > Result [ ( BackedExecutionExtent , BackedExecutionAccess , LedgerLimits ) , BackedExecutionIssue , ]"
+        },
+        {
+          "name": "[P,C]backed_region_current",
+          "declaration": "[ P , C ] backed_region_current ( region : BackedExecutionRegion [ P , C ] , provider : P , ) - > Result [ ( SharedCapacity , SharedAllocation ) , BackedExecutionIssue ]"
+        },
+        {
+          "name": "[P,C]backed_usage_valid",
+          "declaration": "[ P , C ] backed_usage_valid ( ticket : BackedExecutionDelegation [ P , C ] , usage : LedgerUsage , ) - > Bool"
+        },
+        {
+          "name": "[P,C]check_backed_execution_delegation_current",
+          "declaration": "[ P , C ] check_backed_execution_delegation_current ( region : BackedExecutionRegion [ P , C ] , provider : P , child : C , ticket : BackedExecutionDelegation [ P , C ] , ) - > Result [ Unit , BackedExecutionIssue ]"
+        },
+        {
+          "name": "[P,C]check_backed_region_current",
+          "declaration": "[ P , C ] check_backed_region_current ( region : BackedExecutionRegion [ P , C ] , provider : P , ) - > Result [ Unit , BackedExecutionIssue ]"
+        },
+        {
+          "name": "[P,C]close_backed_execution_region",
+          "declaration": "[ P , C ] close_backed_execution_region ( region : BackedExecutionRegion [ P , C ] , provider : P , ) - > Result [ Bool , BackedExecutionIssue ]"
+        },
+        {
+          "name": "[P,C]issue_backed_execution_region",
+          "declaration": "[ P , C ] issue_backed_execution_region ( capacity : SharedCapacity , allocation : SharedAllocation , provider : P , ) - > Result [ BackedExecutionRegion [ P , C ] , BackedExecutionIssue ]"
+        },
+        {
+          "name": "[P,C]report_backed_execution_delegation",
+          "declaration": "[ P , C ] report_backed_execution_delegation ( region : BackedExecutionRegion [ P , C ] , provider : P , child : C , ticket : BackedExecutionDelegation [ P , C ] , usage : LedgerUsage , ) - > Result [ Unit , BackedExecutionIssue ]"
+        },
+        {
+          "name": "[P,C]reserve_backed_execution_delegation",
+          "declaration": "[ P , C ] reserve_backed_execution_delegation ( region : BackedExecutionRegion [ P , C ] , provider : P , child : C , extent : BackedExecutionExtent , access : BackedExecutionAccess , limits : LedgerLimits , overhead_retained : Int64 , overhead_execution : Int64 , ) - > Result [ BackedExecutionDelegation [ P , C ] , BackedExecutionIssue ]"
+        },
+        {
+          "name": "[P,C]settle_backed_execution_after_owner_ack",
+          "declaration": "[ P , C ] settle_backed_execution_after_owner_ack ( region : BackedExecutionRegion [ P , C ] , provider : P , child : C , ticket : BackedExecutionDelegation [ P , C ] , final_usage : LedgerUsage ? , ) - > Result [ Unit , BackedExecutionIssue ]"
+        },
+        {
+          "name": "backed_extent_valid",
+          "declaration": "backed_extent_valid ( extent : BackedExecutionExtent , bytes : Int64 ) - > Bool"
+        },
+        {
+          "name": "backed_final_usage_equal",
+          "declaration": "backed_final_usage_equal ( left : LedgerUsage ? , right : LedgerUsage ? ) - > Bool"
+        },
+        {
+          "name": "backed_logical_usage",
+          "declaration": "backed_logical_usage ( usage : LedgerUsage ) - > LedgerUsage"
+        }
+      ],
+      "exports": []
+    },
+    {
+      "module": "src/physical_resources/backed_original_child_ledger.mbt",
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Resource VM, backed Request and capacity reservation owners",
+      "referenceQualification": "Source and nominal VM Request admission/canonical reservation/retirement component only; no ordinary Python/Run, permission or physical Store ACK qualification.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[P,C,R]backed_original_child_ready",
+            "[P,C,R]prepare_backed_original_child_ledger",
+            "retire_backed_original_child_origin",
+            "retired_backed_original_child_limit",
+            "retired_backed_original_child_report",
+            "retired_backed_original_child_status"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/backed_original_child_ledger.mbt",
+                "anchor": "fn[P, C, R] backed_original_child_ready("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/backed_original_child_ledger.mbt",
+                "anchor": "fn[P, C, R] backed_original_child_ready("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/backed_original_child_ledger.mbt",
+                "anchor": "fn[P, C, R] backed_original_child_ready("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/backed_original_child_ledger.mbt",
+                "anchor": "fn[P, C, R] backed_original_child_ready("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/backed_original_child_ledger.mbt",
+                "anchor": "fn[P, C, R] backed_original_child_ready("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/backed_original_child_ledger.mbt",
+                "anchor": "fn[P, C, R] backed_original_child_ready("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/backed_original_child_ledger.mbt",
+                "anchor": "fn[P, C, R] backed_original_child_ready("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/backed_original_child_ledger.mbt",
+                "anchor": "fn[P, C, R] backed_original_child_ready("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/backed_original_child_ledger.mbt",
+                "anchor": "fn[P, C, R] backed_original_child_ready("
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/physical_resources/platform_vm_preparation_region_wbtest.mbt",
+                "anchor": "test \"platform Request admission grows canonical reservation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              }
+            ]
+          }
+        }
+      ],
+      "sha256": "0172a38127ea71df30f780352759405b380d13da85dfe4c23b761f5708dab703",
+      "operations": [
+        {
+          "name": "[P,C,R]backed_original_child_ready",
+          "declaration": "[ P , C , R ] backed_original_child_ready ( projection : BackedExecutionLiveProjection [ P , C , R ] , runtime : R , ) - > Bool"
+        },
+        {
+          "name": "[P,C,R]prepare_backed_original_child_ledger",
+          "declaration": "[ P , C , R ] prepare_backed_original_child_ledger ( projection : BackedExecutionLiveProjection [ P , C , R ] , runtime : R , ) - > Result [ ImportedChildLedger , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "retire_backed_original_child_origin",
+          "declaration": "retire_backed_original_child_origin ( origin : ImportedChildLedgerOrigin , ) - > Unit"
+        },
+        {
+          "name": "retired_backed_original_child_limit",
+          "declaration": "retired_backed_original_child_limit ( _ : Int64 , _ : Int ) - > Int64"
+        },
+        {
+          "name": "retired_backed_original_child_report",
+          "declaration": "retired_backed_original_child_report ( _ : Int64 , _ : LedgerUsage ) - > Int"
+        },
+        {
+          "name": "retired_backed_original_child_status",
+          "declaration": "retired_backed_original_child_status ( _ : Int64 ) - > Int"
+        }
+      ],
+      "exports": []
+    },
+    {
+      "module": "src/physical_resources/backed_read_use.mbt",
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Resource VM, backed Request and capacity reservation owners",
+      "referenceQualification": "Source and nominal VM Request admission/canonical reservation/retirement component only; no ordinary Python/Run, permission or physical Store ACK qualification.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[P,C]backed_read_use_current",
+            "[P,C]borrow_backed_execution_read_use",
+            "[P,C]require_backed_execution_read_use_current",
+            "[P,C]return_backed_execution_read_use_after_owner_ack",
+            "[P,C]stop_backed_execution_read_use"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/backed_read_use.mbt",
+                "anchor": "pub fn[P, C] borrow_backed_execution_read_use("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/backed_read_use.mbt",
+                "anchor": "pub fn[P, C] borrow_backed_execution_read_use("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/backed_read_use.mbt",
+                "anchor": "pub fn[P, C] borrow_backed_execution_read_use("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/backed_read_use.mbt",
+                "anchor": "pub fn[P, C] borrow_backed_execution_read_use("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/backed_read_use.mbt",
+                "anchor": "pub fn[P, C] borrow_backed_execution_read_use("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/backed_read_use.mbt",
+                "anchor": "pub fn[P, C] borrow_backed_execution_read_use("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/backed_read_use.mbt",
+                "anchor": "pub fn[P, C] borrow_backed_execution_read_use("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/backed_read_use.mbt",
+                "anchor": "pub fn[P, C] borrow_backed_execution_read_use("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/backed_read_use.mbt",
+                "anchor": "pub fn[P, C] borrow_backed_execution_read_use("
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/physical_resources/platform_vm_preparation_region_wbtest.mbt",
+                "anchor": "test \"platform Request admission grows canonical reservation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              }
+            ]
+          }
+        }
+      ],
+      "sha256": "a0a883932a934db610b01363dac991e913edf1270e039d603e54df2955e8eeee",
+      "operations": [
+        {
+          "name": "[P,C]backed_read_use_current",
+          "declaration": "[ P , C ] backed_read_use_current ( region : BackedExecutionRegion [ P , C ] , provider : P , child : C , ticket : BackedExecutionDelegation [ P , C ] , read_use : BackedExecutionReadUse [ P , C ] , ) - > Result [ Unit , BackedExecutionIssue ]"
+        },
+        {
+          "name": "[P,C]borrow_backed_execution_read_use",
+          "declaration": "[ P , C ] borrow_backed_execution_read_use ( region : BackedExecutionRegion [ P , C ] , provider : P , child : C , ticket : BackedExecutionDelegation [ P , C ] , ) - > Result [ BackedExecutionReadUse [ P , C ] , BackedExecutionIssue ]"
+        },
+        {
+          "name": "[P,C]require_backed_execution_read_use_current",
+          "declaration": "[ P , C ] require_backed_execution_read_use_current ( region : BackedExecutionRegion [ P , C ] , provider : P , child : C , ticket : BackedExecutionDelegation [ P , C ] , read_use : BackedExecutionReadUse [ P , C ] , ) - > Result [ Unit , BackedExecutionIssue ]"
+        },
+        {
+          "name": "[P,C]return_backed_execution_read_use_after_owner_ack",
+          "declaration": "[ P , C ] return_backed_execution_read_use_after_owner_ack ( region : BackedExecutionRegion [ P , C ] , provider : P , child : C , ticket : BackedExecutionDelegation [ P , C ] , read_use : BackedExecutionReadUse [ P , C ] , ) - > Result [ Unit , BackedExecutionIssue ]"
+        },
+        {
+          "name": "[P,C]stop_backed_execution_read_use",
+          "declaration": "[ P , C ] stop_backed_execution_read_use ( region : BackedExecutionRegion [ P , C ] , provider : P , child : C , ticket : BackedExecutionDelegation [ P , C ] , read_use : BackedExecutionReadUse [ P , C ] , ) - > Result [ Unit , BackedExecutionIssue ]"
+        }
+      ],
+      "exports": []
+    },
+    {
+      "module": "src/physical_resources/ledger.mbt",
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Resource VM, backed Request and capacity reservation owners",
+      "referenceQualification": "Source and nominal VM Request admission/canonical reservation/retirement component only; no ordinary Python/Run, permission or physical Store ACK qualification.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "charge_planning",
+            "charge_transfer",
+            "charge_transfer_current",
+            "consume_reserved_attempt",
+            "consume_reserved_attempt_current",
+            "create_ledger",
+            "holding_available",
+            "holding_belongs_to",
+            "holding_serial",
+            "ledger_admission_limits",
+            "ledger_limits",
+            "ledger_usage",
+            "mark_cleanup_pending",
+            "mark_transfer_uncertain",
+            "release_allocation",
+            "reservation_check",
+            "reservation_check_current",
+            "reservation_open",
+            "reservation_pending",
+            "reservation_serial",
+            "reserve_attempt",
+            "reserve_attempt_current",
+            "retain_allocation",
+            "return_unused_attempt",
+            "settle_completed_output_reservation",
+            "settle_execution_reservation",
+            "settle_reservation",
+            "settle_reservation_current"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/ledger.mbt",
+                "anchor": "pub fn create_ledger("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/ledger.mbt",
+                "anchor": "pub fn create_ledger("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/ledger.mbt",
+                "anchor": "pub fn create_ledger("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/ledger.mbt",
+                "anchor": "pub fn create_ledger("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/ledger.mbt",
+                "anchor": "pub fn create_ledger("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/ledger.mbt",
+                "anchor": "pub fn create_ledger("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/ledger.mbt",
+                "anchor": "pub fn create_ledger("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/ledger.mbt",
+                "anchor": "pub fn create_ledger("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/ledger.mbt",
+                "anchor": "pub fn create_ledger("
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/physical_resources/platform_vm_preparation_region_wbtest.mbt",
+                "anchor": "test \"platform Request admission grows canonical reservation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              }
+            ]
+          }
+        }
+      ],
+      "sha256": "451d05a9b038043417b86dcb4a9d2585a03b0704a2cf05bf5253a3e9615b29db",
+      "operations": [
+        {
+          "name": "charge_planning",
+          "declaration": "charge_planning ( ledger : Ledger , work : Int , ) - > Result [ Unit , LedgerIssue ]"
+        },
+        {
+          "name": "charge_transfer",
+          "declaration": "charge_transfer ( ledger : Ledger , reservation : Reservation , bytes : Int64 , ) - > Result [ Unit , LedgerIssue ]"
+        },
+        {
+          "name": "charge_transfer_current",
+          "declaration": "charge_transfer_current ( ledger : Ledger , reservation : Reservation , bytes : Int64 , ) - > Result [ Unit , LedgerIssue ]"
+        },
+        {
+          "name": "consume_reserved_attempt",
+          "declaration": "consume_reserved_attempt ( ledger : Ledger , reservation : Reservation , ) - > Result [ Unit , LedgerIssue ]"
+        },
+        {
+          "name": "consume_reserved_attempt_current",
+          "declaration": "consume_reserved_attempt_current ( ledger : Ledger , reservation : Reservation , ) - > Result [ Unit , LedgerIssue ]"
+        },
+        {
+          "name": "create_ledger",
+          "declaration": "create_ledger ( limits : LedgerLimits ) - > Result [ Ledger , LedgerIssue ]"
+        },
+        {
+          "name": "holding_available",
+          "declaration": "holding_available ( ledger : Ledger , holding : Holding ) - > Bool"
+        },
+        {
+          "name": "holding_belongs_to",
+          "declaration": "holding_belongs_to ( ledger : Ledger , holding : Holding ) - > Bool"
+        },
+        {
+          "name": "holding_serial",
+          "declaration": "holding_serial ( holding : Holding ) - > Int"
+        },
+        {
+          "name": "ledger_admission_limits",
+          "declaration": "ledger_admission_limits ( ledger : Ledger ) - > LedgerLimits"
+        },
+        {
+          "name": "ledger_limits",
+          "declaration": "ledger_limits ( ledger : Ledger ) - > LedgerLimits"
+        },
+        {
+          "name": "ledger_usage",
+          "declaration": "ledger_usage ( ledger : Ledger ) - > LedgerUsage"
+        },
+        {
+          "name": "mark_cleanup_pending",
+          "declaration": "mark_cleanup_pending ( ledger : Ledger , reservation : Reservation , ) - > Result [ Unit , LedgerIssue ]"
+        },
+        {
+          "name": "mark_transfer_uncertain",
+          "declaration": "mark_transfer_uncertain ( ledger : Ledger , reservation : Reservation , bytes : Int64 , ) - > Result [ Unit , LedgerIssue ]"
+        },
+        {
+          "name": "release_allocation",
+          "declaration": "release_allocation ( ledger : Ledger , holding : Holding , ) - > Result [ Unit , LedgerIssue ]"
+        },
+        {
+          "name": "reservation_check",
+          "declaration": "reservation_check ( ledger : Ledger , reservation : Reservation , ) - > Result [ Unit , LedgerIssue ]"
+        },
+        {
+          "name": "reservation_check_current",
+          "declaration": "reservation_check_current ( ledger : Ledger , reservation : Reservation , ) - > Result [ Unit , LedgerIssue ]"
+        },
+        {
+          "name": "reservation_open",
+          "declaration": "reservation_open ( reservation : Reservation ) - > Bool"
+        },
+        {
+          "name": "reservation_pending",
+          "declaration": "reservation_pending ( reservation : Reservation ) - > Bool"
+        },
+        {
+          "name": "reservation_serial",
+          "declaration": "reservation_serial ( reservation : Reservation ) - > Int"
+        },
+        {
+          "name": "reserve_attempt",
+          "declaration": "reserve_attempt ( ledger : Ledger , transfer_bytes : Int64 , retained_bytes : Int64 , execution_bytes : Int64 , quantities ? : QuantityAmounts ?"
+        },
+        {
+          "name": "reserve_attempt_current",
+          "declaration": "reserve_attempt_current ( ledger : Ledger , transfer_bytes : Int64 , retained_bytes : Int64 , execution_bytes : Int64 , quantities : QuantityAmounts ? , preparation_input ? : Bool"
+        },
+        {
+          "name": "retain_allocation",
+          "declaration": "retain_allocation ( ledger : Ledger , reservation : Reservation , bytes : Int64 , ) - > Result [ Holding , LedgerIssue ]"
+        },
+        {
+          "name": "return_unused_attempt",
+          "declaration": "return_unused_attempt ( ledger : Ledger , reservation : Reservation ) - > Unit"
+        },
+        {
+          "name": "settle_completed_output_reservation",
+          "declaration": "settle_completed_output_reservation ( ledger : Ledger , reservation : Reservation , holding : Holding ? , output_bytes : Int64 , remaining_execution : Int64 , ) - > Result [ Unit , LedgerIssue ]"
+        },
+        {
+          "name": "settle_execution_reservation",
+          "declaration": "settle_execution_reservation ( ledger : Ledger , reservation : Reservation , remaining_execution ? : Int64"
+        },
+        {
+          "name": "settle_reservation",
+          "declaration": "settle_reservation ( ledger : Ledger , reservation : Reservation , ) - > Result [ Unit , LedgerIssue ]"
+        },
+        {
+          "name": "settle_reservation_current",
+          "declaration": "settle_reservation_current ( ledger : Ledger , reservation : Reservation , ) - > Result [ Unit , LedgerIssue ]"
+        }
+      ],
+      "exports": []
+    },
+    {
+      "module": "src/physical_resources/platform_vm_preparation_region.mbt",
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Resource VM, backed Request and capacity reservation owners",
+      "referenceQualification": "Source and nominal VM Request admission/canonical reservation/retirement component only; no ordinary Python/Run, permission or physical Store ACK qualification.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[P,C]issue_platform_vm_preparation_region",
+            "[P,C]platform_vm_backed_usage_fits",
+            "grow_imported_platform_working_current"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/platform_vm_preparation_region.mbt",
+                "anchor": "pub fn[P, C] issue_platform_vm_preparation_region("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/platform_vm_preparation_region.mbt",
+                "anchor": "pub fn[P, C] issue_platform_vm_preparation_region("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/platform_vm_preparation_region.mbt",
+                "anchor": "pub fn[P, C] issue_platform_vm_preparation_region("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/platform_vm_preparation_region.mbt",
+                "anchor": "pub fn[P, C] issue_platform_vm_preparation_region("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/platform_vm_preparation_region.mbt",
+                "anchor": "pub fn[P, C] issue_platform_vm_preparation_region("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/platform_vm_preparation_region.mbt",
+                "anchor": "pub fn[P, C] issue_platform_vm_preparation_region("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/platform_vm_preparation_region.mbt",
+                "anchor": "pub fn[P, C] issue_platform_vm_preparation_region("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/platform_vm_preparation_region.mbt",
+                "anchor": "pub fn[P, C] issue_platform_vm_preparation_region("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/platform_vm_preparation_region.mbt",
+                "anchor": "pub fn[P, C] issue_platform_vm_preparation_region("
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/physical_resources/platform_vm_preparation_region_wbtest.mbt",
+                "anchor": "test \"platform Request admission grows canonical reservation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              }
+            ]
+          }
+        }
+      ],
+      "sha256": "4d727be59557777931e39444ba33108866b159913199ddf42dd2c769e7e6d81f",
+      "operations": [
+        {
+          "name": "[P,C]issue_platform_vm_preparation_region",
+          "declaration": "[ P , C ] issue_platform_vm_preparation_region ( working : PlatformVMWorkingCapacity , provider : P , ) - > Result [ BackedExecutionRegion [ P , C ] , BackedExecutionIssue ]"
+        },
+        {
+          "name": "[P,C]platform_vm_backed_usage_fits",
+          "declaration": "[ P , C ] platform_vm_backed_usage_fits ( region : BackedExecutionRegion [ P , C ] , usage : LedgerUsage , ) - > Bool"
+        },
+        {
+          "name": "grow_imported_platform_working_current",
+          "declaration": "grow_imported_platform_working_current ( ledger : Ledger , retained : Int64 , execution : Int64 , ) - > Result [ Unit , LedgerIssue ]"
+        }
+      ],
+      "exports": []
+    },
+    {
+      "module": "src/physical_resources/read_capacity.mbt",
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Resource VM, backed Request and capacity reservation owners",
+      "referenceQualification": "Source and nominal VM Request admission/canonical reservation/retirement component only; no ordinary Python/Run, permission or physical Store ACK qualification.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "capacity_reservation_covers",
+            "capacity_reservation_matches",
+            "capacity_reservation_open",
+            "reservation_capacity_amounts",
+            "reserve_capacity",
+            "reserve_capacity_current",
+            "resize_capacity_reservation",
+            "resize_capacity_reservation_current",
+            "resize_reservation_bytes_current",
+            "settle_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/read_capacity.mbt",
+                "anchor": "pub fn reservation_capacity_amounts("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/read_capacity.mbt",
+                "anchor": "pub fn reservation_capacity_amounts("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/read_capacity.mbt",
+                "anchor": "pub fn reservation_capacity_amounts("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/read_capacity.mbt",
+                "anchor": "pub fn reservation_capacity_amounts("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/read_capacity.mbt",
+                "anchor": "pub fn reservation_capacity_amounts("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/read_capacity.mbt",
+                "anchor": "pub fn reservation_capacity_amounts("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/read_capacity.mbt",
+                "anchor": "pub fn reservation_capacity_amounts("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/read_capacity.mbt",
+                "anchor": "pub fn reservation_capacity_amounts("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/read_capacity.mbt",
+                "anchor": "pub fn reservation_capacity_amounts("
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/physical_resources/platform_vm_preparation_region_wbtest.mbt",
+                "anchor": "test \"platform Request admission grows canonical reservation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              }
+            ]
+          }
+        }
+      ],
+      "sha256": "4bac9f8283060b76b20166d967fbb80cf09a57f5b75cca3a042cb58b326ee6c0",
+      "operations": [
+        {
+          "name": "capacity_reservation_covers",
+          "declaration": "capacity_reservation_covers ( ledger : Ledger , reservation : CapacityReservation , retained_bytes : Int64 , execution_bytes : Int64 , ) - > Bool"
+        },
+        {
+          "name": "capacity_reservation_matches",
+          "declaration": "capacity_reservation_matches ( ledger : Ledger , reservation : CapacityReservation , retained_bytes : Int64 , execution_bytes : Int64 , ) - > Bool"
+        },
+        {
+          "name": "capacity_reservation_open",
+          "declaration": "capacity_reservation_open ( reservation : CapacityReservation ) - > Bool"
+        },
+        {
+          "name": "reservation_capacity_amounts",
+          "declaration": "reservation_capacity_amounts ( ledger : Ledger , reservation : Reservation , ) - > Result [ ( Int64 , Int64 ) , LedgerIssue ]"
+        },
+        {
+          "name": "reserve_capacity",
+          "declaration": "reserve_capacity ( ledger : Ledger , retained_bytes : Int64 , execution_bytes : Int64 , ) - > Result [ CapacityReservation , LedgerIssue ]"
+        },
+        {
+          "name": "reserve_capacity_current",
+          "declaration": "reserve_capacity_current ( ledger : Ledger , retained_bytes : Int64 , execution_bytes : Int64 , ) - > Result [ CapacityReservation , LedgerIssue ]"
+        },
+        {
+          "name": "resize_capacity_reservation",
+          "declaration": "resize_capacity_reservation ( ledger : Ledger , capacity : CapacityReservation , retained : Int64 , execution : Int64 , ) - > Result [ Unit , LedgerIssue ]"
+        },
+        {
+          "name": "resize_capacity_reservation_current",
+          "declaration": "resize_capacity_reservation_current ( ledger : Ledger , capacity : CapacityReservation , retained : Int64 , execution : Int64 , ) - > Result [ Unit , LedgerIssue ]"
+        },
+        {
+          "name": "resize_reservation_bytes_current",
+          "declaration": "resize_reservation_bytes_current ( ledger : Ledger , token : Reservation , retained : Int64 , execution : Int64 , ) - > Result [ Unit , LedgerIssue ]"
+        },
+        {
+          "name": "settle_capacity",
+          "declaration": "settle_capacity ( ledger : Ledger , reservation : CapacityReservation , ) - > Result [ Unit , LedgerIssue ]"
+        }
+      ],
+      "exports": []
+    },
+    {
+      "module": "src/physical_resources/shared_capacity.mbt",
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Resource VM, backed Request and capacity reservation owners",
+      "referenceQualification": "Source and nominal VM Request admission/canonical reservation/retirement component only; no ordinary Python/Run, permission or physical Store ACK qualification.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "allocate_shared_capacity",
+            "borrow_shared_capacity",
+            "close_shared_capacity",
+            "release_shared_capacity",
+            "reserve_shared_capacity",
+            "reserve_shared_workspace_capacity",
+            "retire_shared_capacity",
+            "return_shared_capacity",
+            "settle_shared_capacity",
+            "shared_allocation_usage",
+            "shared_capacity_usage"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/shared_capacity.mbt",
+                "anchor": "pub fn reserve_shared_capacity("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/shared_capacity.mbt",
+                "anchor": "pub fn reserve_shared_capacity("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/shared_capacity.mbt",
+                "anchor": "pub fn reserve_shared_capacity("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/shared_capacity.mbt",
+                "anchor": "pub fn reserve_shared_capacity("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/shared_capacity.mbt",
+                "anchor": "pub fn reserve_shared_capacity("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/shared_capacity.mbt",
+                "anchor": "pub fn reserve_shared_capacity("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/shared_capacity.mbt",
+                "anchor": "pub fn reserve_shared_capacity("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/shared_capacity.mbt",
+                "anchor": "pub fn reserve_shared_capacity("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/shared_capacity.mbt",
+                "anchor": "pub fn reserve_shared_capacity("
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/physical_resources/platform_vm_preparation_region_wbtest.mbt",
+                "anchor": "test \"platform Request admission grows canonical reservation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original Request admission and demand growth"
+              }
+            ]
+          }
+        }
+      ],
+      "sha256": "37b6802b0cbd5e739ade840a954257bc3c973309e0ccf5e67b6e9190470207a5",
+      "operations": [
+        {
+          "name": "allocate_shared_capacity",
+          "declaration": "allocate_shared_capacity ( owner : SharedCapacity , bytes : Int64 , ) - > Result [ SharedAllocation , LedgerIssue ]"
+        },
+        {
+          "name": "borrow_shared_capacity",
+          "declaration": "borrow_shared_capacity ( owner : SharedCapacity , allocation : SharedAllocation , ) - > Result [ SharedBorrow , LedgerIssue ]"
+        },
+        {
+          "name": "close_shared_capacity",
+          "declaration": "close_shared_capacity ( owner : SharedCapacity , ) - > Result [ Unit , LedgerIssue ]"
+        },
+        {
+          "name": "release_shared_capacity",
+          "declaration": "release_shared_capacity ( allocation : SharedAllocation , ) - > Result [ Unit , LedgerIssue ]"
+        },
+        {
+          "name": "reserve_shared_capacity",
+          "declaration": "reserve_shared_capacity ( ledger : Ledger , bytes : Int64 , ) - > Result [ SharedCapacity , LedgerIssue ]"
+        },
+        {
+          "name": "reserve_shared_workspace_capacity",
+          "declaration": "reserve_shared_workspace_capacity ( ledger : Ledger , retained_bytes : Int64 , execution_bytes : Int64 , ) - > Result [ SharedCapacity , LedgerIssue ]"
+        },
+        {
+          "name": "retire_shared_capacity",
+          "declaration": "retire_shared_capacity ( allocation : SharedAllocation , ) - > Result [ Unit , LedgerIssue ]"
+        },
+        {
+          "name": "return_shared_capacity",
+          "declaration": "return_shared_capacity ( borrow : SharedBorrow , ) - > Result [ Unit , LedgerIssue ]"
+        },
+        {
+          "name": "settle_shared_capacity",
+          "declaration": "settle_shared_capacity ( owner : SharedCapacity , ) - > Result [ Unit , LedgerIssue ]"
+        },
+        {
+          "name": "shared_allocation_usage",
+          "declaration": "shared_allocation_usage ( allocation : SharedAllocation , ) - > SharedAllocationUsage"
+        },
+        {
+          "name": "shared_capacity_usage",
+          "declaration": "shared_capacity_usage ( owner : SharedCapacity ) - > SharedCapacityUsage"
         }
       ],
       "exports": []
