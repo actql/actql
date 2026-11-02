@@ -118,6 +118,7 @@ pub fn[I] finish_request_computation_preparation(
           update_targets~,
           store_targets~,
           command_targets~,
+          source_input=request_source_input_original(owner),
         ) {
         Err(issue) => return Err(Preparation(ProgramCheck(issue)))
         Ok(_) => ()

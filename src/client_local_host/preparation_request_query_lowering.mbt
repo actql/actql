@@ -72,7 +72,23 @@ pub fn[I] lower_request_published_query(
     query.query is Some(parsed) else {
     return Err(Request(WrongPhase))
   }
-  if owner.native_parameters_ready && declarations is Some(_) {
+  let source = if owner.source_input is Some(context) {
+    guard request_source_input_original(owner) is Some(source) &&
+      physical_equal(context.environment, environment) else {
+      return Err(Request(ForeignOriginal))
+    }
+    let parts = match @publication_host.client_source_input_parts(source) {
+      Err(issue) => return Err(Request(SourceInput(Source(issue))))
+      Ok(parts) => parts
+    }
+    if parts.2 != declarations {
+      return Err(Request(ForeignOriginal))
+    }
+    Some(source)
+  } else {
+    None
+  }
+  if source is None && owner.native_parameters_ready && declarations is Some(_) {
     return Err(Request(ForeignOriginal))
   }
   if owner.phase == QuerySyntaxParsed {
@@ -127,14 +143,24 @@ pub fn[I] lower_request_published_query(
     }
     Ok(_) => ()
   }
-  let outcome = if owner.native_parameters_ready {
+  let outcome = if source is Some(source) {
+    @publication_host.lower_client_source_input_query(
+      source,
+      selected.publication,
+      selected.environment,
+      parsed,
+      public_primary=selected.public_primary,
+    ).map_err(issue => {
+      ClientRequestQueryLoweringIssue::Request(SourceInput(Source(issue)))
+    })
+  } else if owner.native_parameters_ready {
     @source_publication.lower_prepared_query_with_declarations(
       selected.publication,
       selected.environment,
       parsed,
       owner.native_query_declarations.map(pair => pair.1),
       public_primary=selected.public_primary,
-    )
+    ).map_err(issue => Publication(issue))
   } else {
     @source_publication.lower_prepared_published_parsed_query(
       selected.publication,
@@ -142,11 +168,11 @@ pub fn[I] lower_request_published_query(
       parsed,
       selected.declarations,
       public_primary=selected.public_primary,
-    )
+    ).map_err(issue => Publication(issue))
   }
   owner.phase = QueryLoweringFailed
   match outcome {
-    Err(issue) => Err(Publication(issue))
+    Err(issue) => Err(issue)
     Ok(output) => {
       guard output.0.program is Some(program) else {
         return Err(Request(WrongPhase))

@@ -171,6 +171,7 @@ struct ClientProgramCheckPreparation[I, P] {
     @update_targets.UpdateTargetPublication?,
     @update_targets.StoreTargetPublication?,
     @update_targets.CommandTargetPublication?,
+    @publication_host.ClientSourceInput?,
   )?
   mut compilation_known_work : Int64
   mut environment_scratch : Int64?
@@ -201,6 +202,7 @@ pub suberror ClientProgramCheckPreparationIssue {
   Compilation(@publication_host.ClientProgramPreparationIssue)
   EffectInput(@checked.EffectComputationIssue)
   EffectCompilation(@publication_host.ClientEffectComputationIssue)
+  SourceInput(@publication_host.ClientSourcePreparationIssue)
   Work(@resources.PreparationWorkIssue)
   ChangedInputs
   WrongPhase

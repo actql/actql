@@ -70,6 +70,7 @@ pub fn[I] begin_request_capture_managed_run(
       owner.native_query_declarations = None
       owner.native_parameters_ready = false
       owner.held_program = None
+      clear_request_source_input(owner)
       owner.submitted_intent = None
       owner.intent_base = None
       owner.intent_peak_live = false

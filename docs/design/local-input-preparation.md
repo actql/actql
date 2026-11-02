@@ -5365,3 +5365,75 @@ the same reservation by its existing independently computed demand before its
 allocation. A one-byte-short fixed prefix or unfunded later grow still refuses
 on that original child. Neither successful prefix admission nor available
 policy headroom establishes physical capacity for the next phase.
+
+### Retaining Source originals after Request compilation
+
+A funded Source caller must not invoke the ordinary whole-Source constructor
+again after its Request has parsed, lowered, checked and compiled the Program.
+`ClientSourceInput` retains the original admitted intent, Environment, publication,
+Parameter cursor and Source spellings. Its parser and prepared-publication
+lowerer are one-shot continuations of that same input. The lowerer accepts only
+its original parser result and the matching installed publication; copied input
+frames, equal foreign syntax and replacement Environments are refused before
+that continuation starts. An attempted or interrupted continuation is not retried.
+The existing Source read-only and missing target-original refusals still apply.
+
+The final Source handoff accepts only the compiled body's exact original
+lowerer's Program and Environment, plus the same Parameter cursor for Effect
+compilation. The existing Effect constructor receives the original Source intent
+before creating its body; attaching a copied body afterwards is not this handoff.
+The original Array profile check remains required. Repeated projection of the
+same completed association returns the same Source preparation, without another
+parser, lowerer, checker, compiler or material encoder. Emitted Program and
+Parameter preimages retain their existing encoding law.
+
+This input provenance is not a Resource admission, Account decision, capture,
+Plan, Run, durable acceptance or executable restore. The fixed caller must keep
+its original input loan and same-parent Request reservation through construction,
+all returned/failed-body overlap and the actual later retirement. Source tree,
+canonical value, decoder index, profile scratch and retained output require their
+complete physical backing before construction. The Core callee does not supply
+that backing or permit raw Source records to bypass the existing Request owner.
+
+### Source intake and borrowed handoff on the same Request
+
+`prepare_request_source_input` retains only the Request's same admitted intent,
+Environment and publication. Before calling the shared Source intake, it grows
+the existing working reservation by the existing input-derived canonical and
+Source/index construction representations plus one fixed Source trace/return/
+failure group. A declined grow keeps the same quote without invoking intake;
+an invoked or interrupted constructor is not issued again. Selecting this Source
+continuation also forbids the legacy parser path from replacing a missing or
+failed original. The Request entrance adds one reference slot for this context,
+and the existing Effect-target tuple adds one original Source-reference slot.
+These costs do not enlarge a policy or grant bytes from its unused ceiling.
+
+The existing parser and lowerer select the retained Source continuation while
+preserving their original budgets, Source work-prefix observation and current
+fences. They require the same original text/format, declarations, Environment,
+publication and parsed query. The same Parameter cursor enters the checker, and
+the original Source association enters the Effect constructor before its body
+exists. Non-Source callers keep their previous constructor, target and Parameter
+paths. No Source/Catalog/check/compiler is reconstructed at the final handoff.
+
+`borrow_request_source_preparation` keeps the compiled Source preparation under
+the existing Resource construction-input borrower. It quotes an additional full
+original typed-check-data representation for the bounded Array-profile traversal,
+then retains the same Source return before the next original current boundary.
+That quote covers the traversal's typed expression slots and contract-stack
+scratch while existing bodies remain retained; it is not a VM layout or physical
+release observation. Repeated projection keeps the original absolute quote and
+Source association rather than charging or recompiling another body. The private
+adapter chooses only the fixed typed methods in the original Source owner; no
+provider callback, new author SPI or publicly constructible choice is introduced.
+
+Run adoption and preparation abort cut only this intake's aliases through the
+existing Request cleanup chain. The Source frame becomes unavailable, but a live
+Resource borrower still retains the immutable Source preparation and its same
+compiler. The existing borrower return, Run/Request retirement and separate
+physical-owner acknowledgment remain required before the parent can be released.
+There is no second cleanup owner, physical stop, success/Unknown reinterpretation
+or fabricated acknowledgment in this alias cut. The actual Wasm instance caller
+and its complete input, controller, phase, returned-body and failed-child backing
+must still be connected; these typed Request methods alone do not enable a normal
+Python Source/Model/Effect execution or durable Saved/approval continuation.

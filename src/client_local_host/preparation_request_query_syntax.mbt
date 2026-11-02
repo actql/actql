@@ -89,6 +89,21 @@ pub fn[I] parse_request_query_syntax(
   guard owner.input is Some(original) && physical_equal(original, input) else {
     return Err(Request(ForeignOriginal))
   }
+  let source = if owner.source_input is Some(_) {
+    guard request_source_input_original(owner) is Some(source) else {
+      return Err(Request(ForeignOriginal))
+    }
+    let parts = match @publication_host.client_source_input_parts(source) {
+      Err(issue) => return Err(Request(SourceInput(Source(issue))))
+      Ok(parts) => parts
+    }
+    if parts.0 != document || parts.1 != format {
+      return Err(Request(ForeignOriginal))
+    }
+    Some(source)
+  } else {
+    None
+  }
   if format != @frontend.Sql && format != @frontend.Text {
     return Err(Frontend(@frontend.InvalidFormat))
   }
@@ -150,11 +165,30 @@ pub fn[I] parse_request_query_syntax(
     }
     Ok(value) => value
   }
-  let (outcome, known, complete) = @frontend.observe_parse_query(
-    selected.document,
-    selected.format,
-    source_path=selected.source_path,
-  )
+  let (outcome, known, complete) = match source {
+    None =>
+      @frontend.observe_parse_query(
+        selected.document,
+        selected.format,
+        source_path=selected.source_path,
+      )
+    Some(source) =>
+      match
+        @publication_host.observe_client_source_input_query(
+          source,
+          source_path=selected.source_path,
+        ) {
+        Ok(observed) => observed
+        Err(issue) => {
+          let closed = @resources.finish_preparation_phase_work64(work)
+          owner.phase = QuerySyntaxFailed
+          match closed {
+            Err(failure) => return Err(Work(failure))
+            Ok(_) => return Err(Request(SourceInput(Source(issue))))
+          }
+        }
+      }
+  }
   selected.known_work = known
   selected.counters_complete = complete
   let charged = @resources.spend_preparation_phase_work64(work, known)

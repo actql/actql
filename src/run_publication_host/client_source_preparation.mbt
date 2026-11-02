@@ -72,78 +72,15 @@ pub fn prepare_client_source_computation(
 ) -> Result[ClientSourcePreparation, ClientSourcePreparationIssue] {
   try {
     let limits = client_standard_program_preparation_limits()
-    let wire = client_submitted_intent_wire(intent)
-    let source = source_result(
-      @source.parse_json_bytes_preserving(
-        @utf8.encode(wire),
-        limits.checking.input.source,
-      ).map_err(_ => Input),
+    let input = source_result(
+      prepare_client_source_input(intent, environment, publication),
     )
-    let value = @canonical.from_source(
-      source,
-      limits.checking.input.source.max_nodes,
-      limits.checking.input.source.max_depth,
-      limits.checking.input.source.max_input_bytes,
-      data_keys=true,
-    ) catch {
-      _ => return Err(Input)
-    }
-    guard @canonical.object_field(value, "kind")
-      is Some(@canonical.String("aql")) &&
-      @canonical.object_field(value, "input") is Some(input) &&
-      @canonical.object_field(input, "text")
-      is Some(@canonical.String(document)) &&
-      @canonical.object_field(input, "format")
-      is Some(@canonical.String(spelling)) &&
-      @canonical.object_field_count(input) is Some(count) &&
-      count ==
-      (if @canonical.object_field(input, "parameterDeclarations") is Some(_) {
-        3
-      } else {
-        2
-      }) else {
-      return Err(Input)
-    }
-    let selected = match @source_frontend.select_format(spelling) {
-      Ok(Text) => @source_frontend.Text
-      Ok(Sql) => @source_frontend.Sql
-      _ => return Err(Input)
-    }
-    let declarations = match
-      @canonical.object_field(input, "parameterDeclarations") {
-      None => None
-      Some(body) =>
-        Some(
-          @canonical.stringify_value(body, 1048576, 65536, 64) catch {
-            _ => return Err(Input)
-          },
-        )
-    }
-    let cursor = source_result(
-      @decode.admit(source, limits.checking.input.tree).map_err(_ => Input),
-    )
-    let root = source_result(@decode.open_object(cursor).map_err(_ => Input))
-    // Explicit null is the original absence of supplied values, not a
-    // missing/non-null required-field failure.
-    let parameters = match @decode.lookup(root, "parameters") {
-      Some(value) => value
-      None => return Err(Input)
-    }
-    let supplied = if @decode.is_null(parameters) {
-      None
-    } else {
-      Some(parameters)
-    }
-    let parameters_wire = match @canonical.object_field(value, "parameters") {
-      Some(@canonical.Null) => None
-      Some(body) =>
-        Some(
-          @canonical.stringify_value(body, 65536, 8192, 64) catch {
-            _ => return Err(Input)
-          },
-        )
-      None => return Err(Input)
-    }
+    let document = input.source_document
+    let selected = input.selected
+    let spelling = input.source_format
+    let declarations = input.declarations
+    let supplied = input.supplied
+    let parameters_wire = input.parameters
     let (lowered, catalog) = match publication_environment {
       Some(prepared) => {
         if !@source_publication.prepared_published_query_environment_publication_matches(

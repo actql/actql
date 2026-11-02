@@ -160,6 +160,8 @@ pub fn[I] borrow_request_program_plan_input(ClientRequestPreparation[I], I) -> R
 
 pub fn[I] borrow_request_program_preparation(ClientRequestPreparation[I]) -> Result[@physical_resources.PreparationBodyBorrow[@run_publication_host.PreparedClientProgram], ClientRequestPreparationIssue]
 
+pub fn[I] borrow_request_source_preparation(ClientRequestPreparation[I], I) -> Result[@physical_resources.PreparationBodyBorrow[@run_publication_host.ClientSourcePreparation], ClientRequestPreparationIssue]
+
 pub fn[S] borrowed_installed_source_environment(@physical_resources.PreparationBodyBorrow[(S, @client_source_publication.PreparedPublishedQueryEnvironment)], S) -> Result[@client_source_publication.PreparedPublishedQueryEnvironment, @physical_resources.PreparationCapacityIssue]
 
 pub fn cancel_client_infer_input(ClientInferInputExecution) -> Bool
@@ -306,7 +308,7 @@ pub fn[I] close_host_initialization_preparation(ClientHostInitializationPreparat
 
 pub fn closed_values_preparation_capacity_refusal(ClientClosedValuesPreparationIssue) -> (String, String, Int64, Int64, Int64, Int64)?
 
-pub fn[I, P] compile_effect_program_check_preparation(ClientProgramCheckPreparation[I, P], update_targets? : @query_program.UpdateTargetPublication?, store_targets? : @query_program.StoreTargetPublication?, command_targets? : @query_program.CommandTargetPublication?) -> Result[@run_publication_host.PreparedClientEffectComputation, ClientProgramCheckPreparationIssue]
+pub fn[I, P] compile_effect_program_check_preparation(ClientProgramCheckPreparation[I, P], update_targets? : @query_program.UpdateTargetPublication?, store_targets? : @query_program.StoreTargetPublication?, command_targets? : @query_program.CommandTargetPublication?, source_input? : @run_publication_host.ClientSourceInput?) -> Result[@run_publication_host.PreparedClientEffectComputation, ClientProgramCheckPreparationIssue]
 
 pub fn[I, P] compile_program_check_preparation(ClientProgramCheckPreparation[I, P], @run_publication_host.ClientProgramPreparationLimits) -> Result[@run_publication_host.PreparedClientProgram, ClientProgramCheckPreparationIssue]
 
@@ -766,6 +768,8 @@ pub fn[I] prepare_request_serialization_graph(ClientRequestPreparation[I], I, In
 
 pub fn[I] prepare_request_serialization_plan(ClientRequestPreparation[I], I, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, @execution_relation.ExecutionCapacity?) -> Result[ClientInstalledManagedSerializationPreparation, ClientInstalledManagedRunIssue]
 
+pub fn[I] prepare_request_source_input(ClientRequestPreparation[I], I, @program_check.CheckEnvironment, String) -> Result[Unit, ClientRequestPreparationIssue]
+
 pub fn[I, T] prepare_request_submitted_intent(ClientRequestPreparation[I], I, T, @source_value.JsonDataReader[T]) -> Result[String, ClientRequestPreparationIssue]
 
 pub fn prepare_serialization_captured_ledger(@run_publication_host.PreparedClientProgram, Int, ClientInstalledCaptureCapacity, Int64, Int64, Int64, Int64, ClientInstalledSequenceContracts, String, String?, String?) -> @physical_resources.Ledger?
@@ -881,6 +885,8 @@ pub fn[I] request_preparation_parameters_original(ClientRequestPreparation[I], I
 pub fn[I] request_prepared_computation_kind(ClientRequestPreparation[I], I) -> Result[ClientRequestComputationKind, ClientRequestPreparationIssue]
 
 pub fn[I] request_query_syntax_work(ClientRequestPreparation[I], I) -> Result[(Int64, Bool), ClientRequestQuerySyntaxIssue]
+
+pub fn[I] request_source_input_parts(ClientRequestPreparation[I], I) -> Result[(String, @source_frontend.Format, String?, @decode_core.Cursor?), ClientRequestPreparationIssue]
 
 pub fn[I] request_submitted_intent_original(ClientRequestPreparation[I], I) -> @run_publication_host.ClientSubmittedIntent?
 
@@ -1043,6 +1049,7 @@ pub suberror ClientProgramCheckPreparationIssue {
   Compilation(@run_publication_host.ClientProgramPreparationIssue)
   EffectInput(@program_check.EffectComputationIssue)
   EffectCompilation(@run_publication_host.ClientEffectComputationIssue)
+  SourceInput(@run_publication_host.ClientSourcePreparationIssue)
   Work(@physical_resources.PreparationWorkIssue)
   ChangedInputs
   WrongPhase
@@ -1080,6 +1087,11 @@ pub(all) suberror ClientRequestQuerySyntaxIssue {
   Work(@physical_resources.PreparationWorkIssue)
   Overflow
 }
+
+pub suberror ClientRequestSourceInputIssue {
+  Source(@run_publication_host.ClientSourcePreparationIssue)
+}
+pub impl @debug.Debug for ClientRequestSourceInputIssue
 
 pub suberror ClientRequestTerminalIssue {
   Preparation(ClientRequestPreparationIssue)
@@ -1358,6 +1370,7 @@ pub(all) enum ClientRequestPreparationIssue {
   ProgramCheck(ClientProgramCheckPreparationIssue)
   Parameters(@client_local_preparation.LocalProgramInputIssue)
   Intent(@run_publication_host.ClientSubmittedIntentIssue)
+  SourceInput(ClientRequestSourceInputIssue)
   Work(@physical_resources.PreparationWorkIssue)
   ParameterDeclarations(@parameter_binding.Issue)
   ParameterSource(@stage_parameters.Issue)

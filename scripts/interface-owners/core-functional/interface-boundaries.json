@@ -36826,7 +36826,7 @@
     },
     {
       "module": "src/client_local_host/preparation_program_check_domain.mbt",
-      "sha256": "109a882073b00c9e18e0e759d03f9d857c4223e37ef488fb860ef10cb89fc2c6",
+      "sha256": "55759133e7004ba25f78c410e5613c3f630409e5790ce1d857de1f5c176401fb",
       "exports": [],
       "operations": [
         {
@@ -36879,6 +36879,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-Request verifier subject lifetime"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "inputsOutputs": [
@@ -36889,6 +36893,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-Request verifier subject lifetime"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "identity": [
@@ -36899,6 +36907,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-Request verifier subject lifetime"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "ownership": [
@@ -36909,6 +36921,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-Request verifier subject lifetime"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "synchronization": [
@@ -36919,6 +36935,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-Request verifier subject lifetime"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "failure": [
@@ -36929,6 +36949,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-Request verifier subject lifetime"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "cancellation": [
@@ -36939,6 +36963,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-Request verifier subject lifetime"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "resources": [
@@ -36949,6 +36977,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-Request verifier subject lifetime"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "extension": [
@@ -36959,6 +36991,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-Request verifier subject lifetime"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "verification": [
@@ -36973,6 +37009,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-Request verifier subject lifetime"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_source_input_wbtest.mbt",
+                "anchor": "test \"funded Source Request keeps same Parameter compiler and borrower through actual pending retirement\" {"
               }
             ]
           }
@@ -36981,7 +37021,7 @@
     },
     {
       "module": "src/client_local_host/preparation_program_compile.mbt",
-      "sha256": "957d33f9ebddb0f1ef8b5f9ffdf4d6800f0ae47a99395c6add1f1b3458560a10",
+      "sha256": "ec7e7599be8b8126984a154fed24a71d43541ad2aaf560d59b529d2e59233fa5",
       "exports": [],
       "operations": [
         {
@@ -36994,7 +37034,7 @@
         },
         {
           "name": "[I,P]compile_effect_program_check_preparation_owned",
-          "declaration": "[ I , P ] compile_effect_program_check_preparation_owned ( owner : ClientProgramCheckPreparation [ I , P ] , input : I , candidate : @ checked . EffectComputationCandidate , data : @ checked . ParsedCheckDataEstimate , limits : @ publication_host . ClientEffectComputationLimits , update_targets : @ update_targets . UpdateTargetPublication ? , store_targets : @ update_targets . StoreTargetPublication ? , command_targets : @ update_targets . CommandTargetPublication ? , ) - > Result [ @ publication_host . PreparedClientEffectComputation , ClientProgramCheckPreparationIssue , ]"
+          "declaration": "[ I , P ] compile_effect_program_check_preparation_owned ( owner : ClientProgramCheckPreparation [ I , P ] , input : I , candidate : @ checked . EffectComputationCandidate , data : @ checked . ParsedCheckDataEstimate , limits : @ publication_host . ClientEffectComputationLimits , update_targets : @ update_targets . UpdateTargetPublication ? , store_targets : @ update_targets . StoreTargetPublication ? , command_targets : @ update_targets . CommandTargetPublication ? , source_input : @ publication_host . ClientSourceInput ? , ) - > Result [ @ publication_host . PreparedClientEffectComputation , ClientProgramCheckPreparationIssue , ]"
         },
         {
           "name": "[I,P]compile_program_check_preparation",
@@ -37035,54 +37075,90 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "verification": [
@@ -37097,6 +37173,10 @@
               {
                 "path": "adapters/host-node/request-preparation-parent.test.mjs",
                 "anchor": "test('normal first Request Plan keeps its original typed row refusal"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_source_input_wbtest.mbt",
+                "anchor": "test \"funded Source Request keeps same Parameter compiler and borrower through actual pending retirement\" {"
               }
             ]
           }
@@ -37990,7 +38070,7 @@
     },
     {
       "module": "src/client_local_host/preparation_request_capture_body.mbt",
-      "sha256": "d9262dcf057a750ce744923cfbc725438c5423cbe67628edc2a294231f2e0982",
+      "sha256": "2391acff8e423265c215688c46b14f3fbf43ecbe1386573bc1d8a028d8955348",
       "exports": [],
       "operations": [
         {
@@ -38019,54 +38099,90 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "verification": [
@@ -38085,6 +38201,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_source_input_wbtest.mbt",
+                "anchor": "test \"funded Source Request keeps same Parameter compiler and borrower through actual pending retirement\" {"
               }
             ]
           }
@@ -38298,7 +38418,7 @@
     {
       "module": "src/client_local_host/preparation_request_effect_body.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "1dab77d3b7994a8ae8ed3f6e37ea08d347119191abeb451a198fa35215a2ef42",
+      "sha256": "bf4fd2a1894659d221ab51b7a450d6935f1dd511528758fd71591e96ae21390d",
       "role": "common-semantics",
       "owner": "Existing Request preparation and installed Effect Plan owners",
       "exports": [],
@@ -38363,54 +38483,90 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Constructor inputs retain the same reservation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Constructor inputs retain the same reservation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Constructor inputs retain the same reservation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Constructor inputs retain the same reservation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Constructor inputs retain the same reservation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Constructor inputs retain the same reservation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Constructor inputs retain the same reservation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Constructor inputs retain the same reservation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Constructor inputs retain the same reservation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "verification": [
@@ -38421,6 +38577,10 @@
               {
                 "path": "src/client_local_host/preparation_request_plan_input_js_wbtest.mbt",
                 "anchor": "test \"Request Effect Plan input remains distinct"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_source_input_wbtest.mbt",
+                "anchor": "test \"funded Source Request keeps same Parameter compiler and borrower through actual pending retirement\" {"
               }
             ]
           }
@@ -38763,6 +38923,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Model Scope composes original demand instead of whole-Run ceilings"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "inputsOutputs": [
@@ -38785,6 +38949,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Model Scope composes original demand instead of whole-Run ceilings"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "identity": [
@@ -38807,6 +38975,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Model Scope composes original demand instead of whole-Run ceilings"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "ownership": [
@@ -38829,6 +39001,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Model Scope composes original demand instead of whole-Run ceilings"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "synchronization": [
@@ -38851,6 +39027,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Model Scope composes original demand instead of whole-Run ceilings"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "failure": [
@@ -38873,6 +39053,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Model Scope composes original demand instead of whole-Run ceilings"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "cancellation": [
@@ -38895,6 +39079,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Model Scope composes original demand instead of whole-Run ceilings"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "resources": [
@@ -38917,6 +39105,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Model Scope composes original demand instead of whole-Run ceilings"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "extension": [
@@ -38939,6 +39131,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Model Scope composes original demand instead of whole-Run ceilings"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "verification": [
@@ -38981,13 +39177,17 @@
               {
                 "path": "src/client_local_host/model_scope_demand_js_wbtest.mbt",
                 "anchor": "same Request Model Scope uses configured planning demand and keeps original cleanup"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_source_input_wbtest.mbt",
+                "anchor": "test \"funded Source Request keeps same Parameter compiler and borrower through actual pending retirement\" {"
               }
             ]
           }
         }
       ],
       "referenceQualification": "Original Scope/census construction and same-parent continuation only; not full Host/provider/runtime backing or ordinary acceptance.",
-      "sha256": "38922ffc809c0e87b4ef696ba81033b728aca3fd072a157202183862eecb9577"
+      "sha256": "c51385495ec475f4618bb55f1bc0bbae3215aa54ee678d8273b51490b46a3c8c"
     },
     {
       "module": "src/client_local_host/preparation_request_model_module.mbt",
@@ -39951,7 +40151,7 @@
     {
       "module": "src/client_local_host/preparation_request_parent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "3d30c70b4bc754878e98a929803f7cf2b0f4852fcaa0e2303847bf2e52a8d3e8",
+      "sha256": "fce88980187a014090195c3ba3c598a7f1f9159a5ef89ed958fe84adf4a40dbf",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -40027,6 +40227,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Fixed Request controls and synchronous domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "inputsOutputs": [
@@ -40045,6 +40249,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Fixed Request controls and synchronous domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "identity": [
@@ -40063,6 +40271,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Fixed Request controls and synchronous domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "ownership": [
@@ -40081,6 +40293,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Fixed Request controls and synchronous domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "synchronization": [
@@ -40099,6 +40315,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Fixed Request controls and synchronous domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "failure": [
@@ -40117,6 +40337,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Fixed Request controls and synchronous domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "cancellation": [
@@ -40135,6 +40359,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Fixed Request controls and synchronous domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "resources": [
@@ -40153,6 +40381,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Fixed Request controls and synchronous domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "extension": [
@@ -40171,6 +40403,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Fixed Request controls and synchronous domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "verification": [
@@ -40189,6 +40425,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Fixed Request controls and synchronous domain construction"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_source_input_wbtest.mbt",
+                "anchor": "test \"funded Source Request keeps same Parameter compiler and borrower through actual pending retirement\" {"
               }
             ]
           }
@@ -40888,6 +41128,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Constructor inputs retain the same reservation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "inputsOutputs": [
@@ -40898,6 +41142,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Constructor inputs retain the same reservation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "identity": [
@@ -40908,6 +41156,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Constructor inputs retain the same reservation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "ownership": [
@@ -40918,6 +41170,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Constructor inputs retain the same reservation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "synchronization": [
@@ -40928,6 +41184,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Constructor inputs retain the same reservation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "failure": [
@@ -40938,6 +41198,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Constructor inputs retain the same reservation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "cancellation": [
@@ -40948,6 +41212,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Constructor inputs retain the same reservation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "resources": [
@@ -40958,6 +41226,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Constructor inputs retain the same reservation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "extension": [
@@ -40968,6 +41240,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Constructor inputs retain the same reservation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "verification": [
@@ -40982,6 +41258,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Constructor inputs retain the same reservation"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_source_input_wbtest.mbt",
+                "anchor": "test \"funded Source Request keeps same Parameter compiler and borrower through actual pending retirement\" {"
               }
             ]
           }
@@ -41564,7 +41844,7 @@
           }
         }
       ],
-      "sha256": "e7425a8902a11e0ea2865fbf64df00d448060cb85f144ff25899dc7057413099",
+      "sha256": "a6d26a5c63deacbf3857fb41c69fab1eba6d75b11eb9aa7eb34681bfecdd7117",
       "exports": [],
       "operations": [
         {
@@ -41648,7 +41928,7 @@
     {
       "module": "src/client_local_host/preparation_request_query_lowering.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "181d71b015d8ed0cf7e73f86285520ef367a82a073df648087e0b1046b09a0c7",
+      "sha256": "144bce99d9ec2e49c34346789f403295b1727ff28dde84a46fd0d8aceeb4ed98",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -41680,54 +41960,90 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned query lowering and Program handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned query lowering and Program handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned query lowering and Program handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned query lowering and Program handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned query lowering and Program handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned query lowering and Program handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned query lowering and Program handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned query lowering and Program handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned query lowering and Program handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "verification": [
@@ -41738,6 +42054,10 @@
               {
                 "path": "src/client_local_host/preparation_request_query_lowering_js_wbtest.mbt",
                 "anchor": "test \"Request original Query"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_source_input_wbtest.mbt",
+                "anchor": "test \"funded Source Request keeps same Parameter compiler and borrower through actual pending retirement\" {"
               }
             ]
           }
@@ -41748,7 +42068,7 @@
     {
       "module": "src/client_local_host/preparation_request_query_syntax.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "abc4396b449c18a68586ba260794e6ba2a325ddae55e674a86e4ea8acb99acf6",
+      "sha256": "e56b6aafdaf23043786fe00d48666f5bed430e2408b4792e915f1c03afbddc32",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -41785,54 +42105,90 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned query syntax"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned query syntax"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned query syntax"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned query syntax"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned query syntax"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned query syntax"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned query syntax"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned query syntax"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned query syntax"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "verification": [
@@ -41843,6 +42199,10 @@
               {
                 "path": "src/client_local_host/preparation_request_query_syntax_js_wbtest.mbt",
                 "anchor": "test \"same Request query syntax"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_source_input_wbtest.mbt",
+                "anchor": "test \"funded Source Request keeps same Parameter compiler and borrower through actual pending retirement\" {"
               }
             ]
           }
@@ -41948,7 +42308,7 @@
     {
       "module": "src/client_local_host/preparation_request_terminal.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "da87454d8d23fd83a61a81dfc10b00c2419bf20791b73fdb0a702217dd4bbd93",
+      "sha256": "d3cd709bafec8b072a30be2a79615a27eabf96bec266409fab8b724086053393",
       "role": "common-semantics",
       "owner": "Existing Request checking compiler and preparation capacity owners",
       "exports": [],
@@ -41984,6 +42344,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "inputsOutputs": [
@@ -41994,6 +42358,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "identity": [
@@ -42004,6 +42372,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "ownership": [
@@ -42014,6 +42386,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "synchronization": [
@@ -42024,6 +42400,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "failure": [
@@ -42034,6 +42414,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "cancellation": [
@@ -42044,6 +42428,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "resources": [
@@ -42054,6 +42442,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "extension": [
@@ -42064,6 +42456,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "verification": [
@@ -42078,6 +42474,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_source_input_wbtest.mbt",
+                "anchor": "test \"funded Source Request keeps same Parameter compiler and borrower through actual pending retirement\" {"
               }
             ]
           }
@@ -61657,7 +62057,7 @@
     },
     {
       "module": "src/run_publication_host/client_effect_program.mbt",
-      "sha256": "19b595a140aaadb8fa40406895adef73cfe3716d4cc6d299880aa71f6c423fa2",
+      "sha256": "8c7bb804b90c25ca47bdfe7e241adb14144cfa181c09e48cbe5226fc5ca24c83",
       "exports": [],
       "operations": [
         {
@@ -61815,6 +62215,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original installed compiler contracts"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Retaining Source originals after Request compilation"
               }
             ],
             "inputsOutputs": [
@@ -61825,6 +62229,10 @@
               {
                 "path": "src/run_publication_host/client_compiler_contract_selection_wbtest.mbt",
                 "anchor": "test \"installed ordered compilation uses the original contract"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Retaining Source originals after Request compilation"
               }
             ],
             "identity": [
@@ -61835,6 +62243,10 @@
               {
                 "path": "src/run_publication_host/client_compiler_contract_selection_wbtest.mbt",
                 "anchor": "test \"compiler contract binding preserves original views"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Retaining Source originals after Request compilation"
               }
             ],
             "ownership": [
@@ -61845,6 +62257,10 @@
               {
                 "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
                 "anchor": "test \"actual Request compiler retains its original installed ordered"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Retaining Source originals after Request compilation"
               }
             ],
             "synchronization": [
@@ -61855,6 +62271,10 @@
               {
                 "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
                 "anchor": "test \"funded artifact current reentry"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Retaining Source originals after Request compilation"
               }
             ],
             "failure": [
@@ -61869,6 +62289,10 @@
               {
                 "path": "src/run_publication_host/client_compiler_contract_selection_wbtest.mbt",
                 "anchor": "test \"explicit installed ordered absence refuses"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Retaining Source originals after Request compilation"
               }
             ],
             "cancellation": [
@@ -61879,6 +62303,10 @@
               {
                 "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
                 "anchor": "test \"funded artifact current reentry"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Retaining Source originals after Request compilation"
               }
             ],
             "resources": [
@@ -61889,12 +62317,20 @@
               {
                 "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
                 "anchor": "test \"funded artifact grow retains original module"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Retaining Source originals after Request compilation"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original installed compiler contracts"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Retaining Source originals after Request compilation"
               }
             ],
             "verification": [
@@ -61921,6 +62357,14 @@
               {
                 "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
                 "anchor": "test \"funded artifact current reentry"
+              },
+              {
+                "path": "src/run_publication_host/client_source_preparation_input_wbtest.mbt",
+                "anchor": "test \"Source request original Effect constructor retains intent before same body handoff without copying compiler output\" {"
+              },
+              {
+                "path": "src/run_publication_host/client_source_preparation_input_wbtest.mbt",
+                "anchor": "test \"Source request original nonnull Parameter cursor reaches SAME Effect compiler and rejects equal foreign cursor\" {"
               }
             ]
           }
@@ -67327,7 +67771,7 @@
     },
     {
       "module": "src/client_local_host/preparation_request_content_body.mbt",
-      "sha256": "3f74b0ea5520ac800033dfdaf3000adf714f5791d4e96d9c8fdeaec7a32f2436",
+      "sha256": "d4b6b5de983f9f876bf255be8889fc290960b18e445632835e36531e0a232795",
       "exports": [],
       "operations": [
         {
@@ -67395,12 +67839,20 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Portable Request preparation under the original backed child"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Portable Request preparation under the original backed child"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "identity": [
@@ -67411,12 +67863,20 @@
               {
                 "path": "src/physical_resources/backed_preparation_admission.mbt",
                 "anchor": "pub fn[P, C, I] prepare_backed_preparation_admission("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Portable Request preparation under the original backed child"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "synchronization": [
@@ -67427,30 +67887,50 @@
               {
                 "path": "src/physical_resources/backed_live_child.mbt",
                 "anchor": "pub fn[P, C, R] stop_backed_execution_live_child("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Portable Request preparation under the original backed child"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Portable Request preparation under the original backed child"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Portable Request preparation under the original backed child"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Portable Request preparation under the original backed child"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
               }
             ],
             "verification": [
@@ -67461,6 +67941,10 @@
               {
                 "path": "src/physical_resources/backed_preparation_admission_wbtest.mbt",
                 "anchor": "test \"backed prepared operation preserves original consumer refusal and post-consumer current fence\""
+              },
+              {
+                "path": "src/client_local_host/preparation_request_source_input_wbtest.mbt",
+                "anchor": "test \"funded Source Request keeps same Parameter compiler and borrower through actual pending retirement\" {"
               }
             ]
           }
@@ -68506,6 +68990,585 @@
         }
       ],
       "sha256": "1c158bf792768a2952893fb9212e3b2a2f86e3de3caf2b78952169e914a2182a"
+    },
+    {
+      "module": "src/client_local_host/preparation_program_check_layout.mbt",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing original Request preparation, checked compiler and Resource borrower owners",
+      "referenceQualification": "Actual typed Request/Source/compiler/borrower/Run components with explicit nominal physical-parent and owner-ACK ports only; no real Wasm allocation, complete physical phase backing, ordinary Python, durable approval/Result/Saved or external ABI acceptance.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "program_check_preparation_initial_inventory"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_source_input_wbtest.mbt",
+                "anchor": "test \"funded Source Request keeps same Parameter compiler and borrower through actual pending retirement\" {"
+              }
+            ]
+          }
+        }
+      ],
+      "sha256": "9974259404ed518e5f7fcaf270577c6c5b53d7b38432ede0f431e947a94426bc",
+      "operations": [
+        {
+          "name": "program_check_preparation_initial_inventory",
+          "declaration": "program_check_preparation_initial_inventory ( ) - > @ execution . PreparationRepresentationUnits"
+        }
+      ],
+      "exports": []
+    },
+    {
+      "module": "src/client_local_host/preparation_request_source_input.mbt",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing original Request preparation, checked compiler and Resource borrower owners",
+      "referenceQualification": "Actual typed Request/Source/compiler/borrower/Run components with explicit nominal physical-parent and owner-ACK ports only; no real Wasm allocation, complete physical phase backing, ordinary Python, durable approval/Result/Saved or external ABI acceptance.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I,P,D]borrow_request_source_preparation_owned",
+            "[I]borrow_request_source_preparation",
+            "[I]clear_request_source_input",
+            "[I]prepare_request_source_input",
+            "[I]request_source_handoff_quote",
+            "[I]request_source_input_construction_bytes",
+            "[I]request_source_input_original",
+            "[I]request_source_input_parts",
+            "to_repr"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_source_input_wbtest.mbt",
+                "anchor": "test \"funded Source Request keeps same Parameter compiler and borrower through actual pending retirement\" {"
+              }
+            ]
+          }
+        }
+      ],
+      "sha256": "49c0c17a223d9b4890693e0ab51c6d773d4a0c1e42b42856d54b33b1fead99b7",
+      "operations": [
+        {
+          "name": "[I,P,D]borrow_request_source_preparation_owned",
+          "declaration": "[ I , P , D ] borrow_request_source_preparation_owned ( owner : ClientRequestPreparation [ I ] , input : I , capacity : @ resources . PreparationCapacity [ I , P ] , source : @ publication_host . ClientSourceInput , prepared : D , retain_original : ( @ publication_host . ClientSourceInput , D ) - > Result [ @ publication_host . ClientSourcePreparation , @ publication_host . ClientSourcePreparationIssue , ] , ) - > Result [ @ resources . PreparationBodyBorrow [ @ publication_host . ClientSourcePreparation ] , ClientRequestPreparationIssue , ]"
+        },
+        {
+          "name": "[I]borrow_request_source_preparation",
+          "declaration": "[ I ] borrow_request_source_preparation ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ @ resources . PreparationBodyBorrow [ @ publication_host . ClientSourcePreparation ] , ClientRequestPreparationIssue , ]"
+        },
+        {
+          "name": "[I]clear_request_source_input",
+          "declaration": "[ I ] clear_request_source_input ( owner : ClientRequestPreparation [ I ] ) - > Unit"
+        },
+        {
+          "name": "[I]prepare_request_source_input",
+          "declaration": "[ I ] prepare_request_source_input ( owner : ClientRequestPreparation [ I ] , input : I , environment : @ checked . CheckEnvironment , publication : String , ) - > Result [ Unit , ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "[I]request_source_handoff_quote",
+          "declaration": "[ I ] request_source_handoff_quote ( owner : ClientRequestPreparation [ I ] , r : Int64 , e : Int64 , ) - > Result [ ( Int64 , Int64 ) , ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "[I]request_source_input_construction_bytes",
+          "declaration": "[ I ] request_source_input_construction_bytes ( owner : ClientRequestPreparation [ I ] , ) - > Int64 ?"
+        },
+        {
+          "name": "[I]request_source_input_original",
+          "declaration": "[ I ] request_source_input_original ( owner : ClientRequestPreparation [ I ] , ) - > @ publication_host . ClientSourceInput ?"
+        },
+        {
+          "name": "[I]request_source_input_parts",
+          "declaration": "[ I ] request_source_input_parts ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ ( String , @ frontend . Format , String ? , @ decode . Cursor ? ) , ClientRequestPreparationIssue , ]"
+        },
+        {
+          "name": "to_repr",
+          "declaration": "to_repr ( self )"
+        }
+      ],
+      "exports": []
+    },
+    {
+      "module": "src/run_publication_host/client_source_preparation.mbt",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing submitted Source, checked compiler and original Request preparation owners",
+      "referenceQualification": "Actual Core Source/parser/lowerer/compiler-original components only; no Resource/physical backing, Host caller, Run, cleanup ACK, ordinary or executable restore acceptance.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[T]source_result",
+            "client_source_computation_matches",
+            "client_source_computation_material",
+            "client_source_computation_originals",
+            "client_source_computation_preparation",
+            "client_source_computation_request",
+            "client_source_computation_source",
+            "prepare_client_source_computation",
+            "source_prepared_publication_issue"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Retaining Source originals after Request compilation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Retaining Source originals after Request compilation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Retaining Source originals after Request compilation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Retaining Source originals after Request compilation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Retaining Source originals after Request compilation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Retaining Source originals after Request compilation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Retaining Source originals after Request compilation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Retaining Source originals after Request compilation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Retaining Source originals after Request compilation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Retaining Source originals after Request compilation"
+              },
+              {
+                "path": "src/run_publication_host/client_source_preparation_input_wbtest.mbt",
+                "anchor": "test \"Source request original Effect constructor retains intent before same body handoff without copying compiler output\" {"
+              },
+              {
+                "path": "src/run_publication_host/client_source_preparation_input_wbtest.mbt",
+                "anchor": "test \"Source request original nonnull Parameter cursor reaches SAME Effect compiler and rejects equal foreign cursor\" {"
+              }
+            ]
+          }
+        }
+      ],
+      "sha256": "51004e94d1c36468124775776fb1d2c1e6bd4e5de7c2787543e1c207deced9a3",
+      "operations": [
+        {
+          "name": "[T]source_result",
+          "declaration": "[ T ] source_result ( value : Result [ T , ClientSourcePreparationIssue ] , ) - > T raise ClientSourcePreparationStop"
+        },
+        {
+          "name": "client_source_computation_matches",
+          "declaration": "client_source_computation_matches ( value : ClientSourcePreparation , intent : ClientSubmittedIntent , environment : @ checked . CheckEnvironment , ) - > Bool"
+        },
+        {
+          "name": "client_source_computation_material",
+          "declaration": "client_source_computation_material ( value : ClientSourcePreparation , ) - > ( String , String ? )"
+        },
+        {
+          "name": "client_source_computation_originals",
+          "declaration": "client_source_computation_originals ( value : ClientSourcePreparation , ) - > ( String , String , String , String )"
+        },
+        {
+          "name": "client_source_computation_preparation",
+          "declaration": "client_source_computation_preparation ( value : ClientSourcePreparation , ) - > ClientSourceProgramPreparation"
+        },
+        {
+          "name": "client_source_computation_request",
+          "declaration": "client_source_computation_request ( value : ClientSourcePreparation , authority_scope_cid : String , request_id : String , ) - > Result [ ClientRequestIdentity , ClientRequestIdentityIssue ]"
+        },
+        {
+          "name": "client_source_computation_source",
+          "declaration": "client_source_computation_source ( value : ClientSourcePreparation , ) - > ( String , String , String ? )"
+        },
+        {
+          "name": "prepare_client_source_computation",
+          "declaration": "prepare_client_source_computation ( intent : ClientSubmittedIntent , environment : @ checked . CheckEnvironment , publication : String , public_primary ? : Bool"
+        },
+        {
+          "name": "source_prepared_publication_issue",
+          "declaration": "source_prepared_publication_issue ( issue : @ source_publication . PreparedPublicationIssue , ) - > ClientSourcePreparationIssue"
+        }
+      ],
+      "exports": []
+    },
+    {
+      "module": "src/run_publication_host/client_source_preparation_input.mbt",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing submitted Source, checked compiler and original Request preparation owners",
+      "referenceQualification": "Actual Core Source/parser/lowerer/compiler-original components only; no Resource/physical backing, Host caller, Run, cleanup ACK, ordinary or executable restore acceptance.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[T]same_client_source_optional",
+            "client_source_input_matches",
+            "client_source_input_original",
+            "client_source_input_parts",
+            "lower_client_source_input_query",
+            "observe_client_source_input_query",
+            "observe_prepare_checked_client_source_effect_computation",
+            "prepare_client_source_input",
+            "retain_compiled_client_source_input",
+            "source_input_effect_candidate_matches"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Retaining Source originals after Request compilation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Retaining Source originals after Request compilation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Retaining Source originals after Request compilation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Retaining Source originals after Request compilation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Retaining Source originals after Request compilation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Retaining Source originals after Request compilation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Retaining Source originals after Request compilation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Retaining Source originals after Request compilation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Retaining Source originals after Request compilation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Retaining Source originals after Request compilation"
+              },
+              {
+                "path": "src/run_publication_host/client_source_preparation_input_wbtest.mbt",
+                "anchor": "test \"Source request original Effect constructor retains intent before same body handoff without copying compiler output\" {"
+              },
+              {
+                "path": "src/run_publication_host/client_source_preparation_input_wbtest.mbt",
+                "anchor": "test \"Source request original nonnull Parameter cursor reaches SAME Effect compiler and rejects equal foreign cursor\" {"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "clear_client_source_input",
+            "retain_compiled_client_source_effect_input",
+            "retain_compiled_client_source_pure_input"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_source_input_wbtest.mbt",
+                "anchor": "test \"funded Source Request keeps same Parameter compiler and borrower through actual pending retirement\" {"
+              }
+            ]
+          }
+        }
+      ],
+      "sha256": "105e2c1eb0671dc5a88d5993fb3fbdf2e18b320526de63a4e8dbb11e573689a8",
+      "operations": [
+        {
+          "name": "[T]same_client_source_optional",
+          "declaration": "[ T ] same_client_source_optional ( a : T ? , b : T ? ) - > Bool"
+        },
+        {
+          "name": "clear_client_source_input",
+          "declaration": "clear_client_source_input ( input : ClientSourceInput ) - > Unit"
+        },
+        {
+          "name": "client_source_input_matches",
+          "declaration": "client_source_input_matches ( input : ClientSourceInput , intent : ClientSubmittedIntent , environment : @ checked . CheckEnvironment , publication : String , ) - > Bool"
+        },
+        {
+          "name": "client_source_input_original",
+          "declaration": "client_source_input_original ( input : ClientSourceInput ) - > Bool"
+        },
+        {
+          "name": "client_source_input_parts",
+          "declaration": "client_source_input_parts ( input : ClientSourceInput , ) - > Result [ ( String , @ source_frontend . Format , String ? , @ decode . Cursor ? ) , ClientSourcePreparationIssue , ]"
+        },
+        {
+          "name": "lower_client_source_input_query",
+          "declaration": "lower_client_source_input_query ( input : ClientSourceInput , publication : @ source_publication . PreparedPublishedQueryEnvironment , environment : @ checked . CheckEnvironment , query : @ query_syntax . Query , public_primary ? : Bool"
+        },
+        {
+          "name": "observe_client_source_input_query",
+          "declaration": "observe_client_source_input_query ( input : ClientSourceInput , source_path ? : String"
+        },
+        {
+          "name": "observe_prepare_checked_client_source_effect_computation",
+          "declaration": "observe_prepare_checked_client_source_effect_computation ( input : ClientSourceInput , computation : @ checked . EffectComputationCandidate , limits : ClientEffectComputationLimits , update_targets ? : @ update_targets . UpdateTargetPublication ?"
+        },
+        {
+          "name": "prepare_client_source_input",
+          "declaration": "prepare_client_source_input ( intent : ClientSubmittedIntent , environment : @ checked . CheckEnvironment , publication : String , ) - > Result [ ClientSourceInput , ClientSourcePreparationIssue ]"
+        },
+        {
+          "name": "retain_compiled_client_source_effect_input",
+          "declaration": "retain_compiled_client_source_effect_input ( input : ClientSourceInput , prepared : PreparedClientEffectComputation , ) - > Result [ ClientSourcePreparation , ClientSourcePreparationIssue ]"
+        },
+        {
+          "name": "retain_compiled_client_source_input",
+          "declaration": "retain_compiled_client_source_input ( input : ClientSourceInput , preparation : ClientSourceProgramPreparation , ) - > Result [ ClientSourcePreparation , ClientSourcePreparationIssue ]"
+        },
+        {
+          "name": "retain_compiled_client_source_pure_input",
+          "declaration": "retain_compiled_client_source_pure_input ( input : ClientSourceInput , prepared : PreparedClientProgram , ) - > Result [ ClientSourcePreparation , ClientSourcePreparationIssue ]"
+        },
+        {
+          "name": "source_input_effect_candidate_matches",
+          "declaration": "source_input_effect_candidate_matches ( input : ClientSourceInput , candidate : @ checked . EffectComputationCandidate , ) - > Bool"
+        }
+      ],
+      "exports": []
     }
   ]
 }

@@ -98,6 +98,7 @@ struct ClientRequestPreparation[I] {
   mut snapshot_units : Int64
   mut snapshot_values : Int64
   mut submitted_intent : @publication_host.ClientSubmittedIntent?
+  mut source_input : ClientRequestSourceInput?
   mut intent_base : (Int64, Int64)?
   mut intent_attempted : Bool
   mut intent_peak_live : Bool
@@ -182,6 +183,7 @@ pub(all) enum ClientRequestPreparationIssue {
   ProgramCheck(ClientProgramCheckPreparationIssue)
   Parameters(@local_preparation.LocalProgramInputIssue)
   Intent(@publication_host.ClientSubmittedIntentIssue)
+  SourceInput(ClientRequestSourceInputIssue)
   Work(@resources.PreparationWorkIssue)
   ParameterDeclarations(@parameters.Issue)
   ParameterSource(@stages.Issue)
@@ -197,15 +199,16 @@ pub impl Debug for ClientProgramCheckPreparationIssue with fn to_repr(self) {
 
 ///|
 // One conservative fixed Host/Request control envelope, expressed through the
-// existing common representation tariff. Preserve the original upper bound:
-// 10,368 logical bytes plus the existing separate 4,096-byte installed group.
+// existing common representation tariff. Preserve the original 10,368-byte
+// envelope plus one Source-context reference slot: 10,376 logical bytes and
+// the existing separate 4,096-byte installed group.
 // This is intentionally independent of JS closure, carrier and array spelling.
 // Input/AST/wire/row/operation storage, selected domain construction and live
 // child overlap remain separately charged before their actual constructors.
 // The fixed envelope is immutable DATA, not a reservation, phase or RSS bound.
 let request_preparation_fixed_control_envelope : @execution.PreparationRepresentationUnits = {
   record_headers: 220L,
-  reference_slots: 401L,
+  reference_slots: 402L,
   scalar_words: 455L,
   owned_utf16_units: 0L,
   owned_wire_bytes: 0L,
@@ -297,6 +300,7 @@ fn[I] begin_request_preparation_original(
     snapshot_units: 0L,
     snapshot_values: 0L,
     submitted_intent: None,
+    source_input: None,
     intent_base: None,
     intent_attempted: false,
     intent_peak_live: false,
@@ -621,6 +625,7 @@ pub fn[I] abort_request_preparation_after_cleanup(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  clear_request_source_input(owner)
   owner.submitted_intent = None
   owner.intent_base = None
   owner.intent_peak_live = false
