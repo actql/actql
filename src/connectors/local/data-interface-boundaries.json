@@ -597,7 +597,7 @@
   {
     "module": "adapters/connectors/local/host/iceberg-process.mjs",
     "responsibilityFacet": "primary",
-    "sha256": "bf707cb9153187476f5becb8d2931162caa0f5ec5c3f2292bf57924a19f14be6",
+    "sha256": "72380f852bf9b9c091670a9eb2397dc9bbc04a2f5961347734b1c4dc206cda49",
     "exports": [
       "admitIcebergStorageMapping",
       "createIcebergPhysicalBridge",
@@ -706,7 +706,8 @@
           "rows",
           "reservation",
           "schemaWire",
-          "beforeBodyAllocation"
+          "beforeBodyAllocation",
+          "bodyReceived"
         ],
         "async": false
       },
@@ -723,7 +724,8 @@
           "receipt",
           "mapping",
           "signal",
-          "beforeBodyAllocation"
+          "beforeBodyAllocation",
+          "bodyReceived"
         ],
         "async": true
       },
@@ -740,7 +742,8 @@
         "parameters": [
           "selector",
           "signal",
-          "beforeBodyAllocation"
+          "beforeBodyAllocation",
+          "bodyReceived"
         ],
         "async": true
       },
@@ -770,7 +773,8 @@
           "payload",
           "signal",
           "stopped",
-          "beforeBodyAllocation"
+          "beforeBodyAllocation",
+          "bodyReceived"
         ],
         "async": true
       },
@@ -794,7 +798,8 @@
         "parameters": [
           "operation",
           "signal",
-          "beforeBodyAllocation"
+          "beforeBodyAllocation",
+          "bodyReceived"
         ],
         "async": false
       },
@@ -954,6 +959,10 @@
             {
               "path": "spec/contracts/actql-local-table-iceberg.json",
               "anchor": "\"operations\""
+            },
+            {
+              "path": "docs/design/table-materialization.md",
+              "anchor": "The separate original `bodyReceived` entry"
             }
           ],
           "inputsOutputs": [
@@ -964,6 +973,10 @@
             {
               "path": "adapters/connectors/local/iceberg/README.md",
               "anchor": "Only flat Boolean"
+            },
+            {
+              "path": "docs/design/table-materialization.md",
+              "anchor": "The separate original `bodyReceived` entry"
             }
           ],
           "identity": [
@@ -978,6 +991,10 @@
             {
               "path": "adapters/connectors/local/iceberg/physical.py",
               "anchor": "StorageMappingIdentity"
+            },
+            {
+              "path": "docs/design/table-materialization.md",
+              "anchor": "The separate original `bodyReceived` entry"
             }
           ],
           "ownership": [
@@ -992,6 +1009,10 @@
             {
               "path": "adapters/connectors/local/host/iceberg-process.mjs",
               "anchor": "const preparations = new WeakMap"
+            },
+            {
+              "path": "docs/design/table-materialization.md",
+              "anchor": "The separate original `bodyReceived` entry"
             }
           ],
           "synchronization": [
@@ -1002,6 +1023,10 @@
             {
               "path": "adapters/connectors/local/host/iceberg-process.mjs",
               "anchor": "owned.attempted"
+            },
+            {
+              "path": "docs/design/table-materialization.md",
+              "anchor": "The separate original `bodyReceived` entry"
             }
           ],
           "failure": [
@@ -1016,6 +1041,10 @@
             {
               "path": "adapters/connectors/local/iceberg/README.md",
               "anchor": "Missing, malformed, foreign or unconfirmed responses"
+            },
+            {
+              "path": "docs/design/table-materialization.md",
+              "anchor": "The separate original `bodyReceived` entry"
             }
           ],
           "cancellation": [
@@ -1026,6 +1055,10 @@
             {
               "path": "adapters/connectors/local/iceberg/README.md",
               "anchor": "Cancellation and channel closure"
+            },
+            {
+              "path": "docs/design/table-materialization.md",
+              "anchor": "The separate original `bodyReceived` entry"
             }
           ],
           "resources": [
@@ -1044,6 +1077,10 @@
             {
               "path": "adapters/connectors/local/iceberg/README.md",
               "anchor": "No new capacity coefficients"
+            },
+            {
+              "path": "docs/design/table-materialization.md",
+              "anchor": "The separate original `bodyReceived` entry"
             }
           ],
           "extension": [
@@ -1058,6 +1095,10 @@
             {
               "path": "adapters/connectors/local/iceberg/README.md",
               "anchor": "Unsupported types"
+            },
+            {
+              "path": "docs/design/table-materialization.md",
+              "anchor": "The separate original `bodyReceived` entry"
             }
           ],
           "verification": [
@@ -1072,6 +1113,10 @@
             {
               "path": "adapters/connectors/local/iceberg/process_worker_test.py",
               "anchor": "class ProcessTests"
+            },
+            {
+              "path": "docs/design/table-materialization.md",
+              "anchor": "The separate original `bodyReceived` entry"
             }
           ]
         }

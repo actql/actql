@@ -417,6 +417,20 @@ actual original Request/Run and admit the simultaneous constructor material
 before returning. Omitting the optional transport entry preserves the existing
 transport behavior but does not establish managed Table backing.
 
+The separate original `bodyReceived` entry receives only the fully arrived
+Buffer before UTF8/JSON decoding, including a subsequently refused payload.
+An announced length or successful parser return cannot manufacture that
+received-byte fact. The original response Buffer is neither copied nor
+re-encoded for this observation. The caller must consume each actual RowRun
+ticket at its corresponding original observation/page boundary; this transport
+entry itself issues no ticket or row and cannot infer a business outcome.
+Both synchronous entries use the SAME process callback custody and original
+cleanup. An asynchronous received-body result is refused and remains retained
+until its original task settles; foreign unjoined results stay pending.
+The Table bridge captures the original callbacks outside wire DATA, forwarding
+them unchanged through live reads and the original prepared operation.
+
+
 A refused entry dispatches no body. Its original cause, including immutable
 errors and thrown undefined, remains attached to the same process cleanup.
 A mistakenly returned task cannot stand in for backing: the existing process
