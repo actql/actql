@@ -147,7 +147,12 @@ export async function writeSyntheticHistoricalHeldValues({directory, document,
   // returned acceptance result; the original binding is independently hashed.
   environmentBody.host_policy_profile.capacity = {max_graph_construction_edges: 1000,
     max_graph_construction_input_rows: 1000, max_graph_construction_nodes: 1000,
-    ...environmentBody.host_policy_profile.capacity};
+    ...environmentBody.host_policy_profile.capacity,
+    // The ordinary materializing Local factory projects these two fields from
+    // its original 512MiB policy / 256-byte logical value-node unit. These are
+    // independent Source preimages, not a returned Host CID or memory grant.
+    max_relation_output_rows: 536870912 / 256,
+    max_artifact_rows: 536870912 / 256};
   const binding = {authorization_context_cid: cid({principal: principalId,
     account_id: account.account_id, configuration_cid: configurationCid, source_configuration_cid: null}),
   environment_binding_cid: cid({version: 'actql-remote-run-acceptance-environment/0.1', site_key: siteKey,
