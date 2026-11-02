@@ -39,8 +39,12 @@ def report_contexts(failure: BaseException, stream) -> None:
             break
         stream.write(wire)
         stream.flush()
-        for linked in (current.__context__, current.__cause__):
-            if linked is not None:
+        # Local submission preserves its original failure as a retained
+        # exception attribute before raising outside the except block. Read
+        # only that known exception carrier, never arbitrary diagnostic values.
+        retained = vars(current).get('original_error')
+        for linked in (current.__context__, current.__cause__, retained):
+            if isinstance(linked, BaseException):
                 pending.append(linked)
 
 
