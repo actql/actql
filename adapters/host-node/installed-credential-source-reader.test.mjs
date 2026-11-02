@@ -111,12 +111,14 @@ test('shared reader typed page stop retains the pending original consumption unt
   assert.deepEqual(f.counts(), {sends: 1, charges: 1, consumes: 1, closes: 1});
 });
 
-function fixture({pendingRead, pendingBinding = false, responseGrowth = false, growthFailure, wholeInput = false} = {}) {
+function fixture({pendingRead, pendingBinding = false, responseGrowth = false, growthFailure, wholeInput = false,
+  providerRetirementFailure, providerRetirementAllowed = () => true} = {}) {
   const events = [], raw = {grant: {}, scope: {operation: 'read'}}, credential = {}, capacity = {}, charge = {}, began = deferred();
   const response = Object.freeze({body: Buffer.from('same received bytes')});
   let current = true, bindingCanClose = !pendingBinding, providerRetired = false, requestSignal;
   let retainedOptions, cleanup, coreRetired = false, preparedReader;
   let captureCleanupReady = true;
+  const providerReadPending = deferred();
   const site = {}, acquisition = Object.freeze({credential, close() {
     assert.equal(this, acquisition); events.push('binding-close'); return bindingCanClose ? 'closed' : 'pending';
   }});
@@ -145,11 +147,13 @@ function fixture({pendingRead, pendingBinding = false, responseGrowth = false, g
             assert.equal(actual,response);if(responseGrowth)events.push('project-response');
           }};
         }});
-        if (pendingRead) await pendingRead;
+        if (pendingRead) {providerReadPending.resolve();await pendingRead;}
         requestSignal.throwIfAborted();
         await context.consumePage([{id:1}]);
       }, retire() {
-        assert.equal(this, provider);providerRetired = true;retainedOptions = undefined;return true;
+        assert.equal(this, provider);
+        if (!providerRetirementAllowed()) throw providerRetirementFailure;
+        providerRetired = true;retainedOptions = undefined;return true;
       }});
       return provider;
     }});
@@ -217,7 +221,7 @@ function fixture({pendingRead, pendingBinding = false, responseGrowth = false, g
   const session = startInstalledRowRun({moon, acquisition: source, nonce: 'one', ledger,
     ...(wholeInput ? {wholeInput:true,originalRead} : {}),
     capacity: {provider: capacity, transferBytes: 100n, executionBytes: 100n}});
-  return {factory, options, events, session, response, readBegan: began.promise,
+  return {factory, options, events, session, response, readBegan: began.promise, providerReadPending: providerReadPending.promise,
     // Observe the exact returned original; read/stop/observe are never wrapped
     // or replaced. This is fixture custody, not an installed supplier overlay.
     read() {return session.readProvider({prepare(actual,retainPreparation,reserveResponseCapacity) {
@@ -631,4 +635,34 @@ test('shared native typed consumption keeps pending original cells and charge th
   gate.resolve();await assert.rejects(reading, cause => cause.name === 'AbortError');
   assert.equal(f.reader.observe().cleanupConfirmed, true);assert.equal(f.factory.retire(), true);
   assert.deepEqual(f.counts(), {sends: 1, closes: 1, uses: 1, consumes: 1, charges: 1, retired: 1});
+});
+
+// Same actual original shared reader/RowRun fixture, with a pending selected
+// provider, thrown undefined, and an independently failing original retirement.
+// No Ledger/resource/physical ACK or normal provider acceptance is fabricated.
+test('shared reader original undefined rejection survives concurrent stop and original retirement failure', async () => {
+  let rejectRead, retirementAllowed = false;
+  const pendingRead = new Promise((_resolve, reject) => {rejectRead = reject;});
+  const cleanupFailure = Object.freeze(new Error('original provider retirement failed'));
+  const f = fixture({pendingRead, providerRetirementFailure:cleanupFailure,
+    providerRetirementAllowed:()=>retirementAllowed});
+  const work = f.read();
+  await f.providerReadPending;
+  const original = f.reader();
+  original.requestStop();
+  assert.equal(original.observe().readPending,true);
+  rejectRead(undefined);
+  let rejected = false, cause;
+  try {await work;} catch (value) {rejected=true;cause=value;}
+  assert.equal(rejected,true);assert.strictEqual(cause,undefined,'original failed phase carries presence even for undefined');
+  assert.equal(original.observe().cleanupConfirmed,false);
+  assert.equal(original.observe().transportFailure,true);
+  assert.equal(f.inspect().providerRetired,false);assert.equal(f.inspect().coreRetired,false);
+  assert.throws(()=>original.retry(),error=>error===cleanupFailure);
+  assert.equal(original.observe().cleanupConfirmed,false);
+  retirementAllowed=true;
+  original.retry();assert.equal(original.observe().cleanupConfirmed,true);
+  assert.equal(f.inspect().providerRetired,true);
+  f.session.close();assert.equal(f.inspect().coreRetired,true);
+  assert.equal(f.factory.retire(),true);
 });

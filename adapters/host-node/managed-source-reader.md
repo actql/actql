@@ -451,3 +451,17 @@ reader still needs its own original initial controls, outbound/profile material,
 row serialization/output and failed-child overlap, actual Source registration
 and same-Request Plan before it can run. These obligations cannot be inferred
 from this pure quote or the explicit Core consuming component.
+
+## Original read rejection during retirement
+
+The existing reader phase records rejection presence independently of its
+value. A provider may reject with `undefined` after an original stop request;
+that remains the original read rejection. If cleanup of the same provider or
+binding also throws in the outer `finally`, keep that retirement failure in
+the original transport-failure state and retain its cleanup duty. It must not
+replace the read rejection merely because the original value is undefined.
+The same original reader retry remains fallible until that provider actually
+retires; no cleanup flag is cleared to manufacture acknowledgement. A cleanup
+exception after a previously successful read is still a cleanup exception.
+This changes no current boundary, capacity, callback count, physical stop or
+response evidence rule.

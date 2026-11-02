@@ -548,7 +548,12 @@ export function createInstalledCredentialSourceReader(options) {
             try {
               if (stopped) cleanup();
             }
-            catch (cause) {transportFailure ??= cause;hadTransportFailure = true;if (primary === undefined) throw cause;}
+            catch (cause) {
+              transportFailure ??= cause;hadTransportFailure = true;
+              // The existing failed phase records rejection PRESENCE. Its
+              // original value may be undefined; cleanup cannot replace it.
+              if (phase !== 'failed') throw cause;
+            }
           }
         },
         requestStop(reason) {

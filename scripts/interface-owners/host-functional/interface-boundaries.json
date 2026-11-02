@@ -121343,7 +121343,7 @@
     },
     {
       "module": "adapters/host-node/installed-credential-source-reader.mjs",
-      "sha256": "dcb8f8e8f4fd284f2ec9ffbe3f951d9ebb7c0bb65a947072828be7ea3469267e",
+      "sha256": "66df22ee9b82437cd6476665764c35898e71d414042ee7ced8db2e879af4b2ba",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -121718,6 +121718,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original read rejection during retirement"
               }
             ],
             "inputsOutputs": [
@@ -121740,6 +121744,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original read rejection during retirement"
               }
             ],
             "identity": [
@@ -121762,6 +121770,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original read rejection during retirement"
               }
             ],
             "ownership": [
@@ -121784,6 +121796,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original read rejection during retirement"
               }
             ],
             "synchronization": [
@@ -121806,6 +121822,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original read rejection during retirement"
               }
             ],
             "failure": [
@@ -121828,6 +121848,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original read rejection during retirement"
               }
             ],
             "cancellation": [
@@ -121850,6 +121874,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original read rejection during retirement"
               }
             ],
             "resources": [
@@ -121872,6 +121900,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original read rejection during retirement"
               }
             ],
             "extension": [
@@ -121894,6 +121926,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original read rejection during retirement"
               }
             ],
             "verification": [
@@ -121936,6 +121972,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original read rejection during retirement"
               }
             ]
           }
