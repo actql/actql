@@ -672,8 +672,29 @@ export function openRowSourceCredentialCustody({profile, principalId,
       released = true;
     }});
   }
-  return Object.freeze({credential, sign, signInstallationMetadata,
+  const custody = Object.freeze({credential, sign, signInstallationMetadata,
     ...(construction === undefined ? {} : {construction}),
+    ...(construction === undefined ? {} : {retainOperationSite(site) {
+      ensureOpen();
+      if (this !== custody || site === null || typeof site !== 'object' ||
+          nodeTypes.isProxy(site) || !Object.isFrozen(site)) fail('ForeignInstalledCredentialOperationSite');
+      const fields = Object.getOwnPropertyDescriptors(site);
+      if (!Object.hasOwn(fields.credential ?? {}, 'value') || fields.credential.value !== credential ||
+          !Object.hasOwn(fields.callResource ?? {}, 'value') || typeof fields.callResource.value !== 'function' ||
+          !Object.hasOwn(fields.connection ?? {}, 'value') || !text(fields.connection.value)) {
+        fail('ForeignInstalledCredentialOperationSite');
+      }
+      const retained = operationSites.get(credential);
+      if (retained !== undefined) {
+        if (retained.site !== site) fail('ForeignInstalledCredentialOperationSite');
+        return site;
+      }
+      // This same private issuer binds its own original Site. No caller may
+      // replace the custody, credential, principal or immutable runtime facts.
+      return retainCredentialOperationSite(site, custody,
+        {connection: fields.connection.value, principalId, connectorRegistration,
+          connectorRevision, runtimeBundleCid}, true);
+    }}),
     installationMetadataJournal, openRunAcquisition, bindRunAcquisition, authorizationPurpose, readChildCredential,
     checkGrantRequest, ensureOpen,
     referenceCurrent: () => !closing,
@@ -684,6 +705,7 @@ export function openRowSourceCredentialCustody({profile, principalId,
     closeOnce() { if (!released) close(); },
     cleanupPending: () => closing && !released,
   });
+  return custody;
 }
 
 // An operational alternative of this same installed Credential Site. Common
@@ -2626,7 +2648,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
             : directReadIdentity.useId(nonce, index);
           if (!text(useId)) fail('InvalidInstalledSourceReadIdentity');
           return {...grant, useId};
-        }, authorizeReadChild: async (childOperation,index,occurrence) => {
+        }, authorizeReadChild: async (childOperation,index,occurrence,supplied) => {
           if (readerDemand?.sequence !== undefined || readerDemand?.sequences !== undefined) {
             const sequence = readerDemand.sequences?.[owner.resource] ?? readerDemand.sequence;
             if (sequence === undefined || operation !== sequence.operation || !Number.isSafeInteger(index) || index !== readChildIndex ||
@@ -2647,6 +2669,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
             // Site callback. Failure cannot restore a consumed request/use.
             readChildOriginals.set(occurrence,true);
             const decision = await currentRead(prepared,access,signal);
+            if (supplied !== undefined) return supplied;
             const childGranted = owner.originalRead === undefined && decision.basis === 'resumed_approval'
               ? site.admitCheckpointReadApproval(decision) : decision;
             let original = childOperation === operation ? grant : readChildGrants.get(childOperation);
@@ -2687,6 +2710,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
             }
             readChildIndex++;
             const decision = await currentRead(prepared, access, signal);
+            if (supplied !== undefined) return supplied;
             const childGranted = owner.originalRead === undefined && decision.basis === 'resumed_approval'
               ? site.admitCheckpointReadApproval(decision) : decision;
             if (entry !== undefined && entry.grant === undefined) {
@@ -2704,6 +2728,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
             fail('InvalidInstalledSourceReadChild');
           }
           await currentRead(prepared, access, signal);
+          if (supplied !== undefined) return supplied;
           let original = childOperation === operation ? grant : readChildGrants.get(childOperation);
           if (original === undefined) {
             original = site.issueReadGrant({operation:childOperation,decision:granted,
@@ -2728,6 +2753,10 @@ export async function createInstalledRowSource({moon, declaration, commands,
           if (charge === undefined) fail('InvalidInstalledSourcePageCharge');
           return checked(moon.clientProgramRowSourceAcceptChargedProjectedPage(run, charge, page));
         },
+        ...(originalReader === undefined ? {} : {consumeValues: (columns, rows, {charge} = {}) => {
+          if (charge === undefined) fail('InvalidInstalledSourcePageCharge');
+          return checked(moon.clientProgramRowSourceAcceptChargedValues(run, charge, columns, rows));
+        }}),
         consumePageWire: (wire, {charge} = {}) => {
           if (typeof wire !== 'string') fail('InvalidInstalledSourcePageWire');
           const bytes = Buffer.from(wire, 'utf8');

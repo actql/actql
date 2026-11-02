@@ -14,8 +14,8 @@ test "preserving Source reader keeps the generic recipe and same retained respon
     3,
     Some(request),
   ).unwrap()
-  assert_eq(@execution.execution_capacity_retained_bytes(preserving), 3433L)
-  assert_eq(@execution.execution_capacity_retained_bytes(normalized), 3433L)
+  assert_eq(@execution.execution_capacity_retained_bytes(preserving), 3505L)
+  assert_eq(@execution.execution_capacity_retained_bytes(normalized), 3505L)
   // Keep the normalizing recipe's original complete execution envelope. Its
   // Unicode construction is owned by the pinned canonical Owner, not another
   // numeric NFC expansion expectation in this request-composition test.
@@ -53,7 +53,7 @@ test "preserving Source reader keeps the generic recipe and same retained respon
     @execution.execution_capacity_execution_bytes(large_request) +
     @execution.execution_capacity_retained_bytes(reader),
   )
-  assert_eq(@execution.execution_capacity_retained_bytes(request_first), 3433L)
+  assert_eq(@execution.execution_capacity_retained_bytes(request_first), 3505L)
   assert_true(
     @execution.execution_capacity_execution_bytes(preserving) <
     @execution.execution_capacity_execution_bytes(normalized),
