@@ -60356,7 +60356,7 @@
     },
     {
       "module": "src/client_local_host/installed_source_reader_capacity.mbt",
-      "sha256": "16a8c107720fccbfc5bf55255cfa27b24339c8af63649f5970bf2cfd17781384",
+      "sha256": "4b11f96a12872e8cd830e5e81a8b8b942786f92c80fb176182d02f6acc9429a9",
       "operations": [
         {
           "name": "installed_gmail_thread_reader_capacity",
@@ -60547,18 +60547,30 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The grid response selects the preserving Reader quote because its actual"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native signed children and original typed cells"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "src/client_local_host/installed_source_reader_capacity.mbt",
                 "anchor": "pub fn installed_preserving_json_source_reader_capacity_with_request("
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native signed children and original typed cells"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The grid response selects the preserving Reader quote because its actual"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native signed children and original typed cells"
               }
             ],
             "ownership": [
@@ -60569,6 +60581,10 @@
               {
                 "path": "src/decode_core/admission.mbt",
                 "anchor": "if is_container && parent_depth >= limits.max_depth {"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native signed children and original typed cells"
               }
             ],
             "synchronization": {
@@ -60578,6 +60594,10 @@
               {
                 "path": "src/client_local_host/installed_source_reader_capacity.mbt",
                 "anchor": "if limits.length() != 16 || columns < 1 || secret_bytes < 1 {"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native signed children and original typed cells"
               }
             ],
             "cancellation": {
@@ -60591,18 +60611,34 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The grid response selects the preserving Reader quote because its actual"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native signed children and original typed cells"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The grid response selects the preserving Reader quote because its actual"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native signed children and original typed cells"
               }
             ],
             "verification": [
               {
                 "path": "src/client_local_host/installed_preserving_source_reader_wbtest.mbt",
                 "anchor": "test \"Sheets existing response bounds use sequential active key maps without NFC or policy increase\""
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native signed children and original typed cells"
+              },
+              {
+                "path": "src/client_local_host/installed_source_reader_capacity_wbtest.mbt",
+                "anchor": "test \"JSON Source reader inventory uses shared tariff and separate retained workspace\""
               }
             ]
           }

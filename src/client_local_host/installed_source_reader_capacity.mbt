@@ -187,12 +187,21 @@ fn installed_json_source_reader_capacity_with_decoder(
   // file Owner; these are managed control records, not a physical FD price.
   let resolver_headers = 5L
   let resolver_slots = 11L
+  // The same Host/Reader retains two typed-value callbacks. Their original
+  // lexical state is shared with the existing RowRun/sequence, not copied.
+  // Count both allocated functions and their two envelope/environment slots.
+  let native_callback_headers = 2L
+  let native_callback_slots = 4L
   let retained : @execution.PreparationRepresentationUnits = {
-    record_headers: 39L + resolver_headers + 3L * originals,
+    record_headers: 39L +
+    resolver_headers +
+    native_callback_headers +
+    3L * originals,
     reference_slots: common_fields +
     provider_fields +
     closures +
     resolver_slots +
+    native_callback_slots +
     4L +
     2L * fields +
     9L * originals +
@@ -238,8 +247,16 @@ fn installed_json_source_reader_capacity_with_decoder(
   }
   // Current raw decode, provider row wire, parsed-row serialization, target
   // encoding and literal admission text are distinct live work buffers.
+  // A native signed child retains both original field descriptors, the
+  // two-field handoff and its extra argument through the current await.
+  // Include the optional method envelope and typed-consumption callback
+  // controls alongside that whole prefix, even though those calls ordinarily
+  // complete in sequence. No new variable payload or credential is copied.
+  let native_control_headers = 6L
+  let native_control_slots = 10L
+  let native_control_words = 8L
   let workspace : @execution.PreparationRepresentationUnits = {
-    record_headers: 20L,
+    record_headers: 20L + native_control_headers,
     reference_slots: 3L +
     18L +
     3L +
@@ -251,8 +268,9 @@ fn installed_json_source_reader_capacity_with_decoder(
     6L +
     4L +
     4L +
-    15L,
-    scalar_words: 12L,
+    15L +
+    native_control_slots,
+    scalar_words: 12L + native_control_words,
     owned_utf16_units: response +
     3L * limits[13].to_int64() +
     limits[10].to_int64() +

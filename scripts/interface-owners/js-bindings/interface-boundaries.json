@@ -78252,7 +78252,7 @@
     {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "8c0ba87141ded12b166bff7cd7e8d0115e5d254e9c6ac3a004ef661b0867242d",
+      "sha256": "68237a1372cfb1fee571d08554ef40b3fbedc6fd968a6bd88a92ab0132eb047a",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -78431,7 +78431,8 @@
           "parameters": [
             "childOperation",
             "index",
-            "occurrence"
+            "occurrence",
+            "supplied"
           ],
           "async": true
         },
@@ -78453,13 +78454,22 @@
         {
           "name": "createInstalledRowSource/acquire/readerOptions/readerOptions#7",
           "parameters": [
-            "wire",
+            "columns",
+            "rows",
             "charge"
           ],
           "async": false
         },
         {
           "name": "createInstalledRowSource/acquire/readerOptions/readerOptions#8",
+          "parameters": [
+            "wire",
+            "charge"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/acquire/readerOptions/readerOptions#9",
           "parameters": [
             "rows",
             "charge"
@@ -80266,7 +80276,8 @@
             "prepareImmutablePhysicalTargets/init:prepare/init:prepare",
             "prepareImmutablePhysicalTargets/init:prepare/init:prepare/init:prepare",
             "prepareImmutablePhysicalTargets/mismatch/mismatch",
-            "prepareImmutablePhysicalTargets/prepareImmutablePhysicalTargets"
+            "prepareImmutablePhysicalTargets/prepareImmutablePhysicalTargets",
+            "createInstalledRowSource/acquire/readerOptions/readerOptions#9"
           ],
           "exports": [
             "createInstalledRowSource"
@@ -80284,6 +80295,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "# Original installed row reader custody"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native signed children and original typed cells"
               }
             ],
             "inputsOutputs": [
@@ -80298,6 +80313,10 @@
               {
                 "path": "adapters/host-node/installed-row-run.mjs",
                 "anchor": "async function readProvider({prepare, receiver, options})"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native signed children and original typed cells"
               }
             ],
             "identity": [
@@ -80324,6 +80343,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "Standard REST installations hand their complete frozen physical-target DATA"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native signed children and original typed cells"
               }
             ],
             "ownership": [
@@ -80350,6 +80373,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Native Source original unknown recovery"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native signed children and original typed cells"
               }
             ],
             "synchronization": [
@@ -80384,6 +80411,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Native Source original unknown recovery"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native signed children and original typed cells"
               }
             ],
             "failure": [
@@ -80402,6 +80433,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Native Source original unknown recovery"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native signed children and original typed cells"
               }
             ],
             "cancellation": [
@@ -80420,6 +80455,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "pending read and stop Promises"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native signed children and original typed cells"
               }
             ],
             "resources": [
@@ -80446,6 +80485,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Native Source original unknown recovery"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native signed children and original typed cells"
               }
             ],
             "extension": [
@@ -80464,6 +80507,10 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "const credentialRead = owner.originalRead === undefined ||"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native signed children and original typed cells"
               }
             ],
             "verification": [
@@ -80518,6 +80565,14 @@
               {
                 "path": "adapters/host-node/installed-row-source-binding-originals.test.mjs",
                 "anchor": "test('same immutable binding removes generation/hash work without removing Account or Core target observations'"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native signed children and original typed cells"
+              },
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.test.mjs",
+                "anchor": "test('shared native reader keeps the Site original signed child without issuing another grant'"
               }
             ]
           }

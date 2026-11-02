@@ -105,6 +105,7 @@ export function createInstalledCredentialSourceReader(options) {
       let consumeObservation = managedSequence ? ownMethod(options, 'consumeObservation') : undefined;
       let consumePageWire = ownMethod(options, 'consumePageWire', true);
       let consumeProjectedPage = ownMethod(options, 'consumeProjectedPage', true);
+      let consumeValues = managedSequence ? ownMethod(options, 'consumeValues', true) : undefined;
       let selected = options, selectedSite = sourceSite;
       let stop = new AbortController(); unreturnedStop = stop;
       const originalSignal = options.signal;
@@ -164,7 +165,7 @@ export function createInstalledCredentialSourceReader(options) {
           responses = undefined;
           acquisition = closeBinding = retireBinding = selected = selectedSite = signal = stop = primary = undefined;
           provider = fetchPage = decodePage = runSequence = providerRetire = onError = setupFailure = undefined;
-          verifyRead = authorizationFor = authorizeReadChild = chargePage = consumeObservation = consumePage = consumePageWire = consumeProjectedPage = transportFailure = undefined;
+          verifyRead = authorizationFor = authorizeReadChild = chargePage = consumeObservation = consumePage = consumePageWire = consumeProjectedPage = consumeValues = transportFailure = undefined;
           retired = true; readers.delete(handle);
           return true;
         } finally {cleanupRunning = false;}
@@ -382,10 +383,25 @@ export function createInstalledCredentialSourceReader(options) {
                   occurrence.value === null || typeof occurrence.value !== 'object' || types.isProxy(occurrence.value))) {
                 fail('InvalidInstalledSourceReadChildOriginal');
               }
+              const originalField = Object.getOwnPropertyDescriptor(prepared, 'originalAuthorization');
+              const authorizationField = Object.getOwnPropertyDescriptor(prepared, 'authorization');
+              let supplied;
+              if (originalField !== undefined || authorizationField !== undefined) {
+                if (!Object.hasOwn(originalField ?? {}, 'value') ||
+                    !Object.hasOwn(authorizationField ?? {}, 'value')) fail('InvalidInstalledSourceReadChild');
+                // Native protocols keep the SAME Site-issued original. This
+                // envelope is DATA, never a grant or a second issuance. Invalid
+                // asynchronous fields remain with this reader until settled.
+                supplied = Object.freeze({originalAuthorization: sync(originalField.value),
+                  authorization: sync(authorizationField.value)});
+              }
               // This original is an occurrence key, not permission or another
               // request issuer. Preserve it unchanged across native cursors.
               const issued = await Reflect.apply(authorizeReadChild, selected,
-                occurrence === undefined ? [operation,responseCount] : [operation,responseCount,occurrence.value]);
+                supplied !== undefined ? [operation,responseCount,occurrence?.value,supplied]
+                  : occurrence === undefined ? [operation,responseCount] : [operation,responseCount,occurrence.value]);
+              if (supplied !== undefined && (issued?.originalAuthorization !== supplied.originalAuthorization ||
+                  issued?.authorization !== supplied.authorization)) fail('ForeignInstalledSourceReadChild');
               const originalAuthorization = issued?.originalAuthorization;
               if (issued?.authorization?.scope !== originalAuthorization?.scope ||
                   issued?.authorization?.grant !== originalAuthorization?.grant) fail('ForeignInstalledSourceReadChild');
@@ -432,6 +448,19 @@ export function createInstalledCredentialSourceReader(options) {
               lastCharge = undefined;rowCount += count;await verify();
             });
           },
+          ...(consumeValues === undefined ? {} : {consumeValues(columns, rows) {
+            return perform(async () => {
+              if (metadataRead) fail('InstalledSourceMetadataRowsUnavailable');
+              if (lastCharge === undefined || !Array.isArray(columns) || !Array.isArray(rows) ||
+                  types.isProxy(columns) || types.isProxy(rows)) fail('InvalidInstalledSourceReadChildPage');
+              const count = rows.length;
+              await verify();
+              const admitted = await Reflect.apply(consumeValues, selected,
+                [columns,rows,Object.freeze({charge:lastCharge})]);
+              if (admitted !== count) fail('InvalidInstalledSourceDecodedPage');
+              lastCharge = undefined;rowCount += count;await verify();
+            });
+          }}),
         });
         try {
           let sequenceFailure, sequenceFailed = false;
@@ -467,7 +496,7 @@ export function createInstalledCredentialSourceReader(options) {
               fail('InstalledSourceReaderPurposeUnavailable');
             }
             metadataRead = selectedPurpose.kind === 'installation-metadata';
-            if (managedSequence && !metadataRead && consumePage === undefined) fail('InstalledSourceReaderMethodUnavailable');
+            if (managedSequence && !metadataRead && consumePage === undefined && consumeValues === undefined) fail('InstalledSourceReaderMethodUnavailable');
             acquisition = Reflect.apply(bind, selectedSite, [original,Object.freeze({assertCurrent:check,observeCurrent:verify})]);
             retainAcquisitionMethods();
             if (selectedPurpose.kind === 'installation-metadata' &&

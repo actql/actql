@@ -211,3 +211,60 @@ test('immutable target selection borrows the same Source inventory without a sec
   assert.equal(f.inventoryOriginal[0].fields,targetData.fields);
   const prepared=f.initial();assert.deepEqual(prepared.physicalBinding.fields,['id','score']);
 });
+
+// The exact installed Source callback below spends the real occurrence branch
+// before delegating to the same current. Authority/current are explicit ports;
+// this proves no Common/Host/normal funding or physical acknowledgement.
+function nativeChildCaller({currentFailure = false} = {}) {
+  const original = one(create, node => node.type === 'Property' && node.key?.name === 'authorizeReadChild').value;
+  return Function('ports', 'nodeTypes', `
+    const fail=code=>{throw Object.assign(new Error(code),{code});};
+    const text=value=>typeof value==='string'&&value.length>0;
+    const operation='query',prepared={},access={},signal=undefined;
+    const owner={resource:'records',originalRead:{}};
+    const readerDemand={responses:4,sequence:{operation:'query',maxUses:2,
+      children:[{operation:'describe',maxUses:2}]}};
+    const limits={maxPages:4},grant={},granted={},nonce='authored-native';
+    const directReadIdentity=undefined;
+    let readChildIndex=0,rootReadUses=0,propertyOccurrences=0,currentCalls=0,issues=0;
+    const readChildOriginals=new WeakMap(),readChildUses=new Map(),readChildGrants=new Map();
+    const site={issueReadGrant(){issues++;throw new Error('No second native grant');}};
+    const currentRead=async()=>{currentCalls++;if(ports.currentFailure)throw undefined;
+      return {basis:'authored-current',action:'dispatch'};};
+    const invoke=${slice(original)};
+    return {invoke,counts:()=>({readChildIndex,rootReadUses,currentCalls,issues,
+      describes:readChildUses.get('describe')??0})};
+  `)({currentFailure},nodeTypes);
+}
+
+test('installed Source native child forwards the same issued original after one occurrence and current without a second grant',async()=>{
+  const f=nativeChildCaller(),occurrence=Object.freeze({});
+  const supplied=Object.freeze({originalAuthorization:Object.freeze({}),authorization:Object.freeze({})});
+  assert.equal(await f.invoke('describe',0,occurrence,supplied),supplied);
+  assert.deepEqual(f.counts(),{readChildIndex:1,rootReadUses:0,currentCalls:1,issues:0,describes:1});
+  await assert.rejects(f.invoke('describe',1,occurrence,supplied),{code:'InvalidInstalledSourceReadChild'});
+  assert.deepEqual(f.counts(),{readChildIndex:1,rootReadUses:0,currentCalls:1,issues:0,describes:1});
+});
+
+test('installed Source native child current refusal keeps the consumed original occurrence and exact thrown undefined',async()=>{
+  const f=nativeChildCaller({currentFailure:true}),occurrence=Object.freeze({});
+  const supplied=Object.freeze({originalAuthorization:Object.freeze({}),authorization:Object.freeze({})});
+  let caught=false;try{await f.invoke('describe',0,occurrence,supplied);}catch(cause){caught=true;assert.equal(cause,undefined);}
+  assert.equal(caught,true);
+  await assert.rejects(f.invoke('describe',1,occurrence,supplied),{code:'InvalidInstalledSourceReadChild'});
+  assert.deepEqual(f.counts(),{readChildIndex:1,rootReadUses:0,currentCalls:1,issues:0,describes:1});
+});
+
+test('installed Source typed-cell caller uses the original RowRun charge once without rebuilding values',()=>{
+  const original=one(create,node=>node.type==='Property'&&node.key?.name==='consumeValues').value;
+  const run={},charge={},columns=Object.freeze(['id']),rows=Object.freeze([Object.freeze([Object.freeze({})])]);
+  let calls=0;
+  const moon={clientProgramRowSourceAcceptChargedValues(actualRun,actualCharge,actualColumns,actualRows){
+    assert.equal(actualRun,run);assert.equal(actualCharge,charge);assert.equal(actualColumns,columns);assert.equal(actualRows,rows);
+    calls++;return {$tag:1,_0:1};
+  }};
+  const callback=Function('moon','run','checked','fail',`return (${slice(original)});`)(moon,run,checked,
+    code=>{throw Object.assign(new Error(code),{code});});
+  assert.equal(callback(columns,rows,{charge}),1);assert.equal(calls,1);
+  assert.throws(()=>callback(columns,rows,{}),{code:'InvalidInstalledSourcePageCharge'});assert.equal(calls,1);
+});

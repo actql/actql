@@ -374,7 +374,8 @@ test('retired original Reader observer stays usable while Core capture cleanup r
 // The native codec supplies its Site's original signed child and exact typed
 // cells. Site/Core/current/charge ports remain explicit; this is not a normal
 // Credential, numerical recipe or physical cleanup qualification.
-function nativeReaderFixture({foreign = false, typed = false} = {}) {
+function nativeReaderFixture({foreign = false, typed = false, replacement = false,
+  pendingConsume, failConsume = false, admittedCount, asyncOriginal, getter = false} = {}) {
   const root = Object.freeze({grant: {}, scope: Object.freeze({operation: 'query'})});
   const metadata = Object.freeze({grant: {}, scope: Object.freeze({operation: 'describe'})});
   const original = foreign ? Object.freeze({...metadata}) : metadata;
@@ -384,6 +385,7 @@ function nativeReaderFixture({foreign = false, typed = false} = {}) {
   const response = Object.freeze({accepted: true, statusCode: 200, body: Buffer.from('native response')});
   const charge = Object.freeze({}), credential = Object.freeze({}), site = Object.freeze({});
   let sends = 0, closes = 0, uses = 0, consumes = 0, charges = 0, retired = 0;
+  const consuming = deferred();
   const acquisition = Object.freeze({credential, close() {closes++; return 'closed';}});
   const originalSite = Object.freeze({site,
     referenceCurrent() {return true;},
@@ -406,9 +408,12 @@ function nativeReaderFixture({foreign = false, typed = false} = {}) {
     prepareReadSequence() {
       return Object.freeze({async read(context) {
         await context.readChild({operation: 'describe', prepare() {
-          return Object.freeze({original: provided, ...provided,
+          const selected = {original: provided, ...provided,
             request: Object.freeze({method: 'GET', path: '/original'}),
-            project(actual) {assert.equal(actual, response);return undefined;}});
+            project(actual) {assert.equal(actual, response);return undefined;}};
+          if (asyncOriginal !== undefined) selected.originalAuthorization = asyncOriginal;
+          if (getter) Object.defineProperty(selected, 'originalAuthorization', {get() {assert.fail('No native grant getter');}});
+          return Object.freeze(selected);
         }});
         if (typed) await context.consumeValues(names, cells);
         else await context.consumeObservation();
@@ -416,21 +421,24 @@ function nativeReaderFixture({foreign = false, typed = false} = {}) {
     },
   });
   const reader = factory.prepare(Object.freeze({originalAuthorization: root, columns: names,
-    verifyRead() {}, authorizationFor() {assert.fail('No second native grant or authorization envelope');},
+    verifyRead() {}, authorizationFor(index) {assert.equal(index,0);return {...root,useId:'original-root-use'};},
+    consumePage() {assert.fail('No JSON row fallback');},
     authorizeReadChild(operation, index, occurrence, actual) {
       assert.equal(operation, 'describe');assert.equal(index, 0);assert.equal(occurrence, provided);
       assert.equal(actual?.originalAuthorization, original);
       assert.equal(actual?.authorization, provided.authorization);
-      uses++;return actual;
+      uses++;return replacement ? Object.freeze({...actual, authorization: Object.freeze({...actual.authorization})}) : actual;
     },
     chargePage(body) {assert.equal(body, response.body);charges++;return charge;},
     consumeObservation(actual) {assert.equal(actual, charge);},
     consumeValues(actualNames, actualCells, facts) {
       assert.equal(actualNames, names);assert.equal(actualCells, cells);assert.equal(facts.charge, charge);
-      consumes++;return cells.length;
+      consumes++;consuming.resolve();if (pendingConsume !== undefined) return pendingConsume.then(() => cells.length);
+      if (failConsume) throw undefined;
+      return admittedCount ?? cells.length;
     },
   }));
-  return {factory, reader, provided, counts: () => ({sends, closes, uses, consumes, charges, retired})};
+  return {factory, reader, provided, consuming: consuming.promise, metadata, counts: () => ({sends, closes, uses, consumes, charges, retired})};
 }
 
 test('shared native reader keeps the Site original signed child without issuing another grant', async () => {
@@ -447,5 +455,66 @@ test('shared native reader consumes the same typed cells and original response c
   assert.deepEqual(await f.reader.read(), {pages: 1, rowCount: 1});
   f.reader.requestStop();assert.equal(f.reader.observe().cleanupConfirmed, true);
   assert.equal(f.factory.retire(), true);
+  assert.deepEqual(f.counts(), {sends: 1, closes: 1, uses: 1, consumes: 1, charges: 1, retired: 1});
+});
+
+
+test('shared native reader refuses a copied Site original before physical use without refunding the occurrence', async () => {
+  const f = nativeReaderFixture({foreign: true});
+  await assert.rejects(f.reader.read(), {code: 'ForeignOriginalNativeGrant'});
+  f.reader.requestStop();assert.equal(f.reader.observe().cleanupConfirmed, true);
+  assert.equal(f.factory.retire(), true);
+  assert.deepEqual(f.counts(), {sends: 0, closes: 1, uses: 1, consumes: 0, charges: 0, retired: 1});
+});
+
+test('shared native reader refuses a substituted authorization envelope before physical use', async () => {
+  const f = nativeReaderFixture({replacement: true});
+  await assert.rejects(f.reader.read(), {code: 'ForeignInstalledSourceReadChild'});
+  f.reader.requestStop();assert.equal(f.reader.observe().cleanupConfirmed, true);
+  assert.equal(f.factory.retire(), true);
+  assert.deepEqual(f.counts(), {sends: 0, closes: 1, uses: 1, consumes: 0, charges: 0, retired: 1});
+});
+
+test('shared native reader refuses grant accessors without invoking them or another issuer', async () => {
+  const f = nativeReaderFixture({getter: true});
+  await assert.rejects(f.reader.read(), {code: 'InvalidInstalledSourceReadChild'});
+  f.reader.requestStop();assert.equal(f.reader.observe().cleanupConfirmed, true);
+  assert.equal(f.factory.retire(), true);
+  assert.deepEqual(f.counts(), {sends: 0, closes: 1, uses: 0, consumes: 0, charges: 0, retired: 1});
+});
+
+test('shared native reader keeps an invalid asynchronous original until its same computation settles', async () => {
+  const gate = deferred(), f = nativeReaderFixture({asyncOriginal: gate.promise});
+  await assert.rejects(f.reader.read(), {code: 'InstalledSourcePageCallbackNotSynchronous'});
+  f.reader.requestStop();assert.equal(f.reader.observe().cleanupConfirmed, false);
+  assert.equal(f.factory.retire(), false);
+  gate.resolve(f.metadata);await Promise.resolve();await Promise.resolve();
+  assert.equal(f.reader.observe().cleanupConfirmed, true);assert.equal(f.factory.retire(), true);
+  assert.deepEqual(f.counts(), {sends: 0, closes: 1, uses: 0, consumes: 0, charges: 0, retired: 1});
+});
+
+test('shared native typed consumption preserves thrown undefined and the original cleanup', async () => {
+  const f = nativeReaderFixture({typed: true, failConsume: true});let caught = false;
+  try {await f.reader.read();} catch (cause) {caught = true;assert.equal(cause, undefined);}
+  assert.equal(caught, true);f.reader.requestStop();assert.equal(f.reader.observe().cleanupConfirmed, true);
+  assert.equal(f.factory.retire(), true);
+  assert.deepEqual(f.counts(), {sends: 1, closes: 1, uses: 1, consumes: 1, charges: 1, retired: 1});
+});
+
+test('shared native typed consumption rejects a different count after the original Core admission', async () => {
+  const f = nativeReaderFixture({typed: true, admittedCount: 0});
+  await assert.rejects(f.reader.read(), {code: 'InvalidInstalledSourceDecodedPage'});
+  f.reader.requestStop();assert.equal(f.reader.observe().cleanupConfirmed, true);
+  assert.equal(f.factory.retire(), true);
+  assert.deepEqual(f.counts(), {sends: 1, closes: 1, uses: 1, consumes: 1, charges: 1, retired: 1});
+});
+
+test('shared native typed consumption keeps pending original cells and charge through stop', async () => {
+  const gate = deferred(), f = nativeReaderFixture({typed: true, pendingConsume: gate.promise});
+  const reading = f.reader.read();await f.consuming;
+  f.reader.requestStop();assert.equal(f.reader.observe().readPending, true);
+  assert.equal(f.reader.observe().cleanupConfirmed, false);assert.equal(f.factory.retire(), false);
+  gate.resolve();await assert.rejects(reading, cause => cause.name === 'AbortError');
+  assert.equal(f.reader.observe().cleanupConfirmed, true);assert.equal(f.factory.retire(), true);
   assert.deepEqual(f.counts(), {sends: 1, closes: 1, uses: 1, consumes: 1, charges: 1, retired: 1});
 });

@@ -239,3 +239,40 @@ retired original again. This initialization connection does not supply the
 managed reader or Request capture recipe required by ordinary Source execution.
 Describe, query responses and failed-child overlap must enter that same Run
 before their callbacks, with their original Credential and Account decisions.
+
+## Native signed children and original typed cells
+
+An installed native sequence may return its Site's `originalAuthorization` and
+its associated `authorization` envelope in the same prepared child descriptor.
+The shared reader snapshots only those two references, forwards them unchanged
+to the existing child-occurrence/current callback, and refuses substitution.
+The same Site's private `readChildCredential` then checks the original grant
+against the already retained acquisition. Equal scope, copied grant envelopes
+or an operation label cannot supply that original. Ordinary descriptors retain
+the existing grant-issuance path; the native handoff issues no second grant.
+
+The Row Source still spends the selected immutable operation occurrence before
+its current callback. A failed nominal handoff cannot refund the use or replace
+its parent. Field accessors refuse without evaluation; invalid asynchronous
+fields remain joined to the same reader until settlement. Response retention,
+physical byte charging, current checks, stop and binding/provider retirement
+remain in the original reader and RowRun.
+
+`consumeValues(columns, rows)` passes the original typed cell arrays with the
+same response charge into the existing `clientProgramRowSourceAcceptChargedValues`.
+It creates no JSON wire, new CheckedValue or second schema checker. Core's
+returned count must equal the original row count. A failed or pending consume
+retains those same cells and charge through stop; successful consumption alone
+cannot acknowledge physical closure. Legacy readPages receives no
+new typed-value callback.
+
+The existing JSON reader recipe includes two allocated callbacks and their
+original slots (2 record headers and 4 references). Its simultaneous control
+workspace includes the two native field descriptors, two-field handoff, extra
+argument, optional method envelope and typed-call controls (6 headers,
+10 references and 8 scalar words). These are fixed logical constructor units,
+not a new tariff, engine heap claim or user limit. No variable credential,
+response or native metadata tree is copied by this handoff. A selected native
+protocol must still supply its complete metadata/graph/query workspace before
+callbacks; this shared connection is not that Salesforce recipe or its normal
+caller acceptance.

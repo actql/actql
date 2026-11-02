@@ -2591,7 +2591,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
             : directReadIdentity.useId(nonce, index);
           if (!text(useId)) fail('InvalidInstalledSourceReadIdentity');
           return {...grant, useId};
-        }, authorizeReadChild: async (childOperation,index,occurrence) => {
+        }, authorizeReadChild: async (childOperation,index,occurrence,supplied) => {
           if (readerDemand?.sequence !== undefined || readerDemand?.sequences !== undefined) {
             const sequence = readerDemand.sequences?.[owner.resource] ?? readerDemand.sequence;
             if (sequence === undefined || operation !== sequence.operation || !Number.isSafeInteger(index) || index !== readChildIndex ||
@@ -2612,6 +2612,10 @@ export async function createInstalledRowSource({moon, declaration, commands,
             // Site callback. Failure cannot restore a consumed request/use.
             readChildOriginals.set(occurrence,true);
             const decision = await currentRead(prepared,access,signal);
+            // The native Site already issued this original for its own read
+            // decision. Keep this occurrence/current debit, then let the SAME
+            // reader's private Site binding validate it before any send.
+            if (supplied !== undefined) return supplied;
             const childGranted = owner.originalRead === undefined && decision.basis === 'resumed_approval'
               ? site.admitCheckpointReadApproval(decision) : decision;
             let original = childOperation === operation ? grant : readChildGrants.get(childOperation);
@@ -2652,6 +2656,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
             }
             readChildIndex++;
             const decision = await currentRead(prepared, access, signal);
+            if (supplied !== undefined) return supplied;
             const childGranted = owner.originalRead === undefined && decision.basis === 'resumed_approval'
               ? site.admitCheckpointReadApproval(decision) : decision;
             if (entry !== undefined && entry.grant === undefined) {
@@ -2669,6 +2674,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
             fail('InvalidInstalledSourceReadChild');
           }
           await currentRead(prepared, access, signal);
+          if (supplied !== undefined) return supplied;
           let original = childOperation === operation ? grant : readChildGrants.get(childOperation);
           if (original === undefined) {
             original = site.issueReadGrant({operation:childOperation,decision:granted,
@@ -2693,6 +2699,10 @@ export async function createInstalledRowSource({moon, declaration, commands,
           if (charge === undefined) fail('InvalidInstalledSourcePageCharge');
           return checked(moon.clientProgramRowSourceAcceptChargedProjectedPage(run, charge, page));
         },
+        ...(originalReader === undefined ? {} : {consumeValues: (columns, rows, {charge} = {}) => {
+          if (charge === undefined) fail('InvalidInstalledSourcePageCharge');
+          return checked(moon.clientProgramRowSourceAcceptChargedValues(run, charge, columns, rows));
+        }}),
         consumePageWire: (wire, {charge} = {}) => {
           if (typeof wire !== 'string') fail('InvalidInstalledSourcePageWire');
           const bytes = Buffer.from(wire, 'utf8');

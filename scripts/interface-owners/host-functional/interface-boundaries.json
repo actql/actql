@@ -120800,7 +120800,7 @@
     },
     {
       "module": "adapters/host-node/installed-credential-source-reader.mjs",
-      "sha256": "5d457d7a60d36441fc1d32019d1a6dc189e3de2f659b4ba87a5d18b0a7c89489",
+      "sha256": "96047fe4e8954cd48f8797a336f833e80843f0a8202cc38e690a944b9ca69f04",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "C \u2014 existing standard Host Source/Effect service originals",
@@ -120934,6 +120934,19 @@
         },
         {
           "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence/context/init:consumePageWire/init:consumePageWire/init:consumePageWire",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence/context/init:consumeValues/init:consumeValues",
+          "parameters": [
+            "columns",
+            "rows"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence/context/init:consumeValues/init:consumeValues/init:consumeValues",
           "parameters": [],
           "async": true
         },
@@ -121151,6 +121164,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "### Typed standard REST pages"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native signed children and original typed cells"
               }
             ],
             "inputsOutputs": [
@@ -121165,6 +121182,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "### Typed standard REST pages"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native signed children and original typed cells"
               }
             ],
             "identity": [
@@ -121179,6 +121200,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "### Typed standard REST pages"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native signed children and original typed cells"
               }
             ],
             "ownership": [
@@ -121193,6 +121218,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "### Typed standard REST pages"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native signed children and original typed cells"
               }
             ],
             "synchronization": [
@@ -121207,6 +121236,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "### Typed standard REST pages"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native signed children and original typed cells"
               }
             ],
             "failure": [
@@ -121221,6 +121254,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "### Typed standard REST pages"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native signed children and original typed cells"
               }
             ],
             "cancellation": [
@@ -121235,6 +121272,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "### Typed standard REST pages"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native signed children and original typed cells"
               }
             ],
             "resources": [
@@ -121249,6 +121290,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "### Typed standard REST pages"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native signed children and original typed cells"
               }
             ],
             "extension": [
@@ -121263,6 +121308,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "### Typed standard REST pages"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native signed children and original typed cells"
               }
             ],
             "verification": [
@@ -121293,6 +121342,14 @@
               {
                 "path": "adapters/host-node/installed-credential-source-reader.test.mjs",
                 "anchor": "test('shared reader typed page stop retains the pending original consumption until it settles'"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native signed children and original typed cells"
+              },
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.test.mjs",
+                "anchor": "test('shared native reader keeps the Site original signed child without issuing another grant'"
               }
             ]
           }
@@ -121332,7 +121389,9 @@
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/sync/settled/settled",
             "createInstalledCredentialSourceReader/init:retire/init:retire/init:retire",
             "ownMethod",
-            "positive/positive"
+            "positive/positive",
+            "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence/context/init:consumeValues/init:consumeValues",
+            "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence/context/init:consumeValues/init:consumeValues/init:consumeValues"
           ],
           "exports": [],
           "attributes": {
