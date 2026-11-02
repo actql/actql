@@ -327,9 +327,12 @@ export function prepareSalesforceSourceReadSequence(options) {
         return Object.freeze({status: 'observed', observation,
           observationCid: observed.observationCid, observationJson: observed.evidence.observationJson});
       };
-      const current = await metadata('plan');
+      let current = await metadata('plan');
       const plan = Reflect.apply(project, context, [(...args) => checked(Reflect.apply(recheck, moon, args)),
         undefined, [declaration, preparedRead.acquisition, current.observation, 4096]]);
+      // The plan retains its original selected fields/binding. Relinquish the
+      // full first Catalog before the independent current Describe begins.
+      current = undefined;
       await readSalesforceQuery({moon: queryMoon, plan, apiVersion, limits,
         initialAuthorization, credential, signal: preparedRead.signal,
         authorizationForPage: (_path, index) => Object.freeze({...initialAuthorization,

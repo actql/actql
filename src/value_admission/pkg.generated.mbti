@@ -122,6 +122,8 @@ pub fn complete_order_key(CheckedValue, Limits) -> Result[String, CompleteOrderI
 
 pub fn contract_value_body_construction_inventory(@value_contract.Contract, @decode_core.SubtreeConstructionGeometry) -> ParameterValueBodyConstructionInventory?
 
+pub fn contract_value_phase_construction_inventory(@value_contract.Contract, @decode_core.SubtreeConstructionGeometry, Int64, Int) -> ParameterValuePhaseConstructionInventory?
+
 pub fn decimal_from_coefficient(String, Int, Int) -> Value?
 
 pub fn[T] element_at(FrozenArray[T], Int) -> T?

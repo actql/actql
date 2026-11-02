@@ -1730,6 +1730,8 @@ pub fn client_program_installed_provider_row_capture_capacity_matches(@client_lo
 
 pub fn client_program_installed_row_capture_capacity(@client_row_source_host.RowAcquisition) -> @client_local_host.ClientInstalledCaptureCapacity?
 
+pub fn client_program_installed_salesforce_source_reader_capacity(Array[Int], Int, Int, Array[Int], Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
+
 pub fn client_program_installed_slack_source_reader_capacity(Array[Int], Int, Int, Int) -> @execution_relation.ExecutionCapacity?
 
 pub fn client_program_installed_source_construction_capacity(Int64, Int64, Int64, Int64, Int64, Int64) -> Result[@execution_relation.ExecutionCapacity, @physical_resources.PreparationCapacityIssue]

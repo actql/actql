@@ -9,5 +9,7 @@ import {
   "actql/actql/value_admission" @admitted,
   "actql/actql/canonical_value" @canonical,
   "actql/actql/decode_scalar" @scalar,
+  "actql/actql/decode_shape" @shape,
+  "actql/actql/execution_relation" @execution,
   "moonbitlang/core/encoding/utf8",
 }
