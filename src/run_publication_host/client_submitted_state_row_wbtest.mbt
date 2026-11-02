@@ -184,3 +184,14 @@ test "observation metadata consumes original row capacity without enlarging it" 
     is Err(CapacityExceeded),
   )
 }
+
+///|
+test "accepted preparation failure decodes without Run and preserves original identity" {
+  // Independent extension of the fixed original row. No product encoder
+  // supplies the expected phase or problem, and no physical ACK is inferred.
+  let body = saved_submission_preparing.replace(
+    old="\"phase\":\"preparing\",\"reference\":",
+    new="\"phase\":\"preparation_failed\",\"preparation_problem_classification\":\"invalid_input\",\"preparation_problem_code\":\"ClientProgramInvalidInput\",\"reference\":",
+  )
+  assert_true(decode_client_submitted_journal_row(@utf8.encode(body)) is Ok(_))
+}
