@@ -25,17 +25,23 @@ export function captureConfigurationReaders(reader, readJson, unavailable) {
   const text = Object.getOwnPropertyDescriptor(reader, 'readText');
   const originalText = Object.getOwnPropertyDescriptor(reader, 'readOriginalText');
   const originalBytes = Object.getOwnPropertyDescriptor(reader, 'readOriginalBytes');
+  const parseText = Object.getOwnPropertyDescriptor(reader, 'parseJsonText');
   if (!json || !Object.hasOwn(json, 'value') || typeof json.value !== 'function' ||
       !text || !Object.hasOwn(text, 'value') || typeof text.value !== 'function' ||
       originalText !== undefined && (!Object.hasOwn(originalText, 'value') ||
         typeof originalText.value !== 'function') ||
       originalBytes !== undefined && (!Object.hasOwn(originalBytes, 'value') ||
-        typeof originalBytes.value !== 'function')) refuse();
+        typeof originalBytes.value !== 'function') ||
+      parseText !== undefined && (!Object.hasOwn(parseText, 'value') ||
+        typeof parseText.value !== 'function')) refuse();
   // Capture the initializer's optional actual-FD text method before any read awaits.
   // Its absence cannot substitute a bounded reader or manufacture a byte ceiling.
   return Object.freeze({
     readJson: readJson ?? ((...args) => Reflect.apply(json.value, reader, args)),
     readText: (...args) => Reflect.apply(text.value, reader, args),
+    ...(parseText === undefined ? {} : {
+      parseJsonText: (...args) => Reflect.apply(parseText.value, reader, args),
+    }),
     ...(originalText === undefined ? {} : {
       readOriginalText: (...args) => Reflect.apply(originalText.value, reader, args),
     }),

@@ -79,12 +79,12 @@ export async function replacePublicationFile(path, body) {
 
 // The exact published text at `path` and its identity. A missing file is
 // `SalesforcePublicationMissing`; nothing is repaired or regenerated.
-export async function readPublicationFile(path) {
+export async function readPublicationFile(path, readText = readBoundedConfigurationText) {
   if (typeof path !== 'string' || !isAbsolute(path)) {
     fail('InvalidSalesforcePublication');
   }
   let body;
-  try { body = await readBoundedConfigurationText(path, {maxBytes: maxGenerationBytes}); }
+  try { body = await readText(path, {maxBytes: maxGenerationBytes}); }
   catch (error) {
     if (error?.code === 'ENOENT') fail('SalesforcePublicationMissing', error);
     if (error?.message === 'InvalidInstalledSourceProfile') {

@@ -6,7 +6,7 @@
       "responsibilityFacet": "primary",
       "role": "generated-binding",
       "owner": "Same-runtime BigQuery and Common wrappers; RelA source is the generated mirror of the same Owner",
-      "sha256": "c3a40d0c0639bdd3b9382d9da1bfba3e772d107559e6b3444ee87d95d4ffe654",
+      "sha256": "e09c206360d151a27be1aad7c499d067f7edb259259f217d7da57dc4df4b1a80",
       "exports": [],
       "operations": [
         {
@@ -108,6 +108,10 @@
         {
           "name": "client_program_bigquery_read_acquisition",
           "declaration": "client_program_bigquery_read_acquisition ( read : @ bigquery_read . PreparedRead , ) - > @ client_row_source_host . RowAcquisition"
+        },
+        {
+          "name": "client_program_bigquery_read_declaration_construction_capacity",
+          "declaration": "client_program_bigquery_read_declaration_construction_capacity ( body_bytes : Int , encoded_units : Int , target_units : Int , resource_units : Int , connector_units : Int , revision_units : Int , description : @ bigquery_catalog . DescriptionLimits , declaration : @ client_row_source_host . RowDeclarationLimits , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "client_program_bigquery_read_job_original_record",
@@ -233,6 +237,78 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "client_program_bigquery_read_declaration_construction_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Responsibility:"
+              },
+              {
+                "path": "src/connectors_builtin_node_rela/client_bigquery_read_bridge.mbt",
+                "anchor": "client_program_bigquery_read_declaration_construction_capacity"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
         }
       ]
     },
@@ -241,7 +317,7 @@
       "responsibilityFacet": "primary",
       "role": "generated-binding",
       "owner": "Same-runtime BigQuery and Common wrappers; RelA source is the generated mirror of the same Owner",
-      "sha256": "be443e873fd8e3ce5f4baf02cdfc1a238752c41ecd56f02936766b3941d5f57b",
+      "sha256": "1a2ccf8ce837db740b25459bf32469e351af52982b54a897437af33034cd0365",
       "exports": [],
       "operations": [
         {
@@ -343,6 +419,10 @@
         {
           "name": "client_program_bigquery_read_acquisition",
           "declaration": "client_program_bigquery_read_acquisition ( read : @ bigquery_read . PreparedRead , ) - > @ client_row_source_host . RowAcquisition"
+        },
+        {
+          "name": "client_program_bigquery_read_declaration_construction_capacity",
+          "declaration": "client_program_bigquery_read_declaration_construction_capacity ( body_bytes : Int , encoded_units : Int , target_units : Int , resource_units : Int , connector_units : Int , revision_units : Int , description : @ bigquery_catalog . DescriptionLimits , declaration : @ client_row_source_host . RowDeclarationLimits , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "client_program_bigquery_read_job_original_record",
@@ -464,6 +544,78 @@
             "verification": [
               {
                 "path": "src/connectors_builtin_node/bigquery-read-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_bigquery_read_declaration_construction_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Responsibility:"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_bigquery_read_bridge.mbt",
+                "anchor": "client_program_bigquery_read_declaration_construction_capacity"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
                 "anchor": "- Verification:"
               }
             ]

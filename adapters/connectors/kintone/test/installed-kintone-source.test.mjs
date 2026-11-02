@@ -1,3 +1,4 @@
+import {installedFailureCode} from '../../../host-node/fixtures/installed-loader-parent.fixture.mjs';
 import {ledgerUsageSnapshot} from '../../../host-common/runtime-core.mjs';
 import {ledgerUsageFieldsFor} from '../../../host-node/fixtures/ledger-usage.mjs';
 import assert from 'node:assert/strict';
@@ -5,7 +6,6 @@ import test from 'node:test';
 import {writeFile} from 'node:fs/promises';
 import * as common from '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {checked} from '../../../host-common/runtime-result.mjs';
-import {installedSourceIdentity} from '../../../host-node/installed-source.mjs';
 import {installedKintoneFixture as fixture, originalForm, record} from './installed-kintone.fixture.mjs';
 
 const assertReleased = ledger => assert.deepEqual(
@@ -85,23 +85,23 @@ test('a kintone reply loss remains Unknown with one physical request and no auto
 });
 
 test('kintone guest route and same-Site identity are selected before any request', async t => {
-  const f = await fixture(t, {guestSpaceId: '15'}), initial = await installedSourceIdentity(f.path);
+  const f = await fixture(t, {guestSpaceId: '15'}), initial = await f.identity();
   const source = await f.load(), ledger = f.ledger();
   f.state.page = () => ({records: [], totalCount: null});
   const opened = await source.openCapture({...await f.prepare(source), ledger});f.captures.push(opened);
   assert(f.tls.seen().every(value => value.pathname.startsWith('/k/guest/15/v1/')));
   await opened.close();assertReleased(ledger);
   await writeFile(f.sitePath, JSON.stringify({...f.site, siteGeneration: 2}));
-  assert.notEqual(await installedSourceIdentity(f.path), initial);
+  assert.notEqual(await f.identity(), initial);
 });
 
 test('foreign App metadata and missing typed runtime refuse before key entry or provider lookup', async t => {
   const f = await fixture(t);
   await writeFile(f.metadataPath, JSON.stringify({...f.metadata, appId: '13'}));
-  await assert.rejects(f.load(), {code: 'InvalidInstalledKintoneMetadata'});
+  await assert.rejects(f.load(), installedFailureCode('InvalidInstalledKintoneMetadata'));
   await writeFile(f.metadataPath, JSON.stringify(f.metadata));
   await writeFile(f.sitePath, JSON.stringify({...f.site, credentialPrivateKeyPath: f.site.credentialPrivateKeyPath + '.missing'}));
-  await assert.rejects(f.load({...common, clientProgramKintoneBorrowRead: undefined}), {code: 'KintoneOriginalReadUnavailable'});
+  await assert.rejects(f.load({...common, clientProgramKintoneBorrowRead: undefined}), installedFailureCode('KintoneOriginalReadUnavailable'));
   assert.equal(f.tls.seen().length, 0);assert.equal(f.state.resolutions, 0);
 });
 

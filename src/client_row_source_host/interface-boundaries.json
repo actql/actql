@@ -174,13 +174,14 @@
     {
       "module": "src/client_row_source_host/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "55eb1fc267dd720f49eb477651ff2d8b20e2e77ba1b48aadcab2cd3e2f46f9e7",
+      "sha256": "990bf3ce79e3bb77165a3fd79565dab323c770d125277c9954770ac72661120d",
       "role": "common-semantics",
       "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
       "exports": [
         "pub fn abort_row_run(RowRun) -> Unit",
         "pub fn accept_charged_mock_churn_risk_document(RowRun, RowPageCharge, RowAcquisition, RowDeclaration, RowDeclaration, Bytes, Int) -> Result[Int, RowHostIssue]",
         "pub fn accept_charged_row_run_page(RowRun, RowPageCharge, Bytes) -> Result[Int, RowHostIssue]",
+        "pub fn accept_charged_row_run_projected_page(RowRun, RowPageCharge, RowSourceProjectedJsonPage) -> Result[Int, RowHostIssue]",
         "pub fn accept_charged_row_run_values(RowRun, RowPageCharge, Array[String], Array[Array[@value_admission.CheckedValue]]) -> Result[Int, RowHostIssue]",
         "pub fn accept_keyed_row_page(RowSourceRead, Bytes) -> Result[Int, RowSourceIssue]",
         "pub fn accept_row_run_page(RowRun, Bytes) -> Result[Int, RowHostIssue]",
@@ -263,6 +264,7 @@
         "pub fn prepare_row_source(@query_planning.QueryRequirement, RowDeclaration) -> Result[RowSourcePreparation, RowSourceIssue]",
         "pub fn project_row_declaration(String, String, String, String, String, Array[String], Array[RowDeclaredView], Array[String], String, String) -> Result[RowDeclaration, RowDeclarationIssue]",
         "pub fn project_row_source_json_page(Bytes, Array[String], Bool, Array[String], Int, Int, Int, Int, Int) -> Result[RowSourceJsonPage, RowSourceJsonPageIssue]",
+        "pub fn project_row_source_typed_json_page(Bytes, Array[String], Bool, Array[String], Int, Int, Int, Int, Int) -> Result[RowSourceProjectedJsonPage, RowSourceJsonPageIssue]",
         "pub fn restore_relation_row_declaration(String, String, String, String, String?) -> Result[RowDeclaration, RowHostIssue]",
         "pub fn restore_row_declaration(String, String, String, String, String?) -> Result[RowDeclaration, RowHostIssue]",
         "pub fn restore_row_original_read(@query_planning.QueryRequirement, String, String, Array[String], () -> Bool, reference_issuer? : @value_admission.ReferenceIssuer) -> Result[RowRestoredOriginalInput, RowOriginalCaptureIssue]",
@@ -301,10 +303,15 @@
         "pub fn row_source_columns(RowSourcePreparation) -> Array[String]",
         "pub fn row_source_json_page_has_next_cursor(RowSourceJsonPage) -> Bool",
         "pub fn row_source_json_page_next_cursor(RowSourceJsonPage) -> Result[String, RowSourceJsonPageIssue]",
+        "pub fn row_source_json_page_original(RowSourceJsonPage) -> RowSourceProjectedJsonPage",
         "pub fn row_source_json_page_row_count(RowSourceJsonPage) -> Int",
         "pub fn row_source_json_page_rows_wire(RowSourceJsonPage) -> String",
         "pub fn row_source_requirement(RowSourcePreparation) -> @query_planning.QueryRequirement",
         "pub fn row_source_target(RowDeclaration, @query_planning.QueryRequirement) -> Result[(String, Array[String]), RowHostIssue]",
+        "pub fn row_source_typed_json_page_has_next_cursor(RowSourceProjectedJsonPage) -> Bool",
+        "pub fn row_source_typed_json_page_next_cursor(RowSourceProjectedJsonPage) -> Result[String, RowSourceJsonPageIssue]",
+        "pub fn row_source_typed_json_page_row_count(RowSourceProjectedJsonPage) -> Int",
+        "pub fn single_relation_declaration_construction_inventory(Int, Int, Int, Int, Int, Int, Int, Int, RowDeclarationLimits) -> @execution_relation.PreparationRepresentationUnits?",
         "pub fn start_accounted_keyed_row_acquisition(RowKeyedAcquisition, String, (RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64, (RowAttempt) -> Bool) -> Result[RowRun, RowHostIssue]",
         "pub fn start_accounted_listing_row_acquisition(RowAcquisition, @execution_relation.ExecutionCapacity?, String, (RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64) -> Result[RowRun, RowHostIssue]",
         "pub fn start_accounted_provider_row_acquisition(RowAcquisition, @execution_relation.ExecutionCapacity?, String, (RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64) -> Result[RowRun, RowHostIssue]",
@@ -336,6 +343,10 @@
         {
           "name": "accept_charged_row_run_page",
           "declaration": "pub fn accept_charged_row_run_page(RowRun, RowPageCharge, Bytes) -> Result[Int, RowHostIssue]"
+        },
+        {
+          "name": "accept_charged_row_run_projected_page",
+          "declaration": "pub fn accept_charged_row_run_projected_page(RowRun, RowPageCharge, RowSourceProjectedJsonPage) -> Result[Int, RowHostIssue]"
         },
         {
           "name": "accept_charged_row_run_values",
@@ -666,6 +677,10 @@
           "declaration": "pub fn project_row_source_json_page(Bytes, Array[String], Bool, Array[String], Int, Int, Int, Int, Int) -> Result[RowSourceJsonPage, RowSourceJsonPageIssue]"
         },
         {
+          "name": "project_row_source_typed_json_page",
+          "declaration": "pub fn project_row_source_typed_json_page(Bytes, Array[String], Bool, Array[String], Int, Int, Int, Int, Int) -> Result[RowSourceProjectedJsonPage, RowSourceJsonPageIssue]"
+        },
+        {
           "name": "restore_relation_row_declaration",
           "declaration": "pub fn restore_relation_row_declaration(String, String, String, String, String?) -> Result[RowDeclaration, RowHostIssue]"
         },
@@ -818,6 +833,10 @@
           "declaration": "pub fn row_source_json_page_next_cursor(RowSourceJsonPage) -> Result[String, RowSourceJsonPageIssue]"
         },
         {
+          "name": "row_source_json_page_original",
+          "declaration": "pub fn row_source_json_page_original(RowSourceJsonPage) -> RowSourceProjectedJsonPage"
+        },
+        {
           "name": "row_source_json_page_row_count",
           "declaration": "pub fn row_source_json_page_row_count(RowSourceJsonPage) -> Int"
         },
@@ -832,6 +851,22 @@
         {
           "name": "row_source_target",
           "declaration": "pub fn row_source_target(RowDeclaration, @query_planning.QueryRequirement) -> Result[(String, Array[String]), RowHostIssue]"
+        },
+        {
+          "name": "row_source_typed_json_page_has_next_cursor",
+          "declaration": "pub fn row_source_typed_json_page_has_next_cursor(RowSourceProjectedJsonPage) -> Bool"
+        },
+        {
+          "name": "row_source_typed_json_page_next_cursor",
+          "declaration": "pub fn row_source_typed_json_page_next_cursor(RowSourceProjectedJsonPage) -> Result[String, RowSourceJsonPageIssue]"
+        },
+        {
+          "name": "row_source_typed_json_page_row_count",
+          "declaration": "pub fn row_source_typed_json_page_row_count(RowSourceProjectedJsonPage) -> Int"
+        },
+        {
+          "name": "single_relation_declaration_construction_inventory",
+          "declaration": "pub fn single_relation_declaration_construction_inventory(Int, Int, Int, Int, Int, Int, Int, Int, RowDeclarationLimits) -> @execution_relation.PreparationRepresentationUnits?"
         },
         {
           "name": "start_accounted_keyed_row_acquisition",
@@ -3192,6 +3227,164 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "single_relation_declaration_construction_inventory"
+          ],
+          "exports": [
+            "pub fn single_relation_declaration_construction_inventory(Int, Int, Int, Int, Int, Int, Int, Int, RowDeclarationLimits) -> @execution_relation.PreparationRepresentationUnits?"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Responsibility:"
+              },
+              {
+                "path": "src/client_row_source_host/pkg.generated.mbti",
+                "anchor": "single_relation_declaration_construction_inventory"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "accept_charged_row_run_projected_page",
+            "project_row_source_typed_json_page",
+            "row_source_json_page_original",
+            "row_source_typed_json_page_has_next_cursor",
+            "row_source_typed_json_page_next_cursor",
+            "row_source_typed_json_page_row_count"
+          ],
+          "exports": [
+            "pub fn accept_charged_row_run_projected_page(RowRun, RowPageCharge, RowSourceProjectedJsonPage) -> Result[Int, RowHostIssue]",
+            "pub fn project_row_source_typed_json_page(Bytes, Array[String], Bool, Array[String], Int, Int, Int, Int, Int) -> Result[RowSourceProjectedJsonPage, RowSourceJsonPageIssue]",
+            "pub fn row_source_json_page_original(RowSourceJsonPage) -> RowSourceProjectedJsonPage",
+            "pub fn row_source_typed_json_page_has_next_cursor(RowSourceProjectedJsonPage) -> Bool",
+            "pub fn row_source_typed_json_page_next_cursor(RowSourceProjectedJsonPage) -> Result[String, RowSourceJsonPageIssue]",
+            "pub fn row_source_typed_json_page_row_count(RowSourceProjectedJsonPage) -> Int"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              },
+              {
+                "path": "src/client_row_source_host/json_page_projection_wbtest.mbt",
+                "anchor": "original JSON page array enters existing full row admission without dropping fields or rounding"
+              }
+            ]
+          }
         }
       ]
     },
@@ -4446,6 +4639,116 @@
               {
                 "path": "src/client_row_source_host/acquisition_contract_construction_wbtest.mbt",
                 "anchor": "test \"Source protocol constructor replaces the measured escaped-node duplication without changing the original quota\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_row_source_host/relation_declaration_construction.mbt",
+      "sha256": "5bc3154e76e3607039e995ccaef041ce84f3a38ed56284eb9ff14816e74081dc",
+      "exports": [],
+      "operations": [
+        {
+          "name": "relation_construction_collection_units",
+          "declaration": "relation_construction_collection_units ( value : @ shape . CollectionConstructionExtent , ) - > @ execution . PreparationRepresentationUnits"
+        },
+        {
+          "name": "relation_construction_contract_units",
+          "declaration": "relation_construction_contract_units ( nodes : Int , text_units : Int , depth : Int , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "relation_construction_decoded_construction",
+          "declaration": "relation_construction_decoded_construction ( bytes : Int , nodes : Int , depth : Int , normalize_keys : Bool , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "relation_construction_json_forest",
+          "declaration": "relation_construction_json_forest ( nodes : Int64 , ) - > @ shape . CollectionConstructionExtent ?"
+        },
+        {
+          "name": "relation_construction_writer_units",
+          "declaration": "relation_construction_writer_units ( bytes : Int , nodes : Int , depth : Int , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "single_relation_declaration_construction_inventory",
+          "declaration": "single_relation_declaration_construction_inventory ( schema_bytes : Int , schema_nodes : Int , field_count : Int , facts_bytes : Int , facts_nodes : Int , resource_units : Int , connector_units : Int , revision_units : Int , limits : RowDeclarationLimits , ) - > @ execution . PreparationRepresentationUnits ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Common relation declaration producer and execution representation owner",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "relation_construction_collection_units",
+            "relation_construction_contract_units",
+            "relation_construction_decoded_construction",
+            "relation_construction_json_forest",
+            "relation_construction_writer_units",
+            "single_relation_declaration_construction_inventory"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Verification:"
               }
             ]
           }

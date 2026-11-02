@@ -58,6 +58,18 @@ test('normal Host CI executes bounded Journal preparation and cursor regressions
     row.run === 'npm run check:retained-boundary'));
 });
 
+test('normal Host CI checks real connector initialization after its ordinary runtime build', () => {
+  const steps = jobs.host.steps;
+  const build = steps.findIndex(row => row.name === 'Build runtime packages without prebuilt bundles');
+  const index = steps.findIndex(row => row.name === 'Test actual bound connector initialization and cleanup');
+  assert.ok(build >= 0 && index > build);
+  assert.equal(steps[index].run, 'node --test adapters/host-node/installed-bound-construction.actual.test.mjs adapters/host-node/installed-bound-construction-failures.actual.test.mjs adapters/host-node/installed-source-construction-geometry.test.mjs');
+  assert.equal(steps[index].if, undefined);
+  assert.equal(steps[index]['continue-on-error'], undefined);
+  // These cases use actual Core/Resource/registration and temporary SQLite,
+  // not live provider credentials or another runtime build/cleanup substitute.
+});
+
 test('manual integration keeps full core and explicit macOS opt-in', () => {
   assert.deepEqual(selectTargets(['README.md'], {event: 'push'}).targets, all);
   assert.equal(selectTargets(['README.md'], {event: 'push'}).macos, true);

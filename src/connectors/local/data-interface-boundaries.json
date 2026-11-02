@@ -597,13 +597,15 @@
   {
     "module": "adapters/connectors/local/host/iceberg-process.mjs",
     "responsibilityFacet": "primary",
-    "sha256": "8153de6636474098d5fc3666fc29a906d3f6353c1dd521c355f9f2e2a2670c58",
+    "sha256": "76cb7289b393492b15c7b6686a49d077fa3048bc728b5534a61a1ea85b36ceb6",
     "exports": [
       "admitIcebergStorageMapping",
       "createIcebergPhysicalBridge",
       "issueIcebergStorageMapping",
       "projectIcebergCommitResponse",
-      "supportsIcebergTableOperation"
+      "supportsIcebergTableOperation",
+      "validateIcebergPhysicalConfiguration",
+      "validateIcebergReadSelector"
     ],
     "operations": [
       {
@@ -656,13 +658,6 @@
         "name": "createIcebergPhysicalBridge/bridge/init:checkReadSelector/init:checkReadSelector",
         "parameters": [
           "selector"
-        ],
-        "async": false
-      },
-      {
-        "name": "createIcebergPhysicalBridge/bridge/init:checkReadSelector/init:checkReadSelector/init:checkReadSelector",
-        "parameters": [
-          "part"
         ],
         "async": false
       },
@@ -766,20 +761,6 @@
         "async": false
       },
       {
-        "name": "createIcebergPhysicalBridge/createIcebergPhysicalBridge",
-        "parameters": [
-          "key"
-        ],
-        "async": false
-      },
-      {
-        "name": "createIcebergPhysicalBridge/createIcebergPhysicalBridge#2",
-        "parameters": [
-          "value"
-        ],
-        "async": false
-      },
-      {
         "name": "createIcebergPhysicalBridge/invoke/invoke",
         "parameters": [
           "command",
@@ -860,6 +841,43 @@
           "kind"
         ],
         "async": false
+      },
+      {
+        "name": "validateIcebergPhysicalConfiguration",
+        "parameters": [
+          "python",
+          "catalog"
+        ],
+        "async": false
+      },
+      {
+        "name": "validateIcebergPhysicalConfiguration/validateIcebergPhysicalConfiguration",
+        "parameters": [
+          "key"
+        ],
+        "async": false
+      },
+      {
+        "name": "validateIcebergPhysicalConfiguration/validateIcebergPhysicalConfiguration#2",
+        "parameters": [
+          "value"
+        ],
+        "async": false
+      },
+      {
+        "name": "validateIcebergReadSelector",
+        "parameters": [
+          "selector",
+          "catalogCid"
+        ],
+        "async": false
+      },
+      {
+        "name": "validateIcebergReadSelector/validateIcebergReadSelector",
+        "parameters": [
+          "part"
+        ],
+        "async": false
       }
     ],
     "imports": [
@@ -884,7 +902,6 @@
           "createIcebergPhysicalBridge/assertImplementation/assertImplementation",
           "createIcebergPhysicalBridge/bridge/init:admitStorageMapping/init:admitStorageMapping",
           "createIcebergPhysicalBridge/bridge/init:checkReadSelector/init:checkReadSelector",
-          "createIcebergPhysicalBridge/bridge/init:checkReadSelector/init:checkReadSelector/init:checkReadSelector",
           "createIcebergPhysicalBridge/bridge/init:cleanup/init:cleanup",
           "createIcebergPhysicalBridge/bridge/init:execute/init:execute",
           "createIcebergPhysicalBridge/bridge/init:execute/init:execute/result/result",
@@ -898,8 +915,6 @@
           "createIcebergPhysicalBridge/bridge/init:status/init:status",
           "createIcebergPhysicalBridge/bridge/init:supportsOperation/init:supportsOperation",
           "createIcebergPhysicalBridge/configuration/configuration",
-          "createIcebergPhysicalBridge/createIcebergPhysicalBridge",
-          "createIcebergPhysicalBridge/createIcebergPhysicalBridge#2",
           "createIcebergPhysicalBridge/invoke/invoke",
           "createIcebergPhysicalBridge/own/own",
           "createIcebergPhysicalBridge/preflight/preflight",
@@ -909,14 +924,21 @@
           "keys/keys",
           "projectIcebergCommitResponse",
           "snapshot/snapshot",
-          "supportsIcebergTableOperation"
+          "supportsIcebergTableOperation",
+          "validateIcebergPhysicalConfiguration",
+          "validateIcebergPhysicalConfiguration/validateIcebergPhysicalConfiguration",
+          "validateIcebergPhysicalConfiguration/validateIcebergPhysicalConfiguration#2",
+          "validateIcebergReadSelector",
+          "validateIcebergReadSelector/validateIcebergReadSelector"
         ],
         "exports": [
           "admitIcebergStorageMapping",
           "createIcebergPhysicalBridge",
           "issueIcebergStorageMapping",
           "projectIcebergCommitResponse",
-          "supportsIcebergTableOperation"
+          "supportsIcebergTableOperation",
+          "validateIcebergPhysicalConfiguration",
+          "validateIcebergReadSelector"
         ],
         "attributes": {
           "responsibility": [

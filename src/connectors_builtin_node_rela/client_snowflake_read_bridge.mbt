@@ -328,3 +328,22 @@ pub fn client_program_snowflake_record_response_loss(
     other => other
   }
 }
+
+///|
+#export_name("clientProgramSnowflakeReadDeclarationConstructionCapacity")
+pub fn client_program_snowflake_read_declaration_construction_capacity(
+  body_lengths : Array[Int],
+  encoded_units : Int,
+  target_units : Int,
+  resource_units : Int,
+  connector_units : Int,
+  revision_units : Int,
+  response : @snowflake_response.ResponseLimits,
+  description : @snowflake_description.DescriptionLimits,
+  declaration : @client_row_source_host.RowDeclarationLimits,
+) -> @execution.ExecutionCapacity? {
+  @snowflake_description.read_declaration_construction_capacity(
+    body_lengths, encoded_units, target_units, resource_units, connector_units, revision_units,
+    response, description, declaration,
+  )
+}

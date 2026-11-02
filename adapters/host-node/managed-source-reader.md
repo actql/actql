@@ -58,6 +58,45 @@ unfiltered Source capture and ordinary read/failure/release/Saved remain separat
 required work. The focused initializer and raw-file cases use explicit parent,
 current and I/O accounting ports; they are not nominal Core or normal acceptance.
 
+## Bound connector construction
+
+The installed loader binds construction to the same checked profile, initial
+Resource, configuration reader and current selection. Connector loaders supply
+only domain configuration and producer operations. The common boundary reserves
+before calling each constructor, retains returned Site, Reader and authorization
+children before another callback or await, and registers the final adapter once.
+A provider projection cannot replace close, publish an unregistered copy, or
+transfer a sibling adapter into this scope. Specialized Site domain projections
+receive the original Site's close from the common boundary.
+
+The bound reader captures the original method and receiver. A mutable domain
+Site profile is captured as a private frozen own-data snapshot; accessors and
+proxies are refused without invoking them. This does not cache external
+currentness: the required final identity observation still reads current inputs.
+Provider-native declarations remain in their issuing runtime. A provider Effect
+uses its actual Site-owned declaration and mappings, never a fabricated common
+RowDeclaration. Existing private Effect correspondence resolves only a projection
+with the same owner, methods, Environment, selectors and close.
+
+`installed-source-construction-geometry.mjs` supplies pure structural upper bounds
+for the existing JSON and Environment constructors. It neither parses inputs nor
+issues admission, identity, cancellation or cleanup authority. The caller retains
+the original wires and obtains actual Resource backing before construction.
+Successful synchronous Source Environment construction retains its actual output
+strings and record; unreachable parser and canonicalization workspace can then
+leave the peak. A throw after admission keeps that admitted peak as failure debt
+on the same material, including during sibling reconciliation. A refused reserve
+adds no ungranted debt. Pure failed workspace does not invent pending physical
+work or prevent eventual retirement after all real children acknowledge close.
+Effect and Table phases retain their peaks until their later consumers have their
+own backing. Native producers separately describe actual escaped outputs and
+construction workspace; connector authors do not manage release or retention.
+
+The actual installed-bound-construction tests compose generated selection,
+Resource, common constructors and physical cleanup. External provider I/O alone
+is substituted. These initializer tests do not establish normal packaged
+Run/Result/Saved acceptance or the coverage of every external provider operation.
+
 ## Original binding retirement acknowledgement
 
 The shared Reader captures each returned binding's original close and optional

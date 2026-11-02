@@ -2,6 +2,7 @@
 package "actql/actql/connectors/hubspot/catalog"
 
 import {
+  "actql/actql/execution_relation",
   "actql/actql/source_value",
   "actql/actql/value_admission",
   "actql/actql/value_contract",
@@ -9,11 +10,15 @@ import {
 }
 
 // Values
+pub fn account_initialization_construction_capacity(Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
+
 pub fn encode_object_page_rows(ObjectPage, Int, Int, Int) -> Result[String, ObjectPageIssue]
 
 pub fn execution_mapping_body(ExecutionMapping) -> String
 
 pub fn execution_mapping_fields(ExecutionMapping) -> Array[String]
+
+pub fn object_initialization_construction_capacity(Int, Int, Int, PropertyLimits, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
 
 pub fn object_page_columns(ObjectPage) -> Array[String]
 

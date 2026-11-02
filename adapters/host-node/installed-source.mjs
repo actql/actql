@@ -46,6 +46,7 @@ import {MAX_INSTALLED_SOURCE_AUTHORITIES} from './installed-source-limits.mjs';
 import {readSourceProfileJson, installedRuntimeBundleCid, captureConfigurationReaders} from './source-profile-json.mjs';
 import {retainInstalledHostServiceInstallation, installedSourceConfigurationReader,
   beginInstalledSourceInitialization, finishInstalledSourceInitialization,
+  bindInstalledSourceConstruction, retainBoundInstalledSourceFailure,
   reserveInstalledSourceEnvironment, reserveInstalledSourceRuntimeIdentity,
   withInstalledSourceLoading} from './installed-host-services.mjs';
 import {splitSourceAliasProfile} from './source-alias-publication.mjs';
@@ -406,7 +407,9 @@ async function loadInstalledSourceMember(path, {root, principalId, moon,
   try {
     adapter = await module.load(checked, {root, principalId, moon,
       baseEnvironmentWire, resolveSecret, installation: entry, installationServices,
-      sourceInitialization, configurationReader, ...runtime});
+      sourceInitialization, configurationReader,
+      construction: sourceInitialization === undefined ? undefined
+        : bindInstalledSourceConstruction(installationServices, sourceInitialization, checked), ...runtime});
     verifyInstalledConnectorRegistration(entry, adapter);
     const source = Object.freeze({...adapter, queryAliases});
     if (publicationRevision !== undefined) {
@@ -425,8 +428,7 @@ async function loadInstalledSourceMember(path, {root, principalId, moon,
     return source;
   } catch (cause) {
     // The caller cannot own an adapter until validation returns it.
-    const failure = await retainInstalledHostInitializationFailure(cause,
-      {sourceProfile: adapter});
+    const failure = await retainBoundInstalledSourceFailure(sourceInitialization, cause, adapter);
     finishInstalledSourceInitialization(sourceInitialization, adapter, failure, true);
     throw failure;
   }

@@ -66,6 +66,8 @@ import {
   "actql/actql/connectors/notion/catalog" @notion_catalog,
   "actql/actql/connectors/calendar/catalog" @calendar_catalog,
   "actql/actql/calendar_profile",
+  "actql/actql/connectors/gcs/catalog" @gcs_catalog,
+  "actql/actql/connectors/hubspot/catalog" @hubspot_catalog,
   "actql/actql/stage_results" @effect_results,
   "actql/actql/source_frontend",
   "actql/actql/query_program",

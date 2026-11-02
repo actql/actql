@@ -1,0 +1,115 @@
+{
+  "qualification": "Existing initialization producer source correspondence only; not physical backing, runtime or artifact acceptance",
+  "declarations": [
+    {
+      "module": "src/connectors/hubspot/catalog/initialization_construction.mbt",
+      "sha256": "11171d032c5f3d327f237de827d60812f20fbc52d546c5fc145928a2518d6e73",
+      "exports": [],
+      "operations": [
+        {
+          "name": "account_initialization_construction_capacity",
+          "declaration": "account_initialization_construction_capacity ( body_bytes : Int , encoded_units : Int , portal_units : Int , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "initialization_capacity",
+          "declaration": "initialization_capacity ( parts : Array [ @ execution . PreparationRepresentationUnits ] , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "initialization_collection_units",
+          "declaration": "initialization_collection_units ( value : @ shape . CollectionConstructionExtent , ) - > @ execution . PreparationRepresentationUnits"
+        },
+        {
+          "name": "initialization_decoded_construction",
+          "declaration": "initialization_decoded_construction ( bytes : Int , nodes : Int , depth : Int , normalize_keys : Bool , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "initialization_writer_units",
+          "declaration": "initialization_writer_units ( bytes : Int , nodes : Int , depth : Int , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "object_initialization_construction_capacity",
+          "declaration": "object_initialization_construction_capacity ( body_bytes : Int , encoded_units : Int , object_units : Int , limits : PropertyLimits , max_columns : Int , max_name_bytes : Int , max_schema_bytes : Int , max_schema_nodes : Int , max_schema_depth : Int , ) - > @ execution . ExecutionCapacity ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "Existing HubSpot account/property catalog and schema producer",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "account_initialization_construction_capacity",
+            "initialization_capacity",
+            "initialization_collection_units",
+            "initialization_decoded_construction",
+            "initialization_writer_units",
+            "object_initialization_construction_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

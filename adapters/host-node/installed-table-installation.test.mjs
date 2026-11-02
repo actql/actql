@@ -22,6 +22,7 @@ import {checkInstalledTableSourceProfile, checkInstalledTableEffectProfile,
   from '../connectors/local/host/installed-local-table.mjs';
 import {connectEmbeddedLocal} from './embedded-local.mjs';
 import {tablePhysicalFixture} from './fixtures/table-physical-fixture.mjs';
+import {createInstalledLoaderParent, installedFailureCode} from './fixtures/installed-loader-parent.fixture.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const runtimeUrl = new URL('../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url);
@@ -71,10 +72,15 @@ function effectProfile(root, approval = 'required') {
       permissions: ['scope:store'], footprint: {version: 'fixture-only'}}], limits: {}};
 }
 async function installedProfile(t, value) {
-  const root = await directory(t), path = join(root, 'profile.json');
+  const root = await mkdtemp(join(tmpdir(), 'actql-table-installation-'));
+  const path = join(root, 'profile.json');
+  const parent = createInstalledLoaderParent({root, principalId, moon});
+  t.after(async () => {await parent.close(); await rm(root, {recursive: true, force: true});});
+  parent.open();
   const profile = value(root);
   await writeFile(path, JSON.stringify(profile));
-  return {root, path, profile, options: {root, principalId, moon, runtimeUrl, baseEnvironmentWire,
+  return {root, path, profile, parent, options: {root, principalId, moon, runtimeUrl, baseEnvironmentWire,
+    installationServices: parent.services,
     resolveSecret() { assert.fail('Local Table installation needs no external credential'); }}};
 }
 
@@ -86,7 +92,7 @@ test('explicit tables preserve real Local Table identity and generic loading', a
   ]) {
     const f = await installedProfile(t, make);
     assert.equal(await identity(f.path, {connectorTable}), await identity(f.path));
-    const adapter = await load(f.path, {...f.options, connectorTable});
+    const adapter = await f.parent.load(load, f.path, {...f.options, connectorTable});
     try {
       assert.equal(adapter.connectorBindings[0].connectorId, 'table');
       assert.match(adapter.connectorBindings[0].bindingCid, /^sha256:[0-9a-f]{64}$/u);
@@ -94,7 +100,9 @@ test('explicit tables preserve real Local Table identity and generic loading', a
         assert.equal(adapter.connectorRegistration, 'local');
         assert.equal(adapter.connectorRevision, 'local/0.1');
       } else {
-        assert.deepEqual(adapter.effectSelectors, [{kind: 'store',
+        const [{capabilityCid, ...selector}] = adapter.effectSelectors;
+        assert.match(capabilityCid, /^sha256:[0-9a-f]{64}$/u);
+        assert.deepEqual([selector], [{kind: 'store',
           target: 'connector://table/catalog', mappingRef: 'mapping:table.catalog.v1',
           mappingCid: f.profile.targets[0].mappingCid, effectId: 'save'}]);
       }
@@ -109,7 +117,7 @@ test('Table Source loads through the generic Host without physical I/O', async t
   const f = await installedProfile(t, sourceProfile);
   const identity = await installedSourceIdentity(f.path);
   assert.match(identity, /^sha256:[0-9a-f]{64}$/u);
-  const adapter = await loadInstalledSource(f.path, f.options);
+  const adapter = await f.parent.load(loadInstalledSource, f.path, f.options);
   try {
     assert.equal(adapter.connectorRegistration, 'local');
     assert.equal(adapter.connectorRevision, 'local/0.1');
@@ -125,16 +133,19 @@ test('Table Source loads through the generic Host without physical I/O', async t
   } finally { await adapter.close(); }
 });
 
-test('Local Table cannot load without the selected Connector implementation declaration', async t => {
+test('Local Table cannot bypass the common bound construction even with claimed implementation DATA', async t => {
   const f = await installedProfile(t, sourceProfile);
   await assert.rejects(loadInstalledTableSource(f.profile, f.options),
-    {code: 'InstalledConnectorRegistrationMismatch'});
+    {code: 'InstalledTableSourceConstructionUnavailable'});
   const effect = effectProfile(f.root);
   await assert.rejects(loadInstalledTableEffect(effect, {...f.options, ledgerRoot: join(f.root, 'ledger')}),
-    {code: 'InstalledConnectorRegistrationMismatch'});
+    {code: 'InstalledTableEffectConstructionUnavailable'});
+  // Domain-only refusal test: this facade is never invoked and establishes
+  // no lifecycle success. Actual construction is covered by the tests above.
+  const construction = Object.freeze({createTableSource() {assert.fail('invalid inventory reached construction');}});
   for (const installation of [{registration: 'local', revision: 'local/0.1'},
     {registration: 'local', revision: 'local/0.1', implementationFiles: []}]) {
-    await assert.rejects(loadInstalledTableSource(f.profile, {...f.options, installation}),
+    await assert.rejects(loadInstalledTableSource(f.profile, {...f.options, installation, construction}),
       {code: 'InvalidConnectorImplementationInventory'});
   }
   assert.deepEqual((await readdir(f.root)).sort(), ['profile.json'],
@@ -144,7 +155,7 @@ test('Local Table cannot load without the selected Connector implementation decl
 test('Table Effect loads its admitted Mapping and existing runtime hooks without publication', async t => {
   const f = await installedProfile(t, effectProfile);
   assert.match(await installedEffectIdentity(f.path), /^sha256:[0-9a-f]{64}$/u);
-  const adapter = await loadInstalledEffect(f.path, f.options);
+  const adapter = await f.parent.load(loadInstalledEffect, f.path, f.options);
   try {
     assert.equal(typeof adapter.prepareCaptured, 'function');
     assert.equal(typeof adapter.prepareRecovered, 'function');
@@ -186,7 +197,7 @@ test('Table Effect refuses absent or non-required approval Mappings before insta
       if (variation === 'mapping') f.profile.targets[0].mappingCid = cid('f');
       if (variation === 'target') f.profile.targets[0].targetRef = 'connector://foreign/catalog';
       await writeFile(f.path, JSON.stringify(f.profile));
-      await assert.rejects(loadInstalledEffect(f.path, f.options), {code: 'InstalledTableMappingNotInstalled'});
+      await assert.rejects(f.parent.load(loadInstalledEffect, f.path, f.options), installedFailureCode('InstalledTableMappingNotInstalled'));
       assert.deepEqual(await readdir(f.root), ['profile.json']);
     });
   }

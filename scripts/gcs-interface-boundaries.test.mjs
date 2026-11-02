@@ -11,7 +11,9 @@ import {moonOperations, moonApiInterface} from './moon-interface-inventory.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const declarations = JSON.parse(readFileSync(new URL(
   '../src/connectors/gcs/interface-boundaries.json', import.meta.url))).declarations;
-const paths = ['src/connectors/gcs/catalog/object_metadata.mbt',
+const paths = ['src/connectors/gcs/catalog/upload_construction.mbt',
+  'src/connectors/gcs/catalog/source_facts_construction.mbt',
+  'src/connectors/gcs/catalog/object_metadata.mbt',
   'src/connectors/gcs/catalog/object_target_observation.mbt',
   'src/connectors/gcs/catalog/target_headers.mbt',
   'src/connectors/gcs/catalog/object_request.mbt',
@@ -49,9 +51,9 @@ const moduleOf = (module, source = readFileSync(new URL(`../${module}`, import.m
       : {operations: moonOperations(source), exports: []}),
 });
 
-test('all thirty-one explicit GCS owner modules and APIs retain their ten contract references', () => {
-  assert.equal(declarations.length, 31);
-  assert.equal(assertInterfaceCoverage({root, modules: paths.map(path => moduleOf(path)), declarations}), 31);
+test('all thirty-three explicit GCS owner modules and APIs retain their ten contract references', () => {
+  assert.equal(declarations.length, 33);
+  assert.equal(assertInterfaceCoverage({root, modules: paths.map(path => moduleOf(path)), declarations}), 33);
   assert.deepEqual(moduleOf(paths.at(-1)).compilerFields, []);
 });
 

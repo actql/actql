@@ -25,7 +25,7 @@ test('Local data interfaces cover real declared physical assets and the original
   interfaces.push({module, sha256: createHash('sha256').update(bytes).digest('hex'),
     ...javascriptInterface(bytes.toString())});
   assert.equal(assertInterfaceCoverage({root, modules: interfaces, declarations}), 3);
-  assert.equal(interfaces.flatMap(value => value.operations).length, 56);
+  assert.equal(interfaces.flatMap(value => value.operations).length, 58);
 });
 
 test('a new physical Python decision or export cannot inherit an existing data boundary', t => {

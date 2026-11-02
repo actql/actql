@@ -178,7 +178,7 @@
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing installed Host, Account, credential Site and same-runtime Common RowRun borrower",
-      "sha256": "2bf21424bb0656d33d523650ef1f37cc0226aa72d374860e36e1fbf44b42b329",
+      "sha256": "bb143dfe9c5489e36a5c4693ec97d91aa8c1354371652fcd8f9906bb7bf2b4c9",
       "exports": [
         "INSTALLED_SNOWFLAKE_SITE_VERSION",
         "INSTALLED_SNOWFLAKE_SOURCE_VERSION",
@@ -271,9 +271,16 @@
           "parameters": [
             "profile",
             "providerProfile",
-            "read"
+            "read",
+            "_entry",
+            "configurationReader"
           ],
           "async": true
+        },
+        {
+          "name": "installedSnowflakeSourceIdentityParts/readers/readers",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "loadInstalledSnowflakeSource",
@@ -285,7 +292,8 @@
             "baseEnvironmentWire",
             "runtimeBundleCid",
             "resolveSecret",
-            "installation"
+            "installation",
+            "construction"
           ],
           "async": true
         },
@@ -305,28 +313,60 @@
           "async": false
         },
         {
+          "name": "loadInstalledSnowflakeSource/init:project/init:project",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSnowflakeSource/init:project/init:project/decoded/decoded",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
           "name": "loadInstalledSnowflakeSource/loadInstalledSnowflakeSource",
           "parameters": [],
-          "async": true
+          "async": false
+        },
+        {
+          "name": "loadInstalledSnowflakeSource/loadInstalledSnowflakeSource/loadInstalledSnowflakeSource",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSnowflakeSource/loadInstalledSnowflakeSource/loadInstalledSnowflakeSource#2",
+          "parameters": [
+            "sum",
+            "body"
+          ],
+          "async": false
         },
         {
           "name": "loadInstalledSnowflakeSource/loadInstalledSnowflakeSource#2",
-          "parameters": [
-            "options"
-          ],
+          "parameters": [],
           "async": false
         },
         {
           "name": "loadInstalledSnowflakeSource/loadInstalledSnowflakeSource#3",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "loadInstalledSnowflakeSource/loadInstalledSnowflakeSource#4",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSnowflakeSource/loadInstalledSnowflakeSource#5",
           "parameters": [
             "options"
           ],
           "async": true
-        },
-        {
-          "name": "loadInstalledSnowflakeSource/site/init:close/init:close",
-          "parameters": [],
-          "async": false
         },
         {
           "name": "loadInstalledSnowflakeSource/target/target",
@@ -339,7 +379,8 @@
         {
           "name": "readInputs",
           "parameters": [
-            "profile"
+            "profile",
+            "readJson"
           ],
           "async": true
         },
@@ -381,13 +422,19 @@
             "closed/closed",
             "fail/fail",
             "installedSnowflakeSourceIdentityParts",
+            "installedSnowflakeSourceIdentityParts/readers/readers",
             "loadInstalledSnowflakeSource",
             "loadInstalledSnowflakeSource/admitsApprovalTarget/admitsApprovalTarget",
             "loadInstalledSnowflakeSource/admitsApprovalTarget/admitsApprovalTarget/admitsApprovalTarget",
+            "loadInstalledSnowflakeSource/init:project/init:project",
+            "loadInstalledSnowflakeSource/init:project/init:project/decoded/decoded",
             "loadInstalledSnowflakeSource/loadInstalledSnowflakeSource",
+            "loadInstalledSnowflakeSource/loadInstalledSnowflakeSource/loadInstalledSnowflakeSource",
+            "loadInstalledSnowflakeSource/loadInstalledSnowflakeSource/loadInstalledSnowflakeSource#2",
             "loadInstalledSnowflakeSource/loadInstalledSnowflakeSource#2",
             "loadInstalledSnowflakeSource/loadInstalledSnowflakeSource#3",
-            "loadInstalledSnowflakeSource/site/init:close/init:close",
+            "loadInstalledSnowflakeSource/loadInstalledSnowflakeSource#4",
+            "loadInstalledSnowflakeSource/loadInstalledSnowflakeSource#5",
             "loadInstalledSnowflakeSource/target/target",
             "readInputs",
             "readInputs/bodies/bodies",
@@ -464,7 +511,19 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../../../../packages/sdk/host-port.mjs",
+        "../../../host-common/runtime-result.mjs",
+        "../../../host-node/source-profile-json.mjs",
+        "../site/snowflake-key-pair.mjs",
+        "../site/snowflake-sql-read.mjs",
+        "node:crypto",
+        "node:fs/promises",
+        "node:path"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/connectors/snowflake/site/snowflake-key-pair.mjs",

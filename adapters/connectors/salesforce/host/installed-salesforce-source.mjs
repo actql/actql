@@ -12,13 +12,13 @@ import {runtimeField} from '../../../host-common/compiler-binding.generated.mjs'
 import {createHash} from 'node:crypto';
 import {isAbsolute} from 'node:path';
 import {checked} from '../../../host-common/runtime-result.mjs';
-import {createInstalledRowSource} from '../../../host-node/installed-row-source.mjs';
+import {captureConfigurationReaders} from '../../../host-node/source-profile-json.mjs';
+import {salesforceInitializationConstructionCapacity} from './salesforce-initialization-construction.mjs';
 import {installSalesforceAuthorization, installedSalesforceSiteBinding,
   loadInstalledSalesforceSite, releaseSalesforceSite,
   retainSalesforceSiteCleanup} from
   './installed-salesforce-site.mjs';
-import {loadSalesforceGeneration, publishSalesforceGeneration, readPublicationFile,
-  salesforceCheckEnvironment} from './salesforce-publication.mjs';
+import {restoreSalesforceGeneration, publishSalesforceGeneration, readPublicationFile} from './salesforce-publication.mjs';
 import {installSalesforceResourceService} from
   './salesforce-resource-service.mjs';
 import {readSalesforceQuery} from '../site/salesforce-query-read.mjs';
@@ -67,13 +67,16 @@ export function checkInstalledSalesforceSourceProfile(profile) {
 // account configuration as a document, the installed Site profile and the
 // published generation. No credential value and no provider I/O.
 export async function installedSalesforceSourceIdentityParts(profile,
-  providerProfile, read) {
+  providerProfile, read, _entry, {configurationReader} = {}) {
   const checkedProfile = checkInstalledSalesforceSourceProfile(providerProfile);
+  const readers = captureConfigurationReaders(configurationReader, read,
+    () => fail('InstalledConfigurationReaderUnavailable'));
+  const publication = await readPublicationFile(checkedProfile.publicationPath, readers.readText);
   return [
     {...profile, accountConfigurationWire: JSON.parse(
       profile.accountConfigurationWire)},
     await read(checkedProfile.siteProfilePath, {maxBytes: 8 * 1024 * 1024}),
-    JSON.parse((await readPublicationFile(checkedProfile.publicationPath)).body),
+    (readers.parseJsonText ?? JSON.parse)(publication.body),
   ];
 }
 
@@ -150,60 +153,57 @@ function queryRuntime(moon) {
 // Load one installed Salesforce source. `baseEnvironmentWire` is the Host's
 // base Check Environment; the published declaration and its evidence
 // members are added to it.
-export async function loadInstalledSalesforceSource(profile, {root,
-  principalId, moon, providerMoon: salesforceMoon, baseEnvironmentWire,
-  runtimeBundleCid, resolveSecret, openCredentialJournal}) {
+export async function loadInstalledSalesforceSource(profile, {moon,
+  providerMoon: salesforceMoon, runtimeBundleCid, resolveSecret,
+  openCredentialJournal, construction}) {
+  if (construction === undefined) fail('InstalledSourceInitializationUnavailable');
   const checkedProfile = checkInstalledSalesforceSourceProfile(profile);
   const queryMoon = queryRuntime(moon);
-  const {authorization, site} = await openSite(checkedProfile, {root,
-    principalId, moon, providerMoon: salesforceMoon, runtimeBundleCid,
-    resolveSecret, openCredentialJournal});
-  try {
-    const loaded = await loadSalesforceGeneration({site,
-      path: checkedProfile.publicationPath,
-      connectorId: checkedProfile.connectorId,
-      resources: checkedProfile.resources});
-    const [schemas, capabilities] = checked(
-      salesforceMoon.salesforceSourceEvidenceMembers(
-        loaded.declared.declaration));
-    const environment = salesforceCheckEnvironment(baseEnvironmentWire,
-      loaded.declared, {schemas, capabilities});
-    // The standard runtime restores the same declaration from the same
-    // published bytes, bound to this Site, and must reproduce its Catalog.
+  const {authorization, site} = await construction.openSpecializedSite({
+    authorizationConstructor: installSalesforceAuthorization,
+    siteConstructor: loadInstalledSalesforceSite,
+    siteArgument: checkedProfile.siteProfilePath,
+    accountConfiguration: checkedProfile.accountConfigurationWire,
+    siteOptions: {salesforceMoon, resolveSecret, openCredentialJournal},
+  });
+  const readers = construction.configurationReader;
+  const {body, generationCid} = await readPublicationFile(checkedProfile.publicationPath, readers.readText);
+  const generation = readers.parseJsonText(body);
+  if (JSON.stringify(generation) !== body) fail('InvalidSalesforcePublication');
+  const capacity = () => salesforceInitializationConstructionCapacity(moon,
+    {generation, siteBinding: site, declarationLimits});
+  const loaded = construction.prepareNativeInput(Object.freeze({capacity,
+    project: () => restoreSalesforceGeneration({site, generation,
+      connectorId: checkedProfile.connectorId, resources: checkedProfile.resources})}));
+  let declaration, recover;
+  construction.prepareNativeDeclaration(Object.freeze({capacity, project() {
+    // Preserve the two existing, distinct runtime restores; neither opaque
+    // declaration is passed across its runtime's nominal boundary.
     const siteHandle = checked(moon.clientProgramSalesforceSite(
       site.namespaceId, site.principal, site.environment, site.connectionRevision,
       site.orgId, site.siteKey, site.siteGeneration, site.instanceOrigin));
-    const recover = (evidence, expectedRun) => checked(
+    recover = (evidence, expectedRun) => checked(
       moon.clientProgramSalesforceRecoverObservation(siteHandle,
         ...recoveryArguments(evidence), expectedRun));
-    const declaration = checked(moon.clientProgramSalesforceRestoreDeclaration(
+    declaration = checked(moon.clientProgramSalesforceRestoreDeclaration(
       siteHandle, recover(loaded.declared.evidence, undefined),
       checkedProfile.connectorId, loaded.declared.catalog_cid,
-      declarationLimits.maxBytes, declarationLimits.maxNodes,
-      declarationLimits.maxDepth));
-    const discovery = installSalesforceResourceService({salesforceMoon,
-      sites: [site]});
-    discovery.installPublished(site.connection, loaded.declared);
-    return await installedSalesforceAdapter({moon, queryMoon, site, authorization,
-      declaration, declared: loaded.declared, recover, discovery,
-      environment, generationCid: loaded.generationCid,
-      catalogCid: loaded.declared.catalog_cid,
-      connectorId: checkedProfile.connectorId});
-  } catch (error) {
-    // The load's own failure stays primary; an incomplete Site release
-    // travels with it to the caller.
-    throw retainSalesforceSiteCleanup(site, error);
-  }
+      declarationLimits.maxBytes, declarationLimits.maxNodes, declarationLimits.maxDepth));
+    return Object.freeze({declaration: checked(moon.clientProgramSalesforceRowDeclaration(declaration))});
+  }}));
+  const discovery = installSalesforceResourceService({salesforceMoon, sites: [site]});
+  discovery.installPublished(site.connection, loaded.declared);
+  return installedSalesforceAdapter({moon, queryMoon, site, authorization,
+    declaration, recover, discovery, construction, generationCid,
+    catalogCid: loaded.declared.catalog_cid, connectorId: checkedProfile.connectorId});
 }
 
 // Compatibility installation only. Original Salesforce identities and typed
 // Describe/query codecs stay here; the shared Row Source owns every checked
 // preparation, original acquisition, RowRun, capture and failure cleanup.
 async function installedSalesforceAdapter({moon, queryMoon, site, authorization,
-  declaration, declared, recover, discovery, environment, generationCid,
+  declaration, recover, discovery, construction, generationCid,
   catalogCid, connectorId}) {
-  const rowDeclaration = checked(
-    moon.clientProgramSalesforceRowDeclaration(declaration));
   const directReadIdentity = Object.freeze({
     input: 0,
     subject: prepared => cid({version: 'actql-salesforce-acquisition-read/0.1',
@@ -218,18 +218,21 @@ async function installedSalesforceAdapter({moon, queryMoon, site, authorization,
     useId: (nonce, index) => `${nonce}-query-${index}`,
   });
   const binding = installedSalesforceSiteBinding(site, connectorId);
-  const source = await createInstalledRowSource({moon,
-    declaration: rowDeclaration, declared, environmentWire: environment.wire,
-    connectorId, connectorRegistration: site.connectorRegistration,
-    connectorRevision: site.connectorRevision, bindingCid: binding.bindingCid,
-    authorization, directReadIdentity, grantBeforeBegin: true,
+  return construction.createRowSource({bindingCid: binding.bindingCid,
+    directReadIdentity, grantBeforeBegin: true,
+    realizationKey: 'salesforce-acquired',
+    publication: Object.freeze({generationCid, discovery: Object.freeze({resources: discovery.resources,
+      inspectResource: discovery.inspectResource, peekResource: discovery.peekResource})}),
+    publicationSurface: Object.freeze(['realizationKey', 'supportsRetainedRelationOutput',
+      'connectorRegistration', 'connectorRevision', 'environmentWire', 'connectorBindings',
+      'readAuthorization', 'sourceAccess', 'sourceReadAccesses', 'admitsSource',
+      'ledgerCapacity', 'prepare', 'open', 'close']),
     originalSourceAccess: Object.freeze({authorization, connection: site.connection}),
     // These functions retain this same original Salesforce Site. The alias
     // selects its existing issuer; it does not create a second grant Owner.
-    site: Object.freeze({connection: site.connection,
+    projectSite: () => Object.freeze({connection: site.connection,
       issueReadGrant: request => site.issueGrant(request),
-      admitCheckpointReadApproval: decision => site.admitCheckpointReadApproval(decision),
-      close: () => site.close()}),
+      admitCheckpointReadApproval: decision => site.admitCheckpointReadApproval(decision)}),
     readOperation: 'salesforce:query:read',
     physicalTarget: (resource, fields) => Object.freeze({
       version: 'actql-installed-salesforce-target/0.1',
@@ -278,21 +281,4 @@ async function installedSalesforceAdapter({moon, queryMoon, site, authorization,
         credential: site.credential,
         refreshCatalog: () => preparedRead.describe('recheck'), signal});
     }});
-  // Keep the established compatibility entry shape. It delegates to the one
-  // shared execution implementation and does not expose new keyed/listing or
-  // retained-recovery profiles merely because the shared Owner supports them.
-  return Object.freeze({realizationKey: 'salesforce-acquired',
-    supportsRetainedRelationOutput: true,
-    connectorRegistration: source.connectorRegistration,
-    connectorRevision: source.connectorRevision,
-    environmentWire: source.environmentWire, generationCid,
-    connectorBindings: Object.freeze([binding]),
-    readAuthorization: source.readAuthorization,
-    sourceAccess: source.sourceAccess, sourceReadAccesses: source.sourceReadAccesses,
-    admitsSource: source.admitsSource,
-    ledgerCapacity: source.ledgerCapacity, prepare: source.prepare,
-    open: source.open, close: source.close,
-    discovery: Object.freeze({resources: discovery.resources,
-      inspectResource: discovery.inspectResource,
-      peekResource: discovery.peekResource})});
 }

@@ -1,11 +1,5 @@
 {
   "qualification": "existing-owner-reference-coverage-only; not-product-execution-semantic-admission-or-capacity-grant",
-  "selection": {
-    "source": "3009c92fb3d5205e2e8fa19df0803f06ea21da50",
-    "projectionSha256": "37c54c5c884537dfc833428e72b350486da57818e7d309517b6b66409092e12c",
-    "modules": 53,
-    "operations": 702
-  },
   "declarations": [
     {
       "module": "adapters/connectors/duckdb/node/acquisition-planning.mjs",
@@ -4106,7 +4100,7 @@
     {
       "module": "adapters/connectors/gcs/host/gcs-source-declaration.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "02413f8e6fca1deb356b7b33f082890cfc8b17daee765bf783e387b11d5a65f1",
+      "sha256": "41010d3190b1e5e147e769405da0334f1382823b909b937e6047f978eee71ac9",
       "role": "connector-semantics",
       "owner": "GCS profile and declaration inputs; Common RowSource declaration seals catalogs/schema/capabilities",
       "exports": [
@@ -4114,6 +4108,7 @@
         "GCS_REVISION",
         "INSTALLED_GCS_SOURCE_VERSION",
         "checkInstalledGcsSourceProfile",
+        "prepareGcsSourceDeclarationInputs",
         "restoreGcsSourceDeclaration"
       ],
       "operations": [
@@ -4182,6 +4177,63 @@
           "async": false
         },
         {
+          "name": "prepareGcsSourceDeclarationInputs",
+          "parameters": [
+            "profile",
+            "includeObjects"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareGcsSourceDeclarationInputs/deriveFinalViews/deriveFinalViews",
+          "parameters": [
+            "initial"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareGcsSourceDeclarationInputs/deriveFinalViews/deriveFinalViews/deriveFinalViews",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareGcsSourceDeclarationInputs/deriveFinalViews/deriveFinalViews/deriveFinalViews#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareGcsSourceDeclarationInputs/deriveFinalViews/deriveFinalViews/deriveFinalViews#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareGcsSourceDeclarationInputs/deriveFinalViews/deriveFinalViews/finalViews/finalViews",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareGcsSourceDeclarationInputs/initialViews/initialViews",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareGcsSourceDeclarationInputs/request/request",
+          "parameters": [
+            "fields"
+          ],
+          "async": false
+        },
+        {
           "name": "restoreGcsSourceDeclaration",
           "parameters": [
             "moon",
@@ -4192,30 +4244,10 @@
           "async": false
         },
         {
-          "name": "restoreGcsSourceDeclaration/request/request",
-          "parameters": [
-            "fields"
-          ],
-          "async": false
-        },
-        {
           "name": "restoreGcsSourceDeclaration/restore/restore",
           "parameters": [
+            "views",
             "expected"
-          ],
-          "async": false
-        },
-        {
-          "name": "restoreGcsSourceDeclaration/restoreGcsSourceDeclaration",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "restoreGcsSourceDeclaration/restoreGcsSourceDeclaration#2",
-          "parameters": [
-            "value"
           ],
           "async": false
         },
@@ -4243,11 +4275,16 @@
             "exact/exact",
             "fail/fail",
             "positive/positive",
+            "prepareGcsSourceDeclarationInputs",
+            "prepareGcsSourceDeclarationInputs/deriveFinalViews/deriveFinalViews",
+            "prepareGcsSourceDeclarationInputs/deriveFinalViews/deriveFinalViews/deriveFinalViews",
+            "prepareGcsSourceDeclarationInputs/deriveFinalViews/deriveFinalViews/deriveFinalViews#2",
+            "prepareGcsSourceDeclarationInputs/deriveFinalViews/deriveFinalViews/deriveFinalViews#3",
+            "prepareGcsSourceDeclarationInputs/deriveFinalViews/deriveFinalViews/finalViews/finalViews",
+            "prepareGcsSourceDeclarationInputs/initialViews/initialViews",
+            "prepareGcsSourceDeclarationInputs/request/request",
             "restoreGcsSourceDeclaration",
-            "restoreGcsSourceDeclaration/request/request",
             "restoreGcsSourceDeclaration/restore/restore",
-            "restoreGcsSourceDeclaration/restoreGcsSourceDeclaration",
-            "restoreGcsSourceDeclaration/restoreGcsSourceDeclaration#2",
             "view"
           ],
           "exports": [
@@ -4255,6 +4292,7 @@
             "GCS_REVISION",
             "INSTALLED_GCS_SOURCE_VERSION",
             "checkInstalledGcsSourceProfile",
+            "prepareGcsSourceDeclarationInputs",
             "restoreGcsSourceDeclaration"
           ],
           "attributes": {
@@ -4426,7 +4464,7 @@
     {
       "module": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "754e475a7e2519c68dd1842f747d80bf536f7ccc56b30b139cf6e7ec16b7e435",
+      "sha256": "5126fe6ee5bf2d10ab0b9822b9a91e7a5b948954f2cb811c2e5be3d0698bff36",
       "role": "connector-semantics",
       "owner": "Installed GCS Resource/Source wiring; Common acquisition/ReferenceIssuer/authorization remain authoritative",
       "exports": [
@@ -4506,21 +4544,8 @@
             "baseEnvironmentWire",
             "runtimeBundleCid",
             "resolveSecret",
-            "installation"
-          ],
-          "async": true
-        },
-        {
-          "name": "loadInstalledGcsSource/adapter/adapter",
-          "parameters": [
-            "options"
-          ],
-          "async": true
-        },
-        {
-          "name": "loadInstalledGcsSource/adapter/adapter/adapter",
-          "parameters": [
-            "resource"
+            "installation",
+            "construction"
           ],
           "async": true
         },
@@ -4540,6 +4565,16 @@
           "async": false
         },
         {
+          "name": "loadInstalledGcsSource/collection/init:capacity/init:capacity",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadInstalledGcsSource/collection/init:project/init:project",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "loadInstalledGcsSource/collectionIssuer/collectionIssuer",
           "parameters": [
             "kind",
@@ -4555,6 +4590,11 @@
           "async": false
         },
         {
+          "name": "loadInstalledGcsSource/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "loadInstalledGcsSource/fieldLists/fieldLists",
           "parameters": [
             "view"
@@ -4562,8 +4602,38 @@
           "async": false
         },
         {
-          "name": "loadInstalledGcsSource/init:close/init:close",
-          "parameters": [],
+          "name": "loadInstalledGcsSource/init:capacity/init:capacity",
+          "parameters": [
+            "preliminary"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledGcsSource/init:capacity/init:capacity/init:capacity",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledGcsSource/init:capacity/init:capacity/init:capacity#2",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledGcsSource/init:capacity/init:capacity/init:capacity#3",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledGcsSource/init:capacity/init:capacity#2",
+          "parameters": [
+            "wire"
+          ],
           "async": false
         },
         {
@@ -4575,9 +4645,39 @@
           "async": false
         },
         {
-          "name": "loadInstalledGcsSource/referenceIssuer/referenceIssuer",
-          "parameters": [],
+          "name": "loadInstalledGcsSource/init:project/init:project",
+          "parameters": [
+            "wire"
+          ],
           "async": false
+        },
+        {
+          "name": "loadInstalledGcsSource/loadInstalledGcsSource",
+          "parameters": [
+            "binding",
+            "resource",
+            "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledGcsSource/loadInstalledGcsSource/loadInstalledGcsSource",
+          "parameters": [
+            "resource"
+          ],
+          "async": true
+        },
+        {
+          "name": "loadInstalledGcsSource/loadInstalledGcsSource#2",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "loadInstalledGcsSource/loadInstalledGcsSource#3",
+          "parameters": [
+            "options"
+          ],
+          "async": true
         },
         {
           "name": "loadInstalledGcsSource/resourceFor/resourceFor",
@@ -4604,11 +4704,6 @@
           "async": false
         },
         {
-          "name": "loadInstalledGcsSource/site/site",
-          "parameters": [],
-          "async": true
-        },
-        {
           "name": "loadInstalledGcsSource/target/target",
           "parameters": [
             "resource",
@@ -4619,7 +4714,8 @@
         {
           "name": "readSite",
           "parameters": [
-            "path"
+            "path",
+            "read"
           ],
           "async": true
         },
@@ -4652,20 +4748,28 @@
             "fail/fail",
             "installedGcsSourceIdentityParts",
             "loadInstalledGcsSource",
-            "loadInstalledGcsSource/adapter/adapter",
-            "loadInstalledGcsSource/adapter/adapter/adapter",
             "loadInstalledGcsSource/admitsApprovalTarget/admitsApprovalTarget",
             "loadInstalledGcsSource/admitsApprovalTarget/admitsApprovalTarget/admitsApprovalTarget",
+            "loadInstalledGcsSource/collection/init:capacity/init:capacity",
+            "loadInstalledGcsSource/collection/init:project/init:project",
             "loadInstalledGcsSource/collectionIssuer/collectionIssuer",
             "loadInstalledGcsSource/collectionIssuer/collectionIssuer#2",
+            "loadInstalledGcsSource/current/current",
             "loadInstalledGcsSource/fieldLists/fieldLists",
-            "loadInstalledGcsSource/init:close/init:close",
+            "loadInstalledGcsSource/init:capacity/init:capacity",
+            "loadInstalledGcsSource/init:capacity/init:capacity/init:capacity",
+            "loadInstalledGcsSource/init:capacity/init:capacity/init:capacity#2",
+            "loadInstalledGcsSource/init:capacity/init:capacity/init:capacity#3",
+            "loadInstalledGcsSource/init:capacity/init:capacity#2",
             "loadInstalledGcsSource/init:issueOriginalCollectionReference/init:issueOriginalCollectionReference",
-            "loadInstalledGcsSource/referenceIssuer/referenceIssuer",
+            "loadInstalledGcsSource/init:project/init:project",
+            "loadInstalledGcsSource/loadInstalledGcsSource",
+            "loadInstalledGcsSource/loadInstalledGcsSource/loadInstalledGcsSource",
+            "loadInstalledGcsSource/loadInstalledGcsSource#2",
+            "loadInstalledGcsSource/loadInstalledGcsSource#3",
             "loadInstalledGcsSource/resourceFor/resourceFor",
             "loadInstalledGcsSource/resourceValid/resourceValid",
             "loadInstalledGcsSource/resourceValid/resourceValid/resourceValid",
-            "loadInstalledGcsSource/site/site",
             "loadInstalledGcsSource/target/target",
             "readSite",
             "sameKeys/sameKeys",
@@ -4758,8 +4862,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
-                "anchor": "retainInstalledHostInitializationFailure"
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Bound connector construction"
               },
               {
                 "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
@@ -4792,8 +4896,8 @@
                 "anchor": "closing = true"
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
-                "anchor": "close() { closed = true; adapter.close(); }"
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Bound connector construction"
               },
               {
                 "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
@@ -4971,10 +5075,7 @@
       ],
       "imports": [
         "../../../../packages/sdk/host-port.mjs",
-        "../../../host-node/installed-host-cleanup.mjs",
-        "../../../host-node/installed-row-source.mjs",
         "../../../host-node/source-profile-json.mjs",
-        "../site/gcs-credential-site.mjs",
         "../site/gcs-file-listing.mjs",
         "../site/gcs-keyed-content.mjs",
         "../site/gcs-object-listing.mjs",
@@ -6128,7 +6229,7 @@
     {
       "module": "adapters/connectors/github/host/installed-github-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "00c37ef974f73c0b5309c9bef22d30002d625f9b9b18fc9fc5e94f0d2f6e8525",
+      "sha256": "6ddd9b7e260c53220d4a992ae6e4c22459a86415f95b8a7c814b7d22f8301a0a",
       "role": "connector-semantics",
       "owner": "Published stable repository identity and installed Issue Source; Host RowSource owns capture and disclosure",
       "exports": [
@@ -6199,7 +6300,8 @@
             "baseEnvironmentWire",
             "runtimeBundleCid",
             "resolveSecret",
-            "installation"
+            "installation",
+            "construction"
           ],
           "async": true
         },
@@ -6221,6 +6323,14 @@
             "rows",
             "_page",
             "admission"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledGitHubSource/opened/opened",
+          "parameters": [
+            "binding",
+            "resource"
           ],
           "async": false
         },
@@ -6358,6 +6468,7 @@
             "loadInstalledGitHubSource",
             "loadInstalledGitHubSource/loadInstalledGitHubSource",
             "loadInstalledGitHubSource/loadInstalledGitHubSource/loadInstalledGitHubSource",
+            "loadInstalledGitHubSource/opened/opened",
             "loadInstalledGitHubSource/physicalTarget/physicalTarget",
             "openSite",
             "openSite/configuration/configuration",
@@ -7485,7 +7596,7 @@
     {
       "module": "adapters/connectors/local/host/installed-local-table.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "369f8f5d327991aca9d448e73603c620db0cff6b3003438a7c68156fa3d597c3",
+      "sha256": "0ef31c64589914a5272311863e80d2fff5303970f48ba09ff235e6e1e3e81ab0",
       "role": "connector-semantics",
       "owner": "Local Table Source/Effect installation through generic Host; no separate Table scheduler or approval owner",
       "exports": [
@@ -7624,66 +7735,6 @@
           "async": false
         },
         {
-          "name": "installedTableReadSite",
-          "parameters": [
-            "connection",
-            "authorization",
-            "principalId",
-            "targets"
-          ],
-          "async": false
-        },
-        {
-          "name": "installedTableReadSite/ensureOpen/ensureOpen",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "installedTableReadSite/init:admitCheckpointReadApproval/init:admitCheckpointReadApproval",
-          "parameters": [
-            "decision"
-          ],
-          "async": false
-        },
-        {
-          "name": "installedTableReadSite/init:admitCheckpointReadApproval/init:admitCheckpointReadApproval/init:admitCheckpointReadApproval",
-          "parameters": [
-            "field"
-          ],
-          "async": false
-        },
-        {
-          "name": "installedTableReadSite/init:admitCheckpointReadApproval/init:admitCheckpointReadApproval/target/target",
-          "parameters": [
-            "target"
-          ],
-          "async": false
-        },
-        {
-          "name": "installedTableReadSite/init:close/init:close",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "installedTableReadSite/init:issueReadGrant/init:issueReadGrant",
-          "parameters": [
-            "operation",
-            "decision",
-            "resource",
-            "runInvocationCid",
-            "dispatchRequestCid",
-            "maxUses"
-          ],
-          "async": false
-        },
-        {
-          "name": "installedTableReadSite/init:issueReadGrant/init:issueReadGrant/init:issueReadGrant",
-          "parameters": [
-            "target"
-          ],
-          "async": false
-        },
-        {
           "name": "installedTableSourceIdentityParts",
           "parameters": [
             "profile",
@@ -7711,7 +7762,8 @@
             "moon",
             "runtimeBundleCid",
             "baseEnvironmentWire",
-            "installation"
+            "installation",
+            "construction"
           ],
           "async": true
         },
@@ -7730,6 +7782,11 @@
           "async": false
         },
         {
+          "name": "loadInstalledTableEffect/loadInstalledTableEffect#3",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "loadInstalledTableEffect/mapping/mapping",
           "parameters": [
             "value"
@@ -7742,14 +7799,13 @@
             "profile",
             "root",
             "principalId",
-            "moon",
-            "baseEnvironmentWire",
-            "installation"
+            "installation",
+            "construction"
           ],
           "async": true
         },
         {
-          "name": "loadInstalledTableSource/site/site",
+          "name": "loadInstalledTableSource/loadInstalledTableSource",
           "parameters": [],
           "async": false
         },
@@ -7795,22 +7851,15 @@
             "fail/fail",
             "identityParts",
             "installedTableEffectIdentityParts",
-            "installedTableReadSite",
-            "installedTableReadSite/ensureOpen/ensureOpen",
-            "installedTableReadSite/init:admitCheckpointReadApproval/init:admitCheckpointReadApproval",
-            "installedTableReadSite/init:admitCheckpointReadApproval/init:admitCheckpointReadApproval/init:admitCheckpointReadApproval",
-            "installedTableReadSite/init:admitCheckpointReadApproval/init:admitCheckpointReadApproval/target/target",
-            "installedTableReadSite/init:close/init:close",
-            "installedTableReadSite/init:issueReadGrant/init:issueReadGrant",
-            "installedTableReadSite/init:issueReadGrant/init:issueReadGrant/init:issueReadGrant",
             "installedTableSourceIdentityParts",
             "keys/keys",
             "loadInstalledTableEffect",
             "loadInstalledTableEffect/loadInstalledTableEffect",
             "loadInstalledTableEffect/loadInstalledTableEffect#2",
+            "loadInstalledTableEffect/loadInstalledTableEffect#3",
             "loadInstalledTableEffect/mapping/mapping",
             "loadInstalledTableSource",
-            "loadInstalledTableSource/site/site",
+            "loadInstalledTableSource/loadInstalledTableSource",
             "selectedImplementation/selectedImplementation",
             "snapshot/snapshot",
             "text/text"
@@ -7853,13 +7902,13 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/local/host/installed-local-table.mjs",
+                "path": "adapters/host-node/installed-table-source.mjs",
                 "anchor": "checkpointApprovalFacts"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/local/host/installed-local-table.mjs",
+                "path": "adapters/host-node/installed-table-source.mjs",
                 "anchor": "TableSourceReadGrantNotAuthorized"
               }
             ],
@@ -7872,7 +7921,7 @@
             "resources": [
               {
                 "path": "adapters/connectors/local/host/installed-local-table.mjs",
-                "anchor": "encodeProcessFrame"
+                "anchor": "snapshotProcessValue"
               }
             ],
             "extension": [
@@ -7897,7 +7946,22 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../../../../packages/sdk/host-port.mjs",
+        "../../../host-node/installed-check-environment.mjs",
+        "../../../host-node/installed-connector-implementation.mjs",
+        "../../../host-node/installed-row-source.mjs",
+        "../../../host-node/installed-table-effect.mjs",
+        "../../../host-node/installed-table-source.mjs",
+        "../../../host-node/process-frames.mjs",
+        "./iceberg-process.mjs",
+        "node:crypto",
+        "node:path",
+        "node:url"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/connectors/local/iceberg/catalog.py",
@@ -8794,7 +8858,7 @@
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-effect-installation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "382a7a17daf69b65f90da63a6e2e548342493f47b21b5c3ee8426476a85c41a0",
+      "sha256": "1f625d2339af80752242c560fae7c04e1db7100053c49fff1954e6d78ebee447",
       "role": "connector-semantics",
       "owner": "Salesforce factory entries in the generated Host connector table, not an independent Effect runtime",
       "exports": [
@@ -8815,9 +8879,16 @@
           "name": "installedSalesforceEffectIdentityParts",
           "parameters": [
             "profile",
-            "read"
+            "read",
+            "_entry",
+            "configurationReader"
           ],
           "async": true
+        },
+        {
+          "name": "installedSalesforceEffectIdentityParts/readers/readers",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "loadInstalledSalesforceEffectInstallation",
@@ -8827,11 +8898,6 @@
             "options"
           ],
           "async": true
-        },
-        {
-          "name": "loadInstalledSalesforceEffectInstallation/loadInstalledSalesforceEffectInstallation",
-          "parameters": [],
-          "async": false
         },
         {
           "name": "publishInstalledSalesforceEffectInstallation",
@@ -8849,8 +8915,8 @@
             "<module>",
             "checkInstalledSalesforceEffectInstallation",
             "installedSalesforceEffectIdentityParts",
+            "installedSalesforceEffectIdentityParts/readers/readers",
             "loadInstalledSalesforceEffectInstallation",
-            "loadInstalledSalesforceEffectInstallation/loadInstalledSalesforceEffectInstallation",
             "publishInstalledSalesforceEffectInstallation"
           ],
           "exports": [
@@ -8893,7 +8959,7 @@
             "ownership": [
               {
                 "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-installation.mjs",
-                "anchor": "close: () => effect.close()"
+                "anchor": "close: effect.close"
               },
               {
                 "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-installation.mjs",
@@ -8961,6 +9027,7 @@
       ],
       "imports": [
         "../../../host-node/installed-row-effect.mjs",
+        "../../../host-node/source-profile-json.mjs",
         "./installed-salesforce-effect.mjs",
         "./salesforce-publication.mjs"
       ],
@@ -8970,7 +9037,7 @@
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "8fc20f1e0bd618002cd97d5a355ab54e15812254957aa801baad715cd10f4916",
+      "sha256": "ce6424929c7a1971d177726c0fe504da4166c748dc13110fdf477cacd6fc9197",
       "role": "connector-semantics",
       "owner": "Exact installed Salesforce org/Site binding with existing account gate, credential journal and release custody",
       "exports": [
@@ -9030,7 +9097,9 @@
             "now",
             "grantLifetimeMs",
             "openCredentialJournal",
-            "runAcquisitionLimits"
+            "runAcquisitionLimits",
+            "configurationReader",
+            "ownAuthorization"
           ],
           "async": true
         },
@@ -9185,6 +9254,11 @@
             "name"
           ],
           "async": true
+        },
+        {
+          "name": "loadInstalledSalesforceSite/closeSite",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "loadInstalledSalesforceSite/custody/custody",
@@ -9409,6 +9483,11 @@
           "async": false
         },
         {
+          "name": "loadInstalledSalesforceSite/readers/readers",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "loadInstalledSalesforceSite/refreshCatalog",
           "parameters": [
             "signal",
@@ -9537,8 +9616,8 @@
             "<module>",
             "cid/cid",
             "fail/fail",
-            "installSalesforceAuthorization",
             "installedSalesforceSiteBinding",
+            "installSalesforceAuthorization",
             "loadInstalledSalesforceSite",
             "loadInstalledSalesforceSite/admitCheckpointEffectTargetRead",
             "loadInstalledSalesforceSite/admitCheckpointEffectTargetRead/admitCheckpointEffectTargetRead",
@@ -9546,42 +9625,6 @@
             "loadInstalledSalesforceSite/attestEffectCapability",
             "loadInstalledSalesforceSite/attestEffectCapability/init:current/init:current",
             "loadInstalledSalesforceSite/authorizeDescribe",
-            "loadInstalledSalesforceSite/catalogSyncRequest",
-            "loadInstalledSalesforceSite/catalogSyncRequest/grant/grant",
-            "loadInstalledSalesforceSite/catalogSyncRequest/request/request",
-            "loadInstalledSalesforceSite/custody/custody",
-            "loadInstalledSalesforceSite/declarationLimits/declarationLimits",
-            "loadInstalledSalesforceSite/declareCatalog",
-            "loadInstalledSalesforceSite/describeEffectCatalog",
-            "loadInstalledSalesforceSite/describeForAcquisition",
-            "loadInstalledSalesforceSite/describeNamed",
-            "loadInstalledSalesforceSite/describeNamed/describeNamed",
-            "loadInstalledSalesforceSite/describedTargets/describedTargets",
-            "loadInstalledSalesforceSite/describedTargets/describedTargets/described/described",
-            "loadInstalledSalesforceSite/generate/generate",
-            "loadInstalledSalesforceSite/issueGrant",
-            "loadInstalledSalesforceSite/loadInstalledSalesforceSite",
-            "loadInstalledSalesforceSite/peek",
-            "loadInstalledSalesforceSite/peek/describe/describe",
-            "loadInstalledSalesforceSite/peek/result/result",
-            "loadInstalledSalesforceSite/peek/result/result#2",
-            "loadInstalledSalesforceSite/peek/result/result#3",
-            "loadInstalledSalesforceSite/prepareExecutionMapping",
-            "loadInstalledSalesforceSite/prepareExecutionMapping/mapping/mapping",
-            "loadInstalledSalesforceSite/prepareExecutionMapping/mapping/mapping#2",
-            "loadInstalledSalesforceSite/prepareExecutionMapping/mapping/mapping#3",
-            "loadInstalledSalesforceSite/refreshCatalog",
-            "loadInstalledSalesforceSite/restoreDeclaration",
-            "loadInstalledSalesforceSite/restoreDeclaration/mismatch/mismatch",
-            "loadInstalledSalesforceSite/siteBinding/siteBinding",
-            "releaseSalesforceSite",
-            "retainSalesforceSiteCleanup",
-            "text/text",
-            "validProfile",
-            "validProfile/validProfile",
-            "validProfile/validProfile#2",
-            "validProfile/validProfile#3",
-            "validProfile/validProfile#4",
             "loadInstalledSalesforceSite/bindRecordAcquisition",
             "loadInstalledSalesforceSite/bindRecordAcquisition/assertOpen/assertOpen",
             "loadInstalledSalesforceSite/bindRecordAcquisition/captureCurrent/captureCurrent",
@@ -9594,8 +9637,46 @@
             "loadInstalledSalesforceSite/bindRecordAcquisition/currentFor/currentFor/observeCurrent/observeCurrent",
             "loadInstalledSalesforceSite/bindRecordAcquisition/init:close/init:close",
             "loadInstalledSalesforceSite/bindRecordAcquisition/init:forAuthorization/init:forAuthorization",
+            "loadInstalledSalesforceSite/catalogSyncRequest",
+            "loadInstalledSalesforceSite/catalogSyncRequest/grant/grant",
+            "loadInstalledSalesforceSite/catalogSyncRequest/request/request",
+            "loadInstalledSalesforceSite/closeSite",
+            "loadInstalledSalesforceSite/custody/custody",
+            "loadInstalledSalesforceSite/declarationLimits/declarationLimits",
+            "loadInstalledSalesforceSite/declareCatalog",
+            "loadInstalledSalesforceSite/describedTargets/describedTargets",
+            "loadInstalledSalesforceSite/describedTargets/describedTargets/described/described",
+            "loadInstalledSalesforceSite/describeEffectCatalog",
+            "loadInstalledSalesforceSite/describeForAcquisition",
+            "loadInstalledSalesforceSite/describeNamed",
+            "loadInstalledSalesforceSite/describeNamed/describeNamed",
+            "loadInstalledSalesforceSite/generate/generate",
+            "loadInstalledSalesforceSite/issueGrant",
             "loadInstalledSalesforceSite/issueGrant/issueGrant",
-            "loadInstalledSalesforceSite/signRecord"
+            "loadInstalledSalesforceSite/loadInstalledSalesforceSite",
+            "loadInstalledSalesforceSite/peek",
+            "loadInstalledSalesforceSite/peek/describe/describe",
+            "loadInstalledSalesforceSite/peek/result/result",
+            "loadInstalledSalesforceSite/peek/result/result#2",
+            "loadInstalledSalesforceSite/peek/result/result#3",
+            "loadInstalledSalesforceSite/prepareExecutionMapping",
+            "loadInstalledSalesforceSite/prepareExecutionMapping/mapping/mapping",
+            "loadInstalledSalesforceSite/prepareExecutionMapping/mapping/mapping#2",
+            "loadInstalledSalesforceSite/prepareExecutionMapping/mapping/mapping#3",
+            "loadInstalledSalesforceSite/readers/readers",
+            "loadInstalledSalesforceSite/refreshCatalog",
+            "loadInstalledSalesforceSite/restoreDeclaration",
+            "loadInstalledSalesforceSite/restoreDeclaration/mismatch/mismatch",
+            "loadInstalledSalesforceSite/signRecord",
+            "loadInstalledSalesforceSite/siteBinding/siteBinding",
+            "releaseSalesforceSite",
+            "retainSalesforceSiteCleanup",
+            "text/text",
+            "validProfile",
+            "validProfile/validProfile",
+            "validProfile/validProfile#2",
+            "validProfile/validProfile#3",
+            "validProfile/validProfile#4"
           ],
           "exports": [
             "DEFAULT_SALESFORCE_CATALOG_LIMITS",
@@ -9842,11 +9923,11 @@
             "loadInstalledSalesforceSite/describeNamed/result/result",
             "loadInstalledSalesforceSite/init:observe/init:observe",
             "loadInstalledSalesforceSite/init:withOriginals/init:withOriginals",
+            "loadInstalledSalesforceSite/init:withOriginals/init:withOriginals/value/value",
             "loadInstalledSalesforceSite/originalDeclaration/originalDeclaration",
             "loadInstalledSalesforceSite/site/site",
             "observeInstalledSalesforcePublicationCurrent",
-            "withInstalledSalesforceDeclarationOriginals",
-            "loadInstalledSalesforceSite/init:withOriginals/init:withOriginals/value/value"
+            "withInstalledSalesforceDeclarationOriginals"
           ],
           "exports": [
             "observeInstalledSalesforcePublicationCurrent",
@@ -9945,7 +10026,7 @@
     {
       "module": "adapters/connectors/salesforce/host/salesforce-publication.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f5841347349bdba10bd3761d906a7030e59ec15e78424571cb3a4bfe77e47a5f",
+      "sha256": "e193e9ab0764b457d766e54debe2e3796abd1d4bf84e9b8a328014b92cec7b52",
       "role": "connector-semantics",
       "owner": "Atomic installed declaration generation and retained historical describe bytes, not current authorization",
       "exports": [
@@ -10059,7 +10140,8 @@
         {
           "name": "readPublicationFile",
           "parameters": [
-            "path"
+            "path",
+            "readText"
           ],
           "async": true
         },

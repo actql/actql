@@ -4,18 +4,18 @@ import {createHash} from 'node:crypto';
 import {isAbsolute} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
-import {checkpointApprovalFacts} from '../../../host-common/checkpoint-approval.mjs';
 import {composeInstalledCheckEnvironment} from '../../../host-node/installed-check-environment.mjs';
 import {installRowSourceAuthorization} from '../../../host-node/installed-row-source.mjs';
-import {createInstalledTableSource} from '../../../host-node/installed-table-source.mjs';
+export {installedTableReadSite} from '../../../host-node/installed-table-source.mjs';
 import {createInstalledTableEffect, checkInstalledTableEffectLimits} from '../../../host-node/installed-table-effect.mjs';
-import {createIcebergPhysicalBridge} from './iceberg-process.mjs';
-import {encodeProcessFrame} from '../../../host-node/process-frames.mjs';
+import {createIcebergPhysicalBridge, validateIcebergPhysicalConfiguration, validateIcebergReadSelector} from './iceberg-process.mjs';
+import {snapshotProcessValue} from '../../../host-node/process-frames.mjs';
 import {captureInstalledConnectorImplementation} from '../../../host-node/installed-connector-implementation.mjs';
 
 export const INSTALLED_TABLE_SOURCE_VERSION = 'actql-installed-local-table-source/0.1';
 export const INSTALLED_TABLE_EFFECT_VERSION = 'actql-installed-local-table-effect/0.1';
 const registration = 'local', revision = 'local/0.1';
+const checkedSources = new WeakSet(), checkedEffects = new WeakSet();
 const fail = (code, cause) => { throw Object.assign(new TypeError(code, {cause}), {code}); };
 const text = value => typeof value === 'string' && value.length > 0;
 const cid = value => /^sha256:[0-9a-f]{64}$/u.test(value ?? '');
@@ -32,9 +32,8 @@ const deepFreeze = value => {
 };
 const snapshot = value => {
   try {
-    return JSON.parse(encodeProcessFrame(value,
-      {maxBytes: 8 * 1024 * 1024, maxNodes: 100000, maxDepth: 64})
-      .subarray(4).toString('utf8'));
+    return snapshotProcessValue(value,
+      {maxBytes: 8 * 1024 * 1024, maxNodes: 100000, maxDepth: 64});
   } catch (cause) { fail('InvalidInstalledTableProfile', cause); }
 };
 const bridgeOf = (profile, implementation) => createIcebergPhysicalBridge({
@@ -60,27 +59,30 @@ function commonProfile(profile, version, extraKeys) {
   }
   // This validates the physical configuration without starting Python, opening
   // Catalog files or installing a dependency. Installation is not publication.
-  const bridge = bridgeOf(value);
-  return {value, bridge};
+  validateIcebergPhysicalConfiguration({python: pathToFileURL(value.python), catalog: value.catalog});
+  return {value};
 }
 
 export function checkInstalledTableSourceProfile(profile) {
-  const {value, bridge} = commonProfile(profile, INSTALLED_TABLE_SOURCE_VERSION, []);
+  if (checkedSources.has(profile)) return profile;
+  const {value} = commonProfile(profile, INSTALLED_TABLE_SOURCE_VERSION, []);
   if (!keys(value.limits, ['maxPages', 'maxPageBytes', 'maxPageRows', 'maxCaptureRows']) ||
       Object.values(value.limits).some(bound => !Number.isSafeInteger(bound) || bound < 1 ||
         bound > 2147483647)) fail('InvalidInstalledTableProfile');
   for (const target of value.targets) {
     if (!keys(target, ['resource', 'selector', 'schemaWire']) || !text(target.resource) ||
         !text(target.schemaWire)) fail('InvalidInstalledTableReadTarget');
-    bridge.checkReadSelector(target.selector);
+    validateIcebergReadSelector(target.selector, value.catalog.catalogCid);
   }
   if (new Set(value.targets.map(target => target.resource)).size !== value.targets.length) {
     fail('DuplicateInstalledTableReadTarget');
   }
+  checkedSources.add(value);
   return deepFreeze(value);
 }
 
 export function checkInstalledTableEffectProfile(profile) {
+  if (checkedEffects.has(profile)) return profile;
   const {value} = commonProfile(profile, INSTALLED_TABLE_EFFECT_VERSION, ['environmentWire']);
   if (!text(value.environmentWire) || value.targets.length > 16) fail('InvalidInstalledTableProfile');
   checkInstalledTableEffectLimits(value.limits);
@@ -105,6 +107,7 @@ export function checkInstalledTableEffectProfile(profile) {
         !target.permissions.every(text) || new Set(target.permissions).size !== target.permissions.length ||
         !target.footprint) fail('InvalidInstalledTableTarget');
   }
+  checkedEffects.add(value);
   return deepFreeze(value);
 }
 
@@ -123,85 +126,33 @@ export function installedTableEffectIdentityParts(profile, _read, installation) 
   return identityParts(profile, checkInstalledTableEffectProfile(profile), installation);
 }
 
-// No external credential is needed for local Catalog I/O. This Site only
-// admits decisions issued by the installed gate or the existing Checkpoint
-// owner for this exact physical binding. It is not an approval/Run owner.
-export function installedTableReadSite({connection, authorization, principalId, targets}) {
-  let closed = false;
-  const approvals = new WeakMap();
-  const ensureOpen = () => { if (closed) fail('InstalledTableSiteClosed'); };
-  return Object.freeze({connection,
-    admitCheckpointReadApproval(decision) {
-      ensureOpen();
-      const facts = checkpointApprovalFacts(decision);
-      const binding = facts?.physicalBinding;
-      const target = targets().find(target => target.resource === decision?.tuple?.resource);
-      if (!facts || !target || decision.action !== 'dispatch' || decision.basis !== 'resumed_approval' ||
-          decision.boundary !== 'acquisition' || facts.principalId !== principalId ||
-          facts.readTuple?.connection !== connection || facts.readTuple?.operation !== 'read' ||
-          facts.readTuple?.resource !== target.resource || decision.tuple?.connection !== connection ||
-          decision.tuple?.operation !== 'read' ||
-          !keys(binding, ['version', 'catalog_cid', 'selector', 'selector_cid', 'resource', 'fields']) ||
-          binding.version !== target.version || binding.catalog_cid !== target.catalog_cid ||
-          binding.selector_cid !== target.selector_cid || dataWire(binding.selector) !== dataWire(target.selector) ||
-          binding.resource !== target.resource || !Array.isArray(binding.fields) ||
-          binding.fields.length === 0 ||
-          new Set(binding.fields).size !== binding.fields.length ||
-          binding.fields.some(field => !target.fields.includes(field))) fail('TableSourceReadApprovalNotAdmitted');
-      approvals.set(decision, target.resource);
-      return decision;
-    },
-    issueReadGrant({operation, decision, resource, runInvocationCid, dispatchRequestCid, maxUses}) {
-      ensureOpen();
-      if (operation !== 'table.read' || !cid(runInvocationCid) || !cid(dispatchRequestCid) ||
-          !Number.isSafeInteger(maxUses) || maxUses < 1 ||
-          !targets().some(target => target.resource === resource) ||
-          decision?.action !== 'dispatch' || decision.boundary !== 'acquisition' ||
-          decision.tuple?.connection !== connection || decision.tuple?.resource !== resource ||
-          decision.tuple?.operation !== 'read' ||
-          (approvals.get(decision) !== resource &&
-            (!authorization.issued(decision) || decision.contextCid !== authorization.context.contextCid))) {
-        fail('TableSourceReadGrantNotAuthorized');
-      }
-      return Object.freeze({runInvocationCid, dispatchRequestCid});
-    },
-    close() { closed = true; },
-  });
-}
-
 const binding = (profile, root, principalId, implementation) => dataCid({
   version: 'actql-installed-table-host-binding/0.1', root, principalId,
   connection: profile.connection, python: profile.python, catalog: profile.catalog,
   connectorId: profile.connectorId, targets: profile.targets,
   connector_implementation_cid: implementation.identity});
 
-export async function loadInstalledTableSource(profile, {root, principalId, moon, baseEnvironmentWire, installation}) {
+export async function loadInstalledTableSource(profile, {root, principalId, installation, construction}) {
+  if (construction === undefined || typeof construction.createTableSource !== 'function') {
+    fail('InstalledTableSourceConstructionUnavailable');
+  }
   const checkedProfile = checkInstalledTableSourceProfile(profile);
   const implementation = selectedImplementation(installation);
-  const authorization = await installRowSourceAuthorization({
-    accountConfiguration: checkedProfile.accountConfigurationWire, root, principalId,
-    connectorRegistration: registration});
-  let installedTargets = [];
-  const site = installedTableReadSite({connection: checkedProfile.connection, authorization,
-    principalId, targets: () => installedTargets});
-  try {
-    const adapter = await createInstalledTableSource({moon, baseEnvironmentWire,
-      connectorId: checkedProfile.connectorId, connectorRegistration: registration,
-      connectorRevision: revision, site, authorization,
-      bridge: bridgeOf(checkedProfile, implementation), targets: checkedProfile.targets, limits: checkedProfile.limits});
-    installedTargets = adapter.tableReadTargets;
-    return Object.freeze({...adapter, connectorBindings: Object.freeze([Object.freeze({
-      connectorId: checkedProfile.connectorId, bindingCid: binding(checkedProfile, root, principalId, implementation)})])});
-  } catch (cause) { site.close(); throw cause; }
+  return construction.createTableSource({accountConfiguration: checkedProfile.accountConfigurationWire,
+    connection: checkedProfile.connection,
+    createBridge: () => bridgeOf(checkedProfile, implementation),
+    publicationBindingCid: binding(checkedProfile, root, principalId, implementation),
+    targets: checkedProfile.targets, limits: checkedProfile.limits});
 }
 
 export async function loadInstalledTableEffect(profile, {root, ledgerRoot, principalId,
-  moon, runtimeBundleCid, baseEnvironmentWire, installation}) {
+  moon, runtimeBundleCid, baseEnvironmentWire, installation, construction}) {
+  if (construction === undefined || typeof construction.preparePublishedEnvironment !== 'function' ||
+      typeof construction.createTableEffect !== 'function') fail('InstalledTableEffectConstructionUnavailable');
   const checkedProfile = checkInstalledTableEffectProfile(profile);
   const implementation = selectedImplementation(installation);
-  const environmentWire = composeInstalledCheckEnvironment(moon, baseEnvironmentWire,
-    undefined, checkedProfile.environmentWire);
-  const environment = JSON.parse(environmentWire);
+  const admitted = construction.preparePublishedEnvironment(checkedProfile.environmentWire);
+  const environment = admitted.body;
   if (!environment.connector_catalogs.some(catalog => catalog.connector_id === checkedProfile.connectorId)) {
     fail('InstalledTableMappingNotInstalled');
   }
@@ -214,13 +165,9 @@ export async function loadInstalledTableEffect(profile, {root, ledgerRoot, princ
       fail('InstalledTableMappingNotInstalled');
     }
   }
-  const authorization = await installRowSourceAuthorization({
-    accountConfiguration: checkedProfile.accountConfigurationWire, root, principalId,
-    connectorRegistration: registration});
-  return createInstalledTableEffect({moon, environmentWire,
-    connectorId: checkedProfile.connectorId, connectorRegistration: registration,
-    connectorRevision: revision, connection: checkedProfile.connection,
-    runtimeBundleCid, bindingCid: binding(checkedProfile, root, principalId, implementation),
+  return construction.createTableEffect({accountConfiguration: checkedProfile.accountConfigurationWire,
+    connection: checkedProfile.connection,
+    bindingCid: binding(checkedProfile, root, principalId, implementation),
     catalogCid: checkedProfile.catalog.catalogCid, targets: checkedProfile.targets,
-    bridge: bridgeOf(checkedProfile, implementation), authorization, ledgerRoot, limits: checkedProfile.limits});
+    createBridge: () => bridgeOf(checkedProfile, implementation), ledgerRoot, limits: checkedProfile.limits});
 }

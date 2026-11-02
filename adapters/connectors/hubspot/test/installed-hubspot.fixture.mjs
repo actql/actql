@@ -1,3 +1,5 @@
+import {createInstalledLoaderParent} from '../../../host-node/fixtures/installed-loader-parent.fixture.mjs';
+import {installedSourceConfigurationReader} from '../../../host-node/installed-host-services.mjs';
 import assert from 'node:assert/strict';
 import {inspect} from 'node:util';
 import {readFile, writeFile} from 'node:fs/promises';
@@ -19,9 +21,21 @@ export const objectBody = JSON.stringify({results: [{id: expected.id, archived: 
   properties: {amount: '9007199254740993.01', tags: 'a;b'}}]});
 
 export async function installedHubSpotFixture(t, {account = 'allow', propertyRead = 'allow'} = {}) {
+  const captures = [], dependentCleanup = [];
+  let loaderParent;
+  // Capture originals before any fallible child opens. Teardown retires
+  // captures and the real installed parent before the original TLS fixture.
+  t.after(async () => {
+    const failures = [];
+    for (const captured of captures) try {await captured.close();} catch (cause) {failures.push(cause);}
+    try {await loaderParent?.close();} catch (cause) {failures.push(cause);}
+    for (const close of dependentCleanup.toReversed()) try {await close();} catch (cause) {failures.push(cause);}
+    if (failures.length) throw new AggregateError(failures, 'InstalledHubSpotFixtureCleanupPending');
+  });
   // The helper owns loopback TLS and a separate unused credential namespace.
   // The Source below opens its own actual installed Site/journal/binding.
-  const f = await accountFixture(t, {accounted: false});
+  const f = await accountFixture({after: close => dependentCleanup.push(close),
+    diagnostic: message => t.diagnostic(message)}, {accounted: false});
   const site = {version: 'actql-installed-hubspot-site/0.1', apiOrigin: f.scope.resourceOrigin,
     credentialAuthorityId: 'installed-hubspot', credentialKeyId: 'key',
     credentialPrivateKeyPath: join(f.root, 'credential-authority.key'), environment: 'test',
@@ -53,17 +67,13 @@ export async function installedHubSpotFixture(t, {account = 'allow', propertyRea
       maxObjects: 2, maxDeclarationBytes: 4096, maxDeclarationNodes: 1000, maxSecretBytes: 128}};
   const path = join(f.root, 'installed-source.json');
   await writeFile(path, JSON.stringify(profile));
-  const sources = [], captures = [];
-  t.after(async () => {
-    for (const captured of captures) await captured.close();
-    for (const source of sources) await source.close();
-  });
-  const load = async () => {
-    const source = await loadInstalledSource(path, {root: f.root, principalId: 'operator',
-      moon: common, runtimeUrl, baseEnvironmentWire: base,
-      resolveSecret: f.options.credential.resolveSecret});
-    sources.push(source); return source;
-  };
+  loaderParent = createInstalledLoaderParent({root: f.root, principalId: 'operator', moon: common});
+  loaderParent.open();
+  const load = () => loaderParent.load(loadInstalledSource, path, {root: f.root, principalId: 'operator',
+    moon: common, runtimeUrl, baseEnvironmentWire: base,
+    resolveSecret: f.options.credential.resolveSecret});
+  const identity = () => installedSourceIdentity(path, {
+    configurationReader: installedSourceConfigurationReader(loaderParent.services)});
   const prepare = async source => {
     const env = JSON.parse(source.environmentWire);
     const environment = common.clientProgramCheckEnvironment(source.environmentWire,
@@ -86,10 +96,13 @@ export async function installedHubSpotFixture(t, {account = 'allow', propertyRea
       readFile(new URL('spec/contracts/actql-aoa.json', repo), 'utf8').then(JSON.parse),
       readFile(new URL('spec/contracts/actql-query-acquisition.json', repo), 'utf8'),
       readFile(new URL('spec/contracts/actql-query-process-evidence.json', repo), 'utf8')]);
-    return {preparedProgram: program, registry,
-      values: JSON.stringify(aoa.execution_contracts['REL.values']),
-      fragment: JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
-      ordered: JSON.stringify(aoa.execution_contracts['REL.derive.ordered']), query, evidence};
+    const values = JSON.stringify(aoa.execution_contracts['REL.values']);
+    const fragment = JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']);
+    const ordered = JSON.stringify(aoa.execution_contracts['REL.derive.ordered']);
+    // The query requirement consumes the same Common's admitted sequence
+    // contracts original, never raw registry text pretending to be that port.
+    const contracts = checked(common.clientPrepareInstalledSequenceContracts(registry, values, fragment, ordered));
+    return {preparedProgram: program, registry: contracts, values, fragment, ordered, query, evidence};
   };
   const ledger = () => checked(common.clientProgramAcquisitionLedger(1, 1, 32768n,
     100000000n, 100000000n, 0));
@@ -103,5 +116,5 @@ export async function installedHubSpotFixture(t, {account = 'allow', propertyRea
     response.writeHead(200, {'content-type': 'application/json'}); response.end(body); return true;
   };
   return {...f, site, siteProfilePath, metadata, metadataPath, profile, path,
-    load, prepare, ledger, captures, requestBodies};
+    load, identity, prepare, ledger, captures, requestBodies};
 }

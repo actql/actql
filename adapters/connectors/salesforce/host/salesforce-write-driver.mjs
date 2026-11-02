@@ -292,7 +292,6 @@ export function salesforceRowEffectSite(site) {
     issueEffectGrant: ({operation, decision, resource, runInvocationCid,
       dispatchRequestCid, subjectCid}) => site.issueGrant({operation,
       decision, resource, runInvocationCid, dispatchRequestCid, subjectCid}),
-    // The installed Salesforce Effect owns the Site's release.
-    close: () => undefined,
+    // The bound constructor attaches the original Site's physical cleanup.
   });
 }

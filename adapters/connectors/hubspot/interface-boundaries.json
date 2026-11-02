@@ -506,7 +506,7 @@
     },
     {
       "module": "adapters/connectors/hubspot/host/installed-hubspot-source.mjs",
-      "sha256": "8c6918d155664f120e835f5c82e536aa7255e6e42c922022ef0b16a3737a5365",
+      "sha256": "b986631894d21de71d4f9e9e440d0160687e092beaf094f38c0a467b190fd70d",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing installed Source, Common declaration, Account/Credential and original RowRun owners",
@@ -604,6 +604,14 @@
           "async": false
         },
         {
+          "name": "decodeMetadataBody",
+          "parameters": [
+            "encoded",
+            "maxBytes"
+          ],
+          "async": false
+        },
+        {
           "name": "fail/fail",
           "parameters": [
             "code",
@@ -615,21 +623,28 @@
           "name": "installedHubSpotSourceIdentityParts",
           "parameters": [
             "profile",
-            "providerProfile"
+            "providerProfile",
+            "readJson",
+            "_entry",
+            "configurationReader"
           ],
           "async": true
+        },
+        {
+          "name": "installedHubSpotSourceIdentityParts/readers/readers",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "loadInstalledHubSpotSource",
           "parameters": [
             "profile",
-            "root",
-            "principalId",
             "moon",
             "provider",
-            "baseEnvironmentWire",
             "runtimeBundleCid",
-            "resolveSecret"
+            "resolveSecret",
+            "installation",
+            "construction"
           ],
           "async": true
         },
@@ -656,11 +671,14 @@
           "async": false
         },
         {
+          "name": "loadInstalledHubSpotSource/init:project/init:project",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "loadInstalledHubSpotSource/loadInstalledHubSpotSource",
-          "parameters": [
-            "options"
-          ],
-          "async": true
+          "parameters": [],
+          "async": false
         },
         {
           "name": "loadInstalledHubSpotSource/loadInstalledHubSpotSource/authorize/authorize",
@@ -690,15 +708,40 @@
           "async": false
         },
         {
-          "name": "loadInstalledHubSpotSource/site/site",
+          "name": "loadInstalledHubSpotSource/loadInstalledHubSpotSource#2",
           "parameters": [],
           "async": true
+        },
+        {
+          "name": "loadInstalledHubSpotSource/loadInstalledHubSpotSource#3",
+          "parameters": [
+            "options"
+          ],
+          "async": true
+        },
+        {
+          "name": "loadInstalledHubSpotSource/projected/init:project/init:project",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadInstalledHubSpotSource/projected/projected",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "loadInstalledHubSpotSource/target/target",
           "parameters": [
             "resource",
             "fields"
+          ],
+          "async": false
+        },
+        {
+          "name": "metadataBodyBytes",
+          "parameters": [
+            "encoded",
+            "maxBytes"
           ],
           "async": false
         },
@@ -712,16 +755,10 @@
         {
           "name": "readInputs",
           "parameters": [
-            "profile"
+            "profile",
+            "readers"
           ],
           "async": true
-        },
-        {
-          "name": "readInputs/decode/decode",
-          "parameters": [
-            "body"
-          ],
-          "async": false
         },
         {
           "name": "readInputs/readInputs",
@@ -754,22 +791,28 @@
             "checkSite/checkSite",
             "cid/cid",
             "closed/closed",
+            "decodeMetadataBody",
             "fail/fail",
             "installedHubSpotSourceIdentityParts",
+            "installedHubSpotSourceIdentityParts/readers/readers",
             "loadInstalledHubSpotSource",
             "loadInstalledHubSpotSource/admitsApprovalTarget/admitsApprovalTarget",
             "loadInstalledHubSpotSource/admitsApprovalTarget/admitsApprovalTarget/admitsApprovalTarget",
             "loadInstalledHubSpotSource/admitsApprovalTarget/admitsApprovalTarget/view/view",
+            "loadInstalledHubSpotSource/init:project/init:project",
             "loadInstalledHubSpotSource/loadInstalledHubSpotSource",
             "loadInstalledHubSpotSource/loadInstalledHubSpotSource/authorize/authorize",
             "loadInstalledHubSpotSource/loadInstalledHubSpotSource/current/current",
             "loadInstalledHubSpotSource/loadInstalledHubSpotSource/loadInstalledHubSpotSource",
             "loadInstalledHubSpotSource/loadInstalledHubSpotSource/loadInstalledHubSpotSource#2",
-            "loadInstalledHubSpotSource/site/site",
+            "loadInstalledHubSpotSource/loadInstalledHubSpotSource#2",
+            "loadInstalledHubSpotSource/loadInstalledHubSpotSource#3",
+            "loadInstalledHubSpotSource/projected/init:project/init:project",
+            "loadInstalledHubSpotSource/projected/projected",
             "loadInstalledHubSpotSource/target/target",
+            "metadataBodyBytes",
             "positive/positive",
             "readInputs",
-            "readInputs/decode/decode",
             "readInputs/readInputs",
             "text/text"
           ],
@@ -843,7 +886,20 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../../../../packages/sdk/host-port.mjs",
+        "../../../host-common/runtime-result.mjs",
+        "../../../host-node/source-profile-json.mjs",
+        "../../../site-node/https-credential-resource.mjs",
+        "../site/hubspot-account-read.mjs",
+        "../site/hubspot-object-read.mjs",
+        "node:crypto",
+        "node:fs/promises",
+        "node:path"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/connectors/hubspot/site/hubspot-target-read.mjs",

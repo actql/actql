@@ -2,6 +2,7 @@
 package "actql/actql/connectors/salesforce/catalog"
 
 import {
+  "actql/actql/execution_relation",
   "actql/actql/value_admission",
   "actql/actql/value_contract",
   "moonbitlang/core/debug",
@@ -78,11 +79,15 @@ pub fn delete_projection_resource(DeleteProjection) -> String
 
 pub fn described_field(ResourceMetadata, String) -> FieldMetadata?
 
+pub fn execution_mapping_construction_capacity(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, DeclarationLimits) -> @execution_relation.ExecutionCapacity?
+
 pub fn finish_catalog_sync(CatalogSync) -> Result[Unit, CatalogSyncIssue]
 
 pub fn generate_local_static_declaration(CatalogObservation, LocalCatalogObservationBinding, SalesforceImplementation, String, Array[String], DeclarationLimits) -> Result[StaticDeclaration, DeclarationIssue]
 
 pub fn generate_static_declaration(CatalogObservation, CatalogObservationBinding, SalesforceImplementation, String, Array[String], DeclarationLimits) -> Result[StaticDeclaration, DeclarationIssue]
+
+pub fn initialization_construction_capacity(Array[Int], Int, Int, Array[Int], Int, Int, Int, DescribeLimits, Int, DeclarationLimits) -> @execution_relation.ExecutionCapacity?
 
 pub fn interrupt_query_read(QueryRead) -> Bool
 

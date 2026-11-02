@@ -1,11 +1,9 @@
 # Existing Connector and Table interface references
 
-This is the finite 53-module intake selected by the existing interface Owner at
-source `3009c92fb3d5205e2e8fa19df0803f06ea21da50`. Its original projection has
-SHA-256 `37c54c5c884537dfc833428e72b350486da57818e7d309517b6b66409092e12c`.
-The index names all 702 operations, including private callbacks, all 204 syntax
-exports and each module's initialization boundary. Python syntax exports also
-include imported names; this does not publish them as SDK APIs or Capabilities.
+This finite 53-module intake records the current implementation hash, every
+operation (including private callbacks), every syntax export and each module's
+initialization boundary. Python syntax exports also include imported names;
+this does not publish them as SDK APIs or Capabilities.
 
 The references point to existing contracts, semantic implementations, physical
 owners and executable tests. They do not copy those specifications, assign new
