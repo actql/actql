@@ -281,3 +281,40 @@ invocation reference and one retained selection flag. It neither covers the
 variable native codec inventory nor supplies admission by itself. The original
 Describe/query limits, row bounds and approvals remain independent of this
 representation inventory; no cap, fallback read or standalone Run is implied.
+
+## Native Salesforce constructor and normal caller
+
+The installed Salesforce loader uses the same bound initialization as the other
+Sources. Its specialized Site enters the private installation association only
+after the actual original is retained for partial-failure cleanup. The Site's
+own credential custody registers its original issuer; neither the installation
+association nor the projected method names create read authority. The Source
+facade preserves the managed capture, whole-input and Effect-plan selectors.
+
+The native Reader quote uses the original Describe/query bounds, published
+Resource names, installed binding strings and existing SOQL bound. It composes
+the shared response/binding/control inventory with the Salesforce catalog,
+observation recovery, query/contract/value and failed-prefix inventories.
+Metadata retains its normalizing Source/key semantics; query pages retain their
+preserving parser. The shared value Owner supplies the original Contract's
+temporary conversion workspace. The existing ordered Address component table
+supplies the actual maximum component shape to both conversion and quoting.
+No provider-specific byte tariff, JSON row roundtrip or second semantic checker
+is introduced. The complete page is counted before total-row refusal.
+
+The initial Describe, independent pre-query Describe and all query responses
+execute inside the one original managed Reader. Salesforce's former
+pre-admission Describe and direct `readPages` path are replaced for this caller.
+The remaining preparation callback returns only the original acquisition,
+approval, Resource and invocation facts; the shared Row Source invokes it after
+the same Run's reservation, inside its original failure/retirement continuation.
+A refused reservation never enters that callback. A failed callback cannot
+leave a newly started Run outside its cleanup owner.
+
+The native recipe retains completed metadata and query outputs together, with
+the larger of their sequential constructor workspaces. A completed first
+metadata Catalog is relinquished before the independent second Describe;
+response bodies, returned metadata/typed values and failed children remain
+covered. These quantities still require actual same-parent Run admission.
+Static recipe composition and explicit-port caller tests do not establish a
+matching runtime ABI, physical cleanup or normal installed acceptance.

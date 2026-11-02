@@ -3,11 +3,14 @@
 // acceptance is inferred from these callback-boundary cases.
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {readFile} from 'node:fs/promises';
 import {readSalesforceQuery, readSalesforceManagedQuery} from
   '../site/salesforce-query-read.mjs';
 import {credentialInvocationBindingKeys} from
   '../../../host-common/credential-scope-fields.generated.mjs';
 import {createInstalledCredentialSourceReader} from
+  '../../../host-node/installed-credential-source-reader.mjs';
+import {installedJsonSourceReaderLimitNames} from
   '../../../host-node/installed-credential-source-reader.mjs';
 import {invokeScopedCredentialOperation} from
   '../../../host-common/owned-invocation-context.mjs';
@@ -19,6 +22,149 @@ const path = '/services/data/v62.0/query?q=SELECT%20Id%20FROM%20Account';
 // Explicit pinned-compiler Result port, not an opaque-value issuer or ABI test.
 const ok = value => ({$tag: 1, _0: value});
 const forbidden = () => assert.fail('Rejected response reached provider admission or delivery');
+const fail = code => {throw Object.assign(new Error(code), {code});};
+
+// Extract the original private caller, without replacing its implementation.
+// Core quantities, bound initialization and provider work are explicit ports;
+// this is source/caller correspondence, not nominal or normal acceptance.
+async function originalFunction(path, name, ports) {
+  const {parse} = await import('acorn');
+  const source = await readFile(new URL(path, import.meta.url), 'utf8');
+  let node;
+  const walk = value => {
+    if (value === null || typeof value !== 'object') return;
+    if (value.type === 'FunctionDeclaration' && value.id.name === name) {
+      assert.equal(node, undefined, `Unique original function ${name}`);node = value;
+    }
+    for (const child of Object.values(value)) {
+      if (Array.isArray(child)) child.forEach(walk);else walk(child);
+    }
+  };
+  walk(parse(source, {ecmaVersion: 'latest', sourceType: 'module'}));
+  assert.ok(node, `Original function ${name}`);
+  return Function(...Object.keys(ports), `return (${source.slice(node.start, node.end)});`)(...Object.values(ports));
+}
+
+test('actual Salesforce caller selects the same complete native Reader before pure original read facts', async () => {
+  const events = [], capacity = Object.freeze({}), providerReader = Object.freeze({});
+  const site = Object.freeze({namespaceId: 'namespace', principal: 'principal', environment: 'environment',
+    connectionRevision: 'revision', orgId: 'org', siteKey: 'site', siteGeneration: 1,
+    instanceOrigin: 'https://salesforce.invalid', apiVersion: 'v62.0', connection: 'original-connection',
+    referenceCurrent() {return true;},
+    async describeForAcquisition() {assert.fail('No Describe before original Reader invocation');}});
+  const limits = Object.freeze({maxBytes: 4_000_000, maxNodes: 400_000, maxDepth: 32,
+    maxRows: 2000, maxLocatorUnits: 2048, maxPages: 10, maxTotalRows: 100});
+  const describe = Object.freeze({maxBytes: 4_000_000, maxNodes: 400_000, maxDepth: 32,
+    maxFields: 1000, maxNameUnits: 200_000});
+  const policy = Object.freeze([65536, 100000, 100]);
+  const moon = Object.freeze({
+    clientProgramInstalledSourceReaderPolicy() {assert.equal(this, moon);return policy;},
+    clientProgramInstalledSalesforceSourceReaderCapacity(...args) {
+      assert.equal(this, moon);assert.deepEqual(args[0].slice(0, 8),
+        [4_000_000, 48_000_000, 400_000, 32, 2000, 100, 12, 2000]);
+      assert.equal(args[1], policy[2]);assert.equal(args[2], policy[0]);
+      assert.deepEqual(args[3], Object.values(describe));assert.equal(args[4], 8_000_000);
+      assert.ok(args[5] >= 2 * 71 + 44);assert.equal(args[6], 'Account'.length);
+      assert.equal(args[7], 10);assert.equal(args[8], site.apiVersion.length);assert.equal(args[9], 4096);
+      events.push('quote');return capacity;
+    },
+  });
+  let selected, row;
+  const construction = Object.freeze({
+    sourceReaderImplementation(input) {
+      assert.equal(input.readSequenceConstruction.capacity, capacity);
+      assert.equal(input.readSequenceConstruction.originalLimits, limits);
+      assert.deepEqual(input.readSequenceConstruction.sequence, {operation, maxUses: 10,
+        children: [{operation: 'salesforce:catalog:describe', maxUses: 2}]});
+      events.push('implementation');selected = Object.freeze({capacity,
+        runAcquisitionLimits: Object.freeze({maxBindings: policy[1], maxSecretBytes: policy[0]})});return selected;
+    },
+    createSourceReader(input) {
+      assert.equal(input.implementation, selected);assert.equal(typeof input.prepareReadSequence, 'function');
+      events.push('reader');return providerReader;
+    },
+    createRowSource(input) {row = input;events.push('source');return input;},
+  });
+  const create = await originalFunction('../host/installed-salesforce-source.mjs', 'installedSalesforceAdapter', {
+    cid() {return 'original-cid';}, fail, readLimits: limits,
+    declarationLimits: {maxBytes: 4_000_000}, installedJsonSourceReaderLimitNames,
+    DEFAULT_SALESFORCE_CATALOG_LIMITS: {describe, maxObservationBytes: 8_000_000},
+    installedSalesforceSiteBinding(actual) {assert.equal(actual, site);return {bindingCid: 'binding'};},
+    prepareSalesforceSourceReadSequence() {assert.fail('No protocol before original Reader preparation');},
+    readSalesforceQuery() {assert.fail('Retired pre-Run query path');},
+  });
+  const prepared = Object.freeze({physicalBinding: {catalog_cid: 'catalog', fields: ['Id']}});
+  const acquisition = Object.freeze({});
+  await create({moon, queryMoon: {}, site, authorization: {}, declaration: {}, recover() {}, discovery: {},
+    construction, readerPolicy: policy, resources: Object.freeze(['Account']), generationCid: 'generation', catalogCid: 'catalog', connectorId: 'crm'});
+  assert.equal(row.providerReader, providerReader);assert.equal(Object.hasOwn(row, 'readPages'), false);
+  assert.equal(row.projectSite().referenceCurrent, site.referenceCurrent);
+  for (const name of ['managedCaptureCapacity', 'managedWholeSourceCapacity', 'managedEffectPlanSelection']) {
+    assert.ok(row.publicationSurface.includes(name), `Normal caller retains ${name}`);
+  }
+  const facts = await row.prepareRead({prepared, acquisition, decision: {basis: 'policy'}, resource: 'Account',
+    nonce: 'original-nonce', runInvocationCid: 'original-run', dispatchRequestCid: 'original-dispatch'});
+  assert.equal(facts.acquisition, acquisition);assert.equal(facts.resource, 'Account');
+  assert.equal(facts.runInvocationCid, 'original-run');assert.equal(facts.dispatchRequestCid, 'original-dispatch');
+  assert.equal(facts.nonce, 'original-nonce');assert.equal(facts.approval, undefined);
+  assert.deepEqual(events, ['quote', 'implementation', 'reader', 'source']);
+});
+
+test('actual bound specialized Site enters the same installation Reader association', async () => {
+  const installation = Object.freeze({}), context = Object.freeze({}), site = Object.freeze({close() {}});
+  const authorization = Object.freeze({}), reader = Object.freeze({}), services = {};
+  const original = {root: 'original-root', principalId: 'principal', moon: {},
+    selected: new WeakMap([[installation, 'original-runtime']]), siteInstallations: new WeakMap(), current() {}};
+  const material = {phase: 'working', inputs: []}, scope = {active: true, installation};
+  const sourceContexts = new WeakMap([[context, {original, material, scope}]]);
+  services.createSourceReader = input => {
+    assert.equal(input.sourceInitialization, context);assert.equal(input.installation, installation);
+    assert.equal(input.site, site);assert.equal(original.siteInstallations.get(site), context);
+    return reader;
+  };
+  const bind = await originalFunction('../../../host-node/installed-host-services.mjs', 'bindInstalledSourceConstruction', {
+    sourceContexts, installations: new WeakMap([[services, original]]), boundConstructions: new WeakMap(),
+    nodeTypes: (await import('node:util')).types, fail,
+    installedSourceConfigurationReader() {return {};}, captureConfigurationReaders() {return Object.freeze({});},
+  });
+  const bound = bind(services, context, {});
+  const opened = await bound.openSpecializedSite({authorizationConstructor: async () => authorization,
+    siteConstructor: async () => site, siteArgument: 'original-profile', accountConfiguration: 'original-account'});
+  assert.equal(opened.site, site);assert.equal(opened.authorization, authorization);
+  assert.equal(bound.createSourceReader({implementation: {}}), reader);
+});
+
+for (const refused of [true, false]) {
+  test(`actual native read facts ${refused ? 'never precede refused Run backing' : 'keep failed preparation in the same admitted Run cleanup'}`, async () => {
+    const prepared = Object.freeze({checkedSource: Object.freeze({requirementCid: 'original-requirement'})});
+    const program = Object.freeze({}), access = Object.freeze({});
+    const acquisition = Object.freeze({}), ledger = Object.freeze({}), run = Object.freeze({}), state = {};
+    const failure = Object.freeze({originalFailure: true}), events = [];
+    const owner = {checkedOwner: program, effectful: false, access, occurrence: {stage: 0, input: 0, task: 0},
+      acquisition, resource: 'Account', wholeInput: false};
+    const ports = {preparations: new WeakMap([[prepared, owner]]), originalReader: {capacity: {}},
+      sourceAccess: access, captureCapacity(actual) {assert.equal(actual, owner);events.push('quote');},
+      currentRead: async () => ({basis: 'policy'}), directReadIdentity: undefined,
+      moon: {clientProgramRowSourceColumns(actual) {assert.equal(actual, acquisition);return ['Id'];}},
+      randomUUID: () => 'original-nonce', cid: () => 'original-cid', maxTransferBytes: 12n,
+      limits: {maxPageBytes: 4}, listingReportCapacity: undefined, preparingSourceReads: new Set(),
+      closeSourceRead: undefined, fail,
+      async prepareRead(input) {
+        assert.equal(input.prepared, prepared);assert.equal(input.acquisition, acquisition);
+        events.push('facts');throw failure;
+      },
+      startInstalledRowRun(input) {
+        assert.equal(input.ledger, ledger);assert.equal(input.acquisition, acquisition);
+        events.push('reserve');if (refused) throw failure;
+        return {run, closeAfterFailure(actual) {assert.equal(actual, state);events.push('original-cleanup');}};
+      },
+    };
+    const acquire = await originalFunction('../../../host-node/installed-row-source.mjs', 'acquire', ports);
+    await assert.rejects(acquire(state, {preparedProgram: program, sourceAccess: access,
+      preparedSource: prepared, ledger}), cause => cause === failure);
+    assert.deepEqual(events, refused ? ['quote', 'reserve'] : ['quote', 'reserve', 'facts', 'original-cleanup']);
+  });
+}
 
 function fixture(mode, accounting) {
   const plan = Object.freeze({port: 'projection'});

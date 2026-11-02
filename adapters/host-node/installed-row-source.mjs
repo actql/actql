@@ -2542,7 +2542,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
     const dispatchRequestCid = identity?.dispatchRequestCid ?? cid({
       version: 'actql-row-source-acquisition-dispatch/0.1', runInvocationCid});
     let preparedRead;
-    if (prepareRead !== undefined) {
+    if (prepareRead !== undefined && originalReader === undefined) {
       // A provider's original bounded metadata observation precedes the row
       // attempt. Mark the physical start before awaiting that same operation;
       // a lost response is never reclassified as an unstarted acquisition.
@@ -2589,6 +2589,14 @@ export async function createInstalledRowSource({moon, declaration, commands,
         currentRead: verifyRead, captureOnly});
     };
     try {
+      if (prepareRead !== undefined && originalReader !== undefined) {
+        // A managed Reader's original facts are prepared only after its SAME
+        // accounted Run starts. Its native protocol owns every physical child;
+        // the original session catches and retires a failed preparation too.
+        preparedRead = await prepareRead(Object.freeze({prepared, acquisition,
+          decision, granted, resource: owner.resource, nonce, runInvocationCid,
+          dispatchRequestCid, signal}));
+      }
       // Encode only after the existing RowRun's accounted reservation. The
       // common owner includes this wire while its completion records overlap.
       // The driver decodes its declared typed Request (including existing wire
@@ -2830,7 +2838,8 @@ export async function createInstalledRowSource({moon, declaration, commands,
         // This entry selects the common original acquisition constructor.
         // A compatibility preparer/policy or earlier physical callback cannot
         // be replaced by that default merely because its column counts match.
-        if (prepareAcquisition !== undefined || listingPolicy !== undefined || prepareRead !== undefined) {
+        if (prepareAcquisition !== undefined || listingPolicy !== undefined ||
+            prepareRead !== undefined && originalReader === undefined) {
           fail('InstalledSourcePlanConstructorUnavailable');
         }
         if (originalReader === undefined && typeof prepareSourceRead !== 'function') {

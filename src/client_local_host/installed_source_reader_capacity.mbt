@@ -188,7 +188,10 @@ fn installed_source_reader_retained_inventory(
   let native_callback_headers = 2L
   let native_callback_slots = 4L
   let retained : @execution.PreparationRepresentationUnits = {
-    record_headers: 39L + resolver_headers + native_callback_headers + 3L * originals,
+    record_headers: 39L +
+    resolver_headers +
+    native_callback_headers +
+    3L * originals,
     reference_slots: common_fields +
     provider_fields +
     closures +

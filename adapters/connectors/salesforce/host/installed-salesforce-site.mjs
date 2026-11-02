@@ -942,6 +942,7 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
     principal: principalId, context,
   });
   const site = Object.freeze({...siteFacts, authorization, credential, callResource: callHttpsCredentialResource,
+    referenceCurrent: custody.referenceCurrent,
     issueGrant, bindRecordAcquisition, attestEffectCapability, refreshCatalog, declareCatalog,
     restoreDeclaration, describeForAcquisition, describeEffectCatalog,
     admitCheckpointReadApproval,
