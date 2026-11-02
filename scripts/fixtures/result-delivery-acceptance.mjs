@@ -131,7 +131,8 @@ function fixture(api, control, options = {}) {
   const authority = api.installResultAccessAuthority({
     authorizeResultReadRequest: (facts, operation) => options.authorize === undefined
       ? true : options.authorize(facts, operation),
-    ...(typeof options.lookup === 'function' ? {authorizeDeliveryAttemptLookup: () => state.allowed} : {}),
+    ...(typeof options.lookup === 'function' ? {authorizeDeliveryAttemptLookup: (facts, operation) =>
+      options.authorize === undefined ? state.allowed : options.authorize(facts, operation)} : {}),
     admitResultRead: () => ({authorizationContextCid: cid('2'), dataCeilingCid: cid('a'),
       egressAdmissionCid: cid('3'), expiresAt: '2026-10-02T00:00:00.000Z',
       maxBytes: options.maxBytes ?? 1024, maxUses: 1}),

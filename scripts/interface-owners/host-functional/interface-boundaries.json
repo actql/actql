@@ -9805,7 +9805,7 @@
     {
       "module": "adapters/host-common/result-access.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "8ee0b04ee68bfc8fe4282ed6ff67149c432c16cf3f484e2ae13bcf1a0d0049af",
+      "sha256": "f5cdaa61e11831eebb81d8a21350c940e1b43edb8a09ffb44c39444809f75e26",
       "role": "physical-io",
       "owner": "Existing Result access/delivery/publication Owners and physical read/sink adapter",
       "exports": [
@@ -104939,7 +104939,7 @@
     {
       "module": "packages/run-host-core/result-access.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d75e3c3028099e737d1e9aeb2eaab95eb3550a5805c37712a6990aa74ca3f411",
+      "sha256": "cf878653eb944b27cd573bc4960221545e49263dfd0385ea07413d1f46d52189",
       "role": "physical-io",
       "owner": "Existing Result access/delivery/publication Owners and physical read/sink adapter",
       "exports": [
