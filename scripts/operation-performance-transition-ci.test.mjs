@@ -141,13 +141,13 @@ test('ordinary priority assessment reuses both platform reports without replacin
   assert.deepEqual(job.needs, ['ordinary-node-priority', 'ordinary-python-priority']);
   assert(job.if.includes('always()'), 'Missing or failed collectors must still produce a failed/incomplete assessment');
   const expression = job.if.slice(3, -2).trim();
-  for (const [enabled, visibility, privateFlag, expected] of [
-    [undefined, 'public', false, false], ['false', 'public', false, false],
-    ['true', 'private', true, false], ['true', 'public', true, false],
-    ['true', 'public', undefined, false], ['true', 'public', false, true],
+  for (const [visibility, privateFlag, expected] of [
+    ['public', false, true],
+    ['private', true, false], ['public', true, false],
+    ['public', undefined, false], ['public', false, true],
   ]) {
     assert.equal(runInNewContext(expression, {
-      vars: {ACTQL_MAIN_CI_ENABLED: enabled},
+
       github: {event: {repository: {visibility, private: privateFlag}}},
       toJSON: JSON.stringify, always: () => true,
     }, {timeout: 100}), expected);

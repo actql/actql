@@ -47,6 +47,7 @@ export function assertFixedMainRevision(env, payload, checkoutRevision) {
 
 export async function assertCurrentRevision(env, payload, fetchRef, {checkoutRevision = null} = {}) {
   const {ref, expected} = revisionToCheck(env, payload);
+  assert.equal(checkoutRevision, env.GITHUB_SHA, 'Checkout differs from the tested event revision');
   if (['push', 'workflow_dispatch'].includes(env.GITHUB_EVENT_NAME) && env.GITHUB_REF === 'refs/heads/main') {
     return assertFixedMainRevision(env, payload, checkoutRevision);
   }

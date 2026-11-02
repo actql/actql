@@ -7,7 +7,6 @@ import {runInNewContext} from 'node:vm';
 import test from 'node:test';
 import {parse} from 'yaml';
 import {pullRequestDraft, readChanges, selectTargets, validateSelection, verifyGate, maintenanceFiles, gateJobs} from './ci-targets.mjs';
-import {policyPaths} from './ci-main-base.mjs';
 import {occurrences} from './check-owned-contract-versions.mjs';
 const all = ['js', 'wasm', 'native'];
 const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
@@ -69,7 +68,7 @@ test('portable PR paths choose JS and explain deferred macOS coverage', () => {
   for (const path of ['README.md', 'src/source_span/span.mbt', 'scripts/worktree-inventory.mjs']) {
     const result = validateSelection(selectTargets([path]));
     assert.deepEqual(result.targets, ['js'], path); assert.equal(result.macos, false, path);
-    assert.match(result.reason, /full targets and optional macOS require a manual integration checkpoint/u);
+    assert.match(result.reason, /full targets run on main integration; optional macOS can be requested manually/u);
   }
 });
 test('platform, per-file target, runtime ownership, identities and build retain every target', () => {
@@ -121,10 +120,11 @@ test('ordinary filename cannot hide target-specific syntax changes', () => {
     assert.equal(result.targetSensitiveDiff, true, line);
   }
 });
-test('only main pushes and explicit dispatch trigger CI; PRs stay local', () => {
-  assert.deepEqual(Object.keys(workflow.on).sort(), ['push', 'workflow_dispatch']);
+test('read-only PR lifecycle, main pushes and explicit dispatch trigger CI', () => {
+  assert.deepEqual(Object.keys(workflow.on).sort(), ['pull_request', 'push', 'workflow_dispatch']);
   assert.deepEqual(workflow.on.push.branches, ['main']);
-  assert.equal(workflow.on.pull_request, undefined);
+  assert.deepEqual(workflow.on.pull_request.types, ['opened', 'synchronize', 'reopened', 'ready_for_review', 'converted_to_draft']);
+  assert.equal(workflow.on.pull_request_target, undefined);
   assert.equal(workflow.on.schedule, undefined);
   assert.equal(workflow.on.workflow_run, undefined);
   assert.equal(workflow.on.merge_group, undefined);
@@ -137,7 +137,7 @@ test('manual normal dispatch retains all full-family obligations, separate from 
   const selection = validateSelection(selectTargets([], {event: 'workflow_dispatch'}));
   assert.equal(selection.profile, 'full');
   assert.deepEqual(selection.targets, all);
-  assert.equal(selection.mainBaseline, null);
+  assert.equal(Object.hasOwn(selection, 'mainBaseline'), false);
   const results = Object.fromEntries(gateJobs.map(name => [name, {result: 'success'}]));
   results['focused-tests'] = {result: 'skipped'};
   results['native-macos'] = {result: 'skipped'};
@@ -383,7 +383,7 @@ test('maintenance N/A is explicit and cannot hide execution or selected check fa
 const scheduled = (name, needs, inputs = {}) => {
   const expression = jobs[name].if.slice(3, -3).replace(/needs\.([a-z][a-z0-9-]*)/gu, (_, name) => `needs[${JSON.stringify(name)}]`);
   return Function('needs', 'inputs', 'always', 'vars', 'github', 'toJSON', `return (${expression});`)(needs, inputs, () => true,
-    {ACTQL_MAIN_CI_ENABLED: 'true'}, {event: {repository: {visibility: 'public', private: false}}}, JSON.stringify);
+    {}, {event: {repository: {visibility: 'public', private: false}}}, JSON.stringify);
 };
 test('aggregate workflow expressions run on mixed failures and skip only wholly unselected families', () => {
   for (const [name, groups] of [['client', ['client-packages', 'client-distribution', 'client-packed', 'client-salesforce']],
@@ -407,7 +407,7 @@ test('aggregate workflow expressions run on mixed failures and skip only wholly 
 
 test('every heavy primitive is selected as one complete job and lint/spec always retain their tests', () => {
   const heavy = ['core', 'host', 'client-packages', 'client-distribution', 'client-packed', 'client-salesforce',
-    'native', 'session-evidence', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity', 'pipeline-capacity-mutants', 'pipeline-validation', 'native-macos',
+    'native', 'session-evidence', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity', 'pipeline-capacity-mutants', 'pipeline-validation', 'native-macos', 'python-wheels',
     'native-separated-network', 'workers', 'connector-addition', 'duckdb-node'];
   for (const name of heavy) {
     assert(jobs[name].needs.includes('select-targets'));
@@ -512,30 +512,17 @@ test('normal workflow has no historical declaration admission or artifact requir
   }
 });
 
-const checkpoint = () => ({baseSha: 'a'.repeat(40), testedSha: head, runId: 42, runAttempt: 1, workflowId: 7,
-  policy: policyPaths.map(path => ({path, object: 'd'.repeat(40)})), reason: 'Verified full main checkpoint'});
 test('main cumulative product changes retain all backend coverage even for portable PR paths', () => {
   for (const paths of [['proofs/relation-pipeline/new-record.json', 'src/source_span/span.mbt'], ['src/source_span/span.mbt'], ['README.md']]) {
-    const selected = validateSelection(selectTargets(paths, {event: 'push', mainIntegration: false, mainBaseline: checkpoint()}));
+    const selected = validateSelection(selectTargets(paths, {event: 'push', mainIntegration: false}));
     assert.equal(selected.profile, 'full'); assert.deepEqual(selected.targets, all); assert.equal(selected.macos, true);
   }
 });
-test('main uses verified base for every raw, text, mode and path diff, never push.before', () => {
-  const calls = [], baseRevision = 'a'.repeat(40), before = 'c'.repeat(40);
-  const changed = readChanges({before}, args => {
-    calls.push(args); if (args[0] === 'rev-parse') return head;
-    if (args.includes('--name-only')) return 'src/source_span/span.mbt\0';
-    if (args[0] === 'show') return 'ordinary';
-    return '+ordinary';
-  }, {baseRevision});
-  assert.deepEqual(changed.paths, ['src/source_span/span.mbt']);
-  for (const args of calls.filter(args => args[0] === 'diff')) { assert(args.includes(baseRevision)); assert(!args.includes(before)); }
-});
-test('main API permission is read-only and scoped to selection with no persistent token', () => {
+test('normal selection needs no Actions token or history API permission', () => {
   assert.deepEqual(workflow.permissions, {contents: 'read'});
-  assert.deepEqual(jobs['select-targets'].permissions, {contents: 'read', actions: 'read'});
+  assert.deepEqual(jobs['select-targets'].permissions, {contents: 'read'});
   const select = jobs['select-targets'].steps.find(step => step.id === 'select');
-  assert.equal(select.env.GITHUB_TOKEN, '${{ github.token }}');
+  assert.equal(select.env.GITHUB_TOKEN, undefined);
   assert(jobs.lint.steps.some(step => step.run?.includes('scripts/ci-main-base.test.mjs')));
 });
 
@@ -572,7 +559,7 @@ test('PR lifecycle uses current event Draft state; ready and later heads retain 
 test('Draft cannot start product, packed, proof or backend jobs; final gate still runs', () => {
   const heavy = ['core', 'host', 'client-packages', 'client-distribution', 'client-packed', 'client-salesforce',
     'native', 'session-evidence', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity',
-    'pipeline-capacity-mutants', 'pipeline-validation', 'native-macos', 'native-separated-network',
+    'pipeline-capacity-mutants', 'pipeline-validation', 'native-macos', 'python-wheels', 'native-separated-network',
     'workers', 'connector-addition', 'duckdb-node'];
   for (const profile of ['draft', 'draft-focused']) {
     const needs = {'select-targets': {outputs: {profile, macos: 'false'}}};
@@ -615,38 +602,34 @@ test('Draft cheap command inventory excludes compiler API generation and compoun
   }
 });
 
-test('every job fails closed before runner allocation until public and explicitly enabled', () => {
-  const guard = "vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false'";
-  const performance = parse(readFileSync(new URL('../.github/workflows/performance-matrix.yml', import.meta.url), 'utf8'));
-  const probe = parse(readFileSync(new URL('../.github/workflows/packed-query-evidence-probe.yml', import.meta.url), 'utf8'));
-  assert.deepEqual(Object.keys(probe.on), ['workflow_call']);
-  for (const [name, job] of Object.entries({...jobs, ...performance.jobs, ...probe.jobs})) {
+test('public jobs do not require an activation variable; private and unknown repositories stay excluded', () => {
+  const guard = "github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false'";
+  const workflows = ['ci', 'performance-matrix', 'packed-query-evidence-probe', 'health-monitor']
+    .map(name => parse(readFileSync(new URL(`../.github/workflows/${name}.yml`, import.meta.url), 'utf8')));
+  for (const workflow of workflows) for (const [name, job] of Object.entries(workflow.jobs)) {
     assert(job.if.startsWith('${{ ' + guard), name);
-    // Evaluate the actual prefix, independently of job-specific applicability.
+    assert(!job.if.includes('vars.'), name);
     const expression = job.if.slice(4, 4 + guard.length);
-    for (const [enabled, visibility, privateFlag, expected] of [
-      [undefined, 'public', false, false], ['', 'public', false, false],
-      ['false', 'public', false, false], ['true', 'private', true, false],
-      ['true', 'public', true, false], ['true', undefined, false, false],
-      ['true', 'public', undefined, false], ['true', 'public', null, false],
-      ['true', 'public', 0, false], ['true', 'public', 'false', false],
-      ['true', 'public', false, true],
+    for (const [visibility, privateFlag, expected] of [
+      ['public', false, true], ['private', true, false], ['public', true, false],
+      [undefined, false, false], ['public', undefined, false], ['public', null, false],
+      ['public', 0, false], ['public', 'false', false],
     ]) {
-      assert.equal(runInNewContext(expression, {vars: {ACTQL_MAIN_CI_ENABLED: enabled},
+      assert.equal(runInNewContext(expression, {
         github: {event: {repository: {visibility, private: privateFlag}}}, toJSON: JSON.stringify}, {timeout: 100}), expected, name);
     }
   }
   for (const name of ['check', 'client', 'pipeline-evidence']) assert(jobs[name].if.includes('always()'), name);
 });
 
-test('automatic main integration remains full even with valid narrow cumulative evidence', () => {
+test('automatic main integration remains full without cumulative evidence', () => {
   const cases = [
     {paths: ['proofs/relation-pipeline/new-record.json']},
     {paths: ['docs/development.md'], maintenanceChanges: changes(['docs/development.md'])},
     {paths: []},
   ];
   for (const inputs of cases) {
-    const selected = validateSelection(selectTargets(inputs.paths, {...inputs, event: 'push', mainBaseline: checkpoint()}));
+    const selected = validateSelection(selectTargets(inputs.paths, {...inputs, event: 'push'}));
     assert.equal(selected.profile, 'full');
     assert.deepEqual(selected.targets, all); assert.equal(selected.macos, true);
     const lines = verifyGate(plan(selected), results(selected), {...context, event: 'push'});
@@ -671,5 +654,51 @@ test('normal distribution keeps original Request resource and cleanup regression
   "adapters/host-node/content-execution-alias-retirement.test.mjs"
 ]) {
     assert.equal(selected.filter(value => value === file).length, 1, file);
+  }
+});
+
+
+test('main CLI selects full checks from a fresh checkout without API token or previous run history', t => {
+  const root = mkdtempSync(join(tmpdir(), 'actql-ci-main-direct-'));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  const command = (args) => {
+    const result = spawnSync('git', args, {cwd: root, encoding: 'utf8'});
+    assert.equal(result.status, 0, result.stderr);
+    return result.stdout.trim();
+  };
+  command(['init', '-q']); command(['config', 'user.name', 'CI fixture']);
+  command(['config', 'user.email', 'fixture@example.invalid']);
+  writeFileSync(join(root, 'fixture.txt'), 'current source\n');
+  command(['add', 'fixture.txt']); command(['commit', '-qm', 'fixture']);
+  const revision = command(['rev-parse', 'HEAD']);
+  const payloadPath = join(root, 'event.json'), output = join(root, 'output');
+  writeFileSync(payloadPath, JSON.stringify({ref: 'refs/heads/main', after: revision}));
+  const result = spawnSync(process.execPath, [new URL('./ci-targets.mjs', import.meta.url).pathname], {
+    cwd: root, encoding: 'utf8', env: {...process.env, GITHUB_EVENT_NAME: 'push',
+      GITHUB_REF: 'refs/heads/main', GITHUB_SHA: revision, GITHUB_EVENT_PATH: payloadPath,
+      GITHUB_OUTPUT: output, GITHUB_STEP_SUMMARY: '', GITHUB_TOKEN: '', GH_TOKEN: ''},
+  });
+  assert.equal(result.status, 0, result.stderr);
+  const plan = JSON.parse(readFileSync(output, 'utf8').split('\n').find(row => row.startsWith('plan=')).slice(5));
+  assert.equal(plan.sourceRevision, revision);
+  assert.equal(plan.selection.profile, 'full');
+  assert.deepEqual(plan.selection.targets, ['js', 'wasm', 'native']);
+  assert.equal(plan.selection.macos, true);
+  assert.equal(Object.hasOwn(plan.selection, 'mainBaseline'), false);
+  assert.deepEqual(plan.selection.paths, []);
+});
+
+test('normal Python wheels are mandatory for full profiles independently of optional native macOS', () => {
+  const job = jobs['python-wheels'];
+  assert.equal(job['runs-on'], 'macos-14');
+  assert.deepEqual(job.needs, ['select-targets', 'preflight']);
+  assert.equal(scheduled('python-wheels', {'select-targets': {outputs: {profile: 'full', macos: 'false'}}}), true);
+  assert(job.steps.some(step => step.run?.includes('test "$(uname -m)" = arm64')));
+  assert(job.steps.some(step => step.run === 'python3 -B scripts/ci-python-wheels.py --destination "$RUNNER_TEMP/python-wheel-acceptance"'));
+  assert(jobs.lint.steps.some(step => step.run === 'python3 -B scripts/test_ci_python_wheels.py'));
+  const selection = selectTargets(['README.md'], {event: 'workflow_dispatch', mainIntegration: true, nativeMacos: false});
+  for (const result of ['failure', 'cancelled', 'skipped']) {
+    const needs = results(selection); needs['python-wheels'].result = result;
+    assert.throws(() => verifyGate(plan(selection), needs, {...context, event: 'workflow_dispatch'}), /python-wheels/);
   }
 });

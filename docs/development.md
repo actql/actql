@@ -1076,148 +1076,62 @@ that result. The regular `packed-query-evidence.test.mjs` gate exercises local
 capture, partial selection, ownership guards and the action's exact upload-status
 shell without rerunning packed product acceptance or a mutation campaign.
 
-## Local PR review and opt-in main integration
+## Pull request checks and main integration
 
-PRs use focused local tests and coordinator review. CI has no automatic
-`pull_request` trigger, including Draft/Ready transitions. This avoids waiting
-for hosted full integration before each merge; it does not turn local checks
-into full integration evidence. A regression found after merge must be fixed
-and verified at a new exact SHA before release.
+Normal CI runs on pull requests (`opened`, `synchronize`, `reopened`,
+`ready_for_review`, and `converted_to_draft`), pushes to `main`, and explicit
+manual dispatch. The repository must be public. No repository activation
+variable is required: enable or disable the workflow through GitHub Actions.
+This workflow does not change repository visibility, permissions, branch
+protection, or release authorization.
 
-Hosted CI is dormant by default. Every job, including `always()` aggregates and
-manual performance/probe entry points, requires both repository visibility
-`public` (and `private == false`) and the repository Actions variable
-`ACTQL_MAIN_CI_ENABLED` equal to the literal string `true`. Missing values,
-private visibility and public visibility alone leave every job skipped before
-runner allocation. A skipped workflow/check is not successful test execution.
+Pull request jobs use the event's synthetic merge checkout. Its tested SHA is
+kept distinct from the PR head SHA. Target selection compares that checkout
+with the event's base SHA, and admission rejects a superseded PR head. Fork
+pull requests use the same read-only `pull_request` workflow: no secrets,
+write permissions, or `pull_request_target` execution are introduced.
 
-### Activation after the repository becomes public
+### Draft preparation and Ready verification
 
-1. The owner makes the repository public separately; this change does not
-   enable CI by itself. Keep the variable unset or false until explicit opt-in.
-2. Review Actions availability and the current branch protection/rulesets.
-   Required PR CI checks from the former policy may otherwise keep PRs waiting
-   forever. An owner must inspect and explicitly approve any needed rule change;
-   this workflow does not change rules, permissions, visibility or billing.
-   If the protection API is inaccessible, its state is unknown, not absent.
-3. After approval, set the repository Actions variable
-   `ACTQL_MAIN_CI_ENABLED=true` and enable Actions/this workflow if disabled.
-   Changing the variable does not itself dispatch a run. The next main push
-   triggers integration, or an explicitly authorized normal manual dispatch on
-   main can establish the first checkpoint.
-4. Inspect that run's exact SHA, attempt, selected full profile, final `check`
-   and all required jobs. Failed, cancelled, missing or skipped required jobs
-   are not green. To turn off future jobs, unset the variable or set it false;
-   this does not cancel an already admitted running job.
+Drafts run preparation (`select-targets`, `preflight`, `lint`, `spec`, and the
+aggregate `check`). Only an exact registered fixed-request test family adds
+its focused JS tests. These are not full product verification: the aggregate
+intentionally fails with “awaiting ready_for_review”. Marking Ready triggers
+the normal applicable coverage; subsequent non-Draft pushes rerun it. Returning
+to Draft cancels the superseded PR run through the existing concurrency group.
 
-Only pushes to `main` run automatically. Main integration selects the existing
-full job families, JS/wasm/native matrix and automatic macOS coverage even when
-an authenticated ancestor would permit a narrow cumulative selection. Mandatory
-history and admission checks still run before expensive fan-out. There is no
-new classifier, second test workflow or replacement proof campaign.
+General product changes select full coverage. Reviewed maintenance, portable,
+and focused-test selections remain explicit, bounded exceptions. Missing or
+invalid selection, failed or cancelled required jobs, and unexpected skips
+cannot satisfy the final `check`. Inspect the jobs actually executed; a narrow
+PR run does not establish a full integration or release checkpoint.
 
-The main normal concurrency group keeps one running integration and at most one
-pending run; GitHub replaces pending work with newer arrivals. It does not
-promise FIFO ordering or test every intermediate merge. The active run checks
-its immutable event SHA and can finish even if main advances. Admission binds
-that SHA to the actual checkout, repository identity and main workflow; PR and
-working-branch latest-head rejection remains intact. Main runs, working-branch
-dispatches and performance/probe modes use separate concurrency groups.
+### Full integration and release evidence
 
-Manual normal dispatch remains available after opt-in for a working branch or
-main. Its existing explicit `native_macos=true` option is preserved. Optional
-performance and intentionally failing evidence probes remain separate modes;
-neither creates a full integration checkpoint.
+Every main push selects full coverage directly, including all three Core
+backends and macOS. It does not query prior successful runs or compare the
+current tree with a historical main checkpoint to choose jobs. Current checkout
+SHA, source, toolchain, artifact, and execution identity checks remain required.
 
-Release only a specific main SHA with a successful full integration `check`
-and the required successful jobs from that exact run attempt/SHA. A newer main
-head, a skipped dormant workflow, narrow green receipt, ancestor checkpoint,
-local tests or performance result is insufficient. Inspect actual obligations
-(including macOS when selected), not just overall workflow color. This is the
-release review requirement; this configuration does not add a release publisher
-or claim to enforce existing publishing permissions. Existing explicit release
-approval requirements remain unchanged.
+The normal main concurrency group keeps one running integration and at most
+one pending run; newer arrivals replace pending work. This does not promise
+FIFO or test every intermediate merge. An active main run validates its
+immutable event SHA and may finish after main advances. PR and working-branch
+runs still reject superseded heads. Performance/probe runs have separate groups.
 
-Checkpoint lookup retains workflow/repository identity, first-parent ancestry,
-exact successful attempt/jobs and policy-object authentication. Admission code
-is part of that policy identity. Historical narrow evidence remains narrow and
-cannot be promoted into a full checkpoint. The historical policy below is
-retained for understanding old receipts and regression fixtures; it is no longer
-the active trigger or merge-wait policy.
+Manual normal dispatch selects full coverage with optional `native_macos=true`.
+Performance and intentionally failing evidence probes are separate opt-in modes,
+not full integration checkpoints. The Python wheel acceptance job runs on its
+supported product platform independently of the optional native diagnostic job.
+No package publication or deployment is performed by ordinary CI.
 
-### Historical PR checks and manual integration checkpoints
-
-The following records the superseded PR-triggered policy and its evidence
-semantics. Its event and command descriptions apply to historical runs only.
-
-Normal CI runs on PR opened, synchronize, reopened, ready_for_review and
-converted_to_draft events. There is no
-main-push, scheduled, workflow-completion or merge-queue trigger. Advancing main
-alone does not require updating an unchanged PR or rerunning its successful
-checks. A changed PR head still needs its own applicable checks; missing,
-failed or stale required evidence is not converted into a pass. The recorded
-checkout may be the PR's synthetic merge at event time, not current main.
-
-#### Historical Draft preparation and Ready verification
-
-Draft pushes and reopen events run preparation checks, not merge verification.
-The existing five jobs (`select-targets`, `preflight`, `lint`, `spec`, `check`)
-are retained; no separate cheap-check workflow or duplicate push trigger is added.
-The final `check` intentionally fails with “awaiting ready_for_review” even if
-preparation passes. This is an incomplete verification state, not proof of a
-product regression. Marking Ready triggers the existing normal coverage at that
-event's exact checkout; later non-Draft pushes rerun it for the new head. Earlier
-head results cannot satisfy the new plan's source identity.
-
-Normal coverage still preserves the existing reviewed maintenance, declaration,
-portable and owning-family exceptions. General product changes select full
-coverage. Ready does not invent a new exemption or turn a narrow historic result
-into a full campaign. Returning to Draft triggers preparation again; the shared
-PR concurrency group cancels a superseded Ready/full attempt without a separate
-run-cancellation API or sticky label.
-
-The Draft command inventory is deliberately bounded:
-
-- Preflight: retained-history validation; operation-support inventory regression;
-  `npm ci`; synthetic pipeline artifact contracts; owned contract versions and
-  metadata checks; pinned MoonBit setup and `moon fmt --check`; tracked-file
-  cleanliness and the existing current-PR-head guard. Three-target API generation
-  is deferred. Declaration provenance still passes actual-history validation.
-- Lint: Node/root npm setup, public SDK/Client TypeScript declarations, and the
-  existing preflight, focused-selection, target-selection and main-baseline
-  fixtures. No native DuckDB setup, product build or dependency-isolation build.
-- Spec: Node/root npm setup, document links, strict Local resource-boundary
-  evidence validation and independently pinned execution-authorization vector
-  freshness. No Python/MoonBit spec setup or compound `check:spec-after-preflight`.
-- Only an exact existing reviewed fixed-request test family adds `focused-tests`:
-  its owning JS package check and selected test files, through the existing
-  nonzero wrapper. Ordinary Draft product changes do not automatically run their
-  affected product tests; there is no complete dependency engine here.
-
-Full Core matrices, Host/Client package builds and acceptance, native/macOS,
-network, Worker, connector, DuckDB, session proof and pipeline proof campaigns
-are deferred while Draft. The CI unit fixtures above are synthetic checks of
-scheduling/evidence contracts, not execution of those product campaigns. Missing
-or invalid Draft/event metadata fails closed. The five-job count (six for the
-reviewed focused family) is a scheduling count, not a measured hosted runtime
-or promise of zero preparation cost. Manual dispatch remains the explicit normal
-full path and is not downgraded because a PR happens to be Draft.
-
-Before a release or another meaningful integration milestone, explicitly run
-`gh workflow run CI --ref main`. With the probe/performance flags left false,
-this selects the existing full job families and JS/wasm/native matrix. Add
-`-f native_macos=true` when the macOS checkpoint is required. Dispatching the
-probe or performance-only modes is not a full integration checkpoint.
-
-This intentionally delays detection of incompatibilities between independently
-validated PRs until the chosen integration checkpoint. Review its exact source
-SHA and actual required-job results before treating that checkpoint as verified.
-No branch-protection settings or check obligations are relaxed by this policy.
-Existing historical main-push baselines remain historical evidence only; stopping
-automatic main runs neither creates a new trusted origin nor permits missing or
-changed producer inputs to be reused. Reuse must still satisfy its existing
-source, policy and artifact checks. Do not dispatch a replacement full run for
-every merge or move the duplicate campaign to the PR merely because main moved.
+Before release, require the exact main SHA's successful full integration
+`check` and all selected obligations from the same attempt. Local tests, an
+ancestor's green run, a Draft preparation, skipped checks, and performance
+results are not substitutes. Configure required branch checks separately under
+owner-approved repository rules; this workflow does not modify those rules.
+Explicit historical artifact reuse or comparison commands retain their own
+source/policy/provenance validation; they are not normal main target selection.
 
 ## CI evidence by source revision
 
