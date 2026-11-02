@@ -10,6 +10,7 @@ const {realpathSync} = require('node:fs');
 const {pathToFileURL, fileURLToPath, URL: OriginalURL} = require('node:url');
 const nativeApply = Reflect.apply;
 const descriptor = Object.getOwnPropertyDescriptor, hasOwn = Object.hasOwn;
+const originalUrlHref = descriptor(OriginalURL.prototype, 'href').get;
 const ownKeys = Reflect.ownKeys;
 const freeze = Object.freeze, defineProperty = Object.defineProperty;
 const prototype = Object.getPrototypeOf, sameValue = Object.is;
@@ -273,7 +274,7 @@ function installImageLoader(groups, ordinary) {
     if (typeof specifier === 'string' && (starts(specifier, 'file:') ||
         starts(specifier, './') || starts(specifier, '../') || starts(specifier, '/'))) {
       let url;
-      try {url = new OriginalURL(specifier, context.parentURL).href;}
+      try {url = nativeApply(originalUrlHref, new OriginalURL(specifier, context.parentURL), []);}
       catch { /* The original Node resolver retains malformed-specifier errors. */ }
       const original = nativeApply(nativeMapGet, images, [url]);
       // Resolve only an exact already-captured file. Native package resolution
