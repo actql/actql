@@ -385,6 +385,22 @@ mandatory approval. The existing capture, approval, Effect Ledger and receipt
 owners remain the runtime path. Source installation derives its schema from
 the saved contract and only admits opaque current read decisions or a
 Checkpoint decision for its exact physical target, field subset and principal.
+The bound Source Site owns the original Authorization acquired by that same
+initializer. It captures the scope's own synchronous close and receiver before
+returning. Retirement refuses new grants before entering that callback; false,
+throwing, Promise and foreign thenable results keep the same pending scope.
+A returned Native Promise remains the one entered close flight until it
+settles; retries do not enter a second close while it is unresolved. Its
+settlement permits retry only, never acknowledgment. Only synchronous true
+cuts the Site's scope/target/approval aliases. Repeated
+close is idempotent and callback reentry cannot close a replacement scope.
+Target and issued-decision callbacks are followed by the same Site's current
+check before granting. The existing initialization-failure cleanup retains this
+Site until its original scope acknowledges; it does not reconstruct the Source.
+An explicitly borrowed low-level Site retires its own aliases without closing
+the borrowed Authorization. These fixed Site controls remain inside the bound
+Table constructor, not a substitute for Native Arrow/data/failed-child backing.
+
 
 The selected Local installation also binds its reviewed implementation bytes,
 not only a Python executable path or a revision label. The existing adapter

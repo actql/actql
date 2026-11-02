@@ -74797,7 +74797,7 @@
     {
       "module": "adapters/host-node/installed-table-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "6cb9d8c75ef278c366cf26cec4129b922e66bfa8a4684150dbea9630f7d625ca",
+      "sha256": "2940bf1a030ce5053d724cc69aa7d0e40d3a9123455a7e58ad16642ca3588712",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
@@ -75003,6 +75003,16 @@
           "async": false
         },
         {
+          "name": "installedTableReadSite/init:close/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installedTableReadSite/init:close/init:close/init:close#2",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "installedTableReadSite/init:issueReadGrant/init:issueReadGrant",
           "parameters": [
             "operation",
@@ -75045,9 +75055,9 @@
             "createInstalledTableSource/bindingCid/bindingCid",
             "createInstalledTableSource/byResource/byResource",
             "createInstalledTableSource/createInstalledTableSource",
-            "createInstalledTableSource/createInstalledTableSource/createInstalledTableSource",
             "createInstalledTableSource/createInstalledTableSource#2",
             "createInstalledTableSource/createInstalledTableSource#3",
+            "createInstalledTableSource/createInstalledTableSource/createInstalledTableSource",
             "createInstalledTableSource/installed/installed",
             "createInstalledTableSource/physicalTarget/physicalTarget",
             "createInstalledTableSource/physicalTarget/physicalTarget/physicalTarget",
@@ -75065,6 +75075,8 @@
             "installedTableReadSite/init:admitCheckpointReadApproval/init:admitCheckpointReadApproval/init:admitCheckpointReadApproval",
             "installedTableReadSite/init:admitCheckpointReadApproval/init:admitCheckpointReadApproval/target/target",
             "installedTableReadSite/init:close/init:close",
+            "installedTableReadSite/init:close/init:close/init:close",
+            "installedTableReadSite/init:close/init:close/init:close#2",
             "installedTableReadSite/init:issueReadGrant/init:issueReadGrant",
             "installedTableReadSite/init:issueReadGrant/init:issueReadGrant/init:issueReadGrant",
             "keys/keys",
@@ -75087,6 +75099,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "The bound Source Site owns the original Authorization acquired by that same"
               }
             ],
             "inputsOutputs": [
@@ -75101,6 +75117,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Query-shaped acquisition"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "The bound Source Site owns the original Authorization acquired by that same"
               }
             ],
             "identity": [
@@ -75115,6 +75135,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "The bound Source Site owns the original Authorization acquired by that same"
               }
             ],
             "ownership": [
@@ -75129,6 +75153,10 @@
               {
                 "path": "docs/design/resident-source-acquisition.md",
                 "anchor": "# Resident Source acquisition"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "The bound Source Site owns the original Authorization acquired by that same"
               }
             ],
             "synchronization": [
@@ -75143,6 +75171,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "The bound Source Site owns the original Authorization acquired by that same"
               }
             ],
             "failure": [
@@ -75157,6 +75189,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "The bound Source Site owns the original Authorization acquired by that same"
               }
             ],
             "cancellation": [
@@ -75171,6 +75207,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Query-shaped acquisition"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "The bound Source Site owns the original Authorization acquired by that same"
               }
             ],
             "resources": [
@@ -75185,6 +75225,10 @@
               {
                 "path": "docs/design/resident-source-acquisition.md",
                 "anchor": "# Resident Source acquisition"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "The bound Source Site owns the original Authorization acquired by that same"
               }
             ],
             "extension": [
@@ -75199,6 +75243,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Query-shaped acquisition"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "The bound Source Site owns the original Authorization acquired by that same"
               }
             ],
             "verification": [
@@ -75209,6 +75257,14 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "The bound Source Site owns the original Authorization acquired by that same"
+              },
+              {
+                "path": "adapters/host-node/table-owned-site-retirement.test.mjs",
+                "anchor": "test('Table original Site remains in existing failed-initialization cleanup until its same scope acknowledges'"
               }
             ]
           }
@@ -75364,7 +75420,8 @@
         "../host-common/checkpoint-approval.mjs",
         "../host-common/runtime-result.mjs",
         "./installed-row-source.mjs",
-        "node:crypto"
+        "node:crypto",
+        "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []

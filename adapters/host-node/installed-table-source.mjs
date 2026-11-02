@@ -2,6 +2,7 @@
 // The caller installs the same current authorization/Site as other Sources;
 // this adapter issues no grant, runs no task scheduler and owns no capture.
 import {createHash} from 'node:crypto';
+import {types as nodeTypes} from 'node:util';
 import {checkpointApprovalFacts} from '../host-common/checkpoint-approval.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {canonicalJson} from '../../packages/sdk/host-port.mjs';
@@ -25,15 +26,29 @@ const closedReply = (value, resultKeys) => {
 // admits decisions issued by the installed gate or the existing Checkpoint
 // owner for this exact physical binding. It is not an approval/Run owner.
 export function installedTableReadSite({connection, authorization, principalId, targets, ownAuthorization = false}) {
-  let closed = false;
-  const approvals = new WeakMap();
-  const ensureOpen = () => { if (closed) fail('InstalledTableSiteClosed'); };
+  let authorizationClose, closeFlight;
+  if (ownAuthorization) {
+    if (!authorization || typeof authorization !== 'object' || nodeTypes.isProxy(authorization)) {
+      fail('InvalidInstalledTableAuthorization');
+    }
+    const close = Object.getOwnPropertyDescriptor(authorization, 'close');
+    if (!close || !Object.hasOwn(close, 'value') || typeof close.value !== 'function' ||
+        nodeTypes.isProxy(close.value) || nodeTypes.isAsyncFunction(close.value)) {
+      fail('InvalidInstalledTableAuthorization');
+    }
+    authorizationClose = close.value;
+  }
+  let closed = false, retiring = false, cleanupRunning = false;
+  let approvals = new WeakMap();
+  const ensureOpen = () => { if (closed || retiring) fail('InstalledTableSiteClosed'); };
   return Object.freeze({connection,
     admitCheckpointReadApproval(decision) {
       ensureOpen();
       const facts = checkpointApprovalFacts(decision);
       const binding = facts?.physicalBinding;
-      const target = targets().find(target => target.resource === decision?.tuple?.resource);
+      const selectedTargets = targets();
+      ensureOpen();
+      const target = selectedTargets.find(target => target.resource === decision?.tuple?.resource);
       if (!facts || !target || decision.action !== 'dispatch' || decision.basis !== 'resumed_approval' ||
           decision.boundary !== 'acquisition' || facts.principalId !== principalId ||
           facts.readTuple?.connection !== connection || facts.readTuple?.operation !== 'read' ||
@@ -46,26 +61,55 @@ export function installedTableReadSite({connection, authorization, principalId, 
           binding.fields.length === 0 ||
           new Set(binding.fields).size !== binding.fields.length ||
           binding.fields.some(field => !target.fields.includes(field))) fail('TableSourceReadApprovalNotAdmitted');
+      ensureOpen();
       approvals.set(decision, target.resource);
       return decision;
     },
     issueReadGrant({operation, decision, resource, runInvocationCid, dispatchRequestCid, maxUses}) {
       ensureOpen();
+      const selectedTargets = targets();
+      ensureOpen();
       if (operation !== 'table.read' || !identifier(runInvocationCid) || !identifier(dispatchRequestCid) ||
           !Number.isSafeInteger(maxUses) || maxUses < 1 ||
-          !targets().some(target => target.resource === resource) ||
+          !selectedTargets.some(target => target.resource === resource) ||
           decision?.action !== 'dispatch' || decision.boundary !== 'acquisition' ||
           decision.tuple?.connection !== connection || decision.tuple?.resource !== resource ||
-          decision.tuple?.operation !== 'read' ||
-          (approvals.get(decision) !== resource &&
-            (!authorization.issued(decision) || decision.contextCid !== authorization.context.contextCid))) {
+          decision.tuple?.operation !== 'read') {
         fail('TableSourceReadGrantNotAuthorized');
       }
+      ensureOpen();
+      if (approvals.get(decision) !== resource) {
+        const issued = authorization.issued(decision);
+        ensureOpen();
+        if (!issued || decision.contextCid !== authorization.context.contextCid) {
+          fail('TableSourceReadGrantNotAuthorized');
+        }
+      }
+      ensureOpen();
       return Object.freeze({runInvocationCid, dispatchRequestCid});
     },
     close() {
-      if (ownAuthorization && authorization.close() !== true) fail('InstalledSourceAuthorizationCleanupPending');
-      closed = true;
+      if (closed) return;
+      retiring = true;
+      if (cleanupRunning || closeFlight !== undefined) fail('InstalledSourceAuthorizationCleanupPending');
+      cleanupRunning = true;
+      try {
+        if (ownAuthorization) {
+          const completed = Reflect.apply(authorizationClose, authorization, []);
+          if (completed !== true) {
+            if (nodeTypes.isPromise(completed)) {
+              // Retain one entered original until settlement. Settlement only
+              // permits cleanup retry; it is never this scope's close ACK.
+              closeFlight = completed;
+              Promise.prototype.then.call(completed,
+                () => {closeFlight = undefined;}, () => {closeFlight = undefined;});
+            }
+            fail('InstalledSourceAuthorizationCleanupPending');
+          }
+        }
+        closed = true;
+        authorization = authorizationClose = targets = approvals = principalId = undefined;
+      } finally { cleanupRunning = false; }
     },
   });
 }
