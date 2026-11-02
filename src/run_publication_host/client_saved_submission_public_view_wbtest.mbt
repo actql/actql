@@ -208,6 +208,7 @@ test "accepted failure candidate preserves same intent and refuses terminal or f
   )
   let changed = prepare_client_submitted_intent(
     "{\"kind\":\"aql\",\"input\":{\"format\":\"sql\",\"text\":\"SELECT 2 AS n\"},\"parameters\":null}",
+    65536, 8192, 64,
   ).unwrap()
   assert_eq(
     client_saved_submission_preparation_failure_body(
