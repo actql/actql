@@ -122,3 +122,21 @@ test('current metadata cursor does not regain obsolete per-operation scalar caps
       /Unreviewed parent\/edge field or type RelationChainInputPreparation/);
   }
 });
+
+// This is caller/source correspondence; the Native diagnostic owns execution.
+test('current Native census transfers original completion through the selected four-argument cursor', () => {
+  const overlay = currentOverlay(read);
+  const fixture = overlay['src/connectors/local/current_chain_capacity_wbtest.mbt'];
+  const call = fixture.match(/let transferred_preparation = start_relation_chain_inputs\(([\s\S]*?)\)\.unwrap\(\)/u);
+  assert(call, 'The census must retain its original transferred-preparation call');
+  assert.equal(call[1].replace(/\s+/gu, ' ').trim(),
+    'sequence, 1, [managed_provider_relation_input(read)], completed,');
+  const preparation = read('src/connectors/local/relation_chain_input_preparation.mbt').toString();
+  assert.match(preparation, /fn start_relation_chain_inputs\(\s*sequence : @execution\.GeneratedSequence,\s*position : Int,\s*inputs : Array\[ManagedProviderInput\],\s*completed : Array\[@execution\.CompletedOutput\?\],\s*\)/u);
+  assert(preparation.includes('@execution.bound_producer_read_demand(cursor.owner, bound)'));
+  assert(preparation.includes('@execution.producer_read_demand_entries(demand)'));
+  assert(preparation.includes('@execution.producer_read_demand_name_bytes(demand)'));
+  assert(fixture.includes('physical_equal(state.completed[0].unwrap(), output)'));
+  assert(fixture.includes('cancel_relation_chain_inputs(transferred_preparation)'));
+  assert(fixture.includes('@execution.producer_read_available(final_read)'));
+});
