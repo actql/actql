@@ -22,7 +22,8 @@ test('interactive registry is generated, pinned, closed and grants no runtime su
     assert.equal(domain.preimage, 'complete_body_except_self_cid');
     assert.match(domain.version, /^actql-[a-z-]+\/0\.1$/u);
   }
-  const checker = readFileSync('src/pipeline_typing/check.mbt', 'utf8');
+  // The common checker's Steps phase delegates to this original operation owner.
+  const checker = readFileSync('src/pipeline_typing/core_operation_read.mbt', 'utf8');
   for (const operator of logicalOperators)
     assert.ok(checker.includes(`"${operator}"`), operator);
   assert.equal(logicalOperators.includes('effect'), false);
