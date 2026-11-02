@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync, readdirSync, lstatSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
@@ -33,6 +33,36 @@ export function checkCurrentSource(root) {
   const untracked = git(['ls-files', '--others', '--', ...inputs]);
   assert.equal(untracked.status, 0, 'Cannot inspect current source inputs');
   assert.equal(untracked.stdout, '', 'Untracked current proof inputs');
+  // Index flags cannot establish the bytes that the runner actually reads.
+  // Bind only this HEAD's regular inputs; no historical declarations are used.
+  const tree = git(['ls-tree', '-rz', head.stdout.trim(), '--',
+    ...snapshotDirectories, ...snapshotFiles]);
+  assert.equal(tree.status, 0, 'Cannot inspect current source tree');
+  const directories = new Set();
+  for (const entry of tree.stdout.split('\0').filter(Boolean)) {
+    const match = /^(\d+) (\S+) ([0-9a-f]+)\t([\s\S]+)$/.exec(entry);
+    assert(match, 'Invalid current source tree entry');
+    const [, mode, type, object, path] = match;
+    if (path === 'src/query_integration/relation_pipeline_batch_wbtest.mbt') continue;
+    assert(type === 'blob' && ['100644', '100755'].includes(mode),
+      `Non-regular current proof input: ${path}`);
+    const parts = path.split('/');
+    for (let i = 1; i < parts.length; i++) {
+      const directory = join(root, ...parts.slice(0, i));
+      if (directories.has(directory)) continue;
+      const stat = lstatSync(directory);
+      assert(stat.isDirectory() && !stat.isSymbolicLink(),
+        `Non-regular current proof input directory: ${path}`);
+      directories.add(directory);
+    }
+    const file = join(root, path), stat = lstatSync(file);
+    assert(stat.isFile() && !stat.isSymbolicLink(), `Non-regular current proof input: ${path}`);
+    assert.equal(Boolean(stat.mode & 0o111), mode === '100755', `Current proof input mode: ${path}`);
+    const bytes = readFileSync(file);
+    const actual = createHash(object.length === 40 ? 'sha1' : 'sha256')
+      .update(`blob ${bytes.length}\0`).update(bytes).digest('hex');
+    assert.equal(actual, object, `Current proof inputs differ from tested HEAD: ${path}`);
+  }
   return head.stdout.trim();
 }
 export function checkBaseline(root, {read = path => readFileSync(join(root, path))} = {}) {
