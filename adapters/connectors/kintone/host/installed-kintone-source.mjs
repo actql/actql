@@ -1,14 +1,14 @@
 // The installation supplies original Form DATA and vendor I/O. Existing
 // Account/Credential Site/Row Source owners keep authority, capture and cleanup.
 import {createHash} from 'node:crypto';
+import {types as nodeTypes} from 'node:util';
 import {readFile} from 'node:fs/promises';
 import {isAbsolute} from 'node:path';
 import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
-import {readSourceProfileJson} from '../../../host-node/source-profile-json.mjs';
+import {readSourceProfileJson,captureConfigurationReaders} from '../../../host-node/source-profile-json.mjs';
 import {retainInstalledHostInitializationFailure} from '../../../host-node/installed-host-cleanup.mjs';
-import {createInstalledRowSource, installRowSourceAuthorization, openRowSourceCredentialSite,
-  rowSourceCheckEnvironment} from '../../../host-node/installed-row-source.mjs';
+import {createInstalledRowSource} from '../../../host-node/installed-row-source.mjs';
 import {readKintoneRecords, KINTONE_FORM_READ_OPERATION,
   KINTONE_RECORD_READ_OPERATION} from '../site/kintone-record-read.mjs';
 
@@ -68,10 +68,10 @@ function checkSite(value) {
     ...(guestSpaceId === undefined ? {} : {guestSpaceId})});
 }
 
-async function inputs(profile) {
+async function inputs(profile, {readJson=readSourceProfileJson,decodeForm}={}) {
   const installed = checkInstalledKintoneSourceProfile(profile);
-  const site = checkSite(await readSourceProfileJson(installed.siteProfilePath));
-  const metadata = await readSourceProfileJson(installed.metadataPath);
+  const site = checkSite(await readJson(installed.siteProfilePath));
+  const metadata = await readJson(installed.metadataPath);
   if (!closed(metadata, ['version', 'connectorId', 'appId', 'apiOrigin', 'formBody']) ||
       metadata.version !== 'actql-kintone-record-metadata/0.1' ||
       metadata.connectorId !== installed.connectorId || metadata.appId !== installed.appId ||
@@ -79,77 +79,124 @@ async function inputs(profile) {
       metadata.formBody.length > Math.ceil(installed.limits.maxResponseBytes / 3) * 4) {
     fail('InvalidInstalledKintoneMetadata');
   }
-  const form = Buffer.from(metadata.formBody, 'base64');
-  if (form.byteLength > installed.limits.maxResponseBytes ||
-      form.toString('base64') !== metadata.formBody) fail('InvalidInstalledKintoneMetadata');
+  // Identity retains metadata DATA without admitting or allocating its Form.
+  // The actual loader supplies the same pre-reserved binary constructor.
+  const form=decodeForm?.(metadata.formBody,installed.limits.maxResponseBytes);
   return {installed, site, metadata, form};
 }
 
-export async function installedKintoneSourceIdentityParts(profile, providerProfile) {
-  const {site, metadata} = await inputs(providerProfile);
-  const ca = site.caPath === undefined ? undefined : await readFile(site.caPath);
+export async function installedKintoneSourceIdentityParts(profile, providerProfile,read,_entry,{configurationReader}={}) {
+  const readers=captureConfigurationReaders(configurationReader,read,()=>fail('InstalledKintoneConfigurationReaderUnavailable'));
+  const {site,metadata}=await inputs(providerProfile,readers);
+  if(configurationReader!==undefined&&site.caPath!==undefined&&readers.readOriginalBytes===undefined){
+    fail('InstalledKintoneConfigurationReaderUnavailable');
+  }
+  // The standalone identity utility only hashes DATA. Actual initialization
+  // always supplies its observed-FD reader; this raw utility is no installer.
+  const ca=site.caPath===undefined?undefined:readers.readOriginalBytes===undefined
+    ?await readFile(site.caPath):await readers.readOriginalBytes(site.caPath);
   return [{...profile, accountConfigurationWire: JSON.parse(profile.accountConfigurationWire)},
-    site, {metadataCid: cid(metadata), ...(ca === undefined ? {} : {
+    site, {metadataCid:cid(metadata), ...(ca === undefined ? {} : {
       caSha256: createHash('sha256').update(ca).digest('hex')})}];
 }
 
 export async function loadInstalledKintoneSource(profile, {root, principalId, moon,
-  baseEnvironmentWire, runtimeBundleCid, resolveSecret}) {
-  const {installed, site: siteProfile, metadata, form} = await inputs(profile);
-  const {limits} = installed;
-  // A runtime with no genuine typed bridge refuses before Site/key/I/O entry.
-  for (const name of ['FormLimits', 'PageLimits', 'ValueLimits', 'DeclarationLimits',
-    'ProjectForm', 'DeclareRecords', 'RecordDeclaration', 'PrepareRead', 'ReadAcquisition',
-    'BorrowRead', 'BindReadCleanup', 'RecheckReadForm', 'AcceptReadPage', 'FormRequestBody',
-    'PageRequestBody', 'PageNextCursor', 'RetireRead']) {
-    if (typeof moon?.[`clientProgramKintone${name}`] !== 'function') fail('KintoneOriginalReadUnavailable');
+  baseEnvironmentWire, runtimeBundleCid, resolveSecret,installation,
+  sourceInitialization,configurationReader,installationServices}) {
+  if(sourceInitialization===undefined||configurationReader===undefined||installationServices===undefined){
+    fail('InstalledKintoneInitializationUnavailable');
   }
-  const formCatalog = checked(moon.clientProgramKintoneProjectForm(form, installed.appId,
-    moon.clientProgramKintoneFormLimits(limits.maxResponseBytes, limits.maxNodes,
-      limits.maxDepth, limits.maxFields, limits.maxNameUnits)));
-  const original = checked(moon.clientProgramKintoneDeclareRecords(formCatalog, undefined,
-    installed.fieldCodes, installed.connectorId, revision, installed.resource,
-    moon.clientProgramKintoneValueLimits(limits.maxColumns, limits.maxNameUnits,
-      limits.maxValueNodes, limits.maxValueDepth, limits.maxValueTextBytes),
-    moon.clientProgramKintoneDeclarationLimits(limits.maxDeclarationBytes,
-      limits.maxDeclarationNodes, limits.maxDepth, 1, limits.maxColumns)));
-  const declaration = moon.clientProgramKintoneRecordDeclaration(original);
-  const declared = JSON.parse(moon.clientProgramRowSourceDeclarationJson(declaration));
-  const environment = rowSourceCheckEnvironment(baseEnvironmentWire, declared);
-  const authorization = await installRowSourceAuthorization({root, principalId,
-    connectorRegistration: registration, accountConfiguration: installed.accountConfigurationWire});
+  const method=(receiver,name,code)=>{
+    if(!receiver||nodeTypes.isProxy(receiver))fail(code);
+    const field=Object.getOwnPropertyDescriptor(receiver,name);
+    if(!field||!Object.hasOwn(field,'value')||typeof field.value!=='function'||
+      nodeTypes.isProxy(field.value)||nodeTypes.isAsyncFunction(field.value))fail(code);
+    return field.value;
+  };
+  const input=method(sourceInitialization,'prepareInputConstruction','InstalledKintoneInitializationUnavailable');
+  const declare=method(sourceInitialization,'prepareNativeDeclaration','InstalledKintoneInitializationUnavailable');
+  const openSite=method(installationServices,'openRowSite','InstalledKintoneInitializationUnavailable');
+  const quote=method(moon,'clientProgramInstalledSourceConstructionCapacity','KintoneOriginalReadUnavailable');
+  // Capture the same original methods before the first configuration await.
+  const names=['FormLimits','PageLimits','ValueLimits','DeclarationLimits','ProjectForm','DeclareRecords',
+    'RecordDeclaration','PrepareRead','ReadAcquisition','BorrowRead','BindReadCleanup','RecheckReadForm',
+    'AcceptReadPage','FormRequestBody','PageRequestBody','PageNextCursor','RetireRead'];
+  const originals=Object.freeze(Object.fromEntries(names.map(name=>{
+    const fn=method(moon,`clientProgramKintone${name}`,'KintoneOriginalReadUnavailable');
+    return [name,(...args)=>Reflect.apply(fn,moon,args)];
+  })));
+  const readers=captureConfigurationReaders(configurationReader,undefined,
+    ()=>fail('InstalledKintoneConfigurationReaderUnavailable'));
+  const {installed,site:siteProfile,metadata,form}=await inputs(profile,{...readers,
+    decodeForm(encoded,maximum){
+      return Reflect.apply(input,sourceInitialization,[Object.freeze({
+        capacity(){return checked(Reflect.apply(quote,moon,[4n,2n*BigInt(encoded.length),BigInt(Math.floor(encoded.length*3/4)),0n,0n,0n]));},
+        project(){
+          const bytes=Buffer.from(encoded,'base64');
+          if(bytes.byteLength>maximum||bytes.toString('base64')!==encoded)fail('InvalidInstalledKintoneMetadata');
+          return bytes;
+        },
+      })]);
+    },
+  });
+  const {limits}=installed;
+  // Original parser/value/declaration rejection bounds cover the co-held
+  // Form index, contracts, declaration and failed prefixes. Byte/text bounds
+  // remain separate from node counts in the existing Source envelope. They
+  // neither allocate an output buffer nor alter the writer/parser limits.
+  const nodes=BigInt(limits.maxNodes)+BigInt(limits.maxValueNodes)+BigInt(limits.maxDeclarationNodes)+
+    BigInt(limits.maxFields)+BigInt(limits.maxColumns)+BigInt(installed.fieldCodes.length);
+  const textUnits=BigInt(form.byteLength)+BigInt(limits.maxNameUnits)+BigInt(limits.maxValueTextBytes)+
+    BigInt(limits.maxDeclarationBytes)+BigInt(installed.connectorId.length+revision.length+installed.resource.length);
+  const wireBytes=BigInt(form.byteLength)+BigInt(limits.maxDeclarationBytes);
+  const prepared=Reflect.apply(declare,sourceInitialization,[Object.freeze({
+    capacity(){return checked(Reflect.apply(quote,moon,[4n*nodes,8n*textUnits,8n*wireBytes,4n*nodes,8n*textUnits,8n*wireBytes]));},
+    project(){
+      const formCatalog=checked(originals.ProjectForm(form,installed.appId,
+        originals.FormLimits(limits.maxResponseBytes,limits.maxNodes,limits.maxDepth,limits.maxFields,limits.maxNameUnits)));
+      const original=checked(originals.DeclareRecords(formCatalog,undefined,installed.fieldCodes,installed.connectorId,
+        revision,installed.resource,originals.ValueLimits(limits.maxColumns,limits.maxNameUnits,
+          limits.maxValueNodes,limits.maxValueDepth,limits.maxValueTextBytes),
+        originals.DeclarationLimits(limits.maxDeclarationBytes,limits.maxDeclarationNodes,limits.maxDepth,1,limits.maxColumns)));
+      return Object.freeze({declaration:originals.RecordDeclaration(original),
+        material:Object.freeze({original,formCatalog,metadataCid:cid(metadata)})});
+    },
+  })]);
+  const {declaration,declared,environment,material:{original,metadataCid}}=prepared;
   const connection = `kintone:${installed.connectorId}`;
   const target = (resource, fields) => Object.freeze({version: 'actql-installed-kintone-target/0.1',
     apiOrigin: siteProfile.apiOrigin, appId: installed.appId,
     ...(siteProfile.guestSpaceId === undefined ? {} : {guestSpaceId: siteProfile.guestSpaceId}),
-    resource, metadataCid: cid(metadata), fields: Object.freeze([...fields])});
+    resource, metadataCid, fields: Object.freeze([...fields])});
   const admitsApprovalTarget = (binding, resource) => resource === installed.resource &&
     Array.isArray(binding?.fields) && new Set(binding.fields).size === binding.fields.length &&
     binding.fields.every(field => declared.views[0].fields.includes(field)) &&
     canonical(binding) === canonical(target(resource, binding.fields));
-  const ca = siteProfile.caPath === undefined ? undefined : await readFile(siteProfile.caPath);
-  const site = await openRowSourceCredentialSite({profile: {...siteProfile, resourceOrigin: siteProfile.apiOrigin},
-    principalId, authorization, connection, connectorRegistration: registration,
-    connectorRevision: revision, runtimeBundleCid, commonMoon: moon, ca, admitsApprovalTarget,
-    responseHeaders: [], resolveSecret: resolveSecret ?? (async () => {
+  if(siteProfile.caPath!==undefined&&readers.readOriginalBytes===undefined)fail('InstalledKintoneConfigurationReaderUnavailable');
+  const ca=siteProfile.caPath===undefined?undefined:await readers.readOriginalBytes(siteProfile.caPath);
+  const {site,authorization}=await Reflect.apply(openSite,installationServices,[{
+    installation,sourceInitialization,accountConfiguration:installed.accountConfigurationWire,
+    profile:Object.freeze({...siteProfile,resourceOrigin:siteProfile.apiOrigin}),connection,ca,admitsApprovalTarget,
+    responseHeaders:[],resolveSecret:resolveSecret??(async()=>{
       const secret = process.env[siteProfile.tokenEnvironment];
       if (!text(secret)) fail('RemoteCredentialSecretUnavailable');
       return secret;
-    })});
+    }),
+  }]);
   const preparations = new WeakMap();
   try {
-    return await createInstalledRowSource({moon, declaration, declared,
+    return await createInstalledRowSource({moon, declaration, declared,environment,sourceInitialization,
       environmentWire: environment.wire, connectorId: installed.connectorId,
       connectorRegistration: registration, connectorRevision: revision,
       site, authorization, readOperation: KINTONE_RECORD_READ_OPERATION, physicalTarget: target,
       bindingCid: cid({version: 'actql-installed-kintone-binding/0.1', contextCid: authorization.context.contextCid,
-        runtimeBundleCid, metadataCid: cid(metadata), site: siteProfile}),
+        runtimeBundleCid, metadataCid, site: siteProfile}),
       limits: {maxPages: limits.maxRequests, maxPageBytes: limits.maxResponseBytes,
         maxPageRows: limits.perPage, maxCaptureRows: limits.maxRows},
       prepareAcquisition: ({requirement, queryContract, evidenceContract}) => {
-        const prepared = checked(moon.clientProgramKintonePrepareRead(original,
+        const prepared = checked(originals.PrepareRead(original,
           requirement, queryContract, evidenceContract));
-        const acquisition = moon.clientProgramKintoneReadAcquisition(prepared);
+        const acquisition = originals.ReadAcquisition(prepared);
         preparations.set(acquisition, prepared);
         return acquisition;
       },

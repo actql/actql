@@ -4,7 +4,7 @@
   "declarations": [
     {
       "module": "adapters/connectors/kintone/host/installed-kintone-source.mjs",
-      "sha256": "7ff64b287b93140f5e80d8ca196d992bb69cb13621f1eb62959039277e95b6b2",
+      "sha256": "467407e1c61660ed6907faf7129c18dfe8450a221872a4d2221f83b6723526ad",
       "exports": [
         "INSTALLED_KINTONE_SITE_VERSION",
         "INSTALLED_KINTONE_SOURCE_VERSION",
@@ -88,7 +88,9 @@
         {
           "name": "inputs",
           "parameters": [
-            "profile"
+            "profile",
+            "readJson",
+            "decodeForm"
           ],
           "async": true
         },
@@ -96,9 +98,17 @@
           "name": "installedKintoneSourceIdentityParts",
           "parameters": [
             "profile",
-            "providerProfile"
+            "providerProfile",
+            "read",
+            "_entry",
+            "configurationReader"
           ],
           "async": true
+        },
+        {
+          "name": "installedKintoneSourceIdentityParts/readers/readers",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "loadInstalledKintoneSource",
@@ -109,7 +119,11 @@
             "moon",
             "baseEnvironmentWire",
             "runtimeBundleCid",
-            "resolveSecret"
+            "resolveSecret",
+            "installation",
+            "sourceInitialization",
+            "configurationReader",
+            "installationServices"
           ],
           "async": true
         },
@@ -129,13 +143,27 @@
           "async": false
         },
         {
-          "name": "loadInstalledKintoneSource/loadInstalledKintoneSource",
+          "name": "loadInstalledKintoneSource/init:decodeForm/init:decodeForm",
           "parameters": [
-            "requirement",
-            "queryContract",
-            "evidenceContract"
+            "encoded",
+            "maximum"
           ],
           "async": false
+        },
+        {
+          "name": "loadInstalledKintoneSource/init:decodeForm/init:decodeForm/init:capacity/init:capacity",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadInstalledKintoneSource/init:decodeForm/init:decodeForm/init:project/init:project",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadInstalledKintoneSource/loadInstalledKintoneSource",
+          "parameters": [],
+          "async": true
         },
         {
           "name": "loadInstalledKintoneSource/loadInstalledKintoneSource/authorize/authorize",
@@ -155,14 +183,56 @@
         {
           "name": "loadInstalledKintoneSource/loadInstalledKintoneSource#2",
           "parameters": [
+            "requirement",
+            "queryContract",
+            "evidenceContract"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledKintoneSource/loadInstalledKintoneSource#3",
+          "parameters": [
             "options"
           ],
           "async": true
         },
         {
-          "name": "loadInstalledKintoneSource/site/site",
+          "name": "loadInstalledKintoneSource/method/method",
+          "parameters": [
+            "receiver",
+            "name",
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledKintoneSource/originals/originals",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledKintoneSource/originals/originals/originals",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledKintoneSource/prepared/init:capacity/init:capacity",
           "parameters": [],
-          "async": true
+          "async": false
+        },
+        {
+          "name": "loadInstalledKintoneSource/prepared/init:project/init:project",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadInstalledKintoneSource/readers/readers",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "loadInstalledKintoneSource/target/target",
@@ -196,7 +266,8 @@
         "../site/kintone-record-read.mjs",
         "node:crypto",
         "node:fs/promises",
-        "node:path"
+        "node:path",
+        "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
@@ -226,7 +297,6 @@
             "loadInstalledKintoneSource/loadInstalledKintoneSource/authorize/authorize",
             "loadInstalledKintoneSource/loadInstalledKintoneSource/current/current",
             "loadInstalledKintoneSource/loadInstalledKintoneSource#2",
-            "loadInstalledKintoneSource/site/site",
             "loadInstalledKintoneSource/target/target",
             "positive/positive",
             "text/text"
@@ -345,6 +415,88 @@
               {
                 "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mjs",
                 "anchor": "kintone repeated cross-page IDs abort instead of treating totalCount as completion"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installedKintoneSourceIdentityParts/readers/readers",
+            "loadInstalledKintoneSource/init:decodeForm/init:decodeForm",
+            "loadInstalledKintoneSource/init:decodeForm/init:decodeForm/init:capacity/init:capacity",
+            "loadInstalledKintoneSource/init:decodeForm/init:decodeForm/init:project/init:project",
+            "loadInstalledKintoneSource/loadInstalledKintoneSource#3",
+            "loadInstalledKintoneSource/method/method",
+            "loadInstalledKintoneSource/originals/originals",
+            "loadInstalledKintoneSource/originals/originals/originals",
+            "loadInstalledKintoneSource/prepared/init:capacity/init:capacity",
+            "loadInstalledKintoneSource/prepared/init:project/init:project",
+            "loadInstalledKintoneSource/readers/readers"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/kintone-record-acquisition.md",
+                "anchor": "The registered loader requires the original loader-bound Source initialization,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/kintone-record-acquisition.md",
+                "anchor": "The registered loader requires the original loader-bound Source initialization,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/kintone-record-acquisition.md",
+                "anchor": "The registered loader requires the original loader-bound Source initialization,"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/kintone-record-acquisition.md",
+                "anchor": "The registered loader requires the original loader-bound Source initialization,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/kintone-record-acquisition.md",
+                "anchor": "The registered loader requires the original loader-bound Source initialization,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/kintone-record-acquisition.md",
+                "anchor": "The registered loader requires the original loader-bound Source initialization,"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/kintone-record-acquisition.md",
+                "anchor": "The registered loader requires the original loader-bound Source initialization,"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/kintone-record-acquisition.md",
+                "anchor": "The registered loader requires the original loader-bound Source initialization,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/kintone-record-acquisition.md",
+                "anchor": "The registered loader requires the original loader-bound Source initialization,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mjs",
+                "anchor": "test('installed kintone prepares original typed metadata without provider or secret lookup'"
+              },
+              {
+                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mjs",
+                "anchor": "test('registered kintone native Form refusal retains the original typed cause and initial cleanup'"
               }
             ]
           }

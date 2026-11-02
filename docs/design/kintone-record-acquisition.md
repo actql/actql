@@ -71,8 +71,27 @@ contains original Form bytes, not fabricated checked values or read permission.
 The live authenticated Form must match before the first record page and after
 every page, including the final one.
 
+The registered loader requires the original loader-bound Source initialization,
+configuration reader and Host services before reading metadata. It captures
+its original Core methods and receiver before the first await. The same
+initializer reserves base64 decode/comparison overlap before Buffer creation,
+then the configured parser/value/declaration constructor envelope before the
+native Form, record declaration and original declaration serialization. Nodes,
+decoded text and wire bounds remain distinct inputs to the existing Source
+quantity; no output buffer, new policy bound or permission is issued by it.
+The returned nominal record declaration, Form catalog and Environment are
+retained on that parent and passed unchanged to the actual RowSource constructor.
+Registration/finish and original Source retirement precede initial-parent close.
+
+Managed identity reads use the same observed-FD CA byte reader; those exact
+bytes reach the original Site. The standalone identity utility retains its
+separate DATA-hashing purpose and cannot construct an installed Source. A
+missing initializer refuses before raw configuration or native entry. Malformed
+binary input or native Form refusal keeps the same original failure beneath
+the existing initialization cleanup carrier, including pending-close duties.
+
 The installer delegates Account/Credential Site/current/grant issuance to the
-existing Row Source mechanisms. Form access uses its separately configured
+existing bound `openRowSite` service. Form access uses its separately configured
 read Resource; the record grant and App identity observation cannot supply it.
 `prepareAcquisition` retains the same typed original preparation by its exact
 acquisition handle. The vendor driver borrows that already-accounted RowRun;
@@ -110,10 +129,10 @@ execution contract or proof of an installed artifact's provenance.
 | Responsibility | `loadInstalledKintoneSource` delegates to `createInstalledRowSource`; `readKintoneRecords` supplies vendor I/O only. |
 | Inputs/outputs | `checkInstalledKintoneSourceProfile`, original metadata `inputs`, typed `client_kintone_read_bridge.mbt` and `RecordDeclaration`/`PreparedRecordRead`. |
 | Identity | Original App/Form/resource/native field codes, Site/runtime binding, nominal acquisition handle and generated `invocationBindingsMatch`. |
-| Ownership | Same original `RecordRead`/`RowRunResponseBorrow`, private credential binding and generic Host root; partial initialization returns existing cleanup custody. |
+| Ownership | Original Source initial parent and constructor context; same `RecordRead`/`RowRunResponseBorrow`, private credential binding and generic Host root; partial initialization returns existing cleanup custody. |
 | Synchronization | Separate Form/data read decisions, pre-send/current-after-await fences and final Form recheck precede generic finish/capture. |
 | Failure | Changed Form, typed decode/order failure and HTTP refusal stop capture; transport loss preserves `AcquisitionOpenError` Unknown and original credential journal. |
 | Cancellation | Original signal aborts the actual HTTPS request; processing-frame exit and original binding close are both needed for retirement. |
 | Resources | Complete response charge on the same RowRun; positive caller bounds and retained pending reservation; no normal numeric funding claim. |
 | Extension | Existing host manifest/table generator, canonical Node/RelA bridge generator and existing Source/Scope owners; no second reader/ledger/scheduler. |
-| Verification | `installed-kintone-source.test.mjs` uses actual Common, Account, SQLite and loopback TLS for success, refusal, credential change, loss, cancel and charged error responses. |
+| Verification | `installed-kintone-source.test.mjs` uses actual initial Resource/Source registration/retirement, Common, Account, SQLite and loopback TLS. Its standalone prefix component uses the original installed sequence-contract issuer. Read components retain explicit RowRun/Ledger bounds; none certifies a pristine normal distribution, ordinary Request/Plan funding or real SaaS acceptance. |

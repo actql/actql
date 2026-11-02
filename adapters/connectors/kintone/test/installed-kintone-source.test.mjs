@@ -6,6 +6,7 @@ import {writeFile} from 'node:fs/promises';
 import * as common from '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {installedSourceIdentity} from '../../../host-node/installed-source.mjs';
+import {loadInstalledKintoneSource} from '../host/installed-kintone-source.mjs';
 import {installedKintoneFixture as fixture, originalForm, record} from './installed-kintone.fixture.mjs';
 
 const assertReleased = ledger => assert.deepEqual(
@@ -17,6 +18,16 @@ test('installed kintone prepares original typed metadata without provider or sec
   assert.deepEqual(source.sourceReadAccesses.map(value => value.resource), ['inquiries']);
   await source.prepare(await f.prepare(source));
   assert.equal(f.tls.seen().length, 0);assert.equal(f.state.resolutions, 0);
+});
+
+test('registered kintone malformed input keeps its original failure and closes initial custody',async t=>{
+  const f=await fixture(t);
+  await writeFile(f.metadataPath,JSON.stringify({...f.metadata,formBody:f.metadata.formBody+'\n'}));
+  await assert.rejects(f.load(),cause=>{
+    assert.equal(cause.primaryFailure?.code,'InvalidInstalledKintoneMetadata');
+    assert.equal(cause.cleanupPending,false);assert.deepEqual(cause.cleanupErrors,[]);return true;
+  });
+  assert.equal(f.tls.seen().length,0);assert.equal(f.state.resolutions,0);
 });
 
 test('installed kintone pages the same accounted RowRun with original wide ID and separate App record number', async t => {
@@ -98,11 +109,15 @@ test('kintone guest route and same-Site identity are selected before any request
 test('foreign App metadata and missing typed runtime refuse before key entry or provider lookup', async t => {
   const f = await fixture(t);
   await writeFile(f.metadataPath, JSON.stringify({...f.metadata, appId: '13'}));
-  await assert.rejects(f.load(), {code: 'InvalidInstalledKintoneMetadata'});
-  await writeFile(f.metadataPath, JSON.stringify(f.metadata));
-  await writeFile(f.sitePath, JSON.stringify({...f.site, credentialPrivateKeyPath: f.site.credentialPrivateKeyPath + '.missing'}));
-  await assert.rejects(f.load({...common, clientProgramKintoneBorrowRead: undefined}), {code: 'KintoneOriginalReadUnavailable'});
-  assert.equal(f.tls.seen().length, 0);assert.equal(f.state.resolutions, 0);
+  await assert.rejects(f.load(),cause=>{
+    assert.equal(cause.primaryFailure?.code,'InvalidInstalledKintoneMetadata');assert.equal(cause.cleanupPending,false);return true;
+  });
+  const missing=await fixture(t);
+  await writeFile(missing.sitePath, JSON.stringify({...missing.site, credentialPrivateKeyPath: missing.site.credentialPrivateKeyPath + '.missing'}));
+  await assert.rejects(missing.load({...common, clientProgramKintoneBorrowRead: undefined}),cause=>{
+    assert.equal(cause.primaryFailure?.code,'KintoneOriginalReadUnavailable');assert.equal(cause.cleanupPending,false);return true;
+  });
+  for(const value of [f,missing]){assert.equal(value.tls.seen().length,0);assert.equal(value.state.resolutions,0);}
 });
 
 test('a rejected kintone response is charged on the original RowRun without another request', async t => {
@@ -134,4 +149,25 @@ test('canceling an awaited kintone page retains its original reservation until t
   await rejected;
   assert.equal(f.tls.seen().length, 2);assert.equal(f.state.resolutions, 2);
   assertReleased(ledger);
+});
+
+
+test('kintone loader without its original initializer never enters raw configuration fallback',async()=>{
+  await assert.rejects(loadInstalledKintoneSource({metadataPath:'/UNOPENED-original-metadata'},{}),
+    {code:'InstalledKintoneInitializationUnavailable'});
+});
+
+test('registered kintone native Form refusal retains the original typed cause and initial cleanup',async t=>{
+  const f=await fixture(t);
+  const bytes=Buffer.from('{}');
+  await writeFile(f.metadataPath,JSON.stringify({...f.metadata,formBody:bytes.toString('base64')}));
+  const limits=f.profile.limits;
+  const expected=common.clientProgramKintoneProjectForm(bytes,f.profile.appId,
+    common.clientProgramKintoneFormLimits(limits.maxResponseBytes,limits.maxNodes,limits.maxDepth,limits.maxFields,limits.maxNameUnits));
+  assert.equal(expected.$tag,0);
+  await assert.rejects(f.load(),cause=>{
+    assert.deepEqual(cause.primaryFailure?.cause,expected._0);assert.equal(cause.cleanupPending,false);
+    assert.deepEqual(cause.cleanupErrors,[]);return true;
+  });
+  assert.equal(f.tls.seen().length,0);assert.equal(f.state.resolutions,0);
 });
