@@ -69,6 +69,7 @@ test "native Values task installation binds the checked Run before Compute" {
       max_parameter_name_bytes: 1000,
       max_tasks: 2,
       max_graph_work: 10000,
+      values_max_rows: None,
     },
   ).unwrap()
   let sequence_limits : @lower.SequenceLimits = {

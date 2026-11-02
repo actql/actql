@@ -143,7 +143,7 @@ fn relation_pipeline_provider(
     limits.candidate_work,
     1,
   ).unwrap()
-  @local_connector.local_module_managed_provider(implementation, sequence).unwrap()
+  @local_connector.local_module_managed_provider(implementation, 0, sequence).unwrap()
 }
 
 ///|
