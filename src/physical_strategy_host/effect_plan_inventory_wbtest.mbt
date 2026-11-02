@@ -17,6 +17,11 @@ fn plan_inventory_preview(
     cid +
     "\","
   }
+  let approval = if kind == "command" {
+    ""
+  } else {
+    "\"approval\":\"none\","
+  }
   let plan = if with_plan {
     "\"effect_plan_logical_cid\":\"" + cid + "\","
   } else {
@@ -67,7 +72,9 @@ fn plan_inventory_preview(
     "\",\"provider_namespace\":\"fixture\",\"provider_boundary_cid\":\"" +
     cid +
     "\",\"resource_kind\":\"Object\",\"provider_object_identity_cids\":[]}," +
-    "\"count\":0,\"max_items\":1,\"required_permissions\":[\"write\"],\"approval\":\"none\",\"on_item_failure\":\"halt\",\"changes\":[],\"row_order\":[],\"effect_member_preview_cid\":\"" +
+    "\"count\":0,\"max_items\":1,\"required_permissions\":[\"write\"]," +
+    approval +
+    "\"on_item_failure\":\"halt\",\"changes\":[],\"row_order\":[],\"effect_member_preview_cid\":\"" +
     cid +
     "\",\"executed\":false}],\"executed\":false,\"effect_preview_cid\":\"" +
     cid +

@@ -52,6 +52,11 @@ fn checked_preview_test_member(
     resolved_cid +
     "\","
   }
+  let approval = if kind == "command" {
+    ""
+  } else {
+    "\"approval\":\"none\","
+  }
   "{\"effect_id\":\"" +
   id +
   "\",\"effect_kind\":\"" +
@@ -73,7 +78,8 @@ fn checked_preview_test_member(
   cid +
   "\",\"resource_kind\":\"Object\",\"provider_object_identity_cids\":[]}," +
   "\"count\":0,\"max_items\":1,\"required_permissions\":[\"write\"]," +
-  "\"approval\":\"none\",\"on_item_failure\":\"" +
+  approval +
+  "\"on_item_failure\":\"" +
   policy +
   "\"," +
   (if plan_cid is Some(plan) {
