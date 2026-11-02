@@ -284,7 +284,7 @@ extern "js" fn standard_create_declaration(
   #| const source=fs.readFileSync(loader.resolve('../../../../../../../adapters/host-node/installed-row-effect.mjs'),'utf8');
   #| const start=source.indexOf('function deriveInstalledRowWrite('),end=source.indexOf('\nfunction prepareInstalledCreateRows(',start);
   #| assert(start>=0&&end>start);
-  #| const derive=Function('createHash','nodeTypes','ownHttpRequest','ownRequestHeaders','ownResponseHeaderNames','invokeScopedCredentialOperation','localContractLimits','return ('+source.slice(start,end)+');')(crypto.createHash,types,own.ownHttpRequest,own.ownRequestHeaders,own.ownResponseHeaderNames,invocation.invokeScopedCredentialOperation,local.localContractLimits);
+  #| const derive=Function('createHash','nodeTypes','ownHttpRequest','ownRequestHeaders','ownResponseHeaderNames','invokeScopedCredentialOperation','localContractLimits','return ('+source.slice(start,end)+'\n);')(crypto.createHash,types,own.ownHttpRequest,own.ownRequestHeaders,own.ownResponseHeaderNames,invocation.invokeScopedCredentialOperation,local.localContractLimits);
   #| let prepares=0,restores=0;
   #| const moon={clientProgramKintoneCreateMappingMatchesDeclaration:mapping_declaration,clientProgramKintoneCreateMappingMatchesRequest:mapping_request,
   #| clientProgramKintoneCreateExecutionRequest:legacy_execution,clientProgramKintoneWriteLimits:write_limits,clientProgramKintoneMutationLimits:mutation_limits,
