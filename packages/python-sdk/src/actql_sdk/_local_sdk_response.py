@@ -1,7 +1,7 @@
 """Original Local payload transport into the existing SDK JSONL reader."""
 from __future__ import annotations
 
-from collections.abc import AsyncGenerator, AsyncIterator
+from collections.abc import AsyncGenerator, AsyncIterator, Callable
 from typing import TYPE_CHECKING
 
 import httpx
@@ -28,16 +28,20 @@ class OriginalLocalSDKResponseStream(httpx.AsyncByteStream):
     The existing SDK EOF marker follows only independently observed saved
     terminal evidence. Sink completion or a precommit callback alone is not EOF.
     """
-    def __init__(self, host: InstalledLocalHost, reader: OriginalSDKPayloadReader) -> None:
+    def __init__(self, host: InstalledLocalHost, reader: OriginalSDKPayloadReader, *,
+                 close_parent: Callable[[], bool] | None = None) -> None:
         if type(reader) is not OriginalSDKPayloadReader or reader._core is not host._core:
             raise ValueError('Foreign original Local SDK response reader')
+        if close_parent is not None and not callable(close_parent):
+            raise ValueError('Invalid original Local SDK response parent cleanup')
         reader._nominal()
         self._original = self
         self._host, self._reader = host, reader
         self._clock: _Input | None = None
         self._iterator: AsyncGenerator[bytes, None] | None = None
         self._closing = self._reading = self._attached = False
-        self._closed = False
+        self._closed = self._transport_closed = False
+        self._close_parent = close_parent
         host._response_streams.add(self)
 
     def _nominal(self) -> None:
@@ -131,11 +135,19 @@ class OriginalLocalSDKResponseStream(httpx.AsyncByteStream):
         with self._host._core._lock:
             if self._reading:
                 return False
-            if not self._reader.close():
-                return False
-            if not self._reader._storage.close_original_first(self._reader._request):
-                return False
-            if not self._close_clock():
+            if not self._transport_closed:
+                if not self._reader.close():
+                    return False
+                if not self._reader._storage.close_original_first(self._reader._request):
+                    return False
+                if not self._close_clock():
+                    return False
+                self._transport_closed = True
+            # A saved read owns its own File area and Core/Store loans. Retire
+            # that same parent only after this reader's actual child ACKs; a
+            # later read must not collide with a completed reader's custody.
+            # A partial parent close remains retained here and by the Host.
+            if self._close_parent is not None and not self._close_parent():
                 return False
             self._host._response_streams.discard(self)
             self._closed = True

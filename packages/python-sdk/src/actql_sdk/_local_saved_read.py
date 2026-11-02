@@ -270,9 +270,9 @@ class OriginalSavedResultRead:
         try:
             payload = OriginalSDKPayloadReader(self._delivery, request, clock, fact)
         except SDKPayloadReaderCleanupPending as failure:
-            OriginalLocalSDKResponseStream(host, failure.cleanup_reader)
+            OriginalLocalSDKResponseStream(host, failure.cleanup_reader, close_parent=self.close)
             raise
-        stream = OriginalLocalSDKResponseStream(host, payload)
+        stream = OriginalLocalSDKResponseStream(host, payload, close_parent=self.close)
         if not core.close_input(clock):
             raise RuntimeError('Original saved Result clock cleanup pending')
         host._inputs.remove(clock)
