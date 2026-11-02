@@ -289,3 +289,177 @@ fn[I] request_intent_input_ready(owner : ClientRequestPreparation[I]) -> Bool {
   !owner.intent_peak_live &&
   (owner.intent_base is None || owner.submitted_intent is Some(_))
 }
+
+///|
+// The existing Source cursor and Resource phase receipt coexist only during
+// retained-wire preflight. Caller/resize frames use the unchanged Request
+// entrance control envelope; no Program, Catalog or native tree is built here.
+let request_retained_intent_control_bytes : Int64 = {
+  let source = @source.json_source_preflight_control_extent()
+  let work = @resources.preparation_phase_work_construction_inventory()
+  @execution.preparation_representation_cost({
+    record_headers: source.record_headers + work.record_headers,
+    reference_slots: source.reference_slots + work.reference_slots,
+    scalar_words: source.scalar_words + work.scalar_words,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }).unwrap()
+}
+
+///|
+/// Retain the Journal's SAME admitted intent on a fresh physical-process
+/// Request. This issues no intent, Request, Run or permission. The existing
+/// Source preflight supplies observed geometry before native decoding; a long
+/// String is never counted as one node per wire character. The cursor is
+/// cancelled before the caller's native tree construction, and the original
+/// snapshot quote covers that tree through the usual compiler/Plan handoff.
+pub fn[I] retain_request_submitted_intent(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  intent : @publication_host.ClientSubmittedIntent,
+) -> Result[Unit, ClientRequestPreparationIssue] {
+  guard owner.phase == Open &&
+    !owner.intent_attempted &&
+    owner.snapshot_base is None &&
+    owner.submitted_intent is None else {
+    return Err(WrongPhase)
+  }
+  guard owner.input is Some(original) && physical_equal(original, input) else {
+    return Err(ForeignOriginal)
+  }
+  // Even this first extent read enters the original current callback. Fence
+  // reentry before that boundary; the same Request cannot retain twice.
+  owner.phase = Selecting
+  let initial : Result[(Int64, Int64), ClientRequestPreparationIssue] = preparation_module_call(
+    () => {
+      @resources.preparation_capacity_working_extents(owner.capacity, input).map_err(issue => {
+          Capacity(issue)
+        },
+      )
+    },
+    () => owner.phase = Open,
+  )
+  let base = match initial {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  guard @execution.checked_preparation_add_product(
+      base.0,
+      request_retained_intent_control_bytes,
+      1L,
+    )
+    is Some(r) &&
+    @execution.checked_preparation_add_product(
+      base.1,
+      request_retained_intent_control_bytes,
+      1L,
+    )
+    is Some(e) else {
+    return Err(Policy)
+  }
+  owner.phase = Selecting
+  match
+    @resources.reserve_working_preparation_phase(owner.capacity, input, r, e) {
+    Err(issue) => {
+      owner.phase = Open
+      return Err(Capacity(issue))
+    }
+    Ok(_) => ()
+  }
+  owner.intent_attempted = true
+  owner.submitted_intent = Some(intent)
+  let wire = @publication_host.client_submitted_intent_wire(intent)
+  let mut cursor : @source.JsonSourcePreflight? = None
+  let geometry : Result[
+    @source.JsonSourceGeometry,
+    ClientRequestPreparationIssue,
+  ] = preparation_module_call(
+    () => {
+      let work = match
+        @resources.begin_preparation_phase_work64(
+          owner.capacity,
+          input,
+          IntentIdentity,
+          wire.length().to_int64() + 1L,
+        ) {
+        Err(issue) => return Err(Work(issue))
+        Ok(value) => value
+      }
+      owner.intent_work = Some(work)
+      let source = match
+        @source.start_json_source_preflight(
+          wire,
+          request_intent_limits,
+          data_keys=true,
+        ) {
+        Err(_) => return Err(Intent(InvalidEnvelope))
+        Ok(value) => value
+      }
+      cursor = Some(source)
+      while true {
+        let poll = match @source.advance_json_source_preflight(source, 4096) {
+          Err(_) => return Err(Intent(InvalidEnvelope))
+          Ok(value) => value
+        }
+        let (geometry, spent) = match poll {
+          @source.JsonSourceContinue(work~) => (None, work)
+          @source.JsonSourceReady(value, work~) => (Some(value), work)
+          @source.JsonSourceFailed(_, work=spent) => {
+            match
+              @resources.spend_preparation_phase_work64(work, spent.to_int64()) {
+              Err(issue) => return Err(Work(issue))
+              Ok(_) => ()
+            }
+            return Err(Intent(InvalidEnvelope))
+          }
+        }
+        match
+          @resources.spend_preparation_phase_work64(work, spent.to_int64()) {
+          Err(issue) => return Err(Work(issue))
+          Ok(_) => ()
+        }
+        if geometry is Some(value) {
+          match @resources.finish_preparation_phase_work64(work) {
+            Err(issue) => return Err(Work(issue))
+            Ok(spent) => {
+              owner._observed_intent_work = spent
+              owner.intent_work = None
+            }
+          }
+          return Ok(value)
+        }
+      } nobreak {
+        Err(Intent(InvalidEnvelope))
+      }
+    },
+    () => {
+      if cursor is Some(source) {
+        @source.cancel_json_source_preflight(source)
+      }
+      cursor = None
+      owner.phase = Open
+    },
+  )
+  let geometry = match geometry {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  // The Source cursor has returned before native decoding. These sequential
+  // peaks share the larger original reservation, never a sum or a node count
+  // invented from long Text. A small snapshot reuses its larger fixed prelude;
+  // the existing grow-only snapshot API must not be used as a shrink request.
+  let values = geometry.node_upper.to_int64()
+  let units = values + geometry.quoted_raw_utf16_units.to_int64()
+  let bytes = match request_snapshot_data_bytes(units, values) {
+    None => return Err(Policy)
+    Some(value) => value
+  }
+  owner.snapshot_base = Some(base)
+  if bytes <= request_retained_intent_control_bytes {
+    owner.snapshot_units = units
+    owner.snapshot_values = values
+    Ok(())
+  } else {
+    reserve_request_snapshot(owner, input, units, values)
+  }
+}

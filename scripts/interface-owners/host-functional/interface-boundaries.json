@@ -23717,7 +23717,7 @@
     {
       "module": "adapters/host-node/client-effect-run.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "8ba240adb6978fe88a4e43ab2896bfa41e78491095fbc39f64a1049886bab8ac",
+      "sha256": "fd439a97e617d8f22d95fa0ed44e39e602ab4e8e68b3a400017eeef6d2311efb",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -23866,6 +23866,25 @@
         {
           "name": "installNodeClientEffectRun/init:restoreComputation/init:restoreComputation/init:restoreComputation",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installNodeClientEffectRun/init:restoreRetainedPreparation/init:restoreRetainedPreparation",
+          "parameters": [
+            "prepared",
+            "identity",
+            "namespaceId",
+            "ref",
+            "originalSubmittedIntent"
+          ],
+          "async": true
+        },
+        {
+          "name": "installNodeClientEffectRun/init:restoreRetainedPreparation/init:restoreRetainedPreparation/init:restoreRetainedPreparation",
+          "parameters": [
+            "resolve",
+            "reject"
+          ],
           "async": false
         },
         {
@@ -24738,6 +24757,75 @@
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "## Effect definition construction settlement"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installNodeClientEffectRun/init:restoreRetainedPreparation/init:restoreRetainedPreparation",
+            "installNodeClientEffectRun/init:restoreRetainedPreparation/init:restoreRetainedPreparation/init:restoreRetainedPreparation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
               }
             ]
           }
@@ -108245,6 +108333,31 @@
           "async": true
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/beginProducer",
+          "parameters": [
+            "kind",
+            "openParent"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/beginProducer/assertOriginalCurrent/assertOriginalCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/beginProducer/childrenPending/childrenPending",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/beginProducer/childrenPending/childrenPending/childrenPending",
+          "parameters": [
+            "child"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/captureReader",
           "parameters": [
             "child"
@@ -108597,19 +108710,12 @@
           "async": false
         },
         {
-          "name": "prepareOrdinaryManagedInstallation/view/init:beforeSourceSnapshot/init:beforeSourceSnapshot/assertOriginalCurrent/assertOriginalCurrent",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:beforeSourceSnapshot/init:beforeSourceSnapshot/childrenPending/childrenPending",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:beforeSourceSnapshot/init:beforeSourceSnapshot/childrenPending/childrenPending/childrenPending",
+          "name": "prepareOrdinaryManagedInstallation/view/init:beforeSourceSnapshot/init:beforeSourceSnapshot/init:beforeSourceSnapshot",
           "parameters": [
-            "child"
+            "state",
+            "receipt",
+            "assertCurrent",
+            "childrenPending"
           ],
           "async": false
         },
@@ -109034,6 +109140,24 @@
             "prepared",
             "request",
             "contentPreparation"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:retainRequestInput/init:retainRequestInput",
+          "parameters": [
+            "request",
+            "intent"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:retainRequestInput/init:retainRequestInput/receipt/receipt",
+          "parameters": [
+            "state",
+            "original",
+            "assertCurrent",
+            "childrenPending"
           ],
           "async": false
         },
@@ -110114,7 +110238,6 @@
             "prepareOrdinaryManagedInstallation/retireInitialPreparation/retireInitialPreparation",
             "prepareOrdinaryManagedInstallation/view/init:adoptPreparation/init:adoptPreparation",
             "prepareOrdinaryManagedInstallation/view/init:adoptPreparation/init:adoptPreparation/init:adoptPreparation",
-            "prepareOrdinaryManagedInstallation/view/init:beforeSourceSnapshot/init:beforeSourceSnapshot/assertOriginalCurrent/assertOriginalCurrent",
             "prepareOrdinaryManagedInstallation/view/init:borrowPreparation/init:borrowPreparation",
             "prepareOrdinaryManagedInstallation/view/init:captureSourceSnapshot/init:captureSourceSnapshot",
             "prepareOrdinaryManagedInstallation/view/init:captureSourceSnapshot/init:captureSourceSnapshot/captured/captured",
@@ -111066,75 +111189,6 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "prepareOrdinaryManagedInstallation/view/init:beforeSourceSnapshot/init:beforeSourceSnapshot/childrenPending/childrenPending",
-            "prepareOrdinaryManagedInstallation/view/init:beforeSourceSnapshot/init:beforeSourceSnapshot/childrenPending/childrenPending/childrenPending"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Project Local Files original Run and physical retirement"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Project Local Files original Run and physical retirement"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Project Local Files original Run and physical retirement"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Project Local Files original Run and physical retirement"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Project Local Files original Run and physical retirement"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Project Local Files original Run and physical retirement"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Project Local Files original Run and physical retirement"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Project Local Files original Run and physical retirement"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Project Local Files original Run and physical retirement"
-              }
-            ],
-            "verification": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Project Local Files original Run and physical retirement"
               }
             ]
           }
@@ -112668,10 +112722,84 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "prepareOrdinaryManagedInstallation/beginProducer",
+            "prepareOrdinaryManagedInstallation/beginProducer/assertOriginalCurrent/assertOriginalCurrent",
+            "prepareOrdinaryManagedInstallation/beginProducer/childrenPending/childrenPending",
+            "prepareOrdinaryManagedInstallation/beginProducer/childrenPending/childrenPending/childrenPending",
+            "prepareOrdinaryManagedInstallation/view/init:beforeSourceSnapshot/init:beforeSourceSnapshot/init:beforeSourceSnapshot",
+            "prepareOrdinaryManagedInstallation/view/init:retainRequestInput/init:retainRequestInput",
+            "prepareOrdinaryManagedInstallation/view/init:retainRequestInput/init:retainRequestInput/receipt/receipt"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "95f7c116aeca7d65d607378861c5547204db63829308de5db2b97a6a8a187229"
+      "sha256": "0ce38d75d28bd6754108a13b88c5bd0127f28995b6bd4f7cf8a60c01ccc8fd66"
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",

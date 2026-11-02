@@ -125,6 +125,56 @@ export function installNodeClientEffectRun({moon,
     capturePreparedOriginal(prepared) {
       return updateTargetOriginals?.capturePrepared(prepared, compile(prepared));
     },
+    // Restore ONLY the existing resource preparation for an already retained
+    // Run. No start claim, execution Owner, new Definition, query-time sample
+    // or business authorization is issued here. Canceled/unknown Runs still
+    // need their same resources for original observation and cleanup.
+    async restoreRetainedPreparation({prepared, identity, namespaceId, ref, originalSubmittedIntent}) {
+      const retained = journal.resolveDefinition(identity, {namespaceId}, moon, control);
+      if (typeof prepareDefinition !== 'function' ||
+          retained?.ref.runDefinitionCid !== ref?.runDefinitionCid ||
+          retained.runDefinition?.identity !== ref.runDefinitionCid ||
+          originalSubmittedIntent?.intent === undefined ||
+          typeof originalSubmittedIntent.assertCurrent !== 'function') throw denied();
+      const evidence = retained.runAdmissionEvidence;
+      if (evidence === undefined || updateTargetOriginals === undefined ||
+          !moon.clientSubmittedIntentEffectCompatible(originalSubmittedIntent.intent, prepared)) throw denied();
+      originalSubmittedIntent.assertCurrent();
+      const compilation = compile(prepared);
+      let restored;
+      if (evidence.updateTargetRunOriginal !== undefined) {
+        restored = updateTargetOriginals.restoreRun(evidence.updateTargetRunOriginal,
+          retained.runDefinition, identity, compilation);
+      } else {
+        if (typeof evidence.effectOriginalRunWire !== 'string') throw denied();
+        restored = updateTargetOriginals.restoreEffectMaterials(evidence.effectOriginalRunWire,
+          retained.runDefinition, identity, compilation);
+      }
+      if (restored.prepared !== prepared || restored.compilation !== compilation ||
+          moon.strategyRunEvidenceJson(moon.clientProgramAllowedEffectRunPrepared(restored.allowed)) !== evidence.prepared ||
+          moon.strategyRunEvidenceJson(moon.clientProgramAllowedEffectRunAuthorization(restored.allowed)) !== evidence.authorization) throw denied();
+      const {allowed, definition} = restored;
+      const queryTime = restoreQueryTime(queryTimeRequired(prepared), prepared, allowed, definition, identity);
+      const modelCompiled = inferPlanFor?.(prepared) === undefined ? undefined :
+        control.adoptCheckedClientEffectInferRun(allowed, retained.runDefinition, evidence.resultPolicyOriginal, limits);
+      const facts = Object.freeze({ref: retained.ref, prepared, identity, compilation,
+        allowed, definition, runDefinition: retained.runDefinition,
+        queryTimePreparation: queryTime.queryTimePreparation,
+        queryTime: queryTime.queryTime, modelCompiled, resultPolicyOriginal: evidence.resultPolicyOriginal,
+        ...restored, originalSubmittedIntent});
+      // Reuse the same actual normal constructor/adoption callback, with its
+      // original eight-field tuple. Its existing Host bag owns partial failure.
+      const selected = prepareDefinition?.(facts);
+      const then = selected?.then;
+      if (typeof then === 'function') {
+        try {await new Promise((resolve, reject) => Reflect.apply(then, selected, [resolve, reject]));}
+        catch { /* Join the original invalid borrow before refusing it. */ }
+        throw new TypeError('AsyncClientEffectDefinitionPreparation');
+      }
+      originalSubmittedIntent.assertCurrent();
+      restored.assertUpdateSelectionCurrent?.();
+      return facts;
+    },
     // Record the public state of a started Run whose complete admitted Effect
     // Set has unknown outcomes. The owner names exactly those Effects; the
     // journal keeps the state for status and reconcile in any later process.

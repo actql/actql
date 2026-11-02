@@ -2966,3 +2966,55 @@ owner cannot retire while an original reconstruction is in flight. The Site's
 ordinary cleanup still waits for these duties before returning the retained
 capture-decode resources. Physical operation failure, native retirement, durable
 outcome and capture-resource retirement remain separate observations.
+
+
+### Retained Effect Request restoration
+
+The ordinary whole-Effect resume route resolves the original Request and Run
+through the same Journal before reconstructing preparation. An existing live
+managed Plan is selected from the Host's existing Run bag using its original
+Request relation and Definition. A matching partial failure stays sticky; there
+is no second Run cache, allocator or replacement admission.
+
+A cold process reconstructs the checked compiler once under new physical
+custody for that already admitted logical Request. The existing Host pending
+call and Source producer retain the input before construction. The Request
+retains the Journal's same opaque `ClientSubmittedIntent`; it does not issue or
+hash a replacement intent. Existing Source preflight controls and phase work are
+funded before observing its wire geometry. The observed value and quoted-Text
+counts then select the existing native snapshot envelope before native decoding.
+Long Text is not counted as a tree node per character. The sequential preflight
+and snapshot peaks share the larger reservation rather than adding both.
+The wire remains borrowed from its original Journal custody; native decoded
+values are separately covered by that snapshot envelope. Durable null Parameters
+project to ordinary native absence without changing the retained intent.
+
+The same normal semantic/check/compiler continuation retains the original
+Environment and published Catalog, then borrows the actual Effect Plan input.
+The installed Effect owner binds the complete saved Run materials to this one
+compiler and independently selected Request. Its normal `prepareDefinition`
+constructor/completion/adoption callback creates the actual managed Plan on that
+same parent. Resource restoration issues no execution Owner, start claim,
+Definition, query-time sample, approval or business authorization. Canceled and
+unknown Runs still need their original resources for observation and cleanup.
+
+That operation carries the admitted material originals and adopted Plan into
+the existing recovery caller. It compares the actual managed compiler, allowed
+Run, Definition and Request against the freshly selected Journal binding and
+reuses the existing material admission. It does not repeat its parser, semantic
+checker or compiler. Original currentness and evidence-read checks remain at
+their protected boundaries, including around Store awaits. Capture recovery
+borrows that same adopted Run instead of opening another read-only parent.
+The Local signing-original consumer enters that same restoration, so signing and
+the subsequent resume retain one managed compiler/Plan in that Host. Apply-target
+refresh also uses that admitted pair; a captured Prepared original is compared
+against it, never restored through another compiler or request admission.
+Current Account/Site permissions and the original durable Effect claim remain
+independent prerequisites for provider operations.
+
+Partial constructors and failures stay in the same Source/Run bags. Ending the
+pending Host call or returning producer aliases is not physical cleanup proof.
+The existing original child status/retry, borrower return and parent retirement
+still govern resource release; pending or unknown duties remain retained.
+Independent wire-only and held-target continuations keep their declared original
+boundaries and cannot use copied DATA as a same-parent preparation witness.

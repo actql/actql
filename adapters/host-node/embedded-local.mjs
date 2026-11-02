@@ -3560,7 +3560,50 @@ async function openInstalledHost(originalInstallation, preparation) {
     managedComputeRequired: true,
     computeConfigurations: {local:localSnapshotConfiguration}});
   const startDispatch = dispatchOwner.start;
-  const recoverEffectCapture = (ref, signal, managed, retainRecoveryResources) => {
+  const restoreEffectManagedPreparation = async (ref, signal) => {
+    const retained = journal.lookupRunDefinition(ref, moon, control);
+    if (retained === undefined || typeof retained.requestId !== 'string') {
+      throw clientOperationError('EffectRecoveryRequestMismatch');
+    }
+    const owned = journal.lookupOwnedDefinition({namespaceId, authorityScopeCid,
+      requestId: retained.requestId, runDefinitionCid: ref.runDefinitionCid}, moon, control);
+    if (owned?.runDefinition?.identity !== ref.runDefinitionCid) throw clientOperationError('EffectRecoveryRequestMismatch');
+    const selected = preparation.retainedEffectManagedPlan(moon, owned.requestIdentity, owned.runDefinition);
+    if (selected !== undefined) return Object.freeze({managedEffect: selected});
+    if (owned.runAdmissionEvidence?.updateTargetRunOriginal === undefined &&
+        typeof owned.runAdmissionEvidence?.effectOriginalRunWire !== 'string') {
+      throw clientOperationError('EffectRecoveryOriginalSelectionUnavailable');
+    }
+    const originalSubmittedIntent = journal.originalSubmittedIntent(owned.requestIdentity,
+      {namespaceId}, moon, control);
+    if (originalSubmittedIntent === undefined) throw clientOperationError('EffectRecoveryOriginalSelectionUnavailable');
+    originalSubmittedIntent.assertCurrent();
+    signal?.throwIfAborted();
+    // This is the actual pending restoration call, not a new logical Request
+    // or a submitted transport packet. Its original typed identity stays with
+    // the independently selected Journal row throughout construction/adoption.
+    const request = {requestId: retained.requestId, signal};
+    const input = preparation.retainEffectRequestInput(moon, request, originalSubmittedIntent.intent);
+    let terminal = 'failed';
+    try {
+      const prepared = await prepareSubmit(request);
+      preparation.bindSourceRequest(request, prepared);
+      prepareSubmit.assertSubmittedIntent(prepared, originalSubmittedIntent.intent);
+      if (prepareSubmit.kindOf(prepared) !== 'effectful') throw clientOperationError('EffectRecoveryOriginalSelectionUnavailable');
+      const occurrence = moon.clientProgramEffectInferOccurrence(prepared);
+      if (occurrence !== undefined) prepareInferSelection(prepared, occurrence);
+      const original = await effectRun.restoreRetainedPreparation({prepared, identity: owned.requestIdentity,
+        namespaceId, ref, originalSubmittedIntent});
+      const managed = preparation.effectManagedPlanRun(moon, prepared, owned.requestIdentity);
+      signal?.throwIfAborted();
+      terminal = 'returned';
+      return Object.freeze({managedEffect: managed, original});
+    } finally {
+      try {input.finish(terminal);}
+      catch (cause) {if (terminal !== 'failed') throw cause;}
+    }
+  };
+  const recoverEffectCapture = (ref, signal, managed, retainRecoveryResources, boundOriginal) => {
     // An existing live Request already owns this exact compiler. Its saved
     // material admission must bind that original instead of compiling again.
     // A wire-only cold restoration still needs its own funded continuation.
@@ -3587,6 +3630,23 @@ async function openInstalledHost(originalInstallation, preparation) {
           options.assertOriginalCurrent, options.retain);
       },
       restoreOriginal: (saved, requestIdentity) => {
+        if (boundOriginal !== undefined) {
+          // This operation just admitted the full materials while constructing
+          // this SAME managed Plan. Keep its original outputs, not a second
+          // parser/codec/compiler pass. Fresh Journal/current fences remain.
+          if (managed === undefined || boundOriginal.prepared !== managed.prepared ||
+              boundOriginal.compilation !== originalCompilation ||
+              boundOriginal.allowed !== managed.definitionOriginal.allowed ||
+              boundOriginal.definition !== managed.definitionOriginal.definition ||
+              moon.clientRequestRelation(boundOriginal.identity, requestIdentity) !== 1 ||
+              boundOriginal.runDefinition.identity !== saved.runDefinition.identity ||
+              moon.strategyRunEvidenceJson(moon.clientProgramAllowedEffectRunPrepared(boundOriginal.allowed)) !== saved.runAdmissionEvidence.prepared ||
+              moon.strategyRunEvidenceJson(moon.clientProgramAllowedEffectRunAuthorization(boundOriginal.allowed)) !== saved.runAdmissionEvidence.authorization) {
+            throw clientOperationError('EffectRecoveryOriginalSelectionUnavailable');
+          }
+          boundOriginal.originalSubmittedIntent.assertCurrent();
+          return boundOriginal;
+        }
         const original = saved.runAdmissionEvidence?.updateTargetRunOriginal;
         let restored = original === undefined ? {} : updateTargetOriginals.restoreRun(
           original, saved.runDefinition, requestIdentity, originalCompilation);
@@ -3642,7 +3702,8 @@ async function openInstalledHost(originalInstallation, preparation) {
           if (retained === undefined || retained.cancellationRequested) {
             throw clientOperationError('LocalSigningOriginalConflict');
           }
-          let recovered = await recoverEffectCapture(ref, signal);
+          let restored = await restoreEffectManagedPreparation(ref, signal);
+          let recovered = await recoverEffectCapture(ref, signal, restored.managedEffect, undefined, restored.original);
           localSigningRecoveries.add(recovered);
           let originalFailure, failed = false;
           try {
@@ -3671,7 +3732,7 @@ async function openInstalledHost(originalInstallation, preparation) {
           } catch (cause) {originalFailure = cause; failed = true; throw cause;}
           finally {
             let original = recovered;
-            recovered = undefined;
+            recovered = restored = undefined;
             try {
               const release = releaseLocalSigningRecovery(original);
               original = undefined;
@@ -4893,8 +4954,11 @@ async function openInstalledHost(originalInstallation, preparation) {
           }
           const continuation = await checkpoints.effectContinuation(view);
           const flight = dispatchOwner.track(ref, {
-            run: ({signal, retainExecution, beginPhysicalWork}) =>
-              effectInstallation.resume(Object.freeze({ref, view, observation,
+            run: async ({signal, retainExecution, beginPhysicalWork}) => {
+              let restored = await restoreEffectManagedPreparation(ref, signal);
+              const managedEffect = restored.managedEffect;
+              try {
+              return await effectInstallation.resume(Object.freeze({ref, view, observation, managedEffect,
                 reconciliationOnly: observing,
                 assertContinuationCurrent() {
                   if (journal.lookupRunDefinition(ref, moon, control)?.cancellationRequested !== false) {
@@ -4906,7 +4970,7 @@ async function openInstalledHost(originalInstallation, preparation) {
                 retainExecution, beginPhysicalWork,
                 observeRun: ({ref}) => observeRun({ref, principalId}),
                 recoverCapture: ({signal: recoverySignal, retainRecoveryResources} = {}) =>
-                  recoverEffectCapture(ref, recoverySignal, undefined, retainRecoveryResources),
+                  recoverEffectCapture(ref, recoverySignal, managedEffect, retainRecoveryResources, restored.original),
                 checkpointJournal: checkpoints.journal,
                 checkpointBinding: checkpoints.binding,
                 effectAuthorization: checkpoints.effectAuthorization,
@@ -4917,13 +4981,21 @@ async function openInstalledHost(originalInstallation, preparation) {
                   if (records.length === 0 && capturedTarget === undefined) return undefined;
                   if (capturedTarget !== undefined) assertEffectTargetReadBinding(capturedTarget);
                   const submission = {...(capturedTarget?.submission ?? records[0].continuation.submission)};
-                  submission.preparedProgram = await prepareCapturedSubmission(submission, ref);
-                  if (!requestOf(submission).effectful) throw new Error('EffectContinuationRunMismatch');
-                  const accepted = await admitEffectDefinition(submission);
-                  if (accepted.ref.runDefinitionCid !== ref.runDefinitionCid) {
+                  if (submission.requestId !== retained.requestId) throw new Error('EffectContinuationRunMismatch');
+                  const {prepared, compilation, identity} = managedEffect.definitionOriginal;
+                  if (submission.updateTargetPreparedOriginal !== undefined) {
+                    updateTargetOriginals.validatePreparedOriginal(prepared, compilation, submission.updateTargetPreparedOriginal);
+                  } else if (updateTargetOriginals.selectionsOf(prepared) !== undefined) {
                     throw new Error('EffectContinuationRunMismatch');
                   }
-                  const facts = await effectRun.restoreComputation(accepted);
+                  // Apply refresh is another consumer of this SAME original
+                  // Plan, not a new submission or compiler/Execution Owner.
+                  const facts = restored.original ?? Object.freeze({ref,
+                    ...managedEffect.definitionOriginal, identity,
+                    runDefinition: retained.runDefinition,
+                    ...updateTargetOriginals.validateRun({prepared, compilation, identity,
+                      evidence: retained.runAdmissionEvidence, runDefinition: retained.runDefinition})});
+                  effectSubmissions.set(prepared, submission);
                   const reads = await openEffectTargetReads(facts, {signal, allowDefer: false,
                     activeResume: {assertCurrent() {
                       return checkpoints.journal.admitResume(claimed.claim,
@@ -4937,7 +5009,13 @@ async function openInstalledHost(originalInstallation, preparation) {
                   return reads;
                 },
                 recordReconciliation: (...args) =>
-                  effectRun.recordReconciliation(...args)})),
+                  effectRun.recordReconciliation(...args)}));
+              } finally {
+                // This operation's admitted-material alias is no longer a
+                // caller root before the managed parent can retire on drain.
+                restored = undefined;
+              }
+            },
             // The original Compute stopped before the Effect Checkpoint.
             // Its nonterminal stop observation is immutable. Effect failure
             // and reconciliation belong to the Checkpoint and Effect owners.
@@ -6145,6 +6223,52 @@ async function openPreparedInstalledHost(options, initialEntry) {
       (sourceManaged === undefined ? assertManagedComputeInstallationCurrent
         : assertSourceManagedInstallationCurrent)(manager, originals);
       return manager.submittedIntentOriginal?.(originalSourceManagedHostRequest(originals, request));
+    },
+    retainEffectRequestInput(runtime, request, intent) {
+      const manager = sourceManaged ?? computeManaged;
+      if (runtime !== moon || manager === undefined || typeof manager.retainRequestInput !== 'function') {
+        throw clientOperationError('InstalledEffectRequestPreparationUnavailable');
+      }
+      (sourceManaged === undefined ? assertManagedComputeInstallationCurrent
+        : assertSourceManagedInstallationCurrent)(manager, originals);
+      let settled;
+      const pending = new Promise(resolve => {settled = resolve;});
+      profiles.retainRequest(host, originalInstallation, host, request, pending);
+      let original, finished = false;
+      const finishProducer = manager.finishSourceProducer;
+      try {original = manager.retainRequestInput(request, intent);}
+      catch (cause) {settled(); throw cause;}
+      return Object.freeze({body: original.body,
+        finish(terminal) {
+          if (finished) return;
+          try {
+            Reflect.apply(finishProducer, manager, [original.receipt, terminal]);
+            finished = true;
+          } finally {
+            // This ends only the actual pending Host call. Failed physical
+            // cleanup remains with the same manager/producer bag, not an ACK.
+            settled();
+          }
+        }});
+    },
+    retainedEffectManagedPlan(runtime, request, definition) {
+      if (runtime !== moon) throw clientOperationError('ForeignInstalledEffectManagedRun');
+      let selected;
+      for (const run of record.computeLiveRuns ?? []) {
+        if (run.preparationKind !== 'effect-plan' || run.closed || run.runtime !== runtime ||
+            runtime.clientRequestRelation(run.request, request) !== 1) continue;
+        if (Object.hasOwn(run, 'failure')) throw run.failure;
+        if (run.definitionOriginal?.definition === undefined ||
+            runtime.strategyPublicationContractIdentity(run.definitionOriginal.definition) !== definition.identity ||
+            selected !== undefined) throw clientOperationError('ForeignInstalledEffectManagedRun');
+        selected = run;
+      }
+      if (selected === undefined) return undefined;
+      const current = preparation.effectManagedPlanRun(runtime, selected.prepared, selected.request);
+      if (current !== selected || selected.closed || !record.computeLiveRuns?.has(selected)) {
+        throw clientOperationError('ForeignInstalledEffectManagedRun');
+      }
+      return current;
     },
     fundedPreparation(request, environment, originalVerifier, signal) {
       const manager = sourceManaged ?? computeManaged;

@@ -437,7 +437,7 @@
     },
     {
       "module": "adapters/host-node/installed-update-originals.mjs",
-      "sha256": "02af2e593c33882d329c363d97122ecced9b575a25cf10b89484e5116ef56010",
+      "sha256": "127ef5ef0b7ee47b690014698246a62b1fda6d7514c071672ef31a67d04fe0af",
       "exports": [
         "installUpdateTargetOriginals"
       ],
@@ -531,6 +531,15 @@
           "name": "installUpdateTargetOriginals/init:validatePrepared/init:validatePrepared",
           "parameters": [
             "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "installUpdateTargetOriginals/init:validatePreparedOriginal/init:validatePreparedOriginal",
+          "parameters": [
+            "prepared",
+            "compilation",
+            "original"
           ],
           "async": false
         },
@@ -820,6 +829,74 @@
               {
                 "path": "adapters/host-node/requested-effect-host.integration.test.mjs",
                 "anchor": "test('requested first Effect pauses Account Allow"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installUpdateTargetOriginals/init:validatePreparedOriginal/init:validatePreparedOriginal"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
               }
             ]
           }

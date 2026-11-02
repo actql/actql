@@ -3090,6 +3090,8 @@ pub fn client_program_result_row_contract_unit_cid(@run_publication_host.ClientR
 
 pub fn client_program_result_row_contract_wire(@run_publication_host.ClientResultRowContractIdentity) -> String
 
+pub fn client_program_retain_request_submitted_intent(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.ClientSubmittedIntent) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue]
+
 pub fn client_program_retire_infer_original_current_state_document(@physical_resources.OriginalCurrentStateDocument) -> Unit
 
 pub fn client_program_retire_infer_original_current_state_match(@physical_resources.OriginalCurrentStateMatch[@run_publication_host.ClientModelReadOrigin]) -> Unit

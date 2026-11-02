@@ -7975,7 +7975,8 @@
             "ref",
             "signal",
             "managed",
-            "retainRecoveryResources"
+            "retainRecoveryResources",
+            "boundOriginal"
           ],
           "async": false
         },
@@ -8034,6 +8035,14 @@
             "component"
           ],
           "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/restoreEffectManagedPreparation/restoreEffectManagedPreparation",
+          "parameters": [
+            "ref",
+            "signal"
+          ],
+          "async": true
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/resultAuthority/resultAuthority",
@@ -8495,7 +8504,7 @@
             "retainExecution",
             "beginPhysicalWork"
           ],
-          "async": false
+          "async": true
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight#3",
@@ -9718,6 +9727,38 @@
         {
           "name": "openPreparedInstalledHost/preparation/init:requestPreparation/init:requestPreparation",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:retainedEffectManagedPlan/init:retainedEffectManagedPlan",
+          "parameters": [
+            "runtime",
+            "request",
+            "definition"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:retainEffectRequestInput/init:retainEffectRequestInput",
+          "parameters": [
+            "runtime",
+            "request",
+            "intent"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:retainEffectRequestInput/init:retainEffectRequestInput/init:finish/init:finish",
+          "parameters": [
+            "terminal"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:retainEffectRequestInput/init:retainEffectRequestInput/pending/pending",
+          "parameters": [
+            "resolve"
+          ],
           "async": false
         },
         {
@@ -18901,6 +18942,78 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/restoreEffectManagedPreparation/restoreEffectManagedPreparation",
+            "openPreparedInstalledHost/preparation/init:retainedEffectManagedPlan/init:retainedEffectManagedPlan",
+            "openPreparedInstalledHost/preparation/init:retainEffectRequestInput/init:retainEffectRequestInput",
+            "openPreparedInstalledHost/preparation/init:retainEffectRequestInput/init:retainEffectRequestInput/init:finish/init:finish",
+            "openPreparedInstalledHost/preparation/init:retainEffectRequestInput/init:retainEffectRequestInput/pending/pending"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -19017,7 +19130,7 @@
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "5b2d97cfbe08d2c3795365cef5a2dc9ddb9bd7a8102523943af0dd2f33270488"
+      "sha256": "b44c40568ba9e4e6c7ca3299e72bd28e69e9e0b01d98b2d51d82f38f696d0db3"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",

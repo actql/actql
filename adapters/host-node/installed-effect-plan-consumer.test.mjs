@@ -577,7 +577,7 @@ test('bound original Effect validation rejects a foreign Prepared despite equal 
 
 // The existing embedded Host closure is extracted unchanged. Journal, codec
 // and current/resource services are explicit ports, not ordinary admission.
-function installedCaptureOriginalFixture({marked = true, live = true} = {}) {
+function installedCaptureOriginalFixture({marked = true, live = true, bound = false} = {}) {
   const source = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
   const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
   let entry;
@@ -589,7 +589,7 @@ function installedCaptureOriginalFixture({marked = true, live = true} = {}) {
     else if (child && typeof child === 'object') visit(child);
   })(ast);
   assert(entry);
-  const compilation = {}, requestIdentity = {}, runDefinition = {}, ref = {runDefinitionCid: 'original-run'};
+  const compilation = {}, requestIdentity = {}, runDefinition = {identity: 'original-run'}, ref = {runDefinitionCid: 'original-run'};
   const managed = live ? {definitionOriginal: {compilation}} : undefined, calls = [];
   const original = {}, allowed = {}, preparedEvidence = {}, authorizationEvidence = {};
   const evidence = {effectOriginalRunWire: 'original-wire', prepared: preparedEvidence, authorization: authorizationEvidence,
@@ -599,8 +599,13 @@ function installedCaptureOriginalFixture({marked = true, live = true} = {}) {
   const moon = {clientSubmittedIntentRequestsCommitStop: () => true,
     strategyRunEvidenceJson: value => value,
     clientProgramAllowedEffectRunPrepared: () => preparedEvidence,
-    clientProgramAllowedEffectRunAuthorization: () => authorizationEvidence};
+    clientProgramAllowedEffectRunAuthorization: () => authorizationEvidence,
+    clientRequestRelation: (left, right) => left === requestIdentity && right === requestIdentity ? 1 : 0};
   const intent = {intent: {}, assertCurrent() {calls.push('intent-current');}};
+  const prepared = {}, definition = {};
+  if (managed !== undefined) {managed.prepared = prepared; Object.assign(managed.definitionOriginal, {allowed, definition});}
+  const boundOriginal = {prepared, compilation, allowed, definition, runDefinition, identity: requestIdentity,
+    materials: restored.materials, originalSubmittedIntent: intent};
   const ports = {moon, control: {}, namespaceId: 'scope', authorityScopeCid: 'authority', principalId: 'principal',
     localContractLimits: {}, journal: {
       lookupRunDefinition: () => ({requestId: 'original-request'}),
@@ -619,7 +624,7 @@ function installedCaptureOriginalFixture({marked = true, live = true} = {}) {
     preparation: {}, hostConnection: () => true, storeAuthorityCid: 'store',
     recoverAdmittedEffectRun(options) {return options.restoreOriginal(saved, requestIdentity);}};
   const recover = new Function(...Object.keys(ports), source.slice(entry.start, entry.end) + ';return recoverEffectCapture;')(...Object.values(ports));
-  return {recover: () => recover(ref, undefined, managed), managed, calls, restored};
+  return {recover: () => recover(ref, undefined, managed, undefined, bound ? boundOriginal : undefined), managed, calls, restored, boundOriginal};
 }
 
 test('existing live capture recovery forwards its same retained compiler for target and stopped originals', () => {
@@ -641,4 +646,308 @@ test('independent cold capture original keeps its explicit wire-only qualificati
   const f = installedCaptureOriginalFixture({live: false});
   assert.strictEqual(f.recover().allowed, f.restored.allowed);
   assert.deepEqual(f.calls, ['target-original', 'intent-current']);
+});
+
+function retainedRequestSourceMember(path, name, kind = 'Property') {
+  const source = readFileSync(new URL(path, import.meta.url), 'utf8');
+  const tree = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
+  let found;
+  (function visit(node) {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === kind && (node.key?.name ?? node.id?.name) === name) {
+      assert.equal(found, undefined); found = node;
+    }
+    for (const child of Object.values(node)) if (Array.isArray(child)) child.forEach(visit);
+    else if (child && typeof child === 'object') visit(child);
+  })(tree);
+  assert(found, name); return source.slice(found.start, found.end);
+}
+
+// Actual manager functions, with explicit Core/resource/current ports. No
+// synthetic port here certifies native backing or an ordinary installation.
+function retainedRequestManagerFixture({throwOnRetain = false, failure, missing = false, reentry = false} = {}) {
+  const parent = {}, intent = {}, request = {}, originals = {}, receipts = new WeakMap(), producers = new Set();
+  const requestProducers = new WeakMap(), calls = [], liveRuns = new Set(), counts = {current: 0};
+  let reserved = false;
+  const wire = JSON.stringify({kind: 'aql', input: {format: 'sql', text: "SELECT 'e\u0301😀'"}, parameters: null});
+  const moon = {clientProgramRetainRequestSubmittedIntent(p, receipt, original) {
+    assert.strictEqual(this, moon); assert.strictEqual(p, parent); assert.strictEqual(original, intent);
+    assert.strictEqual(receipts.get(receipt).preparation.parent, parent);
+    calls.push('retain-original');
+    if (throwOnRetain) throw failure;
+    reserved = true;
+    if (reentry) receipts.get(receipt).finished = true;
+    return ok(undefined);
+  }, clientSubmittedIntentWire(original) {assert.strictEqual(this, moon); assert.strictEqual(original, intent); return wire;}};
+  if (missing) delete moon.clientProgramRetainRequestSubmittedIntent;
+  const context = {runtime: moon}, ports = {closing: false, closed: false, originals, receipts, producers, liveRuns,
+    requestProducers, callbacks: {preparationContext: () => context, validator() {}, retainedValidator() {}},
+    current() {counts.current++;}, requestPreparationAvailable: () => true, assertRequestPreparationControl() {},
+    retainSourceInitializationMaterial() {}, retireInitialPreparation() {},
+    openRequestPreparation(state) {
+      calls.push('open-parent'); state.parent = parent; state.original = {};
+      // The actual selected method was captured before this original callback.
+      moon.clientProgramRetainRequestSubmittedIntent = () => assert.fail('No late method lookup');
+    },
+    cleanupRequestInput(state) {assert.strictEqual(state.parent, parent); assert.equal(state.preparing, false);
+      state.parent = state.original = undefined; calls.push('original-cleanup');},
+    releaseFinishedProducer(producer) {assert.equal(producer.preparation, undefined); producers.delete(producer); calls.push('producer-return');},
+    fail: code => {throw Object.assign(new Error(code), {code});}, checked,
+    JSON: {parse(value) {assert(reserved, 'same Request reservation BEFORE native decoding'); calls.push('decode'); return JSON.parse(value);}},
+    freezeInput(value) {return Object.freeze(value);}};
+  const code = 'const ' + retainedRequestSourceMember('./ordinary-source-managed.mjs', 'producerFor', 'VariableDeclarator') + ';' +
+    retainedRequestSourceMember('./ordinary-source-managed.mjs', 'beginProducer', 'FunctionDeclaration') +
+    ';return ({' + retainedRequestSourceMember('./ordinary-source-managed.mjs', 'retainRequestInput') + '});';
+  const view = new Function(...Object.keys(ports), code)(...Object.values(ports));
+  return {view, parent, intent, request, calls, receipts, producers, requestProducers, wire, counts};
+}
+
+test('retained manager decodes only after its same parent and keeps exact intent input aliases', () => {
+  const f = retainedRequestManagerFixture(), result = f.view.retainRequestInput(f.request, f.intent);
+  const producer = f.receipts.get(result.receipt);
+  assert.deepEqual(f.calls, ['open-parent', 'retain-original', 'decode']);
+  assert.equal(f.counts.current, 1, 'one current check at the shared producer entrance');
+  assert.equal(result.body.input.text, "SELECT 'e\u0301😀'");
+  assert.equal(Object.hasOwn(result.body, 'parameters'), false, 'durable null remains native absence');
+  assert.strictEqual(producer.body, result.body); assert.strictEqual(producer.preparation.snapshot, result.body);
+  assert.equal(producer.preparation.snapshotDocument, f.wire); assert.equal(producer.preparation.preparing, false);
+  assert.strictEqual(f.requestProducers.get(f.request).deref(), producer);
+  assert.throws(() => f.view.retainRequestInput(f.request, f.intent), {code: 'ForeignInstalledSourceProducer'});
+});
+
+test('retained manager preserves thrown undefined and returns the original failed constructor', () => {
+  const f = retainedRequestManagerFixture({throwOnRetain: true, failure: undefined});
+  let threw = false;
+  try {f.view.retainRequestInput(f.request, f.intent);} catch (cause) {threw = true; assert.strictEqual(cause, undefined);}
+  assert(threw); assert.deepEqual(f.calls, ['open-parent', 'retain-original', 'original-cleanup', 'producer-return']);
+  assert.equal(f.producers.size, 0); assert.equal(f.requestProducers.has(f.request), false);
+});
+
+test('retained manager fences same-original retirement before native decode', () => {
+  const f = retainedRequestManagerFixture({reentry: true});
+  assert.throws(() => f.view.retainRequestInput(f.request, f.intent), {code: 'ForeignInstalledSourceProducer'});
+  assert.deepEqual(f.calls, ['open-parent', 'retain-original', 'original-cleanup', 'producer-return']);
+});
+
+function retainedEffectPreparationFixture({marked = true, constructorFailure = false, failure} = {}) {
+  const prepared = {}, compilation = {}, identity = {}, allowed = {}, definition = {}, intent = {};
+  const ref = {runDefinitionCid: 'original-run'}, runDefinition = {identity: ref.runDefinitionCid};
+  const preparedEvidence = {}, authorization = {}, calls = [], original = {};
+  const evidence = {prepared: preparedEvidence, authorization,
+    ...(marked ? {updateTargetRunOriginal: original} : {effectOriginalRunWire: 'original-wire'})};
+  const restored = {prepared, compilation, allowed, definition,
+    assertUpdateSelectionCurrent() {calls.push('selection-current');}};
+  const retained = {ref, runDefinition, runAdmissionEvidence: evidence,
+    physicalStartReserved: true, cancellationRequested: true, observedTerminalOutcome: 'failed'};
+  const originalSubmittedIntent = {intent, assertCurrent() {calls.push('intent-current');}};
+  const ports = {journal: {resolveDefinition(request, scope) {assert.strictEqual(request, identity);
+    assert.deepEqual(scope, {namespaceId: 'original-namespace'}); calls.push('original-journal'); return retained;}},
+    moon: {clientSubmittedIntentEffectCompatible(i, p) {assert.strictEqual(i, intent); return p === prepared;},
+      strategyRunEvidenceJson: value => value,
+      clientProgramAllowedEffectRunPrepared: () => preparedEvidence,
+      clientProgramAllowedEffectRunAuthorization: () => authorization}, control: {},
+    compile(p) {assert.strictEqual(p, prepared); calls.push('compile-once'); return compilation;},
+    queryTimeRequired: () => false, restoreQueryTime: () => ({}), inferPlanFor: () => undefined,
+    updateTargetOriginals: {restoreRun(value, d, r, c) {
+      assert.strictEqual(value, original); assert.strictEqual(d, runDefinition);
+      assert.strictEqual(r, identity); assert.strictEqual(c, compilation); calls.push('same-original'); return restored;
+    }, restoreEffectMaterials(wire, d, r, c) {
+      assert.equal(wire, 'original-wire'); assert.strictEqual(d, runDefinition);
+      assert.strictEqual(r, identity); assert.strictEqual(c, compilation); calls.push('same-stop-original'); return restored;
+    }},
+    prepareDefinition(facts) {assert(Object.isFrozen(facts));
+      for (const key of ['prepared', 'identity', 'compilation', 'allowed', 'definition', 'queryTimePreparation', 'modelCompiled']) assert(Object.hasOwn(facts, key), key);
+      assert.strictEqual(facts.prepared, prepared); assert.strictEqual(facts.compilation, compilation);
+      assert.strictEqual(facts.identity, identity); calls.push('original-constructor');
+      if (constructorFailure) throw failure;},
+    denied: () => Object.assign(new Error('ClientEffectRunDenied'), {code: 'ClientEffectRunDenied'})};
+  const owner = new Function(...Object.keys(ports), 'return ({' + retainedRequestSourceMember('./client-effect-run.mjs', 'restoreRetainedPreparation') + '});')(...Object.values(ports));
+  return {owner, calls, prepared, compilation, identity, ref, originalSubmittedIntent,
+    restore() {return owner.restoreRetainedPreparation({prepared, identity, namespaceId: 'original-namespace', ref, originalSubmittedIntent});}};
+}
+
+test('retained Effect restores only the original resource constructor for target and stop material', async () => {
+  for (const marked of [true, false]) {
+    const f = retainedEffectPreparationFixture({marked}), facts = await f.restore();
+    assert.strictEqual(facts.prepared, f.prepared); assert.strictEqual(facts.compilation, f.compilation);
+    assert.strictEqual(facts.identity, f.identity); assert.equal(Object.hasOwn(facts, 'owner'), false, 'no execution Owner');
+    assert.deepEqual(f.calls, ['original-journal', 'intent-current', 'compile-once',
+      marked ? 'same-original' : 'same-stop-original', 'original-constructor', 'intent-current', 'selection-current']);
+  }
+});
+
+test('retained Effect constructor failure stays original without a fresh Run or fallback', async () => {
+  const f = retainedEffectPreparationFixture({constructorFailure: true, failure: undefined});
+  let threw = false;
+  try {await f.restore();} catch (cause) {threw = true; assert.strictEqual(cause, undefined);}
+  assert(threw); assert.deepEqual(f.calls, ['original-journal', 'intent-current', 'compile-once', 'same-original', 'original-constructor']);
+});
+
+function retainedHostPreparationFixture({reuse = false, failPrepare = false, cleanupFailure = false, material = true} = {}) {
+  const ref = {runDefinitionCid: 'original-ref'}, identity = {}, prepared = {}, managed = {}, intent = {}, originalBinding = {};
+  const runDefinition = {identity: ref.runDefinitionCid}, calls = [];
+  const originalSubmittedIntent = {intent, assertCurrent() {calls.push('intent-current');}};
+  let request;
+  const prepareSubmit = async value => {assert.strictEqual(value, request); calls.push('same-request-check'); if (failPrepare) throw undefined; return prepared;};
+  prepareSubmit.assertSubmittedIntent = (p, i) => {assert.strictEqual(p, prepared); assert.strictEqual(i, intent);};
+  prepareSubmit.kindOf = p => {assert.strictEqual(p, prepared); return 'effectful';};
+  const ports = {moon: {clientProgramEffectInferOccurrence: () => undefined}, control: {}, namespaceId: 'namespace',
+    authorityScopeCid: 'authority', journal: {
+      lookupRunDefinition: value => {assert.strictEqual(value, ref); return {requestId: 'original-request'};},
+      lookupOwnedDefinition: key => {assert.equal(key.requestId, 'original-request'); return {requestIdentity: identity,
+        runDefinition, runAdmissionEvidence: material ? {updateTargetRunOriginal: {}} : {}};},
+      originalSubmittedIntent: value => {assert.strictEqual(value, identity); calls.push('original-intent'); return originalSubmittedIntent;}},
+    preparation: {retainedEffectManagedPlan: () => reuse ? managed : undefined,
+      retainEffectRequestInput(runtime, value, original) {
+        assert.strictEqual(runtime, ports.moon); assert.strictEqual(original, intent); request = value;
+        assert.equal(request.requestId, 'original-request'); calls.push('same-parent-input');
+        return {finish(terminal) {calls.push(`finish-${terminal}`); if (cleanupFailure) throw new Error('OriginalCleanupPending');}};
+      }, bindSourceRequest(parent, child) {assert.strictEqual(parent, request); assert.strictEqual(child, prepared); calls.push('bind-original-alias');},
+      effectManagedPlanRun(runtime, p, original) {assert.strictEqual(runtime, ports.moon); assert.strictEqual(p, prepared);
+        assert.strictEqual(original, identity); calls.push('same-adopted-plan'); return managed;}},
+    prepareSubmit,
+    effectRun: {async restoreRetainedPreparation(facts) {
+      assert.strictEqual(facts.prepared, prepared); assert.strictEqual(facts.identity, identity);
+      assert.strictEqual(facts.ref, ref); assert.strictEqual(facts.originalSubmittedIntent, originalSubmittedIntent);
+      calls.push('same-original-constructor'); return originalBinding;
+    }},
+    clientOperationError: code => Object.assign(new Error(code), {code})};
+  const source = retainedRequestSourceMember('./embedded-local.mjs', 'restoreEffectManagedPreparation', 'VariableDeclarator');
+  const restore = new Function(...Object.keys(ports), 'const ' + source + ';return restoreEffectManagedPreparation;')(...Object.values(ports));
+  return {restore: () => restore(ref), calls, managed, originalBinding};
+}
+
+test('retained Host binds the Journal Request directly through one checked preparation and original Plan', async () => {
+  const f = retainedHostPreparationFixture(), result = await f.restore();
+  assert.strictEqual(result.managedEffect, f.managed); assert.strictEqual(result.original, f.originalBinding);
+  assert.deepEqual(f.calls, ['original-intent', 'intent-current', 'same-parent-input', 'same-request-check',
+    'bind-original-alias', 'same-original-constructor', 'same-adopted-plan', 'finish-returned']);
+  const reused = retainedHostPreparationFixture({reuse: true});
+  assert.strictEqual((await reused.restore()).managedEffect, reused.managed); assert.deepEqual(reused.calls, []);
+});
+
+test('retained Host preserves primary undefined and leaves failed cleanup with the original input', async () => {
+  const f = retainedHostPreparationFixture({failPrepare: true, cleanupFailure: true});
+  let threw = false; try {await f.restore();} catch (cause) {threw = true; assert.strictEqual(cause, undefined);}
+  assert(threw); assert.deepEqual(f.calls, ['original-intent', 'intent-current', 'same-parent-input', 'same-request-check', 'finish-failed']);
+});
+
+test('retained Host reuses its live Plan without cold material and refuses missing cold evidence before construction', async () => {
+  const live = retainedHostPreparationFixture({reuse: true, material: false});
+  assert.strictEqual((await live.restore()).managedEffect, live.managed);
+  assert.deepEqual(live.calls, []);
+  const cold = retainedHostPreparationFixture({material: false});
+  await assert.rejects(cold.restore(), {code: 'EffectRecoveryOriginalSelectionUnavailable'});
+  assert.deepEqual(cold.calls, []);
+});
+
+test('existing whole Effect resume forwards the same restored Plan before recovering its capture', async () => {
+  const source = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
+  const tree = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
+  let entry;
+  (function visit(node) {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'Property' && node.key?.name === 'run' &&
+        source.slice(node.start, node.end).includes('restored = await restoreEffectManagedPreparation(ref, signal)')) {
+      assert.equal(entry, undefined); entry = node.value;
+    }
+    for (const child of Object.values(node)) if (Array.isArray(child)) child.forEach(visit);
+    else if (child && typeof child === 'object') visit(child);
+  })(tree);
+  assert(entry);
+  const ref = {}, managed = {}, signal = {}, original = {}, retainer = () => {}, calls = [];
+  const ports = {ref, view: {}, observation: undefined, observing: false, continuation: {}, retained: {}, moon: {}, control: {},
+    store: {}, principalId: 'principal', storeAuthorityCid: 'store', authorityScopeCid: 'authority', runContent: {},
+    checkpoints: {journal: {}, binding: {}, effectAuthorization: {}},
+    restoreEffectManagedPreparation: async (r, s) => {assert.strictEqual(r, ref); assert.strictEqual(s, signal); calls.push('prepare'); return {managedEffect: managed, original};},
+    effectInstallation: {async resume(facts) {assert.strictEqual(facts.managedEffect, managed); calls.push('resume');
+      return facts.recoverCapture({signal, retainRecoveryResources: retainer});}},
+    recoverEffectCapture(r, s, parent, retain, binding) {assert.strictEqual(r, ref); assert.strictEqual(s, signal);
+      assert.strictEqual(parent, managed); assert.strictEqual(binding, original); assert.strictEqual(retain, retainer); calls.push('same-parent-capture'); return 'original-capture';},
+    effectRun: {}, journal: {}};
+  const run = new Function(...Object.keys(ports), 'return (' + source.slice(entry.start, entry.end) + ');')(...Object.values(ports));
+  assert.equal(await run({signal, retainExecution() {}, beginPhysicalWork() {}}), 'original-capture');
+  assert.deepEqual(calls, ['prepare', 'resume', 'same-parent-capture']);
+});
+
+test('bound recovery original is carried once without a second material codec or compiler', () => {
+  const f = installedCaptureOriginalFixture({bound: true});
+  assert.strictEqual(f.recover(), f.boundOriginal);
+  assert.deepEqual(f.calls, ['intent-current']);
+});
+
+test('bound recovery original cannot replace the same managed Request or compiler', () => {
+  for (const field of ['identity', 'compilation']) {
+    const f = installedCaptureOriginalFixture({bound: true}); f.boundOriginal[field] = {};
+    assert.throws(f.recover, {code: 'EffectRecoveryOriginalSelectionUnavailable'});
+    assert.deepEqual(f.calls, []);
+  }
+});
+
+test('retained Plan lookup keeps partial failure and fences original retirement without a new selection', () => {
+  const request = {}, definition = {identity: 'original-run'}, originalDefinition = {};
+  const run = {preparationKind: 'effect-plan', runtime: undefined, request,
+    definitionOriginal: {definition: originalDefinition}, closed: false};
+  const record = {computeLiveRuns: new Set([run])};
+  const runtime = {clientRequestRelation: (left, right) => left === right ? 1 : 0,
+    strategyPublicationContractIdentity: value => {assert.strictEqual(value, originalDefinition); return definition.identity;}};
+  run.runtime = runtime;
+  let retireDuringRead = false, reads = 0;
+  const ports = {moon: runtime, record, preparation: {effectManagedPlanRun() {
+    reads++; if (retireDuringRead) {run.closed = true; record.computeLiveRuns.delete(run);} return run;
+  }}, clientOperationError: code => Object.assign(new Error(code), {code})};
+  const owner = new Function(...Object.keys(ports), 'return ({' + retainedRequestSourceMember('./embedded-local.mjs', 'retainedEffectManagedPlan') + '});')(...Object.values(ports));
+  assert.strictEqual(owner.retainedEffectManagedPlan(runtime, request, definition), run); assert.equal(reads, 1);
+  run.failure = undefined;
+  let threw = false; try {owner.retainedEffectManagedPlan(runtime, request, definition);} catch (cause) {threw = true; assert.strictEqual(cause, undefined);}
+  assert(threw); assert.equal(reads, 1);
+  delete run.failure; retireDuringRead = true;
+  assert.throws(() => owner.retainedEffectManagedPlan(runtime, request, definition), {code: 'ForeignInstalledEffectManagedRun'});
+  assert.equal(reads, 2);
+});
+
+test('Local signing original uses the same restored parent and keeps its borrow through consumption', async () => {
+  const source = retainedRequestSourceMember('./embedded-local.mjs', 'loadRunOriginal');
+  const managed = {}, original = {}, materials = {}, requestIdentity = {}, invocation = {}, preview = {};
+  const runDefinition = {wire: 'original-definition'}, retained = {runDefinition, revision: 2, cancellationRequested: false};
+  const recovered = {materials, requestIdentity, originalSubmittedIntent: {referenceWire: 'original-reference', assertCurrent() {}},
+    computation: {preview, invocation}, assertUpdateSelectionCurrent() {}};
+  const calls = [], recoveries = new Set(); let consuming = false, stale;
+  const ports = {namespaceId: 'namespace', authorityScopeCid: 'authority', moon: {}, control: {
+    effectComputationPreviewSemanticCid: value => {assert.strictEqual(value, preview); return 'preview-cid';}},
+    journal: {lookupRunDefinition: () => retained},
+    restoreEffectManagedPreparation: async () => {calls.push('same-parent'); return {managedEffect: managed, original};},
+    recoverEffectCapture(ref, signal, parent, retain, binding) {assert.strictEqual(parent, managed); assert.strictEqual(binding, original); calls.push('capture'); return recovered;},
+    localSigningRecoveries: recoveries, assertProjectRuntime() {}, preparation: {assertResultPublicationCurrent() {}},
+    clientOperationError: code => Object.assign(new Error(code), {code}),
+    async releaseLocalSigningRecovery(value) {assert.strictEqual(value, recovered); assert.equal(consuming, false); calls.push('release-original'); recoveries.delete(value);}};
+  const owner = new Function(...Object.keys(ports), 'return ({' + source + '});')(...Object.values(ports));
+  const result = await owner.loadRunOriginal({runDefinitionCid: 'original-run', requiredArtifact: {cid: 'preview-cid'}}, undefined, async frame => {
+    assert(recoveries.has(recovered)); assert.strictEqual(frame.materials, materials); assert.strictEqual(frame.requestIdentity, requestIdentity);
+    assert.strictEqual(frame.invocation, invocation); stale = frame.assertCurrent; frame.assertCurrent();
+    consuming = true; await Promise.resolve(); assert(recoveries.has(recovered)); consuming = false; calls.push('consume'); return 'signed';
+  });
+  assert.equal(result, 'signed'); assert.deepEqual(calls, ['same-parent', 'capture', 'consume', 'release-original']);
+  assert.equal(recoveries.size, 0); assert.throws(stale, {code: 'LocalSigningOriginalConflict'});
+});
+
+test('whole Effect target refresh validates the captured Prepared against its existing Plan without reprepare', async () => {
+  const source = retainedRequestSourceMember('./embedded-local.mjs', 'prepareTargetReads');
+  const prepared = {}, compilation = {}, identity = {}, originalPrepared = {}, ref = {};
+  const facts = {prepared, compilation, identity}, reads = {}, calls = [], effectSubmissions = new WeakMap();
+  const managedEffect = {definitionOriginal: {prepared, compilation, identity}};
+  const submission = {requestId: 'original-request', kind: 'program', input: {}, updateTargetPreparedOriginal: originalPrepared};
+  const ports = {view: {runId: 'original-run'}, ref, signal: undefined, continuation: {}, managedEffect,
+    retained: {requestId: 'original-request'}, restored: {original: facts}, effectSubmissions,
+    checkpoints: {inspectEffectTargetApprovals: async () => [{continuation: {submission}}], journal: {admitResume() {return true;}}},
+    updateTargetOriginals: {validatePreparedOriginal(p, c, value) {assert.strictEqual(p, prepared); assert.strictEqual(c, compilation);
+      assert.strictEqual(value, originalPrepared); calls.push('same-static-original');}},
+    assertEffectTargetReadBinding() {assert.fail('No copied binding is invented');},
+    openEffectTargetReads: async (value, options) => {assert.strictEqual(value, facts); assert.equal(options.allowDefer, false);
+      calls.push('same-plan-reads'); return reads;}};
+  const owner = new Function(...Object.keys(ports), 'return ({' + source + '});')(...Object.values(ports));
+  assert.strictEqual(await owner.prepareTargetReads({claim: {}}), reads);
+  assert.deepEqual(calls, ['same-static-original', 'same-plan-reads']);
+  assert.equal(effectSubmissions.get(prepared).requestId, 'original-request');
+  assert.equal(Object.hasOwn(effectSubmissions.get(prepared), 'preparedProgram'), false);
 });

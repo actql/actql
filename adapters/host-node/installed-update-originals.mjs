@@ -143,6 +143,14 @@ export function installUpdateTargetOriginals({moon, control, installedEffect, li
         allowed, definition, identity ?? null));
     },
     compilationFor: prepared => compilations.get(prepared),
+    // A captured target-read continuation already has this admitted pair on
+    // its SAME managed Run. Compare its original capture without restoring a
+    // second Prepared/compiler or replacing the live selection association.
+    validatePreparedOriginal(prepared, compilation, original) {
+      if (compilations.get(prepared) !== compilation ||
+          !updateTargetPreparedOriginalShape(original, moon) ||
+          !same(capturePrepared(prepared, compilation), original)) fail();
+    },
     validatePrepared(prepared) {
       const selections = selectionsOf(prepared);
       current(selections);
