@@ -191,7 +191,7 @@ test "backed prepared operation retains same control and constructor until actua
     admission,
     body,
     ledger,
-    () => Ok(()),
+    () => (Ok(()) : Result[Unit, Unit]),
     None,
     1L,
     1L,
@@ -209,7 +209,7 @@ test "backed prepared operation retains same control and constructor until actua
     admission,
     body,
     ledger,
-    () => Ok(()),
+    () => (Ok(()) : Result[Unit, Unit]),
     Construction(construction),
     3L,
   ).unwrap()
@@ -218,7 +218,7 @@ test "backed prepared operation retains same control and constructor until actua
     admission,
     body,
     ledger,
-    () => Ok(()),
+    () => (Ok(()) : Result[Unit, Unit]),
     Construction(construction),
   ).unwrap()
   // Completion returns only the original scratch, not the retained output.
@@ -265,7 +265,7 @@ test "backed prepared operation preserves original consumer refusal and post-con
       ledger,
       () => {
         stop_backed_execution_live_child(access, input).unwrap()
-        Ok(())
+        (Ok(()) : Result[Unit, Unit])
       },
       None,
       1L,
