@@ -16,10 +16,10 @@ complete HubSpot read/write target.
   types refuse rather than disappear. The factory exposes the standard Source
   port, never raw credentials or a parallel acquired result.
 - Identity: bind connector, canonical portal, origin, original metadata, Site
-  generation, runtime and Account context. The top-level original record id is
+  generation, runtime and Account context. Managed identity uses the same observed-FD CA bytes that reach Site; the standalone utility keeps its DATA-only hashing purpose and cannot load a Source. The top-level original record id is
   a conditional declared candidate key. Provider page admission and cross-page
   duplicate checks must succeed before capture; company domain is not a key.
-- Ownership: the generic Host retains the original acquisition, one borrowed
+- Ownership: the registered factory requires the same loader-bound Source context, managed configuration reader and Host service before metadata/native entry. Binary metadata and its original native catalogs/declaration are reserved on that initial parent before construction. The original Environment is passed unchanged to RowSource and its registration/finish; Source retirement precedes initial-parent close. The generic Host retains the original acquisition, one borrowed
   response/cleanup port and the same private Credential binding. The connector
   installs that cleanup callback before I/O. Initialization failures retain any
   already acquired Site on the existing cleanup carrier.
@@ -34,7 +34,7 @@ complete HubSpot read/write target.
 - Cancellation: forward the original signal. Cancellation is not a close ACK;
   the original RowRun response cleanup and Credential binding must confirm
   retirement before releasing the original retention.
-- Resources: the trusted installer supplies independent positive response,
+- Resources: input Buffer/Map and native declaration construction compose with the same initial Source envelope before entry. Original parser/value/declaration node counts stay separate from decoded text and wire limits; the full selected native peak is retained through retirement. The trusted installer supplies independent positive response,
   parse, page/request/row, schema/output and secret limits. Every received
   identity/schema/data body is charged to the same original acquisition before
   decode. These units and the cleanup callback do not establish wholephase
@@ -48,7 +48,7 @@ complete HubSpot read/write target.
   final schema drift and cancellation. `../test/hubspot-object-schema.test.mjs`
   retains independent full schema and key-fact expectations. Execution/runtime
   source and artifact correspondence are recorded separately from this source
-  reference; no current distribution or public acceptance is inferred.
+  reference. Registered initializer tests use actual initial Resource/Source construction/finish/retirement and assert scoped state FDs are gone on cleanup. The standalone prefix fixture consumes its original typed installed sequence contract. Its explicit RowRun/Ledger cases do not certify ordinary Request/Plan/provider output/failed-child funding, pristine distribution or public acceptance.
 
 ## Remaining-row request bound
 

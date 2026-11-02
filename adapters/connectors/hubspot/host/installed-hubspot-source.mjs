@@ -3,12 +3,12 @@
 import {createHash} from 'node:crypto';
 import {isAbsolute} from 'node:path';
 import {readFile} from 'node:fs/promises';
+import {types as nodeTypes} from 'node:util';
 import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
-import {readSourceProfileJson} from '../../../host-node/source-profile-json.mjs';
+import {readSourceProfileJson,captureConfigurationReaders} from '../../../host-node/source-profile-json.mjs';
 import {retainInstalledHostInitializationFailure} from '../../../host-node/installed-host-cleanup.mjs';
-import {createInstalledRowSource, installRowSourceAuthorization,
-  openRowSourceCredentialSite, rowSourceCheckEnvironment} from '../../../host-node/installed-row-source.mjs';
+import {createInstalledRowSource} from '../../../host-node/installed-row-source.mjs';
 import {openHttpsCredentialBinding, closeHttpsCredentialBinding} from
   '../../../site-node/https-credential-resource.mjs';
 import {readHubSpotObjects, HUBSPOT_PROPERTIES_READ_OPERATION,
@@ -74,96 +74,148 @@ function checkSite(site) {
   return Object.freeze({...rest, ...(caPath === undefined ? {} : {caPath})});
 }
 
-async function readInputs(profile) {
-  const installed = checkInstalledHubSpotSourceProfile(profile);
-  const site = checkSite(await readSourceProfileJson(installed.siteProfilePath));
-  const metadata = await readSourceProfileJson(installed.metadataPath);
-  if (!closed(metadata, ['version', 'connectorId', 'portalId', 'apiOrigin', 'accountBody', 'objects']) ||
-      metadata.version !== 'actql-hubspot-read-metadata/0.1' ||
-      metadata.connectorId !== installed.connectorId || metadata.portalId !== installed.portalId ||
-      metadata.apiOrigin !== site.apiOrigin || !Array.isArray(metadata.objects) ||
-      metadata.objects.length !== installed.resources.length) fail('InvalidInstalledHubSpotMetadata');
-  const decode = body => {
-    if (typeof body !== 'string' || body.length > Math.ceil(installed.limits.maxResponseBytes / 3) * 4) {
+async function readInputs(profile,{readJson=readSourceProfileJson,construct}={}) {
+  const installed=checkInstalledHubSpotSourceProfile(profile);
+  const site=checkSite(await readJson(installed.siteProfilePath));
+  const metadata=await readJson(installed.metadataPath);
+  if(!closed(metadata,['version','connectorId','portalId','apiOrigin','accountBody','objects'])||
+    metadata.version!=='actql-hubspot-read-metadata/0.1'||metadata.connectorId!==installed.connectorId||
+    metadata.portalId!==installed.portalId||metadata.apiOrigin!==site.apiOrigin||!Array.isArray(metadata.objects)||
+    metadata.objects.length!==installed.resources.length)fail('InvalidInstalledHubSpotMetadata');
+  const encoded=body=>typeof body==='string'&&body.length<=Math.ceil(installed.limits.maxResponseBytes/3)*4;
+  if(!encoded(metadata.accountBody))fail('InvalidInstalledHubSpotMetadata');
+  for(let index=0;index<metadata.objects.length;index++){
+    const object=metadata.objects[index];
+    if(!closed(object,['resource','objectType','propertiesBody'])||!encoded(object.propertiesBody)||
+      metadata.objects.some((other,i)=>i<index&&other.resource===object.resource)||
+      !installed.resources.some(value=>value.resource===object.resource&&value.objectType===object.objectType)){
       fail('InvalidInstalledHubSpotMetadata');
     }
-    const bytes = Buffer.from(body, 'base64');
-    if (bytes.byteLength > installed.limits.maxResponseBytes || bytes.toString('base64') !== body) {
-      fail('InvalidInstalledHubSpotMetadata');
-    }
-    return bytes;
-  };
-  const account = decode(metadata.accountBody), objects = new Map();
-  for (const object of metadata.objects) {
-    if (!closed(object, ['resource', 'objectType', 'propertiesBody']) ||
-        objects.has(object.resource) || !installed.resources.some(value =>
-          value.resource === object.resource && value.objectType === object.objectType)) {
-      fail('InvalidInstalledHubSpotMetadata');
-    }
-    objects.set(object.resource, {objectType: object.objectType, body: decode(object.propertiesBody)});
   }
-  return {installed, site, metadata, account, objects};
+  // Identity hashes original DATA only. Actual initialization reserves all
+  // binary inputs and the returned Map together before constructing any of them.
+  const binary=construct?.(metadata,installed.limits.maxResponseBytes);
+  return {installed,site,metadata,...binary};
 }
 
-export async function installedHubSpotSourceIdentityParts(profile, providerProfile) {
-  const {site, metadata} = await readInputs(providerProfile);
-  const ca = site.caPath === undefined ? undefined : await readFile(site.caPath);
+export async function installedHubSpotSourceIdentityParts(profile,providerProfile,read,_entry,{configurationReader}={}) {
+  const readers=captureConfigurationReaders(configurationReader,read,()=>fail('InstalledHubSpotConfigurationReaderUnavailable'));
+  const {site,metadata}=await readInputs(providerProfile,readers);
+  if(configurationReader!==undefined&&site.caPath!==undefined&&readers.readOriginalBytes===undefined){
+    fail('InstalledHubSpotConfigurationReaderUnavailable');
+  }
+  // Keep the standalone DATA-only identity utility separate from installation.
+  const ca=site.caPath===undefined?undefined:readers.readOriginalBytes===undefined
+    ?await readFile(site.caPath):await readers.readOriginalBytes(site.caPath);
   return [{...profile, accountConfigurationWire: JSON.parse(profile.accountConfigurationWire)}, site,
     {metadataCid: cid(metadata), ...(ca === undefined ? {} : {caSha256: createHash('sha256').update(ca).digest('hex')})}];
 }
 
-export async function loadInstalledHubSpotSource(profile, {root, principalId, moon,
-  providerMoon: provider, baseEnvironmentWire, runtimeBundleCid, resolveSecret}) {
-  const {installed, site: siteProfile, metadata, account, objects} = await readInputs(profile);
-  const {limits} = installed;
-  const identity = JSON.parse(provider.hubspotRecheckAccountIdentityJson(account, installed.portalId,
-    limits.maxResponseBytes, limits.maxNodes, limits.maxDepth));
-  if (identity.refused !== undefined || identity.account?.portalId !== installed.portalId) {
-    fail('InvalidInstalledHubSpotAccount');
+export async function loadInstalledHubSpotSource(profile,{root,principalId,moon,
+  providerMoon:provider,baseEnvironmentWire,runtimeBundleCid,resolveSecret,installation,
+  sourceInitialization,configurationReader,installationServices}) {
+  if(sourceInitialization===undefined||configurationReader===undefined||installationServices===undefined){
+    fail('InstalledHubSpotInitializationUnavailable');
   }
-  const catalogs = new Map(), views = [];
-  for (const {resource, objectType} of installed.resources) {
-    const catalog = checked(provider.hubspotProjectProperties(objects.get(resource).body, objectType,
-      limits.maxResponseBytes, limits.maxNodes, limits.maxDepth, limits.maxProperties, limits.maxNameUnits));
-    const names = provider.hubspotPropertyCatalogNames(catalog);
-    const wire = checked(provider.hubspotObjectSchemaWire(catalog, names, limits.maxColumns,
-      limits.maxNameUnits, limits.maxDeclarationBytes, limits.maxDeclarationNodes, limits.maxDepth));
-    catalogs.set(resource, catalog);
-    views.push({resource, resource_kind: 'object', schema_wire: wire,
-      facts_wire: provider.hubspotObjectRelationFactsWire(),
-      schema_cid: `sha256:${createHash('sha256').update(wire).digest('hex')}`});
-  }
-  const declaration = checked(moon.clientProgramRowSourceRestoreRelationDeclaration(installed.connectorId,
-    registration, revision, JSON.stringify({views}), undefined));
-  const declared = JSON.parse(moon.clientProgramRowSourceDeclarationJson(declaration));
-  const environment = rowSourceCheckEnvironment(baseEnvironmentWire, declared);
-  const authorization = await installRowSourceAuthorization({root, principalId,
-    connectorRegistration: registration, accountConfiguration: installed.accountConfigurationWire});
+  const method=(receiver,name,code)=>{
+    if(!receiver||nodeTypes.isProxy(receiver))fail(code);
+    const field=Object.getOwnPropertyDescriptor(receiver,name);
+    if(!field||!Object.hasOwn(field,'value')||typeof field.value!=='function'||
+      nodeTypes.isProxy(field.value)||nodeTypes.isAsyncFunction(field.value))fail(code);
+    return field.value;
+  };
+  const input=method(sourceInitialization,'prepareInputConstruction','InstalledHubSpotInitializationUnavailable');
+  const declare=method(sourceInitialization,'prepareNativeDeclaration','InstalledHubSpotInitializationUnavailable');
+  const openSite=method(installationServices,'openRowSite','InstalledHubSpotInitializationUnavailable');
+  const quote=method(moon,'clientProgramInstalledSourceConstructionCapacity','InstalledHubSpotInitializationUnavailable');
+  const restore=method(moon,'clientProgramRowSourceRestoreRelationDeclaration','InstalledHubSpotInitializationUnavailable');
+  const names=['hubspotRecheckAccountIdentityJson','hubspotProjectProperties','hubspotPropertyCatalogNames',
+    'hubspotObjectSchemaWire','hubspotObjectRelationFactsWire'];
+  const originals=Object.freeze(Object.fromEntries(names.map(name=>{
+    const fn=method(provider,name,'InstalledHubSpotProviderUnavailable');
+    return [name,(...args)=>Reflect.apply(fn,provider,args)];
+  })));
+  const readers=captureConfigurationReaders(configurationReader,undefined,
+    ()=>fail('InstalledHubSpotConfigurationReaderUnavailable'));
+  let bodyBytes=0n;
+  const {installed,site:siteProfile,metadata,account,objects}=await readInputs(profile,{...readers,
+    construct(metadata,maximum){
+      let text=BigInt(metadata.accountBody.length);
+      let wire=BigInt(Math.floor(metadata.accountBody.length*3/4));
+      for(const value of metadata.objects){text+=BigInt(value.propertiesBody.length);wire+=BigInt(Math.floor(value.propertiesBody.length*3/4));}
+      bodyBytes=wire;
+      return Reflect.apply(input,sourceInitialization,[Object.freeze({
+        capacity(){return checked(Reflect.apply(quote,moon,[4n*BigInt(metadata.objects.length+1),2n*text,wire,0n,0n,0n]));},
+        project(){
+          const decode=encoded=>{
+            const bytes=Buffer.from(encoded,'base64');
+            if(bytes.byteLength>maximum||bytes.toString('base64')!==encoded)fail('InvalidInstalledHubSpotMetadata');
+            return bytes;
+          };
+          const account=decode(metadata.accountBody),objects=new Map();
+          for(const value of metadata.objects)objects.set(value.resource,{objectType:value.objectType,body:decode(value.propertiesBody)});
+          return Object.freeze({account,objects});
+        },
+      })]);
+    },
+  });
+  const {limits}=installed,count=BigInt(installed.resources.length);
+  // Keep node counts independent of byte/text writer bounds. All catalogs,
+  // selected schema Strings, declaration outputs and failed prefixes coexist
+  // with the original binary inputs on the SAME conservative Source parent.
+  const nodes=BigInt(limits.maxNodes)+count*(BigInt(limits.maxNodes)+BigInt(limits.maxValueNodes)+
+    BigInt(limits.maxDeclarationNodes)+BigInt(limits.maxProperties)+BigInt(limits.maxColumns));
+  const textUnits=bodyBytes+count*(BigInt(limits.maxNameUnits)+BigInt(limits.maxValueTextBytes)+BigInt(limits.maxDeclarationBytes));
+  const wireBytes=bodyBytes+count*BigInt(limits.maxDeclarationBytes);
+  const prepared=Reflect.apply(declare,sourceInitialization,[Object.freeze({
+    capacity(){return checked(Reflect.apply(quote,moon,[4n*nodes,8n*textUnits,8n*wireBytes,4n*nodes,8n*textUnits,8n*wireBytes]));},
+    project(){
+      const identity=JSON.parse(originals.hubspotRecheckAccountIdentityJson(account,installed.portalId,
+        limits.maxResponseBytes,limits.maxNodes,limits.maxDepth));
+      if(identity.refused!==undefined||identity.account?.portalId!==installed.portalId)fail('InvalidInstalledHubSpotAccount');
+      const catalogs=new Map(),views=[];
+      for(const {resource,objectType}of installed.resources){
+        const catalog=checked(originals.hubspotProjectProperties(objects.get(resource).body,objectType,
+          limits.maxResponseBytes,limits.maxNodes,limits.maxDepth,limits.maxProperties,limits.maxNameUnits));
+        const names=originals.hubspotPropertyCatalogNames(catalog);
+        const wire=checked(originals.hubspotObjectSchemaWire(catalog,names,limits.maxColumns,limits.maxNameUnits,
+          limits.maxDeclarationBytes,limits.maxDeclarationNodes,limits.maxDepth));
+        catalogs.set(resource,catalog);
+        views.push({resource,resource_kind:'object',schema_wire:wire,facts_wire:originals.hubspotObjectRelationFactsWire(),
+          schema_cid:`sha256:${createHash('sha256').update(wire).digest('hex')}`});
+      }
+      const declaration=checked(Reflect.apply(restore,moon,[installed.connectorId,registration,revision,JSON.stringify({views}),undefined]));
+      return Object.freeze({declaration,material:Object.freeze({catalogs,identity,metadataCid:cid(metadata)})});
+    },
+  })]);
+  const {declaration,declared,environment,material:{catalogs,metadataCid}}=prepared;
   const connection = `hubspot:${installed.connectorId}`;
   const target = (resource, fields) => Object.freeze({version: 'actql-installed-hubspot-target/0.1',
     apiOrigin: siteProfile.apiOrigin, portalId: installed.portalId, resource,
-    objectType: objects.get(resource)?.objectType, metadataCid: cid(metadata), fields: Object.freeze([...fields])});
+    objectType: objects.get(resource)?.objectType, metadataCid, fields: Object.freeze([...fields])});
   const admitsApprovalTarget = (binding, resource) => {
     const view = declared.views.find(value => value.resource === resource);
     return view !== undefined && Array.isArray(binding?.fields) &&
       new Set(binding.fields).size === binding.fields.length && binding.fields.every(field => view.fields.includes(field)) &&
       canonical(binding) === canonical(target(resource, binding.fields));
   };
-  const ca = siteProfile.caPath === undefined ? undefined : await readFile(siteProfile.caPath);
-  const site = await openRowSourceCredentialSite({profile: {...siteProfile, resourceOrigin: siteProfile.apiOrigin},
-    principalId, authorization, connection, connectorRegistration: registration,
-    connectorRevision: revision, runtimeBundleCid, commonMoon: moon, ca, admitsApprovalTarget,
-    responseHeaders: [], resolveSecret: resolveSecret ?? (async () => {
+  if(siteProfile.caPath!==undefined&&readers.readOriginalBytes===undefined)fail('InstalledHubSpotConfigurationReaderUnavailable');
+  const ca=siteProfile.caPath===undefined?undefined:await readers.readOriginalBytes(siteProfile.caPath);
+  const {site,authorization}=await Reflect.apply(openSite,installationServices,[{
+    installation,sourceInitialization,accountConfiguration:installed.accountConfigurationWire,
+    profile:Object.freeze({...siteProfile,resourceOrigin:siteProfile.apiOrigin}),connection,ca,admitsApprovalTarget,
+    responseHeaders:[],resolveSecret:resolveSecret??(async()=>{
       const secret = process.env[siteProfile.tokenEnvironment];
       if (!text(secret)) fail('RemoteCredentialSecretUnavailable');
       return secret;
-    })});
+    }),
+  }]);
   try {
-    return await createInstalledRowSource({moon, declaration, declared, environmentWire: environment.wire,
+    return await createInstalledRowSource({moon, declaration, declared,environment,sourceInitialization, environmentWire: environment.wire,
       connectorId: installed.connectorId, connectorRegistration: registration,
       connectorRevision: revision, site, authorization, readOperation: HUBSPOT_OBJECT_LIST_OPERATION,
       physicalTarget: target, bindingCid: cid({version: 'actql-installed-hubspot-binding/0.1',
-        contextCid: authorization.context.contextCid, runtimeBundleCid, metadataCid: cid(metadata), site: siteProfile}),
+        contextCid: authorization.context.contextCid, runtimeBundleCid, metadataCid, site: siteProfile}),
       limits: {maxPages: limits.maxRequests, maxPageBytes: limits.maxResponseBytes,
         maxPageRows: limits.perPage, maxCaptureRows: limits.maxRows},
       readPages: async options => {

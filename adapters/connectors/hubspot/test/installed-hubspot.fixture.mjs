@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {inspect} from 'node:util';
+import {createHash} from 'node:crypto';
 import {readFile, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import * as common from '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
@@ -7,6 +8,9 @@ import {checked} from '../../../host-common/runtime-result.mjs';
 import {canonicalJson} from '../../../host-node/local-account-config.mjs';
 import {loadInstalledSource, installedSourceIdentity} from '../../../host-node/installed-source.mjs';
 import {accountFixture} from './hubspot-account.fixture.mjs';
+import {installedConnectors} from '../../../connectors-builtin/installations.generated.mjs';
+import {installedSourceFixtureLifetime} from '../../../host-node/fixtures/installed-source-initialization.mjs';
+import {observeOwnScopedStateFds} from '../../../../scripts/fixtures/external-rest/conformance.mjs';
 
 const runtimeUrl = new URL('../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url);
 const base = await readFile(new URL('../../../../spec/local-check-environment.json', import.meta.url), 'utf8');
@@ -21,7 +25,9 @@ export const objectBody = JSON.stringify({results: [{id: expected.id, archived: 
 export async function installedHubSpotFixture(t, {account = 'allow', propertyRead = 'allow'} = {}) {
   // The helper owns loopback TLS and a separate unused credential namespace.
   // The Source below opens its own actual installed Site/journal/binding.
-  const f = await accountFixture(t, {accounted: false});
+  let closeInitial;const dependentCloses=[];
+  const lifetime=installedSourceFixtureLifetime({after(close){closeInitial=close;},diagnostic:(...args)=>t.diagnostic(...args)});
+  const f = await accountFixture({after(close){dependentCloses.push(close);},diagnostic:(...args)=>t.diagnostic(...args)}, {accounted: false});
   const site = {version: 'actql-installed-hubspot-site/0.1', apiOrigin: f.scope.resourceOrigin,
     credentialAuthorityId: 'installed-hubspot', credentialKeyId: 'key',
     credentialPrivateKeyPath: join(f.root, 'credential-authority.key'), environment: 'test',
@@ -55,15 +61,32 @@ export async function installedHubSpotFixture(t, {account = 'allow', propertyRea
   await writeFile(path, JSON.stringify(profile));
   const sources = [], captures = [];
   t.after(async () => {
-    for (const captured of captures) await captured.close();
-    for (const source of sources) await source.close();
+    const failures=[];
+    try{for(const captured of captures)await captured.close();await closeInitial();}catch(cause){failures.push(cause);}
+    for(const close of dependentCloses)try{await close();}catch(cause){failures.push(cause);}
+    assert.equal(observeOwnScopedStateFds([f.root]).scopedStateFd0,true);
+    if(failures.length)throw new AggregateError(failures,'HubSpotFixtureCleanupUnconfirmed');
   });
+  let initialized;
+  const runtimeBundleCid='sha256:'+createHash('sha256').update(await readFile(runtimeUrl)).digest('hex');
   const load = async () => {
-    const source = await loadInstalledSource(path, {root: f.root, principalId: 'operator',
-      moon: common, runtimeUrl, baseEnvironmentWire: base,
-      resolveSecret: f.options.credential.resolveSecret});
-    sources.push(source); return source;
+    initialized??=lifetime.open({root:f.root,moon:common,baseEnvironmentWire:base,runtimeBundleCid,
+      installation:installedConnectors.find(value=>value.name==='hubspot')});
+    try{
+      const source=await loadInstalledSource(path,{root:f.root,principalId:'operator',moon:common,runtimeUrl,
+        baseEnvironmentWire:base,resolveSecret:f.options.credential.resolveSecret,
+        installationServices:initialized.installationServices});
+      sources.push(source);lifetime.sources.push(source);return source;
+    }catch(cause){
+      const errors=[],pending=[cause],seen=new Set();while(pending.length&&errors.length<8){
+        const value=pending.shift();if(!value||typeof value!=='object'||seen.has(value))continue;
+        seen.add(value);errors.push({code:value.code,name:value.name,stack:typeof value.stack==='string'?value.stack.split('\n').slice(0,8):undefined});
+        pending.push(value.cause,value.primaryFailure);
+      }
+      t.diagnostic(JSON.stringify({originalInitializationErrors:errors}));throw cause;
+    }
   };
+  let installedContracts;
   const prepare = async source => {
     const env = JSON.parse(source.environmentWire);
     const environment = common.clientProgramCheckEnvironment(source.environmentWire,
@@ -81,15 +104,16 @@ export async function installedHubSpotFixture(t, {account = 'allow', propertyRea
     const program = common.clientProgramPreparationReady(outcome);
     assert.ok(program, inspect(common.clientProgramPreparationIssue(outcome), {depth: 8, maxStringLength: 2000}));
     const repo = new URL('../../../../', import.meta.url);
-    const [registry, aoa, query, evidence] = await Promise.all([
+    const [registryWire, aoa, query, evidence] = await Promise.all([
       readFile(new URL('spec/dependencies/aoa-pipeline-registry.json', repo), 'utf8'),
       readFile(new URL('spec/contracts/actql-aoa.json', repo), 'utf8').then(JSON.parse),
       readFile(new URL('spec/contracts/actql-query-acquisition.json', repo), 'utf8'),
       readFile(new URL('spec/contracts/actql-query-process-evidence.json', repo), 'utf8')]);
-    return {preparedProgram: program, registry,
-      values: JSON.stringify(aoa.execution_contracts['REL.values']),
-      fragment: JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
-      ordered: JSON.stringify(aoa.execution_contracts['REL.derive.ordered']), query, evidence};
+    const values=JSON.stringify(aoa.execution_contracts['REL.values']);
+    const fragment=JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']);
+    const ordered=JSON.stringify(aoa.execution_contracts['REL.derive.ordered']);
+    installedContracts??=checked(common.clientPrepareInstalledSequenceContracts(registryWire,values,fragment,ordered));
+    return {preparedProgram:program,registry:installedContracts,values,fragment,ordered,query,evidence};
   };
   const ledger = () => checked(common.clientProgramAcquisitionLedger(1, 1, 32768n,
     100000000n, 100000000n, 0));

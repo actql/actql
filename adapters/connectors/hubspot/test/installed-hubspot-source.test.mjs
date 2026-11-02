@@ -6,6 +6,7 @@ import {writeFile} from 'node:fs/promises';
 import * as common from '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {installedSourceIdentity} from '../../../host-node/installed-source.mjs';
+import {loadInstalledHubSpotSource} from '../host/installed-hubspot-source.mjs';
 import {installedHubSpotFixture as fixture, properties, expected, objectBody} from './installed-hubspot.fixture.mjs';
 
 test('installed HubSpot restores every observed property without a credential read', async t => {
@@ -149,4 +150,32 @@ test('cancellation of the original identity response closes the same bound trans
   await rejected;
   assert.equal(f.state.requests.length, 1); assert.equal(f.state.resolutions, 1);
   assert.deepEqual(ledgerUsageFieldsFor(common.clientProgramMultiCapturedLedgerUsage(ledger), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
+});
+
+
+test('HubSpot loader without original initialization refuses before raw metadata or provider entry',async()=>{
+  await assert.rejects(loadInstalledHubSpotSource({metadataPath:'/UNOPENED-original-metadata'},{}),
+    {code:'InstalledHubSpotInitializationUnavailable'});
+});
+
+test('registered HubSpot malformed property bytes preserve original input failure and initial cleanup',async t=>{
+  const f=await fixture(t);
+  await writeFile(f.metadataPath,JSON.stringify({...f.metadata,objects:[{...f.metadata.objects[0],
+    propertiesBody:f.metadata.objects[0].propertiesBody+'\n'}]}));
+  await assert.rejects(f.load(),cause=>{
+    assert.equal(cause.primaryFailure?.code,'InvalidInstalledHubSpotMetadata');
+    assert.equal(cause.cleanupPending,false);assert.deepEqual(cause.cleanupErrors,[]);return true;
+  });
+  assert.equal(f.state.requests.length,0);assert.equal(f.state.resolutions,0);
+});
+
+test('registered HubSpot retains every original resource on the same initial parent before Source finish',async t=>{
+  const f=await fixture(t);
+  await writeFile(f.path,JSON.stringify({...f.profile,resources:[...f.profile.resources,
+    {resource:'contacts',objectType:'contacts'}]}));
+  await writeFile(f.metadataPath,JSON.stringify({...f.metadata,objects:[...f.metadata.objects,
+    {resource:'contacts',objectType:'contacts',propertiesBody:f.metadata.objects[0].propertiesBody}]}));
+  const source=await f.load();
+  assert.deepEqual(source.sourceReadAccesses.map(value=>value.resource).sort(),['companies','contacts']);
+  assert.equal(f.state.requests.length,0);assert.equal(f.state.resolutions,0);
 });
