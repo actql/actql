@@ -135,7 +135,20 @@ class AsyncClient:
         return await cls._connect_local(host, signer=selected_signer)
 
     @classmethod
-    async def connect(cls, endpoint, token=_NO_TOKEN, **options):
+    async def connect(cls, endpoint=_MISSING, token=_NO_TOKEN, *, mode='remote',
+                      installation=_MISSING, **options):
+        if mode == 'local':
+            if endpoint is not _MISSING or token is not _NO_TOKEN:
+                raise ClientError('InvalidConnectionOptions')
+            signer = options.pop('signer', None)
+            if options:
+                raise ClientError('InvalidConnectionOptions')
+            selected = {} if installation is _MISSING else {'state_dir': installation}
+            return await cls.open(signer=signer, **selected)
+        if mode != 'remote' or installation is not _MISSING:
+            raise ClientError('InvalidConnectionOptions')
+        if endpoint is _MISSING:
+            raise ClientError('InvalidConnectionEndpoint')
         client = cls(endpoint, token, **options)
         try:
             profile = await client._request('connect', {})

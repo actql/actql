@@ -146,6 +146,49 @@ class LocalFactoryResourcesTests(unittest.TestCase):
 
 
 class AsyncLocalFactoryTests(unittest.IsolatedAsyncioTestCase):
+    async def test_named_local_connect_uses_same_installed_host_and_directory(self):
+        with TemporaryDirectory() as directory:
+            case = host_fixture.LocalOperationPortTests(); self.addCleanup(case.doCleanups)
+            host, core, events, _ = case.host(Path(directory))
+            selected = Path(directory) / 'selected-state'
+            with patch.object(InstalledLocalHost, 'installed', return_value=host) as build, \
+                 patch('actql_sdk._async.httpx.AsyncClient', side_effect=AssertionError('No Remote transport')):
+                async with await AsyncClient.connect(mode='local', installation=selected) as client:
+                    self.assertIs(client._local_host, host)
+                    self.assertEqual(client.profile['mode'], 'local')
+                build.assert_called_once_with(state_dir=selected)
+            self.assertTrue(core._closed)
+            self.assertFalse(any(name in ('cancel', 'start', 'reserve_task') for _, name in events))
+
+    async def test_named_local_connect_keeps_same_pending_cleanup_host(self):
+        with TemporaryDirectory() as directory:
+            case = host_fixture.LocalOperationPortTests(); self.addCleanup(case.doCleanups)
+            host, core, events, _ = case.host(Path(directory))
+            before = len(events)
+            with patch.object(InstalledLocalHost, 'installed', side_effect=LocalProductCleanupPending(host)) as build:
+                with self.assertRaises(ClientError) as failure:
+                    await AsyncClient.connect(mode='local', installation='.actql')
+            self.assertEqual(failure.exception.code, 'LocalClientInitializationCleanupPending')
+            client = failure.exception.cleanup_client
+            self.assertIs(client._local_host, host)
+            self.assertEqual(events[before:], [])
+            build.assert_called_once_with(state_dir='.actql')
+            await client.aclose()
+            self.assertTrue(core._closed)
+
+    async def test_named_connection_rejects_mixed_or_internal_options_before_io(self):
+        with patch.object(InstalledLocalHost, 'installed', side_effect=AssertionError('No Local construction')) as build, \
+             patch('actql_sdk._async.httpx.AsyncClient', side_effect=AssertionError('No Remote transport')) as remote:
+            for options in ({'mode': 'local', 'endpoint': 'https://example.test'},
+                            {'mode': 'local', 'token': 'not-local'},
+                            {'mode': 'local', 'resources': object()},
+                            {'mode': 'remote', 'endpoint': 'https://example.test', 'installation': '.actql'},
+                            {'mode': 'other', 'endpoint': 'https://example.test'}):
+                with self.subTest(mode=options['mode']), self.assertRaises(ClientError):
+                    await AsyncClient.connect(**options)
+            build.assert_not_called()
+            remote.assert_not_called()
+
     async def test_missing_physical_worker_funding_is_typed_and_never_remote_or_vm(self):
         with patch.object(InstalledLocalHost, 'installed', side_effect=LocalWorkerFundingUnavailable('Original funding unavailable')), \
                 patch('actql_sdk._async.AsyncClient.connect', side_effect=AssertionError('No Remote fallback')) as remote:
@@ -217,6 +260,21 @@ class AsyncLocalFactoryTests(unittest.IsolatedAsyncioTestCase):
 
 
 class SyncLocalFactoryTests(unittest.TestCase):
+    def test_product_named_local_connect_keeps_same_runner_host_and_directory(self):
+        import actql
+        with TemporaryDirectory() as directory:
+            case = host_fixture.LocalOperationPortTests(); self.addCleanup(case.doCleanups)
+            host, core, events, _ = case.host(Path(directory))
+            selected = Path(directory) / 'selected-state'
+            with patch.object(InstalledLocalHost, 'installed', return_value=host) as build, \
+                 patch('actql_sdk._async.httpx.AsyncClient', side_effect=AssertionError('No Remote transport')):
+                with actql.connect(mode='local', installation=selected) as client:
+                    self.assertIs(client._client._local_host, host)
+                    self.assertEqual(client.profile['mode'], 'local')
+                build.assert_called_once_with(state_dir=selected)
+            self.assertTrue(core._closed)
+            self.assertFalse(any(name in ('cancel', 'start', 'reserve_task') for _, name in events))
+
     def test_product_directory_factory_keeps_original_pending_cleanup_client(self):
         import actql
         with TemporaryDirectory() as directory:

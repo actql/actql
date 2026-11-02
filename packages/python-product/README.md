@@ -35,6 +35,9 @@ token)` API.
 
 The short Local entry is `actql.open(state_dir=".actql")`; it returns the same
 context-managed `Client` used by `Client.open()` and `await AsyncClient.open()`.
+The named `actql.connect(mode="local", installation=".actql")` entry and
+`await AsyncClient.connect(mode="local", installation=".actql")` select that
+same installed factory and preserve its original cleanup handle.
 The Client factories also accept an explicit Store directory. They
 accept no endpoint, token, Wasm/library path, resources or allocator options.
 Both delegate to the same installed Host and existing Client model. The sync

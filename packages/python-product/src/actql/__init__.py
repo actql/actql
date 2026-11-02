@@ -10,7 +10,7 @@ from actql_sdk import (
 )
 
 __all__ = [
-    'open', 'AsyncClient', 'AsyncExecution', 'AsyncResult', 'AsyncReader',
+    'open', 'connect', 'AsyncClient', 'AsyncExecution', 'AsyncResult', 'AsyncReader',
     'Client', 'Execution', 'Result', 'Reader', 'Query', 'QueryReader', 'AsyncQuery', 'AsyncQueryReader', 'ClientError', 'RequestConflict', 'Observation', 'RunState', 'Signer',
     'CheckObservation', 'CheckReport', 'CheckReason',
     'get_submission_input', 'get_check_input', 'get_submission_check_observation',
@@ -23,3 +23,7 @@ def open(*, state_dir: str | _PathLike[str] = '.actql',
          signer: Signer | None = None) -> Client:
     """Open the same Local Client and its original Store, without a server."""
     return Client.open(state_dir=state_dir, signer=signer)
+
+
+# Retain the canonical SDK factory; no second connection or cleanup owner.
+connect = Client.connect

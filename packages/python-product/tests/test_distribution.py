@@ -58,10 +58,12 @@ class RefuseRuntime(importlib.abc.MetaPathFinder):
             raise AssertionError('Facade imported a Local engine')
 sys.meta_path.insert(0, RefuseRuntime())
 import actql, actql_sdk
-assert set(actql.__all__) == set(actql_sdk.__all__) | {'open'}
+assert set(actql.__all__) == set(actql_sdk.__all__) | {'open', 'connect'}
 for name in actql_sdk.__all__:
     assert getattr(actql, name) is getattr(actql_sdk, name), name
 assert callable(actql.open) and actql.open is not actql.Client.open
+assert actql.connect.__self__ is actql.Client
+assert actql.connect.__func__ is actql.Client.connect.__func__
 assert 'wasmtime' not in sys.modules and 'duckdb' not in sys.modules
 '''
         result = subprocess.run([sys.executable, '-I', '-c',

@@ -1,6 +1,6 @@
 """A private Runner facade over the same async handles and wire semantics."""
 import asyncio
-from ._async import AsyncClient
+from ._async import AsyncClient, _MISSING
 from ._errors import ClientError
 from ._connection import NO_TOKEN as _NO_TOKEN
 from ._query import _OriginalQueryHandle
@@ -37,7 +37,7 @@ class Client:
         return cls(runner, client)
 
     @classmethod
-    def connect(cls, endpoint, token=_NO_TOKEN, **options):
+    def connect(cls, endpoint=_MISSING, token=_NO_TOKEN, **options):
         _outside_loop()
         runner = asyncio.Runner()
         try:

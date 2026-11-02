@@ -269,6 +269,7 @@
         "Signer",
         "SourceFormat",
         "Token",
+        "connect",
         "explain_check_reason",
         "get_check_fixes",
         "get_check_input",
@@ -294,7 +295,7 @@
           ]
         }
       ],
-      "sha256": "7e0141cd39f7b97da56fd34e0c83f760bf6ef6ed392de3692c092e2f4350a92d",
+      "sha256": "d8daeafe3026d032906f652e638fbd219a3b6df53a90686eafb636d9a0ed905e",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -325,6 +326,7 @@
             "Signer",
             "SourceFormat",
             "Token",
+            "connect",
             "explain_check_reason",
             "get_check_fixes",
             "get_check_input",
@@ -568,6 +570,7 @@
         "Signer",
         "SourceFormat",
         "Token",
+        "connect",
         "explain_check_reason",
         "get_check_fixes",
         "get_check_input",
@@ -593,7 +596,7 @@
           ]
         }
       ],
-      "sha256": "59445f95599ccde4560c2842bb5b84f134c058d4794468a7fe18e5762b934b21",
+      "sha256": "e5bc8a06694cb20a5b8af8093015ad4207b42446fbb9947399f5fd29dcf708f4",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -624,6 +627,7 @@
             "Signer",
             "SourceFormat",
             "Token",
+            "connect",
             "explain_check_reason",
             "get_check_fixes",
             "get_check_input",
@@ -1428,8 +1432,19 @@
           "name": "AsyncClient/connect",
           "parameters": [
             "cls",
+            "mode",
+            "installation",
+            "signer"
+          ]
+        },
+        {
+          "async": true,
+          "name": "AsyncClient/connect#2",
+          "parameters": [
+            "cls",
             "endpoint",
             "token",
+            "mode",
             "workspace_id",
             "durability",
             "verify",
@@ -1983,8 +1998,19 @@
           "name": "Client/connect",
           "parameters": [
             "cls",
+            "mode",
+            "installation",
+            "signer"
+          ]
+        },
+        {
+          "async": false,
+          "name": "Client/connect#2",
+          "parameters": [
+            "cls",
             "endpoint",
             "token",
+            "mode",
             "workspace_id",
             "durability",
             "verify",
@@ -2577,7 +2603,7 @@
           ]
         }
       ],
-      "sha256": "b206c8ea71459a17f0455a873a13fa7ef7da1093f798a90b7e3874a6535b6a8d",
+      "sha256": "6558baee231e75bdbbee64daa9ed78c0ef7225dce3cacdc0af039a0d87e71cae",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -2596,6 +2622,7 @@
             "AsyncClient/check#4",
             "AsyncClient/checkpoints",
             "AsyncClient/connect",
+            "AsyncClient/connect#2",
             "AsyncClient/lookup_submission",
             "AsyncClient/new_submission",
             "AsyncClient/open",
@@ -2639,6 +2666,7 @@
             "Client/checkpoints",
             "Client/close",
             "Client/connect",
+            "Client/connect#2",
             "Client/lookup_submission",
             "Client/new_submission",
             "Client/open",
@@ -3674,6 +3702,8 @@
             "cls",
             "endpoint",
             "token",
+            "mode",
+            "installation",
             "**options"
           ]
         },
@@ -3930,7 +3960,7 @@
           ]
         }
       ],
-      "sha256": "0c9df9233fd132fa4e16c96862d565cb61ac49acfa32f14fa1668ef525c1d034",
+      "sha256": "b1ceab7c8a132e52373d115b545b91e101182906e705ade0772bf3a5128a305f",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -7664,7 +7694,7 @@
           "parameters": []
         }
       ],
-      "sha256": "659859e79840131a2bd42804749c3878c5eea2655e629a71cb677bd313a8a06e",
+      "sha256": "bdeeb663539b1faadb03d79c21eb51fbcc86b033dc7cc55d8f9c5819b69c47c7",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",

@@ -16,3 +16,5 @@ from actql_sdk import (
 )
 
 def open(*, state_dir: str | _PathLike[str] = ..., signer: Signer | None = ...) -> Client: ...
+
+connect = Client.connect

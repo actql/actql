@@ -1,5 +1,5 @@
 """Type-only facade consumer; verification performs no I/O or execution."""
-from actql import (AsyncClient, Client, Execution, AsyncExecution, JSONValue,
+from actql import (connect, AsyncClient, Client, Execution, AsyncExecution, JSONValue,
                    CheckObservation, CheckReport, CheckReason)
 from actql_sdk import (Client as SDKClient, AsyncClient as SDKAsyncClient,
                        CheckObservation as SDKCheckObservation,
@@ -32,3 +32,15 @@ def same_check_report(value: CheckReport) -> SDKCheckReport:
 
 def same_check_reason(value: CheckReason) -> SDKCheckReason:
     return value
+
+
+def named_local_sync() -> SDKClient:
+    return connect(mode='local', installation='.actql')
+
+
+async def named_local_async() -> SDKAsyncClient:
+    return await AsyncClient.connect(mode='local', installation='.actql')
+
+
+def existing_remote() -> SDKClient:
+    return connect('https://example.test', 'original-token', mode='remote')
