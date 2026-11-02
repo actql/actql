@@ -51,25 +51,36 @@ export function createExecutor(workspace = workspaceIdentity(root, 'normal'), {t
     const inputs = [...['moon', 'moonc', 'moonrun'].map(name => join(home, 'bin', name)),
       ...[...new Set(['node', ...(allowedTargets.has('native')
         ? ['cc', 'c++', 'ar', environment.CC ?? 'cc', environment.CXX ?? 'c++', environment.AR ?? 'ar'] : [])])].map(resolveTool)];
+    const directoryAliases = [], completed = new Set();
     const files = (directory, ancestors = new Set()) => {
       const actual = realpathSync(directory);
       assert(!ancestors.has(actual), 'Cyclic Moon toolchain directory input');
+      if (completed.has(actual)) return [];
       const next = new Set(ancestors).add(actual);
-      return readdirSync(directory, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))
+      const selected = readdirSync(directory, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))
         .flatMap(entry => { const path = join(directory, entry.name);
           if (entry.isSymbolicLink()) {
-            const target = statSync(path);
-            assert(realpathSync(path).startsWith(realpathSync(home) + '/') &&
+            const target = statSync(path), canonical = realpathSync(path);
+            assert(canonical.startsWith(realpathSync(home) + '/') &&
               (target.isFile() || target.isDirectory()), 'External or directory-linked Moon toolchain input');
-            // Internal compiler aliases retain every actual file under both
-            // its selected path and resolved path; they are never skipped.
-            return target.isDirectory() ? files(path, next) : [path];
+            if (!target.isDirectory()) return [path];
+            // Retain even empty aliases; deduplicate only completed directory
+            // traversals, after their actual regular inputs have been selected.
+            directoryAliases.push([path, canonical]);
+            const members = files(path, next);
+            assert.equal(realpathSync(path), canonical, 'Replaced Moon toolchain directory alias');
+            assert(lstatSync(path).isSymbolicLink() && statSync(path).isDirectory(),
+              'Replaced Moon toolchain directory alias');
+            return members;
           }
           return entry.isDirectory() ? files(path, next) : entry.isFile() ? [path] : [];
         });
+      completed.add(actual);
+      return selected;
     };
     for (const directory of ['lib/core', 'lib/runtime', 'include']) inputs.push(...files(join(home, directory)));
-    return digest(JSON.stringify(inputs.map(path => [path, realpathSync(path), digest(readFileSync(path))])));
+    const identities = inputs.map(path => [path, realpathSync(path), digest(readFileSync(path))]);
+    return digest(JSON.stringify(directoryAliases.length ? {files: identities, directoryAliases} : identities));
   };
   const expectedTools = toolIdentity();
   const environmentDigest = digest(JSON.stringify(Object.entries(environment).sort(([a], [b]) => a.localeCompare(b))));
