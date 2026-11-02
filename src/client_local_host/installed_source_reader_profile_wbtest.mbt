@@ -16,7 +16,7 @@ test "standard Source profile uses original codec policies and distinct metadata
     1,
   )
   let provider = installed_json_source_reader_capacity(
-    selected[:16].to_array(),
+    selected[:16].to_owned(),
     3,
     selected[22],
   ).unwrap()

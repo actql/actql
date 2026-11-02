@@ -1,5 +1,5 @@
 ///|
-fn whole_source_capture_contracts() -> @execution.RegisteredRelationContracts raise {
+fn whole_source_capture_contracts() -> @execution.RegisteredRelationContracts {
   @execution.admit_relation_registry(
     product_asset_value(compiler_registered_body_wire()).unwrap(),
     product_asset_value(compiler_registered_values_wire()).unwrap(),

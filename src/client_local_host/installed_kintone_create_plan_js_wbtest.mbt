@@ -438,7 +438,7 @@ test "one-short same-parent CREATE debit refuses before running the native const
   // Accounting pressure fixture only: reserve unused capacity on this SAME
   // Ledger. No memory/permission/physical backing is inferred from the number.
   let pressure = @resources.reserve_capacity(ledger, occupy, 0L).unwrap()
-  let calls = Ref::new(0)
+  let calls = Ref(0)
   let result = borrow_installed_effect_operation(
     owner, prepared, request, plan, 0, true, 0, 0, "kintone:create:construct",
   )
