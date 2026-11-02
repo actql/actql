@@ -86,10 +86,10 @@ if 'capacity' in selected:
                 break
             retained.append(handle)
         assert retained and failed is not None
-        # Coexistence is exhausted before this next parser's entry reservation.
-        # No parser was started: another attempt still refuses the SAME capacity,
-        # while the retained input needs the original cleanup port.
-        assert fixture.call('seal', failed) == -4
+        # The failed grow retains its started preflight/working claim. The
+        # existing Host maps BufferIssue.Closed to -5 (CleanupPending is -9).
+        # It cannot start a replacement parser under the same input handle.
+        assert fixture.call('seal', failed) == -5
         assert fixture.call('close', failed) == -9
         fixture.cleanup_ready = True
         assert fixture.call('close', failed) == 0
@@ -107,8 +107,8 @@ if 'refusal' in selected:
     fixture = PlatformInputFixture(module, 303)
     try:
         handle = fixture.stage(1, b'{"x":[')
-        assert fixture.call('seal', handle) == -7
-        assert fixture.call('seal', handle) == -9
+        assert fixture.call('seal', handle) == -8
+        assert fixture.call('seal', handle) == -5
         assert fixture.call('close', handle) == -9
         fixture.cleanup_ready = True
         assert fixture.call('close', handle) == 0
