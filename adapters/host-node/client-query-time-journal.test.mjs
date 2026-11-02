@@ -6,7 +6,6 @@ import * as moon from '../../_build/js/release/build/connectors_builtin_node/con
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {openClientRequestJournal, installNodeClientEffectRun} from './client-effect-run.mjs';
-import {installNodeClientEffectProgramPreparation} from './client-program-preparation.mjs';
 
 const cid = digit => 'sha256:' + digit.repeat(64);
 const root = new URL('../../', import.meta.url);
@@ -30,7 +29,15 @@ async function preparedFixture() {
   document.stages[0].steps.push({from: 'selected',
     filter: 'current_timestamp() = current_timestamp()', as: 'timed'});
   document.stages[0].results.out.from = 'timed';
-  const prepare = installNodeClientEffectProgramPreparation({moon, environment});
+  // Raw checker input for this isolated Journal/QueryTime component. The
+  // fixture's explicit execution port below is not ordinary Request admission.
+  const prepare = request => {
+    const outcome = moon.clientProgramPrepareEffectComputationWithParameters(
+      JSON.stringify(request.input), 'json', environment, undefined, []);
+    const original = moon.clientProgramEffectPreparationReady(outcome);
+    assert.ok(original, moon.clientProgramEffectPreparationIssueCode(outcome));
+    return original;
+  };
   const prepared = prepare({kind: 'program', input: document, parameters: null});
   assert.equal(checked(moon.clientProgramEffectRequiresQueryTime(prepared, 100000, 100000)), true);
   return {prepared, prepare, document};
