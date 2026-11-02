@@ -220,7 +220,10 @@ class PreparationCustodyTests(unittest.TestCase):
         failure = issue.exception
         _, foreign, _, _, _, _ = self.bridge()
         before = len(calls)
-        for original, owner in [(copy.copy(failure), adapter), (failure, foreign),
+        # Exception copying already refuses its original-only constructor.
+        with self.assertRaises(TypeError):
+            copy.copy(failure)
+        for original, owner in [(failure, foreign),
                                 (LocalPreparationFailure(adapter._identity, loan), adapter)]:
             with self.assertRaises(ValueError):
                 owner.failed_original(original)
