@@ -36,6 +36,7 @@ class LocalArtifactProducerTests(unittest.TestCase):
                  'scripts/generate-local-wasm-abi.py',
                  'packages/python-sdk/src/actql_sdk/_local_wasm_abi.py',
                  'src/physical_resources/imported_child_ledger_wasm.mbt',
+                 'src/client_host_wasm/moon.pkg',
                  'packages/python-product/pyproject.toml',
                  'packages/python-sdk/pyproject.toml', 'packages/python-local-runtime/pyproject.toml',
                  'packages/python-local-runtime/setup.py',
