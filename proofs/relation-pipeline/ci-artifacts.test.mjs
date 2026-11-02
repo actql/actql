@@ -523,7 +523,7 @@ const workflow = parse(readFileSync(join(repositoryRoot, '.github/workflows/ci.y
 const { jobs } = workflow;
 const producerJobs = ['pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity', 'pipeline-capacity-mutants'];
 const partNames = {'pipeline-mutations':'L-M0','pipeline-mutations-rest':'L-M1','pipeline-capacity':'L-C0','pipeline-capacity-mutants':'L-C1'};
-const normalSchedule = "${{ vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}";
+const normalSchedule = "${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}";
 const runLines = job => jobs[job].steps.filter(step => step.run).flatMap(step => step.run.trim().split('\n'));
 const shell = (script, env) => spawnSync('bash', ['-eo', 'pipefail', '-c', script], {
   cwd: repositoryRoot, env: { ...process.env, ...env }, encoding: 'utf8', timeout: 10_000,

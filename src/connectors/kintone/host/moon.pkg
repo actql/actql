@@ -21,7 +21,5 @@ import {
 } for "wbtest"
 
 options(
-  targets: {
-    "record_create_standard_js_wbtest.mbt": [ "js" ],
-  },
+  targets: { "record_create_standard_js_wbtest.mbt": [ "js" ] },
 )

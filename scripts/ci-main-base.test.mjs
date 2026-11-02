@@ -44,7 +44,7 @@ test('full checkpoint binds tested SHA, ancestry, policy and exact successful at
 // narrow profile and is skipped alongside the successful full families.
 const fullWorkflowJobs = ['check', 'select-targets', 'preflight', 'lint',
   'core (js)', 'core (wasm)', 'core (native)', 'host', 'client', 'native',
-  'spec', 'session-evidence', 'pipeline-evidence', 'native-macos',
+  'spec', 'session-evidence', 'pipeline-evidence', 'native-macos', 'python-wheels',
   'native-separated-network', 'workers', 'connector-addition', 'duckdb-node'];
 function fullWorkflowFixture() {
   const f = fixture();

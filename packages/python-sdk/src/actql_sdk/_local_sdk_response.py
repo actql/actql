@@ -11,6 +11,7 @@ from ._local_sdk_payload_reader import OriginalSDKPayloadReader
 
 if TYPE_CHECKING:
     from ._local_product import InstalledLocalHost
+    from ._local_saved_read import OriginalSavedResultRead
 
 
 class LocalSDKResponseCleanupPending(RuntimeError):
@@ -28,12 +29,21 @@ class OriginalLocalSDKResponseStream(httpx.AsyncByteStream):
     The existing SDK EOF marker follows only independently observed saved
     terminal evidence. Sink completion or a precommit callback alone is not EOF.
     """
-    def __init__(self, host: InstalledLocalHost, reader: OriginalSDKPayloadReader) -> None:
+    def __init__(self, host: InstalledLocalHost, reader: OriginalSDKPayloadReader, *,
+                 saved_read: OriginalSavedResultRead | None = None) -> None:
         if type(reader) is not OriginalSDKPayloadReader or reader._core is not host._core:
             raise ValueError('Foreign original Local SDK response reader')
         reader._nominal()
+        if saved_read is not None:
+            from ._local_saved_read import OriginalSavedResultRead
+            if (type(saved_read) is not OriginalSavedResultRead or saved_read._host is not host
+                    or not any(original is saved_read for original in host._saved_result_reads)):
+                raise ValueError('Foreign original Saved response custody')
+            saved_read._ensure_active()
         self._original = self
         self._host, self._reader = host, reader
+        self._saved_read = saved_read
+        self._payload_closed = False
         self._clock: _Input | None = None
         self._iterator: AsyncGenerator[bytes, None] | None = None
         self._closing = self._reading = self._attached = False
@@ -131,12 +141,23 @@ class OriginalLocalSDKResponseStream(httpx.AsyncByteStream):
         with self._host._core._lock:
             if self._reading:
                 return False
-            if not self._reader.close():
-                return False
-            if not self._reader._storage.close_original_first(self._reader._request):
-                return False
-            if not self._close_clock():
-                return False
+            if not self._payload_closed:
+                if not self._reader.close():
+                    return False
+                if not self._reader._storage.close_original_first(self._reader._request):
+                    return False
+                if not self._close_clock():
+                    return False
+                self._payload_closed = True
+            # The response has returned its actual child loans. Retire this
+            # SAME Saved operation now, rather than retaining its area until
+            # Client close and blocking the next independently admitted read.
+            saved_read = self._saved_read
+            if saved_read is not None:
+                if not saved_read.close():
+                    return False
+                self._host._saved_result_reads.remove(saved_read)
+                self._saved_read = None
             self._host._response_streams.discard(self)
             self._closed = True
             return True
