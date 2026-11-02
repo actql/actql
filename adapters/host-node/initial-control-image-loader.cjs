@@ -7,7 +7,7 @@
 const NodeModule = require('node:module');
 const {join} = require('node:path');
 const {realpathSync} = require('node:fs');
-const {pathToFileURL, fileURLToPath} = require('node:url');
+const {pathToFileURL, fileURLToPath, URL: OriginalURL} = require('node:url');
 const nativeApply = Reflect.apply;
 const descriptor = Object.getOwnPropertyDescriptor, hasOwn = Object.hasOwn;
 const ownKeys = Reflect.ownKeys;
@@ -269,7 +269,20 @@ function installImageLoader(groups, ordinary) {
   }
   function resolve(specifier, context, nextResolve) {
     if (covered(context.parentURL)) assertCurrent();
-    const result = nextResolve(specifier, context);
+    let captured;
+    if (typeof specifier === 'string' && (starts(specifier, 'file:') ||
+        starts(specifier, './') || starts(specifier, '../') || starts(specifier, '/'))) {
+      let url;
+      try {url = new OriginalURL(specifier, context.parentURL).href;}
+      catch { /* The original Node resolver retains malformed-specifier errors. */ }
+      const original = nativeApply(nativeMapGet, images, [url]);
+      // Resolve only an exact already-captured file. Native package resolution
+      // and all unselected URLs stay with Node. A true synchronous resolution
+      // keeps its CJS translator on this original format/Source instead of
+      // reclassifying the pathname through a replaced package.json.
+      if (original !== undefined) captured = {url, format: original.format, shortCircuit: true};
+    }
+    const result = captured ?? nextResolve(specifier, context);
     if (covered(result.url)) {
       assertCurrent();
       const original = nativeApply(nativeMapGet, images, [result.url]);
