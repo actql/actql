@@ -2,10 +2,9 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { hash } from '../../inventory.mjs';
 import { fieldLayout } from '../backing/native-extent.mjs';
-import { checkCurrentConstructionSourceReview } from './provider-construction-current-review.mjs';
 import {reviewedFunction, checkConstructionSourceReview} from './provider-construction-source-review.mjs';
-import {beforeAdoptedConstructionSource} from './provider-construction-adopted-review.mjs';
-const profile = JSON.parse(readFileSync(new URL('./provider-construction-current.json', import.meta.url)));
+const profileBytes = readFileSync(new URL('./provider-construction-current.json', import.meta.url));
+const profile = JSON.parse(profileBytes);
 export function providerConstructionBound(read) {
   return constructionBound(read, false);
 }
@@ -14,14 +13,12 @@ export function retainedProviderConstructionBound(read) {
 }
 function constructionBound(read, retained) {
   assert.equal(profile.version, 'actql-native-provider-construction/0.1');
-  const priorRead = path => beforeAdoptedConstructionSource(read(path).toString(), path);
-  const retainedProfile = JSON.parse(read('proofs/relation-pipeline/capacity/parent-control/provider-construction.json'));
-  let sourceReview = retained ? checkConstructionSourceReview(retainedProfile, read)
-    : checkCurrentConstructionSourceReview(profile, priorRead);
-  if (!retained) sourceReview = {...sourceReview, retainedSourceReview: sourceReview,
-    selectedDigest: hash(read('src/connectors/local/selected_relation_provider.mbt')),
-    managedDigest: hash(read('src/connectors/local/managed_provider.mbt')),
-    generatedDigest: hash(read('src/execution_relation/generated_sequence.mbt'))};
+  const retainedProfile = retained ? JSON.parse(read(
+    'proofs/relation-pipeline/capacity/parent-control/provider-construction.json')) : undefined;
+  // The current census binds current complete sources directly. Archived
+  // reverse deltas qualify only their retained observations and layouts.
+  const sourceReview = retained ? checkConstructionSourceReview(retainedProfile, read)
+    : checkCurrentConstructionSources(read);
   const sourceProfile = retained ? retainedProfile : profile;
   if (!retained) {
     const managed = read('src/connectors/local/managed_provider.mbt').toString();
@@ -40,7 +37,7 @@ function constructionBound(read, retained) {
   }
 
   for (const p of sourceProfile.providers) {
-    const source = (retained ? read(p.path) : priorRead(p.path)).toString();
+    const source = read(p.path).toString();
     assert.equal(hash(source), p.sourceDigest, `Unreviewed provider constructor ${p.name}`);
     const constructor = source.slice(source.indexOf(`fn ${p.name}(`));
     assert(constructor.includes(`${p.binding}(`), `Changed provider binding ${p.name}`);
@@ -77,6 +74,30 @@ function constructionBound(read, retained) {
       'constructor lifetime union and borrowed configuration ownership'],
     completeConstructorByteCorrespondence: false,
     completeParentUpper: false, completePipelineUpper: false };
+}
+
+function checkCurrentConstructionSources(read) {
+  const recipe = read('proofs/relation-pipeline/capacity/parent-control/provider-construction-current.json');
+  assert.equal(recipe.toString(), profileBytes.toString(), 'Changed current constructor recipe');
+  const sources = {...Object.fromEntries(profile.providers.map(p => [p.path, p.sourceDigest])),
+    ...profile.sourcePremises};
+  for (const [path, digest] of Object.entries(sources)) {
+    assert.equal(hash(read(path)), digest, `Unreviewed current constructor source ${path}`);
+  }
+  assert.deepEqual(Object.keys(profile.wrapperDigests),
+    ['managed_provider', 'managed_provider_with_inputs', 'managed_provider_with_numeric']);
+  const managed = read('src/connectors/local/managed_provider.mbt').toString();
+  for (const [name, digest] of Object.entries(profile.wrapperDigests)) {
+    assert.equal(hash(reviewedFunction(managed, name)), digest,
+      `Changed current candidate construction wrapper ${name}`);
+  }
+  return {recipeDigest: hash(recipe),
+    selectedDigest: sources['src/connectors/local/selected_relation_provider.mbt'],
+    managedDigest: sources['src/connectors/local/managed_provider.mbt'],
+    generatedDigest: sources['src/execution_relation/generated_sequence.mbt'],
+    scope: profile.scope,
+    completeConstructorByteCorrespondence: false,
+    completeParentUpper: false, completePipelineUpper: false};
 }
 
 // Compose only the independently audited generated-code result with the exact
