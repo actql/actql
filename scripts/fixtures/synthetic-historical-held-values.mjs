@@ -150,8 +150,8 @@ export async function writeSyntheticHistoricalHeldValues({directory, document,
   environment_binding_cid: cid({version: 'actql-remote-run-acceptance-environment/0.1', site_key: siteKey,
     realization_key: realizationKey, environment_cid: cid(environmentBody), authority_scope_cid: authorityScopeCid})};
 
-  // The public initializer has already established an empty owned root. All
-  // its handles must be closed before these synthetic original bytes exist.
+  // The caller activated the empty Journal through its public Checkpoint read.
+  // All its handles must be closed before these synthetic original bytes exist.
   const requests = new DatabaseSync(join(root, 'requests/client-requests.sqlite3'));
   try {
     assert.equal(requests.prepare('SELECT COUNT(*) AS n FROM client_requests').get().n, 0);
@@ -161,7 +161,7 @@ export async function writeSyntheticHistoricalHeldValues({directory, document,
     {enableForeignKeyConstraints: true});
   try {
     assert.equal(database.prepare("SELECT value FROM journal_metadata WHERE key = 'schema_version'").get().value,
-      'actql-checkpoint-journal/0.1;model-call-provenance=1;effect-settlement=1;model-current-cut-link=1');
+      'actql-checkpoint-journal/0.1;model-call-provenance=1;effect-settlement=1;model-current-cut-link=1;model-current-cut-invalidation=1');
     for (const table of ['runs', 'resolutions', 'resume_intents', 'resume_admissions',
       ...(append ? [] : ['preparations', 'checkpoints'])]) {
       assert.equal(database.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get().n, 0);
