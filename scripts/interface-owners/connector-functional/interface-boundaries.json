@@ -4093,7 +4093,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "101563a66696889883bcd1793e43265274bbc637707adcaf680fa3eca3cb1155",
+      "sha256": "8030881314e4537dd962ac50c105197e6d9c81dfbb0cab54ade286371c47f383",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -4712,6 +4712,7 @@
             "targetReads",
             "contentOwner",
             "managedEffect",
+            "updateTargetSelections",
             "own",
             "ownInputs",
             "ownChildren",
@@ -4734,18 +4735,13 @@
         },
         {
           "name": "createRowEffectStage/captureStage/captureStage/captureStage",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/captureStage/captureStage/captureStage#2",
           "parameters": [
             "row"
           ],
           "async": false
         },
         {
-          "name": "createRowEffectStage/captureStage/captureStage/captureStage#3",
+          "name": "createRowEffectStage/captureStage/captureStage/captureStage#2",
           "parameters": [
             "change",
             "row"
@@ -4753,7 +4749,7 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage/captureStage/captureStage/captureStage#4",
+          "name": "createRowEffectStage/captureStage/captureStage/captureStage#3",
           "parameters": [
             "claim"
           ],
@@ -4761,42 +4757,30 @@
         },
         {
           "name": "createRowEffectStage/captureStage/captureStage#10",
-          "parameters": [
-            "member"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/captureStage/captureStage#11",
           "parameters": [],
           "async": true
         },
         {
-          "name": "createRowEffectStage/captureStage/captureStage#12",
+          "name": "createRowEffectStage/captureStage/captureStage#11",
           "parameters": [
             "member"
           ],
           "async": false
         },
         {
-          "name": "createRowEffectStage/captureStage/captureStage#13",
+          "name": "createRowEffectStage/captureStage/captureStage#12",
           "parameters": [],
           "async": true
         },
         {
           "name": "createRowEffectStage/captureStage/captureStage#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/captureStage/captureStage#3",
           "parameters": [
             "member"
           ],
           "async": false
         },
         {
-          "name": "createRowEffectStage/captureStage/captureStage#4",
+          "name": "createRowEffectStage/captureStage/captureStage#3",
           "parameters": [
             "member",
             "memberIndex"
@@ -4804,14 +4788,14 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage/captureStage/captureStage#5",
+          "name": "createRowEffectStage/captureStage/captureStage#4",
           "parameters": [
             "entry"
           ],
           "async": false
         },
         {
-          "name": "createRowEffectStage/captureStage/captureStage#6",
+          "name": "createRowEffectStage/captureStage/captureStage#5",
           "parameters": [
             "entry",
             "row"
@@ -4819,24 +4803,31 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage/captureStage/captureStage#7",
+          "name": "createRowEffectStage/captureStage/captureStage#6",
           "parameters": [
             "rows"
           ],
           "async": false
         },
         {
-          "name": "createRowEffectStage/captureStage/captureStage#8",
+          "name": "createRowEffectStage/captureStage/captureStage#7",
           "parameters": [
             "member"
           ],
           "async": false
         },
         {
-          "name": "createRowEffectStage/captureStage/captureStage#9",
+          "name": "createRowEffectStage/captureStage/captureStage#8",
           "parameters": [
             "member",
             "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/captureStage/captureStage#9",
+          "parameters": [
+            "member"
           ],
           "async": false
         },
@@ -4871,14 +4862,6 @@
           "parameters": [
             "name",
             "wire"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/captureStage/connectorRecovery/connectorRecovery",
-          "parameters": [
-            "member",
-            "index"
           ],
           "async": false
         },
@@ -4974,6 +4957,16 @@
           "async": true
         },
         {
+          "name": "createRowEffectStage/captureStage/retained/retained",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/captureStage/retained/retained/retained",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "createRowEffectStage/captureStage/retireRequestAliases/retireRequestAliases",
           "parameters": [],
           "async": false
@@ -5010,6 +5003,7 @@
             "signal",
             "assertCurrent",
             "physicalOperations",
+            "controlConstruction",
             "operationPhase"
           ],
           "async": true
@@ -5113,7 +5107,8 @@
             "subjectCid",
             "signal",
             "targetReads",
-            "assertCurrent"
+            "assertCurrent",
+            "controlConstruction"
           ],
           "async": true
         },
@@ -5203,7 +5198,8 @@
         {
           "name": "createRowEffectStage/openLedger/openLedger",
           "parameters": [
-            "identity"
+            "identity",
+            "controlConstruction"
           ],
           "async": false
         },
@@ -5265,6 +5261,7 @@
             "assertCurrent",
             "dispatchIndexes",
             "physicalOperations",
+            "controlConstruction",
             "operationPhase"
           ],
           "async": false
@@ -5493,6 +5490,21 @@
           "async": false
         },
         {
+          "name": "createRowEffectStage/prepareRecovered/closeRecovery/closeRecovery",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/prepareRecovered/closeRecovery/closeRecovery/flight/flight",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createRowEffectStage/prepareRecovered/closeRecovery/closeRecovery/flight/flight#2",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "createRowEffectStage/prepareRecovered/dispatches/dispatches",
           "parameters": [
             "member"
@@ -5544,11 +5556,6 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage/prepareRecovered/finish/finish/finish#6",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "createRowEffectStage/prepareRecovered/finish/finish/previewRows/previewRows",
           "parameters": [
             "member"
@@ -5564,6 +5571,11 @@
           "async": true
         },
         {
+          "name": "createRowEffectStage/prepareRecovered/finish/finish/reconcileStoredResponses/reconcileStoredResponses/assertRecoveredCurrent/assertRecoveredCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "createRowEffectStage/prepareRecovered/finish/finish/reconcileStoredResponses/reconcileStoredResponses/recovery/recovery",
           "parameters": [],
           "async": true
@@ -5576,16 +5588,6 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage/prepareRecovered/ledgerOwner/init:cleanup/init:cleanup",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "createRowEffectStage/prepareRecovered/ledgerOwner/init:close/init:close",
-          "parameters": [],
-          "async": true
-        },
-        {
           "name": "createRowEffectStage/prepareRecovered/ledgerOwner/ledgerOwner",
           "parameters": [],
           "async": false
@@ -5596,6 +5598,18 @@
             "member",
             "index"
           ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/prepareRecovered/physicalOperations/physicalOperations",
+          "parameters": [
+            "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/prepareRecovered/physicalOperations/physicalOperations/init:assertCurrent/init:assertCurrent",
+          "parameters": [],
           "async": false
         },
         {
@@ -5629,9 +5643,21 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage/prepareRecovered/releaseRecoveryChildren/releaseRecoveryChildren",
+          "name": "createRowEffectStage/prepareRecovered/requestsPending/requestsPending",
           "parameters": [],
-          "async": true
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/prepareRecovered/requestsPending/requestsPending/requestsPending",
+          "parameters": [
+            "child"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/prepareRecovered/retireRequestAliases/retireRequestAliases",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "createRowEffectStage/readDecision/readDecision",
@@ -5878,7 +5904,8 @@
           "parameters": [
             "facts",
             "members",
-            "stageIndex"
+            "stageIndex",
+            "updateTargetSelections"
           ],
           "async": false
         },
@@ -6130,7 +6157,8 @@
             "authorization",
             "credential",
             "callResource",
-            "signal"
+            "signal",
+            "controlConstruction"
           ],
           "async": true
         },
@@ -6508,13 +6536,11 @@
             "createRowEffectStage/captureStage/captureStage/captureStage",
             "createRowEffectStage/captureStage/captureStage/captureStage#2",
             "createRowEffectStage/captureStage/captureStage/captureStage#3",
-            "createRowEffectStage/captureStage/captureStage/captureStage#4",
             "createRowEffectStage/captureStage/childrenPending/childrenPending",
             "createRowEffectStage/captureStage/childrenPending/childrenPending/childrenPending",
             "createRowEffectStage/captureStage/claims/claims",
             "createRowEffectStage/captureStage/computation/computation",
             "createRowEffectStage/captureStage/computation/computation#2",
-            "createRowEffectStage/captureStage/connectorRecovery/connectorRecovery",
             "createRowEffectStage/captureStage/context/context",
             "createRowEffectStage/captureStage/footprints/footprints",
             "createRowEffectStage/captureStage/holdings/holdings",
@@ -6580,14 +6606,11 @@
             "createRowEffectStage/prepareRecovered/finish/finish/finish#3",
             "createRowEffectStage/prepareRecovered/finish/finish/finish#4",
             "createRowEffectStage/prepareRecovered/finish/finish/finish#5",
-            "createRowEffectStage/prepareRecovered/finish/finish/finish#6",
             "createRowEffectStage/prepareRecovered/finish/finish/finish/finish",
             "createRowEffectStage/prepareRecovered/finish/finish/previewRows/previewRows",
             "createRowEffectStage/prepareRecovered/finish/finish/reconcileStoredResponses/reconcileStoredResponses",
             "createRowEffectStage/prepareRecovered/finish/finish/reconcileStoredResponses/reconcileStoredResponses/recovery/recovery",
             "createRowEffectStage/prepareRecovered/finish/finish/reconcileStoredResponses/reconcileStoredResponses/recovery/recovery#2",
-            "createRowEffectStage/prepareRecovered/ledgerOwner/init:cleanup/init:cleanup",
-            "createRowEffectStage/prepareRecovered/ledgerOwner/init:close/init:close",
             "createRowEffectStage/prepareRecovered/ledgerOwner/ledgerOwner",
             "createRowEffectStage/prepareRecovered/prepareRecovered",
             "createRowEffectStage/prepareRecovered/prepareRecovered#2",
@@ -6701,7 +6724,7 @@
               },
               {
                 "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
-                "anchor": "export async function prepareInstalledRowCaptureChild({children, create,"
+                "anchor": "export function retainInstalledRowCaptureChild({children, create,"
               },
               {
                 "path": "adapters/host-node/installed-row-effect.mjs",
@@ -7759,7 +7782,6 @@
         },
         {
           "operations": [
-            "createRowEffectStage/captureStage/captureStage#13",
             "createRowEffectStage/captureStage/targets/targets"
           ],
           "exports": [],
@@ -7871,8 +7893,7 @@
             "createRowEffectStage/prepareRecovered/finish/finish",
             "createRowEffectStage/prepareRecovered/memberIndexes/memberIndexes",
             "createRowEffectStage/prepareRecovered/recoveryPending/recoveryPending",
-            "createRowEffectStage/prepareRecovered/recoveryPending/recoveryPending/recoveryPending",
-            "createRowEffectStage/prepareRecovered/releaseRecoveryChildren/releaseRecoveryChildren"
+            "createRowEffectStage/prepareRecovered/recoveryPending/recoveryPending/recoveryPending"
           ],
           "exports": [],
           "attributes": {
@@ -8457,6 +8478,151 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "createRowEffectStage/captureStage/retained/retained",
+            "createRowEffectStage/captureStage/retained/retained/retained"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Member capture retains its original constructor before Source and Preview work,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Member capture retains its original constructor before Source and Preview work,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Member capture retains its original constructor before Source and Preview work,"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Member capture retains its original constructor before Source and Preview work,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Member capture retains its original constructor before Source and Preview work,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Member capture retains its original constructor before Source and Preview work,"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Member capture retains its original constructor before Source and Preview work,"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Member capture retains its original constructor before Source and Preview work,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Member capture retains its original constructor before Source and Preview work,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Member capture retains its original constructor before Source and Preview work,"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createRowEffectStage/prepareRecovered/closeRecovery/closeRecovery",
+            "createRowEffectStage/prepareRecovered/closeRecovery/closeRecovery/flight/flight",
+            "createRowEffectStage/prepareRecovered/closeRecovery/closeRecovery/flight/flight#2",
+            "createRowEffectStage/prepareRecovered/finish/finish/reconcileStoredResponses/reconcileStoredResponses/assertRecoveredCurrent/assertRecoveredCurrent",
+            "createRowEffectStage/prepareRecovered/physicalOperations/physicalOperations",
+            "createRowEffectStage/prepareRecovered/physicalOperations/physicalOperations/init:assertCurrent/init:assertCurrent",
+            "createRowEffectStage/prepareRecovered/requestsPending/requestsPending",
+            "createRowEffectStage/prepareRecovered/requestsPending/requestsPending/requestsPending",
+            "createRowEffectStage/prepareRecovered/retireRequestAliases/retireRequestAliases"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Recovered Effect physical children"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Recovered Effect physical children"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Recovered Effect physical children"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Recovered Effect physical children"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Recovered Effect physical children"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Recovered Effect physical children"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Recovered Effect physical children"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Recovered Effect physical children"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Recovered Effect physical children"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Recovered Effect physical children"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -8494,7 +8660,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-run.mjs",
-      "sha256": "0fc435be1e05f832751d9d172106be17981017a7488f7ec6c7fbe8a53f2b69f7",
+      "sha256": "25a7b17ce31b987dbe9f455eb7b9e6b5a63d0b01b6e40704429d44232fbdfae2",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing RowRun acquisition/capture/release plumbing; physical provider and original current authority stay with the adapter",
@@ -9529,7 +9695,7 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
-      "sha256": "8b84c933451a100b9e8b54ed1b0f587d7341a47b770e3e79cc3551d2bdd7d429",
+      "sha256": "502e716e1c3af7089c8240add1fbd1a1e677443265fba5dca05dccb98f68839a",
       "operations": [
         {
           "name": "byCid/byCid",
@@ -15402,6 +15568,7 @@
       "exports": [
         "captureInstalledEffectPlanRecipe",
         "captureInstalledStandardCreateLimits",
+        "prepareInstalledEffectControlConstruction",
         "prepareInstalledEffectCredentialChild",
         "prepareInstalledEffectManagedPlan",
         "prepareInstalledEffectRequestChild",
@@ -15489,6 +15656,64 @@
           "parameters": [
             "code"
           ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectControlConstruction",
+          "parameters": [
+            "run"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectControlConstruction/originalRecord/originalRecord",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectControlConstruction/prepareInstalledEffectControlConstruction",
+          "parameters": [
+            "method"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectControlConstruction/prepareInstalledEffectControlConstruction#2",
+          "parameters": [
+            "receiver",
+            "method",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectControlConstruction/retainInvalid/retainInvalid",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectControlConstruction/retainInvalid/retainInvalid/joined/joined",
+          "parameters": [
+            "yes",
+            "no"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectControlConstruction/retainInvalid/retainInvalid/settled/settled",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectControlConstruction/retire/retire",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectControlConstruction/sameRecord/sameRecord",
+          "parameters": [],
           "async": false
         },
         {
@@ -15734,11 +15959,6 @@
           "async": false
         },
         {
-          "name": "prepareInstalledEffectRequestChild/current/current",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "prepareInstalledEffectRequestChild/drain/drain",
           "parameters": [],
           "async": false
@@ -15839,7 +16059,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "82f69a2a6d377fad121c7ddd89c5eb4ec8c1b011fa4a045000d265ff44680e6f",
+      "sha256": "6695d05b042cbd2346223c4c458beda60b9417878ec7eac0a5b64b3069ee0e72",
       "contracts": [
         {
           "operations": [
@@ -15888,7 +16108,6 @@
             "prepareInstalledEffectManagedPlan/prepareInstalledEffectManagedPlan",
             "prepareInstalledEffectManagedPlan/prepareInstalledEffectManagedPlan#2",
             "prepareInstalledEffectRequestChild",
-            "prepareInstalledEffectRequestChild/current/current",
             "prepareInstalledEffectRequestChild/drain/drain",
             "prepareInstalledEffectRequestChild/init:prepare/init:prepare",
             "prepareInstalledEffectRequestChild/init:prepare/init:prepare/init:prepare",
@@ -15990,6 +16209,84 @@
               {
                 "path": "adapters/site-node/https-credential-response-accounting.test.mjs",
                 "anchor": "test('original HTTP overflow in either header block stays Unknown without another claim'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "prepareInstalledEffectControlConstruction",
+            "prepareInstalledEffectControlConstruction/originalRecord/originalRecord",
+            "prepareInstalledEffectControlConstruction/prepareInstalledEffectControlConstruction",
+            "prepareInstalledEffectControlConstruction/prepareInstalledEffectControlConstruction#2",
+            "prepareInstalledEffectControlConstruction/retainInvalid/retainInvalid",
+            "prepareInstalledEffectControlConstruction/retainInvalid/retainInvalid/joined/joined",
+            "prepareInstalledEffectControlConstruction/retainInvalid/retainInvalid/settled/settled",
+            "prepareInstalledEffectControlConstruction/retire/retire",
+            "prepareInstalledEffectControlConstruction/sameRecord/sameRecord"
+          ],
+          "exports": [
+            "prepareInstalledEffectControlConstruction"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Effect control reservation keeps management/index growth"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Effect control reservation keeps management/index growth"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Effect control reservation keeps management/index growth"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Effect control reservation keeps management/index growth"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Effect control reservation keeps management/index growth"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Effect control reservation keeps management/index growth"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Effect control reservation keeps management/index growth"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Effect control reservation keeps management/index growth"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Effect control reservation keeps management/index growth"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Effect control reservation keeps management/index growth"
               }
             ]
           }

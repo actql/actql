@@ -268,6 +268,17 @@ pub fn client_program_composed_infer_retained_limits(
 }
 
 ///|
+/// The legacy suffix above describes its read allowances. A physical Request
+/// Plan separately requires the SAME selected Model ledger floor. Read only
+/// those stored amounts; do not select bounds, quote, reserve or issue again.
+#export_name("clientProgramComposedInferModelLedgerBytes")
+pub fn client_program_composed_infer_model_ledger_bytes(
+  selected : @infer_host.Limits,
+) -> Array[Int64] {
+  [selected.model.ledger.retained_bytes, selected.model.ledger.execution_bytes]
+}
+
+///|
 #export_name("clientProgramInstalledManagedCaptureRunRequirements")
 pub fn client_program_installed_managed_capture_run_requirements(
   prepared : @publication_host.PreparedClientProgram,

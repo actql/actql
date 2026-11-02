@@ -241,12 +241,16 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
     if(run.failed)throw run.failure;
     return run;
   };
-  function prepareRun(prepared,request,prepareInvocation){
+  function prepareRun(facts){
+    if(arguments.length!==1||facts?.preparedProgram===undefined||facts.requestIdentity===undefined)
+      fail('InvalidInstalledManagedRunRequest');
+    const {preparedProgram:prepared,requestIdentity:request,prepareInvocation}=facts;
     current();
     if(sharedRuns.get(prepared)?.recipe!==undefined||typeof prepareManagedRun!=='function')fail('LocalFilesManagedReadUnavailable');
     // The same Host retains its actual partial/adopted Run before returning.
     // No Connector Root, admission, numeric quote or run-count ceiling exists.
-    const value=Reflect.apply(prepareManagedRun,undefined,[prepared,request,profile,prepareInvocation]);
+    const value=Reflect.apply(prepareManagedRun,undefined,[Object.freeze({preparedProgram:prepared,
+      requestIdentity:request,sourceProfile:profile,prepareInvocation})]);
     if(value===undefined)fail('LocalFilesManagedReadUnavailable');
     const prior=sharedRuns.get(prepared);
     if(prior!==undefined&&(prior.value!==value||prior.request!==request))fail('ForeignLocalFilesPreparation');

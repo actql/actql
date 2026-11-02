@@ -269,18 +269,30 @@ test "Effect Request Plan grow keeps the same compiled original and quote at bot
       capacity, input,
     ).unwrap()
     let bytes = program_check_data_extent_cost(parent.program_data.unwrap()).unwrap()
+    let phase = installed_effect_control_phase_quote_capacity()
+    // The existing generic Plan constructor also backs its checked-node proof
+    // before entry. The previous data-only fixture omitted those live frames.
+    let proof_retained = client_local_value_node_proof_retained_bytes().unwrap()
+    let proof_scratch = client_local_value_node_proof_scratch_bytes().unwrap()
+    let retained = bytes +
+      proof_retained +
+      @execution.execution_capacity_retained_bytes(phase)
+    let execution = bytes +
+      proof_retained +
+      proof_scratch +
+      @execution.execution_capacity_execution_bytes(phase)
     let limits = @resources.ledger_limits(parent.ledger)
     let block = @resources.reserve_capacity(
       parent.ledger,
       if retention {
-        limits.retained_bytes - before.0 - bytes + 1L
+        limits.retained_bytes - before.0 - retained + 1L
       } else {
         0L
       },
       if retention {
         0L
       } else {
-        limits.execution_bytes - before.1 - bytes + 1L
+        limits.execution_bytes - before.1 - execution + 1L
       },
     ).unwrap()
     let result = reserve_request_effect_plan(parent, input)
@@ -293,7 +305,7 @@ test "Effect Request Plan grow keeps the same compiled original and quote at bot
     )
     assert_eq(
       parent.program_plan_quote,
-      Some((before.0 + bytes, before.1 + bytes)),
+      Some((before.0 + retained, before.1 + execution)),
     )
     assert_true(
       parent.phase == EffectPlanQuoted &&

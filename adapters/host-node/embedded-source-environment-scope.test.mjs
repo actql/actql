@@ -27,14 +27,14 @@ function visit(node){
   }
 }
 visit(outerTry.block);assert(capture&&retain);
-const getter=outerTry.block.body.filter(node=>node.type==='FunctionDeclaration'&&node.id.name==='getPreparedSourceEnvironment');
+assert.equal(outerTry.block.body.some(node=>node.type==='FunctionDeclaration'&&node.id.name==='getPreparedSourceEnvironment'),false);
 const body=source.slice(opening.start,outerTry.start)+`try {
  const moon=fixture.moon;
  let environment=fixture.environment,sourcePublication=fixture.publication;
- ${getter.map(text).join('\n')}
+ const installationServices=fixture.services,environmentWire='{}';
  ${text(capture)}
  ${text(retain)}
- return {get:getPreparedSourceEnvironment,retire:retireModelPreparationReferences,
+ return {get slot(){return preparedSourceEnvironment;},retire:retireModelPreparationReferences,
   replaceEnvironment(value){environment=value;},replacePublication(value){sourcePublication=value;},
   stop(){modelRuntimeClosing=true;}};
  }catch(cause){throw cause;}`+source.slice(outerTry.end,opening.end);
@@ -42,13 +42,19 @@ const moduleSource=`export function create(fixture){
  const clientOperationError=code=>Object.assign(new Error(code),{code});
  const sourceAliasPublicationOriginal=fixture.original;
  const retireSourceAliasPublicationOriginal=fixture.retire;
+ const completeInstalledSourceInitialization=fixture.complete;
  ${body}
- return openInstalledHost({});
+ return openInstalledHost({}, {host:{}, fundedPreparation(){throw Error('No Program selected');}, requestPreparation(){throw Error('No Request selected');}, retainReferenceRetirement(callback){fixture.retirement=callback;}});
 }`;
 
-test('actual Host enclosing scopes bind its prepared Source Environment getter to installed originals',async()=>{
+test('actual Host enclosing scopes retain original Source material without a legacy execution getter',async()=>{
   const original={moon:{},environment:{},publication:{},preparedEnvironment:{}};
   let reads=0,retired=0;
+  original.services={};
+  original.complete=(services,installation,prepared,wire)=>{
+    assert.strictEqual(services,original.services);assert.strictEqual(prepared,original.preparedEnvironment);
+    assert.equal(wire,'{}');
+  };
   original.original=(moon,environment,publication)=>{
     assert.strictEqual(moon,original.moon);assert.strictEqual(environment,original.environment);
     assert.strictEqual(publication,original.publication);reads++;
@@ -60,13 +66,14 @@ test('actual Host enclosing scopes bind its prepared Source Environment getter t
   };
   const {create}=await import('data:text/javascript;charset=utf-8,'+encodeURIComponent(moduleSource));
   const host=await create(original);
-  for(let count=0;count<3;count++)assert.strictEqual(host.get(),original.preparedEnvironment);
+  assert.strictEqual(original.retirement,host.retire);
+  assert.strictEqual(host.slot.preparedEnvironment,original.preparedEnvironment);
   assert.equal(reads,1);
   host.replaceEnvironment({});
-  assert.throws(host.get,{code:'InstalledPublicSourceEnvironmentChanged'});
+  assert.strictEqual(host.slot.preparedEnvironment,original.preparedEnvironment);
   host.replaceEnvironment(original.environment);host.replacePublication({});
-  assert.throws(host.get,{code:'InstalledPublicSourceEnvironmentChanged'});
+  assert.strictEqual(host.slot.preparedEnvironment,original.preparedEnvironment);
   host.replacePublication(original.publication);
-  host.stop();assert.throws(host.get,{code:'ClientHostClosing'});
-  host.retire();assert.equal(retired,1);
+  host.stop();assert.strictEqual(host.slot.preparedEnvironment,original.preparedEnvironment);
+  host.retire();assert.equal(retired,1);assert.equal(host.slot,undefined);
 });

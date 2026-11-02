@@ -67,11 +67,11 @@ async function localConsumers(t, mime) {
     },
   };}, async close() {return {pending: false};}});
   const fail = code => {throw Object.assign(new Error(code), {code});};
-  const factory = new Function('reads', 'entry', 'sameRun', 'moon', 'physicalReadChild',
+  const factory = new Function('reads', 'sharedRuns', 'entry', 'sameRun', 'moon', 'physicalReadChild',
     'nativeFilesystem', 'checked', 'acknowledged', 'text', 'canonical', 'resourceFor',
     'createHash', 'AcquisitionOpenError', 'fail', 'mime',
     'return ({' + source.text.slice(method.start, method.end) + '});');
-  const caller = factory(reads, entry, sameRun, moon, physicalReadChild, {}, checked,
+  const caller = factory(reads, new WeakMap(), entry, sameRun, moon, physicalReadChild, {}, checked,
     value => value?.pending === false, value => typeof value === 'string' && value.length > 0,
     JSON.stringify, resourceFor, createHash, AcquisitionOpenError, fail, mime);
   function originalRead(keyed) {

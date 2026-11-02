@@ -9,7 +9,6 @@ import * as moon from '../../../_build/js/release/build/connectors_builtin_node/
 import {checked} from '../../host-common/runtime-result.mjs';
 import {runtimeCore} from '../../host-common/runtime-core.mjs';
 import {installNodeClientEffectRun, openClientRequestJournal} from '../client-effect-run.mjs';
-import {installNodeClientEffectProgramPreparation} from '../client-program-preparation.mjs';
 import {completeCapturedEffectRun, completeRecoveredEffectRun,
   recoverAdmittedEffectRun, runCapturedEffectComputation} from '../entry.mjs';
 import {localContractLimits, localOutputLimits, sourceFreeEffectPublicationPlan} from '../local-values-plan.mjs';
@@ -41,8 +40,18 @@ export async function effectHost(t, installation, state, {effect,
     JSON.parse(environmentWire).evidence_bundle_cid,
     false, false, true, false, false, false, false);
   assert.ok(environment);
-  const prepareProgram = installNodeClientEffectProgramPreparation({moon,
-    environment});
+  // This explicit low-level fixture checks its authored input directly. It
+  // installs no ordinary Request or funded preparation callback; its Journal
+  // and provider ports below keep their separate component qualification.
+  const prepareProgram = request => {
+    const outcome = moon.clientProgramPrepareEffectComputationWithParameters(
+      request.kind === 'program' ? JSON.stringify(request.input) : request.input.text,
+      request.kind === 'program' ? 'json' : request.input.format,
+      environment, undefined, []);
+    const prepared = moon.clientProgramEffectPreparationReady(outcome);
+    assert.ok(prepared, moon.clientProgramEffectPreparationIssueCode(outcome));
+    return prepared;
+  };
   await mkdir(state, {recursive: true});
   const journal = openClientRequestJournal(join(state, 'requests'));
   const control = runtimeCore(moon).publicationControl;

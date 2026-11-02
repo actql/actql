@@ -4080,7 +4080,7 @@
     },
     {
       "module": "src/connectors/gcs/catalog/object_upload.mbt",
-      "sha256": "375365e98d00d7aa4cca305d17dcbcd710b5b6fd2846d219210af262c4c2f8ff",
+      "sha256": "9222b3bbe7d9cf56957a724ca3e38532fd71df15ff6ea09845272f5f57e642ac",
       "operations": [
         {
           "name": "admit_object_upload_observation",
@@ -9889,7 +9889,7 @@
     },
     {
       "module": "src/connectors/gcs/catalog/object_compose.mbt",
-      "sha256": "064cfc3a571880a3a4623fe8d8d2ab9d01df0837af3e943d7a73423b5bb99de1",
+      "sha256": "710a5a0d58cc0b9f0e149b9f0572f47c8a31a2905cfb89da9ad932159e2e51ad",
       "operations": [
         {
           "name": "compose_crc_join",

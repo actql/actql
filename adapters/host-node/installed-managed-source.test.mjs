@@ -172,7 +172,7 @@ test('DuckDB quotes its actual pending capture and physical transport without se
   assert.deepEqual(calls, ['pending', 'typed-capacity']);
 });
 
-function hostManagedSources(onCheck = () => {}) {
+function hostManagedSources(onCheck = () => {}, inputField = 'preparedProgram') {
   let method;
   visit(ast, node => {
     if (node.type === 'Property' && node.method && node.key.name === 'bindManagedSources') method = node;
@@ -184,7 +184,7 @@ function hostManagedSources(onCheck = () => {}) {
   const provider = {
     managedCaptureCapacity() {},
     async prepare(facts) {
-      assert.strictEqual(this, provider); assert.strictEqual(facts.preparedProgram, checkedProgram);
+      assert.strictEqual(this, provider); assert.strictEqual(facts[inputField], checkedProgram);
       preparations++; return preparedSource;
     },
     ledgerCapacity(value) {
@@ -290,4 +290,63 @@ test('Source reader facts retain one frozen original Run and method receiver for
     assert.strictEqual(bound.ledgerCapacity(prepared).managedRun, run);
     assert.equal(calls, 1);
   }
+});
+
+// Same actual Host selector as the Pure controls above. The selected Effect
+// record carries its original bound Plan getter rather than a Pure check.
+// Explicit service ports only; not Resource funding or ordinary acceptance.
+test('Host Effect Source uses its original bound Plan getter without a Pure check', async () => {
+  const f = hostManagedSources();
+  const plan = {};
+  let reads = 0;
+  f.run.preparationKind = 'effect-plan';
+  f.run.operationPlan = plan;
+  delete f.run.check;
+  f.run.readPlan = function(parent, prepared, request) {
+    assert.strictEqual(this, f.run.runtime);
+    assert.strictEqual(parent, f.parent);
+    assert.strictEqual(prepared, f.checkedProgram);
+    assert.strictEqual(request, f.run.request);
+    reads++; return plan;
+  };
+  const source = await f.selected.prepare({preparedProgram: f.checkedProgram});
+  assert.strictEqual(source, f.preparedSource);
+  assert.equal(reads, 2, 'One getter before and one after the actual provider await');
+  assert.strictEqual(f.selected.ledgerCapacity(source).managedRun, f.parent);
+  assert.equal(reads, 3, 'One getter for the separate capacity read boundary');
+});
+
+for (const change of ['foreign-plan', 'replace-plan', 'replace-getter', 'replace-request', 'retire', 'failure']) {
+  test(`Host Effect Source refuses ${change} at the same Plan getter boundary`, async () => {
+    const f = hostManagedSources();
+    const plan = {}, failure = new Error('OriginalEffectCurrentFailure');
+    f.run.preparationKind = 'effect-plan'; f.run.operationPlan = plan;
+    delete f.run.check;
+    f.run.readPlan = function() {
+      if (change === 'replace-plan') f.run.operationPlan = {};
+      if (change === 'replace-getter') f.run.readPlan = () => plan;
+      if (change === 'replace-request') f.run.request = {};
+      if (change === 'retire') f.run.closed = true;
+      if (change === 'failure') f.run.failure = failure;
+      return change === 'foreign-plan' ? {} : plan;
+    };
+    await assert.rejects(f.selected.prepare({preparedEffect: f.checkedProgram}),
+      error => change === 'failure' ? error === failure
+        : error.code === 'ForeignInstalledSourcePreparation');
+    assert.deepEqual(f.counts(), {preparations: 0, capacities: 0});
+  });
+}
+
+test('Host Effect Source actual preparedEffect field retains the same Plan parent across provider await', async () => {
+  const f = hostManagedSources(() => {}, 'preparedEffect'), plan = {};
+  f.run.preparationKind = 'effect-plan'; f.run.operationPlan = plan;
+  delete f.run.check;
+  let reads = 0;
+  f.run.readPlan = () => {reads++; return plan;};
+  const original = await f.selected.prepare({preparedEffect: f.checkedProgram});
+  assert.strictEqual(original, f.preparedSource);
+  assert.equal(reads, 2);
+  assert.strictEqual(f.selected.ledgerCapacity(original).managedRun, f.parent);
+  assert.equal(reads, 3);
+  assert.deepEqual(f.counts(), {preparations: 1, capacities: 1});
 });

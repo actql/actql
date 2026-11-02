@@ -32,7 +32,11 @@ struct DuckDBNativeAttempt {
 
 ///|
 struct DuckDBNativeMeasurement {
-  attempt : DuckDBNativeAttempt
+  // The receiver is freshly created for the selected attempt. Retain its
+  // original inputs, not the mutable attempt that retains this measurement.
+  preparation : DuckDBNativePreparation
+  authority : DuckDBNativeAuthority?
+  receiver : @duckdb.NativeReceiving
   demand : @duckdb.NativeDemandMeasurement
   receipts : @duckdb.NativeReceiptIdentities
 }
@@ -235,7 +239,13 @@ pub fn measure_duckdb_native_attempt(
       return Err(Receipts(issue))
     }
   }
-  let result = { attempt, demand, receipts, }
+  let result = {
+    preparation: attempt.preparation,
+    authority: attempt.authority,
+    receiver: attempt.receiver,
+    demand,
+    receipts,
+  }
   attempt.state = Measured(result)
   Ok(result)
 }
@@ -251,7 +261,14 @@ pub fn duckdb_native_measurement_matches(
     Captured(value) => value.records.measurement
     _ => return false
   }
-  physical_equal(measurement.attempt, attempt) &&
+  let same_authority = match (measurement.authority, attempt.authority) {
+    (None, None) => true
+    (Some(original), Some(actual)) => physical_equal(original, actual)
+    _ => false
+  }
+  physical_equal(measurement.preparation, attempt.preparation) &&
+  physical_equal(measurement.receiver, attempt.receiver) &&
+  same_authority &&
   physical_equal(issued, measurement) &&
   @duckdb.native_demand_matches(measurement.demand, attempt.receiver) &&
   @duckdb.native_receipts_match(measurement.receipts, attempt.receiver)

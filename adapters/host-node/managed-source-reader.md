@@ -58,6 +58,48 @@ unfiltered Source capture and ordinary read/failure/release/Saved remain separat
 required work. The focused initializer and raw-file cases use explicit parent,
 current and I/O accounting ports; they are not nominal Core or normal acceptance.
 
+## Native Source input and declaration completion
+
+`prepareInputConstruction` and `prepareNativeDeclaration` consume the same
+private initialization context as authored declarations. Each captures one
+original synchronous quantity/projection pair, composes its existing Source
+constructor quantity into the original parent, then enters the projection.
+The input entrance retains the returned original Buffer or opaque value without
+walking, freezing or copying it. The declaration entrance retains the returned
+nominal declaration and provider material, uses the captured Common serializer
+on that declaration, and reserves the existing Host JSON/Environment envelope
+before parsing and merging. It does not restore a second nominal declaration.
+The returned declaration, DATA and Environment are the originals required by
+Source construction and registration.
+
+Each entrance is one-shot, including reservation refusal, thrown `undefined`
+and failed native construction. Copied receivers and reentry refuse. An invalid
+native Promise remains with the same initial material until settlement; its
+completion cannot turn the refused constructor into success. The full selected
+native peak stays retained until original Source retirement. There is no
+retained-output approximation or physical cleanup acknowledgement at this
+entrance. Provider recipes must cover their own complete native serializer,
+failed-prefix and coexisting outputs before calling it.
+
+BigQuery uses these entrances for its original base64 Buffer, metadata parser,
+table description and one-view declaration. Its quantity follows the admitted
+metadata input and original schema/name bounds through the existing conservative
+Source envelope; it does not allocate `maxDeclarationBytes` as an invented
+output or change a parser limit. Initial identity hashes the original metadata
+DATA separately from native schema admission. The actual loader uses the same
+managed configuration readers and `openRowSite`, and passes its original
+Environment and context into RowSource. Custom acquisition preparers also read
+protocol assets through that same physical file owner, while retaining their
+original native protocol admission. Job selection, original-operation CAS,
+read permission and cancellation remain with their existing owners.
+
+The registered BigQuery component exercises real Core/Resource/Source/Site and
+file cleanup with I/O-only TLS fixtures. Failure cases retain the original
+metadata/native refusal inside the existing cleanup carrier and require no
+pending cleanup and scoped state FDs. The Job callback case remains a separate
+explicit-port component. Neither establishes current-source normal packaging,
+business execution, real-service credentials or cold Job recovery.
+
 ## Original binding retirement acknowledgement
 
 The shared Reader captures each returned binding's original close and optional

@@ -4,20 +4,34 @@ import {installNodeClientProgramPreparation,checkedRequestProgramPreparation} fr
 
 function fixture(extra = {}) {
   const environment = {};
-  const moon = {
-    clientProgramPrepareEffectFreeWithParameters() {return {prepared: {}};},
-    clientProgramPreparationReady(outcome) {return outcome.prepared;},
-    clientProgramPreparationIssue() {},
-    clientProgramPreparationIssueCode() {},
-  };
-  return {environment, prepare: installNodeClientProgramPreparation({moon, environment, ...extra})};
+  // Explicit original-owner port for JS metadata/retirement tests. This
+  // fixture does not claim an actual Core Request, Run or resource admission.
+  const moon = {};
+  return {environment, prepare: installNodeClientProgramPreparation({moon, environment,
+    getFundedPreparation() {return {kind: 'effect_free', prepared: {},
+      originalInputs: {environment, parameters: '{"p":"retained"}'}};}, ...extra})};
 }
 const request = () => ({kind: 'program', input: {}, parameters: {p: 'retained'}});
 
-test('private Pure preparation retirement clears only exact metadata and is idempotent', () => {
+test('execution preparation requires the original Request owner even when every old raw export exists', () => {
+  let calls = 0;
+  const old = () => {calls++;};
+  const moon = {
+    clientProgramPrepareEffectFreeWithParameters: old,
+    clientProgramPreparationReady: old,
+    clientProgramPreparationIssue: old,
+    clientProgramPreparationIssueCode: old,
+    clientProgramPrepareEffectComputationWithParameters: old,
+  };
+  assert.throws(() => installNodeClientProgramPreparation({moon, environment: {}}),
+    {message: 'InvalidClientProgramPreparationInstallation'}, '[request-funding-required]');
+  assert.equal(calls, 0);
+});
+
+test('private Pure preparation retirement clears only exact metadata and is idempotent', async () => {
   const {environment, prepare} = fixture();
-  const first = prepare(request());
-  const second = prepare(request());
+  const first = await prepare(request());
+  const second = await prepare(request());
   assert.equal(prepare.originalInputs(first).environment, environment);
   assert.equal(prepare.originalInputs(first).parameters, '{"p":"retained"}');
   prepare.retireOriginal(first);
@@ -27,14 +41,14 @@ test('private Pure preparation retirement clears only exact metadata and is idem
   assert.throws(() => prepare.kindOf(first), /Foreign Client preparation/);
   assert.equal(prepare.kindOf(second), 'effect_free');
   assert.equal(prepare.originalInputs(second).environment, environment);
-  assert.equal(prepare.kindOf(prepare(request())), 'effect_free');
+  assert.equal(prepare.kindOf(await prepare(request())), 'effect_free');
 });
 
-test('private Pure preparation retirement rejects foreign and restored Infer owners', () => {
+test('private Pure preparation retirement rejects foreign and restored Infer owners', async () => {
   const definition = {};
   const restored = {prepared: {}, compiled: {}, graph: {}, runDefinition: definition};
   const {prepare} = fixture({restoreInferOriginal: () => restored});
-  const other = fixture().prepare(request());
+  const other = await fixture().prepare(request());
   assert.throws(() => prepare.retireOriginal(other), /Foreign Pure Client preparation/);
   assert.throws(() => prepare.retireOriginal({}), /Foreign Pure Client preparation/);
   const infer = prepare.restoreInferOriginal({}, definition, {}, {});
@@ -79,7 +93,7 @@ test('selected async owner failure does not repeat public checking or preparatio
  await assert.rejects(prepare({kind:'aql',input:{text:'SELECT 1 AS n',format:'sql'},parameters:null}),
    error=>error===cause);
  assert.equal(preparations,1);assert.equal(checks,0);
- assert.equal(prepare.sourceCheckFailure(cause),false,'No audience-bound observation is fabricated');
+ assert.equal(Object.hasOwn(prepare, 'sourceCheckFailure'), false, 'No legacy Source marker or audience observation is fabricated');
 });
 
 test('pending funded result is not admitted after installation retirement or original cancellation',async()=>{
@@ -133,7 +147,7 @@ test('typed Request projection preserves result and thrown-failure identity with
     assert.equal(error.code,'ClientProgramInvalidInput');assert.equal(error.cause,issue);first=error;return true;
   });
   assert.equal(preparations,1);assert.equal(checks,0);assert.equal(projections,1);
-  assert.equal(prepare.sourceCheckFailure(first),false,'No audience-bound report is fabricated');
+  assert.equal(Object.hasOwn(prepare, 'sourceCheckFailure'), false, 'Original typed failure has no legacy Source marker');
 });
 
 test('selected Local row limit uses its first funded original without legacy runtime exports', async () => {

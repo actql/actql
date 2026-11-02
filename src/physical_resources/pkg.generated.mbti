@@ -48,6 +48,8 @@ pub fn[I] backed_initialization_ledger_published(BackedInitializationAdmission[I
 
 pub fn[I] backed_initialization_original_frame(BackedInitializationAdmission[I], I) -> Result[ImportedChildLedger, ImportedChildLedgerIssue]
 
+pub fn[P, E] begin_node_managed_run_operation_construction(NodeManagedRunAdmission[P], P, Ledger, () -> Result[Unit, E], NodeManagedRunOperationBacking, Int64) -> Result[Unit, NodeManagedRunOperationIssue[E]]
+
 pub fn[I] begin_node_preparation_inventory(NodePreparationAdmission[I], I, Int64, Int64, Int, Int, Int) -> Result[OriginalLedgerIdentity, ImportedChildLedgerIssue]
 
 pub fn begin_original_ledger_inventory(Ledger, CapacityReservation, Int, Int, Int) -> Result[OriginalLedgerIdentity, OriginalReadIssue]
@@ -161,6 +163,8 @@ pub fn close_model_io_access(ModelIoAccess) -> Result[Bool, ModelIoAdmissionIssu
 pub fn[T] close_model_io_admission(ModelIoAdmission[T], T) -> Result[Bool, ModelIoAdmissionIssue]
 
 pub fn close_shared_capacity(SharedCapacity) -> Result[Unit, LedgerIssue]
+
+pub fn[P, E] complete_node_managed_run_operation_construction(NodeManagedRunAdmission[P], P, Ledger, () -> Result[Unit, E], NodeManagedRunOperationBacking) -> Result[Unit, NodeManagedRunOperationIssue[E]]
 
 pub fn[I, P] complete_preparation_capacity(PreparationCapacity[I, P], I, P, Int64, Int64) -> Result[Unit, PreparationCapacityIssue]
 
@@ -378,6 +382,8 @@ pub fn quantity_usage(Ledger) -> QuantityUsage
 
 pub fn[I, P] reconcile_working_preparation_phase(PreparationCapacity[I, P], I, Int64, Int64) -> Result[Unit, PreparationCapacityIssue]
 
+pub fn reduce_execution_reservation(Ledger, Reservation, Int64) -> Result[Unit, LedgerIssue]
+
 pub fn release_allocation(Ledger, Holding) -> Result[Unit, LedgerIssue]
 
 pub fn[P] release_node_preparation_holder(NodeManagedRunAdmission[P]) -> Result[Bool, ImportedChildLedgerIssue]
@@ -437,6 +443,8 @@ pub fn reserve_shared_capacity(Ledger, Int64) -> Result[SharedCapacity, LedgerIs
 pub fn reserve_shared_workspace_capacity(Ledger, Int64, Int64) -> Result[SharedCapacity, LedgerIssue]
 
 pub fn[I, P] reserve_working_preparation_phase(PreparationCapacity[I, P], I, Int64, Int64) -> Result[Unit, PreparationCapacityIssue]
+
+pub fn[P, E] resize_node_managed_run_operation_control_construction(NodeManagedRunAdmission[P], P, Ledger, () -> Result[Unit, E], CapacityReservation, Int64, Int64) -> Result[Unit, NodeManagedRunOperationIssue[E]]
 
 pub fn[P] restore_node_managed_run_admission(NodeManagedRunAdmission[P], P, LedgerContinuationState) -> Result[Ledger, LedgerContinuationIssue]
 

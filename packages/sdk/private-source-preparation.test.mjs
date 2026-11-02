@@ -2,6 +2,9 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {captureSourcePreparation, sourcePreparationPort} from
   './internal/private-source-preparation.mjs';
+import {connectInProcess} from './host-port.mjs';
+import {submissionEpoch} from './submission-fixture.mjs';
+import {createTransport} from './internal/transport.mjs';
 
 // Explicit private-port doubles. These cases establish forwarding and capture
 // order only, not an actual installed Source issuer or physical resource loan.
@@ -54,7 +57,46 @@ test('private Source forwarding retains the same receiver and original arguments
 
 test('unselected ports have no Source preparation connection', () => {
   assert.equal(captureSourcePreparation(undefined), undefined);
-  assert.equal(captureSourcePreparation({perform() {}}), undefined);
+  assert.throws(() => captureSourcePreparation({perform() {}}),
+    {code: 'NodeSourceManagedAdmissionUnavailable'});
+});
+
+test('structural in-process wire ports gain no Source preparation while selected bindings stay strict', async () => {
+  // Controlled wire profile only. No installed capacity, Account, Root or Run
+  // is issued by this regression's explicit transport port.
+  const profile = {version: 'actql-client-host/0.1', mode: 'local', owner: 'local',
+    durability: 'volatile', scopeRef: 'required-preparation', capabilities: [],
+    submissionEpoch, limits: {maxReadWireBytes: 4096, maxRowWireBytes: 1024,
+      maxRowRetainedValueBytes: 1024, maxRetainedValueBytes: 4096,
+      maxRows: 10, maxBatchRows: 3, maxBatchRetainedValueBytes: 1024}};
+  {
+    let connects = 0;
+    const port = {async perform(operation) {
+      assert.equal(operation, 'connect'); connects++; return profile;
+    }};
+    assert.equal(createTransport({wire: {}}, port, () => false).sourcePreparation, undefined);
+    const client = await connectInProcess({mode: 'local', owner: 'local'}, port);
+    await client.close();
+    assert.equal(connects, 1);
+  }
+  let reads = 0;
+  for (const selection of ['inherited', 'accessor', 'undefined', 'promise']) {
+    let connects = 0;
+    const port = {async perform() {connects++; return profile;}};
+    if (selection === 'inherited') Object.setPrototypeOf(port, {
+      [sourcePreparationPort]: {beforeSourceSnapshot() {assert.fail('InheritedReceiver');}},
+    });
+    else if (selection === 'accessor') Object.defineProperty(port, sourcePreparationPort,
+      {get() {reads++; return {};}});
+    else Object.defineProperty(port, sourcePreparationPort,
+      {value: selection === 'promise' ? Promise.resolve({}) : undefined});
+    const observed = await connectInProcess({mode: 'local', owner: 'local'}, port)
+      .then(client => ({client}), error => ({error}));
+    if (observed.client) await observed.client.close();
+    assert.equal(observed.error?.code, 'NodeSourceManagedAdmissionUnavailable');
+    assert.equal(connects, 0);
+  }
+  assert.equal(reads, 0);
 });
 
 test('private Source capture refuses accessors without invoking them', () => {

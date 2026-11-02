@@ -24,7 +24,15 @@ pub fn check_row_acquisition_original(
 pub struct RowRunResponseBorrow {
   priv run : RowRun
   priv selection : RowResponseSelection
-  priv mut cleanup_bound : Bool
+  priv mut cleanup_state : RowResponseCleanupState
+}
+
+///|
+priv enum RowResponseCleanupState {
+  Unbound
+  Bound
+  RetiringWorkspace
+  WorkspaceReturned
 }
 
 ///|
@@ -50,7 +58,7 @@ pub fn borrow_row_run_responses(
     return Err(ForeignDeclaration)
   }
   run.response_borrowed = true
-  Ok({ run, selection: QueryResponse(acquisition), cleanup_bound: false, })
+  Ok({ run, selection: QueryResponse(acquisition), cleanup_state: Unbound, })
 }
 
 ///|
@@ -68,7 +76,7 @@ pub fn borrow_row_input_run_responses(
     return Err(InvalidState)
   }
   run.response_borrowed = true
-  Ok({ run, selection: InputResponse(acquisition), cleanup_bound: false, })
+  Ok({ run, selection: InputResponse(acquisition), cleanup_state: Unbound, })
 }
 
 ///|
@@ -105,13 +113,90 @@ pub fn bind_row_run_response_borrow_cleanup(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  guard !value.cleanup_bound &&
+  guard value.cleanup_state is Unbound &&
     value.run.page_charge is None &&
     value.run.physical is Some(physical) &&
     physical.cleanup_confirmed is None else {
     return Err(InvalidState)
   }
-  value.cleanup_bound = true
+  value.cleanup_state = Bound
   physical.cleanup_confirmed = Some(cleanup)
   Ok(())
+}
+
+///|
+// This direct provider capture keeps its Source, evidence and original cleanup
+// observer. Whole-input, keyed and listing lifetimes do not use this cut.
+fn row_response_workspace_capture_current(value : RowRunResponseBorrow) -> Bool {
+  let run = value.run
+  !run.closed &&
+  run.response_borrowed &&
+  run.attempt.state is Captured(_) &&
+  value.selection is QueryResponse(acquisition) &&
+  run.configuration is DirectConfiguration(configuration) &&
+  physical_equal(configuration, acquisition.configuration) &&
+  !row_acquisition_is_listing(acquisition)
+}
+
+///|
+/// Return only the selected provider's transient execution workspace, after
+/// the SAME bound reader confirms its actual retirement. Retain its declared
+/// live frame, Source backing, original observer and all other reservation
+/// obligations for final Row cleanup. A logical stop is insufficient.
+pub fn retire_row_run_response_workspace(
+  value : RowRunResponseBorrow,
+) -> Result[Unit, RowHostIssue] {
+  guard row_response_workspace_capture_current(value) else {
+    return Err(InvalidState)
+  }
+  if value.cleanup_state is WorkspaceReturned {
+    return Ok(())
+  }
+  guard value.cleanup_state is Bound &&
+    value.selection is QueryResponse(acquisition) &&
+    value.run.physical is Some(physical) &&
+    physical.provider_capacity is Some(provider) &&
+    physical.cleanup_confirmed is Some(confirm) else {
+    return Err(InvalidState)
+  }
+  // Compute the absolute remainder from immutable original declarations, not
+  // from a previously reduced amount. Keep all acquisition/evidence workspace
+  // and the complete provider R; only the retired provider E-R is returned.
+  let provider_retained = @execution.execution_capacity_retained_bytes(provider)
+  let base = row_acquisition_execution_capacity(acquisition)
+  if provider_retained > 9223372036854775807L - base ||
+    physical.execution_scratch > 9223372036854775807L - base - provider_retained {
+    return Err(Physical(InvalidLimits))
+  }
+  let remaining = base + provider_retained + physical.execution_scratch
+  // Synchronous external observers may reenter. A throwing observer leaves
+  // this cut fenced, while the unchanged final Row cleanup remains usable.
+  value.cleanup_state = RetiringWorkspace
+  let retired = confirm()
+  if !row_response_workspace_capture_current(value) || !retired {
+    value.cleanup_state = Bound
+    return Err(Evidence(UnverifiedTransport))
+  }
+  match
+    @resources.reduce_execution_reservation(
+      physical.ledger,
+      physical.reservation,
+      remaining,
+    ) {
+    Err(issue) => {
+      value.cleanup_state = Bound
+      Err(Physical(issue))
+    }
+    Ok(_) => {
+      // The original resource current callback may have closed the Source.
+      // Returned retired workspace is monotonic: never restore an old amount
+      // or clear the original cleanup observer after that callback.
+      value.cleanup_state = WorkspaceReturned
+      if row_response_workspace_capture_current(value) {
+        Ok(())
+      } else {
+        Err(InvalidState)
+      }
+    }
+  }
 }

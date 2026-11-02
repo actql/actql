@@ -264,15 +264,14 @@ class OriginalSavedResultRead:
         self._request = request
         self._evidence.persist(request, source.handle)
         self._delivery.persist(request, source.handle)
-        self._delivery.prepare_original_codecs(request, clock)
-        if self._delivery.selected_original_payload(request, clock) is not fact:
+        if self._delivery.prepare_original_payload(request, clock) is not fact:
             raise ValueError('Foreign original saved payload selection')
         try:
             payload = OriginalSDKPayloadReader(self._delivery, request, clock, fact)
         except SDKPayloadReaderCleanupPending as failure:
-            OriginalLocalSDKResponseStream(host, failure.cleanup_reader)
+            OriginalLocalSDKResponseStream(host, failure.cleanup_reader, saved_read=self)
             raise
-        stream = OriginalLocalSDKResponseStream(host, payload)
+        stream = OriginalLocalSDKResponseStream(host, payload, saved_read=self)
         if not core.close_input(clock):
             raise RuntimeError('Original saved Result clock cleanup pending')
         host._inputs.remove(clock)

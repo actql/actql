@@ -11,6 +11,8 @@ struct ClientInstalledEffectOperationExtent {
   // Pure capture templates are resolved once from the SAME completed Plan.
   // This multiplicity is storage DATA, never an occurrence/authority flag.
   checked_row_capacity : @execution.ExecutionCapacity?
+  // Resolved once from the SAME checked effect_id, never a caller name amount.
+  checked_effect_id_capacity : @execution.ExecutionCapacity?
 }
 
 ///|
@@ -34,6 +36,7 @@ pub fn prepare_installed_effect_operation_extent(
     transfer_bytes,
     physical_attempt,
     checked_row_capacity: None,
+    checked_effect_id_capacity: None,
   })
 }
 
@@ -59,7 +62,59 @@ pub fn prepare_installed_effect_capture_extent(
     transfer_bytes: 0L,
     physical_attempt: false,
     checked_row_capacity: Some(capacity_per_checked_row),
+    checked_effect_id_capacity: None,
   })
+}
+
+///|
+// The recipe Owner returns fixed/per-row/.../effect-id quantities together.
+// This is immutable constructor DATA; no resource, row, attempt or transfer
+// grant is issued. The original checked descriptor resolves the final term.
+pub fn prepare_installed_effect_capture_recipe_extent(
+  operation : String,
+  recipe : Array[@execution.ExecutionCapacity],
+) -> Result[
+  ClientInstalledEffectOperationExtent,
+  ClientInstalledManagedRunIssue,
+] {
+  if recipe.length() != 6 {
+    return Err(Unsupported)
+  }
+  prepare_installed_effect_capture_extent(operation, recipe[0], recipe[1]).map(original => {
+    ..original,
+    checked_effect_id_capacity: Some(recipe[5]),
+  })
+}
+
+///|
+fn resolve_installed_effect_id_extent(
+  original : ClientInstalledEffectOperationExtent,
+  effect_id : String,
+) -> ClientInstalledEffectOperationExtent? {
+  guard original.checked_effect_id_capacity is Some(rate) else {
+    return Some(original)
+  }
+  if original.physical_attempt || original.transfer_bytes != 0L {
+    return None
+  }
+  guard @execution.execution_capacity_inventory_add(
+      @execution.execution_capacity_retained_bytes(original.capacity),
+      QuotedBytes,
+      @execution.execution_capacity_retained_bytes(rate),
+      effect_id.length(),
+    )
+    is Some(retained) &&
+    @execution.execution_capacity_inventory_add(
+      @execution.execution_capacity_execution_bytes(original.capacity),
+      QuotedBytes,
+      @execution.execution_capacity_execution_bytes(rate),
+      effect_id.length(),
+    )
+    is Some(execution) &&
+    @execution.execution_capacity(retained, execution) is Some(capacity) else {
+    return None
+  }
+  Some({ ..original, capacity, checked_effect_id_capacity: None, })
 }
 
 ///|
@@ -130,7 +185,10 @@ pub fn prepare_installed_effect_operation_demand(
   }
   // A capture template co-funds one enclosing member. A row slot would apply
   // checked multiplicity twice, and cannot carry this member-only recipe.
-  if row_extents.any(extent => extent.checked_row_capacity is Some(_)) {
+  if row_extents.any(extent => {
+      extent.checked_row_capacity is Some(_) ||
+      extent.checked_effect_id_capacity is Some(_)
+    }) {
     return Err(Unsupported)
   }
   let descriptor = match
@@ -140,12 +198,20 @@ pub fn prepare_installed_effect_operation_demand(
     Err(_) => return Err(ForeignOriginal)
     Ok(value) => value
   }
+  let resolved_members = []
+  for original in member_extents {
+    guard resolve_installed_effect_id_extent(original, effect_id)
+      is Some(resolved) else {
+      return Err(Unsupported)
+    }
+    resolved_members.push(resolved)
+  }
   Ok({
     prepared,
     member_index: descriptor.0,
     stage_index,
     effect_id,
-    member_extents: member_extents.copy(),
+    member_extents: resolved_members,
     row_extents: row_extents.copy(),
     controls_per_row: None,
   })
@@ -201,6 +267,7 @@ struct ClientInstalledEffectManagedPlan {
   rows : Int
   held_children : Int
   operation_control_capacity : @execution.ExecutionCapacity
+  operation_control_idle_execution : Int64
   _observed_compute_limits : @resources.LedgerLimits
   limits : @resources.LedgerLimits
 }
@@ -243,16 +310,51 @@ fn installed_effect_limits_fit(
 }
 
 ///|
+// Fixed additional material of the control phase quote: one retained Plan
+// scalar, two checked-add carriers and two new workspace projection/results.
+// The SAME layout is backed by Request BEFORE Plan construction and recorded
+// in the resulting Plan; it is not a later spare allowance or another Root.
+fn installed_effect_control_phase_quote_capacity() -> @execution.ExecutionCapacity {
+  @execution.preparation_execution_capacity({
+    retained: {
+      record_headers: 0L,
+      reference_slots: 0L,
+      scalar_words: 1L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    },
+    workspace: {
+      record_headers: 2L,
+      reference_slots: 0L,
+      // The shared Compute preparation retains one original tail aggregate;
+      // the quote retains the two phase accumulators, also when unselected.
+      scalar_words: 9L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    },
+    retained_nodes: 0L,
+    workspace_nodes: 0L,
+    retained_bytes: 0L,
+    workspace_bytes: 0L,
+  }).unwrap()
+}
+
+///|
 // The optional original Effect graph, current source/owner/target/bound
 // carriers and nested row Option add at most six headers/references/tags;
 // selected-source/max/count and scratch controls add four scalar words. No new arrays,
-// copied graph or persistent inventory are introduced. The Request backs this
+// copied graph or persistent inventory are introduced. Provider phase folding
+// additionally holds its checked-add Options, result tuple/Some and caller
+// phase-add Options, borrowed capture/transport selections, scalar arguments,
+// loop accumulators and the caller's completed phase values. Keep their full
+// simultaneous envelope rather than reusing hypothetical expression slots. The
+// Request backs this
 // scratch BEFORE Plan construction; the finished Plan records the same cost.
 fn installed_effect_source_result_bound_scratch_bytes() -> Int64 {
   @execution.preparation_representation_cost({
-    record_headers: 6L,
-    reference_slots: 6L,
-    scalar_words: 10L,
+    record_headers: 16L,
+    reference_slots: 14L,
+    scalar_words: 36L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }).unwrap()
@@ -260,9 +362,11 @@ fn installed_effect_source_result_bound_scratch_bytes() -> Int64 {
 
 ///|
 /// Quote the original selected implementation and checked row inventory before
-/// importing the existing managed parent. All still-retained operation bodies
-/// overlap the Compute/Source inventory; no phase is discarded based on a
-/// Promise, a consumed response or an assumed early physical retirement.
+/// importing the existing managed parent. All retained operation bodies overlap
+/// Compute/Source. The normal pure-constructor loop retains each output but
+/// returns its original workspace before its next callback. Physical and
+/// implementation-control peaks remain fully simultaneous; neither a Promise
+/// nor a received response implies early physical retirement.
 pub fn prepare_installed_effect_managed_plan(
   prepared : @publication_host.PreparedClientEffectComputation,
   request : @publication_host.ClientRequestIdentity,
@@ -409,6 +513,21 @@ pub fn prepare_installed_effect_managed_plan(
   let compute_limits = compute.limits
 
   let original_compute_limits = compute_limits
+  let mut reading_execution = compute_limits.execution_bytes
+  let mut completed_execution = compute_limits.execution_bytes
+  if provider_sources > 0 {
+    guard installed_effect_provider_execution_phases(
+        captures,
+        transport_execution_bytes,
+        compute.tail_execution_bytes,
+        compute_limits.retained_bytes,
+      )
+      is Some((reading, completed)) else {
+      return Err(Unsupported)
+    }
+    reading_execution = reading
+    completed_execution = completed
+  }
   let compute_limits = match model {
     None => compute_limits
     Some(selected) =>
@@ -473,10 +592,11 @@ pub fn prepare_installed_effect_managed_plan(
   let mut transfer = compute_limits.transfer_bytes
   let mut retained = compute_limits.retained_bytes
   let mut execution = compute_limits.execution_bytes
+  let mut constructor_workspace = 0L
   let mut extent_count = 0L
   let mut controlled_members = 0L
   let mut implementation_control_retained = 0L
-  let mut implementation_control_execution = 0L
+  let mut implementation_control_workspace = 0L
   let mut remaining = @publication_host.client_standard_program_preparation_limits().max_graph_work
   for demand in resolved_operations {
     if demand.controls_per_row is Some(original) {
@@ -487,18 +607,24 @@ pub fn prepare_installed_effect_managed_plan(
           @execution.execution_capacity_retained_bytes(original),
           rows,
         )
-        is Some(next_retained) &&
-        @execution.execution_capacity_inventory_add(
-          implementation_control_execution,
-          QuotedBytes,
-          @execution.execution_capacity_execution_bytes(original),
-          rows,
-        )
-        is Some(next_execution) else {
+        is Some(next_retained) else {
         return Err(Unsupported)
       }
       implementation_control_retained = next_retained
-      implementation_control_execution = next_execution
+      if rows > 0 {
+        // Actual grant/Ledger/projector callbacks use one same-Run control
+        // frame, complete synchronously and retain their outputs separately.
+        let control_workspace = @execution.execution_capacity_execution_bytes(
+            original,
+          ) -
+          @execution.execution_capacity_retained_bytes(original)
+        implementation_control_workspace = Int64::max(
+          implementation_control_workspace, control_workspace,
+        )
+        constructor_workspace = Int64::max(
+          constructor_workspace, control_workspace,
+        )
+      }
     }
     for
       (extents, multiplicity) in [
@@ -544,10 +670,20 @@ pub fn prepare_installed_effect_managed_plan(
           return Err(Unsupported)
         }
         retained = next
+        // Normal pure children retain R before Source/Preview and enter E
+        // only for their synchronous callback. The actual row/member loops
+        // await completion before the next callback. Keep every returned R;
+        // reuse only that completed scratch. A failed/async child stops the
+        // enclosing loop and keeps E under its SAME original reservation.
+        // Physical bodies and control allowances do not use this reuse law.
+        let held_execution = if extent.physical_attempt { e } else { r }
+        if !extent.physical_attempt && multiplicity > 0 {
+          constructor_workspace = Int64::max(constructor_workspace, e - r)
+        }
         guard @execution.execution_capacity_inventory_add(
             execution,
             QuotedBytes,
-            e,
+            held_execution,
             multiplicity,
           )
           is Some(next) else {
@@ -556,6 +692,52 @@ pub fn prepare_installed_effect_managed_plan(
         execution = next
       }
     }
+  }
+  if provider_sources > 0 {
+    // Only the same ordinary provider profile selects this phase cut. Its
+    // actual Row completion returns the reader's transient E-R first; all
+    // acquisition/evidence/scratch and earlier capture remainders remain.
+    // Keep Model/physical/held implementation material fully additive. The
+    // normal Host retains inactive controls before Source, and its row Effect
+    // callbacks first pin completed Compute sources. Source readers never
+    // receive that controlConstruction function. Its workspace belongs to
+    // the later constructor phase; the full retained control remains below.
+    let coexist = execution - original_compute_limits.execution_bytes
+    guard @execution.execution_capacity_inventory_add(
+        coexist,
+        QuotedBytes,
+        reading_execution,
+        1,
+      )
+      is Some(reading) &&
+      @execution.execution_capacity_inventory_add(
+        coexist,
+        QuotedBytes,
+        completed_execution,
+        1,
+      )
+      is Some(completed) &&
+      @execution.execution_capacity_inventory_add(
+        completed,
+        QuotedBytes,
+        constructor_workspace,
+        1,
+      )
+      is Some(completed) else {
+      return Err(Unsupported)
+    }
+    execution = Int64::max(reading, completed)
+  } else {
+    guard @execution.execution_capacity_inventory_add(
+        execution,
+        QuotedBytes,
+        constructor_workspace,
+        1,
+      )
+      is Some(with_constructor_workspace) else {
+      return Err(Unsupported)
+    }
+    execution = with_constructor_workspace
   }
   // Own only new plan/demand/container controls. Borrow installed immutable
   // extents, contract/Program bodies and generated originals once at their
@@ -652,7 +834,10 @@ pub fn prepare_installed_effect_managed_plan(
       model_holder,
       // Empty/selected implementation control accumulator and the original
       // base capacity coexist with their combined result during this quote.
-      scalar_words: 40L +
+      // One sequential-constructor scratch accumulator and its selected
+      // held-execution scalar are live in that same existing traversal.
+      // Additional control phase material uses its one shared layout below.
+      scalar_words: 42L +
       6L +
       input_slots +
       2L * workspace.row_bounds.to_int64() +
@@ -663,6 +848,20 @@ pub fn prepare_installed_effect_managed_plan(
       owned_wire_bytes: 0L,
     }).unwrap() +
     source_result_scratch
+  let control_phase = installed_effect_control_phase_quote_capacity()
+  let phase_retained = @execution.execution_capacity_retained_bytes(
+    control_phase,
+  )
+  let phase_workspace = @execution.execution_capacity_execution_bytes(
+      control_phase,
+    ) -
+    phase_retained
+  if controls > 9223372036854775807L - phase_retained ||
+    temporary > 9223372036854775807L - phase_workspace {
+    return Err(Unsupported)
+  }
+  let controls = controls + phase_retained
+  let temporary = temporary + phase_workspace
   if retained > 9223372036854775807L - controls ||
     execution > 9223372036854775807L - controls - temporary {
     return Err(Unsupported)
@@ -671,6 +870,26 @@ pub fn prepare_installed_effect_managed_plan(
     installed_effect_operation_control_capacity(held_children.to_int()) {
     Some(value) => value
     None => return Err(Unsupported)
+  }
+  // The existing mutable child/index inventory can grow before any control
+  // callback. Keep that original base workspace prepaid in the same token.
+  guard @execution.execution_capacity_inventory_add(
+      @execution.execution_capacity_execution_bytes(operation_control_capacity),
+      QuotedBytes,
+      implementation_control_retained,
+      1,
+    )
+    is Some(operation_control_idle_execution) else {
+    return Err(Unsupported)
+  }
+  guard @execution.execution_capacity_inventory_add(
+      implementation_control_retained,
+      QuotedBytes,
+      implementation_control_workspace,
+      1,
+    )
+    is Some(implementation_control_execution) else {
+    return Err(Unsupported)
   }
   guard @execution.execution_capacity(
       implementation_control_retained, implementation_control_execution,
@@ -685,11 +904,9 @@ pub fn prepare_installed_effect_managed_plan(
   let control_retained = @execution.execution_capacity_retained_bytes(
     operation_control_capacity,
   )
-  let control_execution = @execution.execution_capacity_execution_bytes(
-    operation_control_capacity,
-  )
   if retained + controls > 9223372036854775807L - control_retained ||
-    execution + controls + temporary > 9223372036854775807L - control_execution {
+    execution + controls + temporary >
+    9223372036854775807L - operation_control_idle_execution {
     return Err(Unsupported)
   }
   let limits = {
@@ -697,7 +914,10 @@ pub fn prepare_installed_effect_managed_plan(
     attempts: attempts.to_int(),
     transfer_bytes: transfer,
     retained_bytes: retained + controls + control_retained,
-    execution_bytes: execution + controls + temporary + control_execution,
+    execution_bytes: execution +
+    controls +
+    temporary +
+    operation_control_idle_execution,
   }
   Ok({
     prepared,
@@ -722,6 +942,7 @@ pub fn prepare_installed_effect_managed_plan(
     rows,
     held_children: held_children.to_int(),
     operation_control_capacity,
+    operation_control_idle_execution,
     _observed_compute_limits: original_compute_limits,
     limits,
   })

@@ -447,7 +447,95 @@ export function beginInstalledSourceInitialization(services, installation, conne
     reconcileSource(original, material);
     return target;
   }
+  function prepareInitialNativeConstruction(projection, attempt) {
+    if (!scope.active || scope.prepared !== undefined || scope.source !== undefined ||
+        scope[attempt] || material.phase !== 'working') fail('ForeignInstalledSourceInitialization');
+    if (material.busy) fail('InstalledSourceInitializationReentry');
+    const methods = sourceProjectionMethods(projection);
+    if (typeof material.methods.ComposeInstalledSourceConstructionCapacity !== 'function') {
+      fail('InstalledSourceInitializationRuntimeUnavailable');
+    }
+    scope[attempt] = true;
+    let quantity;
+    material.busy = true;
+    try {quantity = requireSynchronousSourceConstruction(material,
+      Reflect.apply(methods.capacity, projection, []));}
+    finally {material.busy = false;}
+    if (!quantity || typeof quantity !== 'object' || nodeTypes.isProxy(quantity)) {
+      fail('InstalledSourceCommandConstructionUnavailable');
+    }
+    // The selected original recipe includes every returned native value and
+    // failed constructor prefix. It stays on this initial parent through
+    // Source retirement; this entrance does not issue another capacity.
+    material.providers.push(quantity);material.inputs.push(projection);
+    reserveSource(original, material);
+    if (!scope.active || scope.prepared !== undefined || scope.source !== undefined ||
+        material.phase !== 'working') fail('ForeignInstalledSourceInitialization');
+    return methods.project;
+  }
   const context = Object.freeze({
+    prepareInputConstruction(projection) {
+      if (this !== context) fail('ForeignInstalledSourceInitialization');
+      const project = prepareInitialNativeConstruction(projection, 'nativeInputAttempted');
+      material.busy = true;
+      try {
+        const value = requireSynchronousSourceConstruction(material,
+          Reflect.apply(project, projection, []));
+        material.inputs.push(value);
+        if (!scope.active || scope.prepared !== undefined || material.phase !== 'working' ||
+            value === null || typeof value !== 'object' || nodeTypes.isProxy(value)) {
+          fail('InvalidInstalledSourceNativeInput');
+        }
+        // A private original Buffer/opaque native value is retained as-is.
+        // Walking or freezing its contents would allocate another input copy.
+        return value;
+      } finally {material.busy = false;}
+    },
+    prepareNativeDeclaration(projection) {
+      if (this !== context) fail('ForeignInstalledSourceInitialization');
+      const project = prepareInitialNativeConstruction(projection, 'nativeDeclarationAttempted');
+      let declaration, nativeMaterial, declaredWire;
+      material.busy = true;
+      try {
+        const projected = requireSynchronousSourceConstruction(material,
+          Reflect.apply(project, projection, []));
+        material.inputs.push(projected);
+        if (!scope.active || scope.prepared !== undefined || material.phase !== 'working' ||
+            !projected || typeof projected !== 'object' || nodeTypes.isProxy(projected) ||
+            !Object.isFrozen(projected)) fail('InvalidInstalledSourceNativeDeclaration');
+        const fields = Object.getOwnPropertyDescriptors(projected);
+        if (Reflect.ownKeys(fields).length !== 2 || ['declaration','material'].some(name =>
+            !Object.hasOwn(fields[name] ?? {}, 'value'))) fail('InvalidInstalledSourceNativeDeclaration');
+        declaration = fields.declaration.value;nativeMaterial = fields.material.value;
+        // The actual Common serializer consumes the provider's original
+        // nominal declaration. No wire is restored as a second declaration.
+        material.inputs.push(declaration, nativeMaterial);
+        declaredWire = requireSynchronousSourceConstruction(material,
+          Reflect.apply(original.declarationJson, original.moon, [declaration]));
+        material.inputs.push(declaredWire);
+        if (typeof declaredWire !== 'string') fail('InvalidInstalledSourceDeclaration');
+      } finally {material.busy = false;}
+      // Same Host JSON/Environment envelope used by native Command completion.
+      // The original native recipe above owns declaration serialization;
+      // reserve its actual returned wire before the Host parse/merge below.
+      const basis = 16n * (BigInt(declaredWire.length) + BigInt(scope.baseEnvironmentWire.length));
+      reserveSource(original, material, basis, basis, basis);
+      if (!scope.active || scope.prepared !== undefined || scope.source !== undefined ||
+          material.phase !== 'working') fail('ForeignInstalledSourceInitialization');
+      let prepared;
+      material.busy = true;
+      try {
+        const declared = freezeSourceProjection(JSON.parse(declaredWire));
+        const environment = scope.role === 'effect' ? undefined
+          : rowSourceCheckEnvironment(scope.baseEnvironmentWire, declared);
+        prepared = Object.freeze({declaration, declared, environment, material: nativeMaterial});
+        scope.prepared = prepared;scope.declarationBasis = basis;
+        material.inputs.push(declared, environment, prepared);
+        material.nodes += basis;material.text += basis;material.wire += basis;
+      } finally {material.busy = false;}
+      reconcileSource(original, material);
+      return prepared;
+    },
     prepareMappings(writesJson, writes) {
       if (this !== context || !scope.active || scope.prepared === undefined ||
           scope.role !== 'effect' || scope.source !== undefined || scope.mappingsAttempted ||
@@ -933,159 +1021,6 @@ export function retireInstalledSourceInitialization(services) {
   return completed;
 }
 
-// The Calendar provider keeps its original, mandatory profile grammar. This
-// projects rejection bounds into the SAME selected generic inventory; it
-// neither changes that profile nor reserves or credits any capacity.
-function calendarImplementationReaderLimits(supplied, selected) {
-  if (selected === undefined || selected.metadata !== 0) {
-    fail('InstalledCalendarImplementationProfileUnavailable');
-  }
-  const names = ['maxResponseBytes', 'maxNodes', 'maxDepth', 'maxPages', 'maxRows',
-    'maxRequests', 'perPage', 'maxCursorUnits', 'maxValueNodes', 'maxValueTextBytes',
-    'maxRowsWireBytes', 'maxRowsWireNodes', 'maxRowsWireDepth', 'maxDeclarationBytes',
-    'maxDeclarationNodes', 'maxSecretBytes', 'maxCaBytes'];
-  if (Reflect.ownKeys(supplied).length !== names.length || names.some(name =>
-    !Object.hasOwn(supplied[name] ?? {}, 'value') || !Number.isSafeInteger(supplied[name].value) ||
-    supplied[name].value < 1 || supplied[name].value >= 2147483647)) {
-    fail('InvalidInstalledCalendarImplementationLimits');
-  }
-  const original = Object.freeze(Object.fromEntries(names.map(name => [name, supplied[name].value])));
-  const policy = selected.value;
-  const total = BigInt(original.maxResponseBytes) * BigInt(original.maxPages);
-  // Four bytes per original UTF16 unit is a conservative UTF8 ceiling, not
-  // a conversion/normalization of the cursor. Check before Number conversion.
-  const cursor = 4n * BigInt(original.maxCursorUnits);
-  if (original.perPage > 250 || original.maxPages > original.maxRequests ||
-      original.perPage > policy.pageSize || original.maxRows > policy.maxTotalRows ||
-      original.maxDeclarationBytes > policy.maxDeclarationBytes ||
-      original.maxDeclarationNodes > policy.maxDeclarationNodes ||
-      total > BigInt(policy.maxTotalResponseBytes) || cursor > BigInt(policy.maxCursorBytes)) {
-    fail('InstalledSourceReaderImplementationBoundsExceeded');
-  }
-  return Object.freeze({original, limits: Object.freeze({
-    maxResponseBytes: original.maxResponseBytes, maxTotalResponseBytes: Number(total),
-    maxNodes: original.maxNodes, maxDepth: original.maxDepth,
-    maxRows: Math.min(original.perPage, original.maxRows), maxTotalRows: original.maxRows,
-    maxPages: original.maxPages, pageSize: original.perPage, maxCursorBytes: Number(cursor),
-    maxIdentityBytes: original.maxValueTextBytes, maxTargetBytes: policy.maxTargetBytes,
-    maxValueNodes: original.maxValueNodes, maxValueTextBytes: original.maxValueTextBytes,
-    maxRowsWireBytes: original.maxRowsWireBytes, maxRowsWireNodes: original.maxRowsWireNodes,
-    maxRowsWireDepth: original.maxRowsWireDepth, maxSecretBytes: original.maxSecretBytes,
-  })});
-}
-
-// Project the two existing complete query/point provider grammars once. The
-// result retains every original rejection bound; it is not another profile,
-// a grant or an independently admitted capacity.
-function nestedImplementationReaderLimits(supplied, columns, profile) {
-  if (profile === undefined) fail('InstalledSourceSequenceProfileUnavailable');
-  const query = Object.hasOwn(supplied, 'maxRowsWireBytes');
-  const common = ['maxResponseBytes', 'maxTotalResponseBytes', 'maxRequestBytes', 'maxTargetBytes',
-    'maxNodes', 'maxDepth', 'maxIdentityBytes', 'maxRowNodes', 'maxRowDepth', 'maxRowTextBytes',
-    'maxColumns', 'maxRowWork', 'maxPropertyPages', 'maxPropertyBytes', 'maxPropertyNodes',
-    'maxPropertyTextBytes', 'maxCursorBytes', 'maxPropertyWork', 'pageSize', 'maxSecretBytes'];
-  const selected = query
-    ? ['maxPages', 'maxTotalRows', 'maxDataSources', 'maxProperties', 'maxNameBytes',
-      'maxPageWork', 'maxRowsWireBytes', 'maxRowsWireNodes', 'maxRowsWireDepth', 'maxPropertyItems']
-    : ['maxTextBytes', 'maxWireBytes', 'maxWireNodes', 'maxWireDepth',
-      'maxDataSources', 'maxProperties', 'maxNameBytes', 'maxPropertyItems'];
-  const names = [...common, ...selected];
-  if (Reflect.ownKeys(supplied).length !== names.length || names.some(name =>
-    !Object.hasOwn(supplied[name] ?? {}, 'value') || !Number.isSafeInteger(supplied[name].value) ||
-    supplied[name].value < (!query && ['maxDataSources', 'maxProperties', 'maxNameBytes', 'maxPropertyItems'].includes(name) ? 0 : 1) ||
-    supplied[name].value > 2147483647)) fail('InvalidInstalledSourceSequenceLimits');
-  const original = Object.freeze(Object.fromEntries(names.map(name => [name, supplied[name].value])));
-  const queryPages = query ? original.maxPages : 1, totalRows = query ? original.maxTotalRows : 1;
-  const rows = query ? Math.min(original.pageSize, totalRows) : 1;
-  if (!Number.isSafeInteger(columns) || columns < 1 || columns > original.maxColumns ||
-      original.pageSize > 100 || queryPages > 10000 || original.maxPropertyPages > 10000) {
-    fail('InvalidInstalledSourceSequenceLimits');
-  }
-  const occurrences = BigInt(totalRows) * BigInt(columns);
-  const structuralResponses = BigInt(queryPages) + occurrences * BigInt(original.maxPropertyPages);
-  // The immutable selected profile owns this total physical response ceiling.
-  // Logical query pages and per-property pages retain their original meanings.
-  const ceiling = BigInt(profile.value.maxPages);
-  const responses = structuralResponses < ceiling ? structuralResponses : ceiling;
-  const limits = Object.freeze({
-    maxResponseBytes: original.maxResponseBytes, maxTotalResponseBytes: original.maxTotalResponseBytes,
-    maxNodes: original.maxNodes, maxDepth: original.maxDepth, maxRows: rows, maxTotalRows: totalRows,
-    maxPages: queryPages, pageSize: original.pageSize, maxCursorBytes: original.maxCursorBytes,
-    maxIdentityBytes: original.maxIdentityBytes, maxTargetBytes: original.maxTargetBytes,
-    maxValueNodes: original.maxRowNodes, maxValueTextBytes: original.maxRowTextBytes,
-    maxRowsWireBytes: query ? original.maxRowsWireBytes : original.maxWireBytes,
-    maxRowsWireNodes: query ? original.maxRowsWireNodes : original.maxWireNodes,
-    maxRowsWireDepth: query ? original.maxRowsWireDepth : original.maxWireDepth,
-    maxSecretBytes: original.maxSecretBytes,
-  });
-  const quote = [...installedJsonSourceReaderLimitNames.map(name => limits[name]),
-    original.maxRequestBytes, original.maxPropertyPages, original.maxPropertyBytes,
-    original.maxPropertyNodes, original.maxPropertyTextBytes, Number(responses)];
-  return Object.freeze({original, limits, quote: Object.freeze(quote), responses: Number(responses),
-    propertyOccurrences: Number(occurrences < responses ? occurrences : responses), propertyPages: original.maxPropertyPages});
-}
-
-// Original Gmail list/get grammar, not a caller-supplied byte quote. The same
-// service retains every selected bound and asks Core to compose its nominal
-// prefix with the existing JSON response/row recipe before constructing it.
-function gmailThreadImplementationReaderLimits(supplied, columns, profile) {
-  const names = ['maxResponseBytes','maxTotalResponseBytes','maxNodes','maxDepth','pageSize','maxPages',
-    'maxThreads','maxMailboxBytes','maxTargetBytes','maxIdBytes','maxTokenBytes','maxMessages','maxLabels',
-    'maxHeaders','maxHeaderUnits','maxCommentDepth','maxValueNodes','maxValueTextBytes',
-    'maxRowsWireBytes','maxRowsWireNodes','maxRowsWireDepth',
-    'maxDeclarationBytes','maxDeclarationNodes','maxSecretBytes','maxCaBytes'];
-  const mayBeZero = ['maxMessages','maxLabels','maxHeaders','maxHeaderUnits','maxCommentDepth','maxValueTextBytes'];
-  if (profile === undefined || columns !== 5 || Reflect.ownKeys(supplied).length !== names.length || names.some(name =>
-    !Object.hasOwn(supplied[name] ?? {},'value') || !Number.isSafeInteger(supplied[name].value) ||
-    supplied[name].value < (mayBeZero.includes(name) ? 0 : 1) || supplied[name].value > 2147483647)) {
-    fail('InvalidInstalledGmailThreadReaderLimits');
-  }
-  const original = Object.freeze(Object.fromEntries(names.map(name => [name,supplied[name].value])));
-  if (original.pageSize > 500 || original.maxPages > 2147483647 - original.maxThreads ||
-      original.maxMailboxBytes > profile.value.maxIdentityBytes ||
-      original.maxDeclarationBytes > profile.value.maxDeclarationBytes ||
-      original.maxDeclarationNodes > profile.value.maxDeclarationNodes) fail('InstalledSourceReaderImplementationBoundsExceeded');
-  const responses = original.maxPages + original.maxThreads;
-  return Object.freeze({original,responses,limits:Object.freeze({
-    maxResponseBytes:original.maxResponseBytes,maxTotalResponseBytes:original.maxTotalResponseBytes,
-    maxNodes:original.maxNodes,maxDepth:original.maxDepth,maxRows:1,maxTotalRows:original.maxThreads,
-    maxPages:responses,pageSize:original.pageSize,maxCursorBytes:original.maxTokenBytes,maxIdentityBytes:original.maxIdBytes,
-    maxTargetBytes:original.maxTargetBytes,maxValueNodes:original.maxValueNodes,
-    // The quote's positive slot does not replace Gmail's valid zero-text guard.
-    maxValueTextBytes:original.maxValueTextBytes === 0 ? 1 : original.maxValueTextBytes,
-    maxRowsWireBytes:original.maxRowsWireBytes,maxRowsWireNodes:original.maxRowsWireNodes,
-    maxRowsWireDepth:original.maxRowsWireDepth,maxSecretBytes:original.maxSecretBytes,
-  }),sequence:Object.freeze({operation:'gmail:threads:list',maxUses:original.maxPages,
-    children:Object.freeze([Object.freeze({operation:'gmail:threads:get',maxUses:original.maxThreads})])})});
-}
-
-// All three existing Slack resources use one selected implementation. The
-// messages protocol's original total exchange/occurrence guards remain in its
-// sequence; users/channels additionally need one separately scoped auth.test.
-function slackImplementationReaderLimits(supplied, columns, profile) {
-  const names = [...installedJsonSourceReaderLimitNames, 'maxDeclarationBytes',
-    'maxDeclarationNodes', 'maxSecretBytes', 'maxCaBytes'];
-  if (profile === undefined || Reflect.ownKeys(supplied).length !== names.length || names.some(name =>
-    !Object.hasOwn(supplied[name] ?? {}, 'value') || !Number.isSafeInteger(supplied[name].value) ||
-    supplied[name].value < 1 || supplied[name].value > 2147483647)) fail('InvalidInstalledSlackReaderLimits');
-  const original = Object.freeze(Object.fromEntries(names.map(name => [name, supplied[name].value])));
-  if (original.maxPages === 2147483647 || original.pageSize >= 1000 ||
-      columns > profile.value.maxColumns || original.maxDeclarationBytes > profile.value.maxDeclarationBytes ||
-      original.maxDeclarationNodes > profile.value.maxDeclarationNodes) fail('InstalledSourceReaderImplementationBoundsExceeded');
-  const children = entries => Object.freeze(entries.map(([operation,maxUses]) => Object.freeze({operation,maxUses})));
-  const sequence = (operation,maxUses,entries) => Object.freeze({operation,maxUses,children:children(entries)});
-  return Object.freeze({original,limits:Object.freeze({...Object.fromEntries(
-    installedJsonSourceReaderLimitNames.map(name => [name,original[name]])),
-    maxPages:original.maxPages+1,maxSecretBytes:original.maxSecretBytes}),
-    sequences:Object.freeze({
-      users:sequence('slack:users:list',original.maxPages,[['slack:workspace:identity',1]]),
-      channels:sequence('slack:channels:list',original.maxPages,[['slack:workspace:identity',1]]),
-      messages:sequence('slack:messages:history',original.maxPages,[
-        ['slack:workspace:identity',original.maxPages],['slack:channels:list',original.maxPages],
-        ['slack:messages:replies',original.maxPages]]),
-    })});
-}
-
 // Snapshot only the existing required Source service methods. The connector
 // chooses its own unavailable error and retains its explicit legacy branch.
 // This view issues no service, installation, capacity or cleanup observation.
@@ -1117,8 +1052,6 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
   const sourceCapacity = moon.clientProgramInstalledJsonSourceReaderCapacity;
   const sourceRequestCapacity = moon.clientProgramInstalledJsonSourceReaderCapacityWithRequest;
   const preservingSourceRequestCapacity = moon.clientProgramInstalledPreservingJsonSourceReaderCapacityWithRequest;
-  const gmailThreadCapacity = moon.clientProgramInstalledGmailThreadReaderCapacity;
-  const slackCapacity = moon.clientProgramInstalledSlackSourceReaderCapacity;
   const current = () => {
     if (Reflect.apply(assertCurrent, receiver, []) !== undefined) fail('InstalledHostServiceCurrentCheckNotSynchronous');
   };
@@ -1167,7 +1100,8 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
       const fields = Object.getOwnPropertyDescriptors(options ?? {});
       if (Reflect.ownKeys(fields).length !== (Object.hasOwn(fields, 'sourceInitialization') ? 4 : 3) +
           (Object.hasOwn(fields, 'requestConstruction') ? 1 : 0) +
-          (Object.hasOwn(fields, 'preservingRequestConstruction') ? 1 : 0) ||
+          (Object.hasOwn(fields, 'preservingRequestConstruction') ? 1 : 0) +
+          (Object.hasOwn(fields, 'readSequenceConstruction') ? 1 : 0) ||
           Object.hasOwn(fields, 'requestConstruction') && Object.hasOwn(fields, 'preservingRequestConstruction') || ['installation', 'limits', 'columnCount'].some(name =>
         !Object.hasOwn(fields[name] ?? {}, 'value'))) fail('InvalidInstalledSourceReaderSelection');
       if (nodeTypes.isProxy(fields.limits.value ?? {})) fail('InvalidInstalledSourceReaderSelection');
@@ -1191,32 +1125,40 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
         }
         requestConstruction = field.value;
       }
+      // The selected Source supplies its SAME complete Core quote and original
+      // occurrence declaration. This is retained construction DATA, not a grant,
+      // owner, profile knob or a recipe selected again by registration here.
+      let readSequenceConstruction;
+      if (Object.hasOwn(fields, 'readSequenceConstruction')) {
+        const field = fields.readSequenceConstruction;
+        if (!Object.hasOwn(field, 'value') || field.value === null || typeof field.value !== 'object' ||
+            nodeTypes.isProxy(field.value) || !Object.isFrozen(field.value)) fail('InvalidInstalledSourceSequenceConstruction');
+        const original = Object.getOwnPropertyDescriptors(field.value);
+        const names = Reflect.ownKeys(original);
+        if (names.some(name => !['capacity', 'originalLimits', 'sequence', 'sequences', 'maxRequestBytes'].includes(name)) ||
+            names.some(name => !Object.hasOwn(original[name], 'value')) ||
+            !Object.hasOwn(original, 'capacity') || !Object.hasOwn(original, 'originalLimits') ||
+            Object.hasOwn(original, 'sequence') === Object.hasOwn(original, 'sequences') ||
+            original.capacity.value === undefined || original.capacity.value === null ||
+            original.originalLimits.value === null || typeof original.originalLimits.value !== 'object' ||
+            nodeTypes.isProxy(original.originalLimits.value) || !Object.isFrozen(original.originalLimits.value)) {
+          fail('InvalidInstalledSourceSequenceConstruction');
+        }
+        const occurrences = (original.sequence ?? original.sequences).value;
+        if (occurrences === null || typeof occurrences !== 'object' || nodeTypes.isProxy(occurrences) ||
+            !Object.isFrozen(occurrences) || original.maxRequestBytes !== undefined &&
+            (!Number.isSafeInteger(original.maxRequestBytes.value) || original.maxRequestBytes.value < 1 ||
+              original.maxRequestBytes.value > 2147483647)) fail('InvalidInstalledSourceSequenceConstruction');
+        readSequenceConstruction = field.value;
+      }
       const profile = sourceProfiles.get(selection);
-      let supplied = Object.getOwnPropertyDescriptors(fields.limits.value ?? {}), calendarLimits, nestedLimits, threadLimits, slackLimits;
-      if (Object.getOwnPropertyDescriptor(installation, 'registration')?.value === 'gmail' &&
-          Object.hasOwn(supplied, 'maxThreads')) {
-        threadLimits = gmailThreadImplementationReaderLimits(supplied, columns, profile);
-        supplied = Object.getOwnPropertyDescriptors(threadLimits.limits);
-      }
-      if (Object.getOwnPropertyDescriptor(installation, 'registration')?.value === 'slack') {
-        slackLimits = slackImplementationReaderLimits(supplied, columns, profile);
-        supplied = Object.getOwnPropertyDescriptors(slackLimits.limits);
-      }
-      if (Object.hasOwn(supplied, 'maxRequestBytes')) {
-        // Only the complete original nested grammar has the selected request
-        // constructor inventory. A method/body allowance alone is not a recipe.
-        if (!Object.hasOwn(supplied, 'maxPropertyPages')) fail('InstalledSourceReaderRequestCapacityUnavailable');
-        nestedLimits = nestedImplementationReaderLimits(supplied, columns, profile);
-        supplied = Object.getOwnPropertyDescriptors(nestedLimits.limits);
-      }
-      if (Object.getOwnPropertyDescriptor(installation, 'registration')?.value === 'calendar' &&
-          !Object.hasOwn(supplied, 'maxTotalResponseBytes')) {
-        const projected = calendarImplementationReaderLimits(supplied, profile);
-        calendarLimits = projected.original;
-        supplied = Object.getOwnPropertyDescriptors(projected.limits);
-      }
-      if (requestConstruction !== undefined &&
-          (calendarLimits !== undefined || nestedLimits !== undefined || threadLimits !== undefined || slackLimits !== undefined)) {
+      const supplied = Object.getOwnPropertyDescriptors(fields.limits.value ?? {});
+      // A scalar method/body allowance cannot replace the original request
+      // constructor or a complete selected sequence. The retired query/property
+      // projection never admitted its 21-field quote through the real 16-field
+      // JSON constructor, and its managed-read entry was refused as unfunded.
+      if (Object.hasOwn(supplied, 'maxRequestBytes')) fail('InstalledSourceReaderRequestCapacityUnavailable');
+      if (requestConstruction !== undefined && readSequenceConstruction !== undefined) {
         fail('InstalledSourceReaderRequestConstructionChanged');
       }
       const names = [...installedJsonSourceReaderLimitNames, 'maxSecretBytes'];
@@ -1226,11 +1168,12 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
       }
       if (profile !== undefined && (profile.runtimeBundleCid !== runtimeBundleCid ||
           columns > profile.value.maxColumns || names.some(name =>
-            !(nestedLimits !== undefined && name === 'maxPages') && supplied[name].value > profile.value[name]))) {
+            supplied[name].value > profile.value[name]))) {
         fail('InstalledSourceReaderImplementationBoundsExceeded');
       }
       const selectedRequestCapacity = preservingResponse ? preservingSourceRequestCapacity : sourceRequestCapacity;
-      if ([sourcePolicy, requestConstruction === undefined ? sourceCapacity : selectedRequestCapacity].some(port => typeof port !== 'function')) fail('InstalledSourceReaderRuntimeUnavailable');
+      if (typeof sourcePolicy !== 'function' || readSequenceConstruction === undefined &&
+          typeof (requestConstruction === undefined ? sourceCapacity : selectedRequestCapacity) !== 'function') fail('InstalledSourceReaderRuntimeUnavailable');
       const policy = Reflect.apply(sourcePolicy, moon, []);
       if (!Array.isArray(policy) || policy.length !== 3 || policy.some(value =>
         !Number.isSafeInteger(value) || value < 1 || value > 2147483647) ||
@@ -1240,37 +1183,19 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
       const previous = sourceImplementations.get(selection);
       if (previous !== undefined) {
         if (previous.requestConstruction !== requestConstruction || previous.preservingResponse !== preservingResponse ||
+            previous.readSequenceConstruction !== readSequenceConstruction ||
             previous.runtimeBundleCid !== runtimeBundleCid || previous.columns !== columns ||
-            (previous.nestedLimits === undefined) !== (nestedLimits === undefined) ||
-            nestedLimits !== undefined && Object.keys(nestedLimits.original).some(function sequenceSelectionChanged(name) {
-              return previous.nestedLimits.original[name] !== nestedLimits.original[name];
-            }) ||
-            (previous.calendarLimits === undefined) !== (calendarLimits === undefined) ||
-            calendarLimits !== undefined && Object.keys(calendarLimits).some(function calendarSelectionChanged(name) {
-              return previous.calendarLimits[name] !== calendarLimits[name];
-            }) ||
-            (previous.threadLimits === undefined) !== (threadLimits === undefined) ||
-            threadLimits !== undefined && Object.keys(threadLimits.original).some(function threadSelectionChanged(name) {
-              return previous.threadLimits.original[name] !== threadLimits.original[name];
-            }) ||
-            (previous.slackLimits === undefined) !== (slackLimits === undefined) ||
-            slackLimits !== undefined && Object.keys(slackLimits.original).some(function slackSelectionChanged(name) {
-              return previous.slackLimits.original[name] !== slackLimits.original[name];
-            }) ||
             names.some(name => previous.value.limits[name] !== limits[name])) fail('InstalledSourceReaderSelectionChanged');
         return previous.value;
       }
-      if (threadLimits !== undefined && typeof gmailThreadCapacity !== 'function') fail('InstalledSourceReaderRuntimeUnavailable');
-      if (slackLimits !== undefined && typeof slackCapacity !== 'function') fail('InstalledSourceReaderRuntimeUnavailable');
-      const capacity = Reflect.apply(slackLimits !== undefined ? slackCapacity : threadLimits === undefined ? requestConstruction === undefined ? sourceCapacity : selectedRequestCapacity : gmailThreadCapacity, moon,
-        [nestedLimits?.quote ?? installedJsonSourceReaderLimitNames.map(name => limits[name]), columns, limits.maxSecretBytes,
-          ...(slackLimits !== undefined ? [slackLimits.original.maxPages] : threadLimits === undefined
-            ? requestConstruction === undefined ? [] : [requestConstruction.capacity]
-            : [threadLimits.original.maxPages,threadLimits.original.maxMailboxBytes])]);
+      const capacity = readSequenceConstruction !== undefined ? readSequenceConstruction.capacity
+        : Reflect.apply(requestConstruction === undefined ? sourceCapacity : selectedRequestCapacity, moon,
+          [installedJsonSourceReaderLimitNames.map(name => limits[name]), columns, limits.maxSecretBytes,
+            ...(requestConstruction === undefined ? [] : [requestConstruction.capacity])]);
       if (capacity === undefined || capacity === null) fail('InstalledSourceReaderCapacityUnavailable');
       const value = Object.freeze({capacity, limits, runAcquisitionLimits: Object.freeze({
         maxBindings: policy[1], maxSecretBytes: limits.maxSecretBytes})});
-      current(); sourceImplementations.set(selection, Object.freeze({runtimeBundleCid, columns, calendarLimits, nestedLimits, threadLimits, slackLimits, requestConstruction, preservingResponse, value}));
+      current(); sourceImplementations.set(selection, Object.freeze({runtimeBundleCid, columns, readSequenceConstruction, requestConstruction, preservingResponse, value}));
       return value;
     },
     createSourceReader(options) {
@@ -1294,37 +1219,36 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
       // The normal JSON page recipe does not back a retained query/property
       // sequence. Keep this entry refused until that same Source recipe owns
       // constructor, prefix, output and failed-child overlap before use.
-      if (managedSequence && implementation.threadLimits === undefined && implementation.slackLimits === undefined) fail('InstalledSourceReaderReadChildCapacityUnavailable');
+      if (managedSequence && implementation.readSequenceConstruction === undefined) fail('InstalledSourceReaderReadChildCapacityUnavailable');
       if (implementation.requestConstruction !== undefined && !standard) fail('InstalledSourceReaderStandardSelectionRequired');
-      if (implementation.nestedLimits !== undefined && !managedSequence) fail('InstalledSourceReaderSequenceSelectionRequired');
-      if (implementation.slackLimits !== undefined && !managedSequence) fail('InstalledSourceReaderSequenceSelectionRequired');
-      if (implementation.threadLimits !== undefined && !managedSequence) fail('InstalledSourceReaderSequenceSelectionRequired');
+      if (implementation.readSequenceConstruction !== undefined && !managedSequence) fail('InstalledSourceReaderSequenceSelectionRequired');
       const originalSite = installedRowCredentialOperationSite(fields.site.value.credential);
-      const limits = implementation.value.limits, nested = implementation.nestedLimits, threads = implementation.threadLimits, slack = implementation.slackLimits;
+      const limits = implementation.value.limits, sequence = implementation.readSequenceConstruction;
       const constructor = sourceContexts.get(selection);
       if (constructor?.scope.reader !== undefined) fail('InstalledSourceReaderAlreadyConstructed');
       const factory = createInstalledCredentialSourceReader({capacity: implementation.value.capacity,
         originalSite, [readerField]: fields[readerField].value, assertCurrent: current,
-        maxResponses: nested?.responses ?? limits.maxPages,
+        maxResponses: limits.maxPages,
         ...(standard ? {operation: fields.operation.value,
           ...(implementation.requestConstruction === undefined ? {} : {maxRequestBytes:implementation.requestConstruction.maxRequestBytes}),
           maxResponseBytes: limits.maxResponseBytes, maxTotalResponseBytes: limits.maxTotalResponseBytes,
           maxSecretBytes: limits.maxSecretBytes} : {}),
         ...(managedSequence ? {maxResponseBytes: limits.maxResponseBytes,
-          ...(slack !== undefined ? {maxRequestBytes:2} : nested === undefined ? {} : {maxRequestBytes:nested.original.maxRequestBytes}),
+          ...(sequence?.maxRequestBytes !== undefined ? {maxRequestBytes:sequence.maxRequestBytes}
+            : {}),
           maxTotalResponseBytes: limits.maxTotalResponseBytes} : {})});
       if (constructor !== undefined) {
-        const all = BigInt(nested?.responses ?? limits.maxPages) * BigInt(limits.maxResponseBytes);
+        const all = BigInt(limits.maxPages) * BigInt(limits.maxResponseBytes);
         const prefix = BigInt(limits.maxTotalResponseBytes) + BigInt(limits.maxResponseBytes);
         constructor.scope.reader = factory;
-        constructor.scope.readerDemand = Object.freeze({nested: nested !== undefined,
-          ...(threads === undefined ? {} : {sequence:threads.sequence}),
-          ...(slack === undefined ? {} : {sequences:slack.sequences}),
-          responses: nested?.responses ?? limits.maxPages, queryPages: limits.maxPages,
-          propertyPages: nested?.propertyPages, propertyOccurrences: nested?.propertyOccurrences,
+        constructor.scope.readerDemand = Object.freeze({nested: false,
+          ...(sequence?.sequence === undefined ? {} : {sequence:sequence.sequence}),
+          ...(sequence?.sequences === undefined ? {} : {sequences:sequence.sequences}),
+          responses: limits.maxPages, queryPages: limits.maxPages,
+          propertyPages: undefined, propertyOccurrences: undefined,
           maxResponseBytes: limits.maxResponseBytes, maxNodes: limits.maxNodes, maxDepth: limits.maxDepth,
           maxRows: limits.maxRows, maxTotalRows: limits.maxTotalRows,
-          transferBytes: nested === undefined && threads === undefined && slack === undefined || all < prefix ? all : prefix});
+          transferBytes: sequence === undefined || all < prefix ? all : prefix});
       }
       return factory;
     },

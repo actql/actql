@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test, {mock} from 'node:test';
+import './private-source-preparation.test.mjs';
 import {connectInProcess} from './host-port.mjs';
 import {ClientError} from './index.mjs';
 import {submissionEpoch, originalSubmission, readySubmissionAttempt} from './submission-fixture.mjs';

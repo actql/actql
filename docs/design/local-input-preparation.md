@@ -3597,6 +3597,26 @@ Run, rechecks it after an await and retains only the original association.
 This semantic forwarding does not supply missing physical reader backing,
 Source authorization, completion evidence or cleanup acknowledgement.
 
+## Checked row demand and required metadata quotes
+
+The Local row policy remains an admission ceiling. A complete original checked
+sequence inventory can separately prove a smaller simultaneous row demand.
+For UNNEST, the original checked array's finite item bound multiplies its
+positional input-row bound; an outer expansion also accounts for an empty
+array's retained row. Missing array bounds, unknown input rows and represented
+product overflow remain unproved. The proof reads those retained typed facts,
+without parsing Source again or inspecting eventual rows. It neither increases
+the policy ceiling nor turns an above-policy output into successful truncation.
+
+Result metadata uses that same proved demand. Its quote distinguishes an
+amount, an absent metadata role and a failed required quote. In particular, a
+required envelope or retained-byte quote that cannot be represented does not
+become a zero-byte allowance or the general cleanup allowance. The original
+preparation refuses it before constructing providers. A graph-less calculator
+can still have no metadata role, independently of a genuine quoted zero; neither
+case grants a Graph, provider, output or physical resource. Existing general
+Graph cleanup and simultaneous failed-child retention remain separately funded.
+
 ## Captured suffix demand survives general metadata selection
 
 A Pure captured Source retains the existing checked schema demand for its
@@ -4984,6 +5004,13 @@ parameter and barrier identities directly from that same Graph without another
 check, lowering, compiler, Definition or Request issuer. The resulting fixed
 installation keeps the complete native bootstrap/read/Model amounts and adds
 the Node amounts; live census maxima and comparator work cannot decrease.
+The legacy nine-field retained-limits projection describes read allowances; its
+last read pair is not the Model ledger floor. The physical Request consumer
+reads both stored Model ledger amounts from the same selected Bounds through
+the pure typed projection, then adds the original Node Model controls. It does
+not select Bounds again or derive the floor from combined totals. Missing,
+malformed or overflowing Model amounts refuse before native Plan entry; the
+Plan still checks its original selected ledger floors.
 Overflow and missing native identity ports refuse before module/Scope entry.
 A fixed installation keeps its original strict identity checks and is never
 silently rebound as a recipe.
@@ -5193,3 +5220,88 @@ The returned module remains on the original Host record before the next current
 check or Plan binding. Failures retain the same partial prefix/module and parent
 for existing cleanup. The binding adds no retained constructor/token alias and
 changes no reservation, Scope, Source/read, Store, adoption or retirement owner.
+
+
+### Model Scope composes original demand instead of whole-Run ceilings
+
+The configured Local module retains the installed whole-Run planning ceiling.
+That ceiling is not additional work to add to the selected Model's planning
+work. The Model Plan instead projects a conservative bound from the SAME
+configured graph and Local driver: one installed Local implementation emits one
+non-resident offer per unstarted task. No provider or sequence is reconstructed.
+
+For `N` graph tasks, `M` Compute tasks and `E` edges, one-assignment search charges
+at most `2*N + 2*M + M*M*E + 2`. Each Local offer charges its actual work slots,
+one schedule line and the installed input/output lines. The single-root path
+also includes its existing estimate work and all ten adaptive revisions plus
+one refusing preflight. The fixed retained/two-root path selects once. The
+original occurrence selects one input binding, or input plus output binding;
+captured-input entries remain included. Arithmetic overflow or a demand beyond
+the original configured ceiling refuses. The same runtime constants select
+both the installed adaptive protocol and this bound. This is logical planning
+work, not a heap tariff, resource grant, new phase or placement algorithm.
+
+The Node installation separately retains its original Scope bootstrap and its
+complete all-row read layout. Those extents can differ substantially. The
+existing two Node Plan bindings now forward the original bootstrap pair beside
+the original layout; their typed entrance preserves both native bootstrap and
+Model ledger floors. The Plan adds Model + bootstrap + complete read, rather
+than substituting a second complete read for bootstrap. Legacy native callers
+without a distinct bootstrap retain their existing equal bootstrap/read bound.
+No declared row, decoder, callback, metadata or failed-child overlap is removed.
+The pair is transient DATA in the existing fixed constructor frame; no new
+retained Plan field, issuer, ownership record or physical permission is added.
+
+The same Request still retains the original prefix/module before Scope entry,
+retains Scope before complete/adopt, and owns partial construction through its
+original cleanup. Source/current/foreign guards, the original Local Policy,
+quantity counters, Store and physical retirement acknowledgement stay intact.
+
+
+### Model Content workspace uses its original checked input bounds
+
+The Request retains its Content preparation record before selecting generation
+bounds or constructing a workspace. The same nominal Task compilation and
+serialization component supply the bound once. The record keeps it through
+prefix construction, Scope/adoption, execution and failed-child cleanup;
+execution does not repeat selection. A current callback retiring that record
+refuses before another Host child, and a constructor failure stays latched on
+that original record.
+
+For an input schema proved entirely Number, Boolean or Text by the existing
+checked leaf proof, the complete original input column count `C` and Serialize
+row bound `R` give conservative quotas `1 + R*(1+C)` for payload nodes and
+`1 + R*(1+2*C)` for value/name admission. The logical Relation wrapper adds
+three wire nodes. This includes input columns not selected for the byte body.
+The identity quota includes both payload writers, the logical writer, eight
+summary roots per column, and stepped measurement/key continuations. The
+existing export owner still accounts separately for buffers, borrowed values,
+references, schema, proof bodies and failed-child overlap.
+
+These are quantities on the SAME checked component, not a row sample,
+authorization, Resource grant or physical acknowledgement. Recursive and opaque
+schemas keep the original general profile. The preceding prefix retains its
+original input-row limits: a large input may filter down to one Serialize row.
+Its capacity, the Source capture, Model read, module and original Scope remain
+separate simultaneous obligations on the same parent.
+
+
+### Closed Content evidence keeps its original codec ceiling
+
+The input Artifact contains the original version and eight CIDs, task and step
+ordinals, and row count, plus the sealed identity. It contains no
+Program, schema, Source or row body. Its empty InvocationBindings record and
+the generated Content observation are separate closed evidence. Their existing
+16,384-byte, 256-node and depth-16 codec bounds are shared with the workspace
+inventory. Each actual caller bound remains an additional minimum; a smaller
+or invalid bound is never upgraded. The input binder applies that same minimum
+before constructing either proof, and generation uses the same codec projection.
+The six simultaneous canonical/encrypted proof representations remain charged.
+
+The Node fixture's original single response is separately bounded to 8KiB.
+Every parsed JSON value consumes at least one original byte, and its selected
+row array is a span of that same body. With no author transform or second page,
+the reader constructor therefore receives the same page-byte-derived node and
+row-wire bounds and the one-page total, while preserving tighter policy limits.
+This does not change production provider profiles, schema admission, credential
+limits, target or identity bounds, Source ownership or failed-response overlap.

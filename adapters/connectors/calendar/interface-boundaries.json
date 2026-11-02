@@ -2663,7 +2663,7 @@
     },
     {
       "module": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
-      "sha256": "8a1a4c2b5dff959bb46dcab9047648808d3cce0b746515aa06a4c144221cdf42",
+      "sha256": "2625c292a6fedb112ae9040db7ce8f6e524781c41c4c4e204038397f41ccc037",
       "exports": [
         "INSTALLED_CALENDAR_SITE_VERSION",
         "INSTALLED_CALENDAR_SOURCE_VERSION",
@@ -2676,6 +2676,14 @@
           "name": "absolute/absolute",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "calendarReaderLimits",
+          "parameters": [
+            "original",
+            "policy"
           ],
           "async": false
         },
@@ -2985,6 +2993,74 @@
               {
                 "path": "adapters/connectors/calendar/test/calendar-list-read.test.mjs",
                 "anchor": "Calendar actual shared Host reader retires only after original stop and keeps typed rows"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "calendarReaderLimits"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Connector-owned Calendar reader selection"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Connector-owned Calendar reader selection"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Connector-owned Calendar reader selection"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Connector-owned Calendar reader selection"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Connector-owned Calendar reader selection"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Connector-owned Calendar reader selection"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Connector-owned Calendar reader selection"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Connector-owned Calendar reader selection"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Connector-owned Calendar reader selection"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Connector-owned Calendar reader selection"
               }
             ]
           }

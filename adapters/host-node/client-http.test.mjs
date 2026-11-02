@@ -11,6 +11,8 @@ import {ClientError, connect} from '../../packages/sdk/index.mjs';
 import {connectInProcess} from '../../packages/sdk/host-port.mjs';
 import {createDiagnosticObserver, diagnosticObserver} from
   '../host-common/diagnostic-observer.mjs';
+import {resultDescriptionLimits} from '../../packages/client-wire/index.mjs';
+import './http-required-preparation.test.mjs';
 
 const ref = {namespaceId: 'namespace-a',
   authorityScopeCid: `sha256:${'a'.repeat(64)}`,
@@ -974,7 +976,8 @@ test('HTTP publication current refusal keeps its primary and still finishes the 
   assert.deepEqual(events, ['operation', 'snapshot']);
   assert.deepEqual(finishes, ['failed']);
   preparation.beforeResultPublicationOperation = () => {throw primary;};
-  assert.throws(() => prepare('submit-intent', request), error => error === primary);
+  const refusedRequest = Object.freeze({...request});
+  assert.throws(() => prepare('submit-intent', refusedRequest), error => error === primary);
   assert.deepEqual(events, ['operation', 'snapshot']);
 });
 
@@ -982,20 +985,29 @@ test('HTTP publication current refusal keeps its primary and still finishes the 
 // Keep the whole HTTP handler and all real wire/preparation imports. Only the
 // existing Result service entrance is an explicit delivery port in this Source
 // component; no grant, Core, actual Host or durable Result is claimed here.
-async function httpHandlerWithDeliveryPort() {
+async function httpHandlerWithDeliveryPort({statePort = false} = {}) {
   const file = new URL('./client-http.mjs', import.meta.url);
   const source = await readFile(file, 'utf8');
   const ast = parse(source, {sourceType: 'module', ecmaVersion: 'latest'});
   const imports = ast.body.filter(node => node.type === 'ImportDeclaration');
   assert.equal(imports.filter(node => node.source.value === './result-access.mjs').length, 1);
   const port = `export const deliverAuthorizedResult = (service, ...args) => service.deliver(...args);
-    export const describeAuthorizedResult = () => { throw new Error('UnselectedDescriptionPort'); };
-    export const inspectAuthorizedDeliveryAttempt = () => { throw new Error('UnselectedLookupPort'); };`;
+    export const describeAuthorizedResult = (service, ...args) => {
+      if (typeof service.describe !== 'function') throw new Error('UnselectedDescriptionPort');
+      return service.describe(...args);
+    };
+    export const inspectAuthorizedDeliveryAttempt = (service, ...args) => {
+      if (typeof service.inspectDelivery !== 'function') throw new Error('UnselectedLookupPort');
+      return service.inspectDelivery(...args);
+    };`;
   let projected = source;
   for (const node of [...imports].reverse()) {
+    const state = `export const observeClientRunState = (_observation, service, ...args) => service.observe(...args);`;
     const specifier = node.source.value === './result-access.mjs'
       ? 'data:text/javascript;base64,' + Buffer.from(port).toString('base64')
-      : new URL(node.source.value, file).href;
+      : statePort && node.source.value === './client-run-state.mjs'
+        ? 'data:text/javascript;base64,' + Buffer.from(state).toString('base64')
+        : new URL(node.source.value, file).href;
     projected = projected.slice(0, node.source.start) + JSON.stringify(specifier) +
       projected.slice(node.source.end);
   }
@@ -1153,3 +1165,133 @@ test('HTTP read close rejects once and ignores late duplicate end callbacks',
 
 test('HTTP read response error retains its primary through close and late callbacks',
   {timeout: 10000}, () => httpReadEndSettlement('error-first'));
+
+for (const operation of ['read', 'result-describe', 'delivery-attempt']) {
+  test(`HTTP Result ${operation} binds its prepared Request before service entry`,
+    {timeout: 10000}, async () => {
+      // Actual ingress and registry association, with explicit service and
+      // preparation ports. This does not issue Core capacity or a real Run.
+      const createHandler = await httpHandlerWithDeliveryPort();
+      const registry = createEmbeddedHostRegistry(() => true);
+      const host = {}, installation = {}, originals = {host, installation, generation: host};
+      registry.registerPreparation(host, installation, host);
+      let originalRequest;
+      const entered = [];
+      const primary = new Error('OriginalServiceBoundaryFailure');
+      const preparation = {
+        requestPreparation() {return Object.freeze({});},
+        beforeResultPublicationOperation(actual) {
+          assert.equal(actual, operation);
+          registry.assertSourceRequest(host, installation, host, originalRequest);
+        },
+        assertResultPublicationCurrent() {},
+      };
+      const prepare = installHttpRequestPreparation(preparation, registry, originals);
+      const atService = request => {
+        assert.strictEqual(registry.originalSourceRequest(host, installation, host, request),
+          originalRequest);
+        assert.deepEqual(request.indexKey, originalRequest.ref);
+        assert.equal(request.principalId, originalRequest.principalId);
+        assert.equal(request.resultName, originalRequest.resultName);
+        assert.equal(request.attemptId, originalRequest.attemptId);
+        entered.push(request);
+        throw primary;
+      };
+      const handler = createHandler({
+        authenticate: () => 'original-principal', authorizeConnection: () => true,
+        prepareRequest(actual, request) {
+          originalRequest = request;
+          return prepare(actual, request);
+        },
+        resultService: {deliver: atService, describe: atService, inspectDelivery: atService},
+      });
+      await withServer(handler, async base => {
+        const response = await fetch(`${base}/actql/client/0.1/${operation}`, {
+          method: 'POST', headers: {'content-type': 'application/json'},
+          body: JSON.stringify({connection: {mode: 'remote', owner: 'remote',
+            runners: [], consentRefs: []}, ref, resultName: 'answer',
+            ...(operation === 'delivery-attempt' ? {} : {format: 'jsonl'}),
+            ...(operation === 'result-describe' ? resultDescriptionLimits : {}),
+            attemptId: 'same-prepared-request'}),
+          signal: AbortSignal.timeout(2000),
+        });
+        // The deliberately failing service remains an unknown Host failure.
+        // The assertion is same-original linkage before service work, not a
+        // successful read or a known business non-acceptance classification.
+        assert.equal(response.status, 500);
+        assert.deepEqual(await response.json(), {code: 'ClientHostFailure'});
+        assert.equal(entered.length, 1);
+        await new Promise(resolve => setImmediate(resolve));
+        assert.throws(() => registry.originalSourceRequest(host, installation, host, entered[0]),
+          {code: 'InstalledHostPreparationChanged'});
+      });
+    });
+}
+
+test('HTTP Result bind failure prevents service entry and finishes only its original Request',
+  {timeout: 10000}, async () => {
+    const createHandler = await httpHandlerWithDeliveryPort();
+    const primary = new Error('OriginalResultRequestBindFailure');
+    const terminals = [];
+    let services = 0, binds = 0;
+    const handler = createHandler({
+      authenticate: () => 'original-principal', authorizeConnection: () => true,
+      prepareRequest(_operation, body) {
+        return {body, beforeReply() {assert.fail('Failed bind cannot publish');},
+          bindRequest() {binds++; throw primary;},
+          finish(terminal) {terminals.push(terminal);}};
+      },
+      resultService: {deliver() {services++; assert.fail('UnboundResultService');}},
+    });
+    await withServer(handler, async base => {
+      const response = await fetch(`${base}/actql/client/0.1/read`, {
+        method: 'POST', headers: {'content-type': 'application/json'},
+        body: JSON.stringify({connection: {mode: 'remote', owner: 'remote',
+          runners: [], consentRefs: []}, ref, resultName: 'answer',
+          format: 'jsonl', attemptId: 'failed-original-bind'}),
+        signal: AbortSignal.timeout(2000),
+      });
+      assert.equal(response.status, 500);
+      assert.deepEqual(await response.json(), {code: 'ClientHostFailure'});
+    });
+    assert.equal(binds, 1);
+    assert.equal(services, 0);
+    assert.deepEqual(terminals, ['failed']);
+  });
+
+test('HTTP status service binds its prepared Request before fallback observation',
+  {timeout: 10000}, async () => {
+    // The same whole handler and actual registry, with only this observation
+    // service entrance selected as a port. No Run state authority is issued.
+    const createHandler = await httpHandlerWithDeliveryPort({statePort: true});
+    const registry = createEmbeddedHostRegistry(() => true);
+    const host = {}, installation = {}, originals = {host, installation, generation: host};
+    registry.registerPreparation(host, installation, host);
+    let originalRequest, entered = 0;
+    const prepare = installHttpRequestPreparation({requestPreparation() {return {};},
+      beforeResultPublicationOperation(operation) {assert.equal(operation, 'status');},
+      assertResultPublicationCurrent() {}}, registry, originals);
+    const handler = createHandler({
+      authenticate: () => 'original-principal', authorizeConnection: () => true,
+      prepareRequest(operation, request) {originalRequest = request; return prepare(operation, request);},
+      stateService: {observe(request) {
+        assert.strictEqual(registry.originalSourceRequest(host, installation, host, request),
+          originalRequest);
+        assert.deepEqual(request.indexKey, originalRequest.ref);
+        assert.equal(request.principalId, originalRequest.principalId);
+        assert.equal(request.purpose, 'inspect');
+        entered++;
+        throw new Error('OriginalObservationBoundaryFailure');
+      }},
+    });
+    await withServer(handler, async base => {
+      const response = await fetch(`${base}/actql/client/0.1/status`, {
+        method: 'POST', headers: {'content-type': 'application/json'},
+        body: JSON.stringify({connection: {mode: 'remote', owner: 'remote',
+          runners: [], consentRefs: []}, ref}), signal: AbortSignal.timeout(2000),
+      });
+      assert.equal(response.status, 500);
+      assert.deepEqual(await response.json(), {code: 'ClientHostFailure'});
+      assert.equal(entered, 1);
+    });
+  });

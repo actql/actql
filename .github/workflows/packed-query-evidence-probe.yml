@@ -5,7 +5,7 @@ permissions:
   contents: read
 jobs:
   failure-probe:
-    if: ${{ vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 3
     strategy:

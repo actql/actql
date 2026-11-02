@@ -152,12 +152,14 @@ export async function executeMonitor({mode, options, report, directory}) {
   let prepared;
   try {
     prepared = await prepareHealthPackages({repository, root: raw, source: report.source, retained: options.packages, command});
+    const {inventory} = await import('./package-release.mjs');
+    report.installedInventoryBefore = await inventory(join(prepared.consumer, 'node_modules'));
     await onMetric({id: 'build-packaging', kind: 'reference', target: 'distribution', value: Number(process.hrtime.bigint() - started) / 1e6,
       unit: 'ms', required: true, fixtureSha256: jsonDigest({packages: 'canonical5', retained: Boolean(options.packages)}), evidence: raw,
       scope: options.packages ? 'verified retained artifacts plus fresh installation; no build' : 'normal prepack/build, npm pack and fresh installation; excluded from runtime samples'});
-    const distribution = await distributionMetrics({repository, prepared, root: raw, command, source: report.source});
+    const distribution = await distributionMetrics({repository, prepared, root: raw, command, source: report.source,
+      installedInventory: report.installedInventoryBefore});
     report.artifacts.push(...distribution.artifacts);
-    report.installedInventoryBefore = distribution.installedInventory;
     for (const metric of distribution.metrics) await onMetric(metric);
     const counts = policy[mode];
     if (mode === 'quick') {

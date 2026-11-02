@@ -205,6 +205,7 @@ pub fn[I] prepare_request_model_source_free_plan(
   max_reservations : Int,
   max_holdings : Int,
   max_delegations : Int,
+  bootstrap? : (Int64, Int64)? = None,
 ) -> Result[ClientInstalledManagedModelPlan, ClientInstalledManagedRunIssue] {
   guard owner.phase == ModelPlanReserved &&
     owner.input is Some(same_input) &&
@@ -236,6 +237,7 @@ pub fn[I] prepare_request_model_source_free_plan(
     max_holdings,
     max_delegations,
     content_prefix~,
+    bootstrap~,
   )
 }
 
@@ -262,6 +264,7 @@ pub fn[I] prepare_request_node_model_source_free_plan(
   max_reservations : Int,
   max_holdings : Int,
   max_delegations : Int,
+  bootstrap? : (Int64, Int64)? = None,
 ) -> Result[ClientInstalledManagedModelPlan, ClientInstalledManagedRunIssue] {
   match
     @publication_host.check_client_node_model_preparation_layout(
@@ -288,6 +291,7 @@ pub fn[I] prepare_request_node_model_source_free_plan(
     max_reservations,
     max_holdings,
     max_delegations,
+    bootstrap~,
   )
 }
 
@@ -310,6 +314,7 @@ pub fn[I] prepare_request_model_capture_plan(
   max_reservations : Int,
   max_holdings : Int,
   max_delegations : Int,
+  bootstrap? : (Int64, Int64)? = None,
 ) -> Result[ClientInstalledManagedModelPlan, ClientInstalledManagedRunIssue] {
   guard owner.phase == ModelPlanReserved &&
     owner.input is Some(same_input) &&
@@ -341,6 +346,7 @@ pub fn[I] prepare_request_model_capture_plan(
     max_holdings,
     max_delegations,
     content_prefix~,
+    bootstrap~,
   )
 }
 
@@ -367,6 +373,7 @@ pub fn[I] prepare_request_node_model_capture_plan(
   max_reservations : Int,
   max_holdings : Int,
   max_delegations : Int,
+  bootstrap? : (Int64, Int64)? = None,
 ) -> Result[ClientInstalledManagedModelPlan, ClientInstalledManagedRunIssue] {
   match
     @publication_host.check_client_node_model_preparation_layout(
@@ -393,6 +400,7 @@ pub fn[I] prepare_request_node_model_capture_plan(
     max_reservations,
     max_holdings,
     max_delegations,
+    bootstrap~,
   )
 }
 

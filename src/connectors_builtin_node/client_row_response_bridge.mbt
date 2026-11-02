@@ -85,3 +85,11 @@ pub fn client_program_row_source_bind_response_cleanup(
 ) -> Result[Unit, @client_row_source_host.RowHostIssue] {
   @client_row_source_host.bind_row_run_response_borrow_cleanup(value, cleanup)
 }
+
+///|
+#export_name("clientProgramRowSourceRetireResponseWorkspace")
+pub fn client_program_row_source_retire_response_workspace(
+  value : @client_row_source_host.RowRunResponseBorrow,
+) -> Result[Unit, @client_row_source_host.RowHostIssue] {
+  @client_row_source_host.retire_row_run_response_workspace(value)
+}

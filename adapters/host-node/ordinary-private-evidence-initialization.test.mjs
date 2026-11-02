@@ -1,22 +1,25 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {mkdtemp, readFile, writeFile, rename, stat, open} from 'node:fs/promises';
-import {readFileSync} from 'node:fs';
-import {tmpdir} from 'node:os';
-import {join, dirname} from 'node:path';
+import {readFileSync, existsSync} from 'node:fs';
+import {tmpdir, userInfo} from 'node:os';
+import {join, dirname, resolve} from 'node:path';
 import {createHash} from 'node:crypto';
 import {parse} from 'acorn';
 import {preparePrivateEvidenceKeyInstallation, PRIVATE_EVIDENCE_KEY_FILE}
   from './local-continuation-evidence.mjs';
 import {prepareOrdinaryHostJournal, ordinaryHostJournalInstallation} from './ordinary-host-journal.mjs';
 import {withOriginalFile} from './source-profile-json.mjs';
+import {admitHostRootFormat} from './host-root-format.mjs';
+import {snapshotHostCapacityPolicy, snapshotHostLookupExecutionPolicy, selectInstalledHostEnvironment} from './installed-host-policy.mjs';
+import {originalInitialControlClose, retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
 import {prepareOrdinaryHostResult} from './ordinary-host-result.mjs';
 import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
 import {createPublicationContractControlFixture} from '../host-common/publication-contract-control.fixture.mjs';
 
 const authority = 'sha256:' + 'a'.repeat(64);
 const hash = bytes => 'sha256:' + createHash('sha256').update(bytes).digest('hex');
-async function fixture(root, forwardOwnership = true) {
+async function fixture(root, forwardOwnership = true, storeAuthorityCid = authority) {
   root ??= await mkdtemp(join(tmpdir(), 'actql-ordinary-evidence-key-'));
   const originals = {host: {}, installation: {root}, generation: {}, supplier() {}, moduleLifetime: import.meta};
   const journal = prepareOrdinaryHostJournal(originals);
@@ -25,13 +28,13 @@ async function fixture(root, forwardOwnership = true) {
   catch (cause) {await journal.close(); throw cause;}
   const directory = join(root, 'checkpoints'), storeDirectory = join(root, 'publication');
   const preparedOwnership = forwardOwnership ? journal.publicationOwnership() : undefined;
-  return {root, directory, journal, originals, options: {storeDirectory, storeAuthorityCid: authority,
+  return {root, directory, journal, originals, options: {storeDirectory, storeAuthorityCid,
     preparedOwnership, assertCurrent: () => journal.assertInitializationCurrent(),
     assertFirstInitialization: () => journal.assertPrivateEvidenceFirstInitialization()},
   async prepare() {
     key = await preparePrivateEvidenceKeyInstallation(directory, this.options); return key;
   }, async adopt() {
-    store = await openLocalPublicationStore({directory: storeDirectory, storeAuthorityCid: authority,
+    store = await openLocalPublicationStore({directory: storeDirectory, storeAuthorityCid,
       capacityBytes: 1048576, maxObjectBytes: 65536, maxObjects: 32,
       maxContractNodes: 1000, maxContractDepth: 64, privateEvidenceKey: key?.key},
     createPublicationContractControlFixture(), undefined, undefined, preparedOwnership);
@@ -299,4 +302,137 @@ test('ordinary Journal retains the same exclusion until a partial key FD closes 
     allowClose = true;
     await view.close(); await f.close();
   }
+});
+
+// Execute the actual public caller and private setup declarations. Profile I/O
+// and the Core contract control are explicit ports; Root/Store/key filesystem
+// initialization and original cleanup below use their production owners.
+function publicEffectPublisher(publishProfile, {kind = 'Effect', resultPreparation = prepareOrdinaryHostResult} = {}) {
+  const source = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
+  const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
+  const declaration = name => ast.body.map(node => node.declaration ?? node)
+    .find(node => node.type === 'FunctionDeclaration' && node.id.name === name);
+  const names = ['localPublicationStoreAuthorityCid', 'localPublicationStoreOptions',
+    'preparePublicationRoot', 'publishInstalled' + kind];
+  const declarations = names.map(declaration).filter(Boolean).map(node =>
+    source.slice(node.start, node.end).replaceAll('import.meta', 'moduleLifetime')).join('\n');
+  const control = createPublicationContractControlFixture();
+  return new Function('resolve', 'join', 'userInfo', 'readFile', 'admitHostRootFormat',
+    'runtimeUrl', 'packageRoot', 'snapshotHostCapacityPolicy', 'snapshotHostLookupExecutionPolicy',
+    'selectInstalledHostEnvironment', 'publishInstalled' + kind + 'Profile',
+    'prepareOrdinaryHostJournal', 'prepareOrdinaryHostResult', 'runtimeCore',
+    'originalInitialControlClose', 'retainInstalledHostInitializationFailure',
+    'readHostResultPublicationRunRequirements', 'readHostEffectResultPublicationRunRequirements',
+    'localOutputLimits', 'cid', 'moduleLifetime', `
+      const localStateRoot=()=>{throw Error('No default Root selected');};
+      const assertInstalledConnectorTable=()=>{throw Error('No custom catalogue selected');};
+      ${declarations}
+return publishInstalled${kind};
+    `)(resolve, join, userInfo, readFile, admitHostRootFormat,
+    new URL('data:text/javascript,export const fixture=true;'),
+    new URL('../../', import.meta.url).pathname, snapshotHostCapacityPolicy, snapshotHostLookupExecutionPolicy,
+    selectInstalledHostEnvironment, publishProfile,
+    prepareOrdinaryHostJournal, resultPreparation, () => ({publicationControl: control}),
+    originalInitialControlClose, retainInstalledHostInitializationFailure,
+    () => {throw Error('Publication setup grants no Pure Run');},
+    () => {throw Error('Publication setup grants no Effect Run');},
+    {maxWireBytes: 10000000}, value => 'sha256:' + createHash('sha256')
+      .update(JSON.stringify(value)).digest('hex'), import.meta);
+}
+
+test('public Effect publication initializes its original key and Store before provider publication', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-publication-root-'));
+  const keyPath = join(root, 'checkpoints', PRIVATE_EVIDENCE_KEY_FILE);
+  let calls = 0;
+  const publish = publicEffectPublisher(async (_path, options) => {
+    assert.equal(options.root, root);
+    calls++;
+    assert.equal(existsSync(keyPath), true, 'The first publisher must not spend first setup on only the Root marker');
+    assert.equal((await stat(keyPath)).size, 32);
+    assert.equal((await stat(keyPath)).mode & 0o777, 0o600);
+    assert.equal(existsSync(join(root, 'publication', 'store.json')), true);
+    assert.equal(existsSync(join(root, 'requests')), false, 'Publication setup does not open a business Journal');
+    return {published: true};
+  });
+  assert.deepEqual(await publish({directory: root, effectProfilePath: 'explicit-fixture-profile'}), {published: true});
+  assert.equal(calls, 1);
+  const before = await readFile(keyPath);
+  const publishedContract = JSON.parse(await readFile(join(root, 'publication', 'store.json')));
+  const next = {host: {}, installation: {root}, generation: {}, supplier() {}, moduleLifetime: import.meta};
+  const journal = prepareOrdinaryHostJournal(next);
+  let key;
+  try {
+    assert.equal(await journal.admitRootFormat(root), 'current');
+    key = await preparePrivateEvidenceKeyInstallation(join(root, 'checkpoints'), {
+      storeDirectory: join(root, 'publication'), storeAuthorityCid: publishedContract.store_authority_cid,
+      preparedOwnership: journal.privateEvidenceInitializationOwnership(),
+      assertCurrent: () => journal.assertInitializationCurrent(),
+      assertFirstInitialization: () => journal.assertPrivateEvidenceFirstInitialization(),
+    });
+    assert.ok(key);
+    assert.deepEqual(key.key, before, 'A later Host reopens the same durable original generation');
+  } finally {
+    key?.key.fill(0); before.fill(0);
+    assert.equal((await journal.close()).pending, false);
+  }
+});
+
+
+test('public Source then Effect publication keeps the same adopted key without a business Journal', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-publication-source-effect-'));
+  const keyPath = join(root, 'checkpoints', PRIVATE_EVIDENCE_KEY_FILE);
+  let calls = 0;
+  const published = async () => {calls++; return calls;};
+  const source = publicEffectPublisher(published, {kind: 'Source'});
+  assert.equal(await source({directory: root, sourceProfilePath: 'source-fixture'}), 1);
+  const key = await readFile(keyPath);
+  try {
+    const effect = publicEffectPublisher(published);
+    assert.equal(await effect({directory: root, effectProfilePath: 'effect-fixture'}), 2);
+    assert.deepEqual(await readFile(keyPath), key);
+    assert.equal(existsSync(join(root, 'requests')), false);
+  } finally {key.fill(0);}
+});
+
+test('public publication preserves existing no-key Store refusal without inferring a new key', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-publication-no-key-'));
+  const storeAuthorityCid = hash(JSON.stringify({version: 'actql-local-store-owner/0.1',
+    root, principalId: userInfo().username}));
+  const first = await fixture(root, true, storeAuthorityCid);
+  try {await first.adopt();} finally {await first.close();}
+  const publish = publicEffectPublisher(async () => 'published');
+  assert.equal(await publish({directory: first.root, effectProfilePath: 'effect-fixture'}), 'published');
+  assert.equal(existsSync(join(first.directory, PRIVATE_EVIDENCE_KEY_FILE)), false);
+});
+
+test('public publication retains original Store cleanup and cannot publish before its close ACK', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-publication-close-'));
+  let closeCalls = 0, published = 0, original;
+  const publish = publicEffectPublisher(async () => {published++;}, {
+    resultPreparation(...args) {
+      original = prepareOrdinaryHostResult(...args);
+      const close = original.close;
+      return {initialize: () => original.initialize(), openStore: (...values) => original.openStore(...values),
+        async close() {
+          closeCalls++;
+          if (closeCalls <= 2) return {pending: true};
+          return Reflect.apply(close, original, []);
+        }};
+    },
+  });
+  let failure;
+  await assert.rejects(publish({directory: root, effectProfilePath: 'effect-fixture'}), cause => {
+    failure = cause;
+    return cause.cleanupPending === true && cause.cleanupHandle.status().pending === true;
+  });
+  assert.equal(published, 0);
+  assert.equal(closeCalls, 2);
+  const other = prepareOrdinaryHostJournal({host: {}, installation: {root}, generation: {}});
+  try {await assert.rejects(other.admitRootFormat(root), {code: 'PublicationStoreBusy'});}
+  finally {assert.equal((await other.close()).pending, false);}
+  await failure.cleanupHandle.retry();
+  assert.equal(failure.cleanupHandle.status().pending, false);
+  assert.equal(closeCalls, 3);
+  assert.equal(published, 0, 'Cleanup never retries provider publication');
+  assert.throws(() => original.assertCurrent(), {code: 'HostResultPublicationUnavailable'});
 });

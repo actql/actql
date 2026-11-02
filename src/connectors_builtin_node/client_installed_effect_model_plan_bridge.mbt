@@ -108,12 +108,16 @@ pub fn client_program_prepare_request_node_model_source_free_plan(
   max_reservations : Int,
   max_holdings : Int,
   max_delegations : Int,
+  bootstrap_retained_bytes : Int64,
+  bootstrap_execution_bytes : Int64,
 ) -> Result[
   @client_local_host.ClientInstalledManagedModelPlan,
   @client_local_host.ClientInstalledManagedRunIssue,
 ] {
   guard model_retained_bytes >= selected.model.ledger.retained_bytes &&
     model_execution_bytes >= selected.model.ledger.execution_bytes &&
+    bootstrap_retained_bytes >= selected.mapping.logical.max_live_value_bytes &&
+    bootstrap_execution_bytes >= selected.identity.wire.max_bytes.to_int64() &&
     max_reservations >= 0 &&
     max_holdings >= 0 &&
     max_delegations >= 0 else {
@@ -141,6 +145,7 @@ pub fn client_program_prepare_request_node_model_source_free_plan(
     Int::max(selected.input.rows.operation_entries, max_reservations),
     Int::max(selected.input.rows.retained_entries, max_holdings),
     Int::max(selected.input.rows.metadata_entries, max_delegations),
+    bootstrap=Some((bootstrap_retained_bytes, bootstrap_execution_bytes)),
   )
 }
 
@@ -171,12 +176,16 @@ pub fn client_program_prepare_request_node_model_capture_plan(
   max_reservations : Int,
   max_holdings : Int,
   max_delegations : Int,
+  bootstrap_retained_bytes : Int64,
+  bootstrap_execution_bytes : Int64,
 ) -> Result[
   @client_local_host.ClientInstalledManagedModelPlan,
   @client_local_host.ClientInstalledManagedRunIssue,
 ] {
   guard model_retained_bytes >= selected.model.ledger.retained_bytes &&
     model_execution_bytes >= selected.model.ledger.execution_bytes &&
+    bootstrap_retained_bytes >= selected.mapping.logical.max_live_value_bytes &&
+    bootstrap_execution_bytes >= selected.identity.wire.max_bytes.to_int64() &&
     max_reservations >= 0 &&
     max_holdings >= 0 &&
     max_delegations >= 0 else {
@@ -204,6 +213,7 @@ pub fn client_program_prepare_request_node_model_capture_plan(
     Int::max(selected.input.rows.operation_entries, max_reservations),
     Int::max(selected.input.rows.retained_entries, max_holdings),
     Int::max(selected.input.rows.metadata_entries, max_delegations),
+    bootstrap=Some((bootstrap_retained_bytes, bootstrap_execution_bytes)),
   )
 }
 

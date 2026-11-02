@@ -2902,7 +2902,12 @@ function publicationControl(moon) {
         Number.isInteger(bounds[name]) && bounds[name] >= 0 && bounds[name] <= 2147483647)) {
         throw new TypeError('Content compilation generation bounds unavailable');
       }
-      return Object.freeze({maxRows: bounds.max_rows, maxBytes: bounds.max_bytes});
+      const fieldCount = moon.clientProgramSerializationJsonLeafFieldCount(graph);
+      if (!Number.isSafeInteger(fieldCount) || fieldCount < -1) {
+        throw new TypeError('Content compilation input shape unavailable');
+      }
+      return Object.freeze({maxRows: bounds.max_rows, maxBytes: bounds.max_bytes,
+        jsonLeafFields: fieldCount < 0 ? undefined : fieldCount});
     },
     inferSerializationGraph(inferGraph) {
       const graph = moon.clientProgramInferPlanSerializationGraph(inferGraph);
@@ -3562,7 +3567,8 @@ function publicationControl(moon) {
         token(definition), occurrence, graph, selected, node.layout, node.installation,
         node.runtimeArtifactCid, node.layoutArtifactCid, node.probability,
         installation.modelRetainedBytes, installation.modelExecutionBytes,
-        census.maxReservations, census.maxHoldings, census.maxDelegations]));
+        census.maxReservations, census.maxHoldings, census.maxDelegations,
+        census.bootstrapRetainedBytes, census.bootstrapExecutionBytes]));
     },
     prepareCheckedClientRequestNodeModelCapturePlan(parent, input, original, request, compiled, definition,
       occurrence, graph, selected, installation) {
@@ -3580,7 +3586,8 @@ function publicationControl(moon) {
         token(definition), occurrence, graph, selected, node.layout, node.installation,
         node.runtimeArtifactCid, node.layoutArtifactCid, node.probability,
         installation.modelRetainedBytes, installation.modelExecutionBytes,
-        census.maxReservations, census.maxHoldings, census.maxDelegations]));
+        census.maxReservations, census.maxHoldings, census.maxDelegations,
+        census.bootstrapRetainedBytes, census.bootstrapExecutionBytes]));
     },
     bindCheckedClientMockModelCapturePlan(original, compiled, definition,
       occurrence, graph, selected) {

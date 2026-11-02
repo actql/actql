@@ -1,4 +1,13 @@
 ///|
+/// A failed required quote is distinct from a graph-less calculator's genuine
+/// absence of metadata and from a successfully quoted amount, including zero.
+priv enum ClientLocalMetadataQuote {
+  MetadataNotApplicable
+  MetadataQuoted(Int64)
+  MetadataUnavailable
+}
+
+///|
 /// Immutable policy snapshot derived from the exact original sequences. It is
 /// shared by the pre-admission quote and the configured Local task consumers.
 priv struct ClientLocalCapacityPlan {
@@ -22,6 +31,7 @@ priv struct ClientLocalCapacityPlan {
   exports : @local.LocalExportLimits
   metadata : @local_driver.LocalManagedMetadataLimits
   metadata_retained_bytes : Int64
+  metadata_quote : ClientLocalMetadataQuote
 }
 
 ///|
@@ -83,16 +93,36 @@ fn client_local_capacity_plan(
     scalar_demand~,
     value_node_demand~,
   )
+  let value_node_demand = if scalar_demand is None &&
+    value_node_demand is Some(original) {
+    Some({
+      ..original,
+      text_bound: client_local_decimal_text_bound(
+        sequences,
+        original,
+        values.max_text_bytes,
+      ),
+    })
+  } else {
+    value_node_demand
+  }
   // IO observes scalar cells plus row field names, not evaluator intermediates.
   // Keep expression text independent unless every original typed child and
   // generated step has a separate text-free proof.
-  let io_text = scalar_demand.map(demand => demand.name_bytes)
+  let decimal_text = value_node_demand.bind(demand => demand.text_bound)
+  let io_text = match scalar_demand {
+    Some(demand) => Some(demand.name_bytes)
+    None => decimal_text
+  }
   let values = match io_text {
     Some(bytes) => { ..values, max_text_bytes: bytes, }
     None => values
   }
   let execution = if io_text is Some(bytes) &&
-    client_local_text_free_scalar_sequences(sequences) {
+    (
+      decimal_text is Some(_) ||
+      client_local_text_free_scalar_sequences(sequences)
+    ) {
     {
       ..execution,
       rows: {
@@ -168,18 +198,14 @@ fn client_local_capacity_plan(
   } else {
     None
   }
-  let result_metadata = if scalar_values && result_envelope is Some(envelope) {
-    client_local_result_metadata_retained(
-      envelope,
-      max_rows,
-      client_node_publication_schema_bytes(),
-    ).unwrap_or(0L)
-    // Managed Effect/general outputs still own the same fixed cleanup state.
-    // Graph-less low-level calculators do not construct the Node registry.
-  } else if graph is Some(_) {
-    client_local_cleanup_retained_bytes()
-  } else {
-    0L
+  let metadata_quote = client_local_result_metadata_quote(
+    graph, scalar_values, result_envelope, max_rows,
+  )
+  // Unavailable Plans carry no usable metadata amount and cannot pass either
+  // the typed constructor refusal or the original Plan matcher below.
+  let result_metadata = match metadata_quote {
+    MetadataQuoted(bytes) => bytes
+    MetadataNotApplicable | MetadataUnavailable => 0L
   }
   match scalar_metadata {
     None =>
@@ -216,6 +242,7 @@ fn client_local_capacity_plan(
           },
         },
         metadata_retained_bytes: result_metadata,
+        metadata_quote,
       }
     Some((extra, result_workspace)) => {
       // One outer row array, plus the two nodes of the logical Relation wrapper.
@@ -269,6 +296,7 @@ fn client_local_capacity_plan(
           result_workspace_entries: result_workspace,
         },
         metadata_retained_bytes: extra,
+        metadata_quote: MetadataQuoted(extra),
       }
     }
   }
@@ -280,6 +308,17 @@ fn client_local_capacity_plan_matches(
   sequences : Array[@execution.GeneratedSequence],
   max_rows : Int,
 ) -> Bool {
+  match plan.metadata_quote {
+    MetadataUnavailable => return false
+    MetadataNotApplicable =>
+      if plan.graph is Some(_) || plan.metadata_retained_bytes != 0L {
+        return false
+      }
+    MetadataQuoted(bytes) =>
+      if bytes != plan.metadata_retained_bytes {
+        return false
+      }
+  }
   if plan.graph_offset < 0 {
     return false
   }
@@ -329,6 +368,16 @@ fn client_local_capacity_plan_matches(
     client_local_inventory_nodes(original, demand.rows) == Some(demand.nodes)) {
     return false
   }
+  if plan.value_node_demand is Some({ text_bound: Some(bytes), .. }) &&
+    (
+      plan.scalar_demand is Some(_) ||
+      bytes < 0 ||
+      plan.values.max_text_bytes != bytes ||
+      plan.execution.rows.input_values.max_text_bytes != bytes ||
+      plan.execution.rows.output_values.max_text_bytes != bytes
+    ) {
+    return false
+  }
   if plan.value_node_demand is None &&
     plan.scalar_demand is None &&
     plan.values.max_nodes != client_local_general_value_nodes() {
@@ -344,4 +393,27 @@ fn client_local_capacity_plan_matches(
     }
   }
   true
+}
+
+///|
+fn client_local_result_metadata_quote(
+  graph : @strategy.CheckedDAG?,
+  scalar_values : Bool,
+  envelope : ClientLocalResultEnvelope?,
+  rows : Int,
+) -> ClientLocalMetadataQuote {
+  guard graph is Some(original) else { return MetadataNotApplicable }
+  if !scalar_values || @strategy.graph_result_count(original) == 0 {
+    return MetadataQuoted(client_local_cleanup_retained_bytes())
+  }
+  guard envelope is Some(original_envelope) else { return MetadataUnavailable }
+  match
+    client_local_result_metadata_retained(
+      original_envelope,
+      rows,
+      client_node_publication_schema_bytes(),
+    ) {
+    Some(bytes) => MetadataQuoted(bytes)
+    None => MetadataUnavailable
+  }
 }

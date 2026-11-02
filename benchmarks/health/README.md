@@ -197,10 +197,10 @@ or a completed Release population.
 
 ## CI and implementation evidence map
 
-Phase 1 is local. Phase 2 is committed but every job requires all three existing
-conditions: `ACTQL_MAIN_CI_ENABLED == 'true'`, repository visibility `public`,
-and private exactly `false`. Missing/private/unknown values skip execution,
-including dispatch. Nothing here changes visibility/variables or triggers CI.
+Phase 1 is local. Phase 2 runs in the enabled workflow when repository visibility
+is `public` and private is exactly `false`. Private/unknown visibility skips
+execution, including dispatch. No activation variable is required; workflow
+enable/disable controls execution.
 Main-push Quick consumes the same successful normal package job's artifact;
 a skipped docs-only package job allows ordinary preparation. Failed producers
 are not replaced. Dispatch requires exact completed same-SHA producer/artifact

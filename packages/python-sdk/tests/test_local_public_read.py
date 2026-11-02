@@ -25,11 +25,11 @@ class PublicLocalReadTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual((body['result_name'], body['format']), ('answer', 'jsonl'))
             calls.append(('first', request))
         holder.persist = persist
-        holder.prepare_original_codecs = lambda request, clock: calls.append(('codecs', request))
-        def select(request, clock):
+        def prepare(request, clock):
+            calls.append(('codecs', request))
             calls.append(('selected', request))
             return fact
-        holder.selected_original_payload = select
+        holder.prepare_original_payload = prepare
         def evidence(original_run, candidate, request):
             self.assertIs(original_run, run)
             self.assertIs(candidate, projection)

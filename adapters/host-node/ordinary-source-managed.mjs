@@ -1,5 +1,5 @@
-import {requestPreparationAvailable,assertRequestPreparationControl,beginRequestInput,cleanupRequestInput,checkedPreparation} from '../local-node/request-preparation-adapter.mjs';
-import {matchesPublishedSubmissionSnapshot} from '../../packages/sdk/internal/private-source-preparation.mjs';
+import {requestPreparationAvailable,assertRequestPreparationControl,beginRequestInput,openRequestPreparation,cleanupRequestInput,checkedPreparation} from '../local-node/request-preparation-adapter.mjs';
+import {matchesPublishedSubmissionSnapshot, freezeInput} from '../../packages/sdk/internal/private-source-preparation.mjs';
 import {open} from 'node:fs/promises';
 import {types} from 'node:util';
 import {checked} from '../host-common/runtime-result.mjs';
@@ -384,6 +384,80 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       return run;
     } finally {pendingRunRegistrations.delete(run.prepared);}
   }
+  function beginProducer(kind, openParent) {
+    current();
+    // A selected funded context cannot fall back to an unfunded snapshot
+    // when its typed capability or installed output mode is unavailable.
+    // Resolve it before allocating a producer, including a throwing lookup.
+    const context = callbacks.preparationContext === undefined
+      ? undefined : callbacks.preparationContext(originals);
+    if (context !== undefined && !requestPreparationAvailable(context)) {
+      fail('NodeLocalPreparationAdmissionUnavailable');
+    }
+    if (context !== undefined) assertRequestPreparationControl(context);
+    if (producers.size === 32) fail('InstalledSourceProducerLimit');
+    const receipt = Object.freeze({});
+    const producer = {receipt, kind, body: undefined, request: undefined, finished: false, liveRuns: 0, snapshotPublication: undefined, preparation: undefined};
+    receipts.set(receipt, producer); producers.add(producer);
+    const sourceEnvironment = retainSourceInitializationMaterial(producer);
+    // The same Request precedes every SDK snapshot, independent of options.
+    // Original Program and Parameters continue to their checked compiler
+    // module; no shape scan selects a second preparation protocol.
+    if (context !== undefined) {
+      const state = {context, original: undefined, admission: undefined, parent: undefined,
+        prepared: undefined, holder: undefined, adopting: false,
+        originalCheckResult: undefined,
+        projectOriginalCheck: Object.getOwnPropertyDescriptor(context.runtime,
+          'clientProgramProjectRequestCheckOutcome')?.value};
+      producer.preparation = state;
+      try {
+        if (sourceEnvironment !== undefined &&
+            Object.getOwnPropertyDescriptor(context, 'preparedEnvironment')?.value !== sourceEnvironment) {
+          fail('ForeignInstalledSourceProducer');
+        }
+        const assertOriginalCurrent = () => {
+          // Cleanup may continue while the manager is closing. Exact
+          // membership/current installation, not raw Prepared, is retained.
+          if (closed || receipts.get(receipt) !== producer || producer.preparation !== state) {
+            fail('ForeignInstalledSourceProducer');
+          }
+          const adopted = state.prepared === undefined ? undefined : runs.get(state.prepared);
+          if (adopted?.producer === producer && adopted.original === state.original &&
+              adopted.value !== undefined) retainedRunCurrent(adopted);
+          else callbacks.validator(originals);
+          // The original external current callback may retire this same
+          // input before opening returns. Cheap state fences, not another
+          // external current call, preserve the exact original after reentry.
+          if (closed || receipts.get(receipt) !== producer || producer.preparation !== state) {
+            fail('ForeignInstalledSourceProducer');
+          }
+        };
+        // The same initial Root survives Run adoption. Observe physical
+        // children on its existing producer/Run inventory, rather than
+        // freezing a no-children answer before those children can exist.
+        const childrenPending = () => {
+          for (const run of liveRuns) if (run.producer === producer &&
+              run.children.some(child => child.flight !== undefined || !child.closed)) return true;
+          return false;
+        };
+        const accepted = openParent(state, receipt, assertOriginalCurrent, childrenPending);
+        if (!accepted) fail('NodeLocalPreparationAdmissionUnavailable');
+      } catch (cause) {
+        producer.finished = true;
+        try {
+          cleanupRequestInput(state);
+          producer.preparation = undefined;
+          releaseFinishedProducer(producer);
+        } catch (cleanupCause) {
+          throw Object.assign(new Error('NodeLocalPreparationCleanupPending', {cause}),
+            {code: 'NodeLocalPreparationCleanupPending', cleanupPending: true,
+              cleanupCause});
+        }
+        throw cause;
+      }
+    }
+    return receipt;
+  }
   const view = Object.freeze({
     assertCurrent: current,
     assertSourceSnapshotCurrent(receipt) {
@@ -407,78 +481,66 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
           producer.finished || producer.body !== undefined) fail('ForeignInstalledSourceProducer');
     },
     beforeSourceSnapshot(kind, input, options, originalConnection) {
-      current();
-      // A selected funded context cannot fall back to an unfunded snapshot
-      // when its typed capability or installed output mode is unavailable.
-      // Resolve it before allocating a producer, including a throwing lookup.
-      const context = callbacks.preparationContext === undefined
-        ? undefined : callbacks.preparationContext(originals);
-      if (context !== undefined && !requestPreparationAvailable(context)) {
-        fail('NodeLocalPreparationAdmissionUnavailable');
+      return beginProducer(kind, (state, receipt, assertCurrent, childrenPending) =>
+        beginRequestInput(state, receipt, originalConnection, assertCurrent, childrenPending));
+    },
+    // Only the installed Host supplies this Journal-retained opaque original.
+    // It is a new physical-process input lifetime for the SAME logical Request,
+    // not an SDK snapshot publication, semantic issuer or physical read grant.
+    retainRequestInput(request, intent) {
+      if (request === null || typeof request !== 'object' || requestProducers.has(request)) {
+        fail('ForeignInstalledSourceProducer');
       }
-      if (context !== undefined) assertRequestPreparationControl(context);
-      if (producers.size === 32) fail('InstalledSourceProducerLimit');
-      const receipt = Object.freeze({});
-      const producer = {receipt, kind, body: undefined, request: undefined, finished: false, liveRuns: 0, snapshotPublication: undefined, preparation: undefined};
-      receipts.set(receipt, producer); producers.add(producer);
-      const sourceEnvironment = retainSourceInitializationMaterial(producer);
-      // The same Request precedes every SDK snapshot, independent of options.
-      // Original Program and Parameters continue to their checked compiler
-      // module; no shape scan selects a second preparation protocol.
-      if (context !== undefined) {
-        const state = {context, original: undefined, admission: undefined, parent: undefined,
-          prepared: undefined, holder: undefined, adopting: false,
-          originalCheckResult: undefined,
-          projectOriginalCheck: Object.getOwnPropertyDescriptor(context.runtime,
-            'clientProgramProjectRequestCheckOutcome')?.value};
-        producer.preparation = state;
-        try {
-          if (sourceEnvironment !== undefined &&
-              Object.getOwnPropertyDescriptor(context, 'preparedEnvironment')?.value !== sourceEnvironment) {
-            fail('ForeignInstalledSourceProducer');
-          }
-          const assertOriginalCurrent = () => {
-            // Cleanup may continue while the manager is closing. Exact
-            // membership/current installation, not raw Prepared, is retained.
-            if (closed || receipts.get(receipt) !== producer || producer.preparation !== state) {
-              fail('ForeignInstalledSourceProducer');
-            }
-            const adopted = state.prepared === undefined ? undefined : runs.get(state.prepared);
-            if (adopted?.producer === producer && adopted.original === state.original &&
-                adopted.value !== undefined) retainedRunCurrent(adopted);
-            else callbacks.validator(originals);
-            // The original external current callback may retire this same
-            // input before opening returns. Cheap state fences, not another
-            // external current call, preserve the exact original after reentry.
-            if (closed || receipts.get(receipt) !== producer || producer.preparation !== state) {
-              fail('ForeignInstalledSourceProducer');
-            }
-          };
-          // The same initial Root survives Run adoption. Observe physical
-          // children on its existing producer/Run inventory, rather than
-          // freezing a no-children answer before those children can exist.
-          const childrenPending = () => {
-            for (const run of liveRuns) if (run.producer === producer &&
-                run.children.some(child => child.flight !== undefined || !child.closed)) return true;
-            return false;
-          };
-          const accepted = beginRequestInput(state, receipt, originalConnection, assertOriginalCurrent, childrenPending);
-          if (!accepted) fail('NodeLocalPreparationAdmissionUnavailable');
-        } catch (cause) {
-          producer.finished = true;
-          try {
-            cleanupRequestInput(state);
-            producer.preparation = undefined;
-            releaseFinishedProducer(producer);
-          } catch (cleanupCause) {
-            throw Object.assign(new Error('NodeLocalPreparationCleanupPending', {cause}),
-              {code: 'NodeLocalPreparationCleanupPending', cleanupPending: true,
-                cleanupCause});
-          }
-          throw cause;
+      let retainIntent, intentWire;
+      const receipt = beginProducer(undefined, (state, original, assertCurrent, childrenPending) => {
+        const moon = state.context.runtime;
+        retainIntent = Object.getOwnPropertyDescriptor(moon, 'clientProgramRetainRequestSubmittedIntent')?.value;
+        intentWire = Object.getOwnPropertyDescriptor(moon, 'clientSubmittedIntentWire')?.value;
+        if (typeof retainIntent !== 'function' || typeof intentWire !== 'function') {
+          fail('NodeManagedRunRuntimeUnavailable');
         }
+        openRequestPreparation(state, original, assertCurrent, childrenPending);
+        return true;
+      });
+      const producer = producerFor(receipt), state = producer.preparation;
+      try {
+        if (state === undefined) fail('NodeLocalPreparationAdmissionUnavailable');
+        state.preparing = true;
+        const moon = state.context.runtime;
+        // Source observes geometry and grows this SAME parent before JSON.parse.
+        // Retain the opaque intent itself; no serializer/hash/new identity runs.
+        checked(Reflect.apply(retainIntent, moon, [state.parent, receipt, intent]));
+        if (closing || closed || producer.finished || producer.preparation !== state ||
+            receipts.get(receipt) !== producer || state.parent === undefined) fail('ForeignInstalledSourceProducer');
+        const wire = Reflect.apply(intentWire, moon, [intent]);
+        if (typeof wire !== 'string') fail('InvalidHostRuntimeResult');
+        const body = JSON.parse(wire);
+        // Keep the SDK envelope's literal null sentinel. The same native
+        // bridge treats only null as absent; undefined is supplied input.
+        freezeInput(body);
+        producer.kind = body.kind;
+        state.snapshot = producer.body = body;
+        state.snapshotDocument = wire;
+        producer.request = request;
+        requestProducers.set(request, new WeakRef(producer));
+        return Object.freeze({receipt, body});
+      } catch (cause) {
+        if (state !== undefined) state.preparing = false;
+        producer.finished = true;
+        producer.body = producer.request = producer.snapshotPublication = undefined;
+        if (state !== undefined) state.snapshot = state.snapshotDocument = undefined;
+        try {
+          if (state !== undefined) cleanupRequestInput(state, retireInitialPreparation);
+          producer.preparation = undefined;
+          releaseFinishedProducer(producer);
+        } catch (cleanupCause) {
+          throw Object.assign(new Error('NodeLocalPreparationCleanupPending', {cause}),
+            {code: 'NodeLocalPreparationCleanupPending', cleanupPending: true, cleanupCause});
+        }
+        throw cause;
+      } finally {
+        if (state !== undefined) state.preparing = false;
       }
-      return receipt;
     },
     beforeSourceQuery(format, text, parameters, options, originalConnection) {
       // SDK owns documented option and input validation/snapshot semantics.
@@ -538,6 +600,9 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       }
       requestProducers.set(request, new WeakRef(producer));
       producer.request = request;
+      // Keep the original weak association through finish/retirement. Lookup
+      // requires live inventory and the same request; a stale key cannot bind
+      // another producer. No strong alias collection or cleanup owner is added.
     },
     submittedIntentOriginal(request) {
       current();

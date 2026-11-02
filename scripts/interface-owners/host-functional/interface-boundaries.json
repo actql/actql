@@ -23717,7 +23717,7 @@
     {
       "module": "adapters/host-node/client-effect-run.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "8ba240adb6978fe88a4e43ab2896bfa41e78491095fbc39f64a1049886bab8ac",
+      "sha256": "98951a5d6eb6a9d0ebe5c3b827132598b0ffcbb2637430e2ff68cc204944eec0",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -23866,6 +23866,25 @@
         {
           "name": "installNodeClientEffectRun/init:restoreComputation/init:restoreComputation/init:restoreComputation",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installNodeClientEffectRun/init:restoreRetainedPreparation/init:restoreRetainedPreparation",
+          "parameters": [
+            "prepared",
+            "identity",
+            "namespaceId",
+            "ref",
+            "originalSubmittedIntent"
+          ],
+          "async": true
+        },
+        {
+          "name": "installNodeClientEffectRun/init:restoreRetainedPreparation/init:restoreRetainedPreparation/init:restoreRetainedPreparation",
+          "parameters": [
+            "resolve",
+            "reject"
+          ],
           "async": false
         },
         {
@@ -24741,6 +24760,75 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "installNodeClientEffectRun/init:restoreRetainedPreparation/init:restoreRetainedPreparation",
+            "installNodeClientEffectRun/init:restoreRetainedPreparation/init:restoreRetainedPreparation/init:restoreRetainedPreparation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
@@ -24760,7 +24848,7 @@
     {
       "module": "adapters/host-node/client-http.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "41ec7c2822ffa3275e5693ef341fd0a972447b30bdf1df895f73ac3d3c80b49f",
+      "sha256": "bdb53ce6b77b1c6717196fb08c9dfd45c3bdef89aec62bf329dc5d79b809dc44",
       "role": "physical-io",
       "owner": "Existing Client Host admission/read services and physical Node ingress",
       "exports": [
@@ -27167,12 +27255,11 @@
     {
       "module": "adapters/host-node/client-program-preparation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "8b40d3f42ff2704ec41586fb0bbaeb5b9c811eedec56709ac486b0f332cd2463",
+      "sha256": "047fd30450cee9e3abb3b5ea6f4a2f0dd434670ecec58bcc0ff1afc0c9911e46",
       "role": "physical-io",
       "owner": "Existing static checker/Frontend/compiled preparation Owners; no Run permission",
       "exports": [
         "checkedRequestProgramPreparation",
-        "installNodeClientEffectProgramPreparation",
         "installNodeClientProgramPreparation",
         "requestProgramCapacityRefusal"
       ],
@@ -27194,40 +27281,10 @@
           "async": false
         },
         {
-          "name": "effectPreparation",
-          "parameters": [
-            "moon",
-            "outcome"
-          ],
-          "async": false
-        },
-        {
           "name": "fail",
           "parameters": [
             "code",
             "cause"
-          ],
-          "async": false
-        },
-        {
-          "name": "installNodeClientEffectProgramPreparation",
-          "parameters": [
-            "moon",
-            "environment",
-            "evidence",
-            "publication"
-          ],
-          "async": false
-        },
-        {
-          "name": "installNodeClientEffectProgramPreparation/init:retireSourceEnvironment/init:retireSourceEnvironment",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "installNodeClientEffectProgramPreparation/prepare/prepare",
-          "parameters": [
-            "request"
           ],
           "async": false
         },
@@ -27237,36 +27294,11 @@
             "moon",
             "environment",
             "allowEffects",
-            "effectEvidence",
-            "sourcePublication",
             "valuesMaxRows",
-            "check",
             "verifyRequestValuePolicy",
             "restoreEffectOriginal",
             "restoreInferOriginal",
-            "getPreparedSourceEnvironment",
             "getFundedPreparation"
-          ],
-          "async": false
-        },
-        {
-          "name": "installNodeClientProgramPreparation/disclosed/disclosed",
-          "parameters": [
-            "request"
-          ],
-          "async": true
-        },
-        {
-          "name": "installNodeClientProgramPreparation/disclosed/disclosed/disclosed",
-          "parameters": [
-            "limit"
-          ],
-          "async": false
-        },
-        {
-          "name": "installNodeClientProgramPreparation/disclosed/disclosed/disclosed#2",
-          "parameters": [
-            "limit"
           ],
           "async": false
         },
@@ -27341,49 +27373,12 @@
           "async": false
         },
         {
-          "name": "installNodeClientProgramPreparation/init:sourceCheckFailure/init:sourceCheckFailure",
-          "parameters": [
-            "error"
-          ],
-          "async": false
-        },
-        {
           "name": "installNodeClientProgramPreparation/prepare/prepare",
           "parameters": [
             "request",
             "selectedEnvironment"
           ],
-          "async": false
-        },
-        {
-          "name": "installNodeClientProgramPreparation/prepareEffect/prepareEffect",
-          "parameters": [
-            "request"
-          ],
-          "async": false
-        },
-        {
-          "name": "installNodeClientProgramPreparation/prepareFunded/prepareFunded",
-          "parameters": [
-            "request",
-            "selectedEnvironment"
-          ],
           "async": true
-        },
-        {
-          "name": "installNodeClientProgramPreparation/preparePublishedEffect/preparePublishedEffect",
-          "parameters": [
-            "request",
-            "selectedEnvironment"
-          ],
-          "async": false
-        },
-        {
-          "name": "installNodeClientProgramPreparation/publicSourcePreparation/publicSourcePreparation",
-          "parameters": [
-            "selectedEnvironment"
-          ],
-          "async": false
         },
         {
           "name": "projectCapacityRefusal",
@@ -27413,46 +27408,23 @@
             "error"
           ],
           "async": false
-        },
-        {
-          "name": "serializeProgram",
-          "parameters": [
-            "kind",
-            "input",
-            "parameters"
-          ],
-          "async": false
         }
       ],
       "contracts": [
         {
           "operations": [
             "<anonymous>",
-            "effectPreparation",
             "fail",
-            "installNodeClientEffectProgramPreparation",
-            "installNodeClientEffectProgramPreparation/init:retireSourceEnvironment/init:retireSourceEnvironment",
-            "installNodeClientEffectProgramPreparation/prepare/prepare",
             "installNodeClientProgramPreparation",
-            "installNodeClientProgramPreparation/disclosed/disclosed",
-            "installNodeClientProgramPreparation/disclosed/disclosed/disclosed",
-            "installNodeClientProgramPreparation/disclosed/disclosed/disclosed#2",
             "installNodeClientProgramPreparation/init:assertOwned/init:assertOwned",
             "installNodeClientProgramPreparation/init:assertSubmittedIntent/init:assertSubmittedIntent",
             "installNodeClientProgramPreparation/init:kindOf/init:kindOf",
             "installNodeClientProgramPreparation/init:restoreOriginal/init:restoreOriginal",
             "installNodeClientProgramPreparation/init:retireReferences/init:retireReferences",
-            "installNodeClientProgramPreparation/init:sourceCheckFailure/init:sourceCheckFailure",
             "installNodeClientProgramPreparation/prepare/prepare",
-            "installNodeClientProgramPreparation/prepareEffect/prepareEffect",
-            "installNodeClientProgramPreparation/preparePublishedEffect/preparePublishedEffect",
-            "installNodeClientProgramPreparation/publicSourcePreparation/publicSourcePreparation",
-            "serializeProgram",
-            "installNodeClientProgramPreparation/prepareFunded/prepareFunded",
             "checkedRequestProgramPreparation"
           ],
           "exports": [
-            "installNodeClientEffectProgramPreparation",
             "installNodeClientProgramPreparation",
             "checkedRequestProgramPreparation"
           ],
@@ -27488,7 +27460,7 @@
               },
               {
                 "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "const publicSourcePreparation = selectedEnvironment => selectedEnvironment === environment"
+                "anchor": "export function installNodeClientProgramPreparation({moon, environment,"
               },
               {
                 "path": "docs/design/checked-program.md",
@@ -27538,7 +27510,7 @@
               },
               {
                 "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "const preparePublishedEffect = (request, selectedEnvironment) => {"
+                "anchor": "const original = await getFundedPreparation(request, selectedEnvironment,"
               },
               {
                 "path": "docs/design/checked-program.md",
@@ -27638,7 +27610,7 @@
               },
               {
                 "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "effectEvidence: installedEvidence, getPreparedSourceEnvironment}))"
+                "anchor": "owned.set(prepared, Object.freeze({...original.originalInputs}));"
               },
               {
                 "path": "docs/design/checked-program.md",
@@ -27692,7 +27664,7 @@
               },
               {
                 "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "publicSourcePreparation(environment);"
+                "anchor": "const prepare = async (request, selectedEnvironment = environment) => {"
               },
               {
                 "path": "docs/design/checked-program.md",
@@ -27710,7 +27682,7 @@
             "failure": [
               {
                 "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "import {validCheckOutcome, validSubmitPreparationError} from"
+                "anchor": "import {validSubmitPreparationError} from"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -27742,7 +27714,7 @@
               },
               {
                 "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "if (prepared === undefined) fail('ClientProgramUnsupported');"
+                "anchor": "typeof getFundedPreparation !== 'function' ||"
               },
               {
                 "path": "docs/design/checked-program.md",
@@ -27760,7 +27732,7 @@
             "cancellation": [
               {
                 "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "const disclosed = check === undefined ? prepare : async request => {"
+                "anchor": "signal?.throwIfAborted();"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -27852,7 +27824,7 @@
             "extension": [
               {
                 "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "// Translate the public submit body into the installed MoonBit checker JS bridge."
+                "anchor": "// Accept preparation only from the same installed Request owner."
               },
               {
                 "path": "docs/design/checked-program.md",
@@ -27884,7 +27856,7 @@
               },
               {
                 "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "let prepareEffect = funded || !allowEffects ? undefined : sourcePublication === undefined"
+                "anchor": "// Trusted policy verification belongs to the funded Request before compile."
               },
               {
                 "path": "docs/design/checked-program.md",
@@ -27930,7 +27902,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -28093,7 +28065,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -28283,7 +28255,7 @@
               },
               {
                 "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "const publicSourcePreparation = selectedEnvironment => selectedEnvironment === environment"
+                "anchor": "export function installNodeClientProgramPreparation({moon, environment,"
               },
               {
                 "path": "docs/design/checked-program.md",
@@ -28333,7 +28305,7 @@
               },
               {
                 "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "const preparePublishedEffect = (request, selectedEnvironment) => {"
+                "anchor": "const original = await getFundedPreparation(request, selectedEnvironment,"
               },
               {
                 "path": "docs/design/checked-program.md",
@@ -28433,7 +28405,7 @@
               },
               {
                 "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "effectEvidence: installedEvidence, getPreparedSourceEnvironment}))"
+                "anchor": "owned.set(prepared, Object.freeze({...original.originalInputs}));"
               },
               {
                 "path": "docs/design/checked-program.md",
@@ -28487,7 +28459,7 @@
               },
               {
                 "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "publicSourcePreparation(environment);"
+                "anchor": "const prepare = async (request, selectedEnvironment = environment) => {"
               },
               {
                 "path": "docs/design/checked-program.md",
@@ -28505,7 +28477,7 @@
             "failure": [
               {
                 "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "import {validCheckOutcome, validSubmitPreparationError} from"
+                "anchor": "import {validSubmitPreparationError} from"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -28537,7 +28509,7 @@
               },
               {
                 "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "if (prepared === undefined) fail('ClientProgramUnsupported');"
+                "anchor": "typeof getFundedPreparation !== 'function' ||"
               },
               {
                 "path": "docs/design/checked-program.md",
@@ -28555,7 +28527,7 @@
             "cancellation": [
               {
                 "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "const disclosed = check === undefined ? prepare : async request => {"
+                "anchor": "signal?.throwIfAborted();"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -28647,7 +28619,7 @@
             "extension": [
               {
                 "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "// Translate the public submit body into the installed MoonBit checker JS bridge."
+                "anchor": "// Accept preparation only from the same installed Request owner."
               },
               {
                 "path": "docs/design/checked-program.md",
@@ -28679,7 +28651,7 @@
               },
               {
                 "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "let prepareEffect = funded || !allowEffects ? undefined : sourcePublication === undefined"
+                "anchor": "// Trusted policy verification belongs to the funded Request before compile."
               },
               {
                 "path": "docs/design/checked-program.md",
@@ -28725,7 +28697,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -36154,7 +36126,7 @@
     {
       "module": "adapters/host-node/client-submission.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "292274969317ea7066f6755296bc8c4268ea84d9398794b61762bb21556340ba",
+      "sha256": "78d2edc8eb851ad1dfaabd428285d494508da2093e1cb64d3c2f5e76df9a3a86",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -36239,7 +36211,8 @@
             "value",
             "outcome",
             "fields",
-            "retained"
+            "retained",
+            "originalObservation"
           ],
           "async": true
         },
@@ -36466,6 +36439,11 @@
             "error",
             "issuedCode"
           ],
+          "async": true
+        },
+        {
+          "name": "installNodeClientSubmission/submitIntent/submitIntent/retainPreparationRefusal/retainPreparationRefusal/originalObservation/originalObservation",
+          "parameters": [],
           "async": true
         },
         {
@@ -36796,7 +36774,7 @@
             "cancellation": [
               {
                 "path": "adapters/host-node/client-submission.mjs",
-                "anchor": "const discloseOutcome = async (value, outcome, fields, retained) => {"
+                "anchor": "const discloseOutcome = async (value, outcome, fields, retained, originalObservation) => {"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -37456,7 +37434,7 @@
             "cancellation": [
               {
                 "path": "adapters/host-node/client-submission.mjs",
-                "anchor": "const discloseOutcome = async (value, outcome, fields, retained) => {"
+                "anchor": "const discloseOutcome = async (value, outcome, fields, retained, originalObservation) => {"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -37623,6 +37601,74 @@
               {
                 "path": "adapters/host-node/source-request-lineage.test.mjs",
                 "anchor": "test('read-only submission lookup keeps the original live Host ingress lineage', async t => {"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installNodeClientSubmission/submitIntent/submitIntent/retainPreparationRefusal/retainPreparationRefusal/originalObservation/originalObservation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
               }
             ]
           }
@@ -38607,7 +38653,7 @@
     {
       "module": "adapters/host-node/effect-ledger.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a3acde47c5b64a82f18e6b06fabc2003ef42ca449ec038d69081011566deaa07",
+      "sha256": "ec0a0c1744a25dd08e5bcbaf5ad15528aa64c1d6c23927e1d9044bdf8c10e4dc",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
       "exports": [
@@ -38637,7 +38683,8 @@
             "maxDepth",
             "maxOutcomeNodes",
             "maxOutcomeDepth",
-            "maxCallerBytes"
+            "maxCallerBytes",
+            "controlConstruction"
           ],
           "async": false
         },
@@ -39157,6 +39204,20 @@
           "async": false
         },
         {
+          "name": "openEffectLedger/openEffectLedger",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "openEffectLedger/openEffectLedger#2",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
           "name": "openEffectLedger/validateStored/validateStored",
           "parameters": [
             "row"
@@ -39518,6 +39579,75 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "openEffectLedger/openEffectLedger",
+            "openEffectLedger/openEffectLedger#2"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
               }
             ]
           }
@@ -42319,7 +42449,7 @@
     {
       "module": "adapters/host-node/embedded-local-lifecycle.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e204335504e5f69947a3e1d6cbbd2f75eac1bbe7f7b0126bc57745997129aab1",
+      "sha256": "973b4c42306c71908b5c96ecb2beb450a73cc4999d9993f6ea4d6e0ccb8af758",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
@@ -43004,6 +43134,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "export function assertInitialControlHostPreparation(originals) {"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "// Builtin Local supplies its already captured initial-control owner on"
               }
             ],
             "inputsOutputs": [
@@ -43206,6 +43340,10 @@
               {
                 "path": "adapters/host-node/initial-control-shutdown.test.mjs",
                 "anchor": "test('throwing initialization cleanup getters retain the already acquired control holding'"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.test.mjs",
+                "anchor": "selected Local lifecycle cannot omit its same own preparation receiver before connect"
               }
             ],
             "cancellation": [
@@ -43378,6 +43516,10 @@
               {
                 "path": "adapters/host-node/embedded-local-source-preparation.test.mjs",
                 "anchor": "incomplete selected Source initialization retains the same Host"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "}, clientOptions, host, releaseUnadopted, initialControl);"
               }
             ]
           }
@@ -50460,7 +50602,7 @@
     {
       "module": "adapters/host-node/infer-original-installation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "28a3bd97b9c6291116f046a5c3c15317623551e4ece4276a9e3851f860ef586c",
+      "sha256": "5b3ab614c4005be9bf27daf610afbb370e66b7938cfdb311d46b59194ea8c46a",
       "role": "physical-io",
       "owner": "Existing Model/Resource/Checkpoint Owners and original installation/physical custody",
       "exports": [
@@ -50480,7 +50622,8 @@
             "moon",
             "original",
             "graph",
-            "limits"
+            "limits",
+            "modelLedgerBytes"
           ],
           "async": false
         },
@@ -50508,6 +50651,13 @@
         },
         {
           "name": "bindInferOriginalReadRecipe/bindInferOriginalReadRecipe#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindInferOriginalReadRecipe/bindInferOriginalReadRecipe#4",
           "parameters": [
             "value"
           ],
@@ -50719,6 +50869,7 @@
             "bindInferOriginalReadRecipe/bindInferOriginalReadRecipe",
             "bindInferOriginalReadRecipe/bindInferOriginalReadRecipe#2",
             "bindInferOriginalReadRecipe/bindInferOriginalReadRecipe#3",
+            "bindInferOriginalReadRecipe/bindInferOriginalReadRecipe#4",
             "count/count",
             "exactData/exactData",
             "int64/int64",
@@ -50937,6 +51088,10 @@
               {
                 "path": "adapters/host-node/installed-model-registration.test.mjs",
                 "anchor": "installed read recipe"
+              },
+              {
+                "path": "adapters/host-node/installed-model-registration.test.mjs",
+                "anchor": "installed Request recipe retains the actual Model ledger floor separately from legacy read allowances"
               }
             ]
           }
@@ -53745,7 +53900,7 @@
     },
     {
       "module": "adapters/host-node/initial-control-image-loader.cjs",
-      "sha256": "f8d6b5cfc792febb09a5f020f906f063da31f94d0f52c8efcd96a48c59128b94",
+      "sha256": "c16512bb67d6750c251263eba57d53a2aedcf007c7a0100413ef974029352031",
       "exports": [
         "commonjs:installInitialControlImageLoader",
         "commonjs:installOrdinaryInitialControlImageLoader"
@@ -53982,6 +54137,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Instance identity, original callback and receiver correspondence prevent"
+              },
+              {
+                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "anchor": "if (original !== undefined) captured = {url, format: original.format, shortCircuit: true};"
               }
             ],
             "ownership": [
@@ -54064,6 +54223,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Resource coverage distinguishes managed work/data limits and actual owned"
+              },
+              {
+                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "anchor": "let captured;"
               }
             ],
             "extension": [
@@ -54078,6 +54241,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
+              },
+              {
+                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "anchor": "const result = captured ?? nextResolve(specifier, context);"
               }
             ],
             "verification": [
@@ -59893,7 +60060,7 @@
     {
       "module": "adapters/host-node/installed-content-run.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "ccb0cdf83bf99bd204377dba1f01edc4c74300f44b388939d9ef9def43b28f4e",
+      "sha256": "3bdbea58fd8a6bce690837f5e281dded97ac49c01c2caa8bebf7798c5114573d",
       "role": "physical-io",
       "owner": "Existing Content/Reference/completion/publication Owners and physical Store writer",
       "exports": [
@@ -60374,6 +60541,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
               }
             ],
             "inputsOutputs": [
@@ -60420,6 +60591,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
               }
             ],
             "identity": [
@@ -60466,6 +60641,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
               }
             ],
             "ownership": [
@@ -60512,6 +60691,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
               }
             ],
             "synchronization": [
@@ -60554,6 +60737,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
               }
             ],
             "failure": [
@@ -60600,6 +60787,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
               }
             ],
             "cancellation": [
@@ -60642,6 +60833,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
               }
             ],
             "resources": [
@@ -60692,6 +60887,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
               }
             ],
             "extension": [
@@ -60726,6 +60925,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
               }
             ],
             "verification": [
@@ -60776,6 +60979,14 @@
               {
                 "path": "adapters/host-node/content-preparation-retirement.test.mjs",
                 "anchor": "retired keyed Content does not exhaust the unchanged 4096 live-preparation limit"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
+              },
+              {
+                "path": "src/client_local_host/content_original_execution_demand_js_wbtest.mbt",
+                "anchor": "same checked Content input shape selects original row and column demand before prefix construction"
               }
             ]
           }
@@ -60798,6 +61009,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
               }
             ],
             "inputsOutputs": [
@@ -60812,6 +61027,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
               }
             ],
             "identity": [
@@ -60830,6 +61049,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
               }
             ],
             "ownership": [
@@ -60844,6 +61067,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
               }
             ],
             "synchronization": [
@@ -60862,6 +61089,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
               }
             ],
             "failure": [
@@ -60880,6 +61111,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
               }
             ],
             "cancellation": [
@@ -60894,6 +61129,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
               }
             ],
             "resources": [
@@ -60908,6 +61147,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
               }
             ],
             "extension": [
@@ -60922,6 +61165,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
               }
             ],
             "verification": [
@@ -60936,6 +61183,14 @@
               {
                 "path": "adapters/host-node/content-preparation-retirement.test.mjs",
                 "anchor": "retired keyed Content does not exhaust the unchanged 4096 live-preparation limit"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
+              },
+              {
+                "path": "src/client_local_host/content_original_execution_demand_js_wbtest.mbt",
+                "anchor": "same checked Content input shape selects original row and column demand before prefix construction"
               }
             ]
           }
@@ -60962,6 +61217,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
               }
             ],
             "inputsOutputs": [
@@ -60980,6 +61239,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
               }
             ],
             "identity": [
@@ -60998,6 +61261,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
               }
             ],
             "ownership": [
@@ -61016,6 +61283,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
               }
             ],
             "synchronization": [
@@ -61034,6 +61305,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
               }
             ],
             "failure": [
@@ -61052,6 +61327,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
               }
             ],
             "cancellation": [
@@ -61070,6 +61349,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
               }
             ],
             "resources": [
@@ -61088,6 +61371,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
               }
             ],
             "extension": [
@@ -61106,6 +61393,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
               }
             ],
             "verification": [
@@ -61120,6 +61411,14 @@
               {
                 "path": "adapters/host-node/content-preparation-retirement.test.mjs",
                 "anchor": "retired keyed Content does not exhaust the unchanged 4096 live-preparation limit"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
+              },
+              {
+                "path": "src/client_local_host/content_original_execution_demand_js_wbtest.mbt",
+                "anchor": "same checked Content input shape selects original row and column demand before prefix construction"
               }
             ]
           }
@@ -61142,6 +61441,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
               }
             ],
             "inputsOutputs": [
@@ -61156,6 +61459,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
               }
             ],
             "identity": [
@@ -61170,6 +61477,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
               }
             ],
             "ownership": [
@@ -61184,6 +61495,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
               }
             ],
             "synchronization": [
@@ -61198,6 +61513,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
               }
             ],
             "failure": [
@@ -61212,6 +61531,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
               }
             ],
             "cancellation": [
@@ -61226,6 +61549,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
               }
             ],
             "resources": [
@@ -61240,6 +61567,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
               }
             ],
             "extension": [
@@ -61254,6 +61585,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
               }
             ],
             "verification": [
@@ -61264,6 +61599,14 @@
               {
                 "path": "adapters/host-node/content-preparation-retirement.test.mjs",
                 "anchor": "retired keyed Content does not exhaust the unchanged 4096 live-preparation limit"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
+              },
+              {
+                "path": "src/client_local_host/content_original_execution_demand_js_wbtest.mbt",
+                "anchor": "same checked Content input shape selects original row and column demand before prefix construction"
               }
             ]
           }
@@ -61283,6 +61626,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
               }
             ],
             "inputsOutputs": [
@@ -61293,6 +61640,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
               }
             ],
             "identity": [
@@ -61303,6 +61654,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
               }
             ],
             "ownership": [
@@ -61313,6 +61668,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
               }
             ],
             "synchronization": [
@@ -61323,6 +61682,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
               }
             ],
             "failure": [
@@ -61333,6 +61696,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
               }
             ],
             "cancellation": [
@@ -61343,6 +61710,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
               }
             ],
             "resources": [
@@ -61353,6 +61724,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
               }
             ],
             "extension": [
@@ -61363,12 +61738,24 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
               }
             ],
             "verification": [
               {
                 "path": "adapters/host-node/content-preparation-retirement.test.mjs",
                 "anchor": "retired keyed Content does not exhaust the unchanged 4096 live-preparation limit"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
+              },
+              {
+                "path": "src/client_local_host/content_original_execution_demand_js_wbtest.mbt",
+                "anchor": "same checked Content input shape selects original row and column demand before prefix construction"
               }
             ]
           }
@@ -61411,6 +61798,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
               }
             ],
             "inputsOutputs": [
@@ -61457,6 +61848,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
               }
             ],
             "identity": [
@@ -61503,6 +61898,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
               }
             ],
             "ownership": [
@@ -61549,6 +61948,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
               }
             ],
             "synchronization": [
@@ -61591,6 +61994,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
               }
             ],
             "failure": [
@@ -61637,6 +62044,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
               }
             ],
             "cancellation": [
@@ -61679,6 +62090,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
               }
             ],
             "resources": [
@@ -61729,6 +62144,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
               }
             ],
             "extension": [
@@ -61763,6 +62182,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
               }
             ],
             "verification": [
@@ -61813,6 +62236,14 @@
               {
                 "path": "adapters/host-node/content-preparation-retirement.test.mjs",
                 "anchor": "retired keyed Content does not exhaust the unchanged 4096 live-preparation limit"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
+              },
+              {
+                "path": "src/client_local_host/content_original_execution_demand_js_wbtest.mbt",
+                "anchor": "same checked Content input shape selects original row and column demand before prefix construction"
               }
             ]
           }
@@ -63333,7 +63764,7 @@
     {
       "module": "adapters/host-node/installed-effect-site.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "328f27d7f65f709f18432598842ff04f7c6d8af56aa84a8d6d208307b5195ed6",
+      "sha256": "1e37f7bb4a2d0c6def4dc0c380e000891694e8ce91823cfbc2afff0ccf95f472",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
       "exports": [
@@ -63548,6 +63979,11 @@
             "facts"
           ],
           "async": true
+        },
+        {
+          "name": "createInstalledEffectSite/init:resume/init:resume/assertResumeCurrent/assertResumeCurrent",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "createInstalledEffectSite/init:resume/init:resume/gate/gate",
@@ -64257,6 +64693,74 @@
               {
                 "path": "adapters/host-node/requested-effect-host.integration.test.mjs",
                 "anchor": "test('requested first Effect pauses Account Allow"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createInstalledEffectSite/init:resume/init:resume/assertResumeCurrent/assertResumeCurrent"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Ordinary CREATE Run current"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Ordinary CREATE Run current"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Ordinary CREATE Run current"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Ordinary CREATE Run current"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Ordinary CREATE Run current"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Ordinary CREATE Run current"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Ordinary CREATE Run current"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Ordinary CREATE Run current"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Ordinary CREATE Run current"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Ordinary CREATE Run current"
               }
             ]
           }
@@ -69812,7 +70316,7 @@
     },
     {
       "module": "adapters/local-node/installed-project-mock.mjs",
-      "sha256": "71b49743fd83981908815d1a138b3d3072b43ff7b4d8a3d44cd32e6041c22f0e",
+      "sha256": "97b7730ebf85eeca8737a359b50e18f23d9b926c6101cb3acdf5338aafaaf0cc",
       "exports": [
         "installPreparedProjectMockSources",
         "installedMockRequestRealization",
@@ -69844,6 +70348,7 @@
             "authorizationFor",
             "readAsset",
             "prepareManagedModelRun",
+            "prepareManagedSourceRun",
             "effectManagedRun"
           ],
           "async": true
@@ -70036,10 +70541,7 @@
         {
           "name": "installPreparedProjectMockSources/prepareManagedRun",
           "parameters": [
-            "prepared",
-            "request",
-            "model",
-            "effectful"
+            "facts"
           ],
           "async": false
         },
@@ -70329,7 +70831,7 @@
               },
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "record.original = sourceManaged.prepareRun(prepared);"
+                "anchor": "effectRuns.set(prepared, new WeakRef(record));"
               },
               {
                 "path": "docs/design/model-provider-registration.md",
@@ -70337,7 +70839,7 @@
               },
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "record.original = sourceManaged.prepareRun(prepared);"
+                "anchor": "effectRuns.set(prepared, new WeakRef(record));"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -70365,7 +70867,7 @@
             "failure": [
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "} catch (error) { record.failure = error; throw error; }"
+                "anchor": "if (Object.hasOwn(record, 'failure')) throw record.failure;"
               },
               {
                 "path": "docs/design/model-provider-registration.md",
@@ -70429,7 +70931,7 @@
               },
               {
                 "path": "adapters/host-node/mock-source-factory-custody.test.mjs",
-                "anchor": "test('same managed Run original is retained before post-factory current refusal and typed start stays zero',()=>{"
+                "anchor": "test('same Host Run is retained before post-factory current refusal and independent typed start stays zero', () => {"
               },
               {
                 "path": "adapters/host-node/mock-source-factory-custody.test.mjs",
@@ -72125,67 +72627,21 @@
     {
       "module": "adapters/host-node/installed-row-capture-cleanup.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "aeec5d77edf47004612d84d809f962342a9e25439597a183c39e09d2514205fe",
+      "sha256": "ca7fba3d7bcdc895314bd2cf896e81cf0b12c221b92c732a20161b6871ce1e4a",
       "role": "physical-io",
       "owner": "Existing Content/Reference/completion/publication Owners and physical Store writer",
       "exports": [
         "prepareInstalledRowCaptureChild",
-        "releaseInstalledRowCapture"
+        "releaseInstalledRowCapture",
+        "retainInstalledRowCaptureChild"
       ],
       "operations": [
         {
           "name": "prepareInstalledRowCaptureChild",
           "parameters": [
-            "children",
-            "create",
-            "assertCurrent",
-            "signal"
+            "options"
           ],
           "async": true
-        },
-        {
-          "name": "prepareInstalledRowCaptureChild/drain/drain",
-          "parameters": [
-            "retry"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledRowCaptureChild/drain/drain/drain",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "prepareInstalledRowCaptureChild/drain/drain/drain#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledRowCaptureChild/invalid/invalid",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledRowCaptureChild/prepareInstalledRowCaptureChild",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledRowCaptureChild/prepareInstalledRowCaptureChild#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledRowCaptureChild/prepareInstalledRowCaptureChild#3",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledRowCaptureChild/prepareInstalledRowCaptureChild#4",
-          "parameters": [
-            "method"
-          ],
-          "async": false
         },
         {
           "name": "releaseInstalledRowCapture",
@@ -72276,20 +72732,71 @@
           "name": "releaseInstalledRowCapture/retain/retain/retain",
           "parameters": [],
           "async": false
+        },
+        {
+          "name": "retainInstalledRowCaptureChild",
+          "parameters": [
+            "children",
+            "create",
+            "assertCurrent",
+            "signal"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainInstalledRowCaptureChild/drain/drain",
+          "parameters": [
+            "retry"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainInstalledRowCaptureChild/drain/drain/drain",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "retainInstalledRowCaptureChild/drain/drain/drain#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "retainInstalledRowCaptureChild/init:prepare/init:prepare",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "retainInstalledRowCaptureChild/invalid/invalid",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "retainInstalledRowCaptureChild/retainInstalledRowCaptureChild",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "retainInstalledRowCaptureChild/retainInstalledRowCaptureChild#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "retainInstalledRowCaptureChild/retainInstalledRowCaptureChild#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "retainInstalledRowCaptureChild/retainInstalledRowCaptureChild#4",
+          "parameters": [
+            "method"
+          ],
+          "async": false
         }
       ],
       "contracts": [
         {
           "operations": [
             "prepareInstalledRowCaptureChild",
-            "prepareInstalledRowCaptureChild/drain/drain",
-            "prepareInstalledRowCaptureChild/drain/drain/drain",
-            "prepareInstalledRowCaptureChild/drain/drain/drain#2",
-            "prepareInstalledRowCaptureChild/invalid/invalid",
-            "prepareInstalledRowCaptureChild/prepareInstalledRowCaptureChild",
-            "prepareInstalledRowCaptureChild/prepareInstalledRowCaptureChild#2",
-            "prepareInstalledRowCaptureChild/prepareInstalledRowCaptureChild#3",
-            "prepareInstalledRowCaptureChild/prepareInstalledRowCaptureChild#4",
             "releaseInstalledRowCapture",
             "releaseInstalledRowCapture/childPending/childPending",
             "releaseInstalledRowCapture/dependent/dependent",
@@ -72320,7 +72827,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
-                "anchor": "export async function prepareInstalledRowCaptureChild({children, create,"
+                "anchor": "export async function prepareInstalledRowCaptureChild(options) {"
               }
             ],
             "identity": [
@@ -72400,7 +72907,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
-                "anchor": "export async function prepareInstalledRowCaptureChild({children, create,"
+                "anchor": "export async function prepareInstalledRowCaptureChild(options) {"
               }
             ],
             "identity": [
@@ -72461,6 +72968,85 @@
               {
                 "path": "adapters/host-node/effect-content-original-borrow.integration.test.mjs",
                 "anchor": "test('actual Content capture keeps the same original parent through an async preparation child'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "retainInstalledRowCaptureChild",
+            "retainInstalledRowCaptureChild/drain/drain",
+            "retainInstalledRowCaptureChild/drain/drain/drain",
+            "retainInstalledRowCaptureChild/drain/drain/drain#2",
+            "retainInstalledRowCaptureChild/init:prepare/init:prepare",
+            "retainInstalledRowCaptureChild/invalid/invalid",
+            "retainInstalledRowCaptureChild/retainInstalledRowCaptureChild",
+            "retainInstalledRowCaptureChild/retainInstalledRowCaptureChild#2",
+            "retainInstalledRowCaptureChild/retainInstalledRowCaptureChild#3",
+            "retainInstalledRowCaptureChild/retainInstalledRowCaptureChild#4"
+          ],
+          "exports": [
+            "retainInstalledRowCaptureChild"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
               }
             ]
           }
@@ -106981,7 +107567,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-host-journal.mjs",
-      "sha256": "3ecf43ea4001e1645724268373a18e0b99834dfd4394f803f06732b4a5e039da",
+      "sha256": "a26502de4f95cf50ae128155e34b1eff43cebff585a4805ee3d86e4324a6c700",
       "exports": [
         "ordinaryHostJournalInstallation",
         "prepareOrdinaryHostJournal"
@@ -108109,6 +108695,31 @@
           "async": true
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/beginProducer",
+          "parameters": [
+            "kind",
+            "openParent"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/beginProducer/assertOriginalCurrent/assertOriginalCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/beginProducer/childrenPending/childrenPending",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/beginProducer/childrenPending/childrenPending/childrenPending",
+          "parameters": [
+            "child"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/captureReader",
           "parameters": [
             "child"
@@ -108461,19 +109072,12 @@
           "async": false
         },
         {
-          "name": "prepareOrdinaryManagedInstallation/view/init:beforeSourceSnapshot/init:beforeSourceSnapshot/assertOriginalCurrent/assertOriginalCurrent",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:beforeSourceSnapshot/init:beforeSourceSnapshot/childrenPending/childrenPending",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:beforeSourceSnapshot/init:beforeSourceSnapshot/childrenPending/childrenPending/childrenPending",
+          "name": "prepareOrdinaryManagedInstallation/view/init:beforeSourceSnapshot/init:beforeSourceSnapshot/init:beforeSourceSnapshot",
           "parameters": [
-            "child"
+            "state",
+            "receipt",
+            "assertCurrent",
+            "childrenPending"
           ],
           "async": false
         },
@@ -108898,6 +109502,24 @@
             "prepared",
             "request",
             "contentPreparation"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:retainRequestInput/init:retainRequestInput",
+          "parameters": [
+            "request",
+            "intent"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:retainRequestInput/init:retainRequestInput/receipt/receipt",
+          "parameters": [
+            "state",
+            "original",
+            "assertCurrent",
+            "childrenPending"
           ],
           "async": false
         },
@@ -109978,7 +110600,6 @@
             "prepareOrdinaryManagedInstallation/retireInitialPreparation/retireInitialPreparation",
             "prepareOrdinaryManagedInstallation/view/init:adoptPreparation/init:adoptPreparation",
             "prepareOrdinaryManagedInstallation/view/init:adoptPreparation/init:adoptPreparation/init:adoptPreparation",
-            "prepareOrdinaryManagedInstallation/view/init:beforeSourceSnapshot/init:beforeSourceSnapshot/assertOriginalCurrent/assertOriginalCurrent",
             "prepareOrdinaryManagedInstallation/view/init:borrowPreparation/init:borrowPreparation",
             "prepareOrdinaryManagedInstallation/view/init:captureSourceSnapshot/init:captureSourceSnapshot",
             "prepareOrdinaryManagedInstallation/view/init:captureSourceSnapshot/init:captureSourceSnapshot/captured/captured",
@@ -110930,75 +111551,6 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "prepareOrdinaryManagedInstallation/view/init:beforeSourceSnapshot/init:beforeSourceSnapshot/childrenPending/childrenPending",
-            "prepareOrdinaryManagedInstallation/view/init:beforeSourceSnapshot/init:beforeSourceSnapshot/childrenPending/childrenPending/childrenPending"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Project Local Files original Run and physical retirement"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Project Local Files original Run and physical retirement"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Project Local Files original Run and physical retirement"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Project Local Files original Run and physical retirement"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Project Local Files original Run and physical retirement"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Project Local Files original Run and physical retirement"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Project Local Files original Run and physical retirement"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Project Local Files original Run and physical retirement"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Project Local Files original Run and physical retirement"
-              }
-            ],
-            "verification": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Project Local Files original Run and physical retirement"
               }
             ]
           }
@@ -112532,10 +113084,84 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "prepareOrdinaryManagedInstallation/beginProducer",
+            "prepareOrdinaryManagedInstallation/beginProducer/assertOriginalCurrent/assertOriginalCurrent",
+            "prepareOrdinaryManagedInstallation/beginProducer/childrenPending/childrenPending",
+            "prepareOrdinaryManagedInstallation/beginProducer/childrenPending/childrenPending/childrenPending",
+            "prepareOrdinaryManagedInstallation/view/init:beforeSourceSnapshot/init:beforeSourceSnapshot/init:beforeSourceSnapshot",
+            "prepareOrdinaryManagedInstallation/view/init:retainRequestInput/init:retainRequestInput",
+            "prepareOrdinaryManagedInstallation/view/init:retainRequestInput/init:retainRequestInput/receipt/receipt"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "d814602a0e35e965c2302cb1cbab20dd87a232c0795923cbbcdb053d6eda8326"
+      "sha256": "8159face143e0e3d7b4150b45dacb56822c39f441464cb2a071b90a50c0699a7"
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",
@@ -120478,7 +121104,7 @@
       "sha256": "5d457d7a60d36441fc1d32019d1a6dc189e3de2f659b4ba87a5d18b0a7c89489",
       "responsibilityFacet": "primary",
       "role": "physical-io",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "exports": [
         "createInstalledCredentialSourceReader",
         "installedJsonSourceReaderLimitNames",
@@ -121247,10 +121873,10 @@
     },
     {
       "module": "adapters/host-node/installed-effect-managed-run.mjs",
-      "sha256": "b316bbda6a28ab1c3feea0dadc964e01612d9085a0095f6a8a21abbc17ae5cc9",
+      "sha256": "6ee0dca1bfff30124c1efc9ef84ca4b6e287786ed6a69737d31137905a565e59",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "exports": [
         "finishInstalledEffectModelScope",
         "installedEffectModelPreparation",
@@ -121936,10 +122562,10 @@
     },
     {
       "module": "adapters/host-node/installed-host-services.mjs",
-      "sha256": "86f613556ff3048496fa65b9223ec5fc3bade0906aeb7dd2f2e1e6740da3e60a",
+      "sha256": "7f7bb37d5f7dedf4ff365afb7501176dd574a9aa4bd371d3cdacfe743f51aebd",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "exports": [
         "assertInstalledSourceConstruction",
         "beginInstalledSourceInitialization",
@@ -122066,6 +122692,13 @@
           "async": false
         },
         {
+          "name": "beginInstalledSourceInitialization/context/init:prepareInputConstruction/init:prepareInputConstruction",
+          "parameters": [
+            "projection"
+          ],
+          "async": false
+        },
+        {
           "name": "beginInstalledSourceInitialization/context/init:prepareMappings/init:prepareMappings",
           "parameters": [
             "writesJson",
@@ -122103,9 +122736,31 @@
           "async": false
         },
         {
+          "name": "beginInstalledSourceInitialization/context/init:prepareNativeDeclaration/init:prepareNativeDeclaration",
+          "parameters": [
+            "projection"
+          ],
+          "async": false
+        },
+        {
+          "name": "beginInstalledSourceInitialization/context/init:prepareNativeDeclaration/init:prepareNativeDeclaration/init:prepareNativeDeclaration",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
           "name": "beginInstalledSourceInitialization/context/init:prepareReadTarget/init:prepareReadTarget",
           "parameters": [
             "projection"
+          ],
+          "async": false
+        },
+        {
+          "name": "beginInstalledSourceInitialization/prepareInitialNativeConstruction",
+          "parameters": [
+            "projection",
+            "attempt"
           ],
           "async": false
         },
@@ -122146,28 +122801,6 @@
         {
           "name": "borrowInstalledSourceInitialization/view/init:release/init:release",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "calendarImplementationReaderLimits",
-          "parameters": [
-            "supplied",
-            "selected"
-          ],
-          "async": false
-        },
-        {
-          "name": "calendarImplementationReaderLimits/calendarImplementationReaderLimits",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "calendarImplementationReaderLimits/original/original",
-          "parameters": [
-            "name"
-          ],
           "async": false
         },
         {
@@ -122269,13 +122902,6 @@
           "async": false
         },
         {
-          "name": "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/calendarSelectionChanged",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
           "name": "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/capacity/capacity",
           "parameters": [
             "name"
@@ -122306,19 +122932,26 @@
         {
           "name": "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/init:sourceReaderImplementation#4",
           "parameters": [
-            "port"
+            "name"
           ],
           "async": false
         },
         {
           "name": "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/init:sourceReaderImplementation#5",
           "parameters": [
-            "value"
+            "name"
           ],
           "async": false
         },
         {
           "name": "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/init:sourceReaderImplementation#6",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/init:sourceReaderImplementation#7",
           "parameters": [
             "name"
           ],
@@ -122326,27 +122959,6 @@
         },
         {
           "name": "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/limits/limits",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/sequenceSelectionChanged",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/slackSelectionChanged",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/threadSelectionChanged",
           "parameters": [
             "name"
           ],
@@ -122409,29 +123021,6 @@
           "name": "freezeSourceProjection",
           "parameters": [
             "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "gmailThreadImplementationReaderLimits",
-          "parameters": [
-            "supplied",
-            "columns",
-            "profile"
-          ],
-          "async": false
-        },
-        {
-          "name": "gmailThreadImplementationReaderLimits/gmailThreadImplementationReaderLimits",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "gmailThreadImplementationReaderLimits/original/original",
-          "parameters": [
-            "name"
           ],
           "async": false
         },
@@ -122514,36 +123103,6 @@
           "name": "installedSourceConfigurationReader/readOriginal/value/init:beforeRead/init:beforeRead",
           "parameters": [
             "bytes"
-          ],
-          "async": false
-        },
-        {
-          "name": "nestedImplementationReaderLimits",
-          "parameters": [
-            "supplied",
-            "columns",
-            "profile"
-          ],
-          "async": false
-        },
-        {
-          "name": "nestedImplementationReaderLimits/nestedImplementationReaderLimits",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "nestedImplementationReaderLimits/original/original",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "nestedImplementationReaderLimits/quote/quote",
-          "parameters": [
-            "name"
           ],
           "async": false
         },
@@ -122697,60 +123256,6 @@
           "async": false
         },
         {
-          "name": "slackImplementationReaderLimits",
-          "parameters": [
-            "supplied",
-            "columns",
-            "profile"
-          ],
-          "async": false
-        },
-        {
-          "name": "slackImplementationReaderLimits/children/children",
-          "parameters": [
-            "entries"
-          ],
-          "async": false
-        },
-        {
-          "name": "slackImplementationReaderLimits/children/children/children",
-          "parameters": [
-            "operation",
-            "maxUses"
-          ],
-          "async": false
-        },
-        {
-          "name": "slackImplementationReaderLimits/original/original",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "slackImplementationReaderLimits/sequence/sequence",
-          "parameters": [
-            "operation",
-            "maxUses",
-            "entries"
-          ],
-          "async": false
-        },
-        {
-          "name": "slackImplementationReaderLimits/slackImplementationReaderLimits",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "slackImplementationReaderLimits/slackImplementationReaderLimits#2",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
           "name": "sourceCall",
           "parameters": [
             "original",
@@ -122878,7 +123383,6 @@
             "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/init:sourceReaderImplementation#5",
             "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/init:sourceReaderImplementation#6",
             "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/limits/limits",
-            "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/threadSelectionChanged",
             "createInstalledHostServices/services/init:sourceReaderImplementationProfile/init:sourceReaderImplementationProfile",
             "createInstalledHostServices/services/init:sourceReaderImplementationProfile/init:sourceReaderImplementationProfile/init:sourceReaderImplementationProfile",
             "createInstalledHostServices/services/init:sourceReaderImplementationProfile/init:sourceReaderImplementationProfile/init:sourceReaderImplementationProfile#2",
@@ -123138,18 +123642,10 @@
             "borrowInstalledSourceInitialization",
             "borrowInstalledSourceInitialization/view/init:environment/init:environment",
             "borrowInstalledSourceInitialization/view/init:release/init:release",
-            "calendarImplementationReaderLimits",
-            "calendarImplementationReaderLimits/calendarImplementationReaderLimits",
-            "calendarImplementationReaderLimits/original/original",
             "closeInstalledSourceConstruction",
             "completeInstalledSourceInitialization",
-            "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/calendarSelectionChanged",
-            "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/sequenceSelectionChanged",
             "finishInstalledSourceInitialization",
             "freezeSourceProjection",
-            "gmailThreadImplementationReaderLimits",
-            "gmailThreadImplementationReaderLimits/gmailThreadImplementationReaderLimits",
-            "gmailThreadImplementationReaderLimits/original/original",
             "installedSourceConfigurationReader",
             "installedSourceConfigurationReader/read",
             "installedSourceConfigurationReader/read/beforeDecode/beforeDecode",
@@ -123161,10 +123657,6 @@
             "installedSourceConfigurationReader/reader/init:readOriginalBytes/init:readOriginalBytes",
             "installedSourceConfigurationReader/reader/init:readOriginalText/init:readOriginalText",
             "installedSourceConfigurationReader/reader/init:readText/init:readText",
-            "nestedImplementationReaderLimits",
-            "nestedImplementationReaderLimits/nestedImplementationReaderLimits",
-            "nestedImplementationReaderLimits/original/original",
-            "nestedImplementationReaderLimits/quote/quote",
             "prepareInstalledSourceAcquisitionContracts",
             "reconcileSource",
             "releaseFinishedSourceWorkspaces",
@@ -123186,14 +123678,6 @@
             "sourceMaterial",
             "sourceQuote",
             "withInstalledSourceLoading",
-            "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/slackSelectionChanged",
-            "slackImplementationReaderLimits",
-            "slackImplementationReaderLimits/children/children",
-            "slackImplementationReaderLimits/children/children/children",
-            "slackImplementationReaderLimits/original/original",
-            "slackImplementationReaderLimits/sequence/sequence",
-            "slackImplementationReaderLimits/slackImplementationReaderLimits",
-            "slackImplementationReaderLimits/slackImplementationReaderLimits#2",
             "assertInstalledSourceConstruction/empty/empty",
             "beginInstalledSourceInitialization/context/init:prepareDeclaredCommands/init:prepareDeclaredCommands",
             "beginInstalledSourceInitialization/context/init:prepareDeclaredCommands/init:prepareDeclaredCommands/init:prepareDeclaredCommands",
@@ -123298,111 +123782,144 @@
           }
         },
         {
-          "operations": [],
+          "operations": [
+            "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/init:sourceReaderImplementation#7"
+          ],
           "exports": [],
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-host-services.mjs",
-                "anchor": "export function createInstalledHostServices"
-              },
-              {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Installed JSON Source service originals"
+                "anchor": "Source-owned complete read sequences"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-host-services.mjs",
-                "anchor": "export function createInstalledHostServices"
-              },
-              {
-                "path": "adapters/host-node/installed-source-service-entry.test.mjs",
-                "anchor": "public Source service keeps original installation policy and typed capacity before any Site"
+                "path": "docs/design/reference-host.md",
+                "anchor": "Source-owned complete read sequences"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-host-services.mjs",
-                "anchor": "export function createInstalledHostServices"
-              },
-              {
-                "path": "adapters/host-node/installed-source-service-entry.test.mjs",
-                "anchor": "public Source service keeps original installation policy and typed capacity before any Site"
+                "path": "docs/design/reference-host.md",
+                "anchor": "Source-owned complete read sequences"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-host-services.mjs",
-                "anchor": "export function createInstalledHostServices"
-              },
-              {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Installed JSON Source service originals"
+                "anchor": "Source-owned complete read sequences"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-host-services.mjs",
-                "anchor": "export function createInstalledHostServices"
-              },
-              {
-                "path": "adapters/host-node/installed-source-service-entry.test.mjs",
-                "anchor": "public Source service keeps original installation policy and typed capacity before any Site"
+                "path": "docs/design/reference-host.md",
+                "anchor": "Source-owned complete read sequences"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-host-services.mjs",
-                "anchor": "fail('ForeignInstalledSourceReaderSelection')"
-              },
-              {
-                "path": "adapters/host-node/installed-source-service-entry.test.mjs",
-                "anchor": "public Source service keeps original installation policy and typed capacity before any Site"
+                "path": "docs/design/reference-host.md",
+                "anchor": "Source-owned complete read sequences"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-host-services.mjs",
-                "anchor": "fail('ForeignInstalledSourceReaderSelection')"
-              },
-              {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Installed JSON Source service originals"
+                "anchor": "Source-owned complete read sequences"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Installed JSON Source service originals"
-              },
-              {
-                "path": "adapters/host-node/installed-host-services.mjs",
-                "anchor": "export function createInstalledHostServices"
+                "anchor": "Source-owned complete read sequences"
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-host-services.mjs",
-                "anchor": "export function createInstalledHostServices"
-              },
-              {
-                "path": "adapters/host-node/installed-source-service-entry.test.mjs",
-                "anchor": "public Source service keeps original installation policy and typed capacity before any Site"
+                "path": "docs/design/reference-host.md",
+                "anchor": "Source-owned complete read sequences"
               }
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-source-service-entry.test.mjs",
-                "anchor": "public Source service keeps original installation policy and typed capacity before any Site"
-              },
-              {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Installed JSON Source service originals"
+                "anchor": "Source-owned complete read sequences"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "beginInstalledSourceInitialization/context/init:prepareInputConstruction/init:prepareInputConstruction",
+            "beginInstalledSourceInitialization/context/init:prepareNativeDeclaration/init:prepareNativeDeclaration",
+            "beginInstalledSourceInitialization/context/init:prepareNativeDeclaration/init:prepareNativeDeclaration/init:prepareNativeDeclaration",
+            "beginInstalledSourceInitialization/prepareInitialNativeConstruction"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Native Source input and declaration completion"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Native Source input and declaration completion"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Native Source input and declaration completion"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Native Source input and declaration completion"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Native Source input and declaration completion"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Native Source input and declaration completion"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Native Source input and declaration completion"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Native Source input and declaration completion"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Native Source input and declaration completion"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/bigquery/test/installed-bigquery-source.test.mjs",
+                "anchor": "test('registered BigQuery load joins actual Source parent constructor registration and cleanup'"
               },
               {
-                "path": "adapters/host-node/installed-source-reader-page-demand.test.mjs",
-                "anchor": "same managed service reader demand supplies original whole page bounds without a legacy preparer"
+                "path": "adapters/host-node/installed-effect-profile-cleanup.test.mjs",
+                "anchor": "test('invalid async native Source construction remains held until original settlement without retry'"
               }
             ]
           }

@@ -41,4 +41,6 @@ impl Hash for ClientEffectOperationCoordinate with fn hash_combine(self, hasher)
 priv struct ClientEffectOperationControls {
   reservation : @resources.CapacityReservation
   coordinates : Map[ClientEffectOperationCoordinate, Int]
+  construction_deferred : Bool
+  mut construction_active : Bool
 }

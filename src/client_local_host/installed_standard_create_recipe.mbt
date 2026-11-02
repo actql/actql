@@ -18,7 +18,39 @@ fn standard_create_representation_capacity(
 ///|
 fn standard_create_sum_capacities(
   values : Array[@execution.ExecutionCapacity],
+  sequential_workspace? : Bool = false,
 ) -> @execution.ExecutionCapacity? {
+  if sequential_workspace {
+    let mut retained = 0L
+    let mut workspace = 0L
+    for value in values {
+      guard @execution.execution_capacity_inventory_add(
+          retained,
+          QuotedBytes,
+          @execution.execution_capacity_retained_bytes(value),
+          1,
+        )
+        is Some(next) else {
+        return None
+      }
+      retained = next
+      workspace = Int64::max(
+        workspace,
+        @execution.execution_capacity_execution_bytes(value) -
+        @execution.execution_capacity_retained_bytes(value),
+      )
+    }
+    guard @execution.execution_capacity_inventory_add(
+        retained,
+        QuotedBytes,
+        workspace,
+        1,
+      )
+      is Some(execution) else {
+      return None
+    }
+    return @execution.execution_capacity(retained, execution)
+  }
   let mut total = @execution.execution_capacity(0L, 0L).unwrap()
   for value in values {
     guard @execution.add_execution_capacity(total, value) is Some(next) else {
@@ -27,6 +59,94 @@ fn standard_create_sum_capacities(
     total = next
   }
   Some(total)
+}
+
+///|
+// Binary form of the same retained-sum/workspace-maximum fold. Fixed Host
+// callsites already hold the two original quantities; do not allocate another
+// input Array just to compose them. The caller owns the sequential-lifetime
+// proof; these immutable quantities neither grant nor return any resource.
+fn standard_create_sequence_pair_capacity(
+  left : @execution.ExecutionCapacity,
+  right : @execution.ExecutionCapacity,
+) -> @execution.ExecutionCapacity? {
+  let left_r = @execution.execution_capacity_retained_bytes(left)
+  let right_r = @execution.execution_capacity_retained_bytes(right)
+  let workspace = Int64::max(
+    @execution.execution_capacity_execution_bytes(left) - left_r,
+    @execution.execution_capacity_execution_bytes(right) - right_r,
+  )
+  if left_r > 9223372036854775807L - right_r {
+    return None
+  }
+  let retained = left_r + right_r
+  if workspace > 9223372036854775807L - retained {
+    return None
+  }
+  @execution.execution_capacity(retained, retained + workspace)
+}
+
+///|
+// Existing saved-control family, including the retained Receipt's actual
+// data-key outcome path, not only the smaller logical Ledger entry. Both use
+// the same synchronous original controlConstruction frame. The normalizing
+// Ledger codec keeps its complete Unicode peak; this additional coarse
+// envelope covers candidate Receipt, typed outcome, expected Receipt and the
+// original Ledger result which can coexist during cross-reference admission.
+// Use only the existing executor units and fixed4096 Host-call allowance.
+fn standard_create_saved_control_capacity(
+  bytes : Int,
+  nodes : Int,
+  depth : Int,
+) -> @execution.ExecutionCapacity? {
+  guard installed_json_effect_response_construction_capacity(
+      @execution.execution_capacity(0L, 0L).unwrap(),
+      bytes,
+      nodes,
+      depth,
+    )
+    is Some(ledger) &&
+    @execution.execution_capacity_inventory(
+      [
+        // Four complete returned/overlapping value families above. This
+        // intentionally also retains their private construction alternatives.
+        { unit: ValueNodeSlots, count: nodes.to_int64(), copies: 4, },
+        // Three existing decoded-text envelopes cover12 UTF16 text domains:
+        // Ledger wire/fields, candidate wire/text, typed wire/text, expected
+        // body/text/wire, and three old/new returned-text alternatives. Input
+        // aliases are conservatively included, never used as extra grants.
+        { unit: DecodedTextBytes, count: bytes.to_int64(), copies: 3, },
+        { unit: QuotedBytes, count: 4096L, copies: 1, },
+      ],
+      [
+        // Current Source/index/schema/canonical/writer and failed prefixes.
+        // Completed sibling codecs return before the next begins. Preserve
+        // the full conservative phase on refusal, not a successful-body cut.
+        { unit: ValueNodeSlots, count: nodes.to_int64(), copies: 6, },
+        { unit: CursorRootSlots, count: depth.to_int64(), copies: 2, },
+        // Encode/parse, canonical text emission and digest input alternatives
+        // remain separate from retained result text and received body copies.
+        { unit: CanonicalWireBytes, count: bytes.to_int64(), copies: 6, },
+      ],
+      RetainedAlongsideExecution,
+    )
+    is Some(receipts) else {
+    return None
+  }
+  // These are two envelopes for the SAME complete control family, not two
+  // simultaneous grants. The Receipt envelope already includes its Ledger
+  // original. Select the dominating dimensions once; keep every other
+  // Grant, native provider result and saved physical buffer additive below.
+  @execution.execution_capacity(
+    Int64::max(
+      @execution.execution_capacity_retained_bytes(ledger),
+      @execution.execution_capacity_retained_bytes(receipts),
+    ),
+    Int64::max(
+      @execution.execution_capacity_execution_bytes(ledger),
+      @execution.execution_capacity_execution_bytes(receipts),
+    ),
+  )
 }
 
 ///|
@@ -153,10 +273,14 @@ pub fn installed_standard_create_recipe_capacities(
   stored_nodes : Int,
   stored_depth : Int,
   metadata_units : Int64,
+  response_read_quantum? : Int = 1,
 ) -> Result[Array[@execution.ExecutionCapacity], ClientInstalledManagedRunIssue] {
   installed_standard_recipe_capacities(
     original,
     None,
+    input_bytes,
+    input_nodes,
+    input_depth,
     input_bytes,
     input_nodes,
     input_depth,
@@ -172,6 +296,59 @@ pub fn installed_standard_create_recipe_capacities(
     stored_nodes,
     stored_depth,
     metadata_units,
+    response_read_quantum~,
+  )
+}
+
+///|
+// The same composer receives the actual earlier proposal admission bounds.
+// Preview-wide storage remains separate; no bound or admission is weakened.
+pub fn installed_standard_create_request_recipe_capacities(
+  original : Array[
+    (@execution.ExecutionCapacity, @source.ParseLimits?, @source.ParseLimits?),
+  ]?,
+  input_bytes : Int,
+  input_nodes : Int,
+  input_depth : Int,
+  row_input_bytes : Int,
+  row_input_nodes : Int,
+  row_input_depth : Int,
+  request_bytes : Int,
+  response_bytes : Int,
+  check_request_bytes : Int,
+  check_response_bytes : Int,
+  before_send : Bool,
+  secret_bytes : Int,
+  secret_prefix_units : Int,
+  header_bytes : Int,
+  stored_bytes : Int,
+  stored_nodes : Int,
+  stored_depth : Int,
+  metadata_units : Int64,
+  response_read_quantum? : Int = 1,
+) -> Result[Array[@execution.ExecutionCapacity], ClientInstalledManagedRunIssue] {
+  installed_standard_recipe_capacities(
+    original,
+    None,
+    input_bytes,
+    input_nodes,
+    input_depth,
+    row_input_bytes,
+    row_input_nodes,
+    row_input_depth,
+    request_bytes,
+    response_bytes,
+    check_request_bytes,
+    check_response_bytes,
+    before_send,
+    secret_bytes,
+    secret_prefix_units,
+    header_bytes,
+    stored_bytes,
+    stored_nodes,
+    stored_depth,
+    metadata_units,
+    response_read_quantum~,
   )
 }
 
@@ -184,6 +361,9 @@ pub fn installed_standard_driver_recipe_capacities(
   input_bytes : Int,
   input_nodes : Int,
   input_depth : Int,
+  row_input_bytes : Int,
+  row_input_nodes : Int,
+  row_input_depth : Int,
   request_bytes : Int,
   response_bytes : Int,
   check_request_bytes : Int,
@@ -196,9 +376,10 @@ pub fn installed_standard_driver_recipe_capacities(
   stored_nodes : Int,
   stored_depth : Int,
   metadata_units : Int64,
+  response_read_quantum? : Int = 1,
 ) -> Result[Array[@execution.ExecutionCapacity], ClientInstalledManagedRunIssue] {
   guard capture_original is Some(capture) &&
-    capture.length() == 2 &&
+    (capture.length() == 2 || capture.length() == 3) &&
     check_request_bytes == 0 &&
     check_response_bytes == 0 &&
     !before_send else {
@@ -210,6 +391,9 @@ pub fn installed_standard_driver_recipe_capacities(
     input_bytes,
     input_nodes,
     input_depth,
+    row_input_bytes,
+    row_input_nodes,
+    row_input_depth,
     request_bytes,
     response_bytes,
     check_request_bytes,
@@ -222,6 +406,7 @@ pub fn installed_standard_driver_recipe_capacities(
     stored_nodes,
     stored_depth,
     metadata_units,
+    response_read_quantum~,
   )
 }
 
@@ -234,6 +419,9 @@ fn installed_standard_recipe_capacities(
   input_bytes : Int,
   input_nodes : Int,
   input_depth : Int,
+  row_input_bytes : Int,
+  row_input_nodes : Int,
+  row_input_depth : Int,
   request_bytes : Int,
   response_bytes : Int,
   check_request_bytes : Int,
@@ -246,11 +434,15 @@ fn installed_standard_recipe_capacities(
   stored_nodes : Int,
   stored_depth : Int,
   metadata_units : Int64,
+  response_read_quantum? : Int = 1,
 ) -> Result[Array[@execution.ExecutionCapacity], ClientInstalledManagedRunIssue] {
   guard original is Some(entries) &&
     input_bytes > 0 &&
     input_nodes > 0 &&
     input_depth > 0 &&
+    row_input_bytes > 0 &&
+    row_input_nodes > 0 &&
+    row_input_depth > 0 &&
     request_bytes > 0 &&
     response_bytes > 0 &&
     stored_bytes > 0 &&
@@ -275,42 +467,64 @@ fn installed_standard_recipe_capacities(
   }
   let empty = @execution.execution_capacity(0L, 0L).unwrap()
   let write_output = if entries.length() == 4 { 2 } else { 1 }
-  guard installed_json_effect_request_construction_capacity(
-      empty, input_bytes, input_nodes, input_depth,
+  guard installed_standard_host_capture_row_capacity(
+      row_input_bytes, row_input_nodes, row_input_depth,
     )
     is Some(capture_rows) &&
     @source.json_literal_construction_extent(
       input_bytes, input_nodes, input_depth,
     )
     is Some(tree) &&
-    standard_create_representation_capacity(
+    installed_host_json_retained_roles(
       {
         record_headers: tree.record_headers,
         reference_slots: tree.reference_slots,
         scalar_words: tree.scalar_words,
-        owned_utf16_units: tree.owned_utf16_units + metadata_units,
+        owned_utf16_units: tree.owned_utf16_units,
         owned_wire_bytes: 0L,
       },
+      input_bytes,
+      input_nodes,
+      keep_full_text=true,
+    )
+    is Some((host_retained, host_workspace)) &&
+    @execution.compose_preparation_representation([
+      host_retained,
       {
         record_headers: 0L,
         reference_slots: 0L,
         scalar_words: 0L,
-        // Recovery serializes binding, individual rows, joined rows and the
-        // final member wire. Their SAME original total-byte guard bounds each.
+        owned_utf16_units: metadata_units,
+        owned_wire_bytes: 0L,
+      },
+    ])
+    is Some(host_retained) &&
+    @execution.compose_preparation_representation([
+      host_workspace,
+      {
+        record_headers: 0L,
+        reference_slots: 0L,
+        scalar_words: 0L,
+        // Recovery serializes binding, individual rows, joined rows and final
+        // member wire. All old text/encoding peaks and metadata remain charged.
         owned_utf16_units: 4L * input_bytes.to_int64() + 2L * metadata_units,
         owned_wire_bytes: input_bytes.to_int64(),
       },
-    )
+    ])
+    is Some(host_workspace) &&
+    standard_create_representation_capacity(host_retained, host_workspace)
     is Some(capture_fixed) &&
     installed_effect_http_response_construction_capacity(
-      response_bytes, header_bytes,
+      response_bytes,
+      header_bytes,
+      response_read_quantum~,
     )
     is Some(write_receive) &&
     standard_create_secret_capacity(secret_bytes, secret_prefix_units)
     is Some(secret) &&
     standard_create_grant_capacity() is Some(grant) &&
-    installed_json_effect_response_construction_capacity(
-      empty, stored_bytes, stored_nodes, stored_depth,
+    standard_create_saved_control_capacity(
+      stored_bytes, stored_nodes, stored_depth,
     )
     is Some(stored) &&
     standard_create_representation_capacity(
@@ -333,24 +547,40 @@ fn installed_standard_recipe_capacities(
       },
     )
     is Some(stored_buffers) &&
-    standard_create_sum_capacities([
-      write_receive,
-      secret,
-      constructors[write_output],
-    ])
-    is Some(write_body) &&
-    // A stored response read/project need not borrow the write occurrence.
-    // Keep its actual Ledger-bound input and native projector on pre-body
+    // The actual claimed write first captures its physical response, then
+    // invokes owned.project through its SAME controlConstruction frame. The
+    // projector below is already completely on that original control token.
+    // Keep HTTP buffers/secret and physical cleanup here; do not reserve the
+    // one synchronous Native projector on both simultaneous tokens.
+    standard_create_sum_capacities([write_receive, secret]) is Some(write_body) &&
+    // Warm and stored response projection use this SAME original frame; a
+    // stored response read/project need not borrow a physical write occurrence.
+    // Keep its actual Ledger-bound input and Native projector on pre-body
     // controls rather than inventing another physical write or cleanup ACK.
-    standard_create_sum_capacities([
-      stored,
-      stored_buffers,
-      constructors[write_output],
-    ])
+    // The original Ledger admit/read returns before the original provider
+    // projector is called. Their Unicode Owner scratch cannot escape either
+    // synchronous call; all Source/index/native/output holders remain summed.
+    // The same control reservation grows before each call and retains its full
+    // failed prefix until existing cleanup. Physical work keeps its old sum.
+    standard_create_sum_capacities(
+      [stored, stored_buffers, constructors[write_output]],
+      sequential_workspace=true,
+    )
     is Some(recovery) else {
     return Err(Unsupported)
   }
   let mut controls = recovery
+  if checks {
+    // The metadata HTTP child retains its own response and secret. Its pure
+    // projector runs afterwards through the SAME controlConstruction frame,
+    // just like the claimed-write and stored-response projectors above.
+    // Sum every returned holder and reuse only completed synchronous scratch.
+    guard standard_create_sequence_pair_capacity(controls, constructors[3])
+      is Some(next) else {
+      return Err(Unsupported)
+    }
+    controls = next
+  }
   // Capture/read, apply/read, optional resume/read and the write have distinct
   // slots. Preserve the existing declared resume occurrence even when this
   // process has not restored anything; do not alias it to an earlier call.
@@ -364,7 +594,11 @@ fn installed_standard_recipe_capacities(
     1
   }
   for _ in 0..<grant_occurrences {
-    guard @execution.add_execution_capacity(controls, grant) is Some(next) else {
+    // The SAME controlConstruction frame completes each synchronous Grant,
+    // Ledger read and projector before the next begins. Keep every returned
+    // Grant and recovery holder; an invalid async/failed prefix stops the
+    // caller with this complete peak still reserved, never a next constructor.
+    guard standard_create_sequence_pair_capacity(controls, grant) is Some(next) else {
       return Err(Unsupported)
     }
     controls = next
@@ -375,10 +609,14 @@ fn installed_standard_recipe_capacities(
   let (capture_fixed, capture_rows) = match capture_original {
     None => (capture_fixed, capture_rows)
     Some(capture) => {
-      guard capture.length() == 2 &&
-        @execution.add_execution_capacity(capture_fixed, capture[0])
+      // Native receives/returns only DATA; it cannot invoke Host JSON.parse
+      // during its pure codec. Host parsing/stringification completes before
+      // the Native call or starts after its return. Borrow all returned native
+      // and Host forests across both phases, including the failed prefix.
+      guard (capture.length() == 2 || capture.length() == 3) &&
+        standard_create_sequence_pair_capacity(capture_fixed, capture[0])
         is Some(fixed) &&
-        @execution.add_execution_capacity(capture_rows, capture[1])
+        standard_create_sequence_pair_capacity(capture_rows, capture[1])
         is Some(rows) else {
         return Err(Unsupported)
       }
@@ -394,19 +632,19 @@ fn installed_standard_recipe_capacities(
   ]
   if checks {
     guard installed_effect_http_response_construction_capacity(
-        check_response_bytes, header_bytes,
+        check_response_bytes,
+        header_bytes,
+        response_read_quantum~,
       )
       is Some(read_receive) &&
-      standard_create_sum_capacities([
-        read_receive,
-        secret,
-        constructors[1],
-        constructors[3],
-      ])
+      standard_create_sum_capacities([read_receive, secret, constructors[1]])
       is Some(read_body) else {
       return Err(Unsupported)
     }
     capacities.push(read_body)
+  }
+  if capture_original is Some(capture) {
+    capacities.push(if capture.length() == 3 { capture[2] } else { empty })
   }
   Ok(capacities)
 }

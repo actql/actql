@@ -123,9 +123,13 @@ pub fn client_program_installed_effect_operation_response_backing_fits(
   original : @client_local_host.ClientInstalledEffectOperationExtent,
   max_response_bytes : Int,
   max_header_bytes : Int,
+  response_read_quantum : Int,
 ) -> Bool {
   @client_local_host.installed_effect_operation_response_backing_fits(
-    original, max_response_bytes, max_header_bytes,
+    original,
+    max_response_bytes,
+    max_header_bytes,
+    response_read_quantum~,
   )
 }
 
@@ -188,4 +192,84 @@ pub fn client_program_installed_standard_create_constructor_capacities(
   @client_local_host.ClientInstalledManagedRunIssue,
 ] {
   @client_local_host.installed_standard_create_constructor_capacities(original)
+}
+
+///|
+#export_name("clientProgramInstalledEffectOperationConstructionComplete")
+pub fn client_program_installed_effect_operation_construction_complete(
+  original : @client_local_host.ClientInstalledEffectOperationBorrow,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.complete_installed_effect_operation_construction(original)
+}
+
+///|
+#export_name("clientProgramInstalledEffectOperationConstructionRetain")
+pub fn client_program_installed_effect_operation_construction_retain(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+  member_index : Int,
+  per_row : Bool,
+  operation_index : Int,
+  row_index : Int,
+  operation : String,
+) -> Result[
+  @client_local_host.ClientInstalledEffectOperationBorrow,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.retain_installed_effect_operation_construction(
+    owner, prepared, request, plan, member_index, per_row, operation_index, row_index,
+    operation,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledEffectOperationConstructionBegin")
+pub fn client_program_installed_effect_operation_construction_begin(
+  original : @client_local_host.ClientInstalledEffectOperationBorrow,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.begin_installed_effect_operation_construction(original)
+}
+
+///|
+#export_name("clientProgramInstalledEffectOperationControlsRetain")
+pub fn client_program_installed_effect_operation_controls_retain(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+) -> Result[
+  @client_local_host.ClientInstalledEffectManagedPlan,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.retain_installed_effect_operation_controls_before_construction(
+    owner, prepared, request, plan,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledEffectOperationControlConstructionBegin")
+pub fn client_program_installed_effect_operation_control_construction_begin(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.begin_installed_effect_operation_control_construction(
+    owner, prepared, request, plan,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledEffectOperationControlConstructionComplete")
+pub fn client_program_installed_effect_operation_control_construction_complete(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.complete_installed_effect_operation_control_construction(
+    owner, prepared, request, plan,
+  )
 }

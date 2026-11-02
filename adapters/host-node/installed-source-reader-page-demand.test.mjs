@@ -125,3 +125,14 @@ test('normal service refuses obsolete mixed and missing protocols before opening
     }
   }finally {assert.equal(f.reader.retire(),true);}
 });
+
+
+test('scalar request byte limits cannot revive the retired unbacked query-property reader projection',()=>{
+  const f=serviceFixture();
+  try{
+    for(const patch of [{maxRequestBytes:2},{maxRequestBytes:2,maxPropertyPages:1}]){
+      assert.throws(()=>f.services.sourceReaderImplementation({installation:f.installation,columnCount:3,
+        limits:{...f.limits,...patch}}),{code:'InstalledSourceReaderRequestCapacityUnavailable'});
+    }
+  }finally{assert.equal(f.reader.retire(),true);}
+});

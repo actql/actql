@@ -46,6 +46,10 @@ function fixture({read = () => 'rows', stop = () => {}, observe,
       assert.equal(actualBorrow, borrow); cleanup = observer;
       assert.equal(cleanup(), false); calls.push('bind'); return ok(undefined);
     },
+    clientProgramRowSourceRetireResponseWorkspace(actualBorrow) {
+      assert.equal(actualBorrow, borrow);
+      return cleanup() ? ok(undefined) : error('original reader pending');
+    },
     clientProgramRowSourceCloseAccounted(actualRun) {
       assert.equal(actualRun, run); closes++;
       calls.push('close');
@@ -58,7 +62,7 @@ function fixture({read = () => 'rows', stop = () => {}, observe,
   const start = overrides => startInstalledRowRun({moon, acquisition,
     nonce: 'original-nonce', ledger, capacity: {provider: capacity,
       transferBytes: 17n, executionBytes: 23n}, ...overrides});
-  return {moon, start, calls, reader, supplier, options, capacity, acquisition,
+  return {moon, start, calls, reader, supplier, options, capacity, acquisition, run, ledger, borrow,
     readBegan: began.promise,
     read: session => session.readProvider({prepare: supplier.prepare,
       receiver: supplier, options}),
@@ -221,4 +225,81 @@ test('truthy, missing or throwing reader cleanup observations never acknowledge 
     catch (error) {assert.match(error.message, /original observation unavailable/u);}
     assert.equal(f.counts().settles, 0);
   }
+});
+
+
+function installCompletedProviderCapture(f) {
+  const capture = {}, source = {}, checkedOwner = {}, requirement = {};
+  Object.assign(f.moon, {
+    clientProgramRowSourceFinish: actual => {assert.equal(actual,f.run);return ok(undefined);},
+    clientProgramRowSourceAttempt: actual => {assert.equal(actual,f.run);return {};},
+    clientProgramRowSourceCaptureBegin: () => ok(undefined),
+    clientProgramRowSourceCaptureAdvance: () => ok({_0:true,_1:1n}),
+    clientProgramRowSourceCapture: () => ok(capture),
+    clientProgramRowSourceCaptureSource: actual => {assert.equal(actual,capture);return ok(source);},
+    clientProgramEffectCapturedSourceMatches: () => true,
+    clientProgramIdentifyCapturedEffectSourceRelation: () => ok({}),
+    clientProgramEffectIssueCapturedSourceLogical: () => ok({}),
+    clientProgramRowSourceRetireResponseWorkspace(actualBorrow) {
+      assert.equal(actualBorrow,f.borrow);
+      if (!f.cleanup()) return error('original reader pending');
+      f.calls.push('retire-workspace'); return ok(undefined);
+    },
+  });
+  return {capture,source,options:{owner:{checkedOwner,effectful:true,
+    requirement,occurrence:{task:0}},prepared:{checkedSource:{}},
+    registry:'registry',values:'values',currentRead:async()=>{}}};
+}
+
+test('completed provider capture retires SAME reader workspace before returning live Source', async () => {
+  let f;
+  f=fixture({stop(){f.retire();}});
+  const selected=installCompletedProviderCapture(f),session=f.start();
+  await f.read(session);
+  const result=await session.complete(selected.options);
+  assert.deepEqual(f.calls.filter(name=>['stop','retire-workspace','close'].includes(name)),
+    ['stop','retire-workspace']);
+  assert.equal(result.capture.source(),selected.source);
+  assert.equal(f.counts().closes,0);
+  assert.equal(f.calls.filter(name=>name==='observe').length,1);
+  result.close();
+  assert.equal(f.counts().settles,1);
+});
+
+test('provider workspace completion refuses pending original stop and keeps SAME cleanup', async () => {
+  const f=fixture(),selected=installCompletedProviderCapture(f),session=f.start();
+  await f.read(session);
+  await assert.rejects(session.complete(selected.options),{code:'MoonBitHostFailure'});
+  assert.equal(f.calls.includes('retire-workspace'),false);
+  assert.equal(f.counts().settles,0);
+  assert.equal(await session.cleanup(),false);
+  f.retire();
+  assert.equal(await session.cleanup(),true);
+  assert.equal(f.calls.filter(name=>name==='read').length,1);
+  assert.equal(f.counts().settles,1);
+});
+
+test('provider workspace Core refusal preserves original observer for final cleanup', async () => {
+  let f;f=fixture({stop(){f.retire();}});
+  const selected=installCompletedProviderCapture(f),session=f.start();
+  f.moon.clientProgramRowSourceRetireResponseWorkspace=actual=>{
+    assert.equal(actual,f.borrow);return error('same original current refused');
+  };
+  await f.read(session);
+  await assert.rejects(session.complete(selected.options),{code:'MoonBitHostFailure'});
+  assert.equal(f.counts().settles,0);
+  assert.equal(await session.cleanup(),true);
+  assert.equal(f.counts().settles,1);
+});
+
+test('provider workspace completion cannot interpret an unresolved stop Promise as retirement', async () => {
+  const pending=deferred();let f;f=fixture({stop(){f.retire();return pending.promise;}});
+  const selected=installCompletedProviderCapture(f),session=f.start();
+  await f.read(session);
+  await assert.rejects(session.complete(selected.options),{code:'MoonBitHostFailure'});
+  assert.equal(f.calls.includes('retire-workspace'),false);
+  pending.resolve();await Promise.resolve();
+  assert.equal(await session.cleanup(),true);
+  assert.equal(f.calls.filter(name=>name==='stop').length,1);
+  assert.equal(f.calls.filter(name=>name==='read').length,1);
 });

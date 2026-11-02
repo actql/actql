@@ -438,7 +438,7 @@ test "one-short same-parent CREATE debit refuses before running the native const
   // Accounting pressure fixture only: reserve unused capacity on this SAME
   // Ledger. No memory/permission/physical backing is inferred from the number.
   let pressure = @resources.reserve_capacity(ledger, occupy, 0L).unwrap()
-  let calls = Ref::new(0)
+  let calls = Ref(0)
   let result = borrow_installed_effect_operation(
     owner, prepared, request, plan, 0, true, 0, 0, "kintone:create:construct",
   )
@@ -505,6 +505,14 @@ extern "js" fn installed_create_original_child(
     ClientInstalledEffectOperationBorrow,
     ClientInstalledManagedRunIssue,
   ],
+  begin : (ClientInstalledEffectOperationBorrow) -> Result[
+    Unit,
+    ClientInstalledManagedRunIssue,
+  ],
+  complete : (ClientInstalledEffectOperationBorrow) -> Result[
+    Unit,
+    ClientInstalledManagedRunIssue,
+  ],
   retire : (ClientInstalledEffectOperationBorrow, Bool) -> Result[
     Bool,
     ClientInstalledManagedRunIssue,
@@ -515,9 +523,9 @@ extern "js" fn installed_create_original_child(
   ],
   matches : (@kintone_catalog.RecordCreateRequest) -> Bool,
 ) -> Bool =
-  #|(loader,owner,prepared,request,plan,read,borrow,retire,construct,matches)=>{
+  #|(loader,owner,prepared,request,plan,read,borrow,begin,complete,retire,construct,matches)=>{
   #| const {prepareInstalledEffectRequestChild:create}=loader('../../../../../adapters/host-node/installed-effect-plan.mjs');
-  #| const runtime={clientProgramInstalledEffectManagedOperationPlan:read,clientProgramInstalledEffectOperationBorrow:borrow,clientProgramInstalledEffectOperationRetire:retire};
+  #| const runtime={clientProgramInstalledEffectManagedOperationPlan:read,clientProgramInstalledEffectOperationConstructionRetain:borrow,clientProgramInstalledEffectOperationConstructionBegin:begin,clientProgramInstalledEffectOperationConstructionComplete:complete,clientProgramInstalledEffectOperationRetire:retire};
   #| const run={runtime,value:owner,prepared,request,operationPlan:plan,readPlan:read};
   #| let aliasesRetired=false,calls=0;
   #| const child=create({run,memberIndex:0,rowIndex:0,operationIndex:0,operation:'kintone:create:construct',requestsRetired:()=>aliasesRetired,
@@ -547,7 +555,9 @@ test "actual shared JS constructor child retains the original native Kintone req
       request,
       plan,
       installed_effect_managed_operation_plan,
-      borrow_installed_effect_operation,
+      retain_installed_effect_operation_construction,
+      begin_installed_effect_operation_construction,
+      complete_installed_effect_operation_construction,
       retire_installed_effect_operation,
       () => {
         @kintone_host.prepare_record_create_execution_request(

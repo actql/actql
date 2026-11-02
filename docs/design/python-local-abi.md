@@ -3162,6 +3162,17 @@ modules must match the existing exact generated ABI contract.
 
 ### Saved Run observations and Result reads
 
+A saved payload response retains its same original Saved-read carrier. After
+its payload, first workspace and clock have actually returned, response close
+retires that carrier through its existing child-first cleanup, including the
+original allocation-area descriptor. A pending return keeps the same response
+and carrier; it does not repeat already acknowledged child closes or reacquire
+an area. Cleanup association checks the same nominal carrier even when partial
+construction has already entered closing; it does not require an active
+permission or enable another read. Client close remains the owner of partial
+acquisitions that never reached a response. No file, stored receipt, Run or reserved disk capacity is
+deleted or replayed by this retirement.
+
 The private saved-Result acquisition returns its already bounded and checked
 metadata together with the same retained Core output. Its immediate caller
 uses that original parsed DATA instead of reparsing the output inside another
@@ -3322,3 +3333,41 @@ full checks. This supplies no active custody transport or lifetime optimization,
 capacity, permission, current-row proof or physical acknowledgment. ABI78 and
 its full public Core validators remain unchanged; no private combined-export,
 ABI82 behavior or runtime timing equivalence is implied.
+
+### Accepted preparation failure
+
+Local submission retains the unchecked original intent in `preparing` before
+invoking its original parser and Checker. The preparation handle retains its
+typed outcome separately from plan counts. A known preparation failure does not
+turn a negative count, trap, failed current check or uncertain transaction into
+a semantic refusal. It also cannot undo the earlier submission acceptance.
+
+The same failed preparation and accepted intent select a bounded canonical
+`preparation_failed` row candidate. The Host revalidates that original candidate
+inside the existing fenced Store CAS, then independently reads the same
+submission reference before returning `SubmissionPreparationFailed`. No Run or
+dispatch is issued. COMMIT uncertainty preserves the original loans and remains
+Unknown; this path never retries the write, parser or Checker. Repeated lookup
+or submission of the same retained terminal observes that outcome rather than
+preparing it again. A distinct submission continues through normal admission.
+
+The optional physical problem fields are absent from older preparing/ready
+rows, whose canonical bytes remain unchanged. Native readers retain the same
+failure as terminal DATA and refuse fresh execution from that reference.
+
+### Adjacent payload preparation observations
+
+After original read evidence and first delivery are durably acknowledged, the
+normal live and Saved callers prepare the existing payload codecs and read the
+same Core-issued Result/binding ordinals within one existing Store read frame.
+The selected reader must remain the same nominal fact from that complete
+inventory. No descriptor opens inside this fixed preparation, and neither a
+write nor a read grant is combined with it.
+
+The original frame still performs its complete File/current/Account and fact
+checks around all three Core calls. Failure, changed originals or the final
+physical fence returns no selected fact; the same original input/output loans
+remain available for cleanup. No currentness or Allow result is cached. The
+standalone codec and ordinal methods retain their original independent frames
+for callers that deliberately select them separately. Payload binding and
+physical snapshot validation continue through their two original Core methods.

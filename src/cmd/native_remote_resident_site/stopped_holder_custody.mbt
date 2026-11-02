@@ -5,6 +5,164 @@ fn consumer_process_hold_identity(request : @remote.DispatchRequest) -> String {
 }
 
 ///|
+/// Keep only the existing recovery's exact constructor originals. A failed
+/// constructor may retire its own partial handles, but remains failed; this
+/// entrance never replaces it with a new acquisition or another configured path.
+fn stopped_holder_cleanup_resources(
+  owner : StoppedReleaseRecovery,
+  transfer_path : String,
+  root_path : String?,
+) -> (@transfer_journal.Journal, @filesystem.Root?)? {
+  match owner.input_cleanup_paths {
+    Some((original_transfer, original_root)) =>
+      if transfer_path != original_transfer || root_path != original_root {
+        return None
+      }
+    None => owner.input_cleanup_paths = Some((transfer_path, root_path))
+  }
+  let resources = owner.input_cleanup_resources
+  if resources.failed_transfer_journal is Some(original) {
+    let closed = original.retry_cleanup() is Ok(_)
+    report("release-recovery-pending", [
+      ("step", "transfer-journal-constructor"),
+      (
+        "code",
+        if closed {
+          "original-constructor-failed"
+        } else {
+          "cleanup-unconfirmed"
+        },
+      ),
+    ])
+    return None
+  }
+  if resources.failed_root is Some(original) {
+    let closed = original.retry_cleanup() is Ok(_)
+    report("release-recovery-pending", [
+      ("step", "retained-root-constructor"),
+      (
+        "code",
+        if closed {
+          "original-constructor-failed"
+        } else {
+          "cleanup-unconfirmed"
+        },
+      ),
+    ])
+    return None
+  }
+  let transfers = match owner.transfer_journal {
+    Some(original) => original
+    None =>
+      match
+        @transfer_journal.open_journal_with_custody(
+          owner.environment.sqlite_library,
+          transfer_path,
+          owner.environment.max_record_bytes,
+          65536,
+          1048576,
+          owner.environment.max_bytes,
+        ) {
+        Ok(original) => {
+          owner.transfer_journal = Some(original)
+          original
+        }
+        Err(RefusedBeforeAcquisition(_)) => return None
+        Err(CleanupRequired(original)) => {
+          resources.failed_transfer_journal = Some(original)
+          return None
+        }
+      }
+  }
+  let root = match root_path {
+    None => None
+    Some(path) =>
+      match resources.retained_root {
+        Some(original) => Some(original)
+        None =>
+          match @filesystem.open_root_with_custody(path) {
+            Ok(original) => {
+              resources.retained_root = Some(original)
+              Some(original)
+            }
+            Err(original) => {
+              resources.failed_root = Some(original)
+              return None
+            }
+          }
+      }
+  }
+  Some((transfers, root))
+}
+
+///|
+/// Record the original admitted callback's ACK once, independently of later
+/// handle retirement. No callback means no physical cleanup confirmation.
+fn retry_stopped_holder_cleanup_callback(
+  owner : StoppedReleaseRecovery,
+) -> Bool {
+  if owner.physical_cleanup_done {
+    return true
+  }
+  guard owner.physical_cleanup is Some(original) else { return false }
+  advance_holder_cleanup_pass(owner, owner.input_cleanup_step, 1, (_, _) => {
+    original()
+  })
+}
+
+///|
+/// Parent descriptors may close only after the existing admitted callback.
+/// A pending close keeps both the same original and its observed child ACK;
+/// closing handles alone cannot set the recovery's physical cleanup state.
+fn retry_stopped_holder_cleanup_handles(owner : StoppedReleaseRecovery) -> Bool {
+  guard retry_stopped_holder_cleanup_callback(owner) else { return false }
+  guard advance_holder_cleanup_pass(owner, owner.input_cleanup_step, 3, (
+    same,
+    step,
+  ) => {
+    if step == 1 {
+      if same.transfer_journal is Some(original) {
+        guard original.close_checked() is Ok(_) else { return false }
+        same.transfer_journal = None
+      }
+      true
+    } else {
+      retry_partial_holder_output_resources(same.input_cleanup_resources)
+    }
+  }) else {
+    return false
+  }
+  owner.physical_cleanup_done = true
+  true
+}
+
+///|
+/// End this failed construction attempt after checked handle retirement, while
+/// leaving the original Run unsettled. The controller may later select its
+/// existing recovery entrance; it cannot reuse this failed constructor.
+fn retire_failed_stopped_holder_input_constructor(
+  owner : StoppedReleaseRecovery,
+  retained : Ref[StoppedReleaseRecovery?],
+) -> Unit {
+  guard retained.val is Some(same) && physical_equal(same, owner) else {
+    return
+  }
+  guard owner.input_cleanup_resources.failed_root is Some(_) ||
+    owner.input_cleanup_resources.failed_transfer_journal is Some(_) else {
+    return
+  }
+  retain_partial_output_recovery_setup(
+    new_holder_partial_output_resources(),
+    owner,
+    owner.slot,
+    "stopped input constructor failed",
+  )
+  // This reference is physical caller custody only. The enclosing recovery
+  // still returns false and commits no release or execution transition.
+  retained.val = None
+}
+
+///|
 /// The exclusive holder slot proves that no former process can keep using
 /// these exact files or readers. Historical binding admission selects the
 /// existing cleanup Owners; no payload use or fresh borrow is authorized here.
@@ -28,33 +186,14 @@ fn settle_stopped_holder_custody(
     return false
   }
   if owner.physical_cleanup is None {
-    let transfers = match owner.transfer_journal {
-      Some(value) => value
-      None => {
-        let opened = match
-          @transfer_journal.open_journal(
-            environment.sqlite_library,
-            required(matches, "transfer-journal"),
-            environment.max_record_bytes,
-            65536,
-            1048576,
-            environment.max_bytes,
-          ) {
-          Ok(value) => value
-          Err(_) => return false
-        }
-        owner.transfer_journal = Some(opened)
-        opened
-      }
-    }
     let root_path = optional(matches, "retained-input-root")
-    let root = match root_path {
-      None => None
-      Some(path) =>
-        match @filesystem.open_root(path) {
-          Ok(value) => Some(value)
-          Err(_) => return false
-        }
+    guard stopped_holder_cleanup_resources(
+        owner,
+        required(matches, "transfer-journal"),
+        root_path,
+      )
+      is Some((transfers, root)) else {
+      return false
     }
     if owner.recorded_source is Some(original) {
       guard root_path is Some(path) &&
@@ -262,7 +401,7 @@ fn settle_stopped_holder_custody(
     owner.retained_input = input is Some(_)
     owner.physical_cleanup = Some(cleanup)
   }
-  if !owner.physical_cleanup.unwrap()() {
+  if !retry_stopped_holder_cleanup_handles(owner) {
     report("release-recovery-pending", [
       ("request_cid", @remote.dispatch_request_identity(request)),
       ("step", "physical-cleanup"),
@@ -270,9 +409,5 @@ fn settle_stopped_holder_custody(
     ])
     return false
   }
-  if owner.transfer_journal is Some(journal) && !journal.close() {
-    return false
-  }
-  owner.physical_cleanup_done = true
   true
 }

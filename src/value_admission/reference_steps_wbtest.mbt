@@ -340,3 +340,52 @@ test "reference cancellation keeps source issuer and drops staged evidence" {
   )
   assert_eq(calls.val, 1)
 }
+
+///|
+test "original Resource node bound keeps the complete reference admission and issuer boundary" {
+  let original = reference_contract(
+    "{\"type\":\"resource_ref\",\"nullable\":false,\"resource_kind\":\"mail/message\"}",
+  )
+  let bound = reference_contract_value_node_bound(original).unwrap()
+  assert_eq(bound, 9)
+  let content = reference_contract(
+    "{\"type\":\"content_ref\",\"nullable\":false}",
+  )
+  assert_true(reference_contract_value_node_bound(content) is None)
+  let calls = Ref(0)
+  let wire = resource_reference_wire()
+  let issuer = bind_reference_issuer(
+    (_, candidate) => {
+      calls.val += 1
+      candidate == wire
+    },
+    _ => true,
+  )
+  // The projection grants no evidence/authority and does not enter the issuer.
+  assert_eq(calls.val, 0)
+  let short = complete_reference_steps(
+    start_reference_admission(
+      issuer,
+      original,
+      reference_steps_cursor_preserving(wire),
+      { ..reference_limits(), max_nodes: bound - 1, },
+    ).unwrap(),
+  )
+  assert_true(short is Err(InvalidWire))
+  assert_eq(calls.val, 0)
+  let admitted = complete_reference_steps(
+    start_reference_admission(
+      issuer,
+      original,
+      reference_steps_cursor_preserving(wire),
+      { ..reference_limits(), max_nodes: bound, },
+    ).unwrap(),
+  ).unwrap()
+  assert_eq(admitted.1, bound)
+  assert_true(physical_equal(admitted.0.contract, original))
+  assert_eq(calls.val, 1)
+  guard admitted.0.value is Reference(reference) else {
+    abort("original reference")
+  }
+  assert_eq(reference_wire(reference), wire)
+}

@@ -3,19 +3,18 @@ import test from 'node:test';
 import {generateKeyPairSync} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 import {readFile} from 'node:fs/promises';
-import {createServer} from 'node:https';
 import {join} from 'node:path';
 import {tmpdir, userInfo} from 'node:os';
 import {setTimeout as delay} from 'node:timers/promises';
-import {getCACertificates, setDefaultCACertificates} from 'node:tls';
-import {connect, explainRunObservationFailure, formatRunObservationFailure} from '../../packages/sdk/index.mjs';
-import {connectEmbeddedLocal, openInstalledRemoteHttpHost} from './embedded-local.mjs';
+import {openInstalledClientHostFixture, installedClientSdk} from './fixtures/installed-client-host.fixture.mjs';
 import {canonicalJson} from './local-account-config.mjs';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 
+const {explainRunObservationFailure, formatRunObservationFailure} = installedClientSdk;
+
 for (const entrance of ['local', 'https']) {
   test(`${entrance}: real publication and physical-stop revisions retain private SDK control custody`,
-    {timeout: 30000}, async () => {
+    {timeout: 30000}, async t => {
       const scratch = await createOwnedScratch({parent: tmpdir(),
         prefix: 'actql-run-control-revisions-', label: `${entrance} original Run control`});
       const keys = generateKeyPairSync('ed25519');
@@ -25,7 +24,10 @@ for (const entrance of ['local', 'https']) {
       const counts = {computes: 0, modelCalls: 0, effectCalls: 0, sourceCalls: 0};
       const authorization = {
         accountConfiguration: canonicalJson({version: 'actql-execution-account-config/0.1',
-          account_id: 'run-control-revision-fixture', entries: [{entry_id: 'write', outcome: 'allow',
+          account_id: 'run-control-revision-fixture', entries: [{entry_id: 'control-result-read', outcome: 'allow',
+            principal: {any_of: [userInfo().username]}, connection: {any_of: ['actql-remote-host']},
+            resource: {any_of: ['result/answer', 'run']}, operation: {any_of: ['read']}, exclusions: []},
+          {entry_id: 'write', outcome: 'allow',
             principal: {all: true}, connection: {all: true}, resource: {all: true},
             operation: {any_of: ['write']}, exclusions: []}]}),
         reviewers: [{keyId: 'reviewer', reviewerId: 'reviewer', principalId: userInfo().username,
@@ -42,20 +44,21 @@ for (const entrance of ['local', 'https']) {
         },
       };
       const installation = {directory: join(scratch.path, 'host'), authorization};
-      const originalCAs = getCACertificates('default');
       const exchanges = [];
-      let client, host, server, replay;
+      let client, installedHost, replay;
       try {
-        if (entrance === 'local') {
-          client = await connectEmbeddedLocal({mode: 'local', owner: 'local', installation});
-        } else {
+        let certificates;
+        if (entrance === 'https') {
           execFileSync('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
             '-keyout', 'host.key', '-out', 'host.crt', '-days', '1', '-subj', '/CN=localhost',
             '-addext', 'subjectAltName=DNS:localhost,IP:127.0.0.1'], {cwd: scratch.path, stdio: 'ignore'});
           const [key, cert] = await Promise.all(['host.key', 'host.crt'].map(name => readFile(join(scratch.path, name))));
-          setDefaultCACertificates([...originalCAs, cert.toString('utf8')]);
-          host = await openInstalledRemoteHttpHost({...installation, authenticate: () => userInfo().username});
-          server = createServer({key, cert}, (request, response) => {
+          certificates = {key, cert, ca: cert};
+        }
+        installedHost = await openInstalledClientHostFixture(t, {
+          entrance: entrance === 'local' ? 'in-process' : 'HTTP', installation,
+          authenticate: () => userInfo().username, certificates,
+          serve(request, response, handler) {
             exchanges.push(request.url);
             if (/\/(status|wait|reconcile)$/u.test(request.url)) {
               const end = response.end.bind(response);
@@ -66,12 +69,10 @@ for (const entrance of ['local', 'https']) {
                 return end(JSON.stringify(replay ?? original), ...args);
               };
             }
-            host.handler(request, response).catch(error => response.destroy(error));
-          });
-          await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
-          client = await connect({mode: 'remote', token: 'fixture-token',
-            endpoint: `https://127.0.0.1:${server.address().port}/`});
-        }
+            return handler(request, response).catch(error => response.destroy(error));
+          },
+        });
+        client = installedHost.client;
         const program = JSON.parse(await readFile(new URL('../../packages/sdk/fixtures/values.json', import.meta.url), 'utf8'));
         const submissionRef = client.newSubmission({nonce: 'original-control-revision'});
         const run = await client.start(program, {submissionRef});
@@ -120,10 +121,7 @@ for (const entrance of ['local', 'https']) {
           publication: 'succeeded', replayOperations: entrance === 'https' ? ['status', 'wait', 'reconcile'] : [], counts}));
       } finally {
         releasePublication();
-        await client?.close();
-        if (server) {server.closeAllConnections(); await new Promise(resolve => server.close(resolve));}
-        await host?.close();
-        setDefaultCACertificates(originalCAs);
+        await installedHost?.close();
       }
       scratch.passed();
     });

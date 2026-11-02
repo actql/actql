@@ -65,6 +65,7 @@ await writeFile(join(root, 'synthetic-historical-held-values.mjs'), await readFi
 
 const reviewer = generateKeyPairSync('ed25519');
 const host = generateKeyPairSync('ed25519');
+const principalId = userInfo().username;
 const pem = key => key.export({type: key.type === 'private' ? 'pkcs8'
   : 'spki', format: 'pem'});
 await writeFile(join(root, 'reviewer.key'), pem(reviewer.privateKey),
@@ -73,6 +74,12 @@ await writeFile(join(root, 'authorization.json'), JSON.stringify({
   accountConfiguration: canonicalText({
     version: 'actql-execution-account-config/0.1',
     account_id: 'packed-embedded-account', entries: [{
+      entry_id: 'read-original', exclusions: [],
+      connection: {any_of: ['actql-remote-host']},
+      operation: {any_of: ['read']}, outcome: 'allow',
+      principal: {any_of: [principalId]},
+      resource: {any_of: ['result/answer', 'run']},
+    }, {
       entry_id: 'run-acceptance', exclusions: [],
       connection: {any_of: ['actql-remote-host']},
       operation: {any_of: ['write']}, outcome: 'delegate',
@@ -81,8 +88,8 @@ await writeFile(join(root, 'authorization.json'), JSON.stringify({
     }],
   }),
   reviewers: [{keyId: 'reviewer-key', reviewerId: 'reviewer',
-    principalId: userInfo().username, publicKey: pem(reviewer.publicKey)}],
-  reviewReaders: [userInfo().username],
+    principalId, publicKey: pem(reviewer.publicKey)}],
+  reviewReaders: [principalId],
   hostKey: {keyId: 'host-key', privateKey: pem(host.privateKey)},
   leaseMs: 10000,
 }));

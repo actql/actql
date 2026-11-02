@@ -7,7 +7,9 @@ test "JSON Source reader inventory uses shared tariff and separate retained work
   // The reader also retains its original sequence retirement method/state.
   let capacity = installed_json_source_reader_capacity(limits, 2, 3).unwrap()
   assert_eq(@execution.execution_capacity_retained_bytes(capacity), 3416L)
-  assert_eq(@execution.execution_capacity_execution_bytes(capacity), 30800L)
+  // Four input units: the same five text overlaps use20U (formerly40U),
+  // and returned normalized keys use4U (formerly8U), each at2bytes/unit.
+  assert_eq(@execution.execution_capacity_execution_bytes(capacity), 30608L)
   assert_true(installed_json_source_reader_capacity([], 2, 3) is None)
   assert_true(installed_json_source_reader_capacity(limits, 0, 3) is None)
   assert_true(installed_json_source_reader_capacity(limits, 2, 0) is None)
@@ -88,4 +90,80 @@ test "Gmail sequence retains the complete original list get prefix alongside JSO
     )
     is None,
   )
+}
+
+///|
+test "preserving decoder owner retains the installed original structural inventory" {
+  for (bytes, nodes, depth) in [(1, 1, 1), (256, 16, 4), (300000, 100000, 32)] {
+    let original = installed_source_response_preserving_workspace(
+      bytes, nodes, depth,
+    ).unwrap()
+    let literal = @source.json_literal_construction_extent(bytes, nodes, depth).unwrap()
+    let all_keys = @shape.key_admission_construction_extent(nodes, nodes).unwrap()
+    let active_keys = @shape.key_admission_construction_extent(
+      Int::min(nodes, depth),
+      nodes,
+    ).unwrap()
+    let endpoints = [true, false].map(fn(objects) {
+      let inventory = closed_values_source_inventories({
+        input_bytes: bytes,
+        node_upper: nodes,
+        fields_upper: nodes,
+        objects: if objects {
+          nodes
+        } else {
+          0
+        },
+        arrays: if objects {
+          0
+        } else {
+          nodes
+        },
+        quoted_tokens: 0,
+        quoted_utf16_units: 0,
+        longest_quoted_utf16: 0,
+        longest_atom_utf16: 0,
+        depth_upper: Int::min(nodes, depth),
+      })
+      @execution.compose_preparation_representation([
+        inventory.indexed_additional,
+        inventory.decoder_ancestry_peak,
+        inventory.decoder_controls_peak,
+      ]).unwrap()
+    })
+    assert_eq(
+      original.record_headers,
+      literal.record_headers -
+      all_keys.record_headers +
+      Int64::max(endpoints[0].record_headers, endpoints[1].record_headers) +
+      active_keys.record_headers +
+      1L,
+    )
+    assert_eq(
+      original.reference_slots,
+      literal.reference_slots -
+      all_keys.reference_slots +
+      Int64::max(endpoints[0].reference_slots, endpoints[1].reference_slots) +
+      active_keys.reference_slots,
+    )
+    assert_eq(
+      original.scalar_words,
+      literal.scalar_words -
+      all_keys.scalar_words +
+      Int64::max(endpoints[0].scalar_words, endpoints[1].scalar_words) +
+      active_keys.scalar_words,
+    )
+    assert_eq(
+      original.owned_utf16_units,
+      literal.owned_utf16_units + bytes.to_int64(),
+    )
+    assert_eq(original.owned_wire_bytes, 0L)
+  }
+  for
+    (bytes, nodes, depth) in [(0, 16, 4), (256, 0, 4), (256, 16, 0), (-1, 1, 1)] {
+    assert_true(
+      installed_source_response_preserving_workspace(bytes, nodes, depth)
+      is None,
+    )
+  }
 }

@@ -254,10 +254,24 @@ export function createLocalFileStoreDriver({entry,target,command,bindingCid,prin
     },
     footprint:()=>({providerNamespace:'local',resourceKind:'file_collection',boundaryCid:bindingCid}),
     recoveryEntry({entries}){
-      const saved={binding:bindingCid,requests:entries.map(entry=>own(entry.request).record)};
-      const body=wire(saved);
-      if(Buffer.byteLength(body)>limits.maxRequestBytes)fail('LocalStoreRecoveryLimit');
-      return{kind:'local-file-store',wire:body,observationCid:cid(saved)};
+      // Preserve admission of every original request before encoding any row.
+      // These are the same immutable records, not reconstructed Content grants.
+      const records=entries.map(entry=>own(entry.request).record);
+      const prefix=`{"binding":${wire(bindingCid)},"requests":[`;
+      let bytes=Buffer.byteLength(prefix)+2;
+      const rows=[];
+      for(const record of records){
+        const row=wire(record),separator=rows.length===0?0:1;
+        const size=Buffer.byteLength(row);
+        if(size>limits.maxRequestBytes-bytes-separator)fail('LocalStoreRecoveryLimit');
+        bytes+=size+separator;rows.push(row);
+      }
+      if(bytes>limits.maxRequestBytes)fail('LocalStoreRecoveryLimit');
+      // The closed envelope has the same canonical key order. Join only after
+      // the original total-byte guard, and hash that SAME completed wire once.
+      const body=prefix+rows.join(',')+']}';
+      return{kind:'local-file-store',wire:body,
+        observationCid:'sha256:'+createHash('sha256').update(body).digest('hex')};
     },
     recoverRequests:recover,recoverMemberRequests:recover,
     prepareRecoveredContentChild({recovered,members,entries,memberIndexes,control,store,
@@ -343,15 +357,15 @@ export function createLocalFileStoreDriver({entry,target,command,bindingCid,prin
         contentOwner:original.contentOwner,content:original.borrow,signal,
         assertCurrent(){runCurrent(runOriginal);decisionCurrent(grant.decision);}});
       original.writeChild=write; // Before execute/acquisition or a later callback.
-      let result,primary;
-      try{result=await write.execute();}catch(cause){primary=cause;}
-      let cleanup;
-      try{if((await write.close()).pending)cleanup=new Error('LocalStoreCleanupPending');}
-      catch(cause){cleanup=cause;}
-      if(cleanup!==undefined)throw Object.assign(new Error('LocalStoreCleanupPending',
-        {cause:primary??cleanup}),{code:'LocalStoreCleanupPending',cleanupPending:true,
+      let result,primary,failed=false;
+      try{result=await write.execute();}catch(cause){failed=true;primary=cause;}
+      let cleanup,cleanupFailed=false;
+      try{if((await write.close()).pending){cleanupFailed=true;cleanup=new Error('LocalStoreCleanupPending');}}
+      catch(cause){cleanupFailed=true;cleanup=cause;}
+      if(cleanupFailed)throw Object.assign(new Error('LocalStoreCleanupPending',
+        {cause:failed?primary:cleanup}),{code:'LocalStoreCleanupPending',cleanupPending:true,
         cleanupHandle:Object.freeze({status:write.status,retry:write.retry})});
-      if(primary!==undefined)throw primary;
+      if(failed)throw primary;
       const response={request_cid:original.cid,path:result.path,bytes:result.bytes,action:'stored'};
       const bytes=Buffer.from(wire(response));
       if(bytes.length>limits.maxResponseBytes)fail('LocalStoreResponseLimit');

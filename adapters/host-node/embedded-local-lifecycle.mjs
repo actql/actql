@@ -371,8 +371,17 @@ export function createEmbeddedHostRegistry(sameInstallation) {
       throw error;
     }
     try {
-    const originalPort = host.port, answer = originalPort.answerCheckpoint;
-    const sourcePreparation = captureSourcePreparation(originalPort);
+    const originalPort = host.port;
+    // Builtin Local supplies its already captured initial-control owner on
+    // every lease. Identity-only registry entries do not select that provider.
+    const sourcePreparation = retainedControl !== undefined ||
+      (originalPort !== undefined && sourcePreparationPort in originalPort)
+      ? captureSourcePreparation(originalPort) : undefined;
+    if (retainedControl !== undefined && sourcePreparation === undefined) {
+      throw Object.assign(new Error('NodeSourceManagedAdmissionUnavailable'),
+        {code: 'NodeSourceManagedAdmissionUnavailable'});
+    }
+    const answer = originalPort.answerCheckpoint;
     if (answer !== undefined && typeof answer !== 'function') {
       throw new TypeError('InvalidLocalCheckpointAnswerPort');
     }

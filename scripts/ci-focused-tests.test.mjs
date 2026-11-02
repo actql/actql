@@ -54,7 +54,7 @@ function selection(changes = [change()], options = {}) {
   return selectTargets(paths, {focusedChanges: changes, focusedTests: readFocusedTests(paths, changes, git), ...options});
 }
 const results = value => Object.fromEntries(gateJobs.map(name => [name, {result:
-  ['select-targets', 'preflight', 'lint', 'spec'].includes(name) || name === 'focused-tests' && value.profile === 'focused-tests'
+  ['select-targets', 'preflight', 'lint', 'spec'].includes(name) || name === 'focused-tests' && ['focused-tests', 'draft-focused'].includes(value.profile)
     || name !== 'focused-tests' && value.profile === 'full' && (name !== 'native-macos' || value.macos) ? 'success' : 'skipped'}]));
 
 test('registered family includes existing siblings and NEW fixed-compute/join tests', () => {
@@ -221,8 +221,8 @@ test('full success checkpoint accepts focused-only job skipped but requires ever
   assert.equal(checkpoint.baseSha, old);
   assert.deepEqual(checkpoint.policy.map(entry => entry.path), policyPaths);
   assert(policyPaths.includes('scripts/ci-focused-tests.mjs'));
-  const focused = selection([change()], {event: 'push', mainIntegration: false, mainBaseline: checkpoint});
-  assert.equal(validateSelection(focused).profile, 'focused-tests');
+  const focused = selection([change()], {event: 'push', mainIntegration: false});
+  assert.equal(validateSelection(focused).profile, 'full', 'normal main selection never reuses a prior run to narrow coverage');
   verifyGate({selection: focused, sourceRevision: head}, results(focused), {event: 'push', sourceRevision: head});
   jobs.find(job => job.name === 'core (native)').conclusion = 'skipped';
   assert.equal((await resolveMainBaseline(options)).baseSha, null);

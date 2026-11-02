@@ -90,24 +90,44 @@ fn installed_model_demand_limits(
   model_limits : @resources.LedgerLimits,
   read_retained_bytes : Int64,
   read_execution_bytes : Int64,
+  bootstrap? : (Int64, Int64)? = None,
 ) -> @resources.LedgerLimits? {
   // These are the original Scope bootstrap and simultaneous read allowance.
   // Both stay retained until the original census/reader retires. Count their
   // overlap before allocation; neither is funded by a disk/codec ceiling.
+  let (bootstrap_retained, bootstrap_execution) = bootstrap.unwrap_or(
+    (read_retained_bytes, read_execution_bytes),
+  )
   guard read_retained_bytes > 0L &&
     read_execution_bytes > 0L &&
+    bootstrap_retained > 0L &&
+    bootstrap_execution >= 0L &&
     @execution.execution_capacity_inventory_add(
       model_limits.retained_bytes,
       QuotedBytes,
+      bootstrap_retained,
+      1,
+    )
+    is Some(retained_bootstrap) &&
+    @execution.execution_capacity_inventory_add(
+      retained_bootstrap,
+      QuotedBytes,
       read_retained_bytes,
-      2,
+      1,
     )
     is Some(retained_bytes) &&
     @execution.execution_capacity_inventory_add(
       model_limits.execution_bytes,
       QuotedBytes,
+      bootstrap_execution,
+      1,
+    )
+    is Some(execution_bootstrap) &&
+    @execution.execution_capacity_inventory_add(
+      execution_bootstrap,
+      QuotedBytes,
       read_execution_bytes,
-      2,
+      1,
     )
     is Some(execution_bytes) &&
     @resources.add_ledger_limits(

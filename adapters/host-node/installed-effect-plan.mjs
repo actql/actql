@@ -2,7 +2,7 @@
 // Core extents/Plan are DATA until the SAME Request completes and adopts them.
 import {types as nodeTypes} from 'node:util';
 import {checked} from '../host-common/runtime-result.mjs';
-import {httpsCredentialResponseWindowBytes, httpsCredentialResponseHeaderByteLimit, httpsCredentialAuthorizationPrefix}
+import {httpsCredentialResponseWindowBytes, httpsCredentialResponseHeaderByteLimit, httpsCredentialResponseReadQuantum, httpsCredentialAuthorizationPrefix}
   from '../site-node/https-credential-resource.mjs';
 import {effectLedgerImplementationBounds} from './effect-ledger-implementation-bounds.mjs';
 import {credentialInvocationBindingKeys} from '../host-common/credential-scope-fields.generated.mjs';
@@ -65,9 +65,10 @@ export function prepareInstalledStandardCreatePlanRecipe({moon, providerMoon, co
   const captureProfile = captureField === undefined ? undefined
     : originalMethod(providerMoon, 'installedStandardDriverCaptureConstructionCapacity');
   const capacitiesFor = originalMethod(moon, captureProfile === undefined
-    ? 'clientProgramInstalledStandardCreateRecipeCapacities' : 'clientProgramInstalledStandardDriverRecipeCapacities');
+    ? 'clientProgramInstalledStandardCreateRequestRecipeCapacities' : 'clientProgramInstalledStandardDriverRecipeCapacities');
   const extentFor = originalMethod(moon, 'clientProgramInstalledEffectOperationExtentFromCapacityPrepare');
-  const captureFor = originalMethod(moon, 'clientProgramInstalledEffectCaptureExtentPrepare');
+  const captureFor = originalMethod(moon, captureProfile === undefined
+    ? 'clientProgramInstalledEffectCaptureExtentPrepare' : 'clientProgramInstalledEffectCaptureRecipeExtentPrepare');
   const {write, check} = construction;
   const secret = credentialSite.construction;
   if (![write.maxRequestBytes,write.maxResponseBytes,limits.maxWireBytes,limits.maxNodes,limits.maxDepth,
@@ -85,15 +86,20 @@ export function prepareInstalledStandardCreatePlanRecipe({moon, providerMoon, co
   const capacities = checked(capacitiesFor(profile(requestInput.maxWireBytes, requestInput.maxNodes, requestInput.maxDepth),
     ...(captureProfile === undefined ? [] : [captureProfile(limits.maxWireBytes,limits.maxNodes,limits.maxDepth,
       requestInput.maxWireBytes,requestInput.maxNodes,requestInput.maxDepth)]), limits.maxWireBytes, limits.maxNodes, limits.maxDepth,
+    requestInput.maxWireBytes,requestInput.maxNodes,requestInput.maxDepth,
     write.maxRequestBytes, write.maxResponseBytes, check?.maxRequestBytes ?? 0, check?.maxResponseBytes ?? 0,
     check?.beforeSend === true, secret.limits.maxSecretBytes, httpsCredentialAuthorizationPrefix.length,
-    httpsCredentialResponseHeaderByteLimit, effectLedgerImplementationBounds.maxResponseBytes,
-    effectLedgerImplementationBounds.maxNodes, effectLedgerImplementationBounds.maxDepth, units));
-  if (!Array.isArray(capacities) || capacities.length !== (check === undefined ? 5 : 6)) {
+    httpsCredentialResponseHeaderByteLimit,
+    Math.max(effectLedgerImplementationBounds.maxEntryBytes, effectLedgerImplementationBounds.maxResponseBytes),
+    Math.max(effectLedgerImplementationBounds.maxNodes, effectLedgerImplementationBounds.maxOutcomeNodes),
+    Math.max(effectLedgerImplementationBounds.maxDepth, effectLedgerImplementationBounds.maxOutcomeDepth),
+    units, httpsCredentialResponseReadQuantum));
+  if (!Array.isArray(capacities) || capacities.length !== (check === undefined ? 5 : 6) + (captureProfile === undefined ? 0 : 1)) {
     fail('InstalledStandardCreateConstructionUnavailable');
   }
   const memberOperations = [Object.freeze({operation:write.operation,
-    extent:checked(captureFor(write.operation,capacities[0],capacities[1]))})];
+    extent:checked(captureProfile === undefined ? captureFor(write.operation,capacities[0],capacities[1])
+      : captureFor(write.operation,capacities))})];
   const rowOperations = [Object.freeze({operation:write.operation,
     extent:checked(extentFor(write.operation,capacities[2],0n,false))})];
   const credentialOperations = [];
@@ -274,9 +280,11 @@ export function prepareInstalledEffectRequestChild({run, memberIndex, rowIndex,
   if (run === undefined || typeof perRow !== 'boolean' || typeof originalConstruct !== 'function' ||
       typeof requestsRetired !== 'function') fail('InstalledEffectConstructorUnavailable');
   const {runtime, value: parent, prepared, request, operationPlan: plan, readPlan} = run;
-  const borrow = runtime?.clientProgramInstalledEffectOperationBorrow;
+  const retain = runtime?.clientProgramInstalledEffectOperationConstructionRetain;
+  const begin = runtime?.clientProgramInstalledEffectOperationConstructionBegin;
   const retire = runtime?.clientProgramInstalledEffectOperationRetire;
-  if (![borrow, retire, readPlan].every(method => typeof method === 'function')) {
+  const complete = runtime?.clientProgramInstalledEffectOperationConstructionComplete;
+  if (![retain, begin, complete, retire, readPlan].every(method => typeof method === 'function')) {
     fail('InstalledEffectOperationRuntimeUnavailable');
   }
   const originalRecord = () => {
@@ -286,19 +294,10 @@ export function prepareInstalledEffectRequestChild({run, memberIndex, rowIndex,
       fail('ForeignInstalledEffectManagedRun');
     }
   };
-  const current = () => {
-    originalRecord();
-    if (checked(Reflect.apply(readPlan, runtime, [parent, prepared, request])) !== plan) {
-      fail('ForeignInstalledEffectManagedRun');
-    }
-    // Preserve the local reentry fence after the original current callback.
-    originalRecord();
-  };
-  // The atomic Core borrow checks this SAME Plan/current/reservation itself.
-  // No external operation lies between this callback-free local fence and it.
-  // The capture retains the returned child before prepare's current boundary.
+  // Retained input/output backing precedes Source/Preview and its callbacks.
+  // Temporary workspace is not reserved while this constructor is only held.
   originalRecord();
-  let token = checked(Reflect.apply(borrow, runtime,
+  let token = checked(Reflect.apply(retain, runtime,
     [parent, prepared, request, plan, memberIndex, perRow, operationIndex, rowIndex, operation]));
   let construct = originalConstruct;
   originalConstruct = undefined;
@@ -323,7 +322,11 @@ export function prepareInstalledEffectRequestChild({run, memberIndex, rowIndex,
       state = 'preparing';
       preparing = true;
       try {
-        current();
+        originalRecord();
+        // Atomic Core entry grows this SAME original backing to its captured
+        // extent and observes current once, before any constructor allocation.
+        checked(Reflect.apply(begin, runtime, [token]));
+        originalRecord();
         const value = construct();
         if (nodeTypes.isPromise(value)) {
           pendingConstructor = value;
@@ -348,7 +351,12 @@ export function prepareInstalledEffectRequestChild({run, memberIndex, rowIndex,
           if (typeof value.then === 'function') fail('InstalledEffectConstructorNotSynchronous');
           pendingConstructor = undefined;
         }
-        current();
+        // Every call now executes its actual constructor. Member capture is
+        // retained earlier and prepares only at its real recovery-entry work;
+        // no placeholder may return that workspace before Source/Preview.
+        originalRecord();
+        checked(Reflect.apply(complete, runtime, [token]));
+        originalRecord();
         state = 'prepared';
         preparing = false;
         return value;
@@ -358,6 +366,9 @@ export function prepareInstalledEffectRequestChild({run, memberIndex, rowIndex,
         throw error;
       }
     },
+    // Callback-free original-record fence after this child was retained.
+    // This is not a current observation or an admission proof.
+    checkOriginal: originalRecord,
     release: drain, retry: drain,
     status: () => Object.freeze({pending: state !== 'retired'}),
   });
@@ -423,7 +434,7 @@ export function prepareInstalledEffectCredentialChild({run, memberIndex, rowInde
     }
     if(maxResponseBytes>2147483647 || !Number.isSafeInteger(httpsCredentialResponseHeaderByteLimit) ||
         httpsCredentialResponseHeaderByteLimit<1 || httpsCredentialResponseHeaderByteLimit>2147483647 ||
-        Reflect.apply(responseBackingFits,runtime,[extent,maxResponseBytes,httpsCredentialResponseHeaderByteLimit])!==true) {
+        Reflect.apply(responseBackingFits,runtime,[extent,maxResponseBytes,httpsCredentialResponseHeaderByteLimit,httpsCredentialResponseReadQuantum])!==true) {
       fail('InsufficientInstalledEffectResponseBacking');
     }
   } catch(error) {
@@ -555,4 +566,79 @@ export function prepareInstalledEffectCredentialChild({run, memberIndex, rowInde
     },
     release:drain,retry:drain,status:()=>Object.freeze({pending:state!=='retired'}),
   });
+}
+
+
+// The existing Run owns this synchronous control frame, its original methods
+// and any invalid borrowed task. This is not a grant, new owner or caller fee.
+export function prepareInstalledEffectControlConstruction(run) {
+  const {runtime, value: parent, prepared, request, operationPlan: plan, readPlan} = run ?? {};
+  const begin = runtime?.clientProgramInstalledEffectOperationControlConstructionBegin;
+  const complete = runtime?.clientProgramInstalledEffectOperationControlConstructionComplete;
+  if (![begin, complete, readPlan].every(method => typeof method === 'function') || parent === undefined || plan === undefined) {
+    fail('InstalledEffectControlRuntimeUnavailable');
+  }
+  let working = false, failed = false, retired = false, primary, pending, work;
+  const sameRecord = () => !run.closed && run.runtime === runtime && run.value === parent &&
+    run.prepared === prepared && run.request === request && run.operationPlan === plan &&
+    run.readPlan === readPlan && run.controlConstruction === work;
+  const originalRecord = () => {
+    if (Object.hasOwn(run, 'failure')) throw run.failure;
+    if (!sameRecord()) fail('ForeignInstalledEffectManagedRun');
+  };
+  const retainInvalid = value => {
+    if (value === null || !['object', 'function'].includes(typeof value)) return;
+    pending = value;
+    const settled = () => {pending = undefined; run.selecting = false;};
+    if (nodeTypes.isPromise(value)) {
+      // Native original first. A species/join refusal leaves the same task
+      // unobserved and the existing Run retirement latch held, never an ACK.
+      Reflect.apply(nativePromiseThen, value, [settled, settled]);
+      fail('InvalidInstalledEffectControlConstruction');
+    }
+    const then = value.then;
+    if (typeof then !== 'function') {pending = undefined; return;}
+    const joined = new NativePromise((yes, no) => Reflect.apply(then, value, [yes, no]));
+    Reflect.apply(nativePromiseThen, joined, [settled, settled]);
+    fail('InvalidInstalledEffectControlConstruction');
+  };
+  work = (receiver, method, args) => {
+    if (retired) fail('InstalledEffectControlConstructionRetired');
+    if (failed) throw primary;
+    if (working || run.selecting) fail('InstalledEffectControlConstructionPending');
+    if (typeof method !== 'function' || !Array.isArray(args)) fail('InvalidInstalledEffectControlConstruction');
+    working = true;
+    // The existing parent retirement already refuses this latch. Retain it
+    // through native-task settlement if an invalid asynchronous result escapes.
+    run.selecting = true;
+    try {
+      originalRecord();
+      checked(Reflect.apply(begin, runtime, [parent, prepared, request, plan]));
+      originalRecord();
+      const value = Reflect.apply(method, receiver, args);
+      retainInvalid(value);
+      originalRecord();
+      checked(Reflect.apply(complete, runtime, [parent, prepared, request, plan]));
+      originalRecord();
+      return value;
+    } catch (cause) {
+      failed = true; primary = cause;
+      // Failed-prefix workspace remains on the SAME Core control reservation.
+      throw cause;
+    } finally {
+      working = false;
+      if (pending === undefined) run.selecting = false;
+    }
+  };
+  const retire = () => {
+    if (retired) return true;
+    if (!sameRecord() || run.retireControlConstruction !== retire) fail('ForeignInstalledEffectManagedRun');
+    if (working || pending !== undefined || run.selecting) return false;
+    // Actual complete dispatch retirement calls this before returning its
+    // Core control backing. A retained Error may itself keep a heavy prefix.
+    primary = undefined;
+    retired = true;
+    return true;
+  };
+  return Object.freeze(Object.assign(work, {retire}));
 }

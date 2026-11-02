@@ -16,7 +16,44 @@ test "preserving Source reader keeps the generic recipe and same retained respon
   ).unwrap()
   assert_eq(@execution.execution_capacity_retained_bytes(preserving), 3433L)
   assert_eq(@execution.execution_capacity_retained_bytes(normalized), 3433L)
-  assert_eq(@execution.execution_capacity_execution_bytes(normalized), 30823L)
+  // Keep the normalizing recipe's original complete execution envelope. Its
+  // Unicode construction is owned by the pinned canonical Owner, not another
+  // numeric NFC expansion expectation in this request-composition test.
+  let generic = installed_json_source_reader_capacity(limits, 2, 3).unwrap()
+  assert_eq(
+    @execution.execution_capacity_execution_bytes(normalized),
+    @execution.execution_capacity_execution_bytes(generic) + 23L,
+  )
+  let reader = installed_json_source_reader_capacity_with_decoder(
+    limits,
+    2,
+    3,
+    installed_source_response_preserving_workspace,
+    sequential_preserving=true,
+  ).unwrap()
+  assert_eq(
+    @execution.execution_capacity_execution_bytes(preserving),
+    Int64::max(
+      @execution.execution_capacity_execution_bytes(reader) + 17L,
+      @execution.execution_capacity_retained_bytes(reader) + 23L,
+    ),
+  )
+  let large_request = @execution.execution_capacity(
+    17L,
+    2L * @execution.execution_capacity_execution_bytes(reader),
+  ).unwrap()
+  let request_first = installed_preserving_json_source_reader_capacity_with_request(
+    limits,
+    2,
+    3,
+    Some(large_request),
+  ).unwrap()
+  assert_eq(
+    @execution.execution_capacity_execution_bytes(request_first),
+    @execution.execution_capacity_execution_bytes(large_request) +
+    @execution.execution_capacity_retained_bytes(reader),
+  )
+  assert_eq(@execution.execution_capacity_retained_bytes(request_first), 3433L)
   assert_true(
     @execution.execution_capacity_execution_bytes(preserving) <
     @execution.execution_capacity_execution_bytes(normalized),

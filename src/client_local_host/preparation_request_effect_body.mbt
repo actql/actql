@@ -89,7 +89,20 @@ fn[I] request_effect_plan_quote(
         0 => installed_effect_source_result_bound_scratch_bytes()
       _ => 0L
     }
-    guard @execution.checked_preparation_add_product(e, scratch, 1L) is Some(e) else {
+    let control_phase = installed_effect_control_phase_quote_capacity()
+    guard @execution.checked_preparation_add_product(
+        r,
+        @execution.execution_capacity_retained_bytes(control_phase),
+        1L,
+      )
+      is Some(r) &&
+      @execution.checked_preparation_add_product(
+        e,
+        @execution.execution_capacity_execution_bytes(control_phase),
+        1L,
+      )
+      is Some(e) &&
+      @execution.checked_preparation_add_product(e, scratch, 1L) is Some(e) else {
       return Err(Policy)
     }
     owner.program_plan_quote = Some((r, e))

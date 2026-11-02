@@ -57,7 +57,7 @@ pub fn admit_client_effect_review_checkpoint_binding(ClientEffectAllowedRun, @ru
 
 pub fn admit_client_effect_review_checkpoint_preview(@checkpoint_runtime.SealedCheckpoint, ClientEffectAllowedRun, @run_publication.PublicationContract, String, String, @checkpoint_runtime.WireLimits) -> Result[@run_publication.EffectPreviewIdentity, ClientEffectCheckpointReconciliationIssue]
 
-pub fn admit_client_effect_run_materials(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, ClientCompilationManifests, ClientValuesRunMaterialsLimits, ClientEffectComputationLimits, original_materials? : ClientEffectIssuedNormalizationMaterials?, expected_request? : ClientRequestIdentity?, original_source? : ClientSourcePreparation?, numeric_profile_cid? : String?) -> Result[ClientEffectRunMaterials, ClientEffectRunMaterialsIssue]
+pub fn admit_client_effect_run_materials(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, ClientCompilationManifests, ClientValuesRunMaterialsLimits, ClientEffectComputationLimits, original_materials? : ClientEffectIssuedNormalizationMaterials?, expected_request? : ClientRequestIdentity?, original_source? : ClientSourcePreparation?, numeric_profile_cid? : String?, original_compilation? : ClientEffectCompilation?) -> Result[ClientEffectRunMaterials, ClientEffectRunMaterialsIssue]
 
 pub fn admit_client_effect_serialization_captured_input(ClientCompiledRun, PreparedClientEffectComputation, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, String, String, String) -> Result[ClientSerializationCapturedInput, @run_publication.RunEvidenceValueIssue]
 
@@ -1121,6 +1121,8 @@ pub fn client_saved_run_state_update_row(ClientSavedRunStateUpdate) -> (String, 
 
 pub fn client_saved_submission_admission_wire(ClientSavedSubmissionSnapshot) -> Result[String, ClientSavedSubmissionViewIssue]
 
+pub fn client_saved_submission_preparation_failure_body(ClientSavedSubmissionSnapshot, ClientSubmittedIntent, (String, String)) -> Result[Bytes, ClientSavedSubmissionViewIssue]
+
 pub fn client_saved_submission_record(ClientSavedSubmissionSnapshot) -> ClientSubmittedJournalEncoding
 
 pub fn client_saved_submission_revision(ClientSavedSubmissionSnapshot) -> Int64
@@ -1140,6 +1142,8 @@ pub fn client_saved_task_materials_intent(ClientSavedTaskMaterials) -> ClientSub
 pub fn client_saved_task_materials_snapshot(ClientSavedTaskMaterials) -> ClientSavedSubmissionSnapshot
 
 pub fn client_serialization_byte_holding_cid(ClientCompiledRun, @run_publication.PublicationContract, String) -> String?
+
+pub fn client_serialization_evidence_codec_bounds() -> (Int, Int, Int)
 
 pub fn client_serialization_generation_capture(ClientSerializationGeneration) -> @run_publication.BoundContentGeneration?
 
@@ -1215,7 +1219,7 @@ pub fn client_submitted_intent_cid(ClientSubmittedIntent) -> String
 
 pub fn client_submitted_intent_effect_compatible(ClientSubmittedIntent, PreparedClientEffectComputation) -> Bool
 
-pub fn client_submitted_intent_journal_row_body(String, ClientSubmittedIntent, run_admission? : (ClientRequestIdentity, String, Int64)?, run_state_original? : String?, run_state_observation? : (Int64, String?)?) -> Result[Bytes, ClientJournalEncodingIssue]
+pub fn client_submitted_intent_journal_row_body(String, ClientSubmittedIntent, run_admission? : (ClientRequestIdentity, String, Int64)?, run_state_original? : String?, run_state_observation? : (Int64, String?)?, preparation_problem? : (String, String)?) -> Result[Bytes, ClientJournalEncodingIssue]
 
 pub fn client_submitted_intent_requests_commit_stop(ClientSubmittedIntent) -> Bool
 
@@ -4470,6 +4474,7 @@ pub(all) struct ClientSubmittedJournalEncoding {
   run_admission : (ClientRequestIdentity, String, Int64)?
   run_state_original : String?
   run_state_observation : (Int64, String?)?
+  preparation_problem : (String, String)?
 }
 
 pub struct ClientSubmittedNameBinding {

@@ -91,6 +91,8 @@ struct ResidentInitialControl {
   mut http_client_attempted : Bool
   mut http_client : @http.Client?
   mut failed_http_client : @http.NativeHttpClientCreateFailure?
+  // Retirement only forbids further loads. It is not a cleanup ACK.
+  mut libraries_retiring : Bool
   // Select the controller's terminal report only after its normal return.
   // This marker is not cleanup evidence; close() still checks every Owner.
   mut controller_returned : Bool
@@ -125,6 +127,7 @@ fn capture_resident_initial_control() -> ResidentInitialControl {
     http_client_attempted: false,
     http_client: None,
     failed_http_client: None,
+    libraries_retiring: false,
     controller_returned: false,
     retired: false,
   }
@@ -456,6 +459,7 @@ fn resident_read_payload_bytes(domain_bytes : Int64) -> Int64 raise CommandStop 
 fn ResidentInitialControl::close_libraries(
   self : ResidentInitialControl,
 ) -> Bool {
+  self.libraries_retiring = true
   if self.failed_http_client is Some(original) {
     if original.retry_cleanup() is Err(_) {
       return false
@@ -504,6 +508,13 @@ fn ResidentInitialControl::close_libraries(
     }
     self.sqlite = None
   }
+  // These original selections were parsed inside the SAME managed Read.
+  // Keep them through every pending child/Library close, then drop their
+  // aliases before asking that Read to retire. The retirement fence above
+  // prevents an emptied selection from admitting another acquisition.
+  self.http_path = None
+  self.crypto_path = None
+  self.sqlite_path = None
   true
 }
 
@@ -513,6 +524,7 @@ fn ResidentInitialControl::load_sqlite(
   path : String,
 ) -> Result[@sqlite.Library, String] {
   if self.retired ||
+    self.libraries_retiring ||
     !self.read_entered ||
     resident_entry_current_ffi(self.original) != 1 {
     return Err("original installed command Read unavailable")
@@ -553,6 +565,7 @@ fn ResidentInitialControl::load_crypto(
   path : String,
 ) -> Result[@signature.Library, String] {
   if self.retired ||
+    self.libraries_retiring ||
     !self.read_entered ||
     resident_entry_current_ffi(self.original) != 1 {
     return Err("original installed command Read unavailable")
@@ -615,6 +628,7 @@ fn ResidentInitialControl::load_http(
   path : String,
 ) -> Result[@http.Library, String] {
   if self.retired ||
+    self.libraries_retiring ||
     !self.read_entered ||
     resident_entry_current_ffi(self.original) != 1 {
     return Err("original installed command Read unavailable")

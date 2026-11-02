@@ -1,11 +1,30 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {mkdtempSync, mkdirSync, writeFileSync, rmSync} from 'node:fs';
+import {mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {connectorDispatchViolations, checkConnectorDispatchBoundary, isConnectorTestFixture} from './check-connector-dispatch-boundary.mjs';
 
 const names = ['local', 'duckdb', 'mock', 'reference_compute'];
+test('native DATA keys remain distinct from registered connector keys and selector sentinels', () => {
+  const source = readFileSync(new URL('../adapters/host-node/host-journal-directory.mjs', import.meta.url), 'utf8');
+  const start = source.indexOf('export function hostJournalDirectoryNative(inspector)');
+  assert.ok(start >= 0);
+  const declaration = source.slice(start);
+  for (const path of ['adapters/host-node/host-journal-directory.mjs', 'adapters/host-common/unrelated.mjs']) {
+    assert.deepEqual(connectorDispatchViolations(declaration, names, path), []);
+    for (const dispatch of [
+      "if (provider === 'native') dispatch();",
+      'match placement { Native(value) => execute(value) }',
+      'const handlers = {local: execute};',
+      String.raw`registry.get('d\u0075ckdb')`,
+    ]) assert.ok(connectorDispatchViolations(declaration + '\n' + dispatch, names, path).length > 0);
+  }
+  // A real registration named native still has the same closed key rule.
+  assert.ok(connectorDispatchViolations('const handlers = {native: execute};',
+    [...names, 'native']).length > 0);
+});
+
 test('common implementation files reject concrete dispatch identities', () => {
   assert.ok(checkConnectorDispatchBoundary(process.cwd()) > 0);
 });

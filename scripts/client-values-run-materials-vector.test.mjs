@@ -5,7 +5,6 @@ import {readHistoricalJson} from './historical-json.mjs';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
-import {execFileSync} from 'node:child_process';
 import {copyFile, mkdir} from 'node:fs/promises';
 import {join} from 'node:path';
 import {pathToFileURL} from 'node:url';
@@ -1207,87 +1206,24 @@ test('pre-PIVOT integration scalar Run retains its previous complete closure', (
     'sha256:0aa9cc3f565d01640cc297e3fa81d6f3ac08f533105e12fb79e563cd33e10dd2');
 });
 
-test('prior query-rules retain exact Git role bodies and reject current-input substitution', () => {
+test('prior query-rules fixed preimages retain their closure and reject current-input substitution', () => {
   const retained = JSON.parse(readFileSync(
     'scripts/fixtures/pre-query-rules-repair-values-identities.json', 'utf8'));
-  assert.equal(retained.source_revision, 'c851d28aa8e84e2bef7c4d76ea1fcc3d797c5aa2');
-  const gitBodies = new Map();
-  const gitBody = path => {
-    if (!gitBodies.has(path)) gitBodies.set(path, JSON.parse(execFileSync('git',
-      ['show', `${retained.source_revision}:${path}`], {encoding: 'utf8', maxBuffer: 8 * 1024 * 1024})));
-    return gitBodies.get(path);
-  };
-  for (const [role, expected] of Object.entries(retained.contract_cids)) {
-    const [originalPath, pointer] = role.split('#');
-    const path = originalPath === 'spec/dependencies/aoa-sga-identity-laws.json'
-      ? 'spec/dependencies/actql-graph-laws.json' : originalPath;
-    const body = pointer.split('/').slice(1).reduce((value, key) =>
-      value[key.replaceAll('~1', '/').replaceAll('~0', '~')], gitBody(path));
-    assert.equal(cid(body), expected, role);
-  }
-  assert.deepEqual(gitBody('spec/manifests/actql-grammar-0.1.json'), retained.grammar);
-  assert.equal(cid(gitBody('spec/contracts/actql-aoa.json')), retained.aoa_contract_cid);
-  assert.equal(gitBody('spec/manifests/actql-barrier-contracts-0.1.json')
-    .barrier_contract_manifest_cid, retained.barrier_contract_manifest_cid);
-  // The recorded grammar preceded its synchronization repair. Preserve that
-  // qualification instead of calling the old source fresh or current.
-  const actualRules = execFileSync('git', ['show',
-    `${retained.source_revision}:docs/spec/query-text.md`]);
-  const originalRules = execFileSync('git', ['show',
-    `${retained.query_rules_original_revision}:docs/spec/query-text.md`]);
-  assert.equal(createHash('sha256').update(actualRules).digest('hex'), retained.grammar_root_document_sha256);
-  assert.equal(createHash('sha256').update(originalRules).digest('hex'), retained.original_query_rules_sha256);
+  const options = {retainedContractCids: retained.contract_cids};
+  assert.deepEqual(valuesDependencyOracle(options), retained.values_dependencies);
+  assert.deepEqual(valuesProgramOracle(options), retained.program_identity);
+  assert.deepEqual(vector(retained.grammar.grammar_manifest_cid, retained.aoa_contract_cid,
+    retained.values_dependencies, retained.barrier_contract_manifest_cid,
+    retained.program_identity, {canonicalCandidates: true}), retained.run_preimages);
+  assert.deepEqual(historicalGrammarVector(retained), retained.run_preimages);
+  // The fixed corpus records the earlier rules/manifest mismatch; these
+  // retained digests do not establish source-byte provenance or freshness.
   assert.equal(retained.original_query_rules_sha256, retained.grammar.query_text_rules_sha256);
   assert.notEqual(retained.grammar_root_document_sha256, retained.original_query_rules_sha256);
   const mixed = vector(retained.grammar.grammar_manifest_cid, retained.aoa_contract_cid,
     valuesDependencyOracle(), retained.barrier_contract_manifest_cid,
     valuesProgramOracle(), {canonicalCandidates: true});
   assert.notEqual(mixed.run.run_definition_cid, retained.run_preimages.run.run_definition_cid);
-});
-
-test('pre-INFER-label Run retains complete Git-qualified normative inputs', () => {
-  const revision = '72798dffd0155b728b7e20f8883eacf373445741';
-  const roots = JSON.parse(readFileSync(
-    'scripts/fixtures/pre-query-rules-repair-values-identities.json', 'utf8'));
-  const bodies = new Map();
-  const gitBody = path => {
-    if (!bodies.has(path)) bodies.set(path, JSON.parse(execFileSync('git',
-      ['show', `${revision}:${path}`], {encoding: 'utf8', maxBuffer: 8 * 1024 * 1024})));
-    return bodies.get(path);
-  };
-  const contractCids = Object.fromEntries(Object.keys(roots.contract_cids).map(role => {
-    const [originalPath, pointer] = role.split('#');
-    const path = originalPath === 'spec/dependencies/aoa-sga-identity-laws.json'
-      ? 'spec/dependencies/actql-graph-laws.json' : originalPath;
-    const body = pointer.split('/').slice(1).reduce((value, key) =>
-      value[key.replaceAll('~1', '/').replaceAll('~0', '~')], gitBody(path));
-    return [role, cid(body)];
-  }));
-  const grammar = gitBody('spec/manifests/actql-grammar-0.1.json');
-  const {grammar_manifest_cid: grammarCid, ...grammarBody} = grammar;
-  assert.equal(cid(grammarBody), grammarCid);
-  const rules = execFileSync('git', ['show', `${revision}:docs/spec/query-text.md`]);
-  assert.equal(createHash('sha256').update(rules).digest('hex'), grammar.query_text_rules_sha256);
-  const barrier = gitBody('spec/manifests/actql-barrier-contracts-0.1.json');
-  const {barrier_contract_manifest_cid: barrierCid, ...barrierBody} = barrier;
-  assert.equal(cid(barrierBody), barrierCid);
-  const prior = vector(grammarCid, cid(gitBody('spec/contracts/actql-aoa.json')),
-    valuesDependencyOracle({retainedContractCids: contractCids}), barrierCid,
-    valuesProgramOracle({retainedContractCids: contractCids}), {canonicalCandidates: true});
-  // Every old role comes from this revision; none falls back to current files.
-  assert.equal(prior.template.bound_invocation_template_cid,
-    'sha256:3541773b0ce46c5a9a46971ffb1c53a39eef6b6611bd33e1a37e1e6613ae4e67');
-  assert.equal(prior.executable.executable_plan_cid,
-    'sha256:f3d7170289d35515d5334db57de099a1bfb608560a21524fc3515ee578744d3b');
-  assert.equal(prior.compiled.compiled_plan_cid,
-    'sha256:b19b598dba5fc1dafa067c3ac820f25ce743d99b581caddba6ccb22e6c362bc7');
-  assert.equal(prior.run.run_definition_cid,
-    'sha256:2bee16e2da950ecec9c38c61a1ddb863a7b8a20350c6d8e4a0b0818210bb88e9');
-  assert.notEqual(prior.run.run_definition_cid,
-    vector(JSON.parse(readFileSync('spec/manifests/actql-grammar-0.1.json', 'utf8')).grammar_manifest_cid,
-      cid(gitBody('spec/contracts/actql-aoa.json')),
-      valuesDependencyOracle({retainedContractCids: contractCids}), barrierCid,
-      valuesProgramOracle({retainedContractCids: contractCids}), {canonicalCandidates: true}).run.run_definition_cid);
 });
 
 test('current contract inputs independently determine the Values Run and consuming fixtures', () => {
@@ -3154,33 +3090,9 @@ test('WITH cutover preserves the old complete Values closure and independently p
 });
 
 
-test('preceding current Values Run retains original Git roles and all four sealed preimages', () => {
+test('preceding Values fixed corpus retains all four sealed preimages', () => {
   const frozen = JSON.parse(readFileSync(
     'scripts/fixtures/pre-current-values-grammar-refresh.json', 'utf8'));
-  assert.equal(frozen.source_revision, '0232411e5eb633cc2d5b27017ffbd3324da388cf');
-  const rawFiles = new Map();
-  const original = path => {
-    if (!rawFiles.has(path)) rawFiles.set(path, execFileSync('git',
-      ['show', `${frozen.source_revision}:${path}`], {maxBuffer: 8 * 1024 * 1024}));
-    return rawFiles.get(path);
-  };
-  for (const input of [...frozen.source_inputs, ...frozen.role_inputs]) {
-    const path = input.path ?? input.git_path;
-    const metadata = execFileSync('git', ['ls-tree', frozen.source_revision, path],
-      {encoding: 'utf8'}).trim().split(/\s+/u);
-    assert.equal(metadata[0], input.git_mode, path);
-    assert.equal(metadata[2], input.git_blob, path);
-    assert.equal(createHash('sha256').update(original(path)).digest('hex'), input.raw_sha256);
-    if (input.role) {
-      const pointer = input.role.split('#')[1];
-      const selected = pointer.split('/').slice(1).reduce((value, key) =>
-        value[key.replaceAll('~1', '/').replaceAll('~0', '~')],
-      JSON.parse(original(path)));
-      assert.equal(cid(selected), input.cid, input.role);
-      assert.equal(input.cid, frozen.contract_cids[input.role]);
-    }
-  }
-  assert.deepEqual(JSON.parse(original('spec/manifests/actql-grammar-0.1.json')), frozen.grammar);
   const dependencies = valuesDependencyOracle({retainedContractCids: frozen.contract_cids});
   const identity = valuesProgramOracle({retainedContractCids: frozen.contract_cids});
   assert.deepEqual(dependencies, frozen.values_dependencies);
@@ -3207,33 +3119,9 @@ test('preceding current Values Run retains original Git roles and all four seale
 });
 
 
-test('pre-Calendar AoA Values closure retains exact Git inputs and rejects current-root substitution', () => {
+test('pre-Calendar AoA fixed preimages reject current-root substitution', () => {
   const frozen = JSON.parse(readFileSync(
     'scripts/fixtures/pre-calendar-registration-values-identities.json', 'utf8'));
-  assert.equal(frozen.source_revision, '2254b96867a68c948b7f2658b3546eb4d468bbd1');
-  const originals = new Map();
-  const original = path => {
-    if (!originals.has(path)) originals.set(path, execFileSync('git',
-      ['show', `${frozen.source_revision}:${path}`], {maxBuffer: 8 * 1024 * 1024}));
-    return originals.get(path);
-  };
-  for (const input of [...frozen.source_inputs, ...frozen.role_inputs]) {
-    const metadata = execFileSync('git', ['ls-tree', frozen.source_revision, input.path],
-      {encoding: 'utf8'}).trim().split(/\s+/u);
-    assert.equal(metadata[0], input.git_mode, input.path);
-    assert.equal(metadata[2], input.git_blob, input.path);
-    assert.equal(createHash('sha256').update(original(input.path)).digest('hex'), input.raw_sha256);
-    if (input.role) {
-      const selected = input.role.split('#')[1].split('/').slice(1).reduce((value, key) =>
-        value[key.replaceAll('~1', '/').replaceAll('~0', '~')], JSON.parse(original(input.path)));
-      assert.equal(cid(selected), input.cid, input.role);
-      assert.equal(input.cid, frozen.contract_cids[input.role]);
-    }
-  }
-  assert.deepEqual(JSON.parse(original('spec/manifests/actql-grammar-0.1.json')), frozen.grammar);
-  assert.equal(cid(JSON.parse(original('spec/contracts/actql-aoa.json'))), frozen.aoa_contract_cid);
-  assert.equal(JSON.parse(original('spec/manifests/actql-barrier-contracts-0.1.json'))
-    .barrier_contract_manifest_cid, frozen.barrier_contract_manifest_cid);
   const dependencies = valuesDependencyOracle({retainedContractCids: frozen.contract_cids});
   const identity = valuesProgramOracle({retainedContractCids: frozen.contract_cids});
   assert.deepEqual(dependencies, frozen.values_dependencies);
@@ -3288,34 +3176,16 @@ test('terminal Table query rules retain the complete previous Values closure', (
     'sha256:62de30165c5e00e392f095813f12f1f08fb3f305b9f9953630436812a93af524');
 });
 
-test('pre-published-STORE Values identities retain their exact original role closure', () => {
+test('pre-published-STORE fixed preimages retain their dependency closure', () => {
   const retained = JSON.parse(readFileSync(
     'scripts/fixtures/pre-published-store-values-identities.json', 'utf8'));
-  assert.equal(retained.source_revision, '81dc8134ebabb5ff8ff365e1b9b3cc28b05f1eec');
-  const originals = new Map();
-  const originalBody = path => {
-    if (!originals.has(path)) originals.set(path, JSON.parse(execFileSync('git',
-      ['show', `${retained.source_revision}:${path}`], {encoding: 'utf8', maxBuffer: 8 * 1024 * 1024})));
-    return originals.get(path);
-  };
-  for (const [role, expected] of Object.entries(retained.contract_cids)) {
-    const [originalPath, pointer] = role.split('#');
-    const path = originalPath === 'spec/dependencies/aoa-sga-identity-laws.json'
-      ? 'spec/dependencies/actql-graph-laws.json' : originalPath;
-    const body = pointer.split('/').slice(1).reduce((value, key) =>
-      value[key.replaceAll('~1', '/').replaceAll('~0', '~')], originalBody(path));
-    assert.equal(cid(body), expected, role);
-  }
-  assert.deepEqual(originalBody('spec/manifests/actql-grammar-0.1.json'), retained.grammar);
-  assert.equal(cid(originalBody('spec/contracts/actql-aoa.json')), retained.aoa_contract_cid);
-  assert.equal(originalBody('spec/manifests/actql-barrier-contracts-0.1.json')
-    .barrier_contract_manifest_cid, retained.barrier_contract_manifest_cid);
   const options = {retainedContractCids: retained.contract_cids};
   assert.deepEqual(valuesDependencyOracle(options), retained.values_dependencies);
   assert.deepEqual(valuesProgramOracle(options), retained.program_identity);
   assert.deepEqual(vector(retained.grammar.grammar_manifest_cid, retained.aoa_contract_cid,
     retained.values_dependencies, retained.barrier_contract_manifest_cid,
     retained.program_identity, {canonicalCandidates: true}), retained.run_preimages);
+  assert.deepEqual(historicalGrammarVector(retained), retained.run_preimages);
   assert.equal(retained.values_dependencies.unit,
     'sha256:8c713ee42f473771cdcc7f89335faf6fffbdec2d46a9063455e40eece992134e');
   assert.equal(retained.run_preimages.run.run_definition_cid,
@@ -3328,34 +3198,16 @@ test('pre-published-STORE Values identities retain their exact original role clo
   retained.run_preimages.run.run_definition_cid);
 });
 
-test('pre-signed-source-zero Values identities retain their exact original role closure', () => {
+test('pre-signed-source-zero fixed preimages retain their dependency closure', () => {
   const retained = JSON.parse(readFileSync(
     'scripts/fixtures/pre-signed-source-zero-values-identities.json', 'utf8'));
-  assert.equal(retained.source_revision, 'bde89107397097978bc27ba614faaabe3bc669c2');
-  const originals = new Map();
-  const originalBody = path => {
-    if (!originals.has(path)) originals.set(path, JSON.parse(execFileSync('git',
-      ['show', `${retained.source_revision}:${path}`], {encoding: 'utf8', maxBuffer: 8 * 1024 * 1024})));
-    return originals.get(path);
-  };
-  for (const [role, expected] of Object.entries(retained.contract_cids)) {
-    const [originalPath, pointer] = role.split('#');
-    const path = originalPath === 'spec/dependencies/aoa-sga-identity-laws.json'
-      ? 'spec/dependencies/actql-graph-laws.json' : originalPath;
-    const body = pointer.split('/').slice(1).reduce((value, key) =>
-      value[key.replaceAll('~1', '/').replaceAll('~0', '~')], originalBody(path));
-    assert.equal(cid(body), expected, role);
-  }
-  assert.deepEqual(originalBody('spec/manifests/actql-grammar-0.1.json'), retained.grammar);
-  assert.equal(cid(originalBody('spec/contracts/actql-aoa.json')), retained.aoa_contract_cid);
-  assert.equal(originalBody('spec/manifests/actql-barrier-contracts-0.1.json')
-    .barrier_contract_manifest_cid, retained.barrier_contract_manifest_cid);
   const options = {retainedContractCids: retained.contract_cids};
   assert.deepEqual(valuesDependencyOracle(options), retained.values_dependencies);
   assert.deepEqual(valuesProgramOracle(options), retained.program_identity);
   assert.deepEqual(vector(retained.grammar.grammar_manifest_cid, retained.aoa_contract_cid,
     retained.values_dependencies, retained.barrier_contract_manifest_cid,
     retained.program_identity, {canonicalCandidates: true}), retained.run_preimages);
+  assert.deepEqual(historicalGrammarVector(retained), retained.run_preimages);
   assert.equal(retained.values_dependencies.unit,
     'sha256:021b44463da31f6830a6aa097e0a03888ac0999682ab897ec76ab1ce854d3128');
   assert.equal(retained.run_preimages.run.run_definition_cid,

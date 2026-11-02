@@ -112,6 +112,28 @@ fn reference_string_equals(
 }
 
 ///|
+// All admitted Resource envelope fields below are scalar Strings. Keep their
+// closed cardinality in this owner, shared by admission and its node bound.
+fn resource_reference_scalar_field_count() -> Int {
+  8
+}
+
+///|
+/// Successful wire/admission node bound from this SAME reference owner. This
+/// inspects only the original checked Contract, not a value or an issuer.
+/// Content metadata is open, so that domain has no such finite type bound.
+/// This says nothing about text, depth, availability, authority or admission.
+pub fn reference_contract_value_node_bound(
+  contract : @contract.Contract,
+) -> Int? {
+  match contract.shape {
+    @contract.ResourceRef(_) =>
+      Some(1 + resource_reference_scalar_field_count())
+    _ => None
+  }
+}
+
+///|
 fn reference_identity(
   contract : @contract.Contract,
   envelope : @identity.CanonicalValue,
@@ -121,7 +143,7 @@ fn reference_identity(
   let count = @identity.object_field_count(envelope).unwrap()
   match contract.shape {
     @contract.ResourceRef(resource_kind~) => {
-      if count != 8 ||
+      if count != resource_reference_scalar_field_count() ||
         !reference_string_equals(get("$actql_ref"), "resource") ||
         !reference_string_equals(get("version"), "actql-resource-ref/0.1") ||
         !reference_string_equals(get("resource_kind"), resource_kind) ||

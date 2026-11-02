@@ -496,7 +496,7 @@
     {
       "module": "adapters/connectors/local/host/installed-project-files.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "09d8a7d512bf9c356be1e1f7831fb13d3decb2687b1ceaee63e84aee5cbd18d0",
+      "sha256": "625094da0f31eab810607274bb007319409cbf46444c7fb54399739503f6002c",
       "exports": [
         "LOCAL_FILES_DEFAULT_LIMITS",
         "installPreparedProjectLocalFiles",
@@ -849,9 +849,7 @@
         {
           "name": "installPreparedProjectLocalFiles/prepareRun",
           "parameters": [
-            "prepared",
-            "request",
-            "prepareInvocation"
+            "facts"
           ],
           "async": false
         },
@@ -2379,7 +2377,6 @@
     {
       "module": "adapters/connectors/local/host/installed-project-file-effects.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "49b76202833a82c68d8dbffcf652a87ecede796f9f0aa717776ac6f3f3ea3a73",
       "role": "connector-semantics",
       "owner": "Existing installed Local collection/Row Effect, original Account/Run and physical Root children",
       "exports": [
@@ -2610,7 +2607,7 @@
           "async": false
         },
         {
-          "name": "createLocalFileStoreDriver/driver/init:recoveryEntry/init:recoveryEntry/saved/saved",
+          "name": "createLocalFileStoreDriver/driver/init:recoveryEntry/init:recoveryEntry/records/records",
           "parameters": [
             "entry"
           ],
@@ -2893,7 +2890,7 @@
             "createLocalFileStoreDriver/driver/init:project/init:project",
             "createLocalFileStoreDriver/driver/init:recheckRequests/init:recheckRequests",
             "createLocalFileStoreDriver/driver/init:recoveryEntry/init:recoveryEntry",
-            "createLocalFileStoreDriver/driver/init:recoveryEntry/init:recoveryEntry/saved/saved",
+            "createLocalFileStoreDriver/driver/init:recoveryEntry/init:recoveryEntry/records/records",
             "createLocalFileStoreDriver/driver/init:requestFacts/init:requestFacts",
             "createLocalFileStoreDriver/driver/init:send/init:send",
             "createLocalFileStoreDriver/driver/init:send/init:send/write/init:assertCurrent/init:assertCurrent",
@@ -3165,7 +3162,8 @@
         "node:path"
       ],
       "compilerFields": [],
-      "unresolvedSyntax": []
+      "unresolvedSyntax": [],
+      "sha256": "bf30f1b276045879473ff0e67caceb9cac7d617951cba2f8e71bdeb8d65a2bb6"
     },
     {
       "module": "adapters/connectors/local/host/local-file-store-declaration.mjs",

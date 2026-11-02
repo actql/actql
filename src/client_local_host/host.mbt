@@ -556,6 +556,12 @@ priv enum ClientLocalManagedBoundaryProfile {
 }
 
 ///|
+let client_local_adaptive_revisions : Int = 10
+
+///|
+let client_local_estimate_work : Int = 1000
+
+///|
 /// Pure selected Local module and immutable policies retained before a Run.
 /// The actual driver binds this original instead of reconstructing providers
 /// or selecting another module from equal numerical limits.
@@ -731,7 +737,9 @@ fn bind_client_local_configuration(
     schedule,
   )
   let estimate = match
-    @local_driver.prepare_local_estimate_module(installed, schedules, 1000) {
+    @local_driver.prepare_local_estimate_module(
+      installed, schedules, client_local_estimate_work,
+    ) {
     Ok(value) => value
     Err(_) => return reject_client_local_run(run)
   }
@@ -762,9 +770,9 @@ fn bind_client_local_configuration(
               max_offers: 100,
               max_strategies: 100,
               max_work: 10000,
-              max_revisions: 10,
+              max_revisions: client_local_adaptive_revisions,
             },
-            1000,
+            client_local_estimate_work,
           ) {
           Ok(_) => ()
           Err(_) => return reject_client_local_run(run)

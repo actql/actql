@@ -19,7 +19,7 @@ const environment = moon.clientProgramCheckEnvironment(environmentWire.trimEnd()
   environmentBody.evidence_bundle_cid, false, false, true, true, false, false, false);
 assert.ok(environment);
 
-async function installed(t, entrance, getters = false) {
+async function installed(t, entrance, getters = false, profileFault) {
   const mode = entrance === 'local' ? 'local' : 'remote', calls = [], reads = {scopeRef: 0, maxRows: 0};
   const profile = {version: 'actql-client-host/0.1', mode, owner: mode,
     durability: 'volatile', scopeRef: 'principal', capabilities: [],
@@ -35,6 +35,11 @@ async function installed(t, entrance, getters = false) {
     return {profile, calls, reads, connect: () => sdk.connectInProcess({mode, owner: mode}, {
       async perform(operation, ...args) {
         const reply = await host.perform(operation, ...args);
+        if (operation === 'connect' && profileFault !== undefined) {
+          // Mutate only the transport-owned reply after the real Host check.
+          if (profileFault === 'missing-scope') delete reply.scopeRef;
+          else reply.limits.maxRows = 0;
+        }
         if (operation === 'connect' && getters) {
           Object.defineProperty(reply, 'scopeRef', {enumerable: true, configurable: true,
             get() {return ++reads.scopeRef === 1 ? 'principal' : 'foreign-principal';}});
@@ -52,7 +57,20 @@ async function installed(t, entrance, getters = false) {
   const [key, cert] = await Promise.all(['host.key', 'host.crt'].map(name => readFile(join(scratch.path, name))));
   const originalCAs = getCACertificates('default');
   setDefaultCACertificates([...originalCAs, cert.toString('utf8')]);
-  const server = createServer({key, cert}, createClientHttpHandler(services));
+  const handle = createClientHttpHandler(services);
+  const server = createServer({key, cert}, (request, response) => {
+    if (request.url?.endsWith('/connect') && profileFault !== undefined) {
+      const end = response.end;
+      response.end = function(data, ...args) {
+        if (response.statusCode !== 200) return end.call(this, data, ...args);
+        const value = JSON.parse(data.toString());
+        if (profileFault === 'missing-scope') delete value.scopeRef;
+        else value.limits.maxRows = 0;
+        return end.call(this, JSON.stringify(value), ...args);
+      };
+    }
+    return handle(request, response);
+  });
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   t.after(async () => {
     server.closeAllConnections(); await new Promise(resolve => server.close(resolve));
@@ -89,23 +107,42 @@ for (const entrance of ['local', 'https']) {
     assert.deepEqual(f.calls, ['connect', 'check']);
   });
   for (const fault of ['replacement', 'mutation']) {
-    test(`${entrance}: rejected profile ${fault} cannot start checking or issue a verdict`, {timeout: 10000}, async t => {
+    test(`${entrance}: profile ${fault} clone cannot replace the original context`, {timeout: 10000}, async t => {
       const f = await installed(t, entrance), clone = globalThis.structuredClone;
       t.after(() => {globalThis.structuredClone = clone;});
+      let conversions = 0;
       globalThis.structuredClone = value => {
         const copy = clone(value);
         if (value.version === 'actql-client-host/0.1') {
+          conversions++;
           if (fault === 'replacement') copy.scopeRef = 'foreign-principal';
           else value.scopeRef = 'foreign-principal';
         }
         return copy;
       };
-      let failure;
-      try {const client = await f.connect(); client.close();} catch (error) {failure = error;}
-      assert.equal(failure?.code, 'InvalidHostProfile', `[check-mutation:profile-public-${fault}]`);
+      let client, failure;
+      try { client = await f.connect(); } catch (error) { failure = error; }
+      if (client) t.after(() => client.close());
+      assert.equal(failure, undefined, `[check-mutation:profile-public-${fault}]`);
+      assert.equal(conversions, 0, `[check-mutation:profile-public-${fault}]`);
+      assert.equal(client.profile.scopeRef, 'principal');
+      assert.equal(client.profile.limits.maxRows, 10);
       assert.equal(sdk.explainCheckFailure(failure), undefined);
       assert.equal(sdk.getCheckFailureInput(failure), undefined);
       assert.deepEqual(f.calls, ['connect']);
     });
   }
+  for (const fault of ['missing-scope', 'invalid-row-limit']) {
+    test(`${entrance}: malformed profile ${fault} cannot start checking or issue a verdict`, {timeout: 10000}, async t => {
+      const f = await installed(t, entrance, false, fault);
+      let failure, client;
+      try { client = await f.connect(); } catch (error) { failure = error; }
+      if (client) t.after(() => client.close());
+      assert.equal(failure?.code, 'InvalidHostProfile');
+      assert.equal(sdk.explainCheckFailure(failure), undefined);
+      assert.equal(sdk.getCheckFailureInput(failure), undefined);
+      assert.deepEqual(f.calls, ['connect']);
+    });
+  }
+
 }

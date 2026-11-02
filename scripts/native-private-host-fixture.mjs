@@ -1,4 +1,4 @@
-import {mkdirSync, mkdtempSync, statSync, symlinkSync} from 'node:fs';
+import {mkdirSync, mkdtempSync, statSync, symlinkSync, writeFileSync} from 'node:fs';
 import {execFileSync} from 'node:child_process';
 import {join} from 'node:path';
 import {nativeFilesystemObservationFixtures} from './native-filesystem-observation-fixture.mjs';
@@ -43,4 +43,18 @@ export function nativePrivateHostFixture(parent) {
     env.ACTQL_TEST_NATIVE_PRIVATE_ACL_ROOT=aclRoot;
   }
   return env;
+}
+
+// The existing public RFC 8032 test-1 key, also used by
+// fixtures/native-original-key-signing.c. It confers no installed authority.
+// Only populate the caller's already-owned invocation namespace; its existing
+// cleanup/preserve policy owns these files after every Native child has exited.
+export function nativeOriginalSigningFixture(parent) {
+  const root = join(parent, 'original-signing');
+  mkdirSync(root, {mode: 0o700});
+  writeFileSync(join(root, 'key.pem'),
+    '-----BEGIN PRIVATE KEY-----\n' +
+    'MC4CAQAwBQYDK2VwBCIEIJ1hsZ3v/VpguoRK9JLsLMREScVpezJpGXA7rAMcrn9g\n' +
+    '-----END PRIVATE KEY-----\n', {mode: 0o600, flag: 'wx'});
+  return {ACTQL_TEST_ORIGINAL_SIGNING_ROOT: root};
 }

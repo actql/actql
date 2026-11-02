@@ -320,12 +320,13 @@ test('Request acquired Node Model facade unwraps only same registered compiler a
     definition = {}, rawDefinition = {}, occurrence = {}, graph = {}, bounds = {}, plan = {};
   const installation = {nodeInstallation: {layout: {}, installation: {}, runtimeArtifactCid: 'runtime',
     layoutArtifactCid: 'layout', probability: undefined}, modelRetainedBytes: 90n, modelExecutionBytes: 40n,
-    bootstrap: {maxReservations: 21, maxHoldings: 22, maxDelegations: 23}};
+    bootstrap: {bootstrapRetainedBytes: 31n, bootstrapExecutionBytes: 37n,
+      maxReservations: 21, maxHoldings: 22, maxDelegations: 23}};
   const node = installation.nodeInstallation; let calls = 0;
   const moon = {clientProgramPrepareRequestNodeModelCapturePlan(...args) {
     assert.equal(this, moon);
     assert.deepEqual(args, [parent, input, module, request, rawCompiled, rawDefinition, occurrence, graph,
-      bounds, node.layout, node.installation, 'runtime', 'layout', undefined, 90n, 40n, 21, 22, 23]);
+      bounds, node.layout, node.installation, 'runtime', 'layout', undefined, 90n, 40n, 21, 22, 23, 31n, 37n]);
     calls++; return plan;
   }};
   const ports = {moon, compiledRunTokens: new WeakMap([[compiled, rawCompiled]]), checked: value => value,
@@ -336,6 +337,42 @@ test('Request acquired Node Model facade unwraps only same registered compiler a
   assert.equal(bind(), plan); assert.throws(() => bind({...compiled}), /Foreign Client compiled Infer/);
   assert.throws(() => bind(compiled, {...definition}), /Foreign Definition/); assert.equal(calls, 1);
   delete moon.clientProgramPrepareRequestNodeModelCapturePlan;
+  assert.throws(() => bind(), /Installed Node Model Plan unavailable/); assert.equal(calls, 1);
+});
+
+test('Request source-free Node Model facade retains the separate original bootstrap and complete read envelope', () => {
+  const text = readFileSync(new URL('../host-common/runtime-core.mjs', import.meta.url), 'utf8'); let selected;
+  const walk = node => {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'Property' && node.key?.name === 'prepareCheckedClientRequestNodeModelSourceFreePlan') {
+      assert(!selected); selected = node;
+    }
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(walk); else if (value && typeof value === 'object') walk(value);
+    }
+  };
+  walk(parse(text, {ecmaVersion: 'latest', sourceType: 'module'})); assert(selected);
+  const parent = {}, input = {}, module = {}, request = {}, compiled = {kind: 'infer'}, rawCompiled = {},
+    definition = {}, rawDefinition = {}, occurrence = {}, graph = {}, bounds = {}, plan = {};
+  const installation = {nodeInstallation: {layout: {}, installation: {}, runtimeArtifactCid: 'runtime',
+    layoutArtifactCid: 'layout', probability: undefined}, modelRetainedBytes: 90n, modelExecutionBytes: 40n,
+    bootstrap: {bootstrapRetainedBytes: 31n, bootstrapExecutionBytes: 37n,
+      maxReservations: 21, maxHoldings: 22, maxDelegations: 23}};
+  const node = installation.nodeInstallation; let calls = 0;
+  const moon = {clientProgramPrepareRequestNodeModelSourceFreePlan(...args) {
+    assert.equal(this, moon);
+    assert.deepEqual(args, [parent, input, module, request, rawCompiled, rawDefinition, occurrence, graph,
+      bounds, node.layout, node.installation, 'runtime', 'layout', undefined, 90n, 40n, 21, 22, 23, 31n, 37n]);
+    calls++; return plan;
+  }};
+  const ports = {moon, compiledRunTokens: new WeakMap([[compiled, rawCompiled]]), checked: value => value,
+    token(value) {if (value !== definition) throw new TypeError('Foreign Definition'); return rawDefinition;}};
+  const facade = Function(...Object.keys(ports), 'return ({' + text.slice(selected.start, selected.end) + '}).prepareCheckedClientRequestNodeModelSourceFreePlan')(...Object.values(ports));
+  const bind = (c = compiled, d = definition) => facade(parent, input, module, request, c, d,
+    occurrence, graph, bounds, installation);
+  assert.equal(bind(), plan); assert.throws(() => bind({...compiled}), /Foreign Client compiled Infer/);
+  assert.throws(() => bind(compiled, {...definition}), /Foreign Definition/); assert.equal(calls, 1);
+  delete moon.clientProgramPrepareRequestNodeModelSourceFreePlan;
   assert.throws(() => bind(), /Installed Node Model Plan unavailable/); assert.equal(calls, 1);
 });
 

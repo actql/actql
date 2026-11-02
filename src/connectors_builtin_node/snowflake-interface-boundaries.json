@@ -206,7 +206,7 @@
       "responsibilityFacet": "primary",
       "role": "generated-binding",
       "owner": "Same-runtime wrappers of existing Common and Snowflake Owners",
-      "sha256": "a3d865be1e99261a58c8705968d271c60d8430c7ead825702a0dbd9655f364c8",
+      "sha256": "8b8ea22eec5128d73d248526b82b9c1b33d572eab3ba6e9dc62263847344c273",
       "exports": [],
       "operations": [
         {
@@ -232,6 +232,10 @@
         {
           "name": "client_program_row_source_provider_capacity",
           "declaration": "client_program_row_source_provider_capacity ( retained : Int64 , execution : Int64 , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_row_source_retire_response_workspace",
+          "declaration": "client_program_row_source_retire_response_workspace ( value : @ client_row_source_host . RowRunResponseBorrow , ) - > Result [ Unit , @ client_row_source_host . RowHostIssue ]"
         },
         {
           "name": "client_program_row_source_start_provider_accounted",
@@ -386,6 +390,74 @@
               {
                 "path": "src/client_local_host/provider_capture_capacity_wbtest.mbt",
                 "anchor": "provider capture planner carries its overlap into the same prepared Run ledger"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_row_source_retire_response_workspace"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Provider response workspace retirement keeps the original captured Source"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Provider response workspace retirement keeps the original captured Source"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Provider response workspace retirement keeps the original captured Source"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Provider response workspace retirement keeps the original captured Source"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Provider response workspace retirement keeps the original captured Source"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Provider response workspace retirement keeps the original captured Source"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Provider response workspace retirement keeps the original captured Source"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Provider response workspace retirement keeps the original captured Source"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Provider response workspace retirement keeps the original captured Source"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Provider response workspace retirement keeps the original captured Source"
               }
             ]
           }

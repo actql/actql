@@ -2,6 +2,7 @@
 // admission. A matching numeric quote, restored DATA or another original cannot
 // replace it. This owns no provider work, permission or physical cleanup ACK.
 import {types} from 'node:util';
+import {prepareInstalledEffectControlConstruction} from './installed-effect-plan.mjs';
 import {selectAcquiredEffectPlanInputs} from './acquired-effect-sources.mjs';
 import {openNodeComposedInferProvider, retireNodeInferOriginalRead} from './infer-operation.mjs';
 
@@ -104,7 +105,7 @@ export function prepareInstalledEffectManagedPlanRun({runs, liveRuns, runtime, m
     // to this same record and can never acquire another admission on retry.
     run.retire = runtime.clientProgramInstalledManagedRunRetire;
     run.readPlan = runtime.clientProgramInstalledEffectManagedOperationPlan;
-    run.beginOperations = runtime.clientProgramInstalledEffectOperationControlsBegin;
+    run.beginOperations = runtime.clientProgramInstalledEffectOperationControlsRetain;
     const beginOperations = run.beginOperations;
     if (![run.retire, run.readPlan, run.beginOperations].every(value => typeof value === 'function')) {
       fail('NodeManagedRunRuntimeUnavailable');
@@ -159,6 +160,16 @@ export function prepareInstalledEffectManagedPlanRun({runs, liveRuns, runtime, m
     run.operationsBegun = true;
     // Consume the SAME native Plan result immediately. No optional proof or
     // cached current flag escapes; cached/later reads still call their getter.
+    assertCurrentPlanRecord(run, runs, liveRuns, runtime, prepared, request, parent, operationPlan, readPlan,
+      definition, manager, selection, sourceProfile, model, demand, scope, admission, original, beginOperations,
+    modelSelection, component, sourceInputs, modelControl, modelDefinition);
+    // Capture the control methods only after that original post-current fence;
+    // a replaced Runtime must retain its original Foreign refusal precedence.
+    run.selecting = true;
+    try {
+      run.controlConstruction = prepareInstalledEffectControlConstruction(run);
+      run.retireControlConstruction = run.controlConstruction.retire;
+    } finally {run.selecting = false;}
     assertCurrentPlanRecord(run, runs, liveRuns, runtime, prepared, request, parent, operationPlan, readPlan,
       definition, manager, selection, sourceProfile, model, demand, scope, admission, original, beginOperations,
     modelSelection, component, sourceInputs, modelControl, modelDefinition);

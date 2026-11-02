@@ -3,7 +3,7 @@
 #define ACTQL_COMPILER_CORE_ABI_H
 #include <stddef.h>
 typedef struct { const char *name; const char *parameters; const char *result; } actql_compiler_signature;
-#define ACTQL_COMPILER_CORE_ABI 84
+#define ACTQL_COMPILER_CORE_ABI 85
 static const actql_compiler_signature actql_compiler_imports[] = {
     {"execution_child_admit", "i64", "i32"},
     {"execution_child_capacity", "i64 i32", "i64"},
@@ -156,6 +156,7 @@ static const actql_compiler_signature actql_compiler_exports[] = {
     {"actql_program_install_environment", "i64 i32", "i32"},
     {"actql_program_install_source_environment", "i64 i32", "i32"},
     {"actql_program_prepare", "i64 i32", "i32"},
+    {"actql_program_prepared_outcome", "i64 i32", "i32"},
     {"actql_program_prepared_results", "i64 i32", "i32"},
     {"actql_program_prepared_tasks", "i64 i32", "i32"},
     {"actql_program_reserve_preparation", "i64 i32 i32 i32", "i32"},
@@ -289,6 +290,7 @@ static const actql_compiler_signature actql_compiler_exports[] = {
     {"actql_submission_length", "i64 i32", "i32"},
     {"actql_submission_produce", "i64 i32", "i32"},
     {"actql_submission_reserve", "i64 i32 i32 i32 i32 i64", "i32"},
+    {"actql_submission_reserve_failure", "i64 i32 i32 i32 i32 i64", "i32"},
     {"actql_submission_retire_output", "i64 i32", "i32"},
     {"actql_submission_validate_append", "i64 i32 i32", "i32"},
     {"actql_task_advance", "i64 i32 i32", "i32"},
@@ -309,5 +311,5 @@ static const actql_compiler_signature actql_compiler_exports[] = {
     {"actql_workspace_reserve", "i64 i32 i64", "i32"},
     {"actql_workspace_root_reserved", "i64", "i64"},
 };
-#define ACTQL_COMPILER_EXPORTS_COUNT 273
+#define ACTQL_COMPILER_EXPORTS_COUNT 275
 #endif

@@ -383,7 +383,8 @@ fn retry_partial_output_recovery_cleanup(
     match step {
       0 =>
         match owner.recovery.physical_cleanup {
-          Some(retry) if !owner.recovery.physical_cleanup_done => retry()
+          Some(_) if !owner.recovery.physical_cleanup_done =>
+            retry_stopped_holder_cleanup_callback(owner.recovery)
           _ => true
         }
       1 => {
@@ -391,12 +392,32 @@ fn retry_partial_output_recovery_cleanup(
           guard journal.close_checked() is Ok(_) else { return false }
           owner.recovery.transfer_journal = None
         }
+        guard retry_partial_holder_output_resources(
+          owner.recovery.input_cleanup_resources,
+        ) else {
+          return false
+        }
         retry_partial_holder_output_resources(owner.resources)
       }
-      2 => owner.recovery.journal.close_checked() is Ok(_)
-      3 => owner.recovery.bundles.close_checked() is Ok(_)
+      2 =>
+        if owner.recovery.terminal_close is RecoveryTerminalOpen {
+          owner.recovery.journal.close_checked() is Ok(_)
+        } else {
+          retry_stopped_recovery_terminal_handles(owner.recovery)
+        }
+      3 => {
+        if !owner.recovery.bundle_closed {
+          guard owner.recovery.bundles.close_checked() is Ok(_) else {
+            return false
+          }
+          owner.recovery.bundle_closed = true
+        }
+        true
+      }
       _ =>
-        if owner.slot_close_unknown {
+        if owner.recovery.terminal_close is RecoveryTerminalClosed {
+          true
+        } else if owner.slot_close_unknown {
           false
         } else {
           let closed = owner.slot.close()

@@ -25,6 +25,24 @@ pub fn node_row_count_bound(node : PreparedNode, inputs : Array[Int]) -> Int? {
         @join.cross_output_guard(join),
         inputs,
       )
+    Unnest(operation) => {
+      // The checked array bound and positional input count prove this product.
+      // Missing bounds remain unknown; a policy ceiling is never an item bound.
+      guard inputs.length() == 1 &&
+        @relation.reshape(operation)
+        is Some(@relation.Unnest(outer~, max_items=Some(items), ..)) &&
+        items >= 0L &&
+        items <= 2147483647L else {
+        return None
+      }
+      let per_row = if outer { Int64::max(1L, items) } else { items }
+      let total = inputs[0].to_int64() * per_row
+      if total > 2147483647L {
+        None
+      } else {
+        Some(total.to_int())
+      }
+    }
     Derive(_)
     | Where(_)
     | Select(_)

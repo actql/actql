@@ -86,7 +86,14 @@ fn[I] request_program_plan_quote(
       Err(issue) => return Err(issue)
       Ok(value) => value
     }
-    owner.program_plan_quote = Some((r, e))
+    // The shared Compute constructor now retains its original tail execution
+    // aggregate. This is one fixed scalar, not another Plan or policy knob.
+    if e > 9223372036854775807L - installed_compute_tail_inventory_bytes {
+      return Err(Policy)
+    }
+    owner.program_plan_quote = Some(
+      (r, e + installed_compute_tail_inventory_bytes),
+    )
     owner.phase = ProgramPlanQuoted
   }
   Ok(owner.program_plan_quote.unwrap())
@@ -1224,7 +1231,9 @@ fn[I, P] original_request_plan_construction_quote(
   input : I,
   data : @checked.ParsedCheckDataEstimate,
 ) -> Result[(Int64, Int64), ClientRequestPreparationIssue] {
-  guard program_check_data_extent_cost(data) is Some(bytes) else {
+  guard program_check_data_extent_cost(data) is Some(bytes) &&
+    client_local_value_node_proof_retained_bytes() is Some(proof_retained) &&
+    client_local_value_node_proof_scratch_bytes() is Some(proof_scratch) else {
     return Err(Policy)
   }
   let (r, e) = match
@@ -1232,8 +1241,12 @@ fn[I, P] original_request_plan_construction_quote(
     Err(issue) => return Err(Capacity(issue))
     Ok(value) => value
   }
-  guard @execution.checked_preparation_add_product(r, bytes, 1L) is Some(r) &&
-    @execution.checked_preparation_add_product(e, bytes, 1L) is Some(e) else {
+  guard @execution.checked_preparation_add_product(bytes, proof_retained, 1L)
+    is Some(retained) &&
+    @execution.checked_preparation_add_product(retained, proof_scratch, 1L)
+    is Some(execution) &&
+    @execution.checked_preparation_add_product(r, retained, 1L) is Some(r) &&
+    @execution.checked_preparation_add_product(e, execution, 1L) is Some(e) else {
     return Err(Policy)
   }
   Ok((r, e))

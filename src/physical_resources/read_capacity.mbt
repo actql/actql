@@ -179,6 +179,26 @@ fn resize_capacity_reservation(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  resize_capacity_reservation_current(ledger, capacity, retained, execution)
+}
+
+///|
+// The same mutation after the closed original/current boundary, with no
+// callback or reusable current proof between these checks and the mutation.
+fn resize_capacity_reservation_current(
+  ledger : Ledger,
+  capacity : CapacityReservation,
+  retained : Int64,
+  execution : Int64,
+) -> Result[Unit, LedgerIssue] {
+  if retained < 0L || execution < 0L {
+    return Err(InvalidCharge)
+  }
+  let token = capacity.reservation
+  match reservation_check_current(ledger, token) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   if token.transfer != 0L ||
     token.quantities is Some(_) ||
     token.uncertain_quantities is Some(_) ||

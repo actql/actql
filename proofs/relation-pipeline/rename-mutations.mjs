@@ -17,8 +17,8 @@ function contractMismatch(c, observed, anchor) {
 }
 function contractVariant(name, property, expected, wrong, expression) {
   return { name, path: 'src/relation_typing/check.mbt',
-    before: '(p.output, visible.get(@schema.reference_name(p.input)).unwrap().0),',
-    after: `(p.output, if operation is Rename { ${expression} } else { visible.get(@schema.reference_name(p.input)).unwrap().0 }),`,
+    before: 'fields.push((p.output, field.contract, field.presence))',
+    after: `fields.push((p.output, if operation is Rename { ${expression} } else { field.contract }, field.presence))`,
     eligible: emptyContractDomain,
     anchor: (c, o, registry) => {
       const index = c.steps.findIndex(s => s.op === 'rename');
@@ -37,8 +37,8 @@ export const renameMutations = [
   contractVariant('rename-nullability-widened', 'nullable', false, true, '@contract.primitive(NumberType, nullable=true)'),
   contractVariant('rename-type-changed', 'type', 'number', 'string', '@contract.primitive(StringType, nullable=true)'),
   { name: 'rename-swap-wrong-input', path: 'src/execution_relation/bounded_binding_rows.mbt',
-    before: 'guard input_ordinals.get(@schema.reference_name(field.input))\n          is Some(index) &&',
-    after: 'guard input_ordinals.get(if input_ordinals.contains(output_name) { output_name } else { @schema.reference_name(field.input) })\n          is Some(index) &&',
+    before: 'guard input_ordinals.get(@schema.reference_name(field.input))\n        is Some(index) &&',
+    after: 'guard input_ordinals.get(if input_ordinals.contains(output_name) { output_name } else { @schema.reference_name(field.input) })\n        is Some(index) &&',
     eligible: onlyRename,
     anchor: (c, o, registry) => {
       const step = c.steps.find(s => s.op === 'rename');

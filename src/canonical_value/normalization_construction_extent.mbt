@@ -27,26 +27,37 @@ pub fn nfc_lf_construction_extent(
   }
   let u = max_input_utf16_units.to_int64()
   // The pinned canonical tables expand one input scalar to <=4 scalars, with
-  // decomposition recursion <=4 (Hangul <=3). Extraction <=U, decomposition
-  // and composition <=4U. Scalar-backed array old/new growth is <=3N+12;
-  // classes and one sorted run each <=4U, plus the 256 counting-sort offsets.
-  // Six wrappers/backings and three growing backing overlaps:15H6R, with
-  // 12 wrapper words and three 12-slot growth minima.
+  // recursive expansion derived by the canonical generator (Hangul <=3).
+  // Extraction <=U; decomposition and composition <=4U. Scalar-backed array
+  // old/new growth is <=3N+12. Keep that complete growth bound even for each
+  // preceding array which is no longer growing. order_canonically owns its
+  // classes and one sorted run (each <=4U) plus 256 counting-sort offsets;
+  // both arrays are private to that synchronous call and cannot escape it.
+  // compose_nfc starts only after it returns. Thus ordering has at most
+  // (3+5E)U scalar slots and composition (3+6E)U, not their sum. The latter
+  // dominates for the same pinned positive expansion E. Every input,
+  // decomposed and returned array remains charged through rendering; this
+  // does not infer GC, refund a reservation or change the Unicode algorithm.
+  // Conservatively keep all six wrappers/backings, three growth overlaps,
+  // 12 wrapper words, three 12-slot minima and the sort table in both phases.
   let array_headers = 15L
   let array_refs = 6L
-  let array_words = 12L + 36L + 35L * u + 256L
-  // NFC output is <=8U UTF16 units. JS retains old/new concat text (and the
-  // current character), then at most the two preceding LF-pass Strings.
+  let array_words = 12L +
+    36L +
+    (3L + 6L * canonical_decomposition_max_scalar_expansion) * u +
+    256L
+  // The generated table proves NFC output is <=4U UTF16 units. JS retains
+  // old/new concat text (and the current character), then at most the two preceding LF-pass Strings.
   // For the pinned UInt16 builder, capacity doubling makes old+new backing
   // <=3*output (or buffer+to_string copy <=3*output). Growth and to_string
   // copy do not coexist: grow returns before to_string. The second LF pass
-  // has at most 2*8U preceding text +3*8U backing/output =40U. Its two fixed
-  // LF replacement Strings add2. Empty input's one-slot buffers also fit.
+  // has <=2*output preceding text +3*output backing/output =5*output.
+  // Its two fixed LF replacement Strings add2. Empty input's one-slot buffers also fit.
   // Builder, text and view records are charged separately from their slots.
   let text_headers = 10L
   let text_refs = 8L
   let text_words = 6L
-  let text_units = 40L * u + 2L
+  let text_units = 5L * nfc_lf_retained_output_units(u).unwrap() + 2L
   // Conservative sum of the named quickcheck/extract/decompose/order/compose/
   // render/LF control families, including tagged Result/transition carriers.
   // Fixed VM/allocator frames are backend baseline, not funded by this DATA.
@@ -75,7 +86,7 @@ pub fn nfc_lf_retained_output_units(input_utf16_units : Int64) -> Int64? {
 }
 
 ///|
-let nfc_output_utf16_expansion : Int64 = 8L
+let nfc_output_utf16_expansion : Int64 = canonical_decomposition_max_utf16_expansion
 
 ///|
 /// A caller retaining this same returned output separately removes exactly

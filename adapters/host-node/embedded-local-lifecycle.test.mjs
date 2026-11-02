@@ -8,6 +8,7 @@ import {beginInitialControlInstallation, assertInitialControlInstallationCurrent
   readInitialControlInstallationInput} from './node-initial-control-installation.mjs';
 import {retainInstalledHostInitializationFailure, retainInstalledHostRuntimeFailure} from './installed-host-cleanup.mjs';
 import {createEmbeddedHostRegistry} from './embedded-local-lifecycle.mjs';
+import {sourcePreparationPort} from '../../packages/sdk/internal/private-source-preparation.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const ref = {namespaceId: 'namespace', authorityScopeCid: cid('a'), runDefinitionCid: cid('9')};
@@ -22,6 +23,34 @@ const deferred = () => {
   const promise = new Promise(done => { resolve = done; });
   return {promise, resolve};
 };
+
+test('selected Local lifecycle cannot omit its same own preparation receiver before connect', async () => {
+  // Explicit shutdown ports observe refusal/cleanup order only. No Source
+  // receipt, Root, Account, physical resource or ordinary Run is issued.
+  for (const inherited of [false, true]) {
+    let connects = 0;
+    const closes = [];
+    const port = {async perform(operation) {
+      assert.equal(operation, 'connect'); connects++; return profile;
+    }};
+    if (inherited) Object.setPrototypeOf(port, {
+      [sourcePreparationPort]: {beforeSourceSnapshot() {assert.fail('InheritedReceiver');}},
+    });
+    const initialControl = {close() {closes.push('initial'); return {pending: false};}};
+    const host = {port, initialControl,
+      checkpoints: {stop() {closes.push('stop');}, close() {closes.push('checkpoint');}},
+      dispatchOwner: {drain() {closes.push('drain');}},
+      retireTerminalEffects() {closes.push('retire');},
+      journal: {close() {closes.push('journal');}}, store: {close() {closes.push('store');}}};
+    const registry = createEmbeddedHostRegistry(() => true), installation = {};
+    registry.registerPreparation(host, installation, host);
+    await assert.rejects(registry.connect('/test/selected-local', 'same', async () => host,
+      options, host, undefined, initialControl), {code: 'NodeSourceManagedAdmissionUnavailable'});
+    assert.equal(connects, 0);
+    assert.deepEqual(closes, ['stop', 'drain', 'retire', 'checkpoint', 'journal', 'store', 'initial']);
+  }
+});
+
 function fixture({perform, sourceClose, drain, open, observationClose,
   stopModelRuntime, retireModelRuntime, answerCheckpoint} = {}) {
   const calls = [];

@@ -75,6 +75,13 @@ fn client_local_schema_proof_inventory(
     return None
   }
   let mut remaining = max_work
+  // Snapshot the original compilation depth once for the optional checked
+  // value proof. This does not change the Run value-depth policy.
+  let value_depth = if leaf_only {
+    client_local_value_node_proof_depth()
+  } else {
+    0
+  }
   let seen : Array[@lower.BoundPrepared] = []
   let mut nodes = 1L
   let mut names_total = 0L
@@ -139,8 +146,15 @@ fn client_local_schema_proof_inventory(
       if scalar_only && client_local_scalar_schema_width(schema) is None {
         return None
       }
-      if leaf_only && !client_local_json_leaf_schema(schema) {
-        return None
+      let node_width = if leaf_only {
+        guard client_local_json_schema_nodes(schema, remaining, value_depth)
+          is Some((nodes, used)) else {
+          return None
+        }
+        remaining -= used
+        nodes
+      } else {
+        width.to_int64() + 1L
       }
       let name_bytes = @schema.field_reference_name_bytes(schema)
       if name_bytes < 0 {
@@ -148,8 +162,8 @@ fn client_local_schema_proof_inventory(
       }
       fields = Int::max(fields, width)
       names = Int::max(names, name_bytes)
-      input_nodes += width.to_int64() + 1L
-      output_nodes += width.to_int64() + 1L
+      input_nodes += node_width
+      output_nodes += node_width
       input_names += name_bytes.to_int64()
       output_names += name_bytes.to_int64()
     }
@@ -205,8 +219,15 @@ fn client_local_schema_proof_inventory(
       if scalar_only && client_local_scalar_schema_width(schema) is None {
         return None
       }
-      if leaf_only && !client_local_json_leaf_schema(schema) {
-        return None
+      let node_width = if leaf_only {
+        guard client_local_json_schema_nodes(schema, remaining, value_depth)
+          is Some((nodes, used)) else {
+          return None
+        }
+        remaining -= used
+        nodes
+      } else {
+        width.to_int64() + 1L
       }
       let name_bytes = @schema.field_reference_name_bytes(schema)
       if name_bytes < 0 {
@@ -214,7 +235,7 @@ fn client_local_schema_proof_inventory(
       }
       fields = Int::max(fields, width)
       names = Int::max(names, name_bytes)
-      output_nodes += width.to_int64() + 1L
+      output_nodes += node_width
       output_names += name_bytes.to_int64()
       let count = @lower.node_input_count(node)
       ports = Int::max(ports, count)
@@ -232,14 +253,23 @@ fn client_local_schema_proof_inventory(
         if scalar_only && client_local_scalar_schema_width(input_schema) is None {
           return None
         }
-        if leaf_only && !client_local_json_leaf_schema(input_schema) {
-          return None
+        let node_width = if leaf_only {
+          guard client_local_json_schema_nodes(
+              input_schema, remaining, value_depth,
+            )
+            is Some((nodes, used)) else {
+            return None
+          }
+          remaining -= used
+          nodes
+        } else {
+          width.to_int64() + 1L
         }
         let name_bytes = @schema.field_reference_name_bytes(input_schema)
         if name_bytes < 0 {
           return None
         }
-        input_nodes += width.to_int64() + 1L
+        input_nodes += node_width
         input_names += name_bytes.to_int64()
       }
     }

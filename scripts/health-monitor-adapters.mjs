@@ -116,7 +116,7 @@ export async function prepareHealthPackages({repository, root, source, retained,
 }
 let packagesCounter = 0;
 
-export async function distributionMetrics({repository, prepared, root, command, source}) {
+export async function distributionMetrics({repository, prepared, root, command, source, installedInventory}) {
   const artifacts = [], metrics = [];
   for (const pkg of prepared.manifest.packages) {
     const installed = pkg.files.reduce((sum, row) => sum + row.bytes, 0);
@@ -126,7 +126,7 @@ export async function distributionMetrics({repository, prepared, root, command, 
     metrics.push({id: 'tarball:' + pkg.name, kind: 'size', artifactKind: 'npm', target: pkg.name,
       value: pkg.bytes, unit: 'bytes', required: true, fixtureSha256: jsonDigest({kind: 'npm', name: pkg.name}), evidence: prepared.manifestPath});
   }
-  const installed = await inventory(join(prepared.consumer, 'node_modules'));
+  const installed = installedInventory ?? await inventory(join(prepared.consumer, 'node_modules'));
   for (const [target, names] of [['node-local', CLIENT_PACKAGES], ['remote-sdk', ['sdk', 'client-wire']]]) {
     const value = target === 'node-local' ? installed.reduce((sum, row) => sum + row.bytes, 0)
       : prepared.manifest.packages.filter(row => names.includes(row.name.slice(7))).flatMap(row => row.files).reduce((sum, row) => sum + row.bytes, 0);
@@ -134,7 +134,7 @@ export async function distributionMetrics({repository, prepared, root, command, 
       required: true, unit: 'bytes', fixtureSha256: jsonDigest(names), evidence: prepared.manifestPath});
   }
   const browser = join(root, 'browser.mjs'), meta = join(root, 'browser-meta.json');
-  await command(process.execPath, [join(repository, 'node_modules/esbuild/bin/esbuild'),
+  await command(join(repository, 'node_modules/esbuild/bin/esbuild'), [
     join(prepared.consumer, 'node_modules/@actql/sdk/index.mjs'), '--bundle', '--platform=browser',
     '--format=esm', '--target=es2022', '--outfile=' + browser, '--metafile=' + meta], {cwd: repository, name: 'browser-bundle'});
   const metadata = JSON.parse(await readFile(meta));

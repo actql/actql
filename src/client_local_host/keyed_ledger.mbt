@@ -115,7 +115,8 @@ fn keyed_captured_local_installed_requirements(
     (match original_requirement {
       None =>
         prepare_local_query_requirement(
-          prepared, stage, input, installed_contracts, values_body, fragment_body, ordered_body,
+          prepared, stage, input, installed_contracts, values_body, fragment_body,
+          ordered_body,
         ).to_option()
       Some(requirement) =>
         if physical_equal(requirement, direct.requirement) &&

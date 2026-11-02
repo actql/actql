@@ -2,6 +2,7 @@ import { accessSync, constants, readFileSync, readdirSync, statSync, lstatSync, 
 import { join, dirname, isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
+import { spawnProofCommand } from '../bounded-session/native-command.mjs';
 import { createHash } from 'node:crypto';
 import { program } from './engine.mjs';
 import { artifacts } from '../bounded-session/evidence.mjs';
@@ -118,7 +119,7 @@ export function createExecutor(workspace = workspaceIdentity(root, 'normal'), {t
     const command = executionCommand(target).slice(1);
     writeFileSync(join(directory, `${prefix}.fixture.mbt`), fixtureBody);
     writeFileSync(join(directory, `${prefix}.inputs.json`), inputs);
-    const result = spawnSync(moon, command, { cwd: workspaceRoot,
+    const result = spawnProofCommand(moon, command, target, { cwd: workspaceRoot,
       env: { ...environment, [inputVariable]: inputs }, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 });
     const output = `${result.stdout ?? ''}${result.stderr ?? ''}`;
     writeFileSync(join(directory, `${prefix}.log`), output);

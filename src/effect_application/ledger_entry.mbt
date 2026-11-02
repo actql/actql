@@ -117,7 +117,18 @@ pub fn admit_effect_ledger_entry(
     Ok(value) => value
     Err(_) => return Err(InvalidWire)
   }
-  let value = @json.from_source(parsed, max_nodes, max_depth, max_wire_bytes) catch {
+  // This private original comes directly from the normalizing Source parser,
+  // with no caller-visible mutable tree or callback in between. Its keys
+  // already carry the same NFC/LF meaning. Canonical admission still charges
+  // its independent node/depth/text budgets, validates scalar text, rejects
+  // duplicates and sorts fields; do not run the same key normalization twice.
+  let value = @json.from_source(
+    parsed,
+    max_nodes,
+    max_depth,
+    max_wire_bytes,
+    data_keys=true,
+  ) catch {
     _ => return Err(InvalidWire)
   }
   let canonical = @json.stringify_value(

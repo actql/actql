@@ -204,6 +204,7 @@ fn prepare_installed_mock_model_source_free_plan(
   max_holdings : Int,
   max_delegations : Int,
   content_prefix? : ClientInstalledManagedSerializationPreparation? = None,
+  bootstrap? : (Int64, Int64)? = None,
 ) -> Result[ClientInstalledManagedModelPlan, ClientInstalledManagedRunIssue] {
   guard original.owner is Pure(prepared) && original.configuration is Some(_) else {
     return Err(ForeignOriginal)
@@ -226,6 +227,7 @@ fn prepare_installed_mock_model_source_free_plan(
     max_holdings,
     max_delegations,
     content_prefix~,
+    bootstrap~,
   )
 }
 
@@ -243,6 +245,7 @@ pub fn prepare_installed_mock_model_capture_plan_binding(
   max_holdings : Int,
   max_delegations : Int,
   content_prefix? : ClientInstalledManagedSerializationPreparation? = None,
+  bootstrap? : (Int64, Int64)? = None,
 ) -> Result[ClientInstalledManagedModelPlan, ClientInstalledManagedRunIssue] {
   prepare_installed_mock_model_plan_owned(
     original.prepared,
@@ -262,6 +265,7 @@ pub fn prepare_installed_mock_model_capture_plan_binding(
     max_holdings,
     max_delegations,
     content_prefix~,
+    bootstrap~,
   )
 }
 
@@ -284,6 +288,7 @@ fn prepare_installed_mock_model_plan_owned(
   max_holdings : Int,
   max_delegations : Int,
   content_prefix? : ClientInstalledManagedSerializationPreparation? = None,
+  bootstrap? : (Int64, Int64)? = None,
 ) -> Result[ClientInstalledManagedModelPlan, ClientInstalledManagedRunIssue] {
   // The module's sequences already retain this original invocation. A later
   // equal-CID request or another saved Run cannot replace its bound context.
@@ -332,11 +337,32 @@ fn prepare_installed_mock_model_plan_owned(
     }
     _ => return Err(ForeignOriginal)
   }
+  // Keep every original compiler/Definition/prefix refusal above authoritative.
+  // A planning quote for a foreign or copied tuple must not hide that cause.
+  let configuration = match (source_free, captured) {
+    (Some(original), None) =>
+      match original.configuration {
+        Some(value) => value
+        None => return Err(ForeignOriginal)
+      }
+    (None, Some(original)) => original.configuration
+    _ => return Err(ForeignOriginal)
+  }
+  let compute_limits = match
+    installed_mock_model_compute_limits(
+      configuration, compute_limits, occurrence,
+    ) {
+    Some(value) => value
+    None => return Err(InsufficientCapacity)
+  }
   guard max_reservations >= 0 &&
     max_holdings >= 0 &&
     max_delegations >= 0 &&
     installed_model_demand_limits(
-      model_limits, read_retained_bytes, read_execution_bytes,
+      model_limits,
+      read_retained_bytes,
+      read_execution_bytes,
+      bootstrap~,
     )
     is Some(model) &&
     @resources.add_ledger_limits(compute_limits, model) is Some(model_limits) else {

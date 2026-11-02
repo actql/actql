@@ -40,6 +40,9 @@ LOCAL_COMPONENT_PROVIDER_EXPORTS = (
     'actql_bootstrap_current_read_context',
     'actql_native_file_scoped_allocate',
     'actql_native_file_scoped_free',
+    'actql_native_private_scoped_allocate',
+    'actql_native_private_scoped_free',
+    'actql_native_private_scoped_contains_allocation',
 )
 
 

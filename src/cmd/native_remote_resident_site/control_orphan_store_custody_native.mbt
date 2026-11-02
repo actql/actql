@@ -38,13 +38,14 @@ fn retry_control_orphan_store_cleanup(
   failed : Ref[@publication_store.NativePublicationStoreOpenFailure?],
   journal : Ref[ControlReplayJournalCustody?],
   slot : @slot.NativeExecutorSlot,
+  slot_progress : Ref[ControlTerminalClose],
 ) -> Bool {
   guard failed.val is Some(original) else { return true }
   guard original.retry_cleanup() is Ok(_) else { return false }
   // Keep the original failure until its earlier Journal and Slot also retire.
   // Reentry repeats only the idempotent cleanup of that same constructor.
   guard retry_control_replay_journal_cleanup(journal) else { return false }
-  retain_control_reclaim_slot_close(slot)
+  retain_control_reclaim_slot_close(slot, slot_progress)
   failed.val = None
   true
 }
@@ -56,6 +57,7 @@ fn retry_control_orphan_store_cleanup(
 fn retain_control_orphan_reader_cleanup(
   journal : Ref[ControlReplayJournalCustody?],
   slot : @slot.NativeExecutorSlot,
+  slot_progress : Ref[ControlTerminalClose],
 ) -> Unit {
   install_partial_holder_cleanup_signal()
   ignore(
@@ -63,7 +65,7 @@ fn retain_control_orphan_reader_cleanup(
       (journal, slot),
       same => {
         guard retry_control_replay_journal_cleanup(same.0) else { return false }
-        retain_control_reclaim_slot_close(same.1)
+        retain_control_reclaim_slot_close(same.1, slot_progress)
         true
       },
       () => CleanupInputEnded,

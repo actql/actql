@@ -36,6 +36,18 @@ export async function loadReference(root, reference = referenceRevision) {
   let traversal = previous.slice(old.start, old.end);
   assert.equal(traversal.split(oldPolicy).length, 2, 'Unexpected reference policy boundary');
   traversal = traversal.replace(oldPolicy, currentPolicy);
+  // Keep the existing nested-member policy equal too. The old traversal still
+  // enumerates the entire tree, but the current exact inert C fixtures are not
+  // newly unresolved merely because that traversal predates their review.
+  const oldNestedPolicy = 'if (!tree.entries.has(`${first}/moon.pkg`)) { add(path); unresolved.add(`nested package input requires review: ${path}`); }';
+  const currentNestedPolicy = `if (!tree.entries.has(\`\${first}/moon.pkg\`)) {
+          add(path);
+          if (tree.entries.get(path)?.kind !== 'blob' || !reviewedNestedFixture({
+            path, digest: hash(tree.read(path)), target, toolchainDigest,
+          })) unresolved.add(\`nested package input requires review: \${path}\`);
+        }`;
+  assert.equal(traversal.split(oldNestedPolicy).length, 2, 'Unexpected reference nested policy boundary');
+  traversal = traversal.replace(oldNestedPolicy, currentNestedPolicy);
   let code = candidate.slice(0, current.start) + traversal + candidate.slice(current.end);
   for (const [relative, path] of [['../bounded-session/action-inputs.mjs', 'proofs/bounded-session/action-inputs.mjs'],
     ['./package-configurations.mjs', 'proofs/ci-evidence/package-configurations.mjs']]) {

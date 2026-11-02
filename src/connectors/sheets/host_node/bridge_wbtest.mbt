@@ -61,6 +61,31 @@ test "Sheets bridge accepts only declared scalar columns and exact row fields" {
 }
 
 ///|
+test "append private parser keeps exact field names and original scalar refusals" {
+  let columns = "[{\"name\":\"é\",\"type\":\"string\",\"nullable\":false}]"
+  let accepted = sheets_append_request_json(
+    columns, "{\"é\":\"same\"}", 7, 4096, 100, 12, 100,
+  )
+  assert_true(accepted.contains("body"))
+  for
+    row in [
+      "{\"é\":\"same\"}", "{\"é\":1,\"é\":2}", "{\"é\":\"same\",\"extra\":0}",
+      "{\"é\":",
+    ] {
+    let refused = sheets_append_request_json(
+      columns, row, 7, 4096, 100, 12, 100,
+    )
+    assert_true(refused.contains("InvalidSchema"))
+  }
+  for row in ["{\"é\":[]}", "{\"é\":{}}"] {
+    let refused = sheets_append_request_json(
+      columns, row, 7, 4096, 100, 12, 100,
+    )
+    assert_true(refused.contains("UnrepresentableWrite"))
+  }
+}
+
+///|
 test "Sheets bridge reports an acknowledgement, never a row identifier" {
   let answer = @utf8.encode("{\"spreadsheetId\":\"book\",\"replies\":[{}]}")
   assert_eq(
@@ -123,6 +148,37 @@ test "Sheets native append profile covers original escaped request and genuine a
     @execution.execution_capacity_retained_bytes(growth[3].0),
     @execution.execution_capacity_retained_bytes(original[3].0),
   )
+}
+
+///|
+test "Sheets append export byte bound covers controls quotes backslashes and original UTF8" {
+  let columns = "[{\"name\":\"text\",\"type\":\"string\",\"nullable\":false}]"
+  for
+    text in [
+      "\u{1}".repeat(128),
+      "\"\\".repeat(128),
+      "é😀é".repeat(128),
+      "=SUM(A1:A2)",
+    ] {
+    let row : Json = { "text": text }
+    let row = row.stringify()
+    let profile = sheets_append_construction_profile(
+      @utf8.encode(columns).length(),
+      1,
+      @utf8.encode(row).length(),
+      32768,
+      8192,
+      1000,
+      12,
+    ).unwrap()
+    let exported = sheets_append_request_json(
+      columns, row, 7, 32768, 1000, 12, 100,
+    )
+    assert_true(exported.contains("body"))
+    let quoted = profile[0].2.unwrap()
+    assert_true(@utf8.encode(exported).length() <= quoted.max_input_bytes)
+    assert_true(@source.parse_json(exported, quoted) is Ok(_))
+  }
 }
 
 ///|

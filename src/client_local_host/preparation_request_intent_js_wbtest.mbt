@@ -323,3 +323,192 @@ test "Request native intent retains the original reader exception until its fram
   assert_eq(parent._observed_intent_work, 128L)
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }
+
+///|
+test "retained Request intent keeps the same original and observed long Text geometry" {
+  let input = [1]
+  let parent = begin_request_preparation(
+    request_parent_fixture(input),
+    input,
+    client_local_resource_policy(),
+  ).unwrap()
+  let document = "{\"kind\":\"aql\",\"input\":{\"format\":\"sql\",\"text\":\"" +
+    "x".repeat(100000) +
+    "\"},\"parameters\":null}"
+  let intent = @publication_host.prepare_client_submitted_intent(
+    document, 1048576, 65536, 64,
+  ).unwrap()
+  retain_request_submitted_intent(parent, input, intent).unwrap()
+  assert_true(
+    physical_equal(
+      request_submitted_intent_original(parent, input).unwrap(),
+      intent,
+    ),
+  )
+  assert_true(parent.snapshot_values < 32L)
+  assert_true(parent.snapshot_units >= 100000L)
+  assert_eq(parent._observed_intent_work, document.length().to_int64() + 1L)
+  assert_false(parent.intent_peak_live)
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+test "retained Request intent refuses a foreign input or replacement without a new identity" {
+  let input = [1]
+  let parent = begin_request_preparation(
+    request_parent_fixture(input),
+    input,
+    client_local_resource_policy(),
+  ).unwrap()
+  let intent = @publication_host.prepare_client_submitted_intent(
+    "{\"kind\":\"aql\",\"input\":{\"format\":\"sql\",\"text\":\"SELECT 1\"},\"parameters\":null}",
+    1048576, 65536, 64,
+  ).unwrap()
+  assert_true(
+    retain_request_submitted_intent(parent, [1], intent) is Err(ForeignOriginal),
+  )
+  assert_true(parent.submitted_intent is None)
+  @debug.debug_inspect(
+    retain_request_submitted_intent(parent, input, intent),
+    content="Ok(())",
+  )
+  assert_true(
+    retain_request_submitted_intent(parent, input, intent) is Err(WrongPhase),
+  )
+  assert_true(
+    physical_equal(
+      request_submitted_intent_original(parent, input).unwrap(),
+      intent,
+    ),
+  )
+  abort_request_preparation_after_cleanup(parent).unwrap()
+}
+
+///|
+test "retained Request intent refuses reentrant retention at its first current boundary" {
+  let input = [1]
+  let intent = @publication_host.prepare_client_submitted_intent(
+    "{\"kind\":\"aql\",\"input\":{\"format\":\"sql\",\"text\":\"SELECT 1\"},\"parameters\":null}",
+    1048576, 65536, 64,
+  ).unwrap()
+  let retained : Ref[ClientRequestPreparation[Array[Int]]?] = Ref(None)
+  let armed = Ref(false)
+  let refused = Ref(false)
+  let parent = begin_request_preparation(
+    request_parent_fixture(input, current=() => {
+      if armed.val && retained.val is Some(original) {
+        armed.val = false
+        refused.val = retain_request_submitted_intent(original, input, intent)
+          is Err(WrongPhase)
+      }
+      true
+    }),
+    input,
+    client_local_resource_policy(),
+  ).unwrap()
+  retained.val = Some(parent)
+  armed.val = true
+  retain_request_submitted_intent(parent, input, intent).unwrap()
+  assert_true(refused.val)
+  assert_true(
+    physical_equal(
+      request_submitted_intent_original(parent, input).unwrap(),
+      intent,
+    ),
+  )
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  retained.val = None
+}
+
+///|
+// The installed physical supplier is real; empty physical provider ports in
+// the existing Plan fixture do not qualify Account/Host/vendor execution.
+test "retained Request intent continues native Effect Parameters Plan and retirement on one parent" {
+  let environment = @publication_host.admit_client_check_environment(
+    source_query_original_environment,
+    "sha256:05ee9059ef5f173069a3f3f1896e16ee62d34d0c842d81e9b0f8421db62e67a8",
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+  ).unwrap()
+  let publication = @source_publication.prepare_published_query_environment(
+    environment,
+    "{\"environmentCid\":\"" +
+    @checked.checking_environment_cid(environment) +
+    "\",\"aliases\":[]}",
+  ).unwrap()
+  let text =
+    #|{"version":"actql/0.1","id":"native-effect","params":{"n":{"type":"number","default":7}},"stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":1}]},"as":"seed"},{"derive":{"amount":"id + $n"},"as":"changed"}],"results":{"rows":{"from":"changed","fields":["id","amount"]}},"effects":{"save":{"update":{"target":"connector://crm/account","mapping":"mapping:crm.account.v1","from":{"result":"rows"},"id":"id","set":{"Name":{"field":"amount"}}}}}}],"results":{"rows":{"from":{"stage":"main","result":"rows"}}}}
+  let intent = @publication_host.prepare_client_submitted_intent(
+    "{\"kind\":\"program\",\"input\":" +
+    text +
+    ",\"parameters\":{\"n\":9},\"stopBefore\":\"commit\"}",
+    1048576,
+    65536,
+    64,
+  ).unwrap()
+  let input = [1]
+  let parent = begin_request_preparation(
+    request_parent_fixture(input),
+    input,
+    client_local_resource_policy(),
+  ).unwrap()
+  let ledger = parent.ledger
+  retain_request_submitted_intent(parent, input, intent).unwrap()
+  assert_eq(
+    prepare_request_native_computation(
+      parent,
+      input,
+      request_native_test_value(text),
+      native_json_reader,
+      environment,
+      publication,
+      [],
+      @publication_host.client_standard_program_preparation_limits(),
+      @publication_host.client_standard_effect_computation_limits(),
+      supplied=Some(request_native_test_value("{\"n\":9}")),
+    ).unwrap(),
+    Effect,
+  )
+  assert_true(physical_equal(parent.ledger, ledger))
+  assert_true(
+    physical_equal(
+      request_submitted_intent_original(parent, input).unwrap(),
+      intent,
+    ),
+  )
+  let prepared = parent.compiled_effect.unwrap()
+  let graph = @strategy.checked_effect_computation_graph(
+    @publication_host.prepared_client_effect_computation_graph(prepared),
+  )
+  let task = @strategy.graph_task_owner(graph, 0).unwrap()
+  assert_eq(
+    @admitted.canonical_scalar_text(
+      @lower.parameter_value(task, "n").unwrap(),
+      32,
+    ),
+    Some("9"),
+  )
+  let holder = borrow_request_effect_plan_input(parent, input).unwrap()
+  assert_true(
+    physical_equal(
+      @resources.preparation_body_borrow_value(holder).unwrap(),
+      prepared,
+    ),
+  )
+  let (plan, original_request) = request_effect_plan_fixture(prepared)
+  complete_request_effect_preparation(parent, input, plan).unwrap()
+  let managed = begin_request_effect_managed_run(parent, original_request).unwrap()
+  assert_true(
+    physical_equal(
+      installed_effect_managed_operation_plan(
+        managed, prepared, original_request,
+      ).unwrap(),
+      plan,
+    ),
+  )
+  assert_true(retire_installed_managed_run(managed) is Err(CleanupPending))
+  @resources.return_preparation_body_borrow(holder).unwrap() |> ignore
+  retire_installed_managed_run(managed).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+}

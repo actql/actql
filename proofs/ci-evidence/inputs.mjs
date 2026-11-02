@@ -9,11 +9,12 @@ export const hash = value => createHash('sha256').update(value).digest('hex');
 // The shared Session image utilities evaluate the inventory and its exact
 // proof-runner extension. The extension imports Node built-ins only; neither
 // module performs top-level I/O. Baseline history reads remain behind explicit
-// function calls. New bytes require reviewing this complete import/effect
+// function calls. The current-only HEAD validator is also lazy. New bytes
+// require reviewing this complete import/effect
 // boundary before a closed key may be issued; a digest update is not a review.
 export const pipelineInventoryBoundary = Object.freeze({
   path: 'proofs/relation-pipeline/inventory.mjs',
-  digest: '4a471bec262620016adef787f3b5a78c652d9c5caf2e2a26ed9d0890874c1cff',
+  digest: '1c9c0422c72b6b274046efcc34d74be7a5377c7e0b846d31ff25ea6d297e4420',
   dependencies: Object.freeze([Object.freeze({
     path: 'proofs/relation-pipeline/proof-runner-extension.mjs',
     digest: 'e510caa50fbdb48c1c0d179f74ab351f158de81e086620e801ecd8f2aa80b9bb',

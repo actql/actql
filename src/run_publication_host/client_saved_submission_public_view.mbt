@@ -76,3 +76,29 @@ pub fn client_saved_submission_admission_wire(
     _ => Err(Encoding)
   }
 }
+
+///|
+/// Candidate bytes for the SAME accepted original after a known preparation
+/// failure. This neither writes nor acknowledges a transaction. A terminal
+/// outcome, foreign intent or existing Run cannot be rewritten by this view.
+pub fn client_saved_submission_preparation_failure_body(
+  value : ClientSavedSubmissionSnapshot,
+  intent : ClientSubmittedIntent,
+  problem : (String, String),
+) -> Result[Bytes, ClientSavedSubmissionViewIssue] {
+  let original = value.record
+  guard original.run_admission is None &&
+    original.preparation_problem is None &&
+    client_submitted_intent_wire(original.intent) ==
+    client_submitted_intent_wire(intent) &&
+    client_submitted_intent_cid(original.intent) ==
+    client_submitted_intent_cid(intent) &&
+    client_submitted_intent_transition("preparing", "preparation_failed") else {
+    return Err(CustodyLost)
+  }
+  client_submitted_intent_journal_row_body(
+    client_submission_reference_record_wire(original.reference),
+    original.intent,
+    preparation_problem=Some(problem),
+  ).map_err(_ => Encoding)
+}

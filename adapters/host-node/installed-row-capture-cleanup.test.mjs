@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {prepareInstalledRowCaptureChild, releaseInstalledRowCapture} from './installed-row-capture-cleanup.mjs';
+import {prepareInstalledRowCaptureChild, retainInstalledRowCaptureChild, releaseInstalledRowCapture} from './installed-row-capture-cleanup.mjs';
 import {releasePreparedResults} from '../host-common/completed-run-publication.mjs';
 
 // Explicit Common progress-law doubles, matching the existing cleanup tests.
@@ -338,4 +338,19 @@ test('malformed returned child stays retained instead of releasing its parents',
   await assert.rejects(releaseInstalledRowCapture({children, control,
     releaseInputs: () => assert.fail('Unknown child retains the same original parent')}, 'primary'),
   error => error.primaryFailure === 'primary' && error.cleanupPending);
+});
+
+
+test('deferred preparation latches before original current can reenter the SAME retained child', async () => {
+  const children=[];let retained,nested,entered=false,prepares=0,pending=true;
+  const original={prepare(){prepares++;return 'original';},release(){pending=false;return true;},
+    retry(){pending=false;return true;},status:()=>({pending})};
+  retained=retainInstalledRowCaptureChild({children,create:()=>original,assertCurrent(){
+    if(retained!==undefined&&!entered){entered=true;
+      nested=retained.prepare().then(()=>assert.fail('reentered prepare must refuse'),error=>error.code);}
+  }});
+  assert.equal(await retained.prepare(),'original');
+  assert.equal(await nested,'InvalidInstalledRowRequestChild');
+  assert.equal(prepares,1);
+  await children[0].prepared.release();assert.equal(children[0].prepared.status().pending,false);
 });

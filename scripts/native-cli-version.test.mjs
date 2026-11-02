@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {lstat, writeFile} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import test from 'node:test';
@@ -41,7 +42,7 @@ test('Native package version: observation requires the same executable banner an
 });
 
 test('Native package version: legacy byte reads remain distinct from new version-bound release predicates', async () => {
-  const scratch = await createOwnedScratch({parent: '/private/tmp', prefix: 'actql-native-version-metadata-',
+  const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-native-version-metadata-',
     label: 'Native artifact version metadata controls'});
   const binary = Buffer.alloc(64); binary.writeUInt32LE(0xfeedfacf); binary.writeUInt32LE(0x0100000c, 4);
   const legacy = {version: 'actql-native-cli-artifact/0.1', sourceSha: 'a'.repeat(40), platform: 'darwin-arm64',
@@ -64,7 +65,7 @@ test('Native package version: legacy byte reads remain distinct from new version
 });
 
 test('Native package version: actual artifact CLI refuses invalid or duplicated selection before creating build output', async () => {
-  const scratch = await createOwnedScratch({parent: '/private/tmp', prefix: 'actql-native-version-argv-',
+  const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-native-version-argv-',
     label: 'Native version artifact CLI refusal'});
   const destination = join(scratch.path, 'unstarted-artifact');
   for (const args of [['--package-version', 'patch'], ['--package-version', '0.0.7rc1'],

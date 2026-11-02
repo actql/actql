@@ -133,7 +133,7 @@ export function retainInferOriginalReadRecipe(value) {
   return retainOriginalReadDeclaration(value, true);
 }
 
-export function bindInferOriginalReadRecipe(moon, original, graph, limits) {
+export function bindInferOriginalReadRecipe(moon, original, graph, limits, modelLedgerBytes) {
   if (!originals.has(original) || graph === undefined ||
       Object.hasOwn(original.nodeInstallation.layout, 'program_definition_cid') ||
       typeof moon.clientProgramInferPlanProgramCid !== 'function' ||
@@ -141,10 +141,13 @@ export function bindInferOriginalReadRecipe(moon, original, graph, limits) {
       typeof moon.clientProgramInferPlanBoundary !== 'function' ||
       !Array.isArray(limits) || limits.length !== 9 ||
       limits.some(value => !int64(value, 0n)) ||
-      limits.slice(6).some(value => value > 2147483647n)) {
+      limits.slice(6).some(value => value > 2147483647n) ||
+      !Array.isArray(modelLedgerBytes) || modelLedgerBytes.length !== 2 ||
+      modelLedgerBytes.some(value => !int64(value, 0n))) {
     throw Object.assign(new Error('InferOriginalReadRecipeUnavailable'),
       {code: 'InferOriginalReadRecipeUnavailable'});
   }
+  const modelRetained = modelLedgerBytes[0], modelExecution = modelLedgerBytes[1];
   const program = moon.clientProgramInferPlanProgramCid(graph);
   const parameters = moon.clientProgramInferPlanParametersCid(graph);
   const barrier = runtimeField(moon.clientProgramInferPlanBoundary(graph), 3);
@@ -169,8 +172,8 @@ export function bindInferOriginalReadRecipe(moon, original, graph, limits) {
       maxReservations: Math.max(Number(limits[6]), original.bootstrap.maxReservations),
       maxHoldings: Math.max(Number(limits[7]), original.bootstrap.maxHoldings),
       maxDelegations: Math.max(Number(limits[8]), original.bootstrap.maxDelegations)},
-    modelRetainedBytes: add(limits[4], original.modelRetainedBytes),
-    modelExecutionBytes: add(limits[5], original.modelExecutionBytes),
+    modelRetainedBytes: add(modelRetained, original.modelRetainedBytes),
+    modelExecutionBytes: add(modelExecution, original.modelExecutionBytes),
     ...(original.currentStateCodec === undefined ? {} : {currentStateCodec: {
       ...original.currentStateCodec, comparisonWork: Math.max(original.currentStateCodec.comparisonWork,
         2 + Math.max(Number(limits[6]), original.bootstrap.maxReservations) +

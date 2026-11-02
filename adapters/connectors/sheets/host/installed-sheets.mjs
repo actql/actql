@@ -322,15 +322,15 @@ export const publishInstalledSheetsEffect = (profile, options) =>
 function bindSheetsAppendConstructionProfile(providerMoon, columns) {
   if (providerMoon === null || !['object', 'function'].includes(typeof providerMoon) ||
       nodeTypes.isProxy(providerMoon)) fail('InstalledStandardCreateRuntimeUnavailable');
-  const native = Object.getOwnPropertyDescriptor(providerMoon, 'sheetsAppendConstructionProfile');
+  const native = Object.getOwnPropertyDescriptor(providerMoon, 'sheetsAppendRequestConstructionProfile');
   if (!native || !Object.hasOwn(native, 'value') || typeof native.value !== 'function' ||
       nodeTypes.isProxy(native.value) || nodeTypes.isAsyncFunction(native.value)) {
     fail('InstalledStandardCreateRuntimeUnavailable');
   }
   const schemaBytes = Buffer.byteLength(JSON.stringify(columns), 'utf8');
   const columnCount = columns.length;
-  return Object.freeze({installedStandardCreateConstructionProfile(inputWireBytes) {
-    return Reflect.apply(native.value, providerMoon, [schemaBytes, columnCount, inputWireBytes,
+  return Object.freeze({installedStandardCreateConstructionProfile(inputWireBytes, inputNodes, inputDepth) {
+    return Reflect.apply(native.value, providerMoon, [schemaBytes, columnCount, inputWireBytes, inputNodes, inputDepth,
       SHEETS_LIMITS.maxRequestBytes, SHEETS_LIMITS.maxResponseBytes,
       SHEETS_LIMITS.maxNodes, SHEETS_LIMITS.maxDepth]);
   }});

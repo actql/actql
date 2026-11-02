@@ -114,6 +114,9 @@ typedef struct {
   int64_t max_body_bytes;
   int32_t diagnostic_ceiling;
   bool opened;
+  /* Same Database physical close and descriptor ACK, obtained while current.
+   * A later managed-shell return must not call that physical port again. */
+  bool checked_close_ack;
   bool library_child;
   int test_close_failures;
   int test_commit_failures;
@@ -472,14 +475,17 @@ int32_t actql_native_sqlite_close_checked(
   if (!actql_library_current(database->library)) return 0;
   if (database->journal_pin_close_unknown) return 0;
   if (database->lookup_generation != 0) return 0;
+  if (database->checked_close_ack) return 1;
   if (database->database == NULL) {
     actql_retire_result_storage(database);
     bool ack = database->journal_descriptor_ack == NULL ||
       database->journal_descriptor_ack(NULL) == ACTQL_SQLITE_COMPONENT_OK;
-    if (ack && database->store_operation != NULL) {
+    if (ack) {
       actql_adapter_free(database->library, database->error);
       database->error = NULL;
-      database->store_operation->database_closed = true;
+      database->checked_close_ack = true;
+      if (database->store_operation != NULL)
+        database->store_operation->database_closed = true;
     }
     return ack;
   }
@@ -499,10 +505,12 @@ int32_t actql_native_sqlite_close_checked(
   actql_retire_result_storage(database);
   bool ack = database->journal_descriptor_ack == NULL ||
     database->journal_descriptor_ack(NULL) == ACTQL_SQLITE_COMPONENT_OK;
-  if (ack && database->store_operation != NULL) {
+  if (ack) {
     actql_adapter_free(database->library, database->error);
     database->error = NULL;
-    database->store_operation->database_closed = true;
+    database->checked_close_ack = true;
+    if (database->store_operation != NULL)
+      database->store_operation->database_closed = true;
   }
   return ack;
 }
@@ -555,6 +563,13 @@ static void actql_native_sqlite_database_finalize(void *value) {
      * component again from the outer context merely to retire this shell. */
     if (!original->database_closed || original->flight || original->sql ||
         database->database != NULL || database->journal_pin_close_unknown ||
+        database->lookup_generation != 0 || database->error != NULL ||
+        database->result_body != NULL || database->result_key != NULL) return;
+  } else if (database->checked_close_ack) {
+    /* Only the already-acknowledged shell remains. Re-entering a component
+     * here would lose the Library pin when the original scope has ended. */
+    if (database->process != getpid() || database->database != NULL ||
+        database->journal_pin_close_unknown ||
         database->lookup_generation != 0 || database->error != NULL ||
         database->result_body != NULL || database->result_key != NULL) return;
   } else {

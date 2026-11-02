@@ -31,6 +31,21 @@ fn selected_model_limits_composition_fixture(
 }
 
 ///|
+test "physical Model recipe reads the same stored Model ledger separately from legacy read allowances" {
+  let selected = selected_model_limits_composition_fixture(7L)
+  let model = client_program_composed_infer_model_ledger_bytes(selected)
+  assert_eq(model, [10L, 20L])
+  assert_eq(client_program_composed_infer_retained_limits(selected).length(), 9)
+  assert_eq(client_program_composed_infer_retained_limits(selected)[4], 7L)
+  assert_eq(client_program_composed_infer_retained_limits(selected)[5], 13L)
+  model[0] = 999L
+  assert_eq(selected.model.ledger.retained_bytes, 10L)
+  assert_eq(client_program_composed_infer_model_ledger_bytes(selected), [
+    10L, 20L,
+  ])
+}
+
+///|
 // This calls the existing actual Pure/Effect requirement consumer, not an
 // ordinary Model operation or an assertion that these DATA bounds are funded.
 test "Model limit composition cannot admit a positive wrapped read overlap" {

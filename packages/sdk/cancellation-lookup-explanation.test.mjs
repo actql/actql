@@ -140,3 +140,28 @@ test('cancellation lookup captures caller identity once without a verification c
   assert.equal(clone.mock.calls.filter(({arguments: [value]}) => !Object.hasOwn(value, 'connection')).length, 0);
   assert.deepEqual(f.calls.map(c => c.operation), ['connect', 'attach', 'lookup-cancellation']);
 });
+
+for (const fault of ['replacement', 'mutation']) {
+  test(`cancellation lookup preserves caller identity without clone ${fault}`, async t => {
+    const f = await fixture(t, body => ({kind: 'unknown', cancelRef: {...body.ref,
+      cancelId: body.cancelId, expectedRevision: body.expectedRevision}}));
+    const nativeClone = globalThis.structuredClone;
+    let conversions = 0;
+    t.mock.method(globalThis, 'structuredClone', value => {
+      if (Object.hasOwn(value, 'connection')) return nativeClone(value);
+      conversions++;
+      if (fault === 'mutation') value.cancelId = 'foreign-cancel';
+      return {...nativeClone(value), cancelId: 'foreign-cancel'};
+    });
+    let answer, failure;
+    try { answer = await f.run.lookupCancellation({...cancelRef}); }
+    catch (error) { failure = error; }
+    assert.equal(failure, undefined, '[check-mutation:cancel-lookup-no-conversion]');
+    assert.equal(conversions, 0, '[check-mutation:cancel-lookup-no-conversion]');
+    assert.deepEqual(explainCancellation(answer), unknownExplanation);
+    assert.deepEqual(f.calls.at(-1).body, {
+      connection: {mode: 'local', owner: 'local', consentRefs: [], runners: []},
+      ref, cancelId: 'original-cancel', expectedRevision: 19});
+    assert.deepEqual(f.calls.map(c => c.operation), ['connect', 'attach', 'lookup-cancellation']);
+  });
+}

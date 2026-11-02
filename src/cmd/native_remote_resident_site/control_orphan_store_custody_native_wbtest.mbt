@@ -53,7 +53,10 @@ test "orphan Store failure retains original cleanup and does not replace its Jou
     0,
   )
   let retained = Ref(Some(ReplayJournalHandle(journal)))
-  assert_true(retry_control_orphan_store_cleanup(failed, retained, slot))
+  let slot_progress = Ref(ControlSlotPending)
+  assert_true(
+    retry_control_orphan_store_cleanup(failed, retained, slot, slot_progress),
+  )
   assert_true(failed.val is None)
   assert_true(retained.val is None)
   assert_true(
@@ -121,6 +124,7 @@ test "orphan reclaim keeps its actual Store and Slot until the original active W
   let writer = store.begin_payload(payload).unwrap()
   writer.append(b"x").unwrap()
   let retained : Ref[ControlReplayJournalCustody?] = Ref(None)
+  let slot_progress = Ref(ControlSlotPending)
   let observed = reclaim_orphaned_outputs(
     settings,
     environment,
@@ -128,6 +132,7 @@ test "orphan reclaim keeps its actual Store and Slot until the original active W
     Some(store),
     retained,
     failed,
+    slot_progress,
   )
   assert_true(observed is OrphanStoreOpen(same) && physical_equal(same, store))
   assert_true(retained.val is None)
@@ -142,6 +147,7 @@ test "orphan reclaim keeps its actual Store and Slot until the original active W
       Some(store),
       retained,
       failed,
+      slot_progress,
     )
     is OrphansDone,
   )
@@ -180,7 +186,8 @@ test "orphan Store refusal before acquisition still retires its earlier original
   assert_true(failed.val is None)
   assert_eq(root.inspect_generation(".actql-publication.lock").unwrap(), None)
   let retained = Ref(Some(ReplayJournalHandle(journal)))
-  retain_control_orphan_reader_cleanup(retained, slot)
+  let slot_progress = Ref(ControlSlotPending)
+  retain_control_orphan_reader_cleanup(retained, slot, slot_progress)
   assert_true(retained.val is None)
   let independent = @slot.open_native_executor_slot(path + ".slot").unwrap()
   assert_true(independent.try_acquire().unwrap())

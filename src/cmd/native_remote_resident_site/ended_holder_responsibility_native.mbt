@@ -40,6 +40,17 @@ fn retry_stopped_recovery_terminal_close(
   guard retained.val is Some(owner) && physical_equal(owner, original) else {
     return false
   }
+  guard retry_stopped_recovery_terminal_handles(original) else { return false }
+  retained.val = None
+  true
+}
+
+///|
+/// Observe only the existing Core-selected terminal handle steps. Local
+/// failure cleanup never selects this state or turns it into Run release.
+fn retry_stopped_recovery_terminal_handles(
+  original : StoppedReleaseRecovery,
+) -> Bool {
   if original.terminal_close is RecoveryTerminalJournal {
     guard original.journal.close_checked() is Ok(_) else { return false }
     original.terminal_close = RecoveryTerminalSlot
@@ -51,11 +62,7 @@ fn retry_stopped_recovery_terminal_close(
     }
     original.terminal_close = RecoveryTerminalClosed
   }
-  if original.terminal_close is RecoveryTerminalClosed {
-    retained.val = None
-    return true
-  }
-  false
+  original.terminal_close is RecoveryTerminalClosed
 }
 
 ///|
@@ -228,6 +235,7 @@ priv struct ControlEndedHolderLifetime {
   observation_url : String
   slot_path : String
   mut slot : @slot.NativeExecutorSlot
+  mut slot_progress : Ref[ControlTerminalClose]
   mut orphan_store : @publication_store.Store?
   recovery : Ref[StoppedReleaseRecovery?]
   recovery_cursor : Ref[String]
@@ -253,6 +261,7 @@ fn retry_control_ended_holder_lifetime(
     original.failed_orphan_store,
     original.replay_journal,
     original.slot,
+    original.slot_progress,
   ) else {
     return false
   }
@@ -351,7 +360,10 @@ fn retry_control_ended_holder_lifetime(
     // Same configured slot path, as in the ordinary controller. A failed
     // opener never discards the original ended/live responsibility.
     match @slot.open_native_executor_slot(original.slot_path) {
-      Ok(value) => original.slot = value
+      Ok(value) => {
+        original.slot = value
+        original.slot_progress = Ref(ControlSlotPending)
+      }
       Err(_) => return false
     }
   }
@@ -388,7 +400,8 @@ fn retain_control_ended_holder_lifetime(
   failed_orphan_store : Ref[
     @publication_store.NativePublicationStoreOpenFailure?,
   ],
-) -> @slot.NativeExecutorSlot {
+  slot_progress : Ref[ControlTerminalClose],
+) -> (@slot.NativeExecutorSlot, Ref[ControlTerminalClose]) {
   let original : ControlEndedHolderLifetime = {
     ended,
     live: Ref(live),
@@ -396,6 +409,7 @@ fn retain_control_ended_holder_lifetime(
     client,
     observation_url,
     slot,
+    slot_progress,
     slot_path,
     orphan_store,
     recovery,
@@ -422,5 +436,5 @@ fn retain_control_ended_holder_lifetime(
       },
     ),
   )
-  original.slot
+  (original.slot, original.slot_progress)
 }

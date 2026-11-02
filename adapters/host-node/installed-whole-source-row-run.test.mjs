@@ -137,6 +137,7 @@ async function failedPreparationFixture({pendingRetirement = false, validFacts =
   const bindings = {moon, declaration, runtimeField, runtimeIsOk, runtimeIsBoxedSome, checked,
     fail(code) {throw Object.assign(new Error(code), {code});},
     sourceAccess: {}, directReadIdentity: undefined, originalReader: {retire: () => true, receiver: {}},
+    immutableTargets: undefined, physicalTargetGeneration: undefined,
     prepareSourceRead: undefined, sourceInitialization: undefined,
     site: {close() {siteCloses++;}}, nodeTypes: types,
     preparingSourceReads: new Set(), sourceRefs: new Set(['source']), preparations: new WeakMap(),

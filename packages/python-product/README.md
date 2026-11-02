@@ -3,7 +3,8 @@
 The standard distribution is `actql`; the lightweight Remote Client is
 `actql-sdk`. The standard product depends on the exact same release cohort of
 `actql-sdk` and `actql-local-runtime`. Its facade reexports the same Client,
-Execution, Result and diagnostic objects. It contains no second engine, Run
+Execution, Result and diagnostic objects, including the same `CheckObservation`,
+`CheckReport` and `CheckReason` types. It contains no second engine, Run
 owner, scheduler or recovery implementation.
 
 The selected installation forms are:

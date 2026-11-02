@@ -523,7 +523,7 @@ const workflow = parse(readFileSync(join(repositoryRoot, '.github/workflows/ci.y
 const { jobs } = workflow;
 const producerJobs = ['pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity', 'pipeline-capacity-mutants'];
 const partNames = {'pipeline-mutations':'L-M0','pipeline-mutations-rest':'L-M1','pipeline-capacity':'L-C0','pipeline-capacity-mutants':'L-C1'};
-const normalSchedule = "${{ vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}";
+const normalSchedule = "${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}";
 const runLines = job => jobs[job].steps.filter(step => step.run).flatMap(step => step.run.trim().split('\n'));
 const shell = (script, env) => spawnSync('bash', ['-eo', 'pipefail', '-c', script], {
   cwd: repositoryRoot, env: { ...process.env, ...env }, encoding: 'utf8', timeout: 10_000,
@@ -548,7 +548,7 @@ test('workflow partitions complete campaigns into exactly four owners with manda
   assert.deepEqual(listed.stdout.trim().split('\n').sort(),expected);
   for(const name of producerJobs) {
     const job=jobs[name], part=partNames[name], lines=runLines(name);
-    assert.equal(job.if,normalSchedule); assert.deepEqual(job.needs,['select-targets','preflight']);
+    assert.equal(job.if,normalSchedule.replace(" }}", " && needs.select-targets.outputs.deep_proofs == 'true' }}")); assert.deepEqual(job.needs,['select-targets','preflight']);
     assert.equal(job.strategy,undefined);assert.equal(job['runs-on'],'ubuntu-24.04');
     assert.deepEqual(job.env,{ACTQL_PIPELINE_PART:part});
     assert(!lines.some(line=>line.includes('node --test')),'Synthetic tests run once elsewhere');
@@ -574,7 +574,7 @@ test('workflow downloads exact producer IDs only after its success and identity 
   const final = jobs['pipeline-evidence'];
   assert.deepEqual(final.needs, [...producerJobs,'pipeline-validation']);
   assert.match(final.if, /always\(\)/u);
-  for(const name of [...producerJobs,'pipeline-validation']) assert(final.if.includes(`needs.${name}.result == 'skipped'`));
+  for(const name of producerJobs) assert(final.if.includes(`needs.${name}.result == 'skipped'`));
   assert.deepEqual(final.steps[0].env, { PIPELINE_NEEDS: '${{ toJSON(needs) }}' });
   assert(final.steps[0].run, 'Guard must run before all downloads');
   for (const name of producerJobs) {
@@ -643,7 +643,7 @@ test('global check continues to require the final pipeline-evidence verdict', t 
   assert(jobs.check.needs.includes('pipeline-evidence'));
   assert(!producerJobs.some(name => jobs.check.needs.includes(name)), 'Final audited join remains the required check boundary');
   const script = jobs.check.steps.find(step => step.run).run;
-  const needs = Object.fromEntries(jobs.check.needs.map(name => [name, { result: name === 'focused-tests' ? 'skipped' : 'success' }]));
+  const needs = Object.fromEntries(jobs.check.needs.map(name => [name, { result: ['focused-tests', 'main-performance', 'health-quick'].includes(name) ? 'skipped' : 'success' }]));
   const revision = 'b'.repeat(40);
   const selection = selectTargets(['.github/workflows/ci.yml']);
   assert.equal(selection.profile, 'full');

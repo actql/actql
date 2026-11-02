@@ -68,7 +68,9 @@ function fixture() {
       assert.equal(this, runtime); same([p, value, r], [parent, prepared, request]); return ok();
     },
     clientProgramInstalledEffectManagedOperationPlan(p, value, r) {assert.equal(p, parent); assert.equal(value, prepared); assert.equal(r, request); return ok(plan);},
-    clientProgramInstalledEffectOperationControlsBegin() {return ok(plan);},
+    clientProgramInstalledEffectOperationControlConstructionBegin() {return {$tag:1,_0:undefined};},
+    clientProgramInstalledEffectOperationControlConstructionComplete() {return {$tag:1,_0:undefined};},
+    clientProgramInstalledEffectOperationControlsRetain() {return ok(plan);},
     clientProgramInstalledManagedRunRetire() {calls.push('retire-parent'); return ok();},
     clientProgramNodeEffectManagedPlanCleanup(a) {assert.equal(a, admission); calls.push('cleanup-admission'); return ok();},
     clientProgramFinishInferOriginalReadScope(s, compiled, definition, graph, complete) {
@@ -323,4 +325,29 @@ test('Effect fallback observes only the same original parent after a throwing re
   assert.throws(f.retire, {code: 'ForeignInstalledEffectManagedRun'});
   assert.equal(f.counts.observations, 1); assert.equal(f.counts.returns, 0);
   assert.equal(f.run.operationPlan, f.plan); assert.equal(f.run.prepared, f.prepared);
+});
+
+
+test('Effect control retirement keeps its original receiver and fences reentry before parent return', () => {
+  const f = effectRetirementFixture(), originalControl = {};
+  let calls = 0;
+  f.run.controlConstruction = originalControl;
+  f.run.retireControlConstruction = function() {
+    assert.equal(this, originalControl); calls++;
+    assert.throws(f.retire, {code: 'InstalledEffectRunCleanupPending'});
+    return true;
+  };
+  f.retire(); assert.equal(calls, 1); assert.equal(f.counts.returns, 1);
+  const pending = effectRetirementFixture();
+  pending.run.controlConstruction = {};
+  pending.run.retireControlConstruction = () => false;
+  assert.throws(pending.retire, {code: 'InstalledEffectControlConstructionCleanupPending'});
+  assert.equal(pending.counts.retire, 0); assert.equal(pending.counts.returns, 0);
+  assert.equal(pending.run.operationPlan, pending.plan);
+  const changed = effectRetirementFixture();
+  changed.run.controlConstruction = {};
+  changed.run.retireControlConstruction = () => {changed.run.request = {}; return true;};
+  assert.throws(changed.retire, {code: 'ForeignInstalledEffectManagedRun'});
+  assert.equal(changed.counts.retire, 0); assert.equal(changed.counts.returns, 0);
+  assert.equal(changed.run.operationPlan, changed.plan);
 });

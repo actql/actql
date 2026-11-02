@@ -34,13 +34,20 @@ test "controller terminal retains the confirmed original Client and Slot close o
     "terminal-confirmed",
   )
   let progress = Ref(ControlClientPending)
-  assert_true(retry_control_terminal_handles((client, slot), progress))
-  assert_true(progress.val is ControlHandlesRetired)
+  let slot_progress = Ref(ControlSlotPending)
+  assert_true(
+    retry_control_terminal_handles((client, slot), progress, slot_progress),
+  )
+  assert_true(
+    progress.val is ControlHandlesRetired(same) && physical_equal(same, slot),
+  )
   assert_true(client.response_limit() is Err(Closed))
   let independent = @slot.open_native_executor_slot(path).unwrap()
   assert_true(independent.try_acquire().unwrap())
   // Recorded completion must not reclose the consumed original descriptor.
-  assert_true(retry_control_terminal_handles((client, slot), progress))
+  assert_true(
+    retry_control_terminal_handles((client, slot), progress, slot_progress),
+  )
   assert_eq(independent.verify_current_hold(), Ok(()))
   assert_true(independent.close())
   library.close_checked().unwrap()
@@ -58,10 +65,15 @@ test "controller terminal keeps an unobserved consumed Slot pending without clos
   let independent = @slot.open_native_executor_slot(path).unwrap()
   assert_true(independent.try_acquire().unwrap())
   let progress = Ref(ControlClientPending)
-  assert_false(retry_control_terminal_handles((client, slot), progress))
+  let slot_progress = Ref(ControlSlotPending)
+  assert_false(
+    retry_control_terminal_handles((client, slot), progress, slot_progress),
+  )
   assert_true(progress.val is ControlSlotUnknown)
   assert_true(client.response_limit() is Err(Closed))
-  assert_false(retry_control_terminal_handles((client, slot), progress))
+  assert_false(
+    retry_control_terminal_handles((client, slot), progress, slot_progress),
+  )
   assert_eq(independent.verify_current_hold(), Ok(()))
   assert_true(independent.close())
   // Returning this Library reference is separate from the unresolved Slot.

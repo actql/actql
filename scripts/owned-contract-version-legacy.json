@@ -1795,6 +1795,14 @@
       "line": 118,
       "count": 1,
       "reason": "Reviewed malformed-format rejection vector for the original BigQuery Job record. This one frozen source context permits no production writer, contract upgrade or additional occurrence."
+    },
+    {
+      "path": "adapters/site-node/sqlite-transaction-custody.test.mjs",
+      "token": "actql-remote-site-journal/0.6",
+      "contextSha256": "8eeeb58f61d6e5140a7524cf295bc14dcc906c45b1ff91297bf0b8f462c0ad70",
+      "line": 15,
+      "count": 1,
+      "reason": "Reviewed read-only assertion of the already adopted dispatch-journal SQLite schema after a lost COMMIT reply. Product format, writer and accepted versions are unchanged; this exact test context authorizes no new version or writer."
     }
   ]
 }

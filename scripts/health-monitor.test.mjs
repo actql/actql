@@ -2,7 +2,9 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {mkdtemp, readFile, writeFile, mkdir, readdir, symlink} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
-import {join} from 'node:path';
+import {dirname, join} from 'node:path';
+import {createRequire} from 'node:module';
+import {pathToFileURL} from 'node:url';
 import {spawnSync} from 'node:child_process';
 import {runInNewContext} from 'node:vm';
 import {parse} from 'yaml';
@@ -10,7 +12,11 @@ import {compareReports, finishReport, markdown, summarize, exitStatus, digest, m
 import {parseArguments, requiredQuickMetrics, missingReleaseInputs, recordGuardExit, applyComparison, environmentIdentity, verifyPythonInstalledAfter, verifyNativeInstalledAfter} from './health-monitor.mjs';
 import {packDistributionPackages} from './measure-distribution-artifacts.mjs';
 import {formalCollectorVerdict, pythonRuntimeIdentity, assertPythonCollectorRuntime, pythonInstalledInventory} from './health-monitor-release.mjs';
-import {quickNodeMetrics,execute} from './health-monitor-adapters.mjs';
+import {quickNodeMetrics,execute,distributionMetrics} from './health-monitor-adapters.mjs';
+import {createOwnedScratch} from './owned-scratch.mjs';
+import {createHash} from 'node:crypto';
+import {inventory} from './package-release.mjs';
+import {verifyNodeBenchmarkPackages} from './benchmark-node-operations.mjs';
 import {nodeWarmSmallQueryFixtures} from './benchmark-node-operations.mjs';
 import * as releaseAdapters from './health-monitor-release.mjs';
 import {nativeOperationsData} from './fixtures/health-native-operations.mjs';
@@ -19,6 +25,103 @@ const policy = JSON.parse(await readFile(new URL('../benchmarks/health/config.js
 const samples = (ms, count = 10) => Array.from({length: count}, (_, iteration) => ({iteration,
   wallNs: ms * 1e6, cpuUserUs: 1, cpuSystemUs: 1, cpuScope: 'synthetic unit caller',
   peakRssBytes: 1024, rssScope: 'synthetic child RSS', verified: true, completed: true}));
+
+test('browser distribution invokes the installed esbuild executable and retains import refusals', async () => {
+  const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-health-browser-',
+    label: 'Actual browser executable and closed import boundary'});
+  const repository = join(scratch.path, 'repository'), consumer = join(scratch.path, 'consumer');
+  await mkdir(join(repository, 'node_modules'), {recursive: true});
+  const require = createRequire(import.meta.url);
+  await symlink(dirname(require.resolve('esbuild/package.json')), join(repository, 'node_modules/esbuild'));
+  const sdk = join(consumer, 'node_modules/@actql/sdk'), wire = join(consumer, 'node_modules/@actql/client-wire');
+  await mkdir(sdk, {recursive: true}); await mkdir(wire, {recursive: true});
+  await writeFile(join(wire, 'index.mjs'), 'export const answer = 42;\n');
+  const source = "export {answer} from '../client-wire/index.mjs';\n";
+  await writeFile(join(sdk, 'index.mjs'), source);
+  const packages = ['sdk', 'client-wire'].map(name => ({name: '@actql/' + name, version: '0.0.0',
+    files: [{path: 'index.mjs', bytes: name === 'sdk' ? Buffer.byteLength(source) : 26}], bytes: 1,
+    sha256: digest(name), file: name + '.tgz'}));
+  const prepared = {consumer, manifestPath: 'synthetic-no-package-acquisition', manifest: {packages}};
+  const commands = [];
+  const command = (executable, args, settings) => {
+    commands.push({executable, args});
+    assert.equal(executable, join(repository, 'node_modules/esbuild/bin/esbuild'));
+    assert.equal(args[0], join(sdk, 'index.mjs'));
+    return execute(executable, args, settings);
+  };
+  const root = join(scratch.path, 'success'); await mkdir(root);
+  const installedInventory = await inventory(join(consumer, 'node_modules'));
+  const result = await distributionMetrics({repository, prepared, root, command, source: {sha: 'a'.repeat(40)}, installedInventory});
+  assert.equal(result.installedInventory, installedInventory);
+  assert.equal((await import(pathToFileURL(join(root, 'browser.mjs')).href)).answer, 42);
+  assert.equal(commands.length, 1);
+  assert.equal(result.metrics.filter(row => row.id.startsWith('browser-')).length, 2);
+  assert.ok(result.metrics.filter(row => row.id.startsWith('browser-')).every(row => row.required && row.value > 0));
+  for (const [name, text] of [['node-builtin', "export {readFile} from 'node:fs';\n"],
+    ['foreign-input', "export {answer} from '../../../foreign.mjs';\n"]]) {
+    await writeFile(join(consumer, 'foreign.mjs'), 'export const answer = 42;\n');
+    await writeFile(join(sdk, 'index.mjs'), text);
+    const failed = join(scratch.path, name); await mkdir(failed);
+    await assert.rejects(distributionMetrics({repository, prepared, root: failed, command, source: {sha: 'a'.repeat(40)}}));
+  }
+  assert.equal(commands.length, 3);
+  await scratch.passed();
+});
+
+test('early distribution failure retains independent installed before and after observations', async () => {
+  const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-health-early-distribution-',
+    label: 'Collector failure and independent installed custody'});
+  const text = await readFile(new URL('./health-monitor.mjs', import.meta.url), 'utf8');
+  const start = text.indexOf('export async function executeMonitor(');
+  const end = text.indexOf('\nexport async function main(', start);
+  assert.ok(start >= 0 && end > start);
+  const body = text.slice(start, end).replace('export ', '').replaceAll('import(', 'selectedImport(');
+  for (const change of [false, true]) {
+    const root = join(scratch.path, String(change)), consumer = join(root, 'consumer');
+    const product = join(consumer, 'node_modules/@actql/node'); await mkdir(product, {recursive: true});
+    await writeFile(join(product, 'index.mjs'), 'export const value = 1;\n');
+    const tar = Buffer.from('synthetic verifier input, never unpacked or installed');
+    await writeFile(join(root, 'node.tgz'), tar);
+    const manifest = {packages: [{name: '@actql/node', file: 'node.tgz', bytes: tar.length, sha256: digest(tar),
+      integrity: 'sha512-' + createHash('sha512').update(tar).digest('base64'), files: await inventory(product)}]};
+    const prepared = {consumer, manifest, manifestPath: join(root, 'manifest.json')};
+    const before = await inventory(join(consumer, 'node_modules'));
+    const source = {sha: 'a'.repeat(40)}, environment = {scope: 'synthetic component ports'};
+    const report = {source, environment, artifacts: [], metrics: [], errors: []};
+    const primary = new Error('Original browser collector failure');
+    const selected = runInNewContext('(' + body + ')', {
+      repository: root, process, join, mkdir, structuredClone, jsonDigest: value => digest(JSON.stringify(value)),
+      summarize: () => assert.fail('No runtime measurements in this component'),
+      finishReport: value => value, saveReport: async () => {}, applyComparison: async () => {},
+      sourceIdentity: () => source, environmentIdentity: async () => environment,
+      verifyNativeInstalledAfter: async () => {}, verifyPythonInstalledAfter: async () => {},
+      selectedImport: async specifier => {
+        if (specifier === './package-release.mjs') return {inventory};
+        if (specifier === './benchmark-node-operations.mjs') return {verifyNodeBenchmarkPackages};
+        assert.equal(specifier, './health-monitor-adapters.mjs');
+        return {execute: () => assert.fail('No subprocess in this observation component'),
+          prepareHealthPackages: async () => prepared,
+          distributionMetrics: async input => {
+            assert.equal(input.installedInventory, report.installedInventoryBefore);
+            if (change) await writeFile(join(product, 'index.mjs'), 'export const value = 2;\n');
+            throw primary;
+          }};
+      },
+    });
+    await selected({mode: 'quick', options: {}, report, directory: root});
+    assert.deepEqual(report.installedInventoryBefore, before);
+    assert.equal(report.errors[0].target, 'collector'); assert.equal(report.errors[0].message, primary.message);
+    if (change) {
+      assert.notEqual(report.installedPayloadsUnchanged, true);
+      assert.equal(report.errors[1].target, 'package-after');
+      assert.doesNotMatch(report.errors[1].message, /Received undefined/u);
+    } else {
+      assert.equal(report.installedPayloadsUnchanged, true);
+      assert.deepEqual(report.installedInventoryAfter, before); assert.equal(report.errors.length, 1);
+    }
+  }
+  await scratch.passed();
+});
 
 test('missing Node comparison retains incomplete evidence without suppressing independent Native selection', async () => {
   const text = await readFile(new URL('./health-monitor-release.mjs', import.meta.url), 'utf8');
@@ -380,20 +483,20 @@ test('source/config and gated workflow declare exact Quick 10/5 and fail closed'
   assert.deepEqual(policy.quick, {warmSamples: 10, coldSamples: 5});
   assert.deepEqual(policy.release, {warmSamples: 100, coldSamples: 30});
   const workflow = await readFile(new URL('../.github/workflows/health-monitor.yml', import.meta.url), 'utf8');
-  assert.match(workflow, /ACTQL_MAIN_CI_ENABLED == 'true'/);
+  assert.doesNotMatch(workflow, /ACTQL_MAIN_CI_ENABLED/);
   assert.match(workflow, /repository.visibility == 'public'/);
   assert.match(workflow, /toJSON\(github.event.repository.private\) == 'false'/);
   assert.match(workflow, /retention-days: 30/); assert.match(workflow, /npm run health:quick/);
   assert.doesNotMatch(workflow, /ACTQL_HEALTH_MONITOR_ENABLED/);
-  const guard = "vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false'";
+  const guard = "github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false'";
   for (const job of Object.values(parse(workflow).jobs)) {
     assert(job.if.startsWith('${{ ' + guard));
-    for (const [enabled, visibility, privateFlag, expected] of [
-      [undefined, 'public', false, false], ['false', 'public', false, false],
-      ['true', undefined, false, false], ['true', 'private', true, false],
-      ['true', 'public', undefined, false], ['true', 'public', null, false],
-      ['true', 'public', 'false', false], ['true', 'public', false, true]]) {
-      assert.equal(runInNewContext(guard, {vars: {ACTQL_MAIN_CI_ENABLED: enabled},
+    for (const [visibility, privateFlag, expected] of [
+      ['public', false, true],
+      [undefined, false, false], ['private', true, false],
+      ['public', undefined, false], ['public', null, false],
+      ['public', 'false', false], ['public', false, true]]) {
+      assert.equal(runInNewContext(guard, {
         github: {event: {repository: {visibility, private: privateFlag}}}, toJSON: JSON.stringify}), expected);
     }
   }
@@ -505,7 +608,12 @@ test('ordinary Python short-query fixtures exactly match the Node independent li
   assert.equal(result.status, 0, result.stderr);
   const fixtures = JSON.parse(result.stdout);
   for (const operation of ['warm-join', 'warm-union', 'warm-decimal-sum', 'warm-parameters', 'warm-unicode']) {
-    assert.deepEqual(fixtures[operation], nodeWarmSmallQueryFixtures.find(row => row.operation === operation));
+    // Python accepts bindings in sql keyword arguments; Node uses the separate
+    // bindings argument. Compare their values without equating API shapes.
+    const {parameters, ...nodeFixture} = nodeWarmSmallQueryFixtures.find(row => row.operation === operation);
+    const pythonFixture = parameters === undefined ? nodeFixture
+      : {...nodeFixture, options: {...nodeFixture.options, parameters}};
+    assert.deepEqual(fixtures[operation], pythonFixture);
   }
 });
 test('installed and raw-browser bytes report deltas without inventing an unspecified size gate', () => {

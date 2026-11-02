@@ -49,10 +49,10 @@ Open that file directly if the client does not discover repository skills.
   packages, and targeted Node tests for SDK, adapters and scripts. Native-only
   or FFI changes need an explicitly selected matching-target diagnostic.
 - Do not default to full Core, all-target, proof, packed acceptance or performance
-  suites. After public visibility and explicit opt-in, main-push integration CI retains
-  full verification; local and PR review establish only the checks actually
-  executed. PRs do not automatically run hosted CI. Retained Draft-profile
-  fixtures are preparation only and never establish merge or release evidence.
+  suites. Public-repository PRs run applicable hosted checks; main pushes retain
+  full integration verification. Local and PR review establish only the checks
+  actually executed. Draft checks are preparation only and never establish merge
+  or release evidence.
 - Use the existing bounded/nonzero-test wrappers. Preserve incremental `_build`;
   do not edit, merge or switch a worktree while its gate runs, or run competing
   gates there. `--allow-heavy` is not human approval.

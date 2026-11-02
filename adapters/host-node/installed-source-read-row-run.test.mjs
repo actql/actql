@@ -71,6 +71,7 @@ test('planned provider rows start through the same original Source read and Ledg
   };
   f.moon.clientProgramRowSourceBorrowResponses = () => assert.fail('no reader prepared');
   f.moon.clientProgramRowSourceBindResponseCleanup = () => assert.fail('no reader prepared');
+  f.moon.clientProgramRowSourceRetireResponseWorkspace = () => assert.fail('no reader prepared');
   f.moon.clientProgramRowSourceStartProviderAccounted = () => assert.fail('no independent provider parent');
   const session = startInstalledRowRun({...f.options, capacity: {...f.options.capacity, provider}});
   assert.deepEqual(f.calls, ['check', 'provider']);

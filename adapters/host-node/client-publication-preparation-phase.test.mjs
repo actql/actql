@@ -434,19 +434,34 @@ function originalSourcePreparationCallbacks(entry, readContext, retire, original
     }, prepareOrdinaryProjectSourceManagedInstallation(value, bag) {
       assert.equal(value, originals); return bag;
     }};
+  // Capture the actual same-owner borrow helper as well as its consumer.
+  // The explicit constructor port is exercised only if the selected manager
+  // borrows it; this fixture never substitutes an unfunded initialization.
+  callbacks.apply = Reflect.apply;
+  callbacks.unavailable = () => fail('SourceManagedPreparationUnavailable');
+  callbacks.borrowSourceInitializationMaterial = get('./node-source-managed-installation.mjs',
+    'borrowSourceInitializationMaterial', callbacks);
   return get('./node-source-managed-installation.mjs', entry, callbacks)(originals);
 }
 
 test('both actual Source entries open the same Request before snapshot and retain its original retirement', () => {
   for (const entry of ['prepareSourceManagedInstallation', 'prepareProjectSourceManagedInstallation']) {
     for (const kind of ['program', 'aql']) {
-      const originals = {}, context = {}, connection = {}, parent = {}, prepared = {}, holder = {}, events = [];
+      const originals = {}, context = {runtime: {}}, connection = {}, parent = {}, prepared = {}, holder = {}, events = [];
       const callbacks = originalSourcePreparationCallbacks(entry, value => {
         assert.equal(value, originals); events.push('context'); return context;
       }, (value, body) => {assert.equal(value, originals); assert.equal(body, prepared); events.push('retire');}, originals);
       const receipts = new WeakMap(), producers = new Set();
+      const retainSourceInitializationMaterial = get('./ordinary-source-managed.mjs',
+        'retainSourceInitializationMaterial', {
+          closing: false, closed: false, receipts, fail,
+          // This Request-order fixture has no installed Source material.
+          // Use the actual helper's unselected branch, not a replacement.
+          borrowSourceInitialization: undefined,
+        });
       const before = get('./ordinary-source-managed.mjs', 'beforeSourceSnapshot', {
         current() {}, callbacks, originals, receipts, producers, closed: false, fail,
+        retainSourceInitializationMaterial,
         requestPreparationAvailable: value => {assert.equal(value, context); return true;},
         assertRequestPreparationControl: value => {assert.equal(value, context); events.push('control');},
         beginRequestInput(state, receipt, actualConnection) {

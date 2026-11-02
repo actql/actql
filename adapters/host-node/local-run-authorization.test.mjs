@@ -2,9 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {parse} from 'acorn';
-import {mkdtemp, writeFile, rm} from 'node:fs/promises';
+import {mkdtemp, writeFile, rm, readdir} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
+import {pathToFileURL} from 'node:url';
+import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
+import {heldValuesProgram, writeSyntheticHistoricalHeldValues} from '../../scripts/fixtures/synthetic-historical-held-values.mjs';
 import {createLocalReadAuthorizations} from './local-result-authorization.mjs';
 import {sourceReadAccountConfiguration} from './local-account-config.mjs';
 import {loadExecutionAuthorizationRuntime} from './authorization.mjs';
@@ -38,6 +41,75 @@ function entrance(authorizeLocalRun) {
 const facts = {principalId: 'person', connection: {mode: 'local', owner: 'local'},
   ref: {namespaceId: 'local', authorityScopeCid: 'sha256:' + '1'.repeat(64),
     runDefinitionCid: 'sha256:' + '2'.repeat(64)}};
+
+// Execute only this original fixture adapter with explicit issuer/Journal
+// ports. This is not a real Common, durable Journal or ordinary Host test.
+test('cancel fixture publishes its state through the same original Journal frame', () => {
+  const text = readFileSync(new URL('./client-cancel-response-loss.fixture.mjs', import.meta.url), 'utf8');
+  const properties = [];
+  const scan = node => {
+    if (node === null || typeof node !== 'object') return;
+    if (node.type === 'Property' && node.key?.name === 'observeRun') properties.push(node);
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(scan);
+      else if (value !== null && typeof value === 'object') scan(value);
+    }
+  };
+  scan(parse(text, {ecmaVersion: 'latest', sourceType: 'module'}));
+  assert.equal(properties.length, 1);
+  const fn = properties[0].value;
+  const original = {runDefinition: {}, resultNames: ['answer'], revision: 12,
+    dispatchReserved: true, preDispatchFailureConfirmed: false,
+    cancellationRequested: false, physicalStartReserved: true, physicalCloseConfirmed: false};
+  const moon = {}, control = {runDefinitionRunId(value) { assert.equal(value, original.runDefinition); return 'original'; }};
+  const state = Object.freeze({run_id: 'original', status: 'running', result_availability: {}});
+  const cancellation = Object.freeze({revision: 12, cancellation_requested: false, physical_stop: 'unknown'});
+  const failure = new Error('Original Journal publication failure');
+  let publishes = 0, reject = false;
+  const journal = {
+    lookupRunDefinition(ref, requestControl, publicationControl) {
+      assert.equal(ref, facts.ref); assert.equal(requestControl, moon); assert.equal(publicationControl, control);
+      return original;
+    },
+    publishRunState(frame, observed, requestControl, publicationControl) {
+      publishes++;
+      assert.equal(frame, original); assert.equal(requestControl, moon); assert.equal(publicationControl, control);
+      assert.equal(Object.hasOwn(observed, 'control'), false, 'The Journal owns the same original control projection');
+      assert.equal(observed.result_availability, state.result_availability);
+      assert.equal(Object.hasOwn(observed, 'revision'), false, 'The Journal alone issues the observation revision');
+      if (reject) throw failure;
+      return JSON.stringify({...observed, control: cancellation, revision: 19});
+    },
+  };
+  const observe = new Function('assert', 'journal', 'moon', 'publicationControl',
+    'issueInstalledUnpublishedRunState', 'issueInstalledRunControlObservation',
+    'return function ' + text.slice(fn.start, fn.end))(assert, journal, moon, control, () => state,
+    () => assert.fail('The fixture must not repeat the Journal control issuer'));
+  const actual = observe({ref: facts.ref});
+  assert.equal(publishes, 1); assert.equal(actual.revision, 19);
+  assert.deepEqual(actual.control, cancellation); assert.equal(Object.isFrozen(actual), true);
+  reject = true;
+  assert.throws(() => observe({ref: facts.ref}), error => error === failure);
+  assert.equal(publishes, 2);
+});
+
+test('historical fixture rejects missing duplicate or nondelegating run entries before state I/O', async () => {
+  const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-held-delegate-',
+    label: 'Historical write-delegate selection controls'});
+  const read = {entry_id: 'read-original', outcome: 'allow'};
+  const delegate = {entry_id: 'run-acceptance', outcome: 'delegate'};
+  for (const entries of [[read], [read, delegate, delegate],
+    [read, {...delegate, outcome: 'allow'}]]) {
+    await assert.rejects(writeSyntheticHistoricalHeldValues({directory: join(scratch.path, 'unstarted-state'),
+      document: JSON.stringify(heldValuesProgram), requestId: 'unaccepted-fixture-request',
+      runtimeRootUrl: new URL('../../', import.meta.url),
+      expressionContractUrl: pathToFileURL(join(scratch.path, 'unprovided-contract.json')),
+      authorization: {accountConfiguration: JSON.stringify({account_id: 'authored-fixture', entries})}}),
+    {code: 'ERR_ASSERTION'});
+  }
+  assert.deepEqual(await readdir(scratch.path), []);
+  await scratch.passed();
+});
 
 test('public Run observation entry requires its actual Account read exactly once', async () => {
   let calls = 0;

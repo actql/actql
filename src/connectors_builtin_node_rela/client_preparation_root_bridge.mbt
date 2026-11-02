@@ -1145,6 +1145,18 @@ pub fn client_program_prepare_request_submitted_intent(
 }
 
 ///|
+#export_name("clientProgramRetainRequestSubmittedIntent")
+pub fn client_program_retain_request_submitted_intent(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  intent : @publication_host.ClientSubmittedIntent,
+) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue] {
+  @client_local_host.retain_request_submitted_intent(parent, input, intent)
+}
+
+///|
 #export_name("clientProgramFinishRequestSubmittedIntent")
 pub fn client_program_finish_request_submitted_intent(
   parent : @client_local_host.ClientRequestPreparation[

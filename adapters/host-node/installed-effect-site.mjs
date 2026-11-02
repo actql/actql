@@ -586,15 +586,23 @@ export function createInstalledEffectSite({environmentWire,
       }
       const settling = claimed?.action === 'settlement';
       if (!observing && claimed.action !== 'claimed' && !settling) return claimed;
+      const originalContinuationFacts = facts;
+      const originalContinuationCurrent = facts.assertContinuationCurrent;
+      const assertResumeCurrent = () => {
+        signal?.throwIfAborted();
+        if (!observing && !settling) {
+          if (originalContinuationCurrent !== undefined) {
+            Reflect.apply(originalContinuationCurrent, originalContinuationFacts, []);
+          }
+          checkpointJournal.admitResume(claimed.claim, {checkpointCid: view.checkpointCid});
+        }
+      };
+      facts = Object.freeze({...facts, assertContinuationCurrent: assertResumeCurrent});
       if (recovered.updateTargetSelections !== undefined) {
         const original = recovered.assertUpdateSelectionCurrent;
         recovered = Object.freeze({...recovered, assertUpdateSelectionCurrent() {
           original();
-          signal?.throwIfAborted();
-          if (!observing && !settling) {
-            facts.assertContinuationCurrent?.();
-            checkpointJournal.admitResume(claimed.claim, {checkpointCid: view.checkpointCid});
-          }
+          assertResumeCurrent();
         }});
       }
       let stage;

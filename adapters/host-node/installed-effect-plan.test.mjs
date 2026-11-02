@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {readFileSync} from 'node:fs';
+import {parse} from 'acorn';
 import {captureInstalledEffectPlanRecipe, prepareInstalledEffectManagedPlan,
-  captureInstalledStandardCreateLimits, prepareInstalledStandardCreatePlanRecipe, prepareInstalledEffectRequestChild}
+  captureInstalledStandardCreateLimits, prepareInstalledStandardCreatePlanRecipe, prepareInstalledEffectRequestChild,
+  prepareInstalledEffectControlConstruction}
   from './installed-effect-plan.mjs';
 import {effectLedgerImplementationBounds} from './effect-ledger-implementation-bounds.mjs';
 import {httpsCredentialAuthorizationPrefix, httpsCredentialResponseHeaderByteLimit}
@@ -17,14 +20,15 @@ test('automatic standard recipe forwards original constructor capacities and kee
       scope:Object.freeze({principal:'original',siteGeneration:1}),
       issuer:Object.freeze({authority:'issuer',keyId:'key'}),
       limits:Object.freeze({maxBindings:91,maxSecretBytes:23})})});
-    const providerMoon={installedStandardCreateConstructionProfile(...geometry){assert.equal(this,providerMoon);assert.deepEqual(geometry,[512,32,8]);calls.push('profile');return profile;}};
+    const providerMoon={installedStandardCreateConstructionProfile(...geometry){assert.equal(this,providerMoon);assert.deepEqual(geometry,[128,16,4]);calls.push('profile');return profile;}};
     const extents=[];
     const moon={
-      clientProgramInstalledStandardCreateRecipeCapacities(...args){
+      clientProgramInstalledStandardCreateRequestRecipeCapacities(...args){
         assert.equal(this,moon);calls.push('capacities');
-        assert.deepEqual(args,[profile,512,32,8,128,64,32,16,beforeSend,23,httpsCredentialAuthorizationPrefix.length,
-          httpsCredentialResponseHeaderByteLimit,effectLedgerImplementationBounds.maxResponseBytes,
-          effectLedgerImplementationBounds.maxNodes,effectLedgerImplementationBounds.maxDepth,41n]);
+        assert.deepEqual(args,[profile,512,32,8,128,16,4,128,64,32,16,beforeSend,23,httpsCredentialAuthorizationPrefix.length,
+          httpsCredentialResponseHeaderByteLimit,
+          Math.max(effectLedgerImplementationBounds.maxEntryBytes,effectLedgerImplementationBounds.maxResponseBytes),
+          effectLedgerImplementationBounds.maxOutcomeNodes,effectLedgerImplementationBounds.maxOutcomeDepth,41n,16384]);
         return {$tag:1,_0:capacities};
       },
       clientProgramInstalledEffectCaptureExtentPrepare(operation,fixed,row){
@@ -36,7 +40,7 @@ test('automatic standard recipe forwards original constructor capacities and kee
       },
     };
     const recipe=prepareInstalledStandardCreatePlanRecipe({moon,providerMoon,construction,credentialSite,
-      limits:{maxWireBytes:512,maxNodes:32,maxDepth:8},resourceTextUnits:7});
+      limits:{maxWireBytes:512,maxNodes:32,maxDepth:8},requestInput:{maxWireBytes:128,maxNodes:16,maxDepth:4},resourceTextUnits:7});
     assert.deepEqual(calls,['profile','capacities']);
     assert.equal(recipe.memberOperations.length,1);
     assert.equal(recipe.rowOperations.length,beforeSend?6:5);
@@ -195,11 +199,17 @@ test('constructor child debits the same original before work and retains it unti
       assert.equal(this, runtime); assert.equal(owner, parent); assert.equal(p, prepared);
       assert.equal(r, identity); return {$tag: 1, _0: plan};
     },
-    clientProgramInstalledEffectOperationBorrow(owner, p, r, originalPlan, member, perRow, operation, row, name) {
+    clientProgramInstalledEffectOperationConstructionRetain(owner, p, r, originalPlan, member, perRow, operation, row, name) {
       assert.equal(this, runtime); assert.equal(owner, parent); assert.equal(p, prepared);
       assert.equal(r, identity); assert.equal(originalPlan, plan);
       assert.deepEqual([member, perRow, operation, row, name], [2, true, 3, 4, 'construct']);
       calls.push('debit'); return {$tag: 1, _0: token};
+    },
+    clientProgramInstalledEffectOperationConstructionBegin(original) {
+      assert.equal(original,token);return {$tag:1,_0:undefined};
+    },
+    clientProgramInstalledEffectOperationConstructionComplete(original) {
+      assert.equal(original, token); return {$tag: 1, _0: undefined};
     },
     clientProgramInstalledEffectOperationRetire(original, ack) {
       assert.equal(this, runtime); assert.equal(original, token); assert.equal(ack, true);
@@ -230,10 +240,16 @@ test('constructor child debits the same original before work and retains it unti
 
 function constructorControlFixture(construct) {
   const prepared = {}, request = {}, parent = {}, plan = {}, token = {};
-  let retired = false, debits = 0, settlements = 0;
+  let retired = false, debits = 0, settlements = 0, entries = 0;
   const runtime = {
     clientProgramInstalledEffectManagedOperationPlan: () => ({$tag: 1, _0: plan}),
-    clientProgramInstalledEffectOperationBorrow() {debits++; return {$tag: 1, _0: token};},
+    clientProgramInstalledEffectOperationConstructionRetain() {debits++; return {$tag: 1, _0: token};},
+    clientProgramInstalledEffectOperationConstructionBegin(original) {
+      assert.equal(original,token); entries++; return {$tag:1,_0:undefined};
+    },
+    clientProgramInstalledEffectOperationConstructionComplete(original) {
+      assert.equal(original, token); return {$tag: 1, _0: undefined};
+    },
     clientProgramInstalledEffectOperationRetire(original) {
       assert.equal(original, token); settlements++; return {$tag: 1, _0: true};
     },
@@ -241,8 +257,8 @@ function constructorControlFixture(construct) {
   const run = {runtime, prepared, request, value: parent, operationPlan: plan,
     readPlan: runtime.clientProgramInstalledEffectManagedOperationPlan, closed: false};
   return {run, construct, requestsRetired: () => retired,
-    memberIndex: 0, rowIndex: 0, operationIndex: 0, operation: 'construct',
-    retireAliases() {retired = true;}, debits: () => debits, settlements: () => settlements};
+    memberIndex: 0, rowIndex: 0, operationIndex: 0, operation: 'construct', originalToken: token,
+    retireAliases() {retired = true;}, debits: () => debits, settlements: () => settlements, entries: () => entries};
 }
 
 test('invalid asynchronous constructor remains borrowed through both original settlements', async () => {
@@ -474,9 +490,15 @@ test('constructor atomic borrow owns its current boundary without a preceding ca
       assert.strictEqual(p, parent); assert.strictEqual(source, prepared); assert.strictEqual(intent, request);
       reads++; return {$tag: 1, _0: plan};
     },
-    clientProgramInstalledEffectOperationBorrow(p, source, intent, selected) {
+    clientProgramInstalledEffectOperationConstructionRetain(p, source, intent, selected) {
       assert.deepEqual([p, source, intent, selected], [parent, prepared, request, plan]);
       borrows++; return {$tag: 1, _0: token};
+    },
+    clientProgramInstalledEffectOperationConstructionBegin(original) {
+      assert.strictEqual(original,token); return {$tag:1,_0:undefined};
+    },
+    clientProgramInstalledEffectOperationConstructionComplete(original) {
+      assert.strictEqual(original,token); return {$tag:1,_0:undefined};
     },
     clientProgramInstalledEffectOperationRetire(original, done) {
       assert.strictEqual(original, token); assert.equal(done, true); retired = true; return {$tag: 1, _0: true};
@@ -493,8 +515,8 @@ test('atomic borrow reentry keeps the returned original child before the constru
   const {prepareInstalledRowCaptureChild} = await import('./installed-row-capture-cleanup.mjs');
   for (const failure of ['changed Plan', 'thrown undefined']) {
     const f = constructorControlFixture(() => assert.fail('Reentry cannot reach the constructor'));
-    const borrow = f.run.runtime.clientProgramInstalledEffectOperationBorrow;
-    f.run.runtime.clientProgramInstalledEffectOperationBorrow = function(...args) {
+    const borrow = f.run.runtime.clientProgramInstalledEffectOperationConstructionRetain;
+    f.run.runtime.clientProgramInstalledEffectOperationConstructionRetain = function(...args) {
       const result = Reflect.apply(borrow, this, args);
       if (failure === 'changed Plan') f.run.operationPlan = {};
       else f.run.failure = undefined;
@@ -518,17 +540,20 @@ test('atomic borrow reentry keeps the returned original child before the constru
 
 
 test('automatic Command recipe forwards opaque native capture originals and separate checked input bounds once',()=>{
-  const profile={},capture={},capacities=Array.from({length:5},()=>Object.freeze({})),calls=[];
+  const profile={},capture={},capacities=Array.from({length:6},()=>Object.freeze({})),calls=[];
   const providerMoon={installedStandardCreateConstructionProfile(...args){assert.equal(this,providerMoon);
     assert.deepEqual(args,[128,16,4]);calls.push('request');return profile;},
     installedStandardDriverCaptureConstructionCapacity(...args){assert.equal(this,providerMoon);
       assert.deepEqual(args,[1024,64,8,128,16,4]);calls.push('capture');return capture;}};
   const construction=Object.freeze({write:Object.freeze({operation:'write',maxRequestBytes:256,maxResponseBytes:64}),check:undefined,metadataTextUnits:0});
   const moon={clientProgramInstalledStandardDriverRecipeCapacities(...args){assert.equal(this,moon);
-    assert.equal(args[0],profile);assert.equal(args[1],capture);assert.deepEqual(args.slice(2,10),[1024,64,8,256,64,0,0,false]);
+    assert.equal(args[0],profile);assert.equal(args[1],capture);assert.deepEqual(args.slice(2,13),[1024,64,8,128,16,4,256,64,0,0,false]);
+    assert.equal(args.at(-1),16384);
+    assert.deepEqual(args.slice(-5,-2),[1_000_000,512,16]);
     calls.push('fold');return {$tag:1,_0:capacities};},
     clientProgramInstalledStandardCreateRecipeCapacities(){assert.fail('No old fold dropping native capture');},
-    clientProgramInstalledEffectCaptureExtentPrepare(operation,fixed,row){assert.deepEqual([operation,fixed,row],['write',capacities[0],capacities[1]]);return {$tag:1,_0:{}};},
+    clientProgramInstalledEffectCaptureRecipeExtentPrepare(operation,original){assert.equal(this,moon);assert.equal(operation,'write');assert.strictEqual(original,capacities);return {$tag:1,_0:{}};},
+    clientProgramInstalledEffectCaptureExtentPrepare(){assert.fail('Do not drop original checked-name term');},
     clientProgramInstalledEffectOperationExtentFromCapacityPrepare(operation,capacity,transfer,physical){return {$tag:1,_0:{operation,capacity,transfer,physical}};}};
   const recipe=prepareInstalledStandardCreatePlanRecipe({moon,providerMoon,construction,
     credentialSite:{construction:{scope:{},issuer:{},limits:{maxSecretBytes:17}}},
@@ -536,4 +561,325 @@ test('automatic Command recipe forwards opaque native capture originals and sepa
   assert.deepEqual(calls,['request','capture','fold']);assert.equal(recipe.rowOperations.length,2);
   assert.deepEqual(recipe.credentialOperations.map(x=>x.phase),['write']);assert.equal(recipe.rowOperations[0].extent.physical,false);
   assert.equal(recipe.rowOperations[1].extent.physical,true);assert.equal(recipe.controlsPerRow,capacities[4]);
+});
+
+
+test('successful row constructor returns temporary workspace while original request aliases remain held', () => {
+  const output = Object.freeze({original: true});
+  const f = constructorControlFixture(() => output);
+  let completed = 0;
+  f.run.runtime.clientProgramInstalledEffectOperationConstructionComplete = function(original) {
+    assert.equal(this, f.run.runtime); assert.equal(original, f.originalToken);
+    completed++; return {$tag: 1, _0: undefined};
+  };
+  const child = prepareInstalledEffectRequestChild(f);
+  assert.equal(child.prepare(), output);
+  assert.equal(completed, 1);
+  assert.equal(child.release(), false);
+  assert.equal(f.settlements(), 0, 'returned material remains with its original token');
+  f.retireAliases(); assert.equal(child.retry(), true);
+  assert.equal(f.settlements(), 1);
+  assert.equal(completed, 1);
+  const member = constructorControlFixture(() => []);
+  let premature = 0;
+  member.run.runtime.clientProgramInstalledEffectOperationConstructionComplete = () => {
+    premature++; return {$tag: 1, _0: undefined};
+  };
+  const enclosing = prepareInstalledEffectRequestChild({...member, perRow: false});
+  enclosing.prepare();
+  assert.equal(premature, 1, 'prepare is now the actual member constructor, not a placeholder');
+});
+
+
+test('constructor completion keeps original post-current reentry fences without a second Plan getter', () => {
+  for (const mode of ['same', 'replaced Plan', 'thrown undefined']) {
+    const output = {};
+    const f = constructorControlFixture(() => output);
+    let reads = 0, completions = 0;
+    f.run.readPlan = f.run.runtime.clientProgramInstalledEffectManagedOperationPlan = () => {
+      reads++; return {$tag: 1, _0: f.run.operationPlan};
+    };
+    f.run.runtime.clientProgramInstalledEffectOperationConstructionComplete = original => {
+      assert.equal(original, f.originalToken); completions++;
+      if (mode === 'replaced Plan') f.run.operationPlan = {};
+      if (mode === 'thrown undefined') f.run.failure = undefined;
+      return {$tag: 1, _0: undefined};
+    };
+    const child = prepareInstalledEffectRequestChild(f);
+    if (mode === 'same') assert.equal(child.prepare(), output);
+    else {
+      let caught = false;
+      try {child.prepare();} catch (cause) {
+        caught = true;
+        if (mode === 'thrown undefined') assert.strictEqual(cause, undefined);
+        else assert.equal(cause.code, 'ForeignInstalledEffectManagedRun');
+      }
+      assert.equal(caught, true);
+    }
+    assert.equal(reads, 0, 'typed Begin/Complete own current, with callback-free Node post-fences');
+    assert.equal(completions, 1);
+    assert.equal(child.status().pending, true);
+    assert.equal(child.release(), false);
+    f.retireAliases(); assert.equal(child.retry(), true);
+  }
+});
+
+
+test('member capture retains its original constructor before Source work and prepares actual recovery exactly once later', async () => {
+  const cleanup = await import('./installed-row-capture-cleanup.mjs');
+  assert.equal(typeof cleanup.retainInstalledRowCaptureChild, 'function');
+  const calls = [], children = [], recovery = {wire: 'original'};
+  const f = constructorControlFixture(() => {calls.push('native recovery'); return recovery;});
+  f.perRow = false;
+  f.run.runtime.clientProgramInstalledEffectOperationConstructionComplete = original => {
+    assert.equal(original, f.originalToken); calls.push('workspace returned');
+    return {$tag: 1, _0: undefined};
+  };
+  const original = prepareInstalledEffectRequestChild(f);
+  const held = cleanup.retainInstalledRowCaptureChild({children, create: () => original});
+  original.checkOriginal();
+  assert.equal(children.length, 1);
+  assert.deepEqual(calls, [], 'no placeholder constructor or premature workspace return');
+  calls.push('Source and Preview');
+  assert.equal(await held.prepare(), recovery);
+  assert.deepEqual(calls, ['Source and Preview', 'native recovery', 'workspace returned']);
+  assert.equal(await original.release(), false);
+  assert.equal(f.settlements(), 0);
+  await assert.rejects(held.prepare(), {code: 'InstalledEffectRequestChildAlreadyPrepared'});
+  f.retireAliases(); await children[0].prepared.release();
+  assert.equal(f.settlements(), 1);
+});
+
+
+test('deferred member constructor keeps the original asynchronous body until settlement and never completes it', async () => {
+  const {retainInstalledRowCaptureChild} = await import('./installed-row-capture-cleanup.mjs');
+  let resolve; const original = new Promise(yes=>{resolve=yes;});
+  const f=constructorControlFixture(()=>original);f.perRow=false;
+  let completes=0;f.run.runtime.clientProgramInstalledEffectOperationConstructionComplete=()=>{completes++;return {$tag:1,_0:undefined};};
+  const children=[],child=prepareInstalledEffectRequestChild(f);
+  const retained=retainInstalledRowCaptureChild({children,create:()=>child});
+  const pending=assert.rejects(retained.prepare(),{code:'InstalledEffectConstructorNotSynchronous'});
+  f.retireAliases();await children[0].prepared.release();
+  assert.equal(f.settlements(),0);assert.equal(children[0].prepared.status().pending,true);
+  resolve({original:true});await pending;
+  assert.equal(completes,0);await children[0].prepared.retry();assert.equal(f.settlements(),1);
+});
+
+
+test('retained constructor keeps original inputs before Source and acquires workspace only at actual entry',async()=>{
+  const {retainInstalledRowCaptureChild}=await import('./installed-row-capture-cleanup.mjs');
+  const events=[],output={original:true},f=constructorControlFixture(()=>{events.push('construct');return output;});
+  const originalRetain=f.run.runtime.clientProgramInstalledEffectOperationConstructionRetain;
+  const originalBegin=f.run.runtime.clientProgramInstalledEffectOperationConstructionBegin;
+  f.run.runtime.clientProgramInstalledEffectOperationConstructionRetain=function(...args){
+    events.push('retain inputs');return Reflect.apply(originalRetain,this,args);
+  };
+  f.run.runtime.clientProgramInstalledEffectOperationConstructionBegin=function(...args){
+    events.push('acquire workspace');return Reflect.apply(originalBegin,this,args);
+  };
+  f.run.runtime.clientProgramInstalledEffectOperationBorrow=()=>assert.fail('no full-body fallback');
+  const children=[],child=prepareInstalledEffectRequestChild(f);
+  const retained=retainInstalledRowCaptureChild({children,create:()=>child});
+  assert.equal(children.length,1);assert.equal(f.debits(),1);assert.equal(f.entries(),0);
+  assert.deepEqual(events,['retain inputs']);events.push('Source and Preview');
+  assert.strictEqual(await retained.prepare(),output);
+  assert.deepEqual(events,['retain inputs','Source and Preview','acquire workspace','construct']);
+  assert.equal(f.entries(),1);assert.equal(child.release(),false);
+  f.retireAliases();await children[0].prepared.release();assert.equal(f.settlements(),1);
+});
+
+test('constructor entry refusal and reentry retain the same original backing without work or retry',()=>{
+  for(const mode of ['refusal','replaced Plan','thrown undefined']){
+    const f=constructorControlFixture(()=>assert.fail('refused entry must not construct'));
+    f.run.runtime.clientProgramInstalledEffectOperationConstructionBegin=function(original){
+      assert.strictEqual(original,f.originalToken);
+      if(mode==='refusal')throw undefined;
+      if(mode==='replaced Plan')f.run.operationPlan={};else f.run.failure=undefined;
+      return {$tag:1,_0:undefined};
+    };
+    const child=prepareInstalledEffectRequestChild(f);let caught=false;
+    try{child.prepare();}catch(cause){caught=true;
+      if(mode==='replaced Plan')assert.equal(cause.code,'ForeignInstalledEffectManagedRun');
+      else assert.strictEqual(cause,undefined);
+    }
+    assert.equal(caught,true);assert.equal(f.debits(),1);assert.equal(f.settlements(),0);
+    assert.throws(()=>child.prepare(),{code:'InstalledEffectRequestChildAlreadyPrepared'});
+    assert.equal(child.release(),false);f.retireAliases();assert.equal(child.retry(),true);
+    assert.equal(f.settlements(),1);
+  }
+});
+
+
+function controlWorkFixture() {
+  const parent={},prepared={},request={},plan={},events=[];
+  const runtime={clientProgramInstalledEffectManagedOperationPlan:()=>({$tag:1,_0:plan}),
+    clientProgramInstalledEffectOperationControlConstructionBegin(owner,p,r,selected){
+      assert.deepEqual([owner,p,r,selected],[parent,prepared,request,plan]);events.push('begin');return {$tag:1,_0:undefined};},
+    clientProgramInstalledEffectOperationControlConstructionComplete(owner,p,r,selected){
+      assert.deepEqual([owner,p,r,selected],[parent,prepared,request,plan]);events.push('complete');return {$tag:1,_0:undefined};}};
+  const run={runtime,value:parent,prepared,request,operationPlan:plan,readPlan:runtime.clientProgramInstalledEffectManagedOperationPlan,
+    closed:false,selecting:false};
+  const work=prepareInstalledEffectControlConstruction(run);run.controlConstruction=work;run.retireControlConstruction=work.retire;
+  return {run,work,events,runtime};
+}
+
+test('control construction enters once before the same original callback and keeps its original receiver and returned DATA', () => {
+  const f=controlWorkFixture(),receiver={},input={},output={};
+  const method=function(value){assert.equal(this,receiver);assert.equal(value,input);assert.equal(f.run.selecting,true);f.events.push('work');return output;};
+  assert.equal(f.work(receiver,method,[input]),output);
+  assert.deepEqual(f.events,['begin','work','complete']);assert.equal(f.run.selecting,false);
+  f.work(receiver,()=>{f.events.push('second');},[]);
+  assert.deepEqual(f.events,['begin','work','complete','begin','second','complete']);
+});
+
+test('control construction retains same thrown undefined and performs no completion or later callback', () => {
+  const f=controlWorkFixture();let calls=0;
+  assert.throws(()=>f.work({},()=>{calls++;throw undefined;},[]),cause=>cause===undefined);
+  assert.throws(()=>f.work({},()=>{calls++;},[]),cause=>cause===undefined);
+  assert.equal(calls,1);assert.deepEqual(f.events,['begin']);assert.equal(f.run.selecting,false);
+});
+
+test('control construction rejects local reentry before another native debit and preserves original pending frame', () => {
+  const f=controlWorkFixture();
+  f.work({},()=>{assert.throws(()=>f.work({},()=>assert.fail('reentry'),[]),{code:'InstalledEffectControlConstructionPending'});},[]);
+  assert.deepEqual(f.events,['begin','complete']);
+});
+
+test('control construction refuses replaced original record before invoking provider', () => {
+  const f=controlWorkFixture();
+  f.runtime.clientProgramInstalledEffectOperationControlConstructionBegin=()=>assert.fail('captured original method');
+  f.run.value={};
+  assert.throws(()=>f.work({},()=>assert.fail('foreign'),[]),{code:'ForeignInstalledEffectManagedRun'});
+  assert.equal(f.run.selecting,false);
+});
+
+test('control construction retains an invalid original native task until its actual settlement', async () => {
+  const f=controlWorkFixture();let settle;const original=new Promise(resolve=>{settle=resolve;});
+  Object.defineProperty(original,'then',{get(){throw new Error('public then must not replace native original');}});
+  assert.throws(()=>f.work({},()=>original,[]),{code:'InvalidInstalledEffectControlConstruction'});
+  assert.equal(f.run.selecting,true);assert.deepEqual(f.events,['begin']);
+  settle();await new Promise(setImmediate);assert.equal(f.run.selecting,false);
+});
+
+test('control construction keeps an unobservable original native task under the same retirement latch', async () => {
+  const f=controlWorkFixture();let settle;const original=new Promise(resolve=>{settle=resolve;}),primary=new Error('original species refusal');
+  Object.defineProperty(original,'constructor',{get(){throw primary;}});
+  assert.throws(()=>f.work({},()=>original,[]),cause=>cause===primary);
+  assert.equal(f.run.selecting,true);settle();await new Promise(setImmediate);
+  assert.equal(f.run.selecting,true);assert.deepEqual(f.events,['begin']);
+});
+
+test('control construction retires its same failed-prefix aliases before parent backing returns', () => {
+  const f=controlWorkFixture(),primary=new Error('original prefix');
+  assert.throws(()=>f.work({},()=>{throw primary;},[]),cause=>cause===primary);
+  assert.equal(f.work.retire(),true);assert.equal(f.work.retire(),true);
+  assert.throws(()=>f.work({},()=>assert.fail('retired'),[]),{code:'InstalledEffectControlConstructionRetired'});
+});
+
+
+function originalLedgerControlView(ledger, construction) {
+  const source=readFileSync(new URL('./effect-ledger.mjs',import.meta.url),'utf8');
+  const tree=parse(source,{ecmaVersion:'latest',sourceType:'module'});
+  let open;
+  const walk=node=>{if(!node||typeof node!=='object')return;if(node.type==='FunctionDeclaration'&&node.id?.name==='openEffectLedger')open=node;
+    for(const value of Object.values(node))if(Array.isArray(value))value.forEach(walk);else if(value&&typeof value==='object')walk(value);};walk(tree);
+  const start=open.body.body.find(node=>node.type==='IfStatement'&&source.slice(node.start,node.end).includes('controlConstruction === undefined')&&source.slice(node.start,node.end).includes('return ledger'));
+  assert(start);
+  return Function('ledger','controlConstruction',source.slice(start.start,open.body.end-1))(ledger,construction);
+}
+
+test('original Ledger control view preserves original nested receivers and permits close after the same failure', () => {
+  const f=controlWorkFixture(),events=[],primary=new Error('original ledger failure');
+  const original=Object.freeze({scopeCid:'scope',inner(){assert.equal(this,original);events.push('inner');return 7;},
+    outer(){assert.equal(this,original);events.push('outer');return original.inner();},
+    refuse(){throw primary;},close(){assert.equal(this,original);events.push('close');}});
+  const view=originalLedgerControlView(original,f.work);
+  assert.equal(view.scopeCid,original.scopeCid);assert(Object.isFrozen(view));
+  assert.equal(view.outer(),7);assert.deepEqual(f.events,['begin','complete']);
+  assert.deepEqual(events,['outer','inner']);
+  assert.throws(()=>view.refuse(),cause=>cause===primary);
+  assert.throws(()=>view.outer(),cause=>cause===primary);
+  view.close();assert.deepEqual(events,['outer','inner','close']);
+  assert.equal(f.work.retire(),true);
+});
+
+test('original Ledger control view fixed inventory follows its actual thirty-one methods and one DATA field', () => {
+  const source=readFileSync(new URL('./effect-ledger.mjs',import.meta.url),'utf8');
+  const tree=parse(source,{ecmaVersion:'latest',sourceType:'module'});let ledger;
+  const walk=node=>{if(!node||typeof node!=='object')return;if(node.type==='VariableDeclarator'&&node.id?.name==='ledger')ledger=node.init.arguments[0];
+    for(const value of Object.values(node))if(Array.isArray(value))value.forEach(walk);else if(value&&typeof value==='object')walk(value);};walk(tree);
+  const names=ledger.properties.map(property=>property.key.name);
+  assert.equal(names.length,32);assert.equal(new Set(names).size,32);
+  assert.equal(names.filter(name=>name!=='scopeCid').length,31);
+  assert.equal(names.includes('close'),true);assert.equal(names.includes('append'),true);
+});
+
+
+function originalStoredProjection(read) {
+  const source = readFileSync(new URL('./effect-response-recovery.mjs', import.meta.url), 'utf8');
+  const tree = parse(source, {ecmaVersion:'latest', sourceType:'module'});
+  const declaration = tree.body.find(node => node.type === 'ExportNamedDeclaration' &&
+    node.declaration?.id?.name === 'recoverProjectedEffectResponse')?.declaration;
+  assert(declaration);
+  return Function('readAuthorizedEffectResponse', 'fail', 'return ' + source.slice(declaration.start, declaration.end))(
+    read, code => {throw Object.assign(new Error(code), {code});});
+}
+
+// Exact original recovery caller and actual Run control frame, with explicit
+// read/Core ports. This proves call order and alias/failure behavior only; no
+// actual Ledger, response admission, Resource, permission or cold Run is issued.
+test('original stored caller completes Ledger control scratch before the same provider projector', async () => {
+  const f = controlWorkFixture(), stored = Object.freeze({original:true}), ledger = {}, provider = {};
+  const outputs = [], calls = [];
+  const readMethod = function() {assert.equal(this, ledger);calls.push('read');outputs.push(stored);return stored;};
+  const projectMethod = function(value) {assert.equal(this, provider);assert.equal(value, stored);calls.push('project');
+    assert.deepEqual(f.events, ['begin','complete','begin']);assert.deepEqual(outputs, [stored]);return 19;};
+  const recover = originalStoredProjection(async () => ({stored:f.work(ledger,readMethod,[])}));
+  assert.deepEqual(await recover({projectStored:value => f.work(provider,projectMethod,[value])}), {recovered:19});
+  assert.deepEqual(calls, ['read','project']);assert.deepEqual(f.events, ['begin','complete','begin','complete']);
+  assert.deepEqual(outputs, [stored]);assert.equal(f.work.retire(), true);
+});
+
+test('original stored projector failure keeps its same unfinished control prefix without another read', async () => {
+  const f = controlWorkFixture(), stored = {}, outputs = [];let reads = 0, threw = false;
+  const recover = originalStoredProjection(async () => ({stored:f.work(undefined,() => {reads++;outputs.push(stored);return stored;},[])}));
+  try {await recover({projectStored:value => f.work(undefined,() => {assert.equal(value,stored);throw undefined;},[])});}
+  catch (cause) {threw = true;assert.equal(cause,undefined);}
+  assert.equal(threw,true);assert.equal(reads,1);assert.deepEqual(outputs,[stored]);
+  assert.deepEqual(f.events,['begin','complete','begin']);
+  assert.throws(() => f.work(undefined,() => 1,[]),cause => cause === undefined);
+  assert.equal(f.work.retire(),true);
+});
+
+
+// Actual installed Sheets projection with explicit Native original ports,
+// not a provider/Common/normal admission or allocator measurement.
+test('standard native JSON projection returns before Host parsing and keeps its original handle', async () => {
+  const {projectOwnedSheetsRequest,ownedSheetsRequestCid}=await import('../connectors/sheets/site/sheets-owned-request.mjs');
+  const events=[],binding={},handle={};
+  const body='original body e\u0301😀';
+  const factsWire=JSON.stringify({value:{rows:[{text:'e\u0301😀',flag:false}]},target:{resource:'book'}});
+  let nativeActive=false;
+  const moon={
+    sheetsRangeRequestJson(b,h){assert.equal(this,moon);assert.equal(b,binding);assert.equal(h,handle);
+      nativeActive=true;events.push('native.enter');nativeActive=false;events.push('native.return');
+      return {$tag:1,_0:factsWire};},
+    sheetsRangeRequestBody(b,h){assert.equal(this,moon);assert.equal(b,binding);assert.equal(h,handle);
+      events.push('native.body');return {$tag:1,_0:body};},
+    sheetsRangeRequestCid(b,h){assert.equal(this,moon);assert.equal(b,binding);assert.equal(h,handle);
+      events.push('native.cid');return {$tag:1,_0:'original-request-cid'};},
+  };
+  const parse=JSON.parse;
+  let projected;
+  try {
+    JSON.parse=function(wire,...rest){assert.equal(nativeActive,false);assert.equal(wire,factsWire);
+      events.push('host.parse');return Reflect.apply(parse,this,[wire,...rest]);};
+    projected=projectOwnedSheetsRequest(moon,binding,handle);
+  } finally {JSON.parse=parse;}
+  assert.deepEqual(events,['native.enter','native.return','host.parse','native.body']);
+  assert.equal(projected.body,body);assert.equal(projected.value.rows[0].text,'e\u0301😀');
+  assert(Object.isFrozen(projected));assert(Object.isFrozen(projected.value.rows));
+  assert.equal(ownedSheetsRequestCid(projected,binding),'original-request-cid');
+  assert.deepEqual(events,['native.enter','native.return','host.parse','native.body','native.cid']);
+  assert.throws(()=>ownedSheetsRequestCid({...projected},binding),{code:'ForeignSheetsRangeRequest'});
 });

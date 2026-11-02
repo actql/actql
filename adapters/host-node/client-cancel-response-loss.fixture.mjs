@@ -18,8 +18,7 @@ import {connectInProcess} from '../../packages/sdk/host-port.mjs';
 import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
-import {issueInstalledRunControlObservation,
-  issueInstalledUnpublishedRunState} from
+import {issueInstalledUnpublishedRunState} from
   '../host-common/run-state-observation.mjs';
 import {createClientHttpHandler} from './client-http.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
@@ -51,7 +50,7 @@ const profile = {version: 'actql-client-host/0.1', mode: 'local',
     maxBatchRetainedValueBytes: 2048}};
 
 export async function fixture(t, transport, loss, {physicalStart = false, terminal = false,
-  reply = null, runId = 'saved-run', targetOperation = 'cancel', cancelResponseCache, transformCancelReply, transformRunReply} = {}) {
+  reply = null, runId = 'saved-run', targetOperation = 'cancel', cancelResponseCache, transformCancelReply, transformRunReply, transformLookupReply} = {}) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-cancel-loss-'));
   const journal = openClientRequestJournal(directory);
   let database, server, client;
@@ -146,7 +145,7 @@ export async function fixture(t, transport, loss, {physicalStart = false, termin
       const retained = journal.lookupRunDefinition(ref, moon,
         publicationControl);
       assert.ok(retained);
-      return {...issueInstalledUnpublishedRunState(moon, {
+      const state = issueInstalledUnpublishedRunState(moon, {
         runId: publicationControl.runDefinitionRunId(retained.runDefinition),
         observedAt: '2026-10-02T00:00:00.000Z',
         resultNames: retained.resultNames,
@@ -156,13 +155,9 @@ export async function fixture(t, transport, loss, {physicalStart = false, termin
           retained.physicalStartReserved === false,
         observedTerminalOutcome: retained.observedTerminalOutcome ?? 'none',
         executionUnknown: false,
-      }), control: issueInstalledRunControlObservation(moon, {
-        revision: retained.revision,
-        cancellationRequested: retained.cancellationRequested,
-        physicallyUnstarted: retained.physicalStartReserved === false,
-        preDispatchFailureConfirmed: retained.preDispatchFailureConfirmed,
-        physicalCloseConfirmed: retained.physicalCloseConfirmed,
-      })};
+      });
+      return Object.freeze(JSON.parse(journal.publishRunState(retained, state,
+        moon, publicationControl)));
     },
     maxRowBytes: 1024,
   };
@@ -186,7 +181,10 @@ export async function fixture(t, transport, loss, {physicalStart = false, termin
         if (phase === 'before-dispatch') throw new Error('LostCancelTransport');
         const reply = await port.perform(operation, body, signal);
         if (phase === 'after-commit') throw new Error('LostCancelTransport');
-        return operation === targetOperation ? alterReply(reply) : operation === 'status' && transformRunReply ? transformRunReply(reply) : reply;
+        if (operation === targetOperation) return alterReply(reply);
+        if (operation === 'status' && transformRunReply) return transformRunReply(reply);
+        if (operation === 'lookup-request' && transformLookupReply) return transformLookupReply(reply);
+        return reply;
       },
     });
   } else {
@@ -218,11 +216,13 @@ export async function fixture(t, transport, loss, {physicalStart = false, termin
           return end.call(this, JSON.stringify(alterReply(value)), ...args);
         };
       }
-      if (operation === 'status' && transformRunReply) {
+      const transformObservation = operation === 'status' ? transformRunReply
+        : operation === 'lookup-request' ? transformLookupReply : undefined;
+      if (transformObservation) {
         const end = response.end;
         response.end = function(data, ...args) {
           if (response.statusCode !== 200) return end.call(this, data, ...args);
-          return end.call(this, JSON.stringify(transformRunReply(JSON.parse(data.toString()))), ...args);
+          return end.call(this, JSON.stringify(transformObservation(JSON.parse(data.toString()))), ...args);
         };
       }
       void handler(request, response);
