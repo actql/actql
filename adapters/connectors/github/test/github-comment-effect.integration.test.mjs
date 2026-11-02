@@ -83,6 +83,8 @@ const accountConfiguration = (connection, {commit = 'delegate'} = {}) =>
       {entry_id: 'host-run', outcome: 'allow', exclusions: [],
         principal: {all: true}, connection: {all: true},
         resource: {all: true}, operation: {any_of: ['write']}},
+      // The controller Run read does not grant any named Result read.
+      entry('host-run-read', 'allow', 'actql-remote-host', 'run', 'read'),
       {...entry('target-read', 'allow', connection, 'issues', 'read'),
         resource: {any_of: ['issue_comments', 'issues']}}]});
 
