@@ -40,7 +40,7 @@ import {pinnedEngineContracts} from
 
 const focus = process.env.ACTQL_TEST_NATIVE_HTTP_FOCUS;
 if (focus !== undefined &&
-    !['remote-client-poll', 'http-retirement'].includes(focus)) {
+    !['remote-client-poll', 'http-retirement', 'http-symbol-unload'].includes(focus)) {
   throw new Error('unsupported native HTTP test focus');
 }
 const focusedRequests = [];
@@ -1041,6 +1041,15 @@ verification: try {
           '/usr/local/opt/openssl@3/lib/libcrypto.3.dylib',
         ].find(existsSync) ?? 'libcrypto.3.dylib'
       : 'libcrypto.so.3');
+  const sqliteLibrary = process.env.ACTQL_TEST_NATIVE_SQLITE_LIBRARY ??
+    (process.platform === 'darwin'
+      ? '/usr/lib/libsqlite3.dylib'
+      : 'libsqlite3.so.0');
+  // The construction fixture needs a real non-curl handle before its missing
+  // symbol and lost-unload observations. Use the same selected SQLite input;
+  // this is no replacement HTTP backend or successful Library retirement.
+  const nonCurlLibrary = process.env.ACTQL_TEST_NATIVE_HTTP_NON_CURL_LIBRARY ??
+    sqliteLibrary;
   const targetTriple = process.platform === 'darwin' && process.arch === 'arm64'
     ? 'aarch64-apple-darwin'
     : process.platform === 'linux' && process.arch === 'x64'
@@ -1068,11 +1077,7 @@ verification: try {
         ACTQL_TEST_NATIVE_HTTP_CA: join(root, 'ca.crt'),
         ACTQL_TEST_NATIVE_HTTP_CERT: join(root, 'client.crt'),
         ACTQL_TEST_NATIVE_HTTP_KEY: join(root, 'client.key'),
-        ACTQL_TEST_NATIVE_SQLITE_LIBRARY:
-          process.env.ACTQL_TEST_NATIVE_SQLITE_LIBRARY ??
-          (process.platform === 'darwin'
-            ? '/usr/lib/libsqlite3.dylib'
-            : 'libsqlite3.so.0'),
+        ACTQL_TEST_NATIVE_SQLITE_LIBRARY: sqliteLibrary,
         ACTQL_TEST_NATIVE_REMOTE_JOURNAL: join(root, 'coordinator.sqlite'),
       },
     });
@@ -1082,6 +1087,26 @@ verification: try {
       '/outbound/poll', '/outbound/query', '/probe', '/outbound/observation',
       '/outbound/status-observation', '/outbound/status-observation',
     ]);
+    break verification;
+  }
+  if (focus === 'http-symbol-unload') {
+    // Execute only the original missing-symbol/lost-unload case. No Common,
+    // DuckDB, Resident or other package supplier is built or run.
+    const child = spawn(process.execPath, ['--input-type=module', '-e',
+      "import {runFocusedTests} from './scripts/test-execution.mjs'; " +
+      "process.exitCode=runFocusedTests('moon',['--target','native','--jobs','1'," +
+      "'src/platform_native/http_client/construction_custody_native_wbtest.mbt'," +
+      "'--filter','failed HTTP symbol load retains unknown unload without repeating a consumed handle']," +
+      "{cwd:process.cwd(),timeout:120000});"], {
+      cwd: new URL('../', import.meta.url), stdio: 'inherit',
+      env: {
+        ...process.env,
+        ACTQL_TEST_NATIVE_HTTP_NON_CURL_LIBRARY: nonCurlLibrary,
+      },
+    });
+    const [code, signal] = await once(child, 'exit');
+    assert.equal(code, 0,
+      `focused HTTP symbol-unload test failed: ${code ?? signal}`);
     break verification;
   }
   if (focus === 'http-retirement') {
@@ -1205,6 +1230,7 @@ verification: try {
   const testEnvironment = {
     ...process.env,
     ACTQL_TEST_NATIVE_HTTP_LIBRARY: library,
+    ACTQL_TEST_NATIVE_HTTP_NON_CURL_LIBRARY: nonCurlLibrary,
     ACTQL_TEST_NATIVE_CRYPTO_LIBRARY: cryptoLibrary,
     ACTQL_TEST_NATIVE_CRYPTO_MISSING_LIBRARY: join(root, 'missing-crypto-library'),
     ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_ROOT: nativePackageStoreRoot(root),
@@ -1220,11 +1246,7 @@ verification: try {
     ACTQL_TEST_NATIVE_HTTP_BEARER_ROOT: bearerServers.directory,
     ACTQL_TEST_NATIVE_HTTP_BAD_CERT: join(root, 'foreign-client.crt'),
     ACTQL_TEST_NATIVE_HTTP_BAD_KEY: join(root, 'foreign-client.key'),
-    ACTQL_TEST_NATIVE_SQLITE_LIBRARY:
-      process.env.ACTQL_TEST_NATIVE_SQLITE_LIBRARY ??
-      (process.platform === 'darwin'
-        ? '/usr/lib/libsqlite3.dylib'
-        : 'libsqlite3.so.0'),
+    ACTQL_TEST_NATIVE_SQLITE_LIBRARY: sqliteLibrary,
     ACTQL_TEST_NATIVE_REMOTE_JOURNAL: join(root, 'coordinator.sqlite'),
     ACTQL_TEST_NATIVE_CREDENTIAL_JOURNAL: join(root, 'credential.sqlite'),
     ACTQL_TEST_NATIVE_SQLITE_ROOT: sqliteRoot,
