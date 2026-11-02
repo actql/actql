@@ -119,7 +119,6 @@ options(
     "preparation_request_compilation_handoff_js_wbtest.mbt": [ "js" ],
     "preparation_request_model_query_time_js_wbtest.mbt": [ "js" ],
     "preparation_request_invocation_js_wbtest.mbt": [ "js" ],
-    "preparation_request_check_boundary_js_wbtest.mbt": [ "js" ],
     "preparation_request_document_js_wbtest.mbt": [ "js" ],
     "preparation_recursive_snapshot_layout_js_wbtest.mbt": [ "js" ],
     "preparation_request_native_computation_js_wbtest.mbt": [ "js" ],
@@ -149,7 +148,6 @@ options(
     "installed_effect_operation_parent_js_wbtest.mbt": [ "js" ],
     "installed_effect_provider_plan_js_wbtest.mbt": [ "js" ],
     "installed_capture_parent_js_wbtest.mbt": [ "js" ],
-    "installed_effect_provider_plan_js_wbtest.mbt": [ "js" ],
     "managed_source_free_preparation_js_wbtest.mbt": [ "js" ],
   },
 )
