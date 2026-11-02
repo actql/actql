@@ -242,6 +242,8 @@ pub fn[T] funded_read_consumer_origin(FundedReadConsumer[T]) -> T?
 
 pub fn[T] funded_read_preparation_available(FundedReadClaim[T], T, Int64, retained_bytes? : Int64) -> Bool
 
+pub fn grow_execution_reservation_capacity(Ledger, Reservation, Int64, Int64) -> Result[Unit, LedgerIssue]
+
 pub fn[I, P] grow_preparation_capacity_inventory(PreparationCapacity[I, P], I, Int64, Int64, Int, Int, Int) -> Result[Unit, PreparationCapacityIssue]
 
 pub fn[T] handoff_funded_read(FundedReadClaim[T], T) -> Result[Ledger, OriginalReadIssue]

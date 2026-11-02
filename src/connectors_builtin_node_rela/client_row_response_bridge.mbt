@@ -95,3 +95,12 @@ pub fn client_program_row_source_retire_response_workspace(
 ) -> Result[Unit, @client_row_source_host.RowHostIssue] {
   @client_row_source_host.retire_row_run_response_workspace(value)
 }
+
+///|
+#export_name("clientProgramRowSourceGrowResponseCapacity")
+pub fn client_program_row_source_grow_response_capacity(
+  value : @client_row_source_host.RowRunResponseBorrow,
+  capacity : @execution.ExecutionCapacity,
+) -> Result[Unit, @client_row_source_host.RowHostIssue] {
+  @client_row_source_host.grow_row_run_response_capacity(value, capacity)
+}

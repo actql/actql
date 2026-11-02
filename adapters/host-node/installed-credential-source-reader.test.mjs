@@ -111,7 +111,7 @@ test('shared reader typed page stop retains the pending original consumption unt
   assert.deepEqual(f.counts(), {sends: 1, charges: 1, consumes: 1, closes: 1});
 });
 
-function fixture({pendingRead, pendingBinding = false} = {}) {
+function fixture({pendingRead, pendingBinding = false, responseGrowth = false, growthFailure} = {}) {
   const events = [], raw = {grant: {}, scope: {operation: 'read'}}, credential = {}, capacity = {}, charge = {}, began = deferred();
   const response = Object.freeze({body: Buffer.from('same received bytes')});
   let current = true, bindingCanClose = !pendingBinding, providerRetired = false, requestSignal;
@@ -135,10 +135,15 @@ function fixture({pendingRead, pendingBinding = false} = {}) {
     assertCurrent() {if (!current) throw new Error('original Host retired');}, maxResponses: 1,
     maxResponseBytes: 128, prepareReadSequence() {
       events.push('provider-create');
-      provider = Object.freeze({async read(context) {
+      provider = Object.freeze({...(responseGrowth ? {responseCapacity(bytes) {
+        assert.equal(this, provider);assert.equal(bytes,response.body.byteLength);
+        events.push('quote-response');return capacity;
+      }} : {}), async read(context) {
         assert.equal(this, provider);retainedOptions = context;events.push('provider-read');
         await context.readChild({operation:'read', prepare() {
-          return {request:{method:'GET',path:'/one'},project(actual) {assert.equal(actual,response);}};
+          return {request:{method:'GET',path:'/one'},project(actual) {
+            assert.equal(actual,response);if(responseGrowth)events.push('project-response');
+          }};
         }});
         if (pendingRead) await pendingRead;
         requestSignal.throwIfAborted();
@@ -149,17 +154,21 @@ function fixture({pendingRead, pendingBinding = false} = {}) {
       return provider;
     }});
   const options = Object.freeze({originalAuthorization: raw, columns: ['id'],
-    verifyRead() {events.push('verify');}, authorizationFor(index) {
+    verifyRead() {assert.equal(this,options);events.push('verify');}, authorizationFor(index) {
       assert.equal(index, 0);events.push('use');return {...raw, useId:'one'};
     }, authorizeReadChild(operation,index) {
       assert.equal(operation,'read');assert.equal(index,0);
       return {authorization:{...raw,useId:'child'},originalAuthorization:raw};
     }, consumePage(rows) {assert.deepEqual(rows,[{id:1}]);},consumeObservation() {},
     chargePage(bytes) {assert.equal(bytes,response.body);events.push('charge');began.resolve();return charge;}});
-  const run = {}, source = {}, ledger = {};
+  const run = {}, source = {}, ledger = {}, responseBorrow = {};
   const moon = {
     clientProgramRowSourceStartProviderAccounted() {events.push('reserve'); return ok(run);},
-    clientProgramRowSourceBorrowResponses() {events.push('borrow'); return ok({});},
+    clientProgramRowSourceBorrowResponses() {events.push('borrow'); return ok(responseBorrow);},
+    clientProgramRowSourceGrowResponseCapacity(borrow, actual) {
+      assert.equal(borrow,responseBorrow);assert.equal(actual,capacity);events.push('grow-response');
+      if(growthFailure !== undefined)throw growthFailure;return ok(undefined);
+    },
     clientProgramRowSourceBindResponseCleanup(borrow, observed) {cleanup = observed; events.push('retain'); return ok(undefined);},
     clientProgramRowSourceRetireResponseWorkspace() {
       if (!cleanup()) return error('same original response duty pending');
@@ -196,9 +205,9 @@ function fixture({pendingRead, pendingBinding = false} = {}) {
   return {factory, options, events, session, response, readBegan: began.promise,
     // Observe the exact returned original; read/stop/observe are never wrapped
     // or replaced. This is fixture custody, not an installed supplier overlay.
-    read() {return session.readProvider({prepare(actual) {
-      assert.equal(this,factory);
-      preparedReader=Reflect.apply(factory.prepare,factory,[actual]);return preparedReader;
+    read() {return session.readProvider({prepare(actual,retainPreparation,reserveResponseCapacity) {
+      assert.equal(this,factory);assert.equal(actual,options);
+      preparedReader=Reflect.apply(factory.prepare,factory,[actual,retainPreparation,reserveResponseCapacity]);return preparedReader;
     },receiver:factory,options});},
     reader:()=>preparedReader,
     complete() {return session.complete({owner:{checkedOwner,effectful:true,requirement,
@@ -209,6 +218,23 @@ function fixture({pendingRead, pendingBinding = false} = {}) {
     bindingRetires() {bindingCanClose = true;},
     inspect() {return {coreRetired, providerRetired, retainedOptions, stopped:requestSignal?.aborted === true};}};
 }
+
+test('native response constructor grows the SAME original RowRun after charge and before projection', async () => {
+  const f = fixture({responseGrowth:true});
+  assert.deepEqual(await f.read(), {pages:1,rowCount:1});
+  const selected=f.events.filter(value=>['charge','quote-response','grow-response','project-response'].includes(value));
+  assert.deepEqual(selected,['charge','quote-response','grow-response','project-response']);
+  assert.equal(f.reader().observe().cleanupConfirmed,false);
+  f.session.close();assert.equal(f.inspect().coreRetired,true);
+});
+
+test('native response constructor preserves original capacity refusal without decoding or returning custody early', async () => {
+  const cause=new Error('original capacity refusal'),f=fixture({responseGrowth:true,growthFailure:cause});
+  await assert.rejects(f.read(),value=>value===cause);
+  assert.equal(f.events.includes('project-response'),false);
+  assert.equal(f.inspect().coreRetired,false);
+  f.session.close();assert.equal(f.inspect().coreRetired,true);
+});
 
 test('same original Source reader retains grant response and binding until actual original retirement', async () => {
   const f = fixture({pendingBinding: true});

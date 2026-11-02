@@ -121278,7 +121278,7 @@
     },
     {
       "module": "adapters/host-node/installed-credential-source-reader.mjs",
-      "sha256": "30e1558ebfbb3290b74a9184c8a5815194420b73abe1f73eba1e87e04f315509",
+      "sha256": "dcb8f8e8f4fd284f2ec9ffbe3f951d9ebb7c0bb65a947072828be7ea3469267e",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -121306,7 +121306,8 @@
           "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare",
           "parameters": [
             "options",
-            "retainPreparation"
+            "retainPreparation",
+            "reserveResponseCapacity"
           ],
           "async": false
         },
@@ -121648,6 +121649,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
               }
             ],
             "inputsOutputs": [
@@ -121666,6 +121671,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
               }
             ],
             "identity": [
@@ -121684,6 +121693,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
               }
             ],
             "ownership": [
@@ -121702,6 +121715,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
               }
             ],
             "synchronization": [
@@ -121720,6 +121737,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
               }
             ],
             "failure": [
@@ -121738,6 +121759,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
               }
             ],
             "cancellation": [
@@ -121756,6 +121781,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
               }
             ],
             "resources": [
@@ -121774,6 +121803,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
               }
             ],
             "extension": [
@@ -121792,6 +121825,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
               }
             ],
             "verification": [
@@ -121830,6 +121867,10 @@
               {
                 "path": "adapters/host-node/installed-credential-source-reader.test.mjs",
                 "anchor": "test('shared native sequence prepares from the same original facts without doing provider IO'"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
               }
             ]
           }

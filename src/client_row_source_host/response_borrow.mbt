@@ -31,6 +31,7 @@ pub struct RowRunResponseBorrow {
 priv enum RowResponseCleanupState {
   Unbound
   Bound
+  GrowingWorkspace
   RetiringWorkspace
   WorkspaceReturned
 }
@@ -83,6 +84,10 @@ pub fn borrow_row_input_run_responses(
 pub fn check_row_run_response_borrow_current(
   value : RowRunResponseBorrow,
 ) -> Result[Unit, RowHostIssue] {
+  if value.cleanup_state is GrowingWorkspace ||
+    value.cleanup_state is RetiringWorkspace {
+    return Err(InvalidState)
+  }
   let run = value.run
   let selected = match (run.configuration, value.selection) {
     (DirectConfiguration(original), QueryResponse(acquisition)) =>
@@ -122,6 +127,72 @@ pub fn bind_row_run_response_borrow_cleanup(
   value.cleanup_state = Bound
   physical.cleanup_confirmed = Some(cleanup)
   Ok(())
+}
+
+///|
+/// The actual charged response bounds its next native constructor. Grow the
+/// SAME original reservation before decoding, retaining all previous native
+/// outputs and failed children. Missing capacity or a copied borrow cannot
+/// start another attempt or bypass the original reader's cleanup observer.
+pub fn grow_row_run_response_capacity(
+  value : RowRunResponseBorrow,
+  capacity : @execution.ExecutionCapacity,
+) -> Result[Unit, RowHostIssue] {
+  match check_row_run_response_borrow_current(value) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  guard value.cleanup_state is Bound &&
+    value.run.page_charge is Some(charge) &&
+    !charge.consumed &&
+    value.run.physical is Some(physical) &&
+    physical.provider_capacity is Some(previous) &&
+    value.selection is QueryResponse(acquisition) else {
+    return Err(InvalidState)
+  }
+  if @execution.execution_capacity_retained_bytes(capacity) <
+    @execution.execution_capacity_retained_bytes(previous) ||
+    @execution.execution_capacity_execution_bytes(capacity) <
+    @execution.execution_capacity_execution_bytes(previous) {
+    return Err(Physical(InvalidCharge))
+  }
+  // The reader reuses its SAME immutable peak quote for a smaller response.
+  // No mutation or new backing is needed; keep the cheap original-state and
+  // charge checks above without calling external Resource current again.
+  if physical_equal(capacity, previous) {
+    return Ok(())
+  }
+  let (retained, execution) = match
+    row_provider_capacity_sum(
+      row_acquisition_retained_capacity(acquisition),
+      row_acquisition_execution_capacity(acquisition),
+      physical.execution_scratch,
+      Some(capacity),
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  // Resource current may synchronously close/reenter this RowRun. Fence the
+  // original borrow before that callback and retain any successful new debit
+  // even when its post-callback Row state is no longer usable.
+  value.cleanup_state = GrowingWorkspace
+  let result = @resources.grow_execution_reservation_capacity(
+    physical.ledger,
+    physical.reservation,
+    retained,
+    execution,
+  )
+  value.cleanup_state = Bound
+  match result {
+    Err(issue) => return Err(Physical(issue))
+    Ok(_) => physical.provider_capacity = Some(capacity)
+  }
+  guard value.run.page_charge is Some(current_charge) &&
+    physical_equal(current_charge, charge) &&
+    !charge.consumed else {
+    return Err(InvalidState)
+  }
+  check_row_run_response_borrow_current(value)
 }
 
 ///|

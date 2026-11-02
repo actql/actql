@@ -247,16 +247,25 @@ async function installedSalesforceAdapter({moon, queryMoon, site, authorization,
     maxTargetBytes, maxValueNodes: readLimits.maxNodes, maxValueTextBytes: readLimits.maxBytes,
     maxRowsWireBytes: readLimits.maxBytes, maxRowsWireNodes: readLimits.maxNodes,
     maxRowsWireDepth: readLimits.maxDepth, maxSecretBytes: readerPolicy[0]});
-  const capacityMethod = Object.getOwnPropertyDescriptor(moon, 'clientProgramInstalledSalesforceSourceReaderCapacity');
+  const capacityMethod = Object.getOwnPropertyDescriptor(moon, 'clientProgramInstalledSalesforceSourceReaderResponseCapacity');
   if (!capacityMethod || !Object.hasOwn(capacityMethod, 'value') || typeof capacityMethod.value !== 'function') {
     fail('InstalledSourceReaderRuntimeUnavailable');
   }
-  const capacity = Reflect.apply(capacityMethod.value, moon, [
-    installedJsonSourceReaderLimitNames.map(name => readerLimits[name]), readerPolicy[2], readerPolicy[0],
-    ['maxBytes', 'maxNodes', 'maxDepth', 'maxFields', 'maxNameUnits'].map(
-      name => DEFAULT_SALESFORCE_CATALOG_LIMITS.describe[name]),
+  const capacityArguments = Object.freeze([
+    Object.freeze(installedJsonSourceReaderLimitNames.map(name => readerLimits[name])), readerPolicy[2], readerPolicy[0],
+    Object.freeze(['maxBytes', 'maxNodes', 'maxDepth', 'maxFields', 'maxNameUnits'].map(
+      name => DEFAULT_SALESFORCE_CATALOG_LIMITS.describe[name])),
     DEFAULT_SALESFORCE_CATALOG_LIMITS.maxObservationBytes, bindingUnits, resourceUnits,
     readLimits.maxPages, site.apiVersion.length, 4096]);
+  const responseCapacity = bytes => {
+    const value = Reflect.apply(capacityMethod.value, moon, [...capacityArguments, bytes]);
+    if (value === undefined || value === null) fail('InstalledSourceReaderCapacityUnavailable');
+    return value;
+  };
+  // Raw response retention and the protocol/request controls precede I/O.
+  // Only an actually owned body supplies the subsequent parser extent; its
+  // original limits remain unchanged and the SAME RowRun grows before decode.
+  const capacity = responseCapacity(0);
   if (capacity === undefined || capacity === null) fail('InstalledSourceReaderCapacityUnavailable');
   const sequence = Object.freeze({operation: 'salesforce:query:read', maxUses: readLimits.maxPages,
     children: Object.freeze([Object.freeze({operation: 'salesforce:catalog:describe', maxUses: 2})])});
@@ -266,7 +275,8 @@ async function installedSalesforceAdapter({moon, queryMoon, site, authorization,
   const providerReader = construction.createSourceReader({implementation,
     prepareReadSequence(input) {
       return prepareSalesforceSourceReadSequence({moon, queryMoon, site, declaration, recover,
-        preparedRead: input.preparedRead, originalAuthorization: input.originalAuthorization, limits: readLimits});
+        preparedRead: input.preparedRead, originalAuthorization: input.originalAuthorization,
+        limits: readLimits, responseCapacity});
     }});
   const binding = installedSalesforceSiteBinding(site, connectorId);
   return construction.createRowSource({bindingCid: binding.bindingCid, providerReader,

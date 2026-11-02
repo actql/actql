@@ -2,7 +2,6 @@
 package "actql/actql/connectors/salesforce/catalog"
 
 import {
-  "actql/actql/execution_relation",
   "actql/actql/value_admission",
   "actql/actql/value_contract",
   "moonbitlang/core/debug",
@@ -10,6 +9,8 @@ import {
 
 // Values
 pub fn acknowledge_query_page(QueryRead, QueryPage) -> Result[Unit, QueryReadIssue]
+
+pub fn address_component_role_bounds() -> (Int, Int)
 
 pub fn begin_catalog_sync(ResourceListing) -> CatalogSync
 
@@ -79,15 +80,11 @@ pub fn delete_projection_resource(DeleteProjection) -> String
 
 pub fn described_field(ResourceMetadata, String) -> FieldMetadata?
 
-pub fn execution_mapping_construction_capacity(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, DeclarationLimits) -> @execution_relation.ExecutionCapacity?
-
 pub fn finish_catalog_sync(CatalogSync) -> Result[Unit, CatalogSyncIssue]
 
 pub fn generate_local_static_declaration(CatalogObservation, LocalCatalogObservationBinding, SalesforceImplementation, String, Array[String], DeclarationLimits) -> Result[StaticDeclaration, DeclarationIssue]
 
 pub fn generate_static_declaration(CatalogObservation, CatalogObservationBinding, SalesforceImplementation, String, Array[String], DeclarationLimits) -> Result[StaticDeclaration, DeclarationIssue]
-
-pub fn initialization_construction_capacity(Array[Int], Int, Int, Array[Int], Int, Int, Int, DescribeLimits, Int, DeclarationLimits) -> @execution_relation.ExecutionCapacity?
 
 pub fn interrupt_query_read(QueryRead) -> Bool
 
@@ -98,8 +95,6 @@ pub fn local_target_read_request_candidate(LocalTargetReadRequest) -> SingleWrit
 pub fn local_target_read_request_cid(LocalTargetReadRequest) -> String
 
 pub fn local_target_read_request_path(LocalTargetReadRequest) -> String
-
-pub fn native_read_construction_capacity(DescribeLimits, QueryPageLimits, Int, Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
 
 pub fn prepare_catalog_observation(CatalogSync, CatalogObservationBinding, String, Array[String?], Array[String?], Int) -> Result[CatalogObservation, CatalogObservationIssue]
 

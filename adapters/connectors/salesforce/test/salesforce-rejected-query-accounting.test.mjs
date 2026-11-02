@@ -59,13 +59,14 @@ test('actual Salesforce caller selects the same complete native Reader before pu
   const policy = Object.freeze([65536, 100000, 100]);
   const moon = Object.freeze({
     clientProgramInstalledSourceReaderPolicy() {assert.equal(this, moon);return policy;},
-    clientProgramInstalledSalesforceSourceReaderCapacity(...args) {
+    clientProgramInstalledSalesforceSourceReaderResponseCapacity(...args) {
       assert.equal(this, moon);assert.deepEqual(args[0].slice(0, 8),
         [4_000_000, 48_000_000, 400_000, 32, 2000, 100, 12, 2000]);
       assert.equal(args[1], policy[2]);assert.equal(args[2], policy[0]);
       assert.deepEqual(args[3], Object.values(describe));assert.equal(args[4], 8_000_000);
       assert.ok(args[5] >= 2 * 71 + 44);assert.equal(args[6], 'Account'.length);
       assert.equal(args[7], 10);assert.equal(args[8], site.apiVersion.length);assert.equal(args[9], 4096);
+      assert.equal(args.length, 11);assert.equal(args[10], 0, 'Only initial controls precede the first owned response');
       events.push('quote');return capacity;
     },
   });
@@ -255,7 +256,7 @@ for (const mode of ['raw', 'managed']) {
 // Actual shared Reader plus the existing Salesforce query sequencer. The Site
 // issuer, typed codecs, same-parent capacity and physical Resource are explicit
 // ports; this is not normal Common/HTTPS or numerical backing acceptance.
-function managedSourceFixture({rejected = false, consumeFailure = false} = {}) {
+function managedSourceFixture({rejected = false, consumeFailure = false, responseBacking = false} = {}) {
   const events = [], cells = Object.freeze([Object.freeze([Object.freeze({typed: true})])]);
   const columns = Object.freeze(['Id']), acquisition = Object.freeze({}), declaration = Object.freeze({});
   const plan = Object.freeze({}), query = Object.freeze({}), observation = Object.freeze({});
@@ -320,6 +321,7 @@ function managedSourceFixture({rejected = false, consumeFailure = false} = {}) {
     }});
   const limits = Object.freeze({maxBytes: 1024, maxNodes: 100, maxDepth: 8, maxRows: 2,
     maxLocatorUnits: 1024, maxPages: 1, maxTotalRows: 2});
+  const responseCapacity = Object.freeze({});
   const factory = createInstalledCredentialSourceReader({capacity: {}, originalSite, assertCurrent() {},
     maxResponses: 3, maxResponseBytes: 1024,
     prepareReadSequence(input) {
@@ -327,7 +329,10 @@ function managedSourceFixture({rejected = false, consumeFailure = false} = {}) {
       assert.deepEqual(events, []);
       return prepareSalesforceSourceReadSequence({moon, queryMoon, site, declaration,
         preparedRead: input.preparedRead, originalAuthorization: input.originalAuthorization,
-        recover(_evidence, run) {assert.equal(run, 'original-run');events.push('recover');return observation;}, limits});
+        recover(_evidence, run) {assert.equal(run, 'original-run');events.push('recover');return observation;}, limits,
+        ...(responseBacking ? {responseCapacity(bytes) {
+          assert.equal(bytes,Buffer.byteLength('metadata bytes'));events.push('response-quote');return responseCapacity;
+        }} : {})});
     }});
   const reader = factory.prepare(Object.freeze({originalAuthorization: root, preparedRead, columns,
     verifyRead() {}, authorizationFor() {return {...root, useId: 'original-query-0'};},
@@ -337,9 +342,23 @@ function managedSourceFixture({rejected = false, consumeFailure = false} = {}) {
     consumeValues(names, rows, {charge}) {
       assert.equal(names, columns);assert.equal(rows, cells);assert([...chargeByBody.values()].includes(charge));
       consumed++;events.push('consume');if (consumeFailure) throw undefined;return rows.length;
-    }}));
+    }}), undefined, responseBacking ? capacity => {
+      assert.equal(capacity,responseCapacity);events.push('response-grow');
+    } : undefined);
   return {reader, factory, events, counts: () => ({charges, consumed, closes, pages})};
 }
+
+test('Salesforce response backing quotes its largest original body once before both metadata and typed query consumers', async () => {
+  const f=managedSourceFixture({responseBacking:true});
+  await f.reader.read();
+  assert.equal(f.events.filter(v=>v==='response-quote').length,1);
+  assert.equal(f.events.filter(v=>v==='response-grow').length,3);
+  assert(f.events.indexOf('charge')<f.events.indexOf('response-quote'));
+  assert(f.events.indexOf('response-grow')<f.events.indexOf('recover'));
+  assert(f.events.lastIndexOf('response-grow')<f.events.indexOf('decode'));
+  f.reader.requestStop();assert.equal(f.reader.observe().cleanupConfirmed,true);
+  assert.equal(f.factory.retire(),true);
+});
 
 test('Salesforce managed source joins two original describes and typed query on the same Reader', async () => {
   const f = managedSourceFixture();assert.deepEqual(f.events, []);

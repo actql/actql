@@ -2834,7 +2834,7 @@
     },
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
-      "sha256": "68dd917ad394be3d03449a0f94d3dad4e15a9f00877324707cf7121f276364f8",
+      "sha256": "86160b56c38261fb2fe4324b87b42302ed411a16b1df55bec28ba4f3cd0bcbb0",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "Existing published Salesforce source installation; provider protocol stays Salesforce and RowRun remains the capture owner",
@@ -2903,14 +2903,14 @@
           "async": false
         },
         {
-          "name": "installedSalesforceAdapter/capacity/capacity",
+          "name": "installedSalesforceAdapter/capacityArguments/capacityArguments",
           "parameters": [
             "name"
           ],
           "async": false
         },
         {
-          "name": "installedSalesforceAdapter/capacity/capacity#2",
+          "name": "installedSalesforceAdapter/capacityArguments/capacityArguments#2",
           "parameters": [
             "name"
           ],
@@ -2992,6 +2992,13 @@
           "name": "installedSalesforceAdapter/resourceUnits/resourceUnits",
           "parameters": [
             "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedSalesforceAdapter/responseCapacity/responseCapacity",
+          "parameters": [
+            "bytes"
           ],
           "async": false
         },
@@ -3160,11 +3167,12 @@
             "recoveryArguments/recoveryArguments#3",
             "text/text",
             "installedSalesforceAdapter/bindingUnits/bindingUnits",
-            "installedSalesforceAdapter/capacity/capacity",
-            "installedSalesforceAdapter/capacity/capacity#2",
             "installedSalesforceAdapter/providerReader/init:prepareReadSequence/init:prepareReadSequence",
             "installedSalesforceAdapter/resourceUnits/resourceUnits",
-            "loadInstalledSalesforceSource/loadInstalledSalesforceSource"
+            "loadInstalledSalesforceSource/loadInstalledSalesforceSource",
+            "installedSalesforceAdapter/capacityArguments/capacityArguments",
+            "installedSalesforceAdapter/capacityArguments/capacityArguments#2",
+            "installedSalesforceAdapter/responseCapacity/responseCapacity"
           ],
           "exports": [
             "INSTALLED_SALESFORCE_SOURCE_VERSION",
@@ -3182,6 +3190,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
               }
             ],
             "inputsOutputs": [
@@ -3192,6 +3204,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
               }
             ],
             "identity": [
@@ -3202,6 +3218,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
               }
             ],
             "ownership": [
@@ -3212,6 +3232,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
               }
             ],
             "synchronization": [
@@ -3226,6 +3250,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
               }
             ],
             "failure": [
@@ -3240,6 +3268,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
               }
             ],
             "cancellation": [
@@ -3250,6 +3282,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
               }
             ],
             "resources": [
@@ -3260,6 +3296,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
               }
             ],
             "extension": [
@@ -3270,6 +3310,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
               }
             ],
             "verification": [
@@ -3288,6 +3332,10 @@
               {
                 "path": "adapters/host-node/installed-credential-source-reader.test.mjs",
                 "anchor": "test('shared native sequence prepares from the same original facts without doing provider IO'"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
               }
             ]
           }
@@ -3870,7 +3918,7 @@
     },
     {
       "module": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
-      "sha256": "0976191c376ad9122736142b80068f050f9f20bfcea51c84d5e919a9381ff450",
+      "sha256": "76ca158213b1a1cd275be1707f431e90e41c6fbb01109fd2418a7c6f6bf7586a",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing scoped Salesforce locator/page exchange; portable read projection, Catalog refresh and current authority remain separate",
@@ -3989,6 +4037,13 @@
           "name": "prepareSalesforceSourceReadSequence/sequence/init:read/init:read/plan/plan",
           "parameters": [
             "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareSalesforceSourceReadSequence/sequence/init:responseCapacity/init:responseCapacity",
+          "parameters": [
+            "bytes"
           ],
           "async": false
         },
@@ -4204,7 +4259,8 @@
             "readSalesforceSourceChild",
             "readSalesforceSourceChild/init:prepare/init:prepare",
             "readSalesforceSourceChild/init:prepare/init:prepare/init:project/init:project",
-            "readSalesforceSourceChild/readSalesforceSourceChild"
+            "readSalesforceSourceChild/readSalesforceSourceChild",
+            "prepareSalesforceSourceReadSequence/sequence/init:responseCapacity/init:responseCapacity"
           ],
           "exports": [
             "readSalesforceManagedQuery",
@@ -4221,6 +4277,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
               }
             ],
             "inputsOutputs": [
@@ -4231,6 +4291,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
               }
             ],
             "identity": [
@@ -4241,6 +4305,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
               }
             ],
             "ownership": [
@@ -4251,6 +4319,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
               }
             ],
             "synchronization": [
@@ -4261,6 +4333,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
               }
             ],
             "failure": [
@@ -4271,6 +4347,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
               }
             ],
             "cancellation": [
@@ -4281,6 +4361,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
               }
             ],
             "resources": [
@@ -4295,6 +4379,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
               }
             ],
             "extension": [
@@ -4305,6 +4393,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
               }
             ],
             "verification": [
@@ -4331,6 +4423,10 @@
               {
                 "path": "adapters/host-node/installed-credential-source-reader.test.mjs",
                 "anchor": "test('shared native sequence prepares from the same original facts without doing provider IO'"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
               }
             ]
           }
@@ -11089,7 +11185,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-run.mjs",
-      "sha256": "25a7b17ce31b987dbe9f455eb7b9e6b5a63d0b01b6e40704429d44232fbdfae2",
+      "sha256": "299d2ad6a7358e362b7d456fe4be65cbe59a28ef15fcd6351d3be565a4b92a31",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing RowRun acquisition/capture/release plumbing; physical provider and original current authority stay with the adapter",
@@ -11269,6 +11365,13 @@
           "async": false
         },
         {
+          "name": "startInstalledRowRun/readProvider/reserveResponseCapacity/reserveResponseCapacity",
+          "parameters": [
+            "capacity"
+          ],
+          "async": false
+        },
+        {
           "name": "startInstalledRowRun/run/run",
           "parameters": [
             "attempt"
@@ -11414,7 +11517,8 @@
             "startInstalledRowRun/startInstalledRowRun",
             "startInstalledRowRun/stopReader/stopReader",
             "startInstalledRowRun/stopReader/stopReader/stopReader",
-            "startInstalledRowRun/stopReader/stopReader/stopReader#2"
+            "startInstalledRowRun/stopReader/stopReader/stopReader#2",
+            "startInstalledRowRun/readProvider/reserveResponseCapacity/reserveResponseCapacity"
           ],
           "exports": [
             "startInstalledRowRun"
@@ -11428,6 +11532,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "# Original installed row reader custody"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
               }
             ],
             "inputsOutputs": [
@@ -11438,6 +11546,10 @@
               {
                 "path": "adapters/host-node/installed-row-run.mjs",
                 "anchor": "async function readProvider({prepare, receiver, options})"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
               }
             ],
             "identity": [
@@ -11452,6 +11564,10 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "clientProgramInstalledProviderRowCaptureCapacityMatches"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
               }
             ],
             "ownership": [
@@ -11470,6 +11586,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Native Source original unknown recovery"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
               }
             ],
             "synchronization": [
@@ -11488,6 +11608,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Native Source original unknown recovery"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
               }
             ],
             "failure": [
@@ -11502,6 +11626,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Native Source original unknown recovery"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
               }
             ],
             "cancellation": [
@@ -11516,6 +11644,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "pending read and stop Promises"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
               }
             ],
             "resources": [
@@ -11534,6 +11666,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Native Source original unknown recovery"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
               }
             ],
             "extension": [
@@ -11544,6 +11680,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "foreign preparation and unsupported listing/keyed profile combinations refuse"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
               }
             ],
             "verification": [
@@ -11562,6 +11702,10 @@
               {
                 "path": "adapters/host-node/installed-row-run.test.mjs",
                 "anchor": "original Source evidence is issued once then consumed from the same live capture without wire admission"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
               }
             ]
           }

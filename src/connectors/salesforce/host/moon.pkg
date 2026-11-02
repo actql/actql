@@ -14,4 +14,7 @@ import {
   "actql/actql/relation_typing" @relation,
   "actql/actql/value_admission" @admitted,
   "actql/actql/encode_core" @encode,
+  "actql/actql/decode_shape" @shape,
+  "actql/actql/source_value" @source,
+  "actql/actql/decode_core" @decode,
 }

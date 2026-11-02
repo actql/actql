@@ -15,7 +15,7 @@ fn sf_initialization_test_quote(
   max_fields? : Int = 1000,
 ) -> @execution.ExecutionCapacity {
   let bytes = @utf8.encode(body).length()
-  initialization_construction_capacity(
+  @salesforce_host.initialization_construction_capacity(
     [bytes],
     4 * ((bytes + 2) / 3),
     2000,
@@ -84,7 +84,7 @@ test "Salesforce quote covers ten-role Address and malformed Describe prefixes" 
     is Err(_),
   )
   assert_true(
-    initialization_construction_capacity(
+    @salesforce_host.initialization_construction_capacity(
       [-1],
       0,
       0,
@@ -100,7 +100,7 @@ test "Salesforce quote covers ten-role Address and malformed Describe prefixes" 
   )
   // Writer failure happens after metadata/raw schema allocation: its quote
   // remains nonzero and metadata-dependent even with one-byte emitters.
-  let tiny = initialization_construction_capacity(
+  let tiny = @salesforce_host.initialization_construction_capacity(
     [body.length()],
     0,
     2000,
@@ -124,7 +124,7 @@ test "Salesforce execution mapping quote preserves actual result and external ke
     "External_Key__c".length() +
     "external_key".length() +
     "reject".length()
-  let quote = execution_mapping_construction_capacity(
+  let quote = @salesforce_host.execution_mapping_construction_capacity(
     0,
     0,
     2,
@@ -155,7 +155,7 @@ test "Salesforce execution mapping quote preserves actual result and external ke
   ).unwrap()
   assert_true(mapped.body.contains("row_mapping"))
   assert_true(
-    execution_mapping_construction_capacity(
+    @salesforce_host.execution_mapping_construction_capacity(
       1,
       "Name".length(),
       0,

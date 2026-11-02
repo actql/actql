@@ -183,7 +183,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_salesforce_initialization_bridge.mbt",
-      "sha256": "159569249a5670cfaa727a56324a881a15aa68b4d41a66db6d791c3326d4d0dc",
+      "sha256": "031379e2957b55187bcd84187c5034b9f8aba5e597fd891b2bb7c031088f7fe1",
       "exports": [],
       "operations": [
         {
@@ -273,7 +273,7 @@
     },
     {
       "module": "src/connectors_builtin_node_rela/client_salesforce_initialization_bridge.mbt",
-      "sha256": "136f004081c3162601454cbb427a5438cc2e784b2ceacac7bb60ff332e494d8c",
+      "sha256": "13d03f170e36d608f80cacf63c7293d79d95b412e0ddaed9b549f27b8edfb3e6",
       "exports": [],
       "operations": [
         {

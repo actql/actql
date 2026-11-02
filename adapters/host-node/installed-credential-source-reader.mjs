@@ -68,10 +68,13 @@ export function createInstalledCredentialSourceReader(options) {
   let referenceCurrent = ownMethod(sourceSite, 'referenceCurrent');
   let factory, preparing = 0, retiring = false, factoryRetired = false;
   const readers = new Set();
-  factory = Object.freeze({capacity, prepare(options, retainPreparation) {
+  factory = Object.freeze({capacity, prepare(options, retainPreparation, reserveResponseCapacity) {
     if (this !== factory) fail('ForeignInstalledCredentialSourceReader');
     if (retainPreparation !== undefined && typeof retainPreparation !== 'function') {
       fail('InvalidInstalledSourcePreparationRetention');
+    }
+    if (reserveResponseCapacity !== undefined && typeof reserveResponseCapacity !== 'function') {
+      fail('InvalidInstalledSourceResponseCapacity');
     }
     if (preparing === Number.MAX_SAFE_INTEGER || readers.size === Number.MAX_SAFE_INTEGER) {
       fail('InstalledSourceReaderInventoryUnavailable');
@@ -116,7 +119,7 @@ export function createInstalledCredentialSourceReader(options) {
       let transportFailure, hadTransportFailure = false, cleanupRunning = false, primary;
       let unconfirmedCharge;
       let responses = [], responseCount = 0, responseBytes = 0n, rowCount = 0;
-      let provider, fetchPage, decodePage, runSequence, providerRetire, providerRetired = false;
+      let provider, fetchPage, decodePage, runSequence, providerRetire, responseCapacity, providerRetired = false;
       let nativePrepared = false;
       let onError, setupFailure, setupFailed = false;
       const pendingCallbacks = new Set();
@@ -165,8 +168,8 @@ export function createInstalledCredentialSourceReader(options) {
           responses.length = 0;
           responses = undefined;
           acquisition = closeBinding = retireBinding = selected = selectedSite = signal = stop = primary = undefined;
-          provider = fetchPage = decodePage = runSequence = providerRetire = onError = setupFailure = undefined;
-          verifyRead = authorizationFor = authorizeReadChild = chargePage = consumeObservation = consumePage = consumePageWire = consumeProjectedPage = consumeValues = transportFailure = undefined;
+          provider = fetchPage = decodePage = runSequence = providerRetire = responseCapacity = onError = setupFailure = undefined;
+          verifyRead = authorizationFor = authorizeReadChild = chargePage = consumeObservation = consumePage = consumePageWire = consumeProjectedPage = consumeValues = reserveResponseCapacity = transportFailure = undefined;
           retired = true; readers.delete(handle);
           return true;
         } finally {cleanupRunning = false;}
@@ -218,6 +221,10 @@ export function createInstalledCredentialSourceReader(options) {
         if (managedSequence) {
           runSequence = ownMethod(provider, 'read');
           providerRetire = ownMethod(provider, 'retire');
+          responseCapacity = ownMethod(provider, 'responseCapacity', true);
+          if (responseCapacity !== undefined && reserveResponseCapacity === undefined) {
+            fail('InstalledSourceResponseCapacityUnavailable');
+          }
         }
         else {fetchPage = ownMethod(provider, 'fetchPage'); decodePage = ownMethod(provider, 'decodePage');}
         const field = Object.getOwnPropertyDescriptor(provider, 'onError');
@@ -433,6 +440,14 @@ export function createInstalledCredentialSourceReader(options) {
                 fail('InstalledSourceResponseBytesLimit');
               }
               await verify();
+              if (responseCapacity !== undefined) {
+                const capacity = callProjection(responseCapacity, provider, [response.body.byteLength]);
+                callProjection(reserveResponseCapacity, undefined, [capacity]);
+                // Same checked Resource current boundary above; do not repeat
+                // its external callback merely to inspect these local fences.
+                if (!readPending || stopped || retired) fail('InstalledSourceReaderClosed');
+                signal.throwIfAborted();
+              }
               return callProjection(project,prepared,[response]);
             });
           },

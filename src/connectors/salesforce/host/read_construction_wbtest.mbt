@@ -1,6 +1,6 @@
 ///|
 test "named read metadata uses bounded original copies without another declaration" {
-  let limits : DescribeLimits = {
+  let limits : @catalog.DescribeLimits = {
     max_bytes: 128,
     max_nodes: 32,
     max_depth: 8,
@@ -41,7 +41,7 @@ test "named read metadata uses bounded original copies without another declarati
 
 ///|
 test "named read metadata retains the same literal output bound through writer refusal" {
-  let limits : DescribeLimits = {
+  let limits : @catalog.DescribeLimits = {
     max_bytes: 128,
     max_nodes: 32,
     max_depth: 8,
@@ -61,7 +61,7 @@ test "named read metadata retains the same literal output bound through writer r
 
 ///|
 test "named read metadata rejects invalid constructor bounds without parsing" {
-  let limits : DescribeLimits = {
+  let limits : @catalog.DescribeLimits = {
     max_bytes: 128,
     max_nodes: 32,
     max_depth: 8,
@@ -112,7 +112,7 @@ test "named read metadata rejects invalid constructor bounds without parsing" {
 
 ///|
 test "native query inventory keeps the full failed page before total-row refusal" {
-  let limits : QueryPageLimits = {
+  let limits : @catalog.QueryPageLimits = {
     max_bytes: 128,
     max_nodes: 32,
     max_depth: 8,
@@ -123,7 +123,7 @@ test "native query inventory keeps the full failed page before total-row refusal
   // prototype is private DATA; real query values keep their original contracts.
   assert_true(@contract.decimal_contract(38, 0, nullable=false) is Some(_))
   assert_true(@contract.decimal_contract(39, 0, nullable=false) is None)
-  assert_eq(address_component_roles.length(), 10)
+  assert_eq(@catalog.address_component_role_bounds(), (10, 15))
   let current = sf_read_query_construction_inventory(limits, 2, 2, 5, 64).unwrap()
   let larger = sf_read_query_construction_inventory(
     { ..limits, max_rows: 3, },
@@ -155,14 +155,14 @@ test "native query inventory keeps the full failed page before total-row refusal
 
 ///|
 test "native read capacity composes returned originals and serial constructor peaks" {
-  let describe : DescribeLimits = {
+  let describe : @catalog.DescribeLimits = {
     max_bytes: 128,
     max_nodes: 32,
     max_depth: 8,
     max_fields: 2,
     max_name_units: 64,
   }
-  let query : QueryPageLimits = {
+  let query : @catalog.QueryPageLimits = {
     max_bytes: 128,
     max_nodes: 32,
     max_depth: 8,

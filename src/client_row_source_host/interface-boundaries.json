@@ -174,7 +174,7 @@
     {
       "module": "src/client_row_source_host/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "ee4098a68c3a1eef39af49b1f318a3fd80ca5b6377cd2ea2edbfedc07726f459",
+      "sha256": "5d0cb07dff1fbd618116672d4dbea5bf4561b58423ceef779b79947dec954f4d",
       "role": "common-semantics",
       "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
       "exports": [
@@ -227,6 +227,7 @@
         "pub fn finish_row_run(RowRun) -> Result[Unit, RowHostIssue]",
         "pub fn generate_relation_row_declaration(String, String, String, Array[RowRelationViewSpec], RowDeclarationLimits, classifications? : Array[@check_environment.DataClassification]?) -> Result[RowDeclaration, RowHostIssue]",
         "pub fn generate_row_declaration(String, String, String, Array[RowViewSpec], RowDeclarationLimits) -> Result[RowDeclaration, RowDeclarationIssue]",
+        "pub fn grow_row_run_response_capacity(RowRunResponseBorrow, @execution_relation.ExecutionCapacity) -> Result[Unit, RowHostIssue]",
         "pub fn issue_row_input_source_evidence(RowInputAcquisition, RowSourceCapture, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, String, String, String) -> Result[@run_publication.RunEvidenceValue, RowHostIssue]",
         "pub fn issue_row_listing_source_evidence(RowAcquisition, RowSourceCapture, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, String, String, String) -> Result[@run_publication.RunEvidenceValue, RowHostIssue]",
         "pub fn issue_row_source_evidence(RowAcquisition, RowSourceCapture, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, String, String, String) -> Result[@run_publication.RunEvidenceValue, RowHostIssue]",
@@ -528,6 +529,10 @@
         {
           "name": "generate_row_declaration",
           "declaration": "pub fn generate_row_declaration(String, String, String, Array[RowViewSpec], RowDeclarationLimits) -> Result[RowDeclaration, RowDeclarationIssue]"
+        },
+        {
+          "name": "grow_row_run_response_capacity",
+          "declaration": "pub fn grow_row_run_response_capacity(RowRunResponseBorrow, @execution_relation.ExecutionCapacity) -> Result[Unit, RowHostIssue]"
         },
         {
           "name": "issue_row_input_source_evidence",
@@ -2640,6 +2645,84 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "grow_row_run_response_capacity"
+          ],
+          "exports": [
+            "pub fn grow_row_run_response_capacity(RowRunResponseBorrow, @execution_relation.ExecutionCapacity) -> Result[Unit, RowHostIssue]"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/response_borrow.mbt",
+                "anchor": "pub fn grow_row_run_response_capacity("
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/query_integration/provider_capacity_wbtest.mbt",
+                "anchor": "test \"actual native response grows the original Row reservation before decode and retains failed cleanup\""
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
+              }
+            ]
+          }
         }
       ]
     },
@@ -2648,7 +2731,7 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
-      "sha256": "2a5e7f98aba9ce6aa5b555d0c74fe9811c22d8bb582886bd4db4a46b8b1c29cb",
+      "sha256": "b78a7a4516179f829d16dba48e20efeda0ded6befd4a246699a2aeb900e66f04",
       "exports": [],
       "operations": [
         {
@@ -2670,6 +2753,10 @@
         {
           "name": "check_row_run_response_borrow_current",
           "declaration": "check_row_run_response_borrow_current ( value : RowRunResponseBorrow , ) - > Result [ Unit , RowHostIssue ]"
+        },
+        {
+          "name": "grow_row_run_response_capacity",
+          "declaration": "grow_row_run_response_capacity ( value : RowRunResponseBorrow , capacity : @ execution . ExecutionCapacity , ) - > Result [ Unit , RowHostIssue ]"
         },
         {
           "name": "retire_row_run_response_workspace",
@@ -2695,60 +2782,100 @@
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "- Responsibility:"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "- Inputs and outputs:"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
               }
             ],
             "identity": [
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "- Identity:"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
               }
             ],
             "ownership": [
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "- Ownership:"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
               }
             ],
             "synchronization": [
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "- Synchronization:"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
               }
             ],
             "failure": [
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "- Failure:"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
               }
             ],
             "cancellation": [
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "- Cancellation:"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
               }
             ],
             "resources": [
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "- Resources:"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
               }
             ],
             "extension": [
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "- Extension:"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
               }
             ],
             "verification": [
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "- Verification:"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
               }
             ]
           }
@@ -2859,6 +2986,82 @@
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "- Verification:"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "grow_row_run_response_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/response_borrow.mbt",
+                "anchor": "pub fn grow_row_run_response_capacity("
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/query_integration/provider_capacity_wbtest.mbt",
+                "anchor": "test \"actual native response grows the original Row reservation before decode and retains failed cleanup\""
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
               }
             ]
           }

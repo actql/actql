@@ -282,7 +282,7 @@
       "responsibilityFacet": "primary",
       "role": "generated-binding",
       "owner": "Same-runtime wrappers of existing Common and Snowflake Owners",
-      "sha256": "8b8ea22eec5128d73d248526b82b9c1b33d572eab3ba6e9dc62263847344c273",
+      "sha256": "601322434d13756bad1b69a4114cb99be657b8eed720310f6cd5283896d1dd04",
       "exports": [],
       "operations": [
         {
@@ -304,6 +304,10 @@
         {
           "name": "client_program_row_source_check_original_acquisition",
           "declaration": "client_program_row_source_check_original_acquisition ( acquisition : @ client_row_source_host . RowAcquisition , declaration : @ client_row_source_host . RowDeclaration , requirement : @ planning . QueryRequirement , ) - > Result [ Unit , @ client_row_source_host . RowHostIssue ]"
+        },
+        {
+          "name": "client_program_row_source_grow_response_capacity",
+          "declaration": "client_program_row_source_grow_response_capacity ( value : @ client_row_source_host . RowRunResponseBorrow , capacity : @ execution . ExecutionCapacity , ) - > Result [ Unit , @ client_row_source_host . RowHostIssue ]"
         },
         {
           "name": "client_program_row_source_provider_capacity",
@@ -534,6 +538,82 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Provider response workspace retirement keeps the original captured Source"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_row_source_grow_response_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/response_borrow.mbt",
+                "anchor": "pub fn grow_row_run_response_capacity("
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/query_integration/provider_capacity_wbtest.mbt",
+                "anchor": "test \"actual native response grows the original Row reservation before decode and retains failed cleanup\""
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
               }
             ]
           }

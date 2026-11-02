@@ -1,4 +1,65 @@
 ///|
+test "actual native response grows the original Row reservation before decode and retains failed cleanup" {
+  let (_, acquisition) = row_page_acquisition()
+  let ledger = provider_capacity_ledger(
+    acquisition,
+    retained_short=-20L,
+    execution_short=-20L,
+  )
+  let run = provider_capacity_start(acquisition, ledger, "response-growth")
+  @row_host.begin_row_run(run, 128, 10, 10).unwrap()
+  let borrow = @row_host.borrow_row_run_responses(run, acquisition).unwrap()
+  let stopped = Ref(false)
+  @row_host.bind_row_run_response_borrow_cleanup(borrow, () => stopped.val).unwrap()
+  let capacity = @execution.execution_capacity(11L, 23L).unwrap()
+  assert_true(
+    @row_host.grow_row_run_response_capacity(borrow, capacity)
+    is Err(InvalidState),
+  )
+  let body = row_page_body(2)
+  let charge = @row_host.charge_row_run_page(run, body).unwrap()
+  let before = @resources.ledger_usage(ledger)
+  @row_host.grow_row_run_response_capacity(borrow, capacity).unwrap()
+  let grown = @resources.ledger_usage(ledger)
+  assert_eq(grown, {
+    ..before,
+    reserved_retention_bytes: before.reserved_retention_bytes + 4L,
+    reserved_execution_bytes: before.reserved_execution_bytes + 14L,
+    peak_retention_bytes: before.peak_retention_bytes + 4L,
+  })
+  @row_host.grow_row_run_response_capacity(borrow, capacity).unwrap()
+  assert_eq(@resources.ledger_usage(ledger), grown)
+  assert_true(
+    @row_host.grow_row_run_response_capacity(
+      borrow,
+      @execution.execution_capacity(100L, 200L).unwrap(),
+    )
+    is Err(Physical(RetentionLimit)),
+  )
+  assert_eq(@resources.ledger_usage(ledger), grown)
+  @row_host.consume_row_run_response_charge(run, charge).unwrap()
+  assert_true(
+    @row_host.grow_row_run_response_capacity(borrow, capacity)
+    is Err(InvalidState),
+  )
+  assert_true(
+    @row_host.close_accounted_row_run(run) is Err(Evidence(UnverifiedTransport)),
+  )
+  assert_eq(
+    @resources.ledger_usage(ledger).reserved_execution_bytes,
+    grown.reserved_execution_bytes,
+  )
+  stopped.val = true
+  @row_host.close_accounted_row_run(run).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
+  assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 0L)
+  assert_eq(
+    @resources.ledger_usage(ledger).transferred_bytes,
+    body.length().to_int64(),
+  )
+}
+
+///|
 fn provider_capacity_ledger(
   acquisition : @row_host.RowAcquisition,
   retained_short? : Int64 = 0L,
