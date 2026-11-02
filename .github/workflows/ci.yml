@@ -318,6 +318,7 @@ jobs:
               # existing entrance harness refuses every actual Host call.
               moon test --target wasm --release --build-only --deny-warn -j "$(getconf _NPROCESSORS_ONLN)" src/client_host_wasm --filter '*exported validation reaches*'
               node scripts/test-python-local-metadata-wasm.mjs _build/wasm/release/test/client_host_wasm/client_host_wasm.whitebox_test.wasm _build/wasm/release/test/client_host_wasm/__whitebox_test_info.json saved_lookup_validation_dispatch_wbtest.mbt
+              node scripts/test-python-local-metadata-wasm.mjs _build/wasm/release/test/client_host_wasm/client_host_wasm.whitebox_test.wasm _build/wasm/release/test/client_host_wasm/__whitebox_test_info.json non_sdk_source_restore_wbtest.mbt
             fi
           fi
   # Conditional proof and correspondence evidence beside the existing gates.

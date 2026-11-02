@@ -1,6 +1,6 @@
 {
   "source": "d5d66cd86ac2e153f31a511e7d37c78e0cc28ae3",
-  "syntaxProjectionSha256": "d3c5ab04739699ae1cc926bba1b0e9abf999a41da38d28570247ae12a97d4d02",
+  "syntaxProjectionSha256": "78b123c4d9be18e7792917b6ea4e478f21adfc25ac75610b294fe93acea92efa",
   "qualification": "Source-reference coverage only; original Native/FFI/Python executions retain their own source, artifact and target qualifications. No normal funding, VM or installed product admission.",
   "generated": [
     {
@@ -49909,6 +49909,7 @@
         "LocalPreparation",
         "LocalPreparationFailure",
         "LocalProductCleanupPending",
+        "LocalProjectFilesCleanupPending",
         "LocalReaderAcquisitionError",
         "LocalResultProgress",
         "LocalRunCustody",
@@ -49917,6 +49918,8 @@
         "OriginalCommitProjection",
         "OriginalLocalCheck",
         "OriginalLocalInstallation",
+        "OriginalLocalProjectConfiguration",
+        "OriginalLocalProjectFiles",
         "OriginalLocalResponseStream",
         "OriginalLocalSDKResponseStream",
         "OriginalLocalWork",
@@ -49928,6 +49931,7 @@
         "OriginalSavedResultRead",
         "OriginalStoreReconciliation",
         "Path",
+        "ProjectLocations",
         "SDKDeliveryStorageCleanupPending",
         "SDKPayloadReaderCleanupPending",
         "SDKReadEvidenceCleanupPending",
@@ -49942,6 +49946,7 @@
         "httpx",
         "installed_local_components",
         "os",
+        "partial",
         "secrets",
         "stat",
         "time",
@@ -49961,6 +49966,8 @@
         "._local_native_store",
         "._local_observation_transfer",
         "._local_preparation",
+        "._local_project",
+        "._local_project_files",
         "._local_reader_facts",
         "._local_response",
         "._local_run",
@@ -49979,6 +49986,7 @@
         "contextlib",
         "dataclasses",
         "datetime",
+        "functools",
         "hashlib",
         "httpx",
         "os",
@@ -50006,7 +50014,9 @@
             "now",
             "observed_at",
             "sdk_finite",
-            "_native_store"
+            "_native_store",
+            "_project_directory",
+            "_project_profile"
           ]
         },
         {
@@ -50169,6 +50179,15 @@
             "compute",
             "preflight",
             "results"
+          ]
+        },
+        {
+          "async": false,
+          "name": "InstalledLocalHost/_capture_project",
+          "parameters": [
+            "self",
+            "directory",
+            "profile"
           ]
         },
         {
@@ -50802,6 +50821,13 @@
         },
         {
           "async": false,
+          "name": "InstalledLocalHost/_require_project_execution_environment",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
           "name": "InstalledLocalHost/_reserve",
           "parameters": [
             "self",
@@ -51044,7 +51070,9 @@
             "cls",
             "state_dir",
             "resources",
-            "_initial_preparation"
+            "_initial_preparation",
+            "_discover_project",
+            "_project_profile"
           ]
         },
         {
@@ -51116,7 +51144,7 @@
           ]
         }
       ],
-      "sha256": "d6bf9c52cf4bc41a947fe2f9b987b7220b4aea24b8e6e9b2f8504bcf8068586d",
+      "sha256": "453e51bbc67e7c4a17bd17599a16325794b01a173d6dbace569b09971af68c5c",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -52935,6 +52963,81 @@
               {
                 "path": "src/run_publication_host/client_saved_submission_public_view_wbtest.mbt",
                 "anchor": "test \"accepted failure candidate preserves same intent and refuses terminal or foreign originals\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "InstalledLocalHost/_capture_project",
+            "InstalledLocalHost/_require_project_execution_environment"
+          ],
+          "exports": [
+            "LocalProjectFilesCleanupPending",
+            "OriginalLocalProjectConfiguration",
+            "OriginalLocalProjectFiles",
+            "ProjectLocations",
+            "partial"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Named Local project preparation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Named Local project preparation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Named Local project preparation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Named Local project preparation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Named Local project preparation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Named Local project preparation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Named Local project preparation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Named Local project preparation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Named Local project preparation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Named Local project preparation"
               }
             ]
           }
@@ -74621,7 +74724,7 @@
     },
     {
       "module": "src/client_host_wasm/preparation.mbt",
-      "sha256": "0df21df8f40bd0e8b8332912a5d12fb15b702d38244c7234e3f18452655d06dd",
+      "sha256": "727870c167279725bae49aee8e30e8d19b8197ca2d5562c0bb5bfbff4a493e83",
       "exports": [],
       "operations": [
         {
@@ -74661,6 +74764,10 @@
           "declaration": "prepare_program ( nonce : Int64 , handle : Int ) - > Int"
         },
         {
+          "name": "prepare_published_submitted_computation",
+          "declaration": "prepare_published_submitted_computation ( record : StoredPreparation , configuration : StoredEnvironment , wire : String , ) - > Int"
+        },
+        {
           "name": "prepared_outcome",
           "declaration": "prepared_outcome ( nonce : Int64 , handle : Int ) - > Int"
         },
@@ -74677,8 +74784,20 @@
           "declaration": "reserve_preparation ( nonce : Int64 , environment : Int , input : Int , kind : Int , ) - > Int"
         },
         {
+          "name": "stored_preparation_effect",
+          "declaration": "stored_preparation_effect ( value : Instance , handle : Int , ) - > @ host . PreparedClientEffectComputation ?"
+        },
+        {
           "name": "stored_preparation_input",
           "declaration": "stored_preparation_input ( record : StoredPreparation , ) - > @ preparation . LocalPreparedInput ?"
+        },
+        {
+          "name": "stored_preparation_source",
+          "declaration": "stored_preparation_source ( value : Instance , handle : Int , ) - > @ preparation . LocalSourceComputation ?"
+        },
+        {
+          "name": "stored_preparation_source_submission",
+          "declaration": "stored_preparation_source_submission ( value : Instance , handle : Int , ) - > @ preparation . LocalSubmittedPreparation ?"
         }
       ],
       "role": "physical-io",
@@ -74807,6 +74926,204 @@
               {
                 "path": "src/run_publication_host/client_saved_submission_public_view_wbtest.mbt",
                 "anchor": "test \"accepted failure candidate preserves same intent and refuses terminal or foreign originals\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "prepare_published_submitted_computation",
+            "stored_preparation_effect",
+            "stored_preparation_source"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source preparation originals"
+              },
+              {
+                "path": "src/client_host_wasm/preparation.mbt",
+                "anchor": "fn stored_preparation_source("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source preparation originals"
+              },
+              {
+                "path": "src/client_host_wasm/preparation.mbt",
+                "anchor": "fn stored_preparation_source("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source preparation originals"
+              },
+              {
+                "path": "src/client_host_wasm/preparation.mbt",
+                "anchor": "fn stored_preparation_source("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source preparation originals"
+              },
+              {
+                "path": "src/client_host_wasm/preparation.mbt",
+                "anchor": "fn stored_preparation_source("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source preparation originals"
+              },
+              {
+                "path": "src/client_host_wasm/preparation.mbt",
+                "anchor": "fn stored_preparation_source("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source preparation originals"
+              },
+              {
+                "path": "src/client_host_wasm/preparation.mbt",
+                "anchor": "fn stored_preparation_source("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source preparation originals"
+              },
+              {
+                "path": "src/client_host_wasm/preparation.mbt",
+                "anchor": "fn stored_preparation_source("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source preparation originals"
+              },
+              {
+                "path": "src/client_host_wasm/preparation.mbt",
+                "anchor": "fn stored_preparation_source("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source preparation originals"
+              },
+              {
+                "path": "src/client_host_wasm/preparation.mbt",
+                "anchor": "fn stored_preparation_source("
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_host_wasm/published_preparation_wbtest.mbt",
+                "anchor": "test \"published submitted preparation retains SAME Effect Source without Pure upgrade or repeat\""
+              },
+              {
+                "path": "src/client_host_wasm/published_preparation_wbtest.mbt",
+                "anchor": "test \"published submitted Pure handoff retains original intent and refuses equal foreign pair\""
+              },
+              {
+                "path": "src/client_host_wasm/published_preparation_wbtest.mbt",
+                "anchor": "test \"published submitted refusal retains same typed issue before any executable Effect\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "stored_preparation_source_submission"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source request binding"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source request binding"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source request binding"
+              },
+              {
+                "path": "src/client_local_preparation/submitted.mbt",
+                "anchor": "pub fn local_submitted_preparation_request("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source request binding"
+              },
+              {
+                "path": "src/client_local_run/run.mbt",
+                "anchor": "fn local_run_request_original("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source request binding"
+              },
+              {
+                "path": "src/client_host_wasm/run_sdk.mbt",
+                "anchor": "pub fn prepare_sdk_run("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source request binding"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source request binding"
+              },
+              {
+                "path": "src/client_host_wasm/run.mbt",
+                "anchor": "pub fn close_run("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source request binding"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source request binding"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_host_wasm/source_submission_request_wbtest.mbt",
+                "anchor": "test \"Source request handoff refuses substituted submitted view before Run preparation\""
               }
             ]
           }
@@ -76875,6 +77192,1201 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Project and profile metadata"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "packages/python-sdk/src/actql_sdk/_local_project_files.py",
+      "sha256": "bb56b414bb6b2288bc91ed3741aa78aa2c107eab4793a4f234e4d2a3d8d97d08",
+      "exports": [
+        "LocalCore",
+        "LocalFileRoot",
+        "LocalProjectFilesCleanupPending",
+        "NoReturn",
+        "OriginalLocalProjectFiles",
+        "Path",
+        "PhysicalFileIdentity",
+        "dataclass",
+        "os",
+        "stat"
+      ],
+      "operations": [
+        {
+          "async": false,
+          "name": "LocalProjectFilesCleanupPending",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "LocalProjectFilesCleanupPending/__init__",
+          "parameters": [
+            "self",
+            "original"
+          ]
+        },
+        {
+          "async": false,
+          "name": "OriginalLocalProjectFiles",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "OriginalLocalProjectFiles/__copy__",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "OriginalLocalProjectFiles/__deepcopy__",
+          "parameters": [
+            "self",
+            "memo"
+          ]
+        },
+        {
+          "async": false,
+          "name": "OriginalLocalProjectFiles/__init__",
+          "parameters": [
+            "self",
+            "core",
+            "max_files",
+            "max_bytes"
+          ]
+        },
+        {
+          "async": false,
+          "name": "OriginalLocalProjectFiles/__reduce__",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "OriginalLocalProjectFiles/_active",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "OriginalLocalProjectFiles/_nominal",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "OriginalLocalProjectFiles/_parent",
+          "parameters": [
+            "self",
+            "path"
+          ]
+        },
+        {
+          "async": false,
+          "name": "OriginalLocalProjectFiles/_path",
+          "parameters": [
+            "path"
+          ]
+        },
+        {
+          "async": false,
+          "name": "OriginalLocalProjectFiles/_release_descriptors",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "OriginalLocalProjectFiles/_stamp",
+          "parameters": [
+            "info"
+          ]
+        },
+        {
+          "async": false,
+          "name": "OriginalLocalProjectFiles/close",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "OriginalLocalProjectFiles/current",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "OriginalLocalProjectFiles/discover",
+          "parameters": [
+            "self",
+            "directory"
+          ]
+        },
+        {
+          "async": false,
+          "name": "OriginalLocalProjectFiles/original_bytes",
+          "parameters": [
+            "self",
+            "value"
+          ]
+        },
+        {
+          "async": false,
+          "name": "OriginalLocalProjectFiles/read_original",
+          "parameters": [
+            "self",
+            "path",
+            "max_bytes",
+            "missing"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_Descriptor",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "_ProjectFile",
+          "parameters": []
+        }
+      ],
+      "imports": [
+        "._local_core",
+        "._local_files",
+        "dataclasses",
+        "os",
+        "pathlib",
+        "stat",
+        "typing"
+      ],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "existing Python Local project input and Core workspace ownership",
+      "rationale": "Read-only physical generations, discovery absences and same-child cleanup; configuration meaning, installation and authority remain with existing Core/Host owners.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "LocalProjectFilesCleanupPending",
+            "LocalProjectFilesCleanupPending/__init__",
+            "OriginalLocalProjectFiles",
+            "OriginalLocalProjectFiles/__copy__",
+            "OriginalLocalProjectFiles/__deepcopy__",
+            "OriginalLocalProjectFiles/__init__",
+            "OriginalLocalProjectFiles/__reduce__",
+            "OriginalLocalProjectFiles/_active",
+            "OriginalLocalProjectFiles/_nominal",
+            "OriginalLocalProjectFiles/_parent",
+            "OriginalLocalProjectFiles/_path",
+            "OriginalLocalProjectFiles/_release_descriptors",
+            "OriginalLocalProjectFiles/_stamp",
+            "OriginalLocalProjectFiles/close",
+            "OriginalLocalProjectFiles/current",
+            "OriginalLocalProjectFiles/discover",
+            "OriginalLocalProjectFiles/original_bytes",
+            "OriginalLocalProjectFiles/read_original",
+            "_Descriptor",
+            "_ProjectFile"
+          ],
+          "exports": [
+            "LocalCore",
+            "LocalFileRoot",
+            "LocalProjectFilesCleanupPending",
+            "NoReturn",
+            "OriginalLocalProjectFiles",
+            "Path",
+            "PhysicalFileIdentity",
+            "dataclass",
+            "os",
+            "stat"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original project file inputs"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original project file inputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original project file inputs"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original project file inputs"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original project file inputs"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original project file inputs"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original project file inputs"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original project file inputs"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original project file inputs"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original project file inputs"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_preparation/source_computation.mbt",
+      "sha256": "0925a47400b1e710a089094aa1f8027fd0c0430c9cafc5e96da3befb43f6e23c",
+      "exports": [],
+      "operations": [
+        {
+          "name": "local_source_computation_matches",
+          "declaration": "local_source_computation_matches ( value : LocalSourceComputation , intent : @ host . ClientSubmittedIntent , environment : @ checked . CheckEnvironment , ) - > Bool"
+        },
+        {
+          "name": "local_source_computation_material",
+          "declaration": "local_source_computation_material ( value : LocalSourceComputation , ) - > ( String , String ? )"
+        },
+        {
+          "name": "local_source_computation_originals",
+          "declaration": "local_source_computation_originals ( value : LocalSourceComputation , ) - > ( String , String , String , String )"
+        },
+        {
+          "name": "local_source_computation_preparation",
+          "declaration": "local_source_computation_preparation ( value : LocalSourceComputation , ) - > LocalSourceComputationPreparation"
+        },
+        {
+          "name": "local_source_computation_request",
+          "declaration": "local_source_computation_request ( value : LocalSourceComputation , authority_scope_cid : String , request_id : String , ) - > Result [ @ host . ClientRequestIdentity , @ host . ClientRequestIdentityIssue ]"
+        },
+        {
+          "name": "local_source_computation_source",
+          "declaration": "local_source_computation_source ( value : LocalSourceComputation , ) - > ( String , String , String ? )"
+        },
+        {
+          "name": "local_source_pure_submitted_preparation",
+          "declaration": "local_source_pure_submitted_preparation ( source : LocalSourceComputation , intent : @ host . ClientSubmittedIntent , environment : @ checked . CheckEnvironment , ) - > LocalSubmittedPreparation ?"
+        },
+        {
+          "name": "prepare_local_source_computation",
+          "declaration": "prepare_local_source_computation ( intent : @ host . ClientSubmittedIntent , environment : @ checked . CheckEnvironment , publication : String , public_primary ? : Bool"
+        }
+      ],
+      "role": "common-semantics",
+      "owner": "Existing Local Source computation and submitted preparation Owners; original Pure view only, no new Run or permission issuer",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "local_source_computation_matches",
+            "local_source_computation_material",
+            "local_source_computation_originals",
+            "local_source_computation_preparation",
+            "local_source_computation_request",
+            "local_source_computation_source",
+            "local_source_pure_submitted_preparation",
+            "prepare_local_source_computation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source preparation originals"
+              },
+              {
+                "path": "src/client_local_preparation/source_computation.mbt",
+                "anchor": "pub fn local_source_pure_submitted_preparation("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source preparation originals"
+              },
+              {
+                "path": "src/client_local_preparation/source_computation.mbt",
+                "anchor": "pub fn local_source_pure_submitted_preparation("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source preparation originals"
+              },
+              {
+                "path": "src/client_local_preparation/source_computation.mbt",
+                "anchor": "pub fn local_source_pure_submitted_preparation("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source preparation originals"
+              },
+              {
+                "path": "src/client_local_preparation/source_computation.mbt",
+                "anchor": "pub fn local_source_pure_submitted_preparation("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source preparation originals"
+              },
+              {
+                "path": "src/client_local_preparation/source_computation.mbt",
+                "anchor": "pub fn local_source_pure_submitted_preparation("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source preparation originals"
+              },
+              {
+                "path": "src/client_local_preparation/source_computation.mbt",
+                "anchor": "pub fn local_source_pure_submitted_preparation("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source preparation originals"
+              },
+              {
+                "path": "src/client_local_preparation/source_computation.mbt",
+                "anchor": "pub fn local_source_pure_submitted_preparation("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source preparation originals"
+              },
+              {
+                "path": "src/client_local_preparation/source_computation.mbt",
+                "anchor": "pub fn local_source_pure_submitted_preparation("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source preparation originals"
+              },
+              {
+                "path": "src/client_local_preparation/source_computation.mbt",
+                "anchor": "pub fn local_source_pure_submitted_preparation("
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_preparation/source_submitted_bridge_wbtest.mbt",
+                "anchor": "test \"source submitted bridge keeps same pure original and refuses equal foreign originals\""
+              },
+              {
+                "path": "src/client_local_preparation/source_submitted_bridge_wbtest.mbt",
+                "anchor": "test \"source submitted bridge does not promote Effect computation into Pure preparation\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_preparation/submitted.mbt",
+      "sha256": "71a79d5d1bfd7687d13133bbb0ef6b7e4c1f185e58a38bb3070e89a1fc3695a0",
+      "exports": [],
+      "operations": [
+        {
+          "name": "local_submitted_preparation_input",
+          "declaration": "local_submitted_preparation_input ( value : LocalSubmittedPreparation , ) - > LocalPreparedInput"
+        },
+        {
+          "name": "local_submitted_preparation_intent",
+          "declaration": "local_submitted_preparation_intent ( value : LocalSubmittedPreparation , ) - > @ host . ClientSubmittedIntent"
+        },
+        {
+          "name": "local_submitted_preparation_request",
+          "declaration": "local_submitted_preparation_request ( value : LocalSubmittedPreparation , authority_scope_cid : String , request_id : String , ) - > Result [ @ host . ClientRequestIdentity , @ host . ClientRequestIdentityIssue ]"
+        },
+        {
+          "name": "prepare_local_submitted_input",
+          "declaration": "prepare_local_submitted_input ( wire : String , environment : @ checked . CheckEnvironment , context : LocalInputContext ? , limits : @ host . ClientProgramPreparationLimits , ) - > Result [ LocalSubmittedPreparation , LocalPreparationIssue ]"
+        }
+      ],
+      "role": "common-semantics",
+      "owner": "Existing Local preparation, request, Run, material and installed Host Owners; original submitted-carrier adaptation only, no independent authority or state engine",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "local_submitted_preparation_input",
+            "local_submitted_preparation_intent",
+            "local_submitted_preparation_request",
+            "prepare_local_submitted_input"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source request binding"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source request binding"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source request binding"
+              },
+              {
+                "path": "src/client_local_preparation/submitted.mbt",
+                "anchor": "pub fn local_submitted_preparation_request("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source request binding"
+              },
+              {
+                "path": "src/client_local_run/run.mbt",
+                "anchor": "fn local_run_request_original("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source request binding"
+              },
+              {
+                "path": "src/client_host_wasm/run_sdk.mbt",
+                "anchor": "pub fn prepare_sdk_run("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source request binding"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source request binding"
+              },
+              {
+                "path": "src/client_host_wasm/run.mbt",
+                "anchor": "pub fn close_run("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source request binding"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source request binding"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_run/source_request_original_wbtest.mbt",
+                "anchor": "test \"published Source Run keeps original input intent instead of legacy source-free domain\""
+              },
+              {
+                "path": "src/client_local_run/source_request_original_wbtest.mbt",
+                "anchor": "test \"published Source saved materials preserve request and codec program without fresh issuance\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_run/run.mbt",
+      "sha256": "3a61e4bfb4d3f3bfd1e39ef896c79c276b5a6fa8d0082681ec29d26f0449d2a6",
+      "exports": [],
+      "operations": [
+        {
+          "name": "authorized_input",
+          "declaration": "authorized_input ( prepared : @ host . PreparedClientProgram , permit : @ authorization . DispatchAuthorization , current : @ authorization . AdmittedAccountConfiguration , tuple : @ authorization . AccessTuple , context_cid : String , ) - > Bool"
+        },
+        {
+          "name": "capture_local_run_task_materials_original",
+          "declaration": "capture_local_run_task_materials_original ( plan : LocalRunPlan , environment : @ checked . CheckEnvironment , environment_wire : String , bindings_wire : String ? , ) - > Result [ LocalRunTaskMaterialsOriginal , LocalRunIssue ]"
+        },
+        {
+          "name": "captured_source_profile",
+          "declaration": "captured_source_profile ( prepared : @ host . PreparedClientProgram ) - > Bool"
+        },
+        {
+          "name": "confirm_local_run_physical_start",
+          "declaration": "confirm_local_run_physical_start ( plan : LocalRunPlan , retained : @ host . ClientRequestIdentity , retained_definition_cid : String , reserved : Bool , physically_unstarted : Bool , cancellation_requested : Bool , pre_start_failure_confirmed : Bool , permit : @ authorization . DispatchAuthorization , current : @ authorization . AdmittedAccountConfiguration , tuple : @ authorization . AccessTuple , context_cid : String , ) - > Result [ LocalRunPhysicalStart , LocalRunIssue ]"
+        },
+        {
+          "name": "export_local_run_materials",
+          "declaration": "export_local_run_materials ( plan : LocalRunPlan , environment : @ checked . CheckEnvironment , environment_wire : String , bindings_wire : String ? , ) - > Result [ String , LocalRunIssue ]"
+        },
+        {
+          "name": "local_run_admission",
+          "declaration": "local_run_admission ( plan : LocalRunPlan , ) - > @ publication . RunPublicationAdmission"
+        },
+        {
+          "name": "local_run_compilation",
+          "declaration": "local_run_compilation ( plan : LocalRunPlan , ) - > @ host . ClientTaskCompilation"
+        },
+        {
+          "name": "local_run_definition",
+          "declaration": "local_run_definition ( plan : LocalRunPlan , ) - > @ publication . PublicationContract"
+        },
+        {
+          "name": "local_run_definition_cid",
+          "declaration": "local_run_definition_cid ( plan : LocalRunPlan ) - > String"
+        },
+        {
+          "name": "local_run_manifests",
+          "declaration": "local_run_manifests ( ) - > Result [ @ host . ClientCompilationManifests , LocalRunIssue , ]"
+        },
+        {
+          "name": "local_run_material_limits",
+          "declaration": "local_run_material_limits ( ) - > @ host . ClientValuesRunMaterialsLimits"
+        },
+        {
+          "name": "local_run_prepared",
+          "declaration": "local_run_prepared ( plan : LocalRunPlan ) - > @ host . PreparedClientProgram"
+        },
+        {
+          "name": "local_run_request",
+          "declaration": "local_run_request ( plan : LocalRunPlan ) - > @ host . ClientRequestIdentity"
+        },
+        {
+          "name": "local_run_request_original",
+          "declaration": "local_run_request_original ( input : @ input . LocalPreparedInput , authority_scope_cid : String , request_id : String , submitted : @ input . LocalSubmittedPreparation ? , ) - > Result [ @ host . ClientRequestIdentity , @ host . ClientRequestIdentityIssue ]"
+        },
+        {
+          "name": "local_run_task_materials_original_chunks",
+          "declaration": "local_run_task_materials_original_chunks ( original : LocalRunTaskMaterialsOriginal , ) - > Array [ ( String , String ) ]"
+        },
+        {
+          "name": "local_run_task_materials_original_cid",
+          "declaration": "local_run_task_materials_original_cid ( original : LocalRunTaskMaterialsOriginal , ) - > String"
+        },
+        {
+          "name": "local_run_task_materials_original_policy",
+          "declaration": "local_run_task_materials_original_policy ( original : LocalRunTaskMaterialsOriginal , ) - > String"
+        },
+        {
+          "name": "prepare_captured_source_local_run",
+          "declaration": "prepare_captured_source_local_run ( input : @ input . LocalPreparedInput , authority_scope_cid : String , caller_request_id : String , permit : @ authorization . DispatchAuthorization , current : @ authorization . AdmittedAccountConfiguration , tuple : @ authorization . AccessTuple , execution_context_cid : String , host_policy_cid : String , run_namespace : String , run_id : String , created_at : String , valid_until : String , submitted ? : @ input . LocalSubmittedPreparation ?"
+        },
+        {
+          "name": "prepare_local_run_physical_start",
+          "declaration": "prepare_local_run_physical_start ( plan : LocalRunPlan , retained : @ host . ClientRequestIdentity , retained_definition_cid : String , reserved : Bool , physically_unstarted : Bool , cancellation_requested : Bool , pre_start_failure_confirmed : Bool , permit : @ authorization . DispatchAuthorization , current : @ authorization . AdmittedAccountConfiguration , tuple : @ authorization . AccessTuple , context_cid : String , ) - > Result [ Bool , LocalRunIssue ]"
+        },
+        {
+          "name": "prepare_local_run_profile",
+          "declaration": "prepare_local_run_profile ( input : @ input . LocalPreparedInput , authority_scope_cid : String , caller_request_id : String , permit : @ authorization . DispatchAuthorization , current : @ authorization . AdmittedAccountConfiguration , tuple : @ authorization . AccessTuple , execution_context_cid : String , host_policy_cid : String , run_namespace : String , run_id : String , created_at : String , valid_until : String , profile : ( @ host . PreparedClientProgram ) - > Bool , result_policy : ( String , String ) ? , submitted ? : @ input . LocalSubmittedPreparation ?"
+        },
+        {
+          "name": "prepare_local_run_start",
+          "declaration": "prepare_local_run_start ( plan : LocalRunPlan , retained : @ host . ClientRequestIdentity , retained_definition_cid : String , dispatch_reserved : Bool , permit : @ authorization . DispatchAuthorization , current : @ authorization . AdmittedAccountConfiguration , tuple : @ authorization . AccessTuple , context_cid : String , ) - > Result [ @ host . ClientRunStartAction , LocalRunIssue ]"
+        },
+        {
+          "name": "prepare_source_free_local_publication_run",
+          "declaration": "prepare_source_free_local_publication_run ( input : @ input . LocalPreparedInput , authority_scope_cid : String , caller_request_id : String , permit : @ authorization . DispatchAuthorization , current : @ authorization . AdmittedAccountConfiguration , tuple : @ authorization . AccessTuple , execution_context_cid : String , host_policy_cid : String , run_namespace : String , run_id : String , created_at : String , valid_until : String , result_policy : ( String , String ) , submitted ? : @ input . LocalSubmittedPreparation ?"
+        },
+        {
+          "name": "prepare_source_free_local_run",
+          "declaration": "prepare_source_free_local_run ( input : @ input . LocalPreparedInput , authority_scope_cid : String , caller_request_id : String , permit : @ authorization . DispatchAuthorization , current : @ authorization . AdmittedAccountConfiguration , tuple : @ authorization . AccessTuple , execution_context_cid : String , host_policy_cid : String , run_namespace : String , run_id : String , created_at : String , valid_until : String , submitted ? : @ input . LocalSubmittedPreparation ?"
+        },
+        {
+          "name": "relation_profile",
+          "declaration": "relation_profile ( prepared : @ host . PreparedClientProgram ) - > Bool"
+        },
+        {
+          "name": "restore_local_run_materials",
+          "declaration": "restore_local_run_materials ( wire : String , expected_definition_cid : String , ) - > Result [ @ host . ClientTaskRunMaterials , LocalRunIssue ]"
+        },
+        {
+          "name": "source_free_profile",
+          "declaration": "source_free_profile ( prepared : @ host . PreparedClientProgram ) - > Bool"
+        }
+      ],
+      "role": "common-semantics",
+      "owner": "Existing Local preparation, request, Run, material and installed Host Owners; original submitted-carrier adaptation only, no independent authority or state engine",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "authorized_input",
+            "capture_local_run_task_materials_original",
+            "captured_source_profile",
+            "confirm_local_run_physical_start",
+            "export_local_run_materials",
+            "local_run_admission",
+            "local_run_compilation",
+            "local_run_definition",
+            "local_run_definition_cid",
+            "local_run_manifests",
+            "local_run_material_limits",
+            "local_run_prepared",
+            "local_run_request",
+            "local_run_request_original",
+            "local_run_task_materials_original_chunks",
+            "local_run_task_materials_original_cid",
+            "local_run_task_materials_original_policy",
+            "prepare_captured_source_local_run",
+            "prepare_local_run_physical_start",
+            "prepare_local_run_profile",
+            "prepare_local_run_start",
+            "prepare_source_free_local_publication_run",
+            "prepare_source_free_local_run",
+            "relation_profile",
+            "restore_local_run_materials",
+            "source_free_profile"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source request binding"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source request binding"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source request binding"
+              },
+              {
+                "path": "src/client_local_preparation/submitted.mbt",
+                "anchor": "pub fn local_submitted_preparation_request("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source request binding"
+              },
+              {
+                "path": "src/client_local_run/run.mbt",
+                "anchor": "fn local_run_request_original("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source request binding"
+              },
+              {
+                "path": "src/client_host_wasm/run_sdk.mbt",
+                "anchor": "pub fn prepare_sdk_run("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source request binding"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source request binding"
+              },
+              {
+                "path": "src/client_host_wasm/run.mbt",
+                "anchor": "pub fn close_run("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source request binding"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source request binding"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_run/source_request_original_wbtest.mbt",
+                "anchor": "test \"published Source Run keeps original input intent instead of legacy source-free domain\""
+              },
+              {
+                "path": "src/client_local_run/source_request_original_wbtest.mbt",
+                "anchor": "test \"published Source saved materials preserve request and codec program without fresh issuance\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_run/restoration.mbt",
+      "sha256": "e4ba527a95430047a838d11cb5d8d67e0d49f4e342cf70efcec1d008f96c61ad",
+      "exports": [],
+      "operations": [
+        {
+          "name": "restore_captured_source_local_run_from_materials",
+          "declaration": "restore_captured_source_local_run_from_materials ( input : @ input . LocalPreparedInput , restored : @ host . ClientTaskRunMaterials , expected_definition_cid : String , retained_request : @ host . ClientRequestIdentity , authority_scope_cid : String , permit : @ authorization . DispatchAuthorization , current : @ authorization . AdmittedAccountConfiguration , tuple : @ authorization . AccessTuple , execution_context_cid : String , host_policy_cid : String , submitted ? : @ input . LocalSubmittedPreparation ?"
+        },
+        {
+          "name": "restore_local_run_from_materials",
+          "declaration": "restore_local_run_from_materials ( input : @ input . LocalPreparedInput , restored : @ host . ClientTaskRunMaterials , expected_definition_cid : String , retained_request : @ host . ClientRequestIdentity , authority_scope_cid : String , permit : @ authorization . DispatchAuthorization , current : @ authorization . AdmittedAccountConfiguration , tuple : @ authorization . AccessTuple , execution_context_cid : String , host_policy_cid : String , profile : ( @ host . PreparedClientProgram ) - > Bool , submitted ? : @ input . LocalSubmittedPreparation ?"
+        },
+        {
+          "name": "restore_source_free_local_run",
+          "declaration": "restore_source_free_local_run ( input : @ input . LocalPreparedInput , materials : String , expected_definition_cid : String , retained_request : @ host . ClientRequestIdentity , authority_scope_cid : String , permit : @ authorization . DispatchAuthorization , current : @ authorization . AdmittedAccountConfiguration , tuple : @ authorization . AccessTuple , execution_context_cid : String , host_policy_cid : String , ) - > Result [ LocalRunPlan , LocalRunIssue ]"
+        },
+        {
+          "name": "restore_source_free_local_run_from_materials",
+          "declaration": "restore_source_free_local_run_from_materials ( input : @ input . LocalPreparedInput , restored : @ host . ClientTaskRunMaterials , expected_definition_cid : String , retained_request : @ host . ClientRequestIdentity , authority_scope_cid : String , permit : @ authorization . DispatchAuthorization , current : @ authorization . AdmittedAccountConfiguration , tuple : @ authorization . AccessTuple , execution_context_cid : String , host_policy_cid : String , submitted ? : @ input . LocalSubmittedPreparation ?"
+        },
+        {
+          "name": "restore_source_free_local_run_policy_original",
+          "declaration": "restore_source_free_local_run_policy_original ( plan : LocalRunPlan , original : @ host . ClientSavedTaskMaterials , ) - > Result [ LocalRunPlan , LocalRunIssue ]"
+        }
+      ],
+      "role": "common-semantics",
+      "owner": "Existing Local preparation, request, Run, material and installed Host Owners; original submitted-carrier adaptation only, no independent authority or state engine",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "restore_captured_source_local_run_from_materials",
+            "restore_local_run_from_materials",
+            "restore_source_free_local_run",
+            "restore_source_free_local_run_from_materials",
+            "restore_source_free_local_run_policy_original"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source request binding"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source request binding"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source request binding"
+              },
+              {
+                "path": "src/client_local_preparation/submitted.mbt",
+                "anchor": "pub fn local_submitted_preparation_request("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source request binding"
+              },
+              {
+                "path": "src/client_local_run/run.mbt",
+                "anchor": "fn local_run_request_original("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source request binding"
+              },
+              {
+                "path": "src/client_host_wasm/run_sdk.mbt",
+                "anchor": "pub fn prepare_sdk_run("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source request binding"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source request binding"
+              },
+              {
+                "path": "src/client_host_wasm/run.mbt",
+                "anchor": "pub fn close_run("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source request binding"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source request binding"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_run/source_request_original_wbtest.mbt",
+                "anchor": "test \"published Source Run keeps original input intent instead of legacy source-free domain\""
+              },
+              {
+                "path": "src/client_local_run/source_request_original_wbtest.mbt",
+                "anchor": "test \"published Source saved materials preserve request and codec program without fresh issuance\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_host_wasm/run.mbt",
+      "sha256": "1692f54cdcf625959257c67d997163df7ba6a2d47ffe3b22c6cd32ebddfd4b3c",
+      "exports": [],
+      "operations": [
+        {
+          "name": "close_run",
+          "declaration": "close_run ( nonce : Int64 , handle : Int ) - > Int"
+        },
+        {
+          "name": "close_run_configuration",
+          "declaration": "close_run_configuration ( nonce : Int64 , handle : Int ) - > Int"
+        },
+        {
+          "name": "install_current_run_configuration",
+          "declaration": "install_current_run_configuration ( nonce : Int64 , current : Int , input : Int , ) - > Int"
+        },
+        {
+          "name": "install_run_configuration",
+          "declaration": "install_run_configuration ( nonce : Int64 , input : Int ) - > Int"
+        },
+        {
+          "name": "prepare_run",
+          "declaration": "prepare_run ( nonce : Int64 , handle : Int ) - > Int"
+        },
+        {
+          "name": "required_text",
+          "declaration": "required_text ( object : @ decode . ObjectView , name : String ) - > String ?"
+        },
+        {
+          "name": "reserve_run",
+          "declaration": "reserve_run ( nonce : Int64 , configuration : Int , preparation : Int , input : Int , ) - > Int"
+        },
+        {
+          "name": "restore_run",
+          "declaration": "restore_run ( nonce : Int64 , handle : Int , materials : Int ) - > Int"
+        },
+        {
+          "name": "run_configuration_current",
+          "declaration": "run_configuration_current ( value : Instance , configuration : StoredRunConfiguration , ) - > Result [ Unit , Int ]"
+        },
+        {
+          "name": "run_prepared",
+          "declaration": "run_prepared ( nonce : Int64 , handle : Int ) - > Int"
+        },
+        {
+          "name": "sdk_restored_run_snapshot",
+          "declaration": "sdk_restored_run_snapshot ( value : Instance , run : Int , plan : @ local_run . LocalRunPlan , ) - > Result [ @ host . ClientSavedSubmissionSnapshot , Int ]"
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing Local preparation, request, Run, material and installed Host Owners; original submitted-carrier adaptation only, no independent authority or state engine",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "close_run",
+            "close_run_configuration",
+            "install_current_run_configuration",
+            "install_run_configuration",
+            "prepare_run",
+            "required_text",
+            "reserve_run",
+            "restore_run",
+            "run_configuration_current",
+            "run_prepared",
+            "sdk_restored_run_snapshot"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source request binding"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source request binding"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source request binding"
+              },
+              {
+                "path": "src/client_local_preparation/submitted.mbt",
+                "anchor": "pub fn local_submitted_preparation_request("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source request binding"
+              },
+              {
+                "path": "src/client_local_run/run.mbt",
+                "anchor": "fn local_run_request_original("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source request binding"
+              },
+              {
+                "path": "src/client_host_wasm/run_sdk.mbt",
+                "anchor": "pub fn prepare_sdk_run("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source request binding"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source request binding"
+              },
+              {
+                "path": "src/client_host_wasm/run.mbt",
+                "anchor": "pub fn close_run("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source request binding"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source request binding"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_host_wasm/source_submission_request_wbtest.mbt",
+                "anchor": "test \"Source request handoff refuses substituted submitted view before Run preparation\""
+              },
+              {
+                "path": "src/client_host_wasm/non_sdk_source_restore_wbtest.mbt",
+                "anchor": "test \"non-SDK published Source restore retains same carrier from its original live Source\""
+              },
+              {
+                "path": "src/client_host_wasm/non_sdk_source_restore_wbtest.mbt",
+                "anchor": "test \"non-SDK published Source restore retains same codec carrier without a live Source view\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_host_wasm/run_sdk.mbt",
+      "sha256": "abcc217616d915379696b5fc42223dcbc0891ec03a6c5a68cd0a2bc26eeec24f",
+      "exports": [],
+      "operations": [
+        {
+          "name": "install_sdk_run_configuration",
+          "declaration": "install_sdk_run_configuration ( nonce : Int64 , current_handle : Int , input : Int , ) - > Int"
+        },
+        {
+          "name": "prepare_sdk_run",
+          "declaration": "prepare_sdk_run ( nonce : Int64 , handle : Int , submission : Int ) - > Int"
+        },
+        {
+          "name": "sdk_run_append_candidate",
+          "declaration": "sdk_run_append_candidate ( value : Instance , configuration : StoredRunConfiguration , plan : @ local_run . LocalRunPlan , original : @ host . ClientLocalRunPolicyOriginal , task_materials : @ local_run . LocalRunTaskMaterialsOriginal ? , ) - > Result [ @ host . ClientRunJournalAppend , Int ]"
+        },
+        {
+          "name": "sdk_run_append_issue",
+          "declaration": "sdk_run_append_issue ( issue : @ host . ClientRunJournalAppendIssue [ Int ] ) - > Int"
+        },
+        {
+          "name": "sdk_run_journal_port",
+          "declaration": "sdk_run_journal_port ( value : Instance , configuration : StoredRunConfiguration , mode : Int , table : String , key : String , ) - > Result [ @ host . ClientJournalPhysicalRow ? , Int ]"
+        },
+        {
+          "name": "sdk_selected_original",
+          "declaration": "sdk_selected_original ( value : Instance , current : StoredHostCurrent , name : String , max_bytes : Int , ) - > Result [ Bytes , Int ]"
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing Local preparation, request, Run, material and installed Host Owners; original submitted-carrier adaptation only, no independent authority or state engine",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "install_sdk_run_configuration",
+            "prepare_sdk_run",
+            "sdk_run_append_candidate",
+            "sdk_run_append_issue",
+            "sdk_run_journal_port",
+            "sdk_selected_original"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source request binding"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source request binding"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source request binding"
+              },
+              {
+                "path": "src/client_local_preparation/submitted.mbt",
+                "anchor": "pub fn local_submitted_preparation_request("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source request binding"
+              },
+              {
+                "path": "src/client_local_run/run.mbt",
+                "anchor": "fn local_run_request_original("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source request binding"
+              },
+              {
+                "path": "src/client_host_wasm/run_sdk.mbt",
+                "anchor": "pub fn prepare_sdk_run("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source request binding"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source request binding"
+              },
+              {
+                "path": "src/client_host_wasm/run.mbt",
+                "anchor": "pub fn close_run("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source request binding"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Published Source request binding"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_host_wasm/source_submission_request_wbtest.mbt",
+                "anchor": "test \"Source request handoff refuses substituted submitted view before Run preparation\""
               }
             ]
           }

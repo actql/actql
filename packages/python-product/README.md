@@ -38,6 +38,11 @@ context-managed `Client` used by `Client.open()` and `await AsyncClient.open()`.
 The named `actql.connect(mode="local", installation=".actql")` entry and
 `await AsyncClient.connect(mode="local", installation=".actql")` select that
 same installed factory and preserve its original cleanup handle.
+Named Local connections discover the nearest `actql.config.json`; `profile`
+overrides that original configuration's choice. Explicit `installation` selects
+the Store; otherwise its `state_dir` is relative to the configuration file.
+`open(state_dir=...)` keeps its Store-only selection. Profile intake and the
+operational backend support in the matrix below remain separate contracts.
 The Client factories also accept an explicit Store directory. They
 accept no endpoint, token, Wasm/library path, resources or allocator options.
 Both delegate to the same installed Host and existing Client model. The sync

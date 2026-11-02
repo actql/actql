@@ -1434,6 +1434,7 @@
             "cls",
             "mode",
             "installation",
+            "profile",
             "signer"
           ]
         },
@@ -2000,6 +2001,7 @@
             "cls",
             "mode",
             "installation",
+            "profile",
             "signer"
           ]
         },
@@ -2603,7 +2605,7 @@
           ]
         }
       ],
-      "sha256": "6558baee231e75bdbbee64daa9ed78c0ef7225dce3cacdc0af039a0d87e71cae",
+      "sha256": "bcb8f956c78fffb5f22eb8ddf54f011c06ee2f8f08174c533eec9a4d81a740d6",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -3535,6 +3537,17 @@
           ]
         },
         {
+          "async": true,
+          "name": "AsyncClient/_open_installed_local",
+          "parameters": [
+            "cls",
+            "state_dir",
+            "signer",
+            "discover_project",
+            "profile"
+          ]
+        },
+        {
           "async": false,
           "name": "AsyncClient/_prepare_start",
           "parameters": [
@@ -3960,7 +3973,7 @@
           ]
         }
       ],
-      "sha256": "b1ceab7c8a132e52373d115b545b91e101182906e705ade0772bf3a5128a305f",
+      "sha256": "67cacdf9e4b01821918a065a7d1c6fc44fe3a2294a1117291b186be4ebd70a69",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -4521,6 +4534,74 @@
               {
                 "path": "packages/python-sdk/README.md",
                 "anchor": "### Workspace connection strings"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "AsyncClient/_open_installed_local"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Named Local project preparation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Named Local project preparation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Named Local project preparation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Named Local project preparation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Named Local project preparation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Named Local project preparation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Named Local project preparation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Named Local project preparation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Named Local project preparation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Named Local project preparation"
               }
             ]
           }
@@ -9794,5 +9875,6 @@
         }
       ]
     }
-  ]
+  ],
+  "syntaxProjectionSha256": "638ecbcea1895befb992205a63423c5c396486d20dd4f0d4f67a215bc8566738"
 }

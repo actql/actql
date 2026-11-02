@@ -2410,6 +2410,77 @@ The project metadata whitebox cases cover absence, original overrides, ordering,
 foreign equality and retirement; Python loan cases cover immutable projection,
 copy refusal and failed cleanup. They do not establish an installed Mock run.
 
+### Named Local project preparation
+
+The named sync and async Local `connect` entries capture the optional profile
+and call the same private installed-factory assembly as `open`. `open` retains
+its explicit Store-only selection, including Saved-first clients. Remote
+construction and explicit signers retain their existing paths. A project is
+neither an endpoint nor a source of signer, Account, permission or capacity.
+
+The factory acquires the same installed Core before project IO. The Host then
+retains the physical project child, exact configuration input, Core metadata
+child and nominal profile selection before fallible preparation or Store
+initialization. Referenced inputs use the same configuration directory and
+original locator order; multiple roles selecting one exact path retain the same
+physical member. Explicit `installation` wins; otherwise the original Core
+`state_dir` is relative to the selected configuration, including discovery in a
+parent directory. Merely copying locator DATA cannot install a profile.
+
+The existing Host lock and cleanup sequence own these loans. Metadata retires
+before its Core input, and the physical project child retires after its consumers
+and installation and before the Core. Constructor failure returns that same Host
+without re-reading inputs or initializing another Store. Uncertain physical close
+retains its child through the original acknowledgement; coroutine cancellation
+does not acknowledge it or cancel a Run. Project workspace and separate Core
+input/output reservations cover the simultaneous constructor and retained files.
+
+Fresh preparation observes the same physical group and retained Core selection.
+The selected profile still needs its actual published or Mock environment and
+executable owners. It cannot execute against the source-free bootstrap merely
+because intake succeeded. Saved Run lookup/restoration continues through its
+separate original-material path, without submitted preparation or profile
+replacement. The physical worker binds the same narrowed original Run and
+method before asynchronous work, independently of the requesting coroutine.
+
+Component cases cover actual project/File/Store custody with explicit semantic
+Core ports and public sync/async factory forwarding with an explicit Host port.
+Their scope is distinct from an installed Mock/Effect/approval execution or
+external ABI/distribution qualification. Existing typed consumers and canonical
+interface declarations cover the same public profile option and private callers.
+
+### Original project file inputs
+
+`OriginalLocalProjectFiles` supplies bounded read-only physical input to the
+same configuration preparation. It reserves its Core workspace before opening
+directories or files. Its limits cover simultaneous raw, destination, text,
+path and descriptor holding; the subsequent Core input and metadata loans are
+separate. It does not parse project JSON, select a profile, install a provider,
+issue authority or start a Run.
+
+Project directories are ordinary read-only directories, distinct from the
+private, exclusively owned Store roots used by `LocalFileRoot`. Reads retain
+the same open parent and regular-file descriptors, original named generation,
+size and timestamps. Bounded nonblocking acquisition refuses symbolic links and
+nonregular files. A whole-group current check precedes returning retained bytes.
+The nearest `actql.config.json` is selected only after observing its bytes;
+each nearer acknowledged absence remains part of that original group. A new
+nearer file, replacement, changed generation or unreadable input cannot become
+an empty/default configuration or trigger parent fallback.
+
+The installed caller owns this child and serializes it with the same Core lock.
+Failed acquisition retains its original descriptors and workspace, and the
+failed input cannot be read again. Cleanup uses the existing descriptor-uncertainty
+rule: an uncertain close is observed, never repeated on a potentially recycled
+descriptor. The original Core workspace acknowledges physical descriptor cleanup
+before the retained bytes and references are dropped. A trapped reservation
+keeps its original ticket until the same Core completes global cleanup; even
+then, any still-held descriptor prevents a fabricated acknowledgement. This
+cleanup does not cancel a Run, acknowledge Store durability or remove named
+files. Actual POSIX discovery, generation, bounds and failed-close cases cover
+this port with explicit Core workspace ports; they do not qualify installed
+profile execution or the external Wasm ABI.
+
 One output reservation retains its original input borrow. Output cleanup must
 succeed before that borrow returns; failed cleanup retains the same handle.
 `LocalHostFiles` pins exact saved descriptors and the original Store generation,
@@ -3378,6 +3449,57 @@ The optional physical problem fields are absent from older preparing/ready
 rows, whose canonical bytes remain unchanged. Native readers retain the same
 failure as terminal DATA and refuse fresh execution from that reference.
 
+### Published Source preparation originals
+
+An issued submitted preparation may retain the original published Source
+computation beside its original submitted intent. Its environment retains the
+same publication wire that was admitted with that environment. The existing
+Source constructor selects Pure or Effect from the original authored program;
+the Wasm preparation does not lower that program again or infer its kind from
+counts. Access requires the same intent and environment originals and the
+retained publication, rather than equal serialized substitutes.
+
+For Pure, a checked view exposes the same existing prepared program and durable
+document through the existing submitted-preparation carrier. Effect has no such
+Pure view. Its graph supplies preparation counts only; those counts and the
+ready outcome issue no Run, permission, physical target or executable restore.
+The existing Run and material constructors must separately consume the original
+Effect computation with their complete parent and lifetime checks.
+
+The issued preparation retains a typed Source failure without reparsing on
+subsequent observation. Failure projection reads that retained issue, while
+changed original references refuse access. The preparation's existing input
+borrow and environment dependency remain held until the same close operation
+returns them. Source-free, structured-program and saved-material restoration
+paths preserve their existing constructors and checks. This adds no Wasm
+export, signature or ABI version; the changed implementation still requires a
+genuinely matching module before a Host may consume it.
+
+### Published Source request binding
+
+A published Source's submitted carrier retains both the original input intent
+and its exact prepared input. Existing Local Run constructors accept that
+optional carrier only with the same prepared-input reference. They derive the
+request through the existing canonical request function using the retained
+intent CID. Omission preserves the legacy source-free input domain and all
+existing request preimages. This carrier is not a new authorization or issuer.
+
+The SDK caller uses that same request for lookup before Policy, compilation or
+Run issuance, and forwards the same carrier into the existing Run constructor.
+The Source/submitted views must retain the same original intent and checked
+Pure program; equal replacement views refuse before that handoff. The existing
+current, Account, submission, epoch and interruption checks remain in place.
+
+For a saved SDK Run in this input domain, the original saved Submission and
+canonical material decoder supply the retained submitted carrier. Restoration
+recomputes only the request identity from those saved originals and compares
+it with the retained request, complete expected Definition CID, context and
+policy. It keeps the codec's original execution program and compilation; it
+does not prepare authored input, issue a replacement Run or refresh authority.
+Legacy saved requests retain their omitted-carrier path. This binding does not
+make an Effect computation a Pure Run or enable physical work, approval or
+continuation through an incomplete Effect Host.
+
 ### Adjacent payload preparation observations
 
 After original read evidence and first delivery are durably acknowledged, the
@@ -3394,3 +3516,19 @@ remain available for cleanup. No currentness or Allow result is cached. The
 standalone codec and ordinal methods retain their original independent frames
 for callers that deliberately select them separately. Payload binding and
 physical snapshot validation continue through their two original Core methods.
+
+
+### Original Source carrier during Run restoration
+
+The original request input domain selects the retained submitted carrier for
+both SDK and non-SDK restoration. A Source-bearing request must keep the same
+carrier bound to its original prepared input, even when only the codec-bound
+carrier remains and a live Source view is absent. Selecting an SDK profile is
+not a prerequisite for preserving that request identity. The legacy source-free
+input domain retains its existing absence of this optional carrier.
+
+The actual restore caller passes this original unchanged to the existing
+bounded materials restoration. That codec's compiled Owner, expected complete
+Definition CID, current authorization, context and policy checks still apply.
+Restoration neither prepares the submitted Source again nor issues another
+request, Run, dispatch, lifetime or physical acknowledgment.

@@ -33,7 +33,10 @@ options(
   // The exported dispatch counter roots physical imports. Its existing
   // physical-refusing harness runs this release-only fixture in the Wasm CI
   // lane; ordinary debug moonrun tests keep their original import surface.
-  targets: { "saved_lookup_validation_dispatch_wbtest.mbt": [ "release" ] },
+  targets: {
+    "saved_lookup_validation_dispatch_wbtest.mbt": [ "release" ],
+    "non_sdk_source_restore_wbtest.mbt": [ "release" ],
+  },
   link: {
     "wasm": {
       // Explicit artifact exports preserve the production ABI without rooting

@@ -68,11 +68,15 @@ pub fn local_source_computation_request(@run_publication_host.ClientSourcePrepar
 
 pub fn local_source_computation_source(@run_publication_host.ClientSourcePreparation) -> (String, String, String?)
 
+pub fn local_source_pure_submitted_preparation(@run_publication_host.ClientSourcePreparation, @run_publication_host.ClientSubmittedIntent, @program_check.CheckEnvironment) -> LocalSubmittedPreparation?
+
 pub fn local_submitted_preparation_input(LocalSubmittedPreparation) -> LocalPreparedInput
 
 pub fn local_submitted_preparation_intent(LocalSubmittedPreparation) -> @run_publication_host.ClientSubmittedIntent
 
 pub fn local_submitted_preparation_parameters_wire(LocalSubmittedPreparation) -> Result[String?, @run_publication_host.ClientSubmittedIntentIssue]
+
+pub fn local_submitted_preparation_request(LocalSubmittedPreparation, String, String) -> Result[@run_publication_host.ClientRequestIdentity, @run_publication_host.ClientRequestIdentityIssue]
 
 pub fn prepare_local_input(LocalInput, @program_check.CheckEnvironment, @decode_core.Cursor?, LocalInputContext?, @run_publication_host.ClientProgramPreparationLimits) -> Result[@run_publication_host.PreparedClientProgram, LocalPreparationIssue]
 

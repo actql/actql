@@ -156,7 +156,8 @@ class AsyncLocalFactoryTests(unittest.IsolatedAsyncioTestCase):
                 async with await AsyncClient.connect(mode='local', installation=selected) as client:
                     self.assertIs(client._local_host, host)
                     self.assertEqual(client.profile['mode'], 'local')
-                build.assert_called_once_with(state_dir=selected)
+                build.assert_called_once_with(state_dir=selected, _discover_project=True,
+                                              _project_profile=None)
             self.assertTrue(core._closed)
             self.assertFalse(any(name in ('cancel', 'start', 'reserve_task') for _, name in events))
 
@@ -172,7 +173,8 @@ class AsyncLocalFactoryTests(unittest.IsolatedAsyncioTestCase):
             client = failure.exception.cleanup_client
             self.assertIs(client._local_host, host)
             self.assertEqual(events[before:], [])
-            build.assert_called_once_with(state_dir='.actql')
+            build.assert_called_once_with(state_dir='.actql', _discover_project=True,
+                                          _project_profile=None)
             await client.aclose()
             self.assertTrue(core._closed)
 
@@ -271,7 +273,8 @@ class SyncLocalFactoryTests(unittest.TestCase):
                 with actql.connect(mode='local', installation=selected) as client:
                     self.assertIs(client._client._local_host, host)
                     self.assertEqual(client.profile['mode'], 'local')
-                build.assert_called_once_with(state_dir=selected)
+                build.assert_called_once_with(state_dir=selected, _discover_project=True,
+                                              _project_profile=None)
             self.assertTrue(core._closed)
             self.assertFalse(any(name in ('cancel', 'start', 'reserve_task') for _, name in events))
 

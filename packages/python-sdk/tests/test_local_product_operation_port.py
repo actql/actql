@@ -33,7 +33,10 @@ class LocalOperationPortTests(unittest.IsolatedAsyncioTestCase):
         self.addCleanup(selected.stop)
         fixture = assembly_fixture.FiniteRunAssemblyTests()
         self.addCleanup(fixture.doCleanups)
-        host, core, events, admission = fixture.assembly(path)
+        # Public first admission must start from a genuinely missing row. The
+        # material/commit fixture's default pre-held preparing row is reserved
+        # for its direct commit cases; it cannot be reaccepted as a new Run.
+        host, core, events, admission = fixture.assembly(path, preparing=False)
         execution = patch.object(host, '_execute_original_admitted_run')
         execution.start()
         self.addCleanup(execution.stop)

@@ -6,6 +6,7 @@ priv struct StoredEnvironment {
   environment : @checked.CheckEnvironment
   wire : String
   context : @preparation.LocalInputContext
+  publication : String?
 }
 
 ///|
@@ -21,6 +22,100 @@ priv struct StoredPreparation {
     @preparation.LocalPreparedInput,
     @preparation.LocalPreparationIssue,
   ]?
+  mut source : (
+    @host.ClientSubmittedIntent,
+    @preparation.LocalSourceComputation,
+  )?
+  mut source_issue : @preparation.LocalSourceComputationIssue?
+}
+
+///|
+// The exact retained Source pair belongs to this issued preparation and its
+// original environment/publication. Equal intent or environment DATA is not
+// a replacement for the constructor's original references.
+fn stored_preparation_source(
+  value : Instance,
+  handle : Int,
+) -> @preparation.LocalSourceComputation? {
+  guard value.preparations.get(handle) is Some(record) &&
+    record.source_issue is None &&
+    record.kind == 3 &&
+    record.source is Some((intent, source)) &&
+    value.environments.get(record.environment) is Some(configuration) &&
+    configuration.publication is Some(publication) &&
+    @preparation.local_source_computation_matches(
+      source,
+      intent,
+      configuration.environment,
+    ) &&
+    @preparation.local_source_computation_originals(source).3 == publication else {
+    return None
+  }
+  Some(source)
+}
+
+///|
+// This is still only a prepared computation, never a Pure Run or permit.
+fn stored_preparation_effect(
+  value : Instance,
+  handle : Int,
+) -> @host.PreparedClientEffectComputation? {
+  guard stored_preparation_source(value, handle) is Some(source) else {
+    return None
+  }
+  match @preparation.local_source_computation_preparation(source) {
+    Effect(prepared) => Some(prepared)
+    Pure(_) => None
+  }
+}
+
+///|
+fn prepare_published_submitted_computation(
+  record : StoredPreparation,
+  configuration : StoredEnvironment,
+  wire : String,
+) -> Int {
+  guard configuration.publication is Some(publication) else { return -2 }
+  let intent = match
+    @host.prepare_client_submitted_intent(wire, 65536, 8192, 64) {
+    Ok(intent) => intent
+    Err(_) => {
+      record.source_issue = Some(@host.ClientSourcePreparationIssue::Input)
+      return 0
+    }
+  }
+  let source = match
+    @preparation.prepare_local_source_computation(
+      intent,
+      configuration.environment,
+      publication,
+    ) {
+    Ok(source) => source
+    Err(issue) => {
+      record.source_issue = Some(issue)
+      return 0
+    }
+  }
+  record.source = Some((intent, source))
+  match @preparation.local_source_computation_preparation(source) {
+    Pure(_) => {
+      guard @preparation.local_source_pure_submitted_preparation(
+          source,
+          intent,
+          configuration.environment,
+        )
+        is Some(submitted) else {
+        record.source_issue = Some(@host.ClientSourcePreparationIssue::Input)
+        return 0
+      }
+      record.submitted = Some(submitted)
+      record.outcome = Some(
+        Ok(@preparation.local_submitted_preparation_input(submitted)),
+      )
+    }
+    Effect(_) => ()
+  }
+  0
 }
 
 ///|
@@ -103,7 +198,13 @@ pub fn install_environment(nonce : Int64, input : Int) -> Int {
     Ok(borrow) => borrow
     Err(issue) => return issue_code(issue)
   }
-  value.environments[handle] = { borrow, environment, wire: body, context, }
+  value.environments[handle] = {
+    borrow,
+    environment,
+    wire: body,
+    context,
+    publication: None,
+  }
   value.next_handle += 1
   handle
 }
@@ -152,7 +253,13 @@ pub fn install_source_environment(nonce : Int64, input : Int) -> Int {
     Ok(borrow) => borrow
     Err(issue) => return issue_code(issue)
   }
-  value.environments[handle] = { borrow, environment, wire: body, context, }
+  value.environments[handle] = {
+    borrow,
+    environment,
+    wire: body,
+    context,
+    publication: Some(publication),
+  }
   value.next_handle += 1
   handle
 }
@@ -219,6 +326,8 @@ pub fn reserve_preparation(
     submitted: None,
     started: false,
     outcome: None,
+    source: None,
+    source_issue: None,
   }
   value.next_handle += 1
   handle
@@ -237,7 +346,9 @@ pub fn prepare_program(nonce : Int64, handle : Int) -> Int {
   if record.restoration is Some(_) {
     return -3
   }
-  if record.outcome is Some(_) {
+  if record.outcome is Some(_) ||
+    record.source is Some(_) ||
+    record.source_issue is Some(_) {
     return 0
   }
   if record.started {
@@ -253,6 +364,16 @@ pub fn prepare_program(nonce : Int64, handle : Int) -> Int {
       return -5
     }
     let wire = @utf8.decode(wire) catch { _ => return -12 }
+    if configuration.publication is Some(_) &&
+      input_cursor(value, slot)
+      .bind(cursor => @decode.open_object(cursor).to_option())
+      .bind(object => @decode.lookup(object, "kind"))
+      .bind(kind => @decode.text(kind).to_option()) ==
+      Some("aql") {
+      return prepare_published_submitted_computation(
+        record, configuration, wire,
+      )
+    }
     record.outcome = Some(
       match
         @preparation.prepare_local_submitted_input(
@@ -372,6 +493,23 @@ pub fn bind_restored_preparation(
 pub fn prepared_results(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) else { return -1 }
   guard value.preparations.get(handle) is Some(record) else { return -2 }
+  if record.source_issue is Some(_) {
+    return -22
+  }
+  if record.source is Some(_) {
+    guard stored_preparation_source(value, handle) is Some(source) else {
+      return -35
+    }
+    match @preparation.local_source_computation_preparation(source) {
+      Pure(prepared) => return @host.prepared_client_result_count(prepared)
+      Effect(_) => {
+        guard stored_preparation_effect(value, handle) is Some(prepared) else {
+          return -35
+        }
+        return @host.prepared_client_effect_result_count(prepared)
+      }
+    }
+  }
   match record.outcome {
     Some(Ok(prepared)) =>
       @host.prepared_client_result_count(
@@ -386,6 +524,27 @@ pub fn prepared_results(nonce : Int64, handle : Int) -> Int {
 pub fn prepared_tasks(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) else { return -1 }
   guard value.preparations.get(handle) is Some(record) else { return -2 }
+  if record.source_issue is Some(_) {
+    return -22
+  }
+  if record.source is Some(_) {
+    guard stored_preparation_source(value, handle) is Some(source) else {
+      return -35
+    }
+    let graph = match
+      @preparation.local_source_computation_preparation(source) {
+      Pure(prepared) => @host.prepared_client_graph(prepared)
+      Effect(_) => {
+        guard stored_preparation_effect(value, handle) is Some(prepared) else {
+          return -35
+        }
+        @strategy.checked_effect_computation_graph(
+          @host.prepared_client_effect_computation_graph(prepared),
+        )
+      }
+    }
+    return @strategy.graph_task_count(graph)
+  }
   match record.outcome {
     Some(Ok(prepared)) =>
       @strategy.graph_task_count(
@@ -438,6 +597,16 @@ pub fn prepared_outcome(nonce : Int64, handle : Int) -> Int {
     value.preparations.get(handle) is Some(record) else {
     return -2
   }
+  if record.source_issue is Some(_) {
+    return 2
+  }
+  if record.source is Some(_) {
+    return if stored_preparation_source(value, handle) is Some(_) {
+      1
+    } else {
+      -35
+    }
+  }
   match record.outcome {
     None => 0
     Some(Ok(_)) => 1
@@ -450,6 +619,17 @@ pub fn prepared_outcome(nonce : Int64, handle : Int) -> Int {
 // code, message, new Check or second parse. Other known Owner failures retain
 // their operational classification rather than being guessed as invalid text.
 fn preparation_failure_problem(record : StoredPreparation) -> (String, String)? {
+  if record.source_issue is Some(issue) {
+    return match issue {
+      Syntax(_) | Frontend(QuerySyntax(_)) | Pure(Syntax(_)) =>
+        Some(("ClientProgramInvalidInput", "invalid_input"))
+      Pure(NeedsInputs(_)) =>
+        Some(("ClientProgramRequirements", "requirements"))
+      TargetOriginalsUnavailable =>
+        Some(("ClientProgramImplementationLimit", "implementation_limit"))
+      _ => Some(("ClientProgramPreparationFailed", "operation_failed"))
+    }
+  }
   match record.outcome {
     Some(Err(@preparation.Frontend(QuerySyntax(_))))
     | Some(Err(@preparation.Preparation(Syntax(_)))) =>
@@ -467,4 +647,31 @@ fn preparation_failure_problem(record : StoredPreparation) -> (String, String)? 
     Some(Err(_)) => Some(("ClientProgramPreparationFailed", "operation_failed"))
     _ => None
   }
+}
+
+///|
+/// The Source and submitted views must retain the same original intent and
+/// checked Pure program. This is only a view for existing Run request binding.
+fn stored_preparation_source_submission(
+  value : Instance,
+  handle : Int,
+) -> @preparation.LocalSubmittedPreparation? {
+  guard stored_preparation_source(value, handle) is Some(source) &&
+    value.preparations.get(handle) is Some(record) &&
+    record.source is Some((intent, _)) &&
+    record.submitted is Some(submitted) &&
+    physical_equal(
+      intent,
+      @preparation.local_submitted_preparation_intent(submitted),
+    ) &&
+    @preparation.local_source_computation_preparation(source) is Pure(prepared) &&
+    physical_equal(
+      prepared,
+      @preparation.local_prepared_program(
+        @preparation.local_submitted_preparation_input(submitted),
+      ),
+    ) else {
+    return None
+  }
+  Some(submitted)
 }

@@ -44,3 +44,11 @@ async def named_local_async() -> SDKAsyncClient:
 
 def existing_remote() -> SDKClient:
     return connect('https://example.test', 'original-token', mode='remote')
+
+
+def readme_local_profile_sync() -> SDKClient:
+    return connect(mode='local', installation='.actql', profile='mock')
+
+
+async def readme_local_profile_async() -> SDKAsyncClient:
+    return await AsyncClient.connect(mode='local', installation='.actql', profile='mock')

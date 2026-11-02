@@ -10,6 +10,7 @@ from collections.abc import Callable
 from contextlib import ExitStack
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from functools import partial
 import hashlib
 import os
 import secrets
@@ -30,6 +31,8 @@ from ._local_files import (LocalFileRoot, _AllocationArea, _PayloadFile, _NameAd
     LocalAreaAcquisitionError, LocalFileAcquisitionError, LocalReaderAcquisitionError)
 from ._local_installation import OriginalLocalInstallation, LocalInstallationCleanupPending, _object
 from ._local_preparation import LocalPreparation, LocalPreparationFailure, _Environment, _Preparation
+from ._local_project import OriginalLocalProjectConfiguration, ProjectLocations
+from ._local_project_files import OriginalLocalProjectFiles, LocalProjectFilesCleanupPending, _ProjectFile
 from ._local_run import LocalRunCustody, _RunConfiguration, _Run, _PhysicalStart, _SourceFreeCompute
 from ._local_commit_projection import OriginalCommitProjection
 from ._local_reader_facts import OriginalReaderFacts
@@ -166,9 +169,11 @@ class InstalledLocalHost:
     recreate an epoch key, adopt another Store, or send any operation.
     """
 
-    def __init__(self, core: LocalCore, directory: Path, *,
+    def __init__(self, core: LocalCore, directory: Path | None, *,
                  now: Callable[[], int], observed_at: str, sdk_finite: bool = False,
-                 _native_store: _OriginalNativeStoreSelection | None = None) -> None:
+                 _native_store: _OriginalNativeStoreSelection | None = None,
+                 _project_directory: Path | None = None,
+                 _project_profile: str | None = None) -> None:
         if type(core) is not LocalCore or not callable(now):
             raise ValueError('Installed Local Host requires its original Core')
         self._original = self
@@ -234,7 +239,19 @@ class InstalledLocalHost:
         self._uncertain_ticket: int | None = None
         self._closing = False
         self._physical_work: list[OriginalLocalWork] = []
+        self._project_files: OriginalLocalProjectFiles | None = None
+        self._project_configuration: OriginalLocalProjectConfiguration | None = None
+        self._project_locations: ProjectLocations | None = None
+        self._project_members: list[tuple[str, str | None, _ProjectFile]] = []
         try:
+            if _project_directory is not None:
+                project_state = self._capture_project(_project_directory, _project_profile)
+                directory = _private_state_directory(
+                    project_state if directory is None else
+                    OriginalLocalProjectFiles._path(_project_directory / directory))
+            elif _project_profile is not None or directory is None:
+                raise ValueError('Original project directory is unavailable')
+            assert directory is not None
             self._installation = OriginalLocalInstallation(core, directory,
                 observed_at=observed_at, now=now, project_epoch=self._project_epoch,
                 sdk_finite=sdk_finite, native_store=_native_store)
@@ -257,8 +274,14 @@ class InstalledLocalHost:
     @classmethod
     def installed(cls, *, state_dir: str | os.PathLike[str] | None = None,
                   resources: LocalCoreResources | None = None,
-                  _initial_preparation: _OriginalPythonPreparation | None = None) -> InstalledLocalHost:
+                  _initial_preparation: _OriginalPythonPreparation | None = None,
+                  _discover_project: bool = False,
+                  _project_profile: str | None = None) -> InstalledLocalHost:
         """Resolve the selected cohort with no endpoint/token/internal paths."""
+        if (type(_discover_project) is not bool or _project_profile is not None
+                and (not _discover_project or type(_project_profile) is not str
+                     or len(_project_profile) > 65536)):
+            raise ValueError('Invalid original project factory selection')
         if resources is None and _initial_preparation is not None:
             from ._local_worker_funding import LocalWorkerFundingUnavailable
             from ._local_initial_preparation import _OriginalPythonPreparation, _capture_initial_preparation
@@ -299,6 +322,12 @@ class InstalledLocalHost:
             resources=resources, _ordinary_host=True)
         try:
             with core._host_operation(initial=True):
+                if _discover_project:
+                    return cls(core, directory_option,
+                        now=lambda: time.time_ns() // 1_000_000,
+                        observed_at=datetime.now(timezone.utc).isoformat(
+                            timespec='milliseconds').replace('+00:00', 'Z'), sdk_finite=True,
+                        _project_directory=Path.cwd(), _project_profile=_project_profile)
                 directory = (_default_directory() if directory_option is None
                              else _private_state_directory(directory_option))
                 now = lambda: time.time_ns() // 1_000_000
@@ -397,7 +426,7 @@ class InstalledLocalHost:
                     raw = wire_bytes(value)  # type: ignore[no-untyped-call]
                     if run is not None:
                         self._register_original_run_reference(run, admission)
-                        work = OriginalLocalWork(lambda: self._execute_original_admitted_run(run))
+                        work = OriginalLocalWork(partial(self._execute_original_admitted_run, run))
             elif operation in ('status', 'wait'):
                 if operation == 'wait' and (body['until'] not in (None, 'terminal')
                         or body['since'] is not None):
@@ -849,8 +878,67 @@ class InstalledLocalHost:
         self._core.seal_input(loan)
         return loan
 
+    def _capture_project(self, directory: Path, profile: str | None) -> Path:
+        """Retain configuration and selected physical originals before Store IO.
+
+        The Core selects profile/locators. This method neither interprets their
+        bodies nor installs an environment from equal serialized locator DATA.
+        """
+        if (self._project_files is not None or self._project_configuration is not None
+                or profile is not None and (type(profile) is not str or len(profile) > 65536)):
+            raise ValueError('Invalid or repeated original project selection')
+        try:
+            self._project_files = self._reserve(lambda: OriginalLocalProjectFiles(
+                self._core, max_files=128, max_bytes=8388608))
+        except LocalProjectFilesCleanupPending as failure:
+            self._project_files = failure.cleanup_files
+            raise
+        files = self._project_files
+        selected = files.discover(directory)
+        configuration = None if selected is None else files.original_bytes(selected).decode('utf-8')
+        source = self._copy(wire_bytes({'configuration': configuration, 'profile': profile}))  # type: ignore[no-untyped-call]
+        self._project_configuration = self._reserve(
+            lambda: OriginalLocalProjectConfiguration(self._core, source))
+        self._project_locations = self._project_configuration.prepare()
+        locations = self._project_locations
+        base = files._path(directory) if selected is None else selected.path.parent
+        originals = {} if selected is None else {selected.path: selected}
+        locators: list[tuple[str, str | None, str | None]] = [
+            ('connectors', None, locations.connectors),
+            ('model_tasks', None, locations.model_tasks),
+            ('lock', None, locations.lock), ('mock_data', None, locations.mock_data)]
+        locators.extend(('mock_answer', task, path) for task, path in locations.mock_answers)
+        for role, task, locator in locators:
+            if locator is None:
+                continue
+            path = files._path(base / locator)
+            member = originals.get(path)
+            if member is None:
+                member = files.read_original(path, max_bytes=1048576)
+                if member is None:
+                    raise ValueError('Original selected project input is unavailable')
+                originals[path] = member
+            files.original_bytes(member)
+            self._project_members.append((role, task, member))
+        files.current()
+        return files._path(base / locations.state_dir)
+
+    def _require_project_execution_environment(self) -> None:
+        if self._project_configuration is None:
+            return
+        if self._project_files is None:
+            raise ValueError('Original project input custody is unavailable')
+        self._project_files.current()
+        locations = self._project_configuration.prepare()
+        if (locations.profile is not None or self._project_members):
+            # These originals still require the selected published/Mock
+            # environment constructor. Never execute them against the old
+            # source-free bootstrap as a substitute.
+            raise ValueError('Original selected project execution environment is not installed')
+
     def _original_check_environment(self) -> _Environment:
         installation = self._active()
+        self._require_project_execution_environment()
         if self._environment is None:
             selected = next(value for value in installation.binding._selected
                             if value.name == 'environment.json')
@@ -1144,6 +1232,7 @@ class InstalledLocalHost:
         a checked input here does not rerun Source, Compute, Model or Effect.
         """
         installation = self._active()
+        self._require_project_execution_environment()
         if type(intent) is not bytes or not 0 < len(intent) <= 65536:
             raise ValueError('Invalid original Local submitted input transport')
         # Capture once before physical IO so a caller cannot change the request
@@ -3223,6 +3312,10 @@ class InstalledLocalHost:
                 if not self._preparation.close_environment(self._environment):
                     return False
                 self._environment = None
+            if self._project_configuration is not None:
+                if not self._project_configuration.close():
+                    return False
+                self._project_configuration = None
             for source in tuple(reversed(self._inputs)):
                 if not self._core.close_input(source):
                     return False
@@ -3232,6 +3325,12 @@ class InstalledLocalHost:
                 if not self._installation.close():
                     return False
                 self._installation = None
+            if self._project_files is not None:
+                if not self._project_files.close():
+                    return False
+                self._project_files = None
+                self._project_locations = None
+                self._project_members.clear()
             if not self._core.close():
                 return False
             self._physical_work.clear()

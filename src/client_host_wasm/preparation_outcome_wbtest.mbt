@@ -54,6 +54,7 @@ test "prepared typed refusal remains the same original instead of negative count
       [],
       "typed-original",
     ).unwrap(),
+    publication: None,
   }
   let bytes = b"{\"input\":{\"format\":\"sql\",\"text\":\"SELECT (\"},\"kind\":\"aql\",\"parameters\":null}"
   let slot = @buffers.reserve_output_buffer(pool, bytes.length(), 0L, () => true).unwrap()
@@ -68,6 +69,8 @@ test "prepared typed refusal remains the same original instead of negative count
     submitted: None,
     started: false,
     outcome: None,
+    source: None,
+    source_issue: None,
   }
   value.preparations[2] = original
   let before = prepared_outcome(5181L, 2)
