@@ -28,8 +28,16 @@ test "listing installation rejects absent positive retention or short execution"
 test "Source native quote bridge consumes original Options in typed Core without Host reboxing" {
   let original = @execution.execution_capacity(11L, 13L).unwrap()
   let provider = @execution.execution_capacity(17L, 19L).unwrap()
-  let joined = client_program_compose_installed_source_construction_capacity(original, [Some(provider)]).unwrap()
+  let joined = client_program_compose_installed_source_construction_capacity(
+    original,
+    [Some(provider)],
+  ).unwrap()
   assert_eq(@execution.execution_capacity_retained_bytes(joined), 30L)
   assert_eq(@execution.execution_capacity_execution_bytes(joined), 32L)
-  assert_true(client_program_compose_installed_source_construction_capacity(original, [None]) is Err(@resources.InvalidExtent))
+  assert_true(
+    client_program_compose_installed_source_construction_capacity(original, [
+      None,
+    ])
+    is Err(@resources.InvalidExtent),
+  )
 }

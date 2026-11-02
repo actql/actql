@@ -76,8 +76,8 @@ pub fn project_row_source_json_page(
 ) -> Result[RowSourceJsonPage, RowSourceJsonPageIssue] {
   let original = match
     project_row_source_typed_json_page(
-      bytes, items_path, cursor_present, cursor_path, max_bytes, max_nodes,
-      max_depth, max_rows, max_cursor_bytes,
+      bytes, items_path, cursor_present, cursor_path, max_bytes, max_nodes, max_depth,
+      max_rows, max_cursor_bytes,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -252,7 +252,8 @@ fn accept_row_source_projected_page(
       max_string_bytes: limits.max_bytes,
       max_total_string_bytes: limits.max_bytes,
     })
-    is Ok(root) && @decode.elements(root) is Ok(items) else {
+    is Ok(root) &&
+    @decode.elements(root) is Ok(items) else {
     return fail_read(read, InvalidPage)
   }
   accept_row_source_items(read, items)

@@ -132,7 +132,10 @@ fn range_json_value(range : GridRange) -> Json {
 }
 
 ///|
-fn range_provider_identity_document(origin : String, spreadsheet_id : String) -> Json {
+fn range_provider_identity_document(
+  origin : String,
+  spreadsheet_id : String,
+) -> Json {
   {
     "version": "actql-sheets-provider/0.1",
     "api_origin": origin.to_json(),
@@ -182,14 +185,15 @@ pub fn range_reference(
     Err(issue) => return Err(issue)
   }
   let identity_cid = match
-    range_content_cid(
-      range_identity_document(range),
-      limits,
-    ) {
+    range_content_cid(range_identity_document(range), limits) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  Ok(range_reference_document(provider_cid, identity_cid, catalog_cid, binding_cid))
+  Ok(
+    range_reference_document(
+      provider_cid, identity_cid, catalog_cid, binding_cid,
+    ),
+  )
 }
 
 ///|
