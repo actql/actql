@@ -134,28 +134,49 @@ export async function effectHost(t, installation, state, {effect,
   // payload custody ends, while the durable capture stays for a restart.
   const endCustody = async (stage, result) => {
     if (result?.status === 'suspended') return;
-    if (result?.status === 'failed') {
+    if (result?.status === 'failed' || result?.status === 'published') {
       await releaseCompletedRunPreparedPayloads(stage.storedResults, control);
       return;
     }
-    for (const item of stage.storedResults.results) {
-      if (item.prepared.status().pending) await item.prepared.release();
-    }
+    await suspendCompletedEffectfulComputation({store, control,
+      execution: stage.publication.execution, storedResults: stage.storedResults,
+      computation: stage.computation, preview: stage.preview});
   };
-  let closed = false;
-  const close = async () => {
-    if (closed) return;
-    closed = true;
-    for (const {stage, result} of outcomes) {
-      await stage.dispose();
-      await endCustody(stage, result);
-    }
-    for (const execution of executions) {
-      await execution.close();
-    }
-    await store.close();
-    journal.close();
-    if (effect === undefined) installed.close();
+  let closed = false, closeFlight;
+  const cleanupPending = () => Object.assign(
+    new Error('InstalledRowEffectFixtureCleanupPending'),
+    {code: 'InstalledRowEffectFixtureCleanupPending'});
+  const close = () => {
+    if (closed) return Promise.resolve();
+    if (closeFlight !== undefined) return closeFlight;
+    closeFlight = Promise.resolve().then(async () => {
+      for (const record of outcomes) {
+        if (record.custodyRetired === true) continue;
+        const {stage, result, recovery, recoveryOwner} = record;
+        if (stage !== undefined) {
+          if (await stage.dispose() === false) throw cleanupPending();
+        } else if (recoveryOwner !== undefined &&
+            await recoveryOwner.close() !== true) throw cleanupPending();
+        if (recovery !== undefined) {
+          // The recovered owner includes prepared schemas and dependency
+          // payloads. Returning only its result bytes leaves that custody live.
+          // Suspend this SAME original without deleting its durable capture.
+          await suspendCompletedEffectfulComputation({store, control,
+            ...recovery.computation});
+          if (recovery.recoveryResources !== undefined &&
+              await recovery.recoveryResources.close() !== true) throw cleanupPending();
+          record.recovery = undefined;
+        } else await endCustody(stage, result);
+        record.recoveryOwner = undefined;
+        record.custodyRetired = true;
+      }
+      for (const execution of executions) await execution.close();
+      await store.close();
+      journal.close();
+      if (effect === undefined) await installed.close();
+      closed = true;
+    }).finally(() => {closeFlight = undefined;});
+    return closeFlight;
   };
   installation.onClose(close);
   return {installed, journal, store, control, outcomes, close,
@@ -190,27 +211,28 @@ export async function effectHost(t, installation, state, {effect,
           requestId, runDefinitionCid},
         principalId: 'principal-a', contractLimits: limits,
         authorizeEvidenceRead: async () => true});
-      let stage;
-      try {
-        stage = installed.prepareRecovered({moon, control, store,
+      // Retain the original full recovery before any provider constructor or
+      // asynchronous child can fail. Its existing suspension owns retirement.
+      const record = {recovery};
+      outcomes.push(record);
+      const stage = await installed.prepareRecovered({moon, control, store,
           recovered: {requestIdentity: recovery.requestIdentity,
             requestScope: recovery.requestScope,
             computation: recovery.computation},
-          continuation, contractLimits: limits, retainRecoveryOwner});
-      } catch (error) {
-        outcomes.push({stage: {dispose() {},
-          storedResults: recovery.computation.storedResults}});
-        throw error;
-      }
+          continuation, contractLimits: limits, retainRecoveryOwner(owner) {
+            record.recoveryOwner = owner;
+            retainRecoveryOwner?.(owner);
+          }});
+      record.stage = stage;
       try {
         const owned = wrapRecoveredStage === undefined ? stage : wrapRecoveredStage(stage);
         const result = await completeRecoveredEffectRun({
           apply: owned.apply, receipt: owned.receipt,
           publication: owned.publication});
-        outcomes.push({stage, result});
+        record.result = result;
         return {stage, result};
       } catch (error) {
-        outcomes.push({stage});
+        record.error = error;
         throw error;
       }
     }};
