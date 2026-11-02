@@ -9,6 +9,7 @@ import {loadInstalledSource} from '../../../host-node/installed-source.mjs';
 import {checkInstalledNotionSourceProfile,installedNotionSourceIdentityParts,loadInstalledNotionSource} from '../host/installed-notion-source.mjs';
 import {installedNotionFixture} from './installed-notion.fixture.mjs';
 import {openSqliteCredentialJournal} from '../../../site-node/sqlite-credential-journal.mjs';
+import {installedFailureCode} from '../../../host-node/fixtures/installed-loader-parent.fixture.mjs';
 
 test('installed Notion users refuses missing original initialization or material without legacy fallback or I/O',async t=>{
   const f=await installedNotionFixture(t);
@@ -58,7 +59,7 @@ test('ordinary installed Notion entrance selects the real factory and refuses mi
   const f=await installedNotionFixture(t),path=join(f.root,'source.json');await writeFile(path,JSON.stringify(f.profile));
   await assert.rejects(loadInstalledSource(path,{...f.options,runtimeUrl:new URL(
     '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js',import.meta.url)}),
-  {code:'NotionSourceInitializationUnavailable'});assert.equal(f.state.requests.length,0);assert.equal(f.state.resolutions,0);
+  installedFailureCode('NotionSourceInitializationUnavailable'));assert.equal(f.state.requests.length,0);assert.equal(f.state.resolutions,0);
 });
 
 test('installed Notion copied preparation or absent original Ledger cannot dispatch users',async t=>{

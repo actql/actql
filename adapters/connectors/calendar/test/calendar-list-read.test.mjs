@@ -153,5 +153,6 @@ test('Calendar reader factory snapshots each original provider and limit getter 
   assert.equal(f.state.requests.length,0);assert.equal(reader.observe().cleanupConfirmed,false);
   const result=await reader.read();assert.equal(result.rowCount,2);assert.deepEqual(f.state.rows,originalRows);
   for(const [name,count] of reads)assert.equal(count,1,`retained original getter ${name}`);
+  reader.requestStop();assert.equal(reader.observe().transportClosed,true);
   f.row.finish();assert.equal(f.row.captureCount(),2);
 });

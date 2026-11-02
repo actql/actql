@@ -15,6 +15,7 @@ import {loadInstalledSource, publishInstalledSourceProfile} from '../../../host-
 import {openHttpsExchangeFixture} from '../../../site-node/https-exchange-fixture.mjs';
 import {INSTALLED_GITHUB_SITE_VERSION, INSTALLED_GITHUB_SOURCE_VERSION} from '../host/installed-github-source.mjs';
 import {graphqlRoute} from './github-graphql.fixture.mjs';
+import {createInstalledLoaderParent} from '../../../host-node/fixtures/installed-loader-parent.fixture.mjs';
 
 const repo = new URL('../../../../', import.meta.url);
 const runtimeUrl = new URL('../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url);
@@ -55,18 +56,22 @@ async function fixture(t, {commentsRead = 'allow'} = {}) {
   const resolveSecret = async () => {resolutions++; return 'test-only-token';};
   const options = {root: join(root, 'host'), principalId: 'operator', moon: common,
     runtimeUrl, resolveSecret};
-  const sources = [], captures = [];
+  const sources = [], captures = [], loaderParents = [];
   t.after(async () => {
     const failures = [];
     for (const capture of captures) try {await capture.close();} catch (cause) {failures.push(cause);}
     for (const source of sources) try {await source.close();} catch (cause) {failures.push(cause);}
+    for (const parent of loaderParents) try {await parent.close();} catch (cause) {failures.push(cause);}
     await writeFile(join(root, 'original-exchanges.json'), JSON.stringify(api.seen()), {mode: 0o600});
     t.diagnostic(`Retained installed GitHub comments fixture: ${root}`);
     if (failures.length) throw new AggregateError(failures, 'GitHubCommentsFixtureCleanupPending');
   });
   const publication = await publishInstalledSourceProfile(profilePath, options);
   const load = async () => {
-    const source = await loadInstalledSource(profilePath, {...options,
+    const parent = createInstalledLoaderParent({root: options.root,
+      principalId: options.principalId, moon: options.moon});
+    loaderParents.push(parent);parent.open();
+    const source = await parent.load(loadInstalledSource, profilePath, {...options,
       baseEnvironmentWire: await read('spec/local-check-environment.json')});
     sources.push(source);return source;
   };
