@@ -7951,7 +7951,7 @@
           ]
         }
       ],
-      "sha256": "78cc33a0f611d7e9d30997a242559790aa1715d75da04b352ae33ea5f4df16b1",
+      "sha256": "cea758494fe56186a3c6cd78183ff2d21758c46359e42fa00e71a46d223cdc80",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -74241,7 +74241,7 @@
     },
     {
       "module": "src/client_host_wasm/submission_lookup.mbt",
-      "sha256": "9caa7fdef7ff95ee37c1530b323999abef85b5aee16c9175d9d25002d0d9e3dc",
+      "sha256": "850405c7979fe9cc0419eee6feb416bd2ea906d23addde5854054a008c5f6988",
       "exports": [],
       "operations": [
         {
@@ -74266,7 +74266,7 @@
         },
         {
           "name": "submission_run_reference_snapshot",
-          "declaration": "submission_run_reference_snapshot ( namespace : String , scope : String , definition : String , original : @ host . ClientSavedSubmissionSnapshot ? , scan : ( String , String ) - > Result [ @ host . ClientJournalPhysicalRow ? , Int ] , read : ( String , String ) - > Result [ @ host . ClientJournalPhysicalRow ? , Int ] , inspect_run : ( @ host . ClientJournalPhysicalRow ) - > Result [ @ host . ClientRunJournalInspection , Int , ] , cancellation : ( ) - > Result [ Unit , Int ] , original_identity ? : ( @ host . ClientRequestIdentity , @ publication . PublicationContract , ) ?"
+          "declaration": "submission_run_reference_snapshot ( run_namespace : String , scope : String , definition : String , original : @ host . ClientSavedSubmissionSnapshot ? , scan : ( String , String ) - > Result [ @ host . ClientJournalPhysicalRow ? , Int ] , read : ( String , String ) - > Result [ @ host . ClientJournalPhysicalRow ? , Int ] , inspect_run : ( @ host . ClientJournalPhysicalRow ) - > Result [ @ host . ClientRunJournalInspection , Int , ] , cancellation : ( ) - > Result [ Unit , Int ] , original_identity ? : ( @ host . ClientRequestIdentity , @ publication . PublicationContract , ) ?"
         },
         {
           "name": "validate_submission_lookup",
@@ -76477,6 +76477,404 @@
               {
                 "path": "src/run_publication_host/client_saved_submission_public_view_wbtest.mbt",
                 "anchor": "test \"accepted failure candidate preserves same intent and refuses terminal or foreign originals\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_host_wasm/original_metadata.mbt",
+      "sha256": "5810c1a20cdecb012173dd729b8ce3ea51c5dc35304e870373f278d2f37f330c",
+      "exports": [],
+      "operations": [
+        {
+          "name": "close_original_metadata",
+          "declaration": "close_original_metadata ( nonce : Int64 , handle : Int ) - > Int"
+        },
+        {
+          "name": "original_configuration_selection_body",
+          "declaration": "original_configuration_selection_body ( object : @ decode . ObjectView ) - > Bytes ?"
+        },
+        {
+          "name": "original_initialization_body",
+          "declaration": "original_initialization_body ( object : @ decode . ObjectView ) - > Bytes ?"
+        },
+        {
+          "name": "original_metadata_length",
+          "declaration": "original_metadata_length ( nonce : Int64 , handle : Int ) - > Int"
+        },
+        {
+          "name": "original_metadata_size",
+          "declaration": "original_metadata_size ( object : @ decode . ObjectView , key : String ) - > Int64 ?"
+        },
+        {
+          "name": "original_metadata_uint",
+          "declaration": "original_metadata_uint ( object : @ decode . ObjectView , key : String ) - > UInt64 ?"
+        },
+        {
+          "name": "produce_original_metadata",
+          "declaration": "produce_original_metadata ( nonce : Int64 , handle : Int ) - > Int"
+        },
+        {
+          "name": "reserve_original_metadata",
+          "declaration": "reserve_original_metadata ( nonce : Int64 , input : Int , kind : Int , physical_ticket : Int , physical_copy_bytes : Int64 , ) - > Int"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "existing Python Local configuration and Core metadata ownership",
+      "rationale": "Bounded projection and original loan retention only; operational profile installation, permission, funding and physical cleanup stay with their original owners.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "close_original_metadata",
+            "original_configuration_selection_body",
+            "original_initialization_body",
+            "original_metadata_length",
+            "original_metadata_size",
+            "original_metadata_uint",
+            "produce_original_metadata",
+            "reserve_original_metadata"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Project and profile metadata"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Project and profile metadata"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Project and profile metadata"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Project and profile metadata"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Project and profile metadata"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Project and profile metadata"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Project and profile metadata"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Project and profile metadata"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Project and profile metadata"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Project and profile metadata"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_host_wasm/project_configuration.mbt",
+      "sha256": "0c547f59e8f26a6f25f990a0b998a7bdc30ad71a52e2b919bb0c473cc3e42a10",
+      "exports": [],
+      "operations": [
+        {
+          "name": "original_project_configuration_body",
+          "declaration": "original_project_configuration_body ( original : StoredProjectConfiguration , ) - > Bytes ?"
+        },
+        {
+          "name": "prepare_original_project_configuration",
+          "declaration": "prepare_original_project_configuration ( object : @ decode . ObjectView , ) - > StoredProjectConfiguration ?"
+        },
+        {
+          "name": "project_optional_text",
+          "declaration": "project_optional_text ( writer : @ encode . Writer , key : String , value : String ? , ) - > Unit raise @ encode . EncodeFailure"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "existing Python Local configuration and Core metadata ownership",
+      "rationale": "Bounded projection and original loan retention only; operational profile installation, permission, funding and physical cleanup stay with their original owners.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "original_project_configuration_body",
+            "prepare_original_project_configuration",
+            "project_optional_text"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Project and profile metadata"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Project and profile metadata"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Project and profile metadata"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Project and profile metadata"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Project and profile metadata"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Project and profile metadata"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Project and profile metadata"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Project and profile metadata"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Project and profile metadata"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Project and profile metadata"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "packages/python-sdk/src/actql_sdk/_local_project.py",
+      "sha256": "c6d2efa8c10038e6bae75a42fe5cbe7ce4f95328b50b4cacbc3a2353da447d33",
+      "exports": [
+        "LocalCore",
+        "NoReturn",
+        "OriginalLocalProjectConfiguration",
+        "ProjectLocations",
+        "dataclass",
+        "hashlib"
+      ],
+      "operations": [
+        {
+          "name": "OriginalLocalProjectConfiguration",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "OriginalLocalProjectConfiguration/__copy__",
+          "parameters": [
+            "self"
+          ],
+          "async": false
+        },
+        {
+          "name": "OriginalLocalProjectConfiguration/__deepcopy__",
+          "parameters": [
+            "self",
+            "memo"
+          ],
+          "async": false
+        },
+        {
+          "name": "OriginalLocalProjectConfiguration/__init__",
+          "parameters": [
+            "self",
+            "core",
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "OriginalLocalProjectConfiguration/__reduce__",
+          "parameters": [
+            "self"
+          ],
+          "async": false
+        },
+        {
+          "name": "OriginalLocalProjectConfiguration/_active",
+          "parameters": [
+            "self"
+          ],
+          "async": false
+        },
+        {
+          "name": "OriginalLocalProjectConfiguration/_nominal",
+          "parameters": [
+            "self"
+          ],
+          "async": false
+        },
+        {
+          "name": "OriginalLocalProjectConfiguration/close",
+          "parameters": [
+            "self"
+          ],
+          "async": false
+        },
+        {
+          "name": "OriginalLocalProjectConfiguration/prepare",
+          "parameters": [
+            "self"
+          ],
+          "async": false
+        },
+        {
+          "name": "ProjectLocations",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "imports": [
+        "._local_core",
+        "._local_installation",
+        "dataclasses",
+        "hashlib",
+        "typing"
+      ],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "existing Python Local configuration and Core metadata ownership",
+      "rationale": "Bounded projection and original loan retention only; operational profile installation, permission, funding and physical cleanup stay with their original owners.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "OriginalLocalProjectConfiguration",
+            "OriginalLocalProjectConfiguration/__copy__",
+            "OriginalLocalProjectConfiguration/__deepcopy__",
+            "OriginalLocalProjectConfiguration/__init__",
+            "OriginalLocalProjectConfiguration/__reduce__",
+            "OriginalLocalProjectConfiguration/_active",
+            "OriginalLocalProjectConfiguration/_nominal",
+            "OriginalLocalProjectConfiguration/close",
+            "OriginalLocalProjectConfiguration/prepare",
+            "ProjectLocations"
+          ],
+          "exports": [
+            "LocalCore",
+            "NoReturn",
+            "OriginalLocalProjectConfiguration",
+            "ProjectLocations",
+            "dataclass",
+            "hashlib"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Project and profile metadata"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Project and profile metadata"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Project and profile metadata"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Project and profile metadata"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Project and profile metadata"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Project and profile metadata"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Project and profile metadata"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Project and profile metadata"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Project and profile metadata"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Project and profile metadata"
               }
             ]
           }

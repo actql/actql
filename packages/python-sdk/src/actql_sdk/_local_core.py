@@ -1609,12 +1609,12 @@ class LocalCore:
         """Retain original physical observations before the existing Core codec.
 
         Kind selects initialization/configuration custody/journal custody/selected
-        settings metadata. Core emits their exact original bodies and CIDs. No
+        settings or project/profile metadata. Core emits their original bodies and CIDs. No
         method initializes a Host, commits, authorizes or begins a Run.
         """
         with self._lock:
             self._owned_input(source)
-            if self._closing or type(kind) is not int or kind not in (1, 2, 3, 4) or not callable(cleanup):
+            if self._closing or type(kind) is not int or kind not in (1, 2, 3, 4, 5) or not callable(cleanup):
                 raise ValueError('Invalid Local original metadata reservation')
             ticket = self._next_ticket
             if ticket >= 2**31:

@@ -177,7 +177,7 @@ fn observe_submission_lookup(
 // fresh target rows, nested admission and cancellation still come from the
 // current physical snapshot. Initial/cold callers keep complete admission.
 fn submission_run_reference_snapshot(
-  namespace : String,
+  run_namespace : String,
   scope : String,
   definition : String,
   original : @host.ClientSavedSubmissionSnapshot?,
@@ -201,7 +201,7 @@ fn submission_run_reference_snapshot(
     if physical_schema == 1 {
       let selected = match
         @host.read_client_saved_run_reference(
-          namespace, scope, definition, read, inspect_run, -31,
+          run_namespace, scope, definition, read, inspect_run, -31,
         ) {
         Ok(value) => value
         Err(code) => return Err(code)
@@ -212,7 +212,7 @@ fn submission_run_reference_snapshot(
       }
     }
     return @host.inspect_client_saved_run_reference(
-      namespace, scope, definition, 1024, scan, read, inspect_run, cancellation,
+      run_namespace, scope, definition, 1024, scan, read, inspect_run, cancellation,
       -31,
     )
   }
@@ -228,7 +228,7 @@ fn submission_run_reference_snapshot(
         @publication.publication_contract_identity(original_definition) ==
         definition &&
         @publication.run_definition_namespace(original_definition) ==
-        Some(namespace) &&
+        Some(run_namespace) &&
         @publication.publication_contract_check_limits(
           original_definition, 65536, 4096, 64,
         )
@@ -268,7 +268,7 @@ fn submission_run_reference_snapshot(
           @publication.publication_contract_identity(run.definition) !=
           definition ||
           @publication.run_definition_namespace(run.definition) !=
-          Some(namespace) {
+          Some(run_namespace) {
           return Err(-32)
         }
         Ok(run)

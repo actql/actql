@@ -2387,6 +2387,29 @@ bounded raw bytes and physical generations. Native delegates only the ordered
 record encoding, retaining its original nonce, crypto errors, IO and current
 checks. No original is repaired or reissued during restoration.
 
+### Project and profile metadata
+
+The same metadata family admits project configuration and profile selection
+through `admit_client_project_configuration` and `select_client_project_profile`.
+The retained input contains the original configuration wire or explicit absence
+and the original profile override or absence. Core retains that same nominal
+selection before fallible encoding; the seven-field locator projection is DATA,
+not an installed Source, Model registration, permission or funding promise.
+Python preserves ordered task/answer locators and performs no profile rewrite.
+
+The existing Core lock and bounded input/output loans cover this preparation.
+A failed parse, copy or cleanup retains the same child; it is not prepared again.
+Output cleanup and input-stop acknowledgement precede selection retirement.
+Retiring the selection drops managed references and does not prove physical
+Host, Store, Run or capacity cleanup. Profile installation must consume the same
+retained original and still supply actual configuration/currentness and complete
+constructor/continuation backing. It cannot recover that original from equal
+serialized locator DATA. The intake has no authority or asynchronous callbacks.
+
+The project metadata whitebox cases cover absence, original overrides, ordering,
+foreign equality and retirement; Python loan cases cover immutable projection,
+copy refusal and failed cleanup. They do not establish an installed Mock run.
+
 One output reservation retains its original input borrow. Output cleanup must
 succeed before that borrow returns; failed cleanup retains the same handle.
 `LocalHostFiles` pins exact saved descriptors and the original Store generation,
