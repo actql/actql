@@ -417,9 +417,11 @@ stop the graph rather than enabling automatic fallback.
 
 The row engine selects its adopted registry, REL.values and fragment pins.
 `../contracts/adopted-relation.json` packages the exact selected bodies from
-revision `9edb5a65db8b822b8629cfa4913fb1097fb99945`, with their CIDs. The bundle
-and the product pins are generated from the same registered contracts; this
-example does not infer compatibility with older bodies. These are contract
-material, not test outputs or a compatibility implementation. Current Query
+`spec/contracts/actql-aoa.json` and its declared pipeline registry in
+`spec/dependencies/aoa-pipeline-registry.json`, with their individual CIDs. The
+bundle and the product pins are generated from those same current normative
+inputs; the bundle makes no historical checkout or older-body compatibility
+claim. These are contract material, not test outputs or a compatibility
+implementation. Current Query
 Acquisition/process-evidence/two-receipt contracts are loaded from their
 repository-owned files.

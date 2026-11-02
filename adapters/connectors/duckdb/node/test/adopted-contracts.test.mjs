@@ -32,8 +32,8 @@ test('example ships exact adopted contract bodies, not test-generated execution 
     assert.equal(bundle[`${key}_cid`], identity);
     assert.equal(cid(bundle[key]), identity);
   }
-  assert.equal(
-    bundle.source_revision,
-    '9edb5a65db8b822b8629cfa4913fb1097fb99945',
-  );
+  assert.deepEqual(Object.keys(bundle).sort(), [
+    'registry', 'registry_cid', 'values', 'values_cid',
+    'fragment', 'fragment_cid', 'graph', 'graph_cid',
+  ].sort());
 });
