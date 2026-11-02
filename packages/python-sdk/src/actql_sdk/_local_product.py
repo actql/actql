@@ -29,7 +29,7 @@ from ._local_distribution import installed_local_components, LocalInstallationEr
 from ._local_files import (LocalFileRoot, _AllocationArea, _PayloadFile, _NameAdoption, _FileFinalization, _FileReader,
     LocalAreaAcquisitionError, LocalFileAcquisitionError, LocalReaderAcquisitionError)
 from ._local_installation import OriginalLocalInstallation, LocalInstallationCleanupPending, _object
-from ._local_preparation import LocalPreparation, _Environment, _Preparation
+from ._local_preparation import LocalPreparation, LocalPreparationFailure, _Environment, _Preparation
 from ._local_run import LocalRunCustody, _RunConfiguration, _Run, _PhysicalStart, _SourceFreeCompute
 from ._local_commit_projection import OriginalCommitProjection
 from ._local_reader_facts import OriginalReaderFacts
@@ -356,16 +356,17 @@ class InstalledLocalHost:
                 if body['intentCid'] != identity:
                     raise ValueError('Invalid original Local submitted intent identity')
                 observed = _object(self._lookup_original_submission(body['submissionRef']), 1048576)
-                if observed.get('kind') in ('ready', 'preparing') and observed.get('intentCid') != identity:
+                if observed.get('kind') in ('ready', 'preparing', 'preparation_failed') and observed.get('intentCid') != identity:
                     value = {'kind': 'conflict', 'attemptRef': body['attemptRef'],
                         'submissionRef': body['submissionRef'], 'intentCid': identity, 'reason': 'intent'}
                     if not wire.submission_attempt(value, _LOCAL_SELECTION, body):  # type: ignore[no-untyped-call]
                         raise ValueError('Invalid original Local Submission conflict')
                     raw = wire_bytes(value)  # type: ignore[no-untyped-call]
-                elif observed.get('kind') == 'ready':
+                elif observed.get('kind') in ('ready', 'preparing', 'preparation_failed'):
                     # The saved admission is DATA, not a restored executable
                     # Run. Never prepare, dispatch or issue another Run here.
-                    value = {'kind': 'already_satisfied', 'attemptRef': body['attemptRef'],
+                    value = {'kind': 'recorded' if observed['kind'] == 'preparing' else 'already_satisfied',
+                        'attemptRef': body['attemptRef'],
                         'outcome': observed}
                     if not wire.submission_attempt(value, _LOCAL_SELECTION, body):  # type: ignore[no-untyped-call]
                         raise ValueError('Invalid original saved Local Submission response')
@@ -373,21 +374,30 @@ class InstalledLocalHost:
                 else:
                     run, admission = self._accept_original(body['submissionRef'],
                         wire_bytes(intent), run_id='python-' + secrets.token_hex(16))  # type: ignore[no-untyped-call]
-                    saved = _object(admission, 4096)
-                    if (not wire.negotiated(saved, 'admission', _LOCAL_SELECTION)  # type: ignore[no-untyped-call]
-                            or saved['ref']['authorityScopeCid'] != body['submissionRef']['epoch']['authorityScopeCid']):
-                        raise ValueError('Invalid original saved Local admission wire')
+                    saved = _object(admission, 1048576)
+                    if run is None:
+                        if (saved.get('kind') != 'preparation_failed'
+                                or saved.get('intentCid') != identity
+                                or not wire.submission_outcome(saved, _LOCAL_SELECTION,
+                                    body['submissionRef'], lookup=True)):  # type: ignore[no-untyped-call]
+                            raise ValueError('Invalid original Local preparation failure response')
+                        outcome = saved
+                    else:
+                        if (not wire.negotiated(saved, 'admission', _LOCAL_SELECTION)  # type: ignore[no-untyped-call]
+                                or saved['ref']['authorityScopeCid'] != body['submissionRef']['epoch']['authorityScopeCid']):
+                            raise ValueError('Invalid original saved Local admission wire')
+                        outcome = {'kind': 'ready', 'submissionRef': body['submissionRef'],
+                            'intentCid': identity, 'admission': saved}
                     # The invocation envelope correlates this call with the saved
                     # Owner admission, as in the existing Host transport. It does
                     # not manufacture a Run terminal, dispatch or Result response.
-                    value = {'kind': 'recorded', 'attemptRef': body['attemptRef'], 'outcome': {
-                        'kind': 'ready', 'submissionRef': body['submissionRef'],
-                        'intentCid': identity, 'admission': saved}}
+                    value = {'kind': 'recorded', 'attemptRef': body['attemptRef'], 'outcome': outcome}
                     if not wire.submission_attempt(value, _LOCAL_SELECTION, body):  # type: ignore[no-untyped-call]
                         raise ValueError('Invalid original Local Submission response')
-                    self._register_original_run_reference(run, admission)
                     raw = wire_bytes(value)  # type: ignore[no-untyped-call]
-                    work = OriginalLocalWork(lambda: self._execute_original_admitted_run(run))
+                    if run is not None:
+                        self._register_original_run_reference(run, admission)
+                        work = OriginalLocalWork(lambda: self._execute_original_admitted_run(run))
             elif operation in ('status', 'wait'):
                 if operation == 'wait' and (body['until'] not in (None, 'terminal')
                         or body['since'] is not None):
@@ -1028,7 +1038,8 @@ class InstalledLocalHost:
             observed_kind = original.get('kind')
             fields = ({'kind'} if observed_kind == 'missing' else {'kind', 'intentCid'}
                       if observed_kind == 'preparing' else {'kind', 'intentCid', 'admission'}
-                      if observed_kind == 'ready' else set())
+                      if observed_kind == 'ready' else {'kind', 'intentCid', 'problemCode', 'problemClassification'}
+                      if observed_kind == 'preparation_failed' else set())
             if not fields or set(original) != fields:
                 raise ValueError('Invalid original Local submission lookup')
             if kind == 5:
@@ -1053,6 +1064,9 @@ class InstalledLocalHost:
                     if type(original['admission']) is not str:
                         raise ValueError('Invalid original saved Local admission')
                     result['admission'] = _object(original['admission'].encode('utf-8'), 4096)
+                elif observed_kind == 'preparation_failed':
+                    result['problem'] = {'code': original['problemCode'],
+                                         'classification': original['problemClassification']}
             if not wire.submission_outcome(result, _LOCAL_SELECTION, captured_reference, lookup=True):  # type: ignore[no-untyped-call]
                 raise ValueError('Invalid original Local submission lookup response')
             raw: bytes = wire_bytes(result)  # type: ignore[no-untyped-call]
@@ -1152,17 +1166,92 @@ class InstalledLocalHost:
             document = self._copy(intent)
             prepared = self._preparation.reserve(self._environment, document, format='submitted')
             self._prepared_inputs.append(prepared)
+            failures: list[LocalPreparationFailure] = []
             def check(current: _Output) -> None:
                 # The observed original is revalidated in the same borrowed
                 # read snapshot before entering the existing parser/Checker.
                 self._core.validate_submission_append(observed, current)
-                self._preparation.prepare(prepared)
+                try:
+                    self._preparation.prepare(prepared)
+                except LocalPreparationFailure as failure:
+                    if self._preparation.failed_original(failure) is not prepared:
+                        raise ValueError('Foreign original Local preparation failure')
+                    failures.append(failure)
             installation.binding.inspect(check)
             if not self._close_projection(observed):
                 raise LocalProductCleanupPending(self)
+            if failures:
+                raise failures[0]
             return prepared
 
-    def _accept_original(self, reference: object, intent: bytes, *, run_id: str) -> tuple[_Run, bytes]:
+    def _commit_preparation_failure(self, reference: object, intent: bytes,
+                                    failure: LocalPreparationFailure) -> bytes:
+        """Commit one original terminal candidate, then independently look it up.
+
+        A failed COMMIT exits with the same loans retained. It is never retried
+        or translated into a known failure. No Run, dispatch or replacement
+        preparation is issued by this path.
+        """
+        installation = self._active()
+        configuration = self._configuration
+        if configuration is None or installation._store is None or installation._epoch is None:
+            raise ValueError('Original Local failure suppliers are unavailable')
+        prepared = self._preparation.failed_original(failure)
+        if not any(original is prepared for original in self._prepared_inputs):
+            raise ValueError('Foreign original Local failed preparation')
+        identity = installation._epoch.identity(reference)
+        source = self._copy(wire_bytes({'reference': wire_bytes(reference).decode('utf-8')}))  # type: ignore[no-untyped-call]
+        output = self._reserve(lambda: self._core.reserve_submission_preparation_failure(
+            configuration.handle, prepared.handle, source, cleanup=lambda: True))
+        self._projections.append(output)
+        self._append_sources[output.ticket] = source
+        candidates: list[dict[str, Any]] = []
+        def observe(current: _Output) -> None:
+            self._core.produce_submission_append(output, current)
+            candidates.append(_object(self._core.read_submission_append(output, current), 1048576))
+        installation.binding.inspect(observe)
+        candidate = candidates[0]
+        if (set(candidate) != {'key', 'revision', 'before', 'body'}
+                or any(type(value) is not str for value in candidate.values())
+                or candidate['key'] != identity.request_id):
+            raise ValueError('Invalid original Local preparation failure candidate')
+        revision = candidate['revision']
+        if (not revision.isascii() or not revision.isdecimal()
+                or len(revision) > 19 or (len(revision) > 1 and revision.startswith('0'))
+                or int(revision) > 2**63 - 1):
+            raise ValueError('Invalid original Local preparation failure revision')
+        terminal = _object(candidate['body'].encode('utf-8'), 262144)
+        problem = {'code': terminal.get('preparation_problem_code'),
+                   'classification': terminal.get('preparation_problem_classification')}
+        store = installation._store
+        with installation.binding.fenced() as fences:
+            def inspect(reader: Any) -> None:
+                installation.binding.inspect_reader(reader, lambda current:
+                    self._core.validate_submission_append(output, current))
+            result = store.compare_exchange_many_inspected((ByteWrite(
+                store.namespaced_key('client_submitted_intents', candidate['key']),
+                int(revision), candidate['body'].encode('utf-8')),), fences,
+                inspect=inspect, current=installation.binding._current_observer)
+        if result is None:
+            raise LocalStorageError('Original Local preparation failure write conflicted; lookup is required')
+        if not self._close_projection(output):
+            raise LocalProductCleanupPending(self)
+        saved = self._lookup_original_submission(reference)
+        observed = _object(saved, 1048576)
+        intent_cid = content_cid({'version': 'actql-submitted-intent/0.1',
+            'intent': _object(intent, 65536)}, data_keys=True)  # type: ignore[no-untyped-call]
+        if (observed.get('kind') != 'preparation_failed' or observed.get('intentCid') != intent_cid
+                or observed.get('problem') != problem):
+            raise ValueError('Changed original Local preparation failure readback')
+        if not self._preparation.close_preparation(prepared):
+            raise LocalProductCleanupPending(self)
+        self._prepared_inputs.remove(prepared)
+        if not self._core.close_input(prepared.input):
+            raise LocalProductCleanupPending(self)
+        self._inputs.remove(prepared.input)
+        return saved
+
+    def _accept_original(self, reference: object, intent: bytes, *, run_id: str) -> tuple[_Run | None, bytes]:
         """Join original preparation, finite issuance, same-TX write and lookup.
 
         Only Core supplies the Policy, row candidate and saved admission. The
@@ -1180,7 +1269,10 @@ class InstalledLocalHost:
         with self._core._lock:
             if self._pending_run_write is not None:
                 raise LocalStorageError('Original Local Run write requires lookup; new acceptance is unavailable')
-            prepared = self._prepare_original(captured_reference, intent)
+            try:
+                prepared = self._prepare_original(captured_reference, intent)
+            except LocalPreparationFailure as failure:
+                return None, self._commit_preparation_failure(captured_reference, intent, failure)
             observed = self._retain_intent(captured_reference, intent)
             source = self._copy(wire_bytes({'run_id': run_id, 'now': self._now()}))  # type: ignore[no-untyped-call]
             run = self._runs.reserve(configuration, prepared, source)
