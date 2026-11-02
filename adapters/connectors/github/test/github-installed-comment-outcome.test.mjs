@@ -3,6 +3,7 @@ import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {compileFunction} from 'node:vm';
 import {parse} from 'acorn';
+import {captureInstalledStandardCreateLimits} from '../../../host-node/installed-effect-plan.mjs';
 
 // Execute the installed standard write classifier and the actual Site
 // classifier with an explicit typed-provider port. No provider request, Account
@@ -44,16 +45,18 @@ const projectSource = installed.source.slice(callbacks[0].start, callbacks[0].en
 const classify = compileFunction(['fail', 'count', 'pairs', 'checkLimits',
   'projectGitHubCommentObservation'].map(name => declaration(site, name)).join('\n') +
   '\nreturn projectGitHubCommentObservation;')();
-const installProject = compileFunction(declaration(installed, 'commentLimits') + '\n' +
-  declaration(installed, 'commentOutcome') + `\nreturn ({${projectSource}}).classify;`,
-['projectGitHubCommentObservation', 'providerMoon']);
+const installProject = compileFunction(declaration(installed, 'commentOutcome') +
+  `\nreturn ({${projectSource}}).classify;`,
+  ['projectGitHubCommentObservation', 'providerMoon', 'commentLimits']);
 
 function fixture(outcome, {statusCode = 200, headers = [], failure} = {}) {
   const observation = Object.freeze({statusCode,
     body: Buffer.from('{"fixture":"original-provider-response"}')});
   const request = Object.freeze({subjectId: 'I_original'});
-  let calls = 0;
-  const moon = {githubCommentOutcomeJson(status, names, values, body,
+  let calls = 0, limitCalls = 0;
+  const moon = {installedStandardCreateHttpLimits() {
+    limitCalls++;return [100_000,100_000,10_000,32];
+  }, githubCommentOutcomeJson(status, names, values, body,
     maxBytes, maxNodes, maxDepth, subjectId) {
     calls++;
     assert.equal(status, statusCode);
@@ -65,9 +68,11 @@ function fixture(outcome, {statusCode = 200, headers = [], failure} = {}) {
     if (failure) throw failure;
     return JSON.stringify(outcome);
   }};
-  const project = installProject(classify, moon);
+  const project = installProject(classify, moon, captureInstalledStandardCreateLimits(moon));
+  assert.equal(limitCalls,1);
   return {observation, calls: () => calls,
-    run: () => project({request, observation, headers})};
+    run: () => project({request, observation, headers}),
+    withoutHeaders: () => project({request, observation})};
 }
 
 test('installed comment Created remains provider evidence pending actual confirmation', () => {
@@ -105,11 +110,7 @@ test('installed comment preserves Unknown and the original projection error', ()
   ]) {
     // Pass absent headers explicitly: this is the recovered-response path.
     const original = fixture({outcome: 'Unknown'}, {statusCode, headers});
-    const run = headers === undefined
-      ? installProject(classify, {githubCommentOutcomeJson() {
-        assert.fail('a recovered 403 cannot classify without its headers');
-      }})({request: {subjectId: 'I_original'}, observation: original.observation})
-      : original.run();
+    const run = headers === undefined ? original.withoutHeaders() : original.run();
     assert.deepEqual(run, {kind});
     assert.equal(original.calls(), calls);
     assert.equal(Object.hasOwn(run, 'outcome'), false);
