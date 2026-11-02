@@ -61,7 +61,7 @@ for (const entrance of ['local', 'https']) {
         const initial = JSON.parse(await readFile(initialOutput, 'utf8'));
         assert.notEqual(initial.pid, process.pid);
         assert.deepEqual(initial.counts, {admissions: 1, readers: 1, computes: 1, definitions: 1});
-        const {ref, submissionRef, attemptId, observed, originalPolicy} = initial;
+        const {ref, submissionRef, attemptId, observed, originalAdmission} = initial;
         const explanation = assertReadDiagnostics(initial, consumer);
         const beforeRestart = await attemptBytes(directory);
         const output = join(directory, 'restart.json');
@@ -87,7 +87,7 @@ for (const entrance of ['local', 'https']) {
         assert.deepEqual(restored.request.submissionRef, submissionRef);
         assert.deepEqual(restored.first, observed);
         assert.deepEqual(restored.second, observed);
-        assert.deepEqual(restored.valuesHostPolicyOriginal, originalPolicy);
+        assert.deepEqual(restored.runAdmissionEvidence, originalAdmission);
         assert.deepEqual(restored.lookupCounts, {admissions: 0, readers: 0, computes: 0, definitions: 0});
         assert.deepEqual(restored.rows, expected);
         assert.deepEqual(restored.description.columns, [{name: 'id', contract: {type: 'number', nullable: false}}]);
@@ -106,7 +106,7 @@ for (const entrance of ['local', 'https']) {
         assert.equal(beforeRestart.length, 1);
         assert.equal(afterRestart.length, 2);
         console.log('READ_121_EVIDENCE', JSON.stringify({directory, entrance, consumer, ref,
-          attemptId, originalState: observed.record.state, originalPolicy,
+          attemptId, originalState: observed.record.state, originalAdmission,
           restoredAttemptId: restored.readAttempt.attempt.attempt_id,
           initialProcess: {pid: initial.pid, exitCode: 0}, restoredProcess: {pid: restored.pid, exitCode: 0},
           restartCounts: restored.counts, rows: restored.rows.length, readExplanation: explanation}));

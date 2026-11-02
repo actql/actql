@@ -1,7 +1,9 @@
 // The initial Host and execution Owner live only in this child process.
 // The orchestrator waits for its exit before starting the restoration process.
 import assert from 'node:assert/strict';
-import {readFile, readdir, writeFile} from 'node:fs/promises';
+import {createHash} from 'node:crypto';
+import {readFile, writeFile} from 'node:fs/promises';
+import {DatabaseSync} from 'node:sqlite';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {inspect} from 'node:util';
@@ -19,9 +21,19 @@ export function assertSameResult(actual, original) {
 }
 
 export async function attemptBytes(directory) {
-  const root = join(directory, 'publication/deliveries');
-  const names = (await readdir(root)).filter(name => /^[0-9a-f]{64}$/u.test(name)).sort();
-  return Promise.all(names.map(name => readFile(join(root, name, 'attempt.json'), 'utf8')));
+  // Read every original attempt wire from its current native Store index.
+  // A read-only open must fail if the index is absent; never create or fall
+  // back to retired per-attempt files or to a public lookup projection.
+  const database = new DatabaseSync(join(directory, 'publication', 'delivery-attempts.sqlite3'),
+    {readOnly: true, allowExtension: false});
+  try {
+    return database.prepare('SELECT attempt_cid, attempt_wire FROM attempts ORDER BY attempt_cid').all()
+      .map(row => {
+        assert.match(row.attempt_cid, /^sha256:[0-9a-f]{64}$/u);
+        assert.equal(typeof row.attempt_wire, 'string');
+        return row.attempt_wire;
+      });
+  } finally {database.close();}
 }
 
 function readDiagnostics(failure) {
@@ -42,7 +54,7 @@ async function initialRead({directory, entrance, consumer}) {
       observeSubmission: (stage, error) => console.log('READ_121_SUBMISSION', entrance, stage,
         error === undefined ? '' : inspect(error, {depth: 8}))});
   const host = await connectOpeningHost(fixture, entrance, directory);
-  let release, ref, submissionRef, attemptId, observed, originalPolicy, failure, diagnostics;
+  let release, ref, submissionRef, attemptId, observed, originalAdmission, failure, diagnostics;
   const yielded = new Promise(resolve => {release = resolve;});
   if (consumer === 'all') release();
   fixture.beforeRow(async index => {
@@ -118,15 +130,27 @@ async function initialRead({directory, entrance, consumer}) {
       assert.equal(JSON.parse(grant.wire).max_uses, 1);
       assert.equal(admissions.filter(value => JSON.parse(value).result_read_grant_cid === attempt.result_read_grant_cid).length, 1);
     }
-    originalPolicy = fixture.retainedAdmission(ref).valuesHostPolicyOriginal;
-    assert.deepEqual(JSON.parse(originalPolicy.wire), {max_rows: 121,
-      name: 'source-free-values', version: 'actql-installed-local-policy/0.1'});
+    // The installed Values profile has a stable identity. The checked Plan
+    // owns the original demand; no per-row-count replacement policy is issued.
+    originalAdmission = fixture.retainedAdmission(ref);
+    assert.deepEqual(Object.keys(originalAdmission).sort(),
+      ['authorization', 'logicalPlanOriginal', 'prepared', 'submittedIntentCid']);
+    assert.match(originalAdmission.submittedIntentCid, /^sha256:[0-9a-f]{64}$/u);
+    const expectedPolicyCid = 'sha256:' + createHash('sha256').update(
+      '{"version":"actql-installed-local-policy/0.1","name":"source-free-values"}').digest('hex');
+    assert.equal(JSON.parse(originalAdmission.prepared).host_policy_cid, expectedPolicyCid);
+    assert.equal(JSON.parse(originalAdmission.authorization).host_policy_cid, expectedPolicyCid);
+    assert.deepEqual(Object.keys(originalAdmission.logicalPlanOriginal).sort(),
+      ['compiledPlanWire', 'planViewWire']);
+    for (const wire of Object.values(originalAdmission.logicalPlanOriginal)) {
+      assert.equal(typeof wire, 'string'); assert.notEqual(wire, '');
+    }
   } finally {
     traceReadRecovery('initial-121-close:start', {entrance});
     release(); await host.close(); await fixture.close();
     traceReadRecovery('initial-121-close:finished', {entrance});
   }
-  return {pid: process.pid, ref, submissionRef, attemptId, observed, originalPolicy,
+  return {pid: process.pid, ref, submissionRef, attemptId, observed, originalAdmission,
     endpoint: host.endpoint, diagnostics, counts: {...fixture.counts}};
 }
 
