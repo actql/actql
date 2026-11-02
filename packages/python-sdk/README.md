@@ -14,9 +14,11 @@ The old Local extra is not the current installation entrance.
 The standard product's argumentless Local entry is `Client.open()` or
 `await AsyncClient.open()`. Calling it explicitly requires the matching Local
 runtime and adopted Host capacity originals; it performs no Remote connection
-or internal-path fallback. The current capacity supplier is unfinished and
-refuses before VM startup. `connect(endpoint, token)` remains the lightweight
-Remote entry. Importing this SDK alone does not import Wasmtime or DuckDB.
+or internal-path fallback. Ordinary platform startup is distinct from the
+unfinished optional owned-Native preparation supplier. See the canonical
+[Python support matrix](../../docs/reference/status.md#python-backends-and-platforms)
+for tested platforms, operations and limitations. `connect(endpoint, token)`
+remains the lightweight Remote entry. Importing this SDK alone does not import Wasmtime or DuckDB.
 
 Python 3.11 or newer is required. Both facades share wire validation, exact
 submitted JSON snapshots, operation identities, and bounded Result readers.
@@ -109,8 +111,8 @@ existing Run reference and use `attach` for explicit observation after restart.
 Closing an unused query reader sends nothing. Closing a started reader only
 releases its existing local resources; failed cleanup remains with that reader
 and Client for an explicit retry. It is neither Run cancellation nor Host ACK.
-This lightweight Remote composition does not complete the unfinished installed
-Local funding supplier or prove an ordinary Local wheel execution.
+This lightweight Remote composition does not prove ordinary Local wheel
+execution or complete the optional owned-Native preparation supplier.
 
 `run.status()` and `run.wait()` return immutable `RunState` values. To wait
 for a later stable observation, pass the original state revision:
@@ -268,7 +270,7 @@ schema cannot supply a missing protocol completion marker or Host receipt.
 | failure | Malformed/foreign metadata, missing signer and unavailable lookup refuse before signing; resolve reply loss retains original signed bytes without automatic resend. |
 | cancellation | Cancellation during the application signer does not issue resolve, cancel the Run or claim an ACK. Client close prevents further requests. |
 | resources | Existing page/control/signature limits remain; the convenience makes one exact lookup, without independent polling, pagination or retained cache. |
-| extension | Optional application signer does not require a Host/token/path for Local open; missing original Local funding still refuses. Remote remains engine-free. |
+| extension | Optional application signer does not require a Host/token/path for Local open; it does not implement missing Local Checkpoint operations. Remote remains engine-free. |
 | verification | Public sync/async, exact-ID, interruption, close-retry, signature preimage and strict typing cases remain distinct from installed Local acceptance. |
 
 ### Workspace connection strings
@@ -296,7 +298,8 @@ Python rejects that selection with `LoopbackHttpUnavailable` before credentials
 or I/O; ordinary HTTPS keeps certificate verification and `trust_env=False`.
 A connection string naming localhost still denotes a network Host, not an
 embedded installation. Use `Client.open()` for the installed Local supplier;
-its unfinished physical funding continues to refuse before VM startup.
+its platform and operation limits are in the
+[Python support matrix](../../docs/reference/status.md#python-backends-and-platforms).
 
 ### Check report attributes
 

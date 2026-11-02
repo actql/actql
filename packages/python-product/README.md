@@ -40,31 +40,15 @@ Both delegate to the same installed Host and existing Client model. The sync
 entry rejects an application event loop before I/O; use the async entry there.
 
 Ordinary Local `open()` selects the packaged platform runtime through the same
-factory, using the supported OS/runtime services and the actual Core, Store and
-Result resources. It does not require a diagnostic resource supplier. An
-independent clean installation of the three normal wheels at source
-`7629cfd0edd4d819ecbf387c1b417d7d7e984001` passed public import, fresh
-`actql.open(state_dir=...)`, `client.sql("SELECT 1 AS id").all()` returning
-`[{"id": 1}]`, and explicit close of that same Client on the selected macOS arm64
-platform. That finite execution is separate from factory doubles and compiler
-checks; it is not a completed or published Local release.
+factory, using the actual Core, Store and Result resources. It does not require
+a diagnostic resource supplier. The optional owned-Native preparation path has
+separate physical supplier requirements; its `LocalExecutionFundingUnavailable`
+refusal does not describe ordinary platform startup.
 
-A separate normal-wheel installation at source
-`fd878cec04aa6c95ffcc5481cb8fa5efbf7720ab` passed a fresh
-`client.sql("SELECT 23 AS id").all()`, explicit close, and a new-process reopen
-of the same installation. The new Client attached the original Run and read
-`result("answer").all()` as `[{"id": 23}]`, then closed explicitly. The saved
-read submitted no new Program or Run and performed no compilation. This finite
-case covers a source-free, Effect-free and checkpoint-free Result; its slow
-saved read does not establish acceptable responsiveness.
-
-Cold status/wait, general recovery, public Local `check()`, the documented
-top-level `connect(...)` entry, Mock, repeated-Host pressure and other platform
-combinations remain incomplete or unverified.
-The optional owned-Native preparation path retains its separate physical
-supplier requirements; its `LocalExecutionFundingUnavailable` refusal does not
-describe ordinary platform startup. Private resource fixtures are never a fallback
-for either path.
+The canonical [Python support matrix](../../docs/reference/status.md#python-backends-and-platforms)
+records the selected platform, packages, normal Run/Saved evidence and incomplete
+cancel, Checkpoint and recovery routes. Public facade methods do not imply that
+every backend implements them. Private resource fixtures are not a fallback.
 
 Failed initialization with pending physical cleanup retains
 `error.cleanup_client`. Retry `cleanup_client.close()` (sync) or

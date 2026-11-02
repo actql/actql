@@ -8,12 +8,17 @@ installation keeps its existing dependencies.
 This source directory is a recipe, not a shipped runtime. It contains no Wasm
 module or native library. A release producer must supply the exact committed
 source artifact and its independent build and execution receipts. The existing
-Core loader validates ABI81; an older module is not a fallback. Installed
+Core loader validates the [generated private ABI](../python-sdk/src/actql_sdk/_local_wasm_abi.py);
+an older module is not a fallback. Installed
 metadata must select standalone DuckDB `v1.4.3`; other library versions cannot
 enter this installed profile. The physical loader also checks the actual
 library version before use.
 Component checksums establish package integrity, not current publication permission,
 Run admission, durable ACK, or product acceptance.
+
+The canonical [Python support matrix](../../docs/reference/status.md#python-backends-and-platforms)
+separates ordinary startup, optional owned-Native preparation, supported operations
+and candidate-specific evidence. This recipe does not establish those outcomes.
 
 The first physical profile is macOS11 or later on arm64. The wheel uses the
 `py3-none-macosx_11_0_arm64` tag; the recipe reads the actual standalone library
@@ -31,7 +36,7 @@ The supplied directory contains `artifact.json`, `engine-recipe.json`, `client_h
 - `source_sha`: the complete clean recipe/source commit.
 - `package_version`: the SDK/runtime release cohort version.
 - `platform`: `darwin-arm64`.
-- `core_abi`: the existing private Core ABI, currently 79.
+- `core_abi`: the same generated private Core ABI required by the SDK loader.
 - `wasmtime_version`: `38.0.0`.
 - `module` and `duckdb`: `{file, bytes, sha256}`, with the fixed filenames above.
 - `duckdb_version`: the actual library's `vMAJOR.MINOR.PATCH` string, independently
@@ -73,8 +78,10 @@ is recorded explicitly. The 12MiB transfer pool and 100M instruction fuel
 remain unchanged. Instance-metadata and table maxima require the separately
 reviewed source-original recipe; fixture values are not product defaults.
 
-The image compiler, actual installed image execution and capacity supplier
-remain unverified until their matching physical acceptance. Native config,
+Image/compiler integrity does not establish installed execution or capacity
+adoption. Ordinary platform startup has the limited candidate evidence recorded
+in the support matrix; the optional owned-Native preparation supplier remains
+incomplete. Each new candidate still requires matching physical acceptance. Native config,
 pool, module and Engine cleanup failures retain the original handles through
 the existing Core cleanup carrier; they do not cancel or retry a Run.
 
