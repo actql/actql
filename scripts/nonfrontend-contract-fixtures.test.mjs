@@ -68,7 +68,7 @@ test('current Catalog dependency fixtures pin the normative environment grammar'
 
 test('current expression fixture resolves only the normative root', () => {
   const expected = cid(json('spec/contracts/actql-expressions.json'));
-  assert.equal(expected, 'sha256:b5701b2178a3b2e624d0fbfbda877d0117c367e42a855161e26e0d2e133f1c2c');
+  assert.equal(expected, 'sha256:2849a6667980fc51ed51a04879470a97068fd08e358d784262602a09b22dacda');
   hasPin('src/check_environment/expression_dependencies_test.mbt', expected);
   assert.notEqual(expected, 'sha256:e4b8431ae81884a1e198420dcbd08d6b12ef4dca4bd9b7b8ffa4cd45db887289');
 });
