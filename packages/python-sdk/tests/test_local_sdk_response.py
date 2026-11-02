@@ -130,3 +130,58 @@ class LocalSDKResponseTests(unittest.IsolatedAsyncioTestCase):
                 self.assertTrue(saved.close())
                 self.assertTrue(holder.close())
                 self.assertTrue(results.close())
+
+    async def test_pending_saved_area_keeps_same_stream_and_skips_returned_payload_children(self):
+        files = files_fixture.ReaderFactsTests()
+        with files.file(b'[{"n":1}]') as (_, root, _, final), TemporaryDirectory() as directory:
+            stream, host, reader, holder, _, _, _, _, _, _ = self.bridge(root, final)
+            results = LocalFileRoot(Path(directory), max_files=2, max_chunk_bytes=4)
+            area = results.create_area('pending-saved-area')
+            results.open_area(area)
+            identity = results.observe_area(area)
+            saved = OriginalSavedResultRead(host)
+            saved._area = area
+            host._installation = SimpleNamespace(_results=results)
+            host._saved_result_reads = [saved]
+            host._response_streams.discard(stream)
+            stream = OriginalLocalSDKResponseStream(host, reader, saved_read=saved)
+            try:
+                with patch.object(results, 'close_area', return_value=False) as close_area:
+                    with self.assertRaises(RuntimeError):
+                        await stream.aclose()
+                    close_area.assert_called_once_with(area)
+                self.assertTrue(stream._payload_closed)
+                self.assertFalse(stream._closed)
+                self.assertIs(stream._saved_read, saved)
+                self.assertIs(saved._area, area)
+                self.assertIn(saved, host._saved_result_reads)
+                self.assertIn(stream, host._response_streams)
+                with self.assertRaises(LocalFileError):
+                    results.restore_area(area.name, identity)
+                with patch.object(reader, 'close', side_effect=AssertionError('Returned child must not repeat')):
+                    await stream.aclose()
+                    await stream.aclose()
+                self.assertTrue(saved._closed)
+                self.assertNotIn(saved, host._saved_result_reads)
+                self.assertNotIn(stream, host._response_streams)
+            finally:
+                await stream.aclose()
+                self.assertTrue(saved.close())
+                self.assertTrue(holder.close())
+                self.assertTrue(results.close())
+
+    async def test_saved_response_refuses_copied_foreign_or_unregistered_parent_before_retention(self):
+        files = files_fixture.ReaderFactsTests()
+        with files.file(b'[{"n":1}]') as (_, root, _, final):
+            stream, host, reader, holder, _, _, _, _, _, _ = self.bridge(root, final)
+            saved = OriginalSavedResultRead(host)
+            foreign = OriginalSavedResultRead(SimpleNamespace(_core=host._core))
+            host._saved_result_reads = [saved, foreign]
+            before = set(host._response_streams)
+            for candidate in (copy.copy(saved), foreign, OriginalSavedResultRead(host)):
+                with self.assertRaises(ValueError):
+                    OriginalLocalSDKResponseStream(host, reader, saved_read=candidate)
+                self.assertEqual(host._response_streams, before)
+                self.assertFalse(reader._closed)
+            await stream.aclose()
+            self.assertTrue(holder.close())
