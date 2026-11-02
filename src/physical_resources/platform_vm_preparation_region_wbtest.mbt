@@ -82,7 +82,7 @@ fn finish_platform_vm_request_fixture(
   provider : Ref[Int],
   child : Ref[Int],
   input : Ref[Int],
-) {
+) -> Unit raise {
   let frame = backed_preparation_original_frame(initial, input).unwrap()
   let ledger = frame.ledger.unwrap()
   assert_true(continuation_quiescent(ledger))

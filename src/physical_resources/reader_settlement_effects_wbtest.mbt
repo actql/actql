@@ -148,6 +148,7 @@ test "candidate byte-only return rechecks same reservation after generic current
     report: (_, _) => 0,
     stop: _ => 0,
     fixed_capacities: false,
+    working: None,
     ledger: Some(ledger),
     stopping: false,
     unavailable: false,
