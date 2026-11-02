@@ -93,19 +93,44 @@ test "Command template bounds cover the existing full sixty-four column width wi
 
 ///|
 test "original Reference templates bound all fixed CIDs and Unicode installation identity without hashing a quote" {
-  let limits : Limits = { max_bytes: 2000000, max_nodes: 200000, max_depth: 32, max_cells: 6400 }
-  let range : GridRange = { sheet_id: 2147483647, start_row: 0, end_row: 1, start_column: 0, end_column: 1 }
+  let limits : Limits = {
+    max_bytes: 2000000,
+    max_nodes: 200000,
+    max_depth: 32,
+    max_cells: 6400,
+  }
+  let range : GridRange = {
+    sheet_id: 2147483647,
+    start_row: 0,
+    end_row: 1,
+    start_column: 0,
+    end_column: 1,
+  }
   let cid = "sha256:" + "a".repeat(64)
-  for origin in ["https://fixture.invalid", "https://fixture.invalid/e\u{0301}🍎"] {
-    let bounds = range_reference_construction_bounds(@utf8.encode(origin).length(), 4).unwrap()
+  for
+    origin in [
+      "https://fixture.invalid", "https://fixture.invalid/e\u{0301}🍎",
+    ] {
+    let bounds = range_reference_construction_bounds(
+      @utf8.encode(origin).length(),
+      4,
+    ).unwrap()
     let original = range_reference(origin, "book", range, cid, cid, limits).unwrap()
     assert_true(original.stringify().length() <= bounds.reference_bytes)
     assert_true(range_template_nodes(original) <= bounds.reference_nodes)
     let provider = range_provider_identity_document(origin, "book")
     let identity = range_identity_document(range)
-    assert_true(provider.stringify().length() + identity.stringify().length() <= bounds.identity_bytes)
-    assert_true(range_template_nodes(provider) + range_template_nodes(identity) <= bounds.identity_nodes)
+    assert_true(
+      provider.stringify().length() + identity.stringify().length() <=
+      bounds.identity_bytes,
+    )
+    assert_true(
+      range_template_nodes(provider) + range_template_nodes(identity) <=
+      bounds.identity_nodes,
+    )
   }
   assert_true(range_reference_construction_bounds(0, 4) is None)
-  assert_true(range_reference_construction_bounds(2147483647, 2147483647) is None)
+  assert_true(
+    range_reference_construction_bounds(2147483647, 2147483647) is None,
+  )
 }

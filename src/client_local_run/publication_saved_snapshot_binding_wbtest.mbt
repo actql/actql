@@ -68,8 +68,12 @@ test "saved snapshot publication binding uses original restored material without
   ).unwrap()
   let observation = Some(
     @host.capture_client_run_observation_originals(
-      plan.compiled, plan.definition,
-    ).unwrap().wire().unwrap(),
+      plan.compiled,
+      plan.definition,
+    )
+    .unwrap()
+    .wire()
+    .unwrap(),
   )
   let run = {
     ..run,
