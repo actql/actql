@@ -99,11 +99,12 @@ test "scalar snapshot consumes canonical construction units without repricing" {
     assert_eq(actual.scalar_words, extent.scalar_words)
     assert_eq(actual.owned_utf16_units, extent.owned_utf16_units)
     assert_eq(actual.owned_wire_bytes, 0L)
-    // Same independent Local slots and controls; the pinned recursive UTF16
-    // proof refines only the five retained text/builder overlaps.
+    // Ordering's private classes/run arrays end before composition starts.
+    // With pinned expansion 4, max((3+5*4)U, (3+6*4)U) is 27U;
+    // fixed controls and the shared representation tariffs remain unchanged.
     assert_eq(actual.record_headers, 100L)
     assert_eq(actual.reference_slots, 123L)
-    assert_eq(actual.scalar_words, 528L + 35L * units.to_int64())
+    assert_eq(actual.scalar_words, 528L + 27L * units.to_int64())
     assert_eq(actual.owned_utf16_units, 20L * units.to_int64() + 2L)
   }
   assert_true(scalar_snapshot_name_normalization_layout(-1) is None)
