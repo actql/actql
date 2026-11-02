@@ -116,7 +116,7 @@ fn sf_initialization_forest(
 fn sf_initialization_emit(
   bytes : Int64,
   nodes : Int64,
-  limits : DeclarationLimits,
+  limits : @catalog.DeclarationLimits,
 ) -> @execution.PreparationRepresentationUnits? {
   if bytes < 1L || bytes > 2147483647L || nodes < 1L || nodes > 2147483647L {
     return None
@@ -154,9 +154,9 @@ pub fn initialization_construction_capacity(
   binding_units : Int,
   connector_units : Int,
   revision_units : Int,
-  describe : DescribeLimits,
+  describe : @catalog.DescribeLimits,
   max_observation_bytes : Int,
-  limits : DeclarationLimits,
+  limits : @catalog.DeclarationLimits,
 ) -> @execution.ExecutionCapacity? {
   if body_lengths.is_empty() ||
     body_lengths.length() != name_lengths.length() ||
@@ -434,7 +434,7 @@ pub fn execution_mapping_construction_capacity(
   revision_units : Int,
   describe_bytes : Int,
   max_fields : Int,
-  limits : DeclarationLimits,
+  limits : @catalog.DeclarationLimits,
 ) -> @execution.ExecutionCapacity? {
   if field_count < 0 ||
     field_units < 0 ||

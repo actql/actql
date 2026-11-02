@@ -16,7 +16,7 @@ fn sf_read_collection_units(
 // before Common recovery begins; those complete parser workspaces are not
 // simultaneous. Their shared Source/decoder owners retain every refusal path.
 fn sf_read_describe_parse_inventory(
-  limits : DescribeLimits,
+  limits : @catalog.DescribeLimits,
 ) -> @execution.PreparationRepresentationUnits? {
   let nodes = Int::min(limits.max_bytes, limits.max_nodes)
   guard @source.json_construction_extent(
@@ -71,7 +71,7 @@ fn sf_read_describe_parse_inventory(
 // The live caller drops the first full observation after extracting its plan,
 // before the independent recheck; selected metadata remains in that plan.
 fn sf_read_observation_construction_inventory(
-  limits : DescribeLimits,
+  limits : @catalog.DescribeLimits,
   max_observation_bytes : Int,
   binding_units : Int,
   resource_units : Int,
@@ -236,7 +236,7 @@ let sf_read_value_inventory_contract : @contract.Contract = @contract.decimal_co
 
 ///|
 fn sf_read_query_construction_inventory(
-  limits : QueryPageLimits,
+  limits : @catalog.QueryPageLimits,
   columns : Int,
   pages : Int,
   api_units : Int,
@@ -257,11 +257,7 @@ fn sf_read_query_construction_inventory(
   let n = limits.max_nodes.to_int64()
   let width = columns.to_int64()
   let rows = limits.max_rows.to_int64()
-  let mut names = 0
-  for (_, role) in address_component_roles {
-    names = Int::max(names, role.length())
-  }
-  let component_fields = address_component_roles.length()
+  let (component_fields, names) = @catalog.address_component_role_bounds()
   let decimal_text_units = match sf_read_value_inventory_contract.shape {
     @contract.Decimal(precision~, ..) => precision + 3
     _ => return None
@@ -594,8 +590,8 @@ fn sf_read_query_construction_inventory(
 /// callbacks. No Source initialization, declaration/Environment regeneration,
 /// permission, Ledger or replacement checked Contract is supplied here.
 pub fn native_read_construction_capacity(
-  describe : DescribeLimits,
-  query : QueryPageLimits,
+  describe : @catalog.DescribeLimits,
+  query : @catalog.QueryPageLimits,
   max_observation_bytes : Int,
   binding_units : Int,
   resource_units : Int,

@@ -18,7 +18,7 @@ pub fn client_program_salesforce_initialization_construction_capacity(
   max_declaration_nodes : Int,
   max_declaration_depth : Int,
 ) -> @execution.ExecutionCapacity? {
-  @salesforce_catalog.initialization_construction_capacity(
+  @salesforce_host.initialization_construction_capacity(
     body_lengths,
     encoded_units,
     observation_units,
@@ -59,7 +59,7 @@ pub fn client_program_salesforce_execution_mapping_construction_capacity(
   max_nodes : Int,
   max_depth : Int,
 ) -> @execution.ExecutionCapacity? {
-  @salesforce_catalog.execution_mapping_construction_capacity(
+  @salesforce_host.execution_mapping_construction_capacity(
     field_count,
     field_units,
     source_count,

@@ -99,6 +99,68 @@ pub fn client_program_installed_salesforce_source_reader_capacity(
   api_units : Int,
   soql_units : Int,
 ) -> @execution.ExecutionCapacity? {
+  installed_salesforce_reader_capacity(
+    limits,
+    columns,
+    secret_bytes,
+    describe,
+    max_observation_bytes,
+    binding_units,
+    resource_units,
+    query_pages,
+    api_units,
+    soql_units,
+    None,
+  )
+}
+
+///|
+/// Initial controls (zero) or the largest actual owned response extent.
+/// Only constructor DATA is narrowed: original response/parser rejection
+/// limits stay unchanged. The same RowRun must grow before any projection.
+#export_name("clientProgramInstalledSalesforceSourceReaderResponseCapacity")
+pub fn client_program_installed_salesforce_source_reader_response_capacity(
+  limits : Array[Int],
+  columns : Int,
+  secret_bytes : Int,
+  describe : Array[Int],
+  max_observation_bytes : Int,
+  binding_units : Int,
+  resource_units : Int,
+  query_pages : Int,
+  api_units : Int,
+  soql_units : Int,
+  response_bytes : Int,
+) -> @execution.ExecutionCapacity? {
+  installed_salesforce_reader_capacity(
+    limits,
+    columns,
+    secret_bytes,
+    describe,
+    max_observation_bytes,
+    binding_units,
+    resource_units,
+    query_pages,
+    api_units,
+    soql_units,
+    Some(response_bytes),
+  )
+}
+
+///|
+fn installed_salesforce_reader_capacity(
+  limits : Array[Int],
+  columns : Int,
+  secret_bytes : Int,
+  describe : Array[Int],
+  max_observation_bytes : Int,
+  binding_units : Int,
+  resource_units : Int,
+  query_pages : Int,
+  api_units : Int,
+  soql_units : Int,
+  response_bytes : Int?,
+) -> @execution.ExecutionCapacity? {
   if limits.length() != 16 ||
     describe.length() != 5 ||
     query_pages < 1 ||
@@ -106,17 +168,37 @@ pub fn client_program_installed_salesforce_source_reader_capacity(
     limits[6] != query_pages + 2 {
     return None
   }
-  let native = @salesforce_catalog.native_read_construction_capacity(
+  let bytes = match response_bytes {
+    None => Int::max(limits[0], describe[0])
+    Some(value) => {
+      if value < 0 || value > Int::max(limits[0], describe[0]) {
+        return None
+      }
+      // Even empty/invalid bodies retain the initial refusal constructors.
+      Int::max(1, value)
+    }
+  }
+  let query_bytes = Int::min(limits[0], bytes)
+  let describe_bytes = Int::min(describe[0], bytes)
+  let native = @salesforce_host.native_read_construction_capacity(
     {
-      max_bytes: describe[0],
-      max_nodes: describe[1],
+      max_bytes: describe_bytes,
+      max_nodes: if response_bytes is None {
+        describe[1]
+      } else {
+        Int::min(describe[1], describe_bytes)
+      },
       max_depth: describe[2],
       max_fields: describe[3],
       max_name_units: describe[4],
     },
     {
-      max_bytes: limits[0],
-      max_nodes: limits[2],
+      max_bytes: query_bytes,
+      max_nodes: if response_bytes is None {
+        limits[2]
+      } else {
+        Int::min(limits[2], query_bytes)
+      },
       max_depth: limits[3],
       max_rows: limits[4],
       max_locator_units: limits[8],
@@ -129,7 +211,37 @@ pub fn client_program_installed_salesforce_source_reader_capacity(
     api_units,
     soql_units,
   )
-  @client_local_host.installed_native_source_reader_capacity(
+  let capacity = @client_local_host.installed_native_source_reader_capacity(
     limits, columns, secret_bytes, native,
   )
+  if response_bytes is None {
+    return capacity
+  }
+  // Original provider response-capacity method/state, captured RowRun callback
+  // and its fixed aliases:2H13R2W. The synchronous quote/Result/byte-growth
+  // argument and failure carriers peak at24H64R24W; no body/tree is copied.
+  let controls = @execution.preparation_execution_capacity({
+    retained: {
+      record_headers: 2L,
+      reference_slots: 13L,
+      scalar_words: 2L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    },
+    workspace: {
+      record_headers: 24L,
+      reference_slots: 64L,
+      scalar_words: 24L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    },
+    retained_nodes: 0L,
+    workspace_nodes: 0L,
+    retained_bytes: 0L,
+    workspace_bytes: 0L,
+  })
+  guard capacity is Some(capacity) && controls is Some(controls) else {
+    return None
+  }
+  @execution.add_execution_capacity(capacity, controls)
 }

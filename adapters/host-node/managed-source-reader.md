@@ -327,3 +327,49 @@ response bodies, returned metadata/typed values and failed children remain
 covered. These quantities still require actual same-parent Run admission.
 Static recipe composition and explicit-port caller tests do not establish a
 matching runtime ABI, physical cleanup or normal installed acceptance.
+
+## Native response construction phase
+
+Salesforce's existing Host package owns the read, initialization and Mapping
+construction inventories. The semantic Catalog owns metadata, conversion laws
+and the original Address role table; its pure role-count/name-length projection
+supplies those same bounds to the Host. No production Catalog dependency owns
+execution capacity or acquisition custody. Existing Node/RelA JavaScript bridge
+names forward to the Host recipes without changing their quantities or limits.
+The initializer's original catalog whitebox fixtures call the Host through
+test-only imports, keeping their private authored semantic fixtures local.
+
+The Salesforce normal Reader initially retains its original raw-response
+allowance, request/protocol controls and refusal constructors. It does not
+reserve a full maximum-size parsed tree before any response exists. The
+original byte/parser limits are unchanged. After the actual response is retained
+and charged, its byte length bounds every parsed node and decoded UTF16 unit.
+The selected native codec quotes that extent before the original projection,
+Describe recovery or query decoder runs. It keeps the largest owned response
+extent, covering both independent metadata families and the current query page;
+acknowledgement relinquishes each typed page while the original RowRun retains
+its admitted rows. Raw responses and failed bodies remain separately covered.
+
+`responseCapacity(bytes)` is synchronous constructor DATA, not permission,
+currentness or a reservation. The provider caches only its own immutable peak
+quote. Smaller later bodies reuse that exact quote without recomputing the
+codec inventory. An invalid asynchronous result remains with the existing
+reader's callback custody. Missing growth support refuses before provider I/O.
+
+The existing RowRun supplies `reserveResponseCapacity` through its original
+one-shot response borrow, as a separate private factory argument. The original
+options object and every captured callback receiver remain unchanged. Core
+grows that same physical reservation before
+decoding, checks both byte dimensions against the same Ledger, and fences
+reentrant growth/retirement around its one original current callback. Reusing
+the same already-backed quote performs only local original-state/charge checks.
+Resource byte-vector arithmetic is shared with byte-only preparation; attempts,
+transfer, quantities, slots and consumed history are unchanged. No new Ledger,
+Root, issuer or cleanup owner is constructed.
+
+Capacity refusal does not decode, consume the response ticket, return bytes or
+proceed to another child. A successful growth remains charged even if a later
+callback closes the Run. The same reader/Row cleanup still owns pending, failed
+and Unknown duties. Workspace retirement uses the grown native extent and may
+return only its transient portion after the original reader actually retires;
+final closure retains the original physical/accounting obligations.

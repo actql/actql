@@ -16,6 +16,17 @@ let address_component_roles : ReadOnlyArray[(String, String)] = [
 ]
 
 ///|
+/// Geometry of the same documented REST roles, without resource pricing or
+/// acquisition custody. Host constructor inventory reads this original table.
+pub fn address_component_role_bounds() -> (Int, Int) {
+  let mut longest = 0
+  for (_, role) in address_component_roles {
+    longest = Int::max(longest, role.length())
+  }
+  (address_component_roles.length(), longest)
+}
+
+///|
 fn address_component_role(name : String) -> String? {
   for (suffix, role) in address_component_roles {
     if name.has_suffix(suffix) || name.has_suffix("__" + suffix + "__s") {

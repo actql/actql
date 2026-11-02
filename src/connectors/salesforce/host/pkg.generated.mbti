@@ -15,7 +15,11 @@ pub fn accept_managed_query_page(ManagedQuery, String, Bytes) -> Result[@catalog
 
 pub fn cancel_managed_query(ManagedQuery) -> Bool
 
+pub fn execution_mapping_construction_capacity(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, @catalog.DeclarationLimits) -> @execution_relation.ExecutionCapacity?
+
 pub fn finish_managed_query(ManagedQuery) -> Result[@execution_relation.ManagedOutputValueReceipt, ManagedQueryIssue]
+
+pub fn initialization_construction_capacity(Array[Int], Int, Int, Array[Int], Int, Int, Int, @catalog.DescribeLimits, Int, @catalog.DeclarationLimits) -> @execution_relation.ExecutionCapacity?
 
 pub fn installed_salesforce_row_declaration(InstalledSalesforceDeclaration) -> Result[@client_row_source_host.RowDeclaration, InstalledSalesforceIssue]
 
@@ -28,6 +32,8 @@ pub fn managed_query_complete(ManagedQuery) -> Bool
 pub fn managed_query_next_path(ManagedQuery) -> Result[String?, ManagedQueryIssue]
 
 pub fn managed_query_row_count(ManagedQuery) -> Int64
+
+pub fn native_read_construction_capacity(@catalog.DescribeLimits, @catalog.QueryPageLimits, Int, Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
 
 pub fn prepare_installed_salesforce_declared_row_acquisition(InstalledSalesforceDeclaration, @query_planning.QueryRequirement, String, String) -> Result[@client_row_source_host.RowAcquisition, InstalledSalesforceIssue]
 

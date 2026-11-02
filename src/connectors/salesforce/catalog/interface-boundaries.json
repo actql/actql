@@ -126,17 +126,17 @@
       ]
     },
     {
-      "module": "src/connectors/salesforce/catalog/initialization_construction.mbt",
-      "sha256": "f92a22bed56daaa957cd8099cfea75d59f213fa801c2f08ddcf06fa8c43ee58e",
+      "module": "src/connectors/salesforce/host/initialization_construction.mbt",
+      "sha256": "b41aead7c7e399841489593847a00207e261a654bc87d33010ff53a111d52a83",
       "exports": [],
       "operations": [
         {
           "name": "execution_mapping_construction_capacity",
-          "declaration": "execution_mapping_construction_capacity ( field_count : Int , field_units : Int , source_count : Int , source_units : Int , key_units : Int , resource_units : Int , connector_units : Int , revision_units : Int , describe_bytes : Int , max_fields : Int , limits : DeclarationLimits , ) - > @ execution . ExecutionCapacity ?"
+          "declaration": "execution_mapping_construction_capacity ( field_count : Int , field_units : Int , source_count : Int , source_units : Int , key_units : Int , resource_units : Int , connector_units : Int , revision_units : Int , describe_bytes : Int , max_fields : Int , limits : @ catalog . DeclarationLimits , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "initialization_construction_capacity",
-          "declaration": "initialization_construction_capacity ( body_lengths : Array [ Int ] , encoded_units : Int , observation_units : Int , name_lengths : Array [ Int ] , binding_units : Int , connector_units : Int , revision_units : Int , describe : DescribeLimits , max_observation_bytes : Int , limits : DeclarationLimits , ) - > @ execution . ExecutionCapacity ?"
+          "declaration": "initialization_construction_capacity ( body_lengths : Array [ Int ] , encoded_units : Int , observation_units : Int , name_lengths : Array [ Int ] , binding_units : Int , connector_units : Int , revision_units : Int , describe : @ catalog . DescribeLimits , max_observation_bytes : Int , limits : @ catalog . DeclarationLimits , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "sf_initialization_capacity",
@@ -152,7 +152,7 @@
         },
         {
           "name": "sf_initialization_emit",
-          "declaration": "sf_initialization_emit ( bytes : Int64 , nodes : Int64 , limits : DeclarationLimits , ) - > @ execution . PreparationRepresentationUnits ?"
+          "declaration": "sf_initialization_emit ( bytes : Int64 , nodes : Int64 , limits : @ catalog . DeclarationLimits , ) - > @ execution . PreparationRepresentationUnits ?"
         },
         {
           "name": "sf_initialization_forest",

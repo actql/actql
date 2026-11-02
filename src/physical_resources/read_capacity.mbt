@@ -205,7 +205,6 @@ fn resize_capacity_reservation_current(
     token.cleanup_pending {
     return Err(InvalidCharge)
   }
-  let usage = ledger.usage
   let retained_delta = retained - token.retention
   let execution_delta = execution - token.execution
   if (retained_delta > 0L || execution_delta > 0L) &&
@@ -215,6 +214,22 @@ fn resize_capacity_reservation_current(
     inventory.closing {
     return Err(ClosedReservation)
   }
+  resize_reservation_bytes_current(ledger, token, retained, execution)
+}
+
+///|
+// The original closed current boundary owns every caller. Share byte-vector
+// arithmetic between byte-only preparation and the existing physical attempt;
+// neither caller changes transfer, attempts, quantities or reservation slots.
+fn resize_reservation_bytes_current(
+  ledger : Ledger,
+  token : Reservation,
+  retained : Int64,
+  execution : Int64,
+) -> Result[Unit, LedgerIssue] {
+  let usage = ledger.usage
+  let retained_delta = retained - token.retention
+  let execution_delta = execution - token.execution
   // Original stopping permits disposal, never new allocation. The preceding
   // reservation check has refreshed currentness and may have latched stopping.
   if (retained_delta > 0L || execution_delta > 0L) &&

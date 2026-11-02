@@ -1,4 +1,36 @@
 ///|
+/// Grow only byte backing of the SAME physical reservation before its next
+/// constructor. The original consumer supplies the complete simultaneous
+/// extent. No attempt, transfer, quantity, slot or cleanup duty is reissued.
+pub fn grow_execution_reservation_capacity(
+  ledger : Ledger,
+  reservation : Reservation,
+  retained : Int64,
+  execution : Int64,
+) -> Result[Unit, LedgerIssue] {
+  if retained < 0L || execution < 0L {
+    return Err(InvalidCharge)
+  }
+  match reservation_check(ledger, reservation) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if imported_child_fixed_capacity(ledger, reservation) {
+    return Err(ChildFundingUnavailable)
+  }
+  if reservation.cleanup_pending ||
+    retained < reservation.retention ||
+    execution < reservation.execution ||
+    (
+      ledger.original_inventory is Some(inventory) &&
+      physical_equal(inventory.bootstrap.reservation, reservation)
+    ) {
+    return Err(InvalidCharge)
+  }
+  resize_reservation_bytes_current(ledger, reservation, retained, execution)
+}
+
+///|
 /// Reduce only the execution-byte remainder of this original reservation.
 /// The caller must already have retired the workspace being returned. This
 /// does not acknowledge physical cleanup, close the reservation, return an

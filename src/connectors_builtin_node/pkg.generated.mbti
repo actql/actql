@@ -1746,6 +1746,8 @@ pub fn client_program_installed_row_capture_capacity(@client_row_source_host.Row
 
 pub fn client_program_installed_salesforce_source_reader_capacity(Array[Int], Int, Int, Array[Int], Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
 
+pub fn client_program_installed_salesforce_source_reader_response_capacity(Array[Int], Int, Int, Array[Int], Int, Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
+
 pub fn client_program_installed_slack_source_reader_capacity(Array[Int], Int, Int, Int) -> @execution_relation.ExecutionCapacity?
 
 pub fn client_program_installed_source_construction_capacity(Int64, Int64, Int64, Int64, Int64, Int64) -> Result[@execution_relation.ExecutionCapacity, @physical_resources.PreparationCapacityIssue]
@@ -3195,6 +3197,8 @@ pub fn client_program_row_source_consume_observation_charge(@client_row_source_h
 pub fn client_program_row_source_declaration_json(@client_row_source_host.RowDeclaration) -> String
 
 pub fn client_program_row_source_finish(@client_row_source_host.RowRun) -> Result[Bool, @client_row_source_host.RowHostIssue]
+
+pub fn client_program_row_source_grow_response_capacity(@client_row_source_host.RowRunResponseBorrow, @execution_relation.ExecutionCapacity) -> Result[Unit, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_row_source_is_listing(@client_row_source_host.RowAcquisition) -> Bool
 

@@ -1,4 +1,89 @@
 ///|
+test "native response byte growth keeps the original attempt transfer and quantity history" {
+  let ledger = create_ledger(test_limits()).unwrap()
+  configure_quantities(ledger, { tokens: 3L, cost_units: 4L, duration_ms: 5L, }).unwrap()
+  let token = reserve_attempt(
+    ledger,
+    9L,
+    4L,
+    5L,
+    quantities=Some({ tokens: 3L, cost_units: 4L, duration_ms: 5L, }),
+  ).unwrap()
+  consume_reserved_attempt(ledger, token).unwrap()
+  charge_transfer(ledger, token, 2L).unwrap()
+  let before = ledger_usage(ledger)
+  let quantities = quantity_usage(ledger)
+  grow_execution_reservation_capacity(ledger, token, 7L, 13L).unwrap()
+  let grown = ledger_usage(ledger)
+  assert_eq(grown, {
+    ..before,
+    reserved_retention_bytes: 7L,
+    reserved_execution_bytes: 13L,
+    peak_retention_bytes: 7L,
+  })
+  assert_eq(token.transfer, 7L)
+  assert_eq(quantity_usage(ledger), quantities)
+  grow_execution_reservation_capacity(ledger, token, 7L, 13L).unwrap()
+  assert_eq(ledger_usage(ledger), grown)
+  for (r, e) in [(3L, 13L), (7L, 12L), (-1L, 13L)] {
+    assert_true(
+      grow_execution_reservation_capacity(ledger, token, r, e)
+      is Err(InvalidCharge),
+    )
+    assert_eq(ledger_usage(ledger), grown)
+  }
+  assert_true(
+    grow_execution_reservation_capacity(ledger, token, 11L, 13L)
+    is Err(RetentionLimit),
+  )
+  assert_true(
+    grow_execution_reservation_capacity(ledger, token, 7L, 21L)
+    is Err(ExecutionLimit),
+  )
+  assert_eq(ledger_usage(ledger), grown)
+  mark_cleanup_pending(ledger, token).unwrap()
+  assert_true(
+    grow_execution_reservation_capacity(ledger, token, 8L, 14L)
+    is Err(InvalidCharge),
+  )
+  settle_reservation(ledger, token).unwrap()
+  assert_eq(ledger_usage(ledger).attempts, 1)
+  assert_eq(ledger_usage(ledger).transferred_bytes, 2L)
+}
+
+///|
+test "native response growth cannot mutate a reservation closed by original current" {
+  let ledger = create_ledger(test_limits()).unwrap()
+  let token = reserve_attempt(ledger, 0L, 4L, 5L).unwrap()
+  let armed = Ref(true)
+  ledger.imported_child = Some({
+    nonce: 1L,
+    admit: _ => 0,
+    current: _ => {
+      if armed.val {
+        armed.val = false
+        settle_reservation(ledger, token).unwrap()
+      }
+      0
+    },
+    limit: (_, _) => 0L,
+    capacity: (_, _) => 0L,
+    report: (_, _) => 0,
+    stop: _ => 0,
+    fixed_capacities: false,
+    ledger: Some(ledger),
+    stopping: false,
+    unavailable: false,
+  })
+  assert_true(
+    grow_execution_reservation_capacity(ledger, token, 7L, 13L)
+    is Err(ClosedReservation),
+  )
+  assert_eq(ledger_usage(ledger).reserved_retention_bytes, 0L)
+  assert_eq(ledger_usage(ledger).reserved_execution_bytes, 0L)
+}
+
+///|
 test "execution remainder reduction preserves transfer quantities pending cleanup and spent history" {
   let ledger = create_ledger(test_limits()).unwrap()
   configure_quantities(ledger, {

@@ -164,7 +164,21 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
     // borrow; no extra retained carrier or second reader owner is introduced.
     readerPrepared = borrow;
     checked(moon.clientProgramRowSourceBindResponseCleanup(borrow, readerRetired));
-    reader = Reflect.apply(prepare, receiver, [options]);
+    const grow = moon.clientProgramRowSourceGrowResponseCapacity;
+    const reserveResponseCapacity = typeof grow !== 'function' || wholeInput ? undefined
+      : capacity => {
+        if (closed || !readerReadPending || readerStopRequested) fail('InstalledSourceClosed');
+        signal?.throwIfAborted();
+        checked(Reflect.apply(grow, moon, [borrow, capacity]));
+        // The original Resource callback already checked currentness. Reentry
+        // still cannot use a closed reader after that same checked mutation.
+        if (closed || !readerReadPending || readerStopRequested) fail('InstalledSourceClosed');
+        signal?.throwIfAborted();
+      };
+    // Keep the original options object and every original callback receiver.
+    // The separate private constructor argument supplies only this SAME
+    // RowRun's growth function, never a copied input or another issuer.
+    reader = Reflect.apply(prepare, receiver, [options, undefined, reserveResponseCapacity]);
     if (typeof reader?.then === 'function') {
       // Preparation must be synchronous and I/O-free. An accidental async
       // factory is never adopted later, but its rejection must still be handled.

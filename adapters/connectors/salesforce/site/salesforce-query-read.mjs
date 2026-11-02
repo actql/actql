@@ -296,7 +296,7 @@ export function readSalesforceSourceChild(context, originalAuthorization, input)
 // shared Reader. Preparing this protocol retains original facts only. The two
 // metadata reads and all query pages happen after its original binding opens.
 export function prepareSalesforceSourceReadSequence(options) {
-  let {moon, queryMoon, site, declaration, preparedRead, originalAuthorization, recover, limits} = options;
+  let {moon, queryMoon, site, declaration, preparedRead, originalAuthorization, recover, limits, responseCapacity} = options;
   options = undefined;
   let describe = method(site, 'describeForAcquisition');
   let recheck = method(moon, 'clientProgramRecheckSalesforceRowProjection');
@@ -306,8 +306,17 @@ export function prepareSalesforceSourceReadSequence(options) {
   if (typeof recover !== 'function' || scope.operation !== 'salesforce:query:read' ||
       scope.runInvocationCid !== own(preparedRead, 'runInvocationCid') ||
       scope.dispatchRequestCid !== own(preparedRead, 'dispatchRequestCid')) fail('ForeignSalesforceSourceRead');
-  let started = false, pending = false, retired = false;
-  const sequence = Object.freeze({async read(context, initialAuthorization) {
+  if (responseCapacity !== undefined && typeof responseCapacity !== 'function') fail('InvalidSalesforceSourceRead');
+  let started = false, pending = false, retired = false, largestResponse = 0, capacity;
+  const sequence = Object.freeze({...(responseCapacity === undefined ? {} : {responseCapacity(bytes) {
+    if (this !== sequence || !pending || retired || !Number.isSafeInteger(bytes) || bytes < 0 ||
+        bytes > limits.maxBytes) fail('InvalidSalesforceSourceResponseExtent');
+    if (capacity === undefined || bytes > largestResponse) {
+      largestResponse = Math.max(largestResponse, bytes);
+      capacity = Reflect.apply(responseCapacity, undefined, [largestResponse]);
+    }
+    return capacity;
+  }}), async read(context, initialAuthorization) {
     if (this !== sequence || started || retired) fail('SalesforceSourceReadAlreadyStarted');
     started = true;pending = true;
     try {
@@ -349,7 +358,7 @@ export function prepareSalesforceSourceReadSequence(options) {
     if (pending) return false;
     if (!retired) {
       moon = queryMoon = site = declaration = preparedRead = originalAuthorization = recover = limits = undefined;
-      describe = recheck = values = credential = undefined;
+      describe = recheck = values = credential = responseCapacity = capacity = undefined;
       retired = true;
     }
     return true;
