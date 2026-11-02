@@ -6,7 +6,7 @@
       "responsibilityFacet": "primary",
       "role": "generated-binding",
       "owner": "Same-runtime BigQuery and Common wrappers; RelA source is the generated mirror of the same Owner",
-      "sha256": "e09c206360d151a27be1aad7c499d067f7edb259259f217d7da57dc4df4b1a80",
+      "sha256": "70f9e1bca5c0010fc68807eb89c1859b66a8067cc712add381df80845073ff33",
       "exports": [],
       "operations": [
         {
@@ -317,7 +317,7 @@
       "responsibilityFacet": "primary",
       "role": "generated-binding",
       "owner": "Same-runtime BigQuery and Common wrappers; RelA source is the generated mirror of the same Owner",
-      "sha256": "1a2ccf8ce837db740b25459bf32469e351af52982b54a897437af33034cd0365",
+      "sha256": "7845f46914cd58764ac7872cec96308208f012aaa23e0e5b3df762ded32e9d7a",
       "exports": [],
       "operations": [
         {

@@ -70,8 +70,8 @@ pub fn client_program_bigquery_read_declaration_construction_capacity(
   declaration : @client_row_source_host.RowDeclarationLimits,
 ) -> @execution.ExecutionCapacity? {
   @bigquery_catalog.read_declaration_construction_capacity(
-    body_bytes, encoded_units, target_units, resource_units, connector_units,
-    revision_units, description, declaration,
+    body_bytes, encoded_units, target_units, resource_units, connector_units, revision_units,
+    description, declaration,
   )
 }
 
