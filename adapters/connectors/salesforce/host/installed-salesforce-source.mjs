@@ -1,4 +1,3 @@
-import {runtimeField} from '../../../host-common/compiler-binding.generated.mjs';
 // Salesforce's source installation for the standard installed Host, entered
 // in the Host's installed connector table by `src/connectors/salesforce/
 // host-bundle.json` (`check`, `identityParts`, `publish`, `load`).
@@ -12,16 +11,17 @@ import {runtimeField} from '../../../host-common/compiler-binding.generated.mjs'
 import {createHash} from 'node:crypto';
 import {isAbsolute} from 'node:path';
 import {checked} from '../../../host-common/runtime-result.mjs';
+import {installedJsonSourceReaderLimitNames} from '../../../host-node/installed-credential-source-reader.mjs';
 import {captureConfigurationReaders} from '../../../host-node/source-profile-json.mjs';
 import {salesforceInitializationConstructionCapacity} from './salesforce-initialization-construction.mjs';
 import {installSalesforceAuthorization, installedSalesforceSiteBinding,
   loadInstalledSalesforceSite, releaseSalesforceSite,
-  retainSalesforceSiteCleanup} from
+  retainSalesforceSiteCleanup, DEFAULT_SALESFORCE_CATALOG_LIMITS} from
   './installed-salesforce-site.mjs';
 import {restoreSalesforceGeneration, publishSalesforceGeneration, readPublicationFile} from './salesforce-publication.mjs';
 import {installSalesforceResourceService} from
   './salesforce-resource-service.mjs';
-import {readSalesforceQuery} from '../site/salesforce-query-read.mjs';
+import {prepareSalesforceSourceReadSequence} from '../site/salesforce-query-read.mjs';
 
 export const INSTALLED_SALESFORCE_SOURCE_VERSION =
   'actql-installed-salesforce-source/0.1';
@@ -159,12 +159,21 @@ export async function loadInstalledSalesforceSource(profile, {moon,
   if (construction === undefined) fail('InstalledSourceInitializationUnavailable');
   const checkedProfile = checkInstalledSalesforceSourceProfile(profile);
   const queryMoon = queryRuntime(moon);
+  const policyMethod = Object.getOwnPropertyDescriptor(moon, 'clientProgramInstalledSourceReaderPolicy');
+  if (!policyMethod || !Object.hasOwn(policyMethod, 'value') || typeof policyMethod.value !== 'function') {
+    fail('InstalledSourceReaderRuntimeUnavailable');
+  }
+  const policy = Reflect.apply(policyMethod.value, moon, []);
+  if (!Array.isArray(policy) || policy.length !== 3 || policy.some(value =>
+    !Number.isSafeInteger(value) || value < 1 || value > 2147483647)) fail('InstalledSourceReaderPolicyUnavailable');
+  const readerPolicy = Object.freeze([...policy]);
+  const runAcquisitionLimits = Object.freeze({maxBindings: readerPolicy[1], maxSecretBytes: readerPolicy[0]});
   const {authorization, site} = await construction.openSpecializedSite({
     authorizationConstructor: installSalesforceAuthorization,
     siteConstructor: loadInstalledSalesforceSite,
     siteArgument: checkedProfile.siteProfilePath,
     accountConfiguration: checkedProfile.accountConfigurationWire,
-    siteOptions: {salesforceMoon, resolveSecret, openCredentialJournal},
+    siteOptions: {salesforceMoon, resolveSecret, openCredentialJournal, runAcquisitionLimits},
   });
   const readers = construction.configurationReader;
   const {body, generationCid} = await readPublicationFile(checkedProfile.publicationPath, readers.readText);
@@ -194,7 +203,7 @@ export async function loadInstalledSalesforceSource(profile, {moon,
   const discovery = installSalesforceResourceService({salesforceMoon, sites: [site]});
   discovery.installPublished(site.connection, loaded.declared);
   return installedSalesforceAdapter({moon, queryMoon, site, authorization,
-    declaration, recover, discovery, construction, generationCid,
+    declaration, recover, discovery, construction, readerPolicy, resources: checkedProfile.resources, generationCid,
     catalogCid: loaded.declared.catalog_cid, connectorId: checkedProfile.connectorId});
 }
 
@@ -202,7 +211,7 @@ export async function loadInstalledSalesforceSource(profile, {moon,
 // Describe/query codecs stay here; the shared Row Source owns every checked
 // preparation, original acquisition, RowRun, capture and failure cleanup.
 async function installedSalesforceAdapter({moon, queryMoon, site, authorization,
-  declaration, recover, discovery, construction, generationCid,
+  declaration, recover, discovery, construction, readerPolicy, resources, generationCid,
   catalogCid, connectorId}) {
   const directReadIdentity = Object.freeze({
     input: 0,
@@ -217,8 +226,50 @@ async function installedSalesforceAdapter({moon, queryMoon, site, authorization,
     },
     useId: (nonce, index) => `${nonce}-query-${index}`,
   });
+  // These are the existing codec bounds and original installed identity
+  // lengths. The quote supplies representation backing, never read authority.
+  // All twelve responses (two independent Describe + ten query pages) remain
+  // with the SAME Reader through completion or failed-child retirement.
+  const bindingUnits = ['namespaceId', 'principal', 'environment', 'connectionRevision', 'orgId',
+    'siteKey', 'instanceOrigin'].reduce((units, name) => units + site[name].length, 0) +
+    'salesforce'.length + 'salesforce/0.1'.length + 2 * 71 + 36 + '-recheck'.length;
+  const resourceUnits = Math.max(...resources.map(name => name.length));
+  // The original bounded declaration contains all possible selected API names.
+  // Its wire bounds their target spelling; add the original immutable Site
+  // strings and fixed target/CID keys with the same worst-case JSON escaping.
+  const maxTargetBytes = 1024 + 6 * (declarationLimits.maxBytes + bindingUnits + resourceUnits);
+  const readerLimits = Object.freeze({maxResponseBytes: readLimits.maxBytes,
+    maxTotalResponseBytes: (readLimits.maxPages + 2) * readLimits.maxBytes,
+    maxNodes: readLimits.maxNodes, maxDepth: readLimits.maxDepth,
+    maxRows: readLimits.maxRows, maxTotalRows: readLimits.maxTotalRows,
+    maxPages: readLimits.maxPages + 2, pageSize: readLimits.maxRows,
+    maxCursorBytes: readLimits.maxLocatorUnits, maxIdentityBytes: readLimits.maxBytes,
+    maxTargetBytes, maxValueNodes: readLimits.maxNodes, maxValueTextBytes: readLimits.maxBytes,
+    maxRowsWireBytes: readLimits.maxBytes, maxRowsWireNodes: readLimits.maxNodes,
+    maxRowsWireDepth: readLimits.maxDepth, maxSecretBytes: readerPolicy[0]});
+  const capacityMethod = Object.getOwnPropertyDescriptor(moon, 'clientProgramInstalledSalesforceSourceReaderCapacity');
+  if (!capacityMethod || !Object.hasOwn(capacityMethod, 'value') || typeof capacityMethod.value !== 'function') {
+    fail('InstalledSourceReaderRuntimeUnavailable');
+  }
+  const capacity = Reflect.apply(capacityMethod.value, moon, [
+    installedJsonSourceReaderLimitNames.map(name => readerLimits[name]), readerPolicy[2], readerPolicy[0],
+    ['maxBytes', 'maxNodes', 'maxDepth', 'maxFields', 'maxNameUnits'].map(
+      name => DEFAULT_SALESFORCE_CATALOG_LIMITS.describe[name]),
+    DEFAULT_SALESFORCE_CATALOG_LIMITS.maxObservationBytes, bindingUnits, resourceUnits,
+    readLimits.maxPages, site.apiVersion.length, 4096]);
+  if (capacity === undefined || capacity === null) fail('InstalledSourceReaderCapacityUnavailable');
+  const sequence = Object.freeze({operation: 'salesforce:query:read', maxUses: readLimits.maxPages,
+    children: Object.freeze([Object.freeze({operation: 'salesforce:catalog:describe', maxUses: 2})])});
+  const implementation = construction.sourceReaderImplementation({limits: readerLimits,
+    columnCount: readerPolicy[2], readSequenceConstruction: Object.freeze({capacity,
+      originalLimits: readLimits, sequence})});
+  const providerReader = construction.createSourceReader({implementation,
+    prepareReadSequence(input) {
+      return prepareSalesforceSourceReadSequence({moon, queryMoon, site, declaration, recover,
+        preparedRead: input.preparedRead, originalAuthorization: input.originalAuthorization, limits: readLimits});
+    }});
   const binding = installedSalesforceSiteBinding(site, connectorId);
-  return construction.createRowSource({bindingCid: binding.bindingCid,
+  return construction.createRowSource({bindingCid: binding.bindingCid, providerReader,
     directReadIdentity, grantBeforeBegin: true,
     realizationKey: 'salesforce-acquired',
     publication: Object.freeze({generationCid, discovery: Object.freeze({resources: discovery.resources,
@@ -226,11 +277,13 @@ async function installedSalesforceAdapter({moon, queryMoon, site, authorization,
     publicationSurface: Object.freeze(['realizationKey', 'supportsRetainedRelationOutput',
       'connectorRegistration', 'connectorRevision', 'environmentWire', 'connectorBindings',
       'readAuthorization', 'sourceAccess', 'sourceReadAccesses', 'admitsSource',
-      'ledgerCapacity', 'prepare', 'open', 'close']),
+      'ledgerCapacity', 'managedCaptureCapacity', 'managedWholeSourceCapacity',
+      'managedEffectPlanSelection', 'prepare', 'open', 'close']),
     originalSourceAccess: Object.freeze({authorization, connection: site.connection}),
     // These functions retain this same original Salesforce Site. The alias
     // selects its existing issuer; it does not create a second grant Owner.
     projectSite: () => Object.freeze({connection: site.connection,
+      referenceCurrent: site.referenceCurrent,
       issueReadGrant: request => site.issueGrant(request),
       admitCheckpointReadApproval: decision => site.admitCheckpointReadApproval(decision)}),
     readOperation: 'salesforce:query:read',
@@ -240,7 +293,7 @@ async function installedSalesforceAdapter({moon, queryMoon, site, authorization,
       site_key: site.siteKey, site_generation: site.siteGeneration,
       connection_revision: site.connectionRevision, catalog_cid: catalogCid,
       resource, fields: Object.freeze([...fields])}),
-    limits: Object.freeze({maxPages: readLimits.maxPages,
+    limits: Object.freeze({maxPages: readerLimits.maxPages,
       maxPageBytes: readLimits.maxBytes, maxPageRows: readLimits.maxRows,
       maxCaptureRows: readLimits.maxTotalRows}),
     prepareRead: async ({prepared, acquisition, decision, granted, resource,
@@ -252,33 +305,9 @@ async function installedSalesforceAdapter({moon, queryMoon, site, authorization,
             JSON.stringify(prepared.physicalBinding.fields))) {
         fail('SalesforceReadApprovalNotAdmitted');
       }
-      const describe = async suffix => {
-        const described = await site.describeForAcquisition({resource,
-          runInvocationCid, dispatchRequestCid, occurrence: `${nonce}-${suffix}`,
-          approval, signal});
-        return Object.freeze({status: 'observed',
-          observation: recover(described.evidence, runInvocationCid),
-          observationCid: described.observationCid,
-          observationJson: described.evidence.observationJson});
-      };
-      const current = await describe('plan');
-      const plan = checked(moon.clientProgramRecheckSalesforceRowProjection(
-        declaration, acquisition, current.observation, 4096));
-      return Object.freeze({plan, describe});
-    },
-    readPages: async ({preparedRead, authorizationFor, chargePage, rowRun, signal}) => {
-      await readSalesforceQuery({moon: queryMoon, plan: preparedRead.plan,
-        apiVersion: site.apiVersion, limits: readLimits, chargePage,
-        consumePage: (page, {charge}) => {
-          const values = moon.clientProgramSalesforceQueryPageValues(page);
-          // Borrow this shared Host's original accounted RowRun. Typed values
-          // are admitted directly; never stringify decimal/presence values.
-          checked(moon.clientProgramRowSourceAcceptChargedValues(
-            rowRun.run, charge, runtimeField(values, 0), runtimeField(values, 1)));
-        },
-        initialAuthorization: await authorizationFor(0),
-        authorizationForPage: async (_path, index) => authorizationFor(index),
-        credential: site.credential,
-        refreshCatalog: () => preparedRead.describe('recheck'), signal});
+      // Pure original facts only. The SAME admitted RowRun precedes this
+      // callback; both metadata reads execute inside its original Reader.
+      return Object.freeze({acquisition, approval, resource, nonce,
+        runInvocationCid, dispatchRequestCid, signal});
     }});
 }

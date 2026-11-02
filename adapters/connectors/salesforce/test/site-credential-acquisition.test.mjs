@@ -6,6 +6,9 @@ import * as salesforceMoon from '../../../../_build/js/release/build/connectors/
 import {callHttpsCredentialResource, withHttpsCredentialRunResponseOriginal} from
   '../../../site-node/https-credential-resource.mjs';
 import {openSalesforceEffectSiteFixture} from './salesforce-effect-site.fixture.mjs';
+import {installedRowCredentialOperationSite} from '../../../host-node/installed-row-source.mjs';
+import {createInstalledCredentialSourceReader} from '../../../host-node/installed-credential-source-reader.mjs';
+import {readSalesforceSourceChild} from '../site/salesforce-query-read.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const current = () => ({assertCurrent() {}, async observeCurrent() {}});
@@ -31,6 +34,49 @@ async function fixture(t, options = {}) {
   return {setup, invoke, initialRequests,
     resolutions: () => resolutions, rotate: value => { secret = value; }};
 }
+
+test('Salesforce query Site retains its same issuer and original metadata child in the shared Reader', async t => {
+  const f = await fixture(t), site = f.setup.site;
+  const decision = await f.setup.authorization.authorize('acquisition', {
+    connection: site.connection, resource: 'Test_Record__c', operation: 'read'}, {subjectCid: cid('7')});
+  const original = site.issueGrant({operation: 'salesforce:query:read', decision,
+    resource: 'Test_Record__c', runInvocationCid: cid('1'), dispatchRequestCid: cid('2'), maxUses: 1});
+  const originalSite = installedRowCredentialOperationSite(site.credential);
+  assert.equal(originalSite.site, site);
+  assert.equal(originalSite.authorizationPurpose(original).kind, 'read');
+  assert.equal(originalSite.authorizationPurpose(original).decision, decision);
+  let charges = 0, observations = 0, children = 0;
+  const charged = Object.freeze({});
+  // The physical Site/current/issuer/Journal/provider are real; capacity and
+  // row-accounting ports are explicit. No normal recipe is admitted here.
+  const readerFactory = createInstalledCredentialSourceReader({capacity: {}, originalSite,
+    assertCurrent() {}, maxResponses: 1, maxResponseBytes: 4_000_000,
+    prepareReadSequence() {
+      return Object.freeze({async read(context) {
+        const described = await site.describeForAcquisition({resource: 'Test_Record__c',
+          occurrence: 'shared-reader-describe', runInvocationCid: cid('1'), dispatchRequestCid: cid('2'),
+          readChild(raw, input) {children++;return readSalesforceSourceChild(context, raw, input);}});
+        assert.equal(described.evidence.names[0], 'Test_Record__c');
+        await context.consumeObservation();
+      }, retire() {return true;}});
+    }});
+  const reader = readerFactory.prepare(Object.freeze({columns: ['Id'], originalAuthorization: original,
+    verifyRead() {}, authorizationFor() {return {...original, useId: 'original-query-use'};},
+    authorizeReadChild(operation, index, occurrence, supplied) {
+      assert.equal(operation, 'salesforce:catalog:describe');assert.equal(index, 0);
+      assert.equal(occurrence.grant, supplied.originalAuthorization.grant);return supplied;
+    }, consumePage() {assert.fail('Metadata does not construct rows');},
+    chargePage(bytes) {assert(bytes.byteLength > 0);charges++;return charged;},
+    consumeObservation(actual) {assert.equal(actual, charged);observations++;}}));
+  try {
+    assert.deepEqual(await reader.read(), {pages: 1, rowCount: 0});
+    assert.equal(f.setup.seen.length - f.initialRequests, 1);
+    assert.deepEqual({charges, observations, children}, {charges: 1, observations: 1, children: 1});
+  } finally {
+    reader.requestStop();assert.equal(reader.observe().cleanupConfirmed, true);
+    assert.equal(readerFactory.retire(), true);
+  }
+});
 
 test('Salesforce Site binds original Account read and write grants to the same private material', async t => {
   const f = await fixture(t);

@@ -105,6 +105,7 @@ export function createInstalledCredentialSourceReader(options) {
       let consumeObservation = managedSequence ? ownMethod(options, 'consumeObservation') : undefined;
       let consumePageWire = ownMethod(options, 'consumePageWire', true);
       let consumeProjectedPage = ownMethod(options, 'consumeProjectedPage', true);
+      let consumeValues = managedSequence ? ownMethod(options, 'consumeValues', true) : undefined;
       let selected = options, selectedSite = sourceSite;
       let stop = new AbortController(); unreturnedStop = stop;
       const originalSignal = options.signal;
@@ -116,6 +117,7 @@ export function createInstalledCredentialSourceReader(options) {
       let unconfirmedCharge;
       let responses = [], responseCount = 0, responseBytes = 0n, rowCount = 0;
       let provider, fetchPage, decodePage, runSequence, providerRetire, providerRetired = false;
+      let nativePrepared = false;
       let onError, setupFailure, setupFailed = false;
       const pendingCallbacks = new Set();
       const check = () => {
@@ -164,7 +166,7 @@ export function createInstalledCredentialSourceReader(options) {
           responses = undefined;
           acquisition = closeBinding = retireBinding = selected = selectedSite = signal = stop = primary = undefined;
           provider = fetchPage = decodePage = runSequence = providerRetire = onError = setupFailure = undefined;
-          verifyRead = authorizationFor = authorizeReadChild = chargePage = consumeObservation = consumePage = consumePageWire = consumeProjectedPage = transportFailure = undefined;
+          verifyRead = authorizationFor = authorizeReadChild = chargePage = consumeObservation = consumePage = consumePageWire = consumeProjectedPage = consumeValues = transportFailure = undefined;
           retired = true; readers.delete(handle);
           return true;
         } finally {cleanupRunning = false;}
@@ -206,8 +208,13 @@ export function createInstalledCredentialSourceReader(options) {
         return callProjection(fn, receiver, args);
       };
       try {
+        const prepared = managedSequence ? Object.getOwnPropertyDescriptor(options, 'preparedRead') : undefined;
+        if (prepared !== undefined && !Object.hasOwn(prepared, 'value')) fail('InvalidInstalledSourceReadPreparation');
+        nativePrepared = prepared !== undefined && prepared.value !== undefined;
         provider = callProjection(prepareProvider, undefined, [Object.freeze({resource: options.resource,
-          columns: Object.freeze([...options.columns]), requestWire: options.requestWire}), applySynchronousProjection]);
+          columns: Object.freeze([...options.columns]), requestWire: options.requestWire,
+          ...(nativePrepared ? {preparedRead: sync(prepared.value),
+            originalAuthorization: options.originalAuthorization} : {})}), applySynchronousProjection]);
         if (managedSequence) {
           runSequence = ownMethod(provider, 'read');
           providerRetire = ownMethod(provider, 'retire');
@@ -316,7 +323,7 @@ export function createInstalledCredentialSourceReader(options) {
         }
         fail('InstalledSourceReaderResponseCountLimit');
       }
-      async function readManagedSequence() {
+      async function readManagedSequence(initialAuthorization) {
         let active = true, pending, failure, failed = false, lastCharge;
         const current = () => {
           if (!active || !readPending) fail('InstalledSourceReadChildClosed');
@@ -382,10 +389,25 @@ export function createInstalledCredentialSourceReader(options) {
                   occurrence.value === null || typeof occurrence.value !== 'object' || types.isProxy(occurrence.value))) {
                 fail('InvalidInstalledSourceReadChildOriginal');
               }
+              const originalField = Object.getOwnPropertyDescriptor(prepared, 'originalAuthorization');
+              const authorizationField = Object.getOwnPropertyDescriptor(prepared, 'authorization');
+              let supplied;
+              if (originalField !== undefined || authorizationField !== undefined) {
+                if (!Object.hasOwn(originalField ?? {}, 'value') ||
+                    !Object.hasOwn(authorizationField ?? {}, 'value')) fail('InvalidInstalledSourceReadChild');
+                // Native protocols keep the SAME Site-issued original. This
+                // envelope is DATA, never a grant or a second issuance. Invalid
+                // asynchronous fields remain with this reader until settled.
+                supplied = Object.freeze({originalAuthorization: sync(originalField.value),
+                  authorization: sync(authorizationField.value)});
+              }
               // This original is an occurrence key, not permission or another
               // request issuer. Preserve it unchanged across native cursors.
               const issued = await Reflect.apply(authorizeReadChild, selected,
-                occurrence === undefined ? [operation,responseCount] : [operation,responseCount,occurrence.value]);
+                supplied !== undefined ? [operation,responseCount,occurrence?.value,supplied]
+                  : occurrence === undefined ? [operation,responseCount] : [operation,responseCount,occurrence.value]);
+              if (supplied !== undefined && (issued?.originalAuthorization !== supplied.originalAuthorization ||
+                  issued?.authorization !== supplied.authorization)) fail('ForeignInstalledSourceReadChild');
               const originalAuthorization = issued?.originalAuthorization;
               if (issued?.authorization?.scope !== originalAuthorization?.scope ||
                   issued?.authorization?.grant !== originalAuthorization?.grant) fail('ForeignInstalledSourceReadChild');
@@ -432,11 +454,30 @@ export function createInstalledCredentialSourceReader(options) {
               lastCharge = undefined;rowCount += count;await verify();
             });
           },
+          ...(consumeValues === undefined ? {} : {consumeValues(columns, rows) {
+            return perform(async () => {
+              if (metadataRead) fail('InstalledSourceMetadataRowsUnavailable');
+              if (lastCharge === undefined || !Array.isArray(columns) || !Array.isArray(rows) ||
+                  types.isProxy(columns) || types.isProxy(rows)) fail('InvalidInstalledSourceReadChildPage');
+              const count = rows.length;
+              await verify();
+              const admitted = await Reflect.apply(consumeValues, selected,
+                [columns,rows,Object.freeze({charge:lastCharge})]);
+              if (admitted !== count) fail('InvalidInstalledSourceDecodedPage');
+              lastCharge = undefined;rowCount += count;await verify();
+            });
+          }}),
         });
         try {
           let sequenceFailure, sequenceFailed = false;
-          try {await Reflect.apply(runSequence,provider,[context]);}
-          catch (cause) {sequenceFailure = cause;sequenceFailed = true;}
+          try {await Reflect.apply(runSequence,provider,nativePrepared ? [context,initialAuthorization] : [context]);}
+          catch (cause) {
+            // A provider may turn its awaited child failure into a status or
+            // wrapper. Preserve the earlier original already observed here,
+            // including thrown undefined. A later failure while joining an
+            // unawaited child still cannot replace this sequence's primary.
+            sequenceFailure = failed ? failure : cause;sequenceFailed = true;
+          }
           if (pending !== undefined) {
             try {await pending;} catch (cause) {if (!sequenceFailed) {sequenceFailure = cause;sequenceFailed = true;}}
             if (!sequenceFailed && !failed) {sequenceFailure = Object.assign(new Error('InstalledSourceReadChildNotJoined'),
@@ -467,7 +508,7 @@ export function createInstalledCredentialSourceReader(options) {
               fail('InstalledSourceReaderPurposeUnavailable');
             }
             metadataRead = selectedPurpose.kind === 'installation-metadata';
-            if (managedSequence && !metadataRead && consumePage === undefined) fail('InstalledSourceReaderMethodUnavailable');
+            if (managedSequence && !metadataRead && consumePage === undefined && consumeValues === undefined) fail('InstalledSourceReaderMethodUnavailable');
             acquisition = Reflect.apply(bind, selectedSite, [original,Object.freeze({assertCurrent:check,observeCurrent:verify})]);
             retainAcquisitionMethods();
             if (selectedPurpose.kind === 'installation-metadata' &&

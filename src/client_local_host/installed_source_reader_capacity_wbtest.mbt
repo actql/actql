@@ -4,12 +4,31 @@ test "JSON Source reader inventory uses shared tariff and separate retained work
   // expected amount, Ledger limit, admission or physical cleanup receipt.
   assert_eq(installed_source_reader_policy(), [65536, 100000, 100])
   let limits = [4, 6, 3, 4, 2, 3, 2, 2, 5, 7, 8, 2, 9, 10, 11, 4]
-  // The reader also retains its original sequence retirement method/state.
+  // The reader retains its original sequence retirement method/state plus
+  // two native callbacks (2H/4R=64B). The complete simultaneous native
+  // handoff/typed-call controls are 7H/14R/11W=312B, never another payload.
+  // The one selected-native flag adds one retained word.
   let capacity = installed_json_source_reader_capacity(limits, 2, 3).unwrap()
-  assert_eq(@execution.execution_capacity_retained_bytes(capacity), 3416L)
-  // Four input units: the same five text overlaps use20U (formerly40U),
-  // and returned normalized keys use4U (formerly8U), each at2bytes/unit.
-  assert_eq(@execution.execution_capacity_execution_bytes(capacity), 30608L)
+  assert_eq(@execution.execution_capacity_retained_bytes(capacity), 3488L)
+  // Independent Host vector: 27 headers, 99 references, 23 words,
+  // 51 UTF16 units and 14 wire bytes. The 20 checked-value slots are
+  // separate from the original Source parser/key workspace. Consume that
+  // owner's quote instead of keeping a second frozen NFC/Source aggregate.
+  let host = @execution.preparation_representation_cost({
+    record_headers: 27L,
+    reference_slots: 99L,
+    scalar_words: 23L,
+    owned_utf16_units: 51L,
+    owned_wire_bytes: 14L,
+  }).unwrap()
+  assert_eq(host, 1524L)
+  let response = @execution.preparation_representation_cost(
+    installed_source_response_workspace(4, 3, 4).unwrap(),
+  ).unwrap()
+  assert_eq(
+    @execution.execution_capacity_execution_bytes(capacity),
+    3488L + host + 20L * @execution.execution_capacity_node_bytes() + response,
+  )
   assert_true(installed_json_source_reader_capacity([], 2, 3) is None)
   assert_true(installed_json_source_reader_capacity(limits, 0, 3) is None)
   assert_true(installed_json_source_reader_capacity(limits, 2, 0) is None)
@@ -166,4 +185,28 @@ test "preserving decoder owner retains the installed original structural invento
       is None,
     )
   }
+}
+
+///|
+test "native typed Source composes only shared Reader controls with its original codec" {
+  let limits = [4, 6, 3, 4, 2, 3, 2, 2, 5, 7, 8, 2, 9, 10, 11, 4]
+  let codec = @execution.execution_capacity(17L, 23L).unwrap()
+  let capacity = installed_native_source_reader_capacity(
+    limits,
+    2,
+    3,
+    Some(codec),
+  ).unwrap()
+  // Same independent retained vector3488. Native shared controls are
+  // 27H/99R/23W=1408B, target8U=16B and one physical response4B.
+  // The codec alone owns its actual parser/typed projection; no row wire or
+  // generic raw JSON decoder is allocated or priced by this alternative.
+  assert_eq(@execution.execution_capacity_retained_bytes(capacity), 3505L)
+  assert_eq(@execution.execution_capacity_execution_bytes(capacity), 4939L)
+  assert_true(
+    installed_native_source_reader_capacity(limits, 2, 3, None) is None,
+  )
+  assert_true(
+    installed_native_source_reader_capacity([], 2, 3, Some(codec)) is None,
+  )
 }

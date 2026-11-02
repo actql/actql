@@ -191,3 +191,133 @@ The retained value, capture reference and preparation state are part of the
 existing capture/publication overlap that the actual constructor and caller
 must fund. This port supplies no reservation, publication authority, persisted
 evidence admission or normal execution acceptance.
+
+## Native signed children and original typed cells
+
+An installed native sequence may return its Site's `originalAuthorization` and
+its associated `authorization` envelope in the same prepared child descriptor.
+The shared reader snapshots only those two references, forwards them unchanged
+to the existing child-occurrence/current callback, and refuses substitution.
+The same Site's private `readChildCredential` then checks the original grant
+against the already retained acquisition. Equal scope, copied grant envelopes
+or an operation label cannot supply that original. Ordinary descriptors retain
+the existing grant-issuance path; the native handoff issues no second grant.
+
+The Row Source still spends the selected immutable operation occurrence before
+its current callback. A failed nominal handoff cannot refund the use or replace
+its parent. Field accessors refuse without evaluation; invalid asynchronous
+fields remain joined to the same reader until settlement. Response retention,
+physical byte charging, current checks, stop and binding/provider retirement
+remain in the original reader and RowRun.
+
+`consumeValues(columns, rows)` passes the original typed cell arrays with the
+same response charge into the existing `clientProgramRowSourceAcceptChargedValues`.
+It creates no JSON wire, new CheckedValue or second schema checker. Core's
+returned count must equal the original row count. A failed or pending consume
+retains those same cells and charge through stop; successful consumption alone
+cannot acknowledge physical closure. Legacy readPages receives no
+new typed-value callback.
+
+The existing JSON reader recipe includes two allocated callbacks and their
+original slots (2 record headers and 4 references). Its simultaneous control
+workspace includes the two native field descriptors, two-field handoff, extra
+argument, optional method envelope and typed-call controls (6 headers,
+10 references and 8 scalar words). These are fixed logical constructor units,
+not a new tariff, engine heap claim or user limit. No variable credential,
+response or native metadata tree is copied by this handoff. A selected native
+protocol must still supply its complete metadata/graph/query workspace before
+callbacks; this shared connection is not that Salesforce recipe or its normal
+caller acceptance.
+
+## Native Salesforce original Reader protocol
+
+The Salesforce Site registers its original credential in the existing private
+operation-Site association through that credential's own custody. This entry
+retains the same principal, runtime, issuer, Journal and binding methods; a
+copied credential or a second Site cannot replace the registered original.
+The installed Site's query grant records its actual admitted read decision and
+Resource as private purpose. Describe grants record their independently
+admitted metadata decision (or the same original admitted approval), Resource
+and invocation. Operation names and request DATA issue no authority.
+
+A native prepared sequence receives the same already prepared acquisition
+facts and the Site's original authorization at Reader preparation. Preparation
+performs no provider read. The first invocation, including its original use ID,
+is forwarded unchanged only after the same Reader opens its binding. Existing
+sequences without prepared facts retain their one-argument read protocol.
+Accessors refuse without invocation; asynchronous prepared inputs remain with
+the Reader until the original computation settles, even after stop.
+
+`prepareSalesforceSourceReadSequence` runs the existing Describe and query
+codecs inside that Reader. The first Describe rechecks the original row
+projection; the independent Describe immediately before query execution
+remains. Both descriptions use the same original dispatch and their separately
+issued Site originals. `readSalesforceSourceChild` compares every copied
+primitive scope field, then hands the Site original and actual request
+occurrence unchanged to `readChild`. The same Site's nominal purpose,
+Resource, invocation and binding checks still precede physical use.
+
+The shared Reader retains and charges each actual response once before codec
+projection. Metadata consumes that same charge as an observation; query pages
+pass the original Common typed columns/cells to `consumeValues`, without a row
+JSON roundtrip or a second charge. Rejected query bodies remain charged and
+cannot reach typed admission. The already observed original child failure,
+including thrown `undefined`, survives a provider's later status conversion.
+A provider failure observed before an outstanding child settles remains its
+primary failure while the same Reader joins that child.
+
+The protocol's pending read prevents its retirement. After settlement the
+original Reader owns physical close, pending callbacks, unconfirmed charges
+and provider retirement; no returned status is a physical acknowledgement.
+The protocol releases its acquisition, Site, declaration, codec and credential
+aliases only through that original retirement. Existing Effect record bindings
+and their separate current/profile checks do not use a replacement wrapper.
+
+Installation must compose the actual native metadata, recovery, query,
+projection and failed-prefix inventory with the shared Reader recipe before
+constructing this protocol or calling its codecs. The fixed shared handoff
+adds only the original field descriptor, two borrowed input references, one
+invocation reference and one retained selection flag. It neither covers the
+variable native codec inventory nor supplies admission by itself. The original
+Describe/query limits, row bounds and approvals remain independent of this
+representation inventory; no cap, fallback read or standalone Run is implied.
+
+## Native Salesforce constructor and normal caller
+
+The installed Salesforce loader uses the same bound initialization as the other
+Sources. Its specialized Site enters the private installation association only
+after the actual original is retained for partial-failure cleanup. The Site's
+own credential custody registers its original issuer; neither the installation
+association nor the projected method names create read authority. The Source
+facade preserves the managed capture, whole-input and Effect-plan selectors.
+
+The native Reader quote uses the original Describe/query bounds, published
+Resource names, installed binding strings and existing SOQL bound. It composes
+the shared response/binding/control inventory with the Salesforce catalog,
+observation recovery, query/contract/value and failed-prefix inventories.
+Metadata retains its normalizing Source/key semantics; query pages retain their
+preserving parser. The shared value Owner supplies the original Contract's
+temporary conversion workspace. The existing ordered Address component table
+supplies the actual maximum component shape to both conversion and quoting.
+No provider-specific byte tariff, JSON row roundtrip or second semantic checker
+is introduced. The complete page is counted before total-row refusal.
+
+The initial Describe, independent pre-query Describe and all query responses
+execute inside the one original managed Reader. Salesforce's former
+pre-admission Describe and direct `readPages` path are replaced for this caller.
+The Row Source receives that same twelve-response inventory, including both
+metadata observations. The native query's ten-page bound and original query
+grant's ten uses remain separate in the original sequence declaration.
+The remaining preparation callback returns only the original acquisition,
+approval, Resource and invocation facts; the shared Row Source invokes it after
+the same Run's reservation, inside its original failure/retirement continuation.
+A refused reservation never enters that callback. A failed callback cannot
+leave a newly started Run outside its cleanup owner.
+
+The native recipe retains completed metadata and query outputs together, with
+the larger of their sequential constructor workspaces. A completed first
+metadata Catalog is relinquished before the independent second Describe;
+response bodies, returned metadata/typed values and failed children remain
+covered. These quantities still require actual same-parent Run admission.
+Static recipe composition and explicit-port caller tests do not establish a
+matching runtime ABI, physical cleanup or normal installed acceptance.

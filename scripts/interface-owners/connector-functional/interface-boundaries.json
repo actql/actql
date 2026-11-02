@@ -2834,7 +2834,7 @@
     },
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
-      "sha256": "81e08bdd5b42c3d8755e117f6c2d3e0aa4a018a86cf42bf5b636e6b61bbbf2f2",
+      "sha256": "68dd917ad394be3d03449a0f94d3dad4e15a9f00877324707cf7121f276364f8",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "Existing published Salesforce source installation; provider protocol stays Salesforce and RowRun remains the capture owner",
@@ -2886,11 +2886,35 @@
             "recover",
             "discovery",
             "construction",
+            "readerPolicy",
+            "resources",
             "generationCid",
             "catalogCid",
             "connectorId"
           ],
           "async": true
+        },
+        {
+          "name": "installedSalesforceAdapter/bindingUnits/bindingUnits",
+          "parameters": [
+            "units",
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedSalesforceAdapter/capacity/capacity",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedSalesforceAdapter/capacity/capacity#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
         },
         {
           "name": "installedSalesforceAdapter/directReadIdentity/directReadIdentity",
@@ -2921,13 +2945,6 @@
           "async": false
         },
         {
-          "name": "installedSalesforceAdapter/installedSalesforceAdapter/describe/describe",
-          "parameters": [
-            "suffix"
-          ],
-          "async": true
-        },
-        {
           "name": "installedSalesforceAdapter/installedSalesforceAdapter/installedSalesforceAdapter",
           "parameters": [
             "request"
@@ -2939,27 +2956,6 @@
           "parameters": [
             "decision"
           ],
-          "async": false
-        },
-        {
-          "name": "installedSalesforceAdapter/installedSalesforceAdapter/installedSalesforceAdapter#3",
-          "parameters": [
-            "page",
-            "charge"
-          ],
-          "async": false
-        },
-        {
-          "name": "installedSalesforceAdapter/installedSalesforceAdapter/installedSalesforceAdapter#4",
-          "parameters": [
-            "_path",
-            "index"
-          ],
-          "async": true
-        },
-        {
-          "name": "installedSalesforceAdapter/installedSalesforceAdapter/installedSalesforceAdapter#5",
-          "parameters": [],
           "async": false
         },
         {
@@ -2986,15 +2982,18 @@
           "async": true
         },
         {
-          "name": "installedSalesforceAdapter/installedSalesforceAdapter#4",
+          "name": "installedSalesforceAdapter/providerReader/init:prepareReadSequence/init:prepareReadSequence",
           "parameters": [
-            "preparedRead",
-            "authorizationFor",
-            "chargePage",
-            "rowRun",
-            "signal"
+            "input"
           ],
-          "async": true
+          "async": false
+        },
+        {
+          "name": "installedSalesforceAdapter/resourceUnits/resourceUnits",
+          "parameters": [
+            "name"
+          ],
+          "async": false
         },
         {
           "name": "installedSalesforceSourceIdentityParts",
@@ -3046,6 +3045,13 @@
         {
           "name": "loadInstalledSalesforceSource/loaded/loaded",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSalesforceSource/loadInstalledSalesforceSource",
+          "parameters": [
+            "value"
+          ],
           "async": false
         },
         {
@@ -3133,15 +3139,10 @@
             "installedSalesforceAdapter/directReadIdentity/directReadIdentity#2",
             "installedSalesforceAdapter/directReadIdentity/directReadIdentity#3",
             "installedSalesforceAdapter/installedSalesforceAdapter",
-            "installedSalesforceAdapter/installedSalesforceAdapter/describe/describe",
             "installedSalesforceAdapter/installedSalesforceAdapter/installedSalesforceAdapter",
             "installedSalesforceAdapter/installedSalesforceAdapter/installedSalesforceAdapter#2",
-            "installedSalesforceAdapter/installedSalesforceAdapter/installedSalesforceAdapter#3",
-            "installedSalesforceAdapter/installedSalesforceAdapter/installedSalesforceAdapter#4",
-            "installedSalesforceAdapter/installedSalesforceAdapter/installedSalesforceAdapter#5",
             "installedSalesforceAdapter/installedSalesforceAdapter#2",
             "installedSalesforceAdapter/installedSalesforceAdapter#3",
-            "installedSalesforceAdapter/installedSalesforceAdapter#4",
             "installedSalesforceSourceIdentityParts",
             "installedSalesforceSourceIdentityParts/readers/readers",
             "loadInstalledSalesforceSource",
@@ -3157,7 +3158,13 @@
             "recoveryArguments/recoveryArguments",
             "recoveryArguments/recoveryArguments#2",
             "recoveryArguments/recoveryArguments#3",
-            "text/text"
+            "text/text",
+            "installedSalesforceAdapter/bindingUnits/bindingUnits",
+            "installedSalesforceAdapter/capacity/capacity",
+            "installedSalesforceAdapter/capacity/capacity#2",
+            "installedSalesforceAdapter/providerReader/init:prepareReadSequence/init:prepareReadSequence",
+            "installedSalesforceAdapter/resourceUnits/resourceUnits",
+            "loadInstalledSalesforceSource/loadInstalledSalesforceSource"
           ],
           "exports": [
             "INSTALLED_SALESFORCE_SOURCE_VERSION",
@@ -3171,24 +3178,40 @@
               {
                 "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
                 "anchor": "Acquisition planning, capture and Source Evidence"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
                 "anchor": "loadInstalledSalesforceSource"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
               }
             ],
             "identity": [
               {
                 "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
                 "anchor": "installedSalesforceSourceIdentityParts"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
                 "anchor": "retainSalesforceSiteCleanup"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
               }
             ],
             "synchronization": [
@@ -3197,8 +3220,12 @@
                 "anchor": "const currentRead = async"
               },
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
-                "anchor": "site.describeForAcquisition"
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "anchor": "let describe = method(site, 'describeForAcquisition');"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
               }
             ],
             "failure": [
@@ -3209,24 +3236,40 @@
               {
                 "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
                 "anchor": "retainSalesforceSiteCleanup"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
                 "anchor": "signal"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
               }
             ],
             "resources": [
               {
                 "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
                 "anchor": "readLimits"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
               }
             ],
             "extension": [
               {
                 "path": "src/connectors/salesforce/host-bundle.json",
                 "anchor": "\"source\""
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
               }
             ],
             "verification": [
@@ -3237,14 +3280,22 @@
               {
                 "path": "adapters/host-node/connector-configuration-bounds.test.mjs",
                 "anchor": "Salesforce Source and Effect identity"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.test.mjs",
+                "anchor": "test('shared native sequence prepares from the same original facts without doing provider IO'"
               }
             ]
           }
         }
       ],
       "imports": [
-        "../../../host-common/compiler-binding.generated.mjs",
         "../../../host-common/runtime-result.mjs",
+        "../../../host-node/installed-credential-source-reader.mjs",
         "../../../host-node/source-profile-json.mjs",
         "../site/salesforce-query-read.mjs",
         "./installed-salesforce-site.mjs",
@@ -3819,13 +3870,15 @@
     },
     {
       "module": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
-      "sha256": "4d936df5c6b3ee4f15eeedc8917e887f2c189cd378f7ec1151b7f7c849eb91ea",
+      "sha256": "0976191c376ad9122736142b80068f050f9f20bfcea51c84d5e919a9381ff450",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing scoped Salesforce locator/page exchange; portable read projection, Catalog refresh and current authority remain separate",
       "exports": [
+        "prepareSalesforceSourceReadSequence",
         "readSalesforceManagedQuery",
-        "readSalesforceQuery"
+        "readSalesforceQuery",
+        "readSalesforceSourceChild"
       ],
       "operations": [
         {
@@ -3857,6 +3910,91 @@
           "parameters": [
             "code"
           ],
+          "async": false
+        },
+        {
+          "name": "method/method",
+          "parameters": [
+            "value",
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "own/own",
+          "parameters": [
+            "value",
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareSalesforceSourceReadSequence",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareSalesforceSourceReadSequence/sequence/init:read/init:read",
+          "parameters": [
+            "context",
+            "initialAuthorization"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareSalesforceSourceReadSequence/sequence/init:read/init:read/init:consumePage/init:consumePage",
+          "parameters": [
+            "page"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareSalesforceSourceReadSequence/sequence/init:read/init:read/init:read",
+          "parameters": [
+            "_path",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareSalesforceSourceReadSequence/sequence/init:read/init:read/init:read#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareSalesforceSourceReadSequence/sequence/init:read/init:read/init:read#3",
+          "parameters": [
+            "input"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareSalesforceSourceReadSequence/sequence/init:read/init:read/metadata/metadata",
+          "parameters": [
+            "suffix"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareSalesforceSourceReadSequence/sequence/init:read/init:read/metadata/metadata/observed/observed",
+          "parameters": [
+            "original",
+            "input"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareSalesforceSourceReadSequence/sequence/init:read/init:read/plan/plan",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareSalesforceSourceReadSequence/sequence/init:retire/init:retire",
+          "parameters": [],
           "async": false
         },
         {
@@ -3957,6 +4095,34 @@
           "async": false
         },
         {
+          "name": "readSalesforceSourceChild",
+          "parameters": [
+            "context",
+            "originalAuthorization",
+            "input"
+          ],
+          "async": false
+        },
+        {
+          "name": "readSalesforceSourceChild/init:prepare/init:prepare",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readSalesforceSourceChild/init:prepare/init:prepare/init:project/init:project",
+          "parameters": [
+            "response"
+          ],
+          "async": false
+        },
+        {
+          "name": "readSalesforceSourceChild/readSalesforceSourceChild",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
           "name": "recheckCurrentCatalog",
           "parameters": [
             "options"
@@ -4022,53 +4188,99 @@
             "recheckCurrentCatalog",
             "validateAuthorization",
             "validateLimits",
-            "validateRead"
+            "validateRead",
+            "method/method",
+            "own/own",
+            "prepareSalesforceSourceReadSequence",
+            "prepareSalesforceSourceReadSequence/sequence/init:read/init:read",
+            "prepareSalesforceSourceReadSequence/sequence/init:read/init:read/init:consumePage/init:consumePage",
+            "prepareSalesforceSourceReadSequence/sequence/init:read/init:read/init:read",
+            "prepareSalesforceSourceReadSequence/sequence/init:read/init:read/init:read#2",
+            "prepareSalesforceSourceReadSequence/sequence/init:read/init:read/init:read#3",
+            "prepareSalesforceSourceReadSequence/sequence/init:read/init:read/metadata/metadata",
+            "prepareSalesforceSourceReadSequence/sequence/init:read/init:read/metadata/metadata/observed/observed",
+            "prepareSalesforceSourceReadSequence/sequence/init:read/init:read/plan/plan",
+            "prepareSalesforceSourceReadSequence/sequence/init:retire/init:retire",
+            "readSalesforceSourceChild",
+            "readSalesforceSourceChild/init:prepare/init:prepare",
+            "readSalesforceSourceChild/init:prepare/init:prepare/init:project/init:project",
+            "readSalesforceSourceChild/readSalesforceSourceChild"
           ],
           "exports": [
             "readSalesforceManagedQuery",
-            "readSalesforceQuery"
+            "readSalesforceQuery",
+            "prepareSalesforceSourceReadSequence",
+            "readSalesforceSourceChild"
           ],
           "attributes": {
             "responsibility": [
               {
                 "path": "src/connectors/salesforce/catalog/query_read.mbt",
                 "anchor": "begin_query_read"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
                 "anchor": "readSalesforceQuery"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
               }
             ],
             "identity": [
               {
                 "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
                 "anchor": "invocationBindingsMatch"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
                 "anchor": "chargePage"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
                 "anchor": "refreshCatalog"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
               }
             ],
             "failure": [
               {
                 "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
                 "anchor": "InvalidSalesforceQueryAuthorization"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
                 "anchor": "signal"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
               }
             ],
             "resources": [
@@ -4079,12 +4291,20 @@
               {
                 "path": "docs/connectors/salesforce.md",
                 "anchor": "Received query response bodies count"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
               }
             ],
             "extension": [
               {
                 "path": "src/connectors/salesforce/catalog/query_page.mbt",
                 "anchor": "project_query_page"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
               }
             ],
             "verification": [
@@ -4103,6 +4323,14 @@
               {
                 "path": "adapters/connectors/salesforce/test/salesforce-rejected-query-accounting.test.mjs",
                 "anchor": "query awaits pending accounting"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.test.mjs",
+                "anchor": "test('shared native sequence prepares from the same original facts without doing provider IO'"
               }
             ]
           }
@@ -4113,7 +4341,8 @@
         "../../../host-common/owned-invocation-context.mjs",
         "../../../host-common/runtime-result.mjs",
         "../../../site-node/https-credential-resource.mjs",
-        "./salesforce-catalog-sync.mjs"
+        "./salesforce-catalog-sync.mjs",
+        "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
@@ -11895,7 +12124,7 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
-      "sha256": "280ec6cf25ed851d98abe28a60b414a0858126e5ba5ea503dac1061400a20860",
+      "sha256": "08b8e00455c238dab55680884a0d3804aff8cc29dc8de1788224882ef12a20b7",
       "operations": [
         {
           "name": "byCid/byCid",
@@ -12065,7 +12294,8 @@
           "parameters": [
             "childOperation",
             "index",
-            "occurrence"
+            "occurrence",
+            "supplied"
           ],
           "async": true
         },
@@ -12087,13 +12317,22 @@
         {
           "name": "createInstalledRowSource/acquire/readerOptions/readerOptions#7",
           "parameters": [
-            "wire",
+            "columns",
+            "rows",
             "charge"
           ],
           "async": false
         },
         {
           "name": "createInstalledRowSource/acquire/readerOptions/readerOptions#8",
+          "parameters": [
+            "wire",
+            "charge"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/acquire/readerOptions/readerOptions#9",
           "parameters": [
             "rows",
             "charge"
@@ -12892,12 +13131,29 @@
           "async": false
         },
         {
-          "name": "openRowSourceCredentialCustody/ensureOpen/ensureOpen",
+          "name": "openRowSourceCredentialCustody/custody/custody",
           "parameters": [],
           "async": false
         },
         {
-          "name": "openRowSourceCredentialCustody/init:closeOnce/init:closeOnce",
+          "name": "openRowSourceCredentialCustody/custody/custody#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/custody/init:closeOnce/init:closeOnce",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/custody/init:retainOperationSite/init:retainOperationSite",
+          "parameters": [
+            "site"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/ensureOpen/ensureOpen",
           "parameters": [],
           "async": false
         },
@@ -12930,16 +13186,6 @@
           "parameters": [
             "name"
           ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/openRowSourceCredentialCustody#3",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/openRowSourceCredentialCustody#4",
-          "parameters": [],
           "async": false
         },
         {
@@ -13703,11 +13949,8 @@
             "openRowSourceCredentialCustody/close/close",
             "openRowSourceCredentialCustody/closeRunBindings",
             "openRowSourceCredentialCustody/ensureOpen/ensureOpen",
-            "openRowSourceCredentialCustody/init:closeOnce/init:closeOnce",
             "openRowSourceCredentialCustody/openRowSourceCredentialCustody",
             "openRowSourceCredentialCustody/openRowSourceCredentialCustody#2",
-            "openRowSourceCredentialCustody/openRowSourceCredentialCustody#3",
-            "openRowSourceCredentialCustody/openRowSourceCredentialCustody#4",
             "openRowSourceCredentialCustody/openRunAcquisition",
             "openRowSourceCredentialCustody/openRunAcquisition/openRunAcquisition",
             "openRowSourceCredentialCustody/openRunAcquisition/openRunAcquisition#2",
@@ -13740,7 +13983,12 @@
             "rowSourceCheckEnvironment",
             "rowSourceMapping",
             "text/text",
-            "valueCid/valueCid"
+            "valueCid/valueCid",
+            "createInstalledRowSource/acquire/readerOptions/readerOptions#9",
+            "openRowSourceCredentialCustody/custody/custody",
+            "openRowSourceCredentialCustody/custody/custody#2",
+            "openRowSourceCredentialCustody/custody/init:closeOnce/init:closeOnce",
+            "openRowSourceCredentialCustody/custody/init:retainOperationSite/init:retainOperationSite"
           ],
           "exports": [
             "createInstalledRowSource",
@@ -13779,6 +14027,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "When the same Site has already authorized and issued a grant,"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
               }
             ],
             "inputsOutputs": [
@@ -13817,6 +14069,10 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "function bindRunAcquisition(authorization, callbacks)"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
               }
             ],
             "identity": [
@@ -13871,6 +14127,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "Standard REST installations hand their complete frozen physical-target DATA"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
               }
             ],
             "ownership": [
@@ -13925,6 +14185,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Native Source original unknown recovery"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
               }
             ],
             "synchronization": [
@@ -13991,6 +14255,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "Bound connector construction"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
               }
             ],
             "failure": [
@@ -14037,6 +14305,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Native Source original unknown recovery"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
               }
             ],
             "cancellation": [
@@ -14075,6 +14347,10 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "const observeCurrent = async () =>"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
               }
             ],
             "resources": [
@@ -14137,6 +14413,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Native Source original unknown recovery"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
               }
             ],
             "extension": [
@@ -14175,6 +14455,10 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "const credentialRead = owner.originalRead === undefined ||"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
               }
             ],
             "verification": [
@@ -14301,6 +14585,14 @@
               {
                 "path": "adapters/host-node/installed-row-source-binding-originals.test.mjs",
                 "anchor": "test('same immutable binding removes generation/hash work without removing Account or Core target observations'"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.test.mjs",
+                "anchor": "test('shared native sequence prepares from the same original facts without doing provider IO'"
               }
             ]
           }

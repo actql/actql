@@ -9037,7 +9037,7 @@
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "ce6424929c7a1971d177726c0fe504da4166c748dc13110fdf477cacd6fc9197",
+      "sha256": "1dbfc880b8197bba85fa88f4bd06ff1003c5e06514215621ba6669f2659bf256",
       "role": "connector-semantics",
       "owner": "Exact installed Salesforce org/Site binding with existing account gate, credential journal and release custody",
       "exports": [
@@ -9319,7 +9319,8 @@
             "dispatchRequestCid",
             "occurrence",
             "approval",
-            "signal"
+            "signal",
+            "readChild"
           ],
           "async": true
         },
@@ -9335,13 +9336,21 @@
             "limits",
             "approval",
             "signal",
-            "retainPublicationOriginals"
+            "retainPublicationOriginals",
+            "readChild"
           ],
           "async": true
         },
         {
           "name": "loadInstalledSalesforceSite/describeNamed/describeNamed",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSalesforceSite/describeNamed/result/init:callResource/init:callResource",
+          "parameters": [
+            "input"
+          ],
           "async": false
         },
         {
@@ -9519,7 +9528,8 @@
           "parameters": [
             "fields",
             "resource",
-            "assertDecisionCurrent"
+            "assertDecisionCurrent",
+            "decision"
           ],
           "async": false
         },
@@ -9704,6 +9714,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "### Salesforce original record-operation borrows"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
               }
             ],
             "inputsOutputs": [
@@ -9722,6 +9736,10 @@
               {
                 "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
                 "anchor": "function bindRecordAcquisition(originalAuthorization, originalCurrent)"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
               }
             ],
             "identity": [
@@ -9744,6 +9762,10 @@
               {
                 "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
                 "anchor": "recordAuthorizations.get(originalAuthorization)"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
               }
             ],
             "ownership": [
@@ -9766,6 +9788,10 @@
               {
                 "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
                 "anchor": "custody.bindRunAcquisition(originalAuthorization, firstCurrent)"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
               }
             ],
             "synchronization": [
@@ -9788,6 +9814,10 @@
               {
                 "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
                 "anchor": "const current = await readSourceProfileJson(path, {maxBytes: 8 * 1024 * 1024})"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
               }
             ],
             "failure": [
@@ -9810,6 +9840,10 @@
               {
                 "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
                 "anchor": "state.failure ??= cause"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
               }
             ],
             "cancellation": [
@@ -9824,6 +9858,10 @@
               {
                 "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
                 "anchor": "state.retiring = true"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
               }
             ],
             "resources": [
@@ -9842,6 +9880,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "The original phase inventory includes Site authorization membership records,"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
               }
             ],
             "extension": [
@@ -9864,6 +9906,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "conditional target evidence, sealed Preview or authenticated cold recovery."
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
               }
             ],
             "verification": [
@@ -9914,6 +9960,14 @@
               {
                 "path": "adapters/connectors/salesforce/test/site-credential-acquisition.test.mjs",
                 "anchor": "Salesforce Site holds the original Journal while a closing borrow is awaiting currentness"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.test.mjs",
+                "anchor": "test('shared native sequence prepares from the same original facts without doing provider IO'"
               }
             ]
           }
@@ -9927,7 +9981,8 @@
             "loadInstalledSalesforceSite/originalDeclaration/originalDeclaration",
             "loadInstalledSalesforceSite/site/site",
             "observeInstalledSalesforcePublicationCurrent",
-            "withInstalledSalesforceDeclarationOriginals"
+            "withInstalledSalesforceDeclarationOriginals",
+            "loadInstalledSalesforceSite/describeNamed/result/init:callResource/init:callResource"
           ],
           "exports": [
             "observeInstalledSalesforcePublicationCurrent",
@@ -10011,6 +10066,7 @@
         "../../../host-node/installed-row-source.mjs",
         "../../../host-node/local-account-config.mjs",
         "../../../host-node/source-profile-json.mjs",
+        "../../../site-node/https-credential-resource.mjs",
         "../site/salesforce-catalog-sync.mjs",
         "../site/salesforce-cli-secret.mjs",
         "../site/salesforce-effect-capability.mjs",

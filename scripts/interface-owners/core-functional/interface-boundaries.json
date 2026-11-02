@@ -34041,7 +34041,7 @@
     },
     {
       "module": "src/client_local_host/installed_source_reader_capacity.mbt",
-      "sha256": "16a8c107720fccbfc5bf55255cfa27b24339c8af63649f5970bf2cfd17781384",
+      "sha256": "2a2862ee1056aedf7f950bb3c83cdf3089a925b398ff697d17ae1b5daebae19f",
       "operations": [
         {
           "name": "installed_gmail_thread_reader_capacity",
@@ -34060,6 +34060,10 @@
           "declaration": "installed_json_source_reader_capacity_with_request ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , request : @ execution . ExecutionCapacity ? , ) - > @ execution . ExecutionCapacity ?"
         },
         {
+          "name": "installed_native_source_reader_capacity",
+          "declaration": "installed_native_source_reader_capacity ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , native : @ execution . ExecutionCapacity ? , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
           "name": "installed_preserving_json_source_reader_capacity_with_request",
           "declaration": "installed_preserving_json_source_reader_capacity_with_request ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , request : @ execution . ExecutionCapacity ? , ) - > @ execution . ExecutionCapacity ?"
         },
@@ -34068,8 +34072,16 @@
           "declaration": "installed_slack_source_reader_capacity ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , protocol_pages : Int , ) - > @ execution . ExecutionCapacity ?"
         },
         {
+          "name": "installed_source_reader_control_inventory",
+          "declaration": "installed_source_reader_control_inventory ( ) - > @ execution . PreparationRepresentationUnits"
+        },
+        {
           "name": "installed_source_reader_policy",
           "declaration": "installed_source_reader_policy ( ) - > Array [ Int ]"
+        },
+        {
+          "name": "installed_source_reader_retained_inventory",
+          "declaration": "installed_source_reader_retained_inventory ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , ) - > @ execution . PreparationRepresentationUnits ?"
         },
         {
           "name": "installed_source_response_preserving_workspace",
@@ -34288,6 +34300,70 @@
               {
                 "path": "src/client_local_host/installed_preserving_source_reader_wbtest.mbt",
                 "anchor": "test \"Sheets existing response bounds use sequential active key maps without NFC or policy increase\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installed_native_source_reader_capacity",
+            "installed_source_reader_control_inventory",
+            "installed_source_reader_retained_inventory"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce constructor and normal caller"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/installed_source_reader_capacity.mbt",
+                "anchor": "pub fn installed_gmail_thread_reader_capacity("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce constructor and normal caller"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce constructor and normal caller"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Synchronous original construction quantities; no external callback or current observation in quoting."
+            },
+            "failure": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce constructor and normal caller"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "This quantity supplies no cancellation, retirement or physical acknowledgement."
+            },
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_source_reader_capacity.mbt",
+                "anchor": "pub fn installed_native_source_reader_capacity("
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce constructor and normal caller"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors_builtin_node/client_installed_source_reader_bridge_wbtest.mbt",
+                "anchor": "test \"Salesforce native quote keeps original two metadata occurrences and same opaque composition\""
               }
             ]
           }
@@ -49061,7 +49137,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_installed_source_reader_bridge.mbt",
-      "sha256": "fb3c92b460b279e318bda9f380fff96f454dc2104b2eafd54f0dede843434511",
+      "sha256": "d3a49218c18ac72e44f36c5785aa9a56d3e8f91c72ef3d813e39f94bf79bcd29",
       "operations": [
         {
           "name": "client_program_installed_gmail_thread_reader_capacity",
@@ -49082,6 +49158,10 @@
         {
           "name": "client_program_installed_preserving_json_source_reader_capacity_with_request",
           "declaration": "client_program_installed_preserving_json_source_reader_capacity_with_request ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , request : @ execution . ExecutionCapacity ? , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_installed_salesforce_source_reader_capacity",
+          "declaration": "client_program_installed_salesforce_source_reader_capacity ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , describe : Array [ Int ] , max_observation_bytes : Int , binding_units : Int , resource_units : Int , query_pages : Int , api_units : Int , soql_units : Int , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "client_program_installed_slack_source_reader_capacity",
@@ -49298,6 +49378,68 @@
               {
                 "path": "src/client_local_host/installed_preserving_source_reader_wbtest.mbt",
                 "anchor": "test \"Sheets existing response bounds use sequential active key maps without NFC or policy increase\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_installed_salesforce_source_reader_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce constructor and normal caller"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors_builtin_node/client_installed_source_reader_bridge.mbt",
+                "anchor": "pub fn client_program_installed_gmail_thread_reader_capacity("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce constructor and normal caller"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce constructor and normal caller"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Synchronous original construction quantities; no external callback or current observation in quoting."
+            },
+            "failure": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce constructor and normal caller"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "This quantity supplies no cancellation, retirement or physical acknowledgement."
+            },
+            "resources": [
+              {
+                "path": "src/connectors_builtin_node/client_installed_source_reader_bridge.mbt",
+                "anchor": "pub fn client_program_installed_salesforce_source_reader_capacity("
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce constructor and normal caller"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors_builtin_node/client_installed_source_reader_bridge_wbtest.mbt",
+                "anchor": "test \"Salesforce native quote keeps original two metadata occurrences and same opaque composition\""
               }
             ]
           }
@@ -68176,6 +68318,194 @@
           }
         }
       ]
+    },
+    {
+      "module": "src/connectors/salesforce/catalog/read_construction.mbt",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing native Salesforce constructor and shared Core representation Owners",
+      "exports": [],
+      "operations": [
+        {
+          "name": "native_read_construction_capacity",
+          "declaration": "native_read_construction_capacity ( describe : DescribeLimits , query : QueryPageLimits , max_observation_bytes : Int , binding_units : Int , resource_units : Int , columns : Int , pages : Int , api_units : Int , soql_units : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "sf_read_collection_units",
+          "declaration": "sf_read_collection_units ( original : @ shape . CollectionConstructionExtent , ) - > @ execution . PreparationRepresentationUnits"
+        },
+        {
+          "name": "sf_read_describe_parse_inventory",
+          "declaration": "sf_read_describe_parse_inventory ( limits : DescribeLimits , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "sf_read_observation_construction_inventory",
+          "declaration": "sf_read_observation_construction_inventory ( limits : DescribeLimits , max_observation_bytes : Int , binding_units : Int , resource_units : Int , ) - > @ execution . PreparationExecutionInventory ?"
+        },
+        {
+          "name": "sf_read_query_construction_inventory",
+          "declaration": "sf_read_query_construction_inventory ( limits : QueryPageLimits , columns : Int , pages : Int , api_units : Int , soql_units : Int , ) - > @ execution . PreparationExecutionInventory ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "native_read_construction_capacity",
+            "sf_read_collection_units",
+            "sf_read_describe_parse_inventory",
+            "sf_read_observation_construction_inventory",
+            "sf_read_query_construction_inventory"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce constructor and normal caller"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/salesforce/catalog/read_construction.mbt",
+                "anchor": "pub fn native_read_construction_capacity("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce constructor and normal caller"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce constructor and normal caller"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Synchronous original construction quantities; no external callback or current observation in quoting."
+            },
+            "failure": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce constructor and normal caller"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "This quantity supplies no cancellation, retirement or physical acknowledgement."
+            },
+            "resources": [
+              {
+                "path": "src/connectors/salesforce/catalog/read_construction.mbt",
+                "anchor": "pub fn native_read_construction_capacity("
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce constructor and normal caller"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors_builtin_node/client_installed_source_reader_bridge_wbtest.mbt",
+                "anchor": "test \"Salesforce native quote keeps original two metadata occurrences and same opaque composition\""
+              }
+            ]
+          }
+        }
+      ],
+      "sha256": "9b3650d7e2dd74fd88106bc50184f66f2f132e4075b249568257730f8e1b9795"
+    },
+    {
+      "module": "src/value_admission/parameter_phase_construction.mbt",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing checked Contract value-admission construction Owner",
+      "exports": [],
+      "operations": [
+        {
+          "name": "contract_value_phase_construction_inventory",
+          "declaration": "contract_value_phase_construction_inventory ( original : @ contract . Contract , geometry : @ decode . SubtreeConstructionGeometry , root_path_depth : Int64 , max_depth : Int , ) - > ParameterValuePhaseConstructionInventory ?"
+        },
+        {
+          "name": "parameter_syntax_value_phase_construction_inventory",
+          "declaration": "parameter_syntax_value_phase_construction_inventory ( original : @ contract . ParameterSyntax , geometry : @ decode . SubtreeConstructionGeometry , root_path_depth : Int64 , max_depth : Int , ) - > ParameterValuePhaseConstructionInventory ?"
+        },
+        {
+          "name": "value_phase_construction_inventory",
+          "declaration": "value_phase_construction_inventory ( body : ParameterValueBodyConstructionInventory , geometry : @ decode . SubtreeConstructionGeometry , root_path_depth : Int64 , max_depth : Int , ) - > ParameterValuePhaseConstructionInventory ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "contract_value_phase_construction_inventory",
+            "parameter_syntax_value_phase_construction_inventory",
+            "value_phase_construction_inventory"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce constructor and normal caller"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/value_admission/parameter_phase_construction.mbt",
+                "anchor": "pub fn contract_value_phase_construction_inventory("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce constructor and normal caller"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce constructor and normal caller"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Synchronous original construction quantities; no external callback or current observation in quoting."
+            },
+            "failure": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce constructor and normal caller"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "This quantity supplies no cancellation, retirement or physical acknowledgement."
+            },
+            "resources": [
+              {
+                "path": "src/value_admission/parameter_phase_construction.mbt",
+                "anchor": "fn value_phase_construction_inventory("
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce constructor and normal caller"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/value_admission/parameter_phase_construction_wbtest.mbt",
+                "anchor": "contract_value_phase_construction_inventory("
+              }
+            ]
+          }
+        }
+      ],
+      "sha256": "1c158bf792768a2952893fb9212e3b2a2f86e3de3caf2b78952169e914a2182a"
     }
   ]
 }

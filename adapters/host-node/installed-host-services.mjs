@@ -1276,6 +1276,10 @@ export function bindInstalledSourceConstruction(services, context, checkedProfil
         commonMoon: original.moon, runtimeBundleCid: original.selected.get(scope.installation),
         configurationReader: bound.configurationReader, ownAuthorization: true}]);
       owned.site = site;
+      // Bind this SAME specialized original to its bound constructor just as
+      // openRowSite does. Credential custody still validates the Site issuer;
+      // this private association supplies no grant or physical acknowledgement.
+      original.siteInstallations.set(site, context);
       current();
       return Object.freeze({site, authorization});
     },

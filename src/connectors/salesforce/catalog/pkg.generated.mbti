@@ -99,6 +99,8 @@ pub fn local_target_read_request_cid(LocalTargetReadRequest) -> String
 
 pub fn local_target_read_request_path(LocalTargetReadRequest) -> String
 
+pub fn native_read_construction_capacity(DescribeLimits, QueryPageLimits, Int, Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
+
 pub fn prepare_catalog_observation(CatalogSync, CatalogObservationBinding, String, Array[String?], Array[String?], Int) -> Result[CatalogObservation, CatalogObservationIssue]
 
 pub fn prepare_continue_write_collection(Array[WriteCollectionItem], String, WriteCollectionRequestLimits) -> Result[WriteCollectionRequest, WriteCollectionRequestIssue]
