@@ -3532,3 +3532,28 @@ bounded materials restoration. That codec's compiled Owner, expected complete
 Definition CID, current authorization, context and policy checks still apply.
 Restoration neither prepares the submitted Source again nor issues another
 request, Run, dispatch, lifetime or physical acknowledgment.
+
+### Original platform Store and Memory
+
+The ordinary platform runtime retains the same `LocalCore`, Wasmtime Store,
+Instance, export table and Memory after instantiation and ABI validation. Its
+private observation records those original objects, the original process and
+Store context before fallible memory-type inspection. It does not select a
+native holding or create another lifecycle Owner. The current Memory byte
+length is observation DATA; neither its maximum nor a logical Resource limit
+issues a Request allocation, parent admission or a physical-stop receipt.
+
+Ordinary Core entry and return, bulk-copy entry and unsupported execution-child
+callbacks check that same original. The callback also checks its real Caller
+Store and exported Memory, with the original nonce as correlation only. Growth
+of the same Memory is permitted within the existing selected bound; a cached
+address is not used as a fixed arena. Replacing or losing the original during
+an entered call refuses its return and preserves the existing closing fence.
+Unsupported child imports continue to refuse rather than granting from this
+observation. Complete Request constructor, input, output and failed-child
+backing still belongs to its original Resource admission.
+
+Core cleanup retains the same instance and observation if Store close fails.
+Metadata is cleared only after that same Store closes successfully. A logical
+pool close or a metadata observation is not the physical acknowledgement. The
+existing native-holding observer and imported-child profile remain separate.

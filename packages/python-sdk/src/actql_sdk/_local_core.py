@@ -6,6 +6,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 import hashlib
 import json
+import os as _os
 from ctypes import c_void_p, cast
 from importlib import import_module
 import secrets
@@ -444,6 +445,9 @@ class LocalCore:
         self._store: Any = None
         self._module: Any = None
         self._linker: Any = None
+        self._instance: Any = None
+        self._platform_vm_original: tuple[Any, ...] | None = None
+        self._platform_vm_type: Any = None
         self._physical_vm_type: Any = None
         self._physical_vm_span: tuple[int, int] | None = None
         self._physical_vm_observation: _OriginalVMObservation | None = None
@@ -559,9 +563,12 @@ class LocalCore:
                     self._linker.define_func('actql_host', name,
                         wasmtime.FuncType(params, [result_type]), child_callback, access_caller=True)
                 instance = self._linker.instantiate(self._store, self._module)
+                self._instance = instance
                 self._exports = instance.exports(self._store)
                 if self._exports['actql_host_abi_version'](self._store) != LOCAL_CORE_ABI:
                     raise ValueError('Unsupported Local Core ABI version')
+                if self._ordinary_host and self._physical_holding is None:
+                    self._observe_platform_vm(wasmtime)
                 if self._physical_holding is not None:
                     self._observe_original_vm_span(wasmtime)
                     self._validate_original_native_projection(_host_capacity_bytes)
@@ -590,6 +597,70 @@ class LocalCore:
             except Exception:
                 raise LocalCoreInitializationError(self) from error
             raise
+
+    def _observe_platform_vm(self, runtime: Any) -> None:
+        """Bind the actual platform Store/Instance/Memory, never quota DATA.
+
+        The runtime owns allocation and memory growth. This original records
+        membership/currentness only: it supplies no Request budget, native
+        holding, child admission, fixed address or physical-stop receipt.
+        """
+        from ._local_native_vm import _context_address
+        if (self._platform_vm_original is not None or self._physical_holding is not None
+                or self._closed or self._retired or self._closing
+                or self._store is None or self._instance is None):
+            raise ValueError('Original platform VM is unavailable')
+        memory = self._exports.get('memory')
+        if not isinstance(memory, runtime.Memory):
+            raise ValueError('Original platform Memory is unavailable')
+        # Publish the same originals before fallible runtime inspection. The
+        # Core retains partial capture and type handles through cleanup failure.
+        self._platform_vm_original = (self, self._identity, self._nonce, self._store,
+            self._instance, self._exports, memory, _os.getpid(), _context_address(self._store),
+            runtime.Memory, runtime.Caller)
+        self._platform_vm_type = memory.type(self._store)
+        kind = self._platform_vm_type
+        if (kind.is_64 or kind.is_shared or type(kind.limits.max) is not int
+                or kind.limits.max != _MEMORY_LIMIT // 65536
+                or type(kind.limits.min) is not int or not 0 <= kind.limits.min <= kind.limits.max):
+            raise ValueError('Original platform VM differs from the selected memory contract')
+        self._platform_vm_type.close()
+        self._platform_vm_type = None
+        self._require_platform_vm_current()
+
+    def _require_platform_vm_current(self, *, caller: Any = None, nonce: int | None = None) -> int:
+        """Check the original lifetime; returned current byte length is DATA.
+
+        Growth of the SAME runtime Memory is permitted. Its maximum, current
+        size and address never issue an allocation or replace a Resource loan.
+        Closing/retired Core metadata may remain observable for actual cleanup;
+        normal entry and child admission retain their independent fences.
+        """
+        from ._local_native_vm import _context_address
+        original = self._platform_vm_original
+        if (original is None or original[0] is not self or original[1] is not self._identity
+                or original[2] != self._nonce or original[3] is not self._store
+                or original[4] is not self._instance or original[5] is not self._exports
+                or original[6] is not self._exports.get('memory') or original[7] != _os.getpid()
+                or self._closed or self._store is None or self._physical_holding is not None
+                or _context_address(self._store) != original[8]):
+            raise ValueError('Foreign or retired original platform VM')
+        memory = original[6]
+        size = memory.data_len(self._store)
+        if type(size) is not int or not 0 <= size <= _MEMORY_LIMIT:
+            raise ValueError('Original platform Memory exceeds its selected bound')
+        if nonce is not None and (type(nonce) is not int or nonce != self._nonce):
+            raise ValueError('Foreign original platform nonce')
+        if caller is not None:
+            if (not isinstance(caller, original[10]) or nonce is None
+                    or _context_address(caller) != original[8]):
+                raise ValueError('Foreign original platform Caller')
+            actual = caller.get('memory')
+            if (not isinstance(actual, original[9]) or actual.data_len(caller) != size
+                    or cast(actual.data_ptr(caller), c_void_p).value !=
+                       cast(memory.data_ptr(self._store), c_void_p).value):
+                raise ValueError('Foreign original platform Caller Memory')
+        return size
 
     def _observe_original_vm_span(self, wasmtime: Any) -> None:
         """Observe only this instance/Store's original reserved VM backing span.
@@ -627,6 +698,8 @@ class LocalCore:
         """
         observation = self._physical_vm_observation
         if observation is None:
+            if self._platform_vm_original is not None:
+                self._require_platform_vm_current(caller=caller, nonce=nonce)
             return -42
         observation._require_caller(caller, nonce)
         return -42
@@ -666,14 +739,21 @@ class LocalCore:
             raise RuntimeError('Local Core callbacks cannot reenter the instance')
         if getattr(self, '_ordinary_host', False) and self._host_fuel_phase is None:
             raise RuntimeError('Local Core requires its admitted Host operation')
+        platform = getattr(self, '_platform_vm_original', None)
         self._invoking = True
         try:
             with self._native_scope():
                 observation = getattr(self, '_physical_vm_observation', None)
                 if observation is not None:
                     observation._require_core_current()
+                if platform is not None:
+                    self._require_platform_vm_current()
                 result = self._exports[f'actql_{family}_{name}'](
                     self._store, self._nonce, *arguments)
+                if platform is not None:
+                    if self._platform_vm_original is not platform:
+                        raise ValueError('Original platform VM changed during its invocation')
+                    self._require_platform_vm_current()
         except BaseException:
             # The Core may already own the original invocation/ticket. Block
             # new work while retaining this instance for explicit retirement.
@@ -800,6 +880,8 @@ class LocalCore:
         observation = getattr(self, '_physical_vm_observation', None)
         if observation is not None:
             observation._require_core_current()
+        if getattr(self, '_platform_vm_original', None) is not None:
+            self._require_platform_vm_current()
 
     def _bulk_memory(self, caller: Any, offset: int, length: int) -> Any:
         memory = self._exports.get('memory')
@@ -4004,6 +4086,8 @@ class LocalCore:
             return True
 
     def _dispose(self) -> None:
+        if getattr(self, '_platform_vm_original', None) is not None:
+            self._require_platform_vm_current()
         # Pinned Wasmtime Store owns an Engine clone and the live instance.
         # Keep the Store, and therefore the original Wasm Root, until every
         # other native handle has retired. A failed child/Engine cleanup must
@@ -4013,10 +4097,10 @@ class LocalCore:
             image.close()
             self._physical_image = None
         if any(getattr(self, name, None) is not None for name in
-               ('_physical_vm_type', '_linker', '_module', '_engine', '_engine_configuration',
+               ('_physical_vm_type', '_platform_vm_type', '_linker', '_module', '_engine', '_engine_configuration',
                 '_pool_configuration', '_store')):
             with self._native_scope():
-                for name in ('_physical_vm_type', '_linker', '_module', '_engine', '_engine_configuration'):
+                for name in ('_physical_vm_type', '_platform_vm_type', '_linker', '_module', '_engine', '_engine_configuration'):
                     value = getattr(self, name, None)
                     if value is not None:
                         value.close()
@@ -4030,6 +4114,8 @@ class LocalCore:
                     # This VM reservation no longer exists after Store success,
                     # even when the original outer holding still needs unmap.
                     self._physical_vm_span = None
+                    self._instance = None
+                    self._platform_vm_original = None
         holding: _NativeHoldingLease | None = getattr(self, '_physical_holding', None)
         if holding is not None:
             # Store success retires the executable Wasm Root. A final native

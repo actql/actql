@@ -89,6 +89,7 @@ def run_acceptance(destination: Path) -> None:
     python = builder / 'bin/python'
     run('builder-dependencies', [python, '-m', 'pip', '--isolated', 'install', '--only-binary=:all:',
                                 '--index-url', 'https://pypi.org/simple', *BUILD_REQUIREMENTS])
+    run('platform-vm-original', [python, ROOT / 'scripts/fixtures/python-local-platform-vm-original.py'])
     archive = destination / 'duckdb.zip'
     with urllib.request.urlopen(DUCKDB_URL, timeout=120) as response, archive.open('xb') as target:
         body = response.read(DUCKDB_BYTES + 1)

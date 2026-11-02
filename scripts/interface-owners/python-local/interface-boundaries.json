@@ -1,6 +1,6 @@
 {
   "source": "d5d66cd86ac2e153f31a511e7d37c78e0cc28ae3",
-  "syntaxProjectionSha256": "78b123c4d9be18e7792917b6ea4e478f21adfc25ac75610b294fe93acea92efa",
+  "syntaxProjectionSha256": "bf2747e9bb0cfa7e1f4a15ffe06ef621dbeb59eca85ebdba9497774bfa82f0ad",
   "qualification": "Source-reference coverage only; original Native/FFI/Python executions retain their own source, artifact and target qualifications. No normal funding, VM or installed product admission.",
   "generated": [
     {
@@ -5147,6 +5147,7 @@
         "hashlib",
         "importlib",
         "json",
+        "os",
         "secrets",
         "sys",
         "threading",
@@ -5485,6 +5486,14 @@
         },
         {
           "async": false,
+          "name": "LocalCore/_observe_platform_vm",
+          "parameters": [
+            "self",
+            "runtime"
+          ]
+        },
+        {
+          "async": false,
           "name": "LocalCore/_output_copy_bytes",
           "parameters": [
             "self",
@@ -5681,6 +5690,15 @@
             "value",
             "start",
             "length"
+          ]
+        },
+        {
+          "async": false,
+          "name": "LocalCore/_require_platform_vm_current",
+          "parameters": [
+            "self",
+            "caller",
+            "nonce"
           ]
         },
         {
@@ -7951,7 +7969,7 @@
           ]
         }
       ],
-      "sha256": "cea758494fe56186a3c6cd78183ff2d21758c46359e42fa00e71a46d223cdc80",
+      "sha256": "3014a6ef4260535f7eb78e8dc0e3ef3a31aaf9d2e1a89ebdbb9d9f47b896f38a",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -14506,6 +14524,123 @@
               {
                 "path": "src/run_publication_host/client_saved_submission_public_view_wbtest.mbt",
                 "anchor": "test \"accepted failure candidate preserves same intent and refuses terminal or foreign originals\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "LocalCore/_observe_platform_vm",
+            "LocalCore/_require_platform_vm_current"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original platform Store and Memory"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "    def _observe_platform_vm("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "    def _observe_platform_vm("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "    def _require_platform_vm_current("
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "    def _require_platform_vm_current("
+              },
+              {
+                "path": "scripts/fixtures/python-local-platform-vm-original.py",
+                "anchor": "    def test_foreign_same_limits_store_instance_copy_and_nonce_are_refused("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original platform Store and Memory"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "    def _dispose("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "    def _call("
+              },
+              {
+                "path": "scripts/fixtures/python-local-platform-vm-original.py",
+                "anchor": "    def test_callback_cannot_drop_original_vm_metadata_before_outer_return("
+              }
+            ],
+            "failure": [
+              {
+                "path": "scripts/fixtures/python-local-platform-vm-original.py",
+                "anchor": "    def test_callback_cannot_drop_original_vm_metadata_before_outer_return("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "    def _call("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "    def _close_core("
+              },
+              {
+                "path": "scripts/fixtures/python-local-platform-vm-original.py",
+                "anchor": "    def test_same_store_close_failure_retains_original_until_actual_retirement("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original platform Store and Memory"
+              },
+              {
+                "path": "scripts/fixtures/python-local-platform-vm-original.py",
+                "anchor": "    def test_original_memory_growth_and_caller_do_not_issue_child_permission("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original platform Store and Memory"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "    def _unavailable_execution_child("
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/fixtures/python-local-platform-vm-original.py",
+                "anchor": "    def test_original_memory_growth_and_caller_do_not_issue_child_permission("
+              },
+              {
+                "path": "scripts/fixtures/python-local-platform-vm-original.py",
+                "anchor": "    def test_foreign_same_limits_store_instance_copy_and_nonce_are_refused("
+              },
+              {
+                "path": "scripts/fixtures/python-local-platform-vm-original.py",
+                "anchor": "    def test_same_store_close_failure_retains_original_until_actual_retirement("
+              },
+              {
+                "path": "scripts/fixtures/python-local-platform-vm-original.py",
+                "anchor": "    def test_callback_cannot_drop_original_vm_metadata_before_outer_return("
               }
             ]
           }
