@@ -101,13 +101,16 @@ export function createIcebergPhysicalBridge({python, run, catalog,
     kind: 'execute', sequence: 1, body: {catalog: config, command, payload}});
   const invoke = async (command, payload, signal, stopped, beforeBodyAllocation) => {
     assertImplementation();
-    let channel, error;
+    let channel, error, launchSelected = false;
     // A bounded physical I/O wait does not certify cancellation/noncommit.
     // Deadline failure still waits for actual exit and requires reconciliation.
     const deadline = AbortSignal.timeout(60000);
     const cancellation = signal === undefined ? deadline : AbortSignal.any([signal, deadline]);
     try {
-      channel = await startManagedExecution(prepareManagedExecution({...configuration(), beforeBodyAllocation}), cancellation);
+      const prepared = prepareManagedExecution({...configuration(), beforeBodyAllocation});
+      cancellation.throwIfAborted();
+      launchSelected = true;
+      channel = await startManagedExecution(prepared, cancellation);
       return await channel.request({catalog: config, command, payload}, cancellation);
     } catch (caught) {
       error = caught;
@@ -118,7 +121,11 @@ export function createIcebergPhysicalBridge({python, run, catalog,
       // kill-and-wait where cooperative stop is impossible.
       if (channel) await channel.close();
       else if (error?.cleanupHandle) await error.cleanupHandle.retry();
-      stopped?.();
+      // The original process Owner also retains invalid callback/service
+      // duties. Exit and retry completion alone do not discharge those duties.
+      // A pure preparation refusal above selected no physical launch at all.
+      const cleanup = channel?.cleanupHandle ?? error?.cleanupHandle;
+      if (!launchSelected || cleanup !== undefined && cleanup.status().pending === false) stopped?.();
     }
   };
   const own = prepared => {

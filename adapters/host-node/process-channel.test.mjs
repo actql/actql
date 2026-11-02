@@ -324,3 +324,49 @@ test('Table prepared and readonly operations keep the original per-call body ent
   await refused(()=>bridge.cleanup(prepared));
   assert.equal(calls,6);
 });
+
+test('Table original pending body callback custody cannot become a stopped writer after process exit', async () => {
+  const [{createIcebergPhysicalBridge},{createHash}] = await Promise.all([
+    import('../connectors/local/host/iceberg-process.mjs'),import('node:crypto')]);
+  const cid = digit => `sha256:${digit.repeat(64)}`;
+  const bridge = createIcebergPhysicalBridge({python:pathToFileURL(process.execPath),run:'table-pending-body',
+    entry:new URL('./process-fixture.mjs',import.meta.url),
+    catalog:{database:'/UNOPENED/table.db',warehouse:'/UNOPENED/warehouse',catalogCid:cid('a'),
+      limits:{bytes:1,files:1,operations:1}}});
+  // A foreign thenable is neither assimilated nor promoted to a settled
+  // callback. No Python/Catalog/resource/ordinary operation is supplied here.
+  const original = Object.freeze({then() {assert.fail('foreign callback result cannot be assimilated');}});
+  const schemaWire = '{"fields":[]}', schemaCid = `sha256:${createHash('sha256').update(schemaWire).digest('hex')}`;
+  const prepared = bridge.prepareWrite({operation:{action:'create',request_cid:cid('c'),schema_cid:schemaCid,
+    input_carrier:{kind:'relation',cid:cid('d')}},mapping:{},rows:[],reservation:{bytes:1,files:1},schemaWire,
+    beforeBodyAllocation() {return original;}});
+  let failure;
+  try {await bridge.execute(prepared,{useCid:cid('e')});} catch (error) {failure = error;}
+  assert.equal(failure?.code,'ExecutionChannelFailure');
+  assert.equal(failure.cause?.message,'InvalidFrameCapacityHandoff');
+  const cleanup = failure.cleanupHandle;
+  await cleanup.whenStopped();
+  assert.equal(cleanup.status().pending,true,'the original callback duty survives actual process exit');
+  assert.deepEqual(bridge.status(prepared),{attempted:true,stopped:false});
+  assert.strictEqual(failure.cleanupHandle,cleanup);
+  await assert.rejects(bridge.cleanup(prepared),{code:'TableWriterNotStopped'});
+  assert.equal(cleanup.status().pending,true);
+});
+
+test('Table pure body callback refusal before launcher selection has no physical cleanup debt', async () => {
+  const [{createIcebergPhysicalBridge},{createHash}] = await Promise.all([
+    import('../connectors/local/host/iceberg-process.mjs'),import('node:crypto')]);
+  const cid = digit => `sha256:${digit.repeat(64)}`;
+  const bridge = createIcebergPhysicalBridge({python:pathToFileURL(process.execPath),run:'table-inert-body',
+    entry:new URL('./process-fixture.mjs',import.meta.url),
+    catalog:{database:'/UNOPENED/table.db',warehouse:'/UNOPENED/warehouse',catalogCid:cid('a'),
+      limits:{bytes:1,files:1,operations:1}}});
+  const schemaWire = '{"fields":[]}', schemaCid = `sha256:${createHash('sha256').update(schemaWire).digest('hex')}`;
+  let called = false;
+  const prepared = bridge.prepareWrite({operation:{action:'create',request_cid:cid('c'),schema_cid:schemaCid,
+    input_carrier:{kind:'relation',cid:cid('d')}},mapping:{},rows:[],reservation:{bytes:1,files:1},schemaWire,
+    async beforeBodyAllocation() {called = true;}});
+  await assert.rejects(bridge.execute(prepared,{useCid:cid('e')}),{code:'InvalidExecutionConfiguration'});
+  assert.equal(called,false);
+  assert.deepEqual(bridge.status(prepared),{attempted:true,stopped:true});
+});

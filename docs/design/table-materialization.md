@@ -422,7 +422,14 @@ errors and thrown undefined, remains attached to the same process cleanup.
 A mistakenly returned task cannot stand in for backing: the existing process
 owner keeps that original task pending through process exit and joins its
 settlement before reporting cleanup complete. An unjoined foreign task remains
-pending. Process exit, capacity admission, Catalog cleanup and durable outcome
+pending. The Table bridge observes the SAME cleanup handle's actual pending
+state before publishing its writer-stopped observation. A completed exit wait
+or retry is insufficient when that original handle still retains callback or
+service duties. Pure preparation refusals before launcher selection have no
+physical child; once launch is selected, a missing or pending original cleanup
+observation cannot authorize staged-file cleanup. No receipt or successful
+response is synthesized from either case. Process exit, capacity admission,
+Catalog cleanup and durable outcome
 evidence remain separate obligations.
 
 The adapter package carries only the reviewed Python worker modules and pinned
