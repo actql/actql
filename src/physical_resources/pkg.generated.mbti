@@ -86,6 +86,8 @@ pub fn[P, C] borrow_backed_execution_read_use(BackedExecutionRegion[P, C], P, C,
 
 pub fn[T] borrow_original_read_workspace_claim(OriginalReadWorkspaceBinding[T], T, SharedCapacity) -> FundedReadClaim[T]?
 
+pub fn borrow_platform_vm_working_capacity(PlatformVMWorkingCapacity) -> Result[SharedBorrow, ImportedChildLedgerIssue]
+
 pub fn[I, P] borrow_preparation_body(PreparationCapacity[I, P]) -> Result[PreparationBodyBorrow[P], PreparationCapacityIssue]
 
 pub fn[P] borrow_preparation_body_sibling(PreparationBodyBorrow[P]) -> Result[PreparationBodyBorrow[P], PreparationCapacityIssue]
@@ -192,6 +194,8 @@ pub fn close_model_io_access(ModelIoAccess) -> Result[Bool, ModelIoAdmissionIssu
 
 pub fn[T] close_model_io_admission(ModelIoAdmission[T], T) -> Result[Bool, ModelIoAdmissionIssue]
 
+pub fn close_platform_vm_working_capacity_after_cleanup(PlatformVMWorkingCapacity) -> Result[Unit, ImportedChildLedgerIssue]
+
 pub fn close_shared_capacity(SharedCapacity) -> Result[Unit, LedgerIssue]
 
 pub fn[P, E] complete_node_managed_run_operation_construction(NodeManagedRunAdmission[P], P, Ledger, () -> Result[Unit, E], NodeManagedRunOperationBacking) -> Result[Unit, NodeManagedRunOperationIssue[E]]
@@ -246,6 +250,8 @@ pub fn[T] funded_read_preparation_available(FundedReadClaim[T], T, Int64, retain
 
 pub fn grow_execution_reservation_capacity(Ledger, Reservation, Int64, Int64) -> Result[Unit, LedgerIssue]
 
+pub fn grow_platform_vm_working_capacity(PlatformVMWorkingCapacity, Int64, Int64) -> Result[Unit, ImportedChildLedgerIssue]
+
 pub fn[I, P] grow_preparation_capacity_inventory(PreparationCapacity[I, P], I, Int64, Int64, Int, Int, Int) -> Result[Unit, PreparationCapacityIssue]
 
 pub fn[T] handoff_funded_read(FundedReadClaim[T], T) -> Result[Ledger, OriginalReadIssue]
@@ -271,6 +277,8 @@ pub fn[T] issue_model_io_access(ModelIoAdmission[T], T) -> Result[ModelIoAccess,
 pub fn[T] issue_model_io_admission(T, Int, Int) -> Result[ModelIoAdmission[T], ModelIoAdmissionIssue]
 
 pub fn[T] issue_original_read_workspace_binding(FundedReadClaim[T], T, SharedCapacity) -> Result[OriginalReadWorkspaceBinding[T], OriginalReadIssue]
+
+pub fn[P, C] issue_platform_vm_preparation_region(PlatformVMWorkingCapacity, P) -> Result[BackedExecutionRegion[P, C], BackedExecutionIssue]
 
 pub fn[T] issue_recorded_original_ledger_descriptor(OriginalLedgerIdentity, T) -> Result[OriginalLedgerDescriptor[T], OriginalReadIssue]
 
@@ -475,6 +483,8 @@ pub fn[P, E] reserve_node_managed_run_operation(NodeManagedRunAdmission[P], P, L
 pub fn[P, E] reserve_node_managed_run_operation_controls(NodeManagedRunAdmission[P], P, Ledger, () -> Result[Unit, E], CapacityReservation?, Int64, Int64) -> Result[CapacityReservation, NodeManagedRunOperationIssue[E]]
 
 pub fn[P] reserve_node_managed_run_read_bootstrap(NodeManagedRunAdmission[P], P, Ledger, Int64, Int64) -> Result[CapacityReservation, ImportedChildLedgerIssue]
+
+pub fn reserve_platform_vm_working_capacity(PlatformVMCapacity, Int64, Int64) -> Result[PlatformVMWorkingCapacity, ImportedChildLedgerIssue]
 
 pub fn[I, P] reserve_preparation_capacity(Ledger, I, Int64, Int64, max_borrowers~ : Int) -> Result[PreparationCapacity[I, P], PreparationCapacityIssue]
 
@@ -749,6 +759,7 @@ pub struct BackedExecutionRegion[P, C] {
   mut owner_borrow : SharedBorrow?
   children : Array[BackedExecutionDelegation[P, C]]
   mut closing : Bool
+  // private fields
 }
 
 type BackedInitializationAdmission[I]
@@ -1013,6 +1024,8 @@ pub(all) enum OriginalStateWritePoll {
 } derive(Eq, @debug.Debug)
 
 type PlatformVMCapacity
+
+type PlatformVMWorkingCapacity
 
 type PreparationBodyBorrow[P]
 
