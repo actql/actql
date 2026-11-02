@@ -65,7 +65,7 @@
     },
     {
       "module": "packages/python-sdk/src/actql_sdk/_local_wasm_abi.py",
-      "sha256": "daff3328c9253fde5e1db74686a615e1b5a368d6b989bdc871c9cb3254bb062e",
+      "sha256": "94646e307c60860e2a1723ec867e0cc0fcf6264e84b863e12799277d3dc831ad",
       "generator": {
         "path": "scripts/generate-local-wasm-abi.py",
         "anchor": "def render("
@@ -7537,6 +7537,17 @@
         },
         {
           "async": false,
+          "name": "LocalCore/reserve_submission_preparation_failure",
+          "parameters": [
+            "self",
+            "configuration",
+            "preparation",
+            "source",
+            "cleanup"
+          ]
+        },
+        {
+          "async": false,
           "name": "LocalCore/reserve_submission_projection",
           "parameters": [
             "self",
@@ -7940,7 +7951,7 @@
           ]
         }
       ],
-      "sha256": "4349697bfd8e776415b6c0ad3ab2d8a8928eca6b515c0cef1fb1669604a13b34",
+      "sha256": "78cc33a0f611d7e9d30997a242559790aa1715d75da04b352ae33ea5f4df16b1",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -14383,6 +14394,118 @@
               {
                 "path": "src/client_host_wasm/host_current_operation_wbtest.mbt",
                 "anchor": "test \"original operation observation reuses only admitted data and still checks current and Account\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "LocalCore/reserve_submission_preparation_failure"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "    def reserve_submission_preparation_failure("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "    def reserve_submission_preparation_failure("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "    def reserve_submission_preparation_failure("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "    def reserve_submission_preparation_failure("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _commit_preparation_failure("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_preparation_failure_journal.py",
+                "anchor": "def test_lost_commit_reply_keeps_same_failed_preparation_and_never_looks_up_or_retries("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "src/client_host_wasm/preparation.mbt",
+                "anchor": "pub fn close_preparation("
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "    def reserve_submission_preparation_failure("
+              },
+              {
+                "path": "src/client_host_wasm/submission.mbt",
+                "anchor": "@buffers.reserve_output_buffer("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_journal_record.mbt",
+                "anchor": "pub fn decode_client_submitted_journal_row("
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_host_wasm/preparation_outcome_wbtest.mbt",
+                "anchor": "test \"prepared typed refusal remains the same original instead of negative count inference\""
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_preparation_failure_journal.py",
+                "anchor": "def test_lost_commit_reply_keeps_same_failed_preparation_and_never_looks_up_or_retries("
+              },
+              {
+                "path": "src/run_publication_host/client_saved_submission_public_view_wbtest.mbt",
+                "anchor": "test \"accepted failure candidate preserves same intent and refuses terminal or foreign originals\""
               }
             ]
           }
@@ -48856,6 +48979,7 @@
         "LocalCore",
         "LocalCoreError",
         "LocalPreparation",
+        "LocalPreparationFailure",
         "PreparedShape",
         "dataclass"
       ],
@@ -48928,6 +49052,14 @@
         },
         {
           "async": false,
+          "name": "LocalPreparation/failed_original",
+          "parameters": [
+            "self",
+            "failure"
+          ]
+        },
+        {
+          "async": false,
           "name": "LocalPreparation/install_environment",
           "parameters": [
             "self",
@@ -48955,6 +49087,20 @@
         },
         {
           "async": false,
+          "name": "LocalPreparationFailure",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "LocalPreparationFailure/__init__",
+          "parameters": [
+            "self",
+            "owner",
+            "preparation"
+          ]
+        },
+        {
+          "async": false,
           "name": "PreparedShape",
           "parameters": []
         },
@@ -48969,7 +49115,7 @@
           "parameters": []
         }
       ],
-      "sha256": "33b8353b28b2db804b5e7ddbad5b3d356eba693b0f579bd7d86f0346a0ba4018",
+      "sha256": "c8d57be791e2c4c5bf0705447dd3fad214b53276ba2fa4846cf9564b98b62756",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -49621,6 +49767,122 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "LocalPreparation/failed_original",
+            "LocalPreparationFailure",
+            "LocalPreparationFailure/__init__"
+          ],
+          "exports": [
+            "LocalPreparationFailure"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_preparation.py",
+                "anchor": "class LocalPreparationFailure"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_preparation.py",
+                "anchor": "class LocalPreparationFailure"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_preparation.py",
+                "anchor": "class LocalPreparationFailure"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_preparation.py",
+                "anchor": "class LocalPreparationFailure"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _commit_preparation_failure("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_preparation_failure_journal.py",
+                "anchor": "def test_lost_commit_reply_keeps_same_failed_preparation_and_never_looks_up_or_retries("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "src/client_host_wasm/preparation.mbt",
+                "anchor": "pub fn close_preparation("
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_preparation.py",
+                "anchor": "class LocalPreparationFailure"
+              },
+              {
+                "path": "src/client_host_wasm/submission.mbt",
+                "anchor": "@buffers.reserve_output_buffer("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_journal_record.mbt",
+                "anchor": "pub fn decode_client_submitted_journal_row("
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_host_wasm/preparation_outcome_wbtest.mbt",
+                "anchor": "test \"prepared typed refusal remains the same original instead of negative count inference\""
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_preparation_failure_journal.py",
+                "anchor": "def test_lost_commit_reply_keeps_same_failed_preparation_and_never_looks_up_or_retries("
+              },
+              {
+                "path": "src/run_publication_host/client_saved_submission_public_view_wbtest.mbt",
+                "anchor": "test \"accepted failure candidate preserves same intent and refuses terminal or foreign originals\""
+              }
+            ]
+          }
         }
       ]
     },
@@ -49645,6 +49907,7 @@
         "LocalInstallationCleanupPending",
         "LocalInstallationError",
         "LocalPreparation",
+        "LocalPreparationFailure",
         "LocalProductCleanupPending",
         "LocalReaderAcquisitionError",
         "LocalResultProgress",
@@ -49944,6 +50207,30 @@
           "name": "InstalledLocalHost/_commit_original_run_rows/inspect",
           "parameters": [
             "reader"
+          ]
+        },
+        {
+          "async": false,
+          "name": "InstalledLocalHost/_commit_preparation_failure",
+          "parameters": [
+            "self",
+            "reference",
+            "intent",
+            "failure"
+          ]
+        },
+        {
+          "async": false,
+          "name": "InstalledLocalHost/_commit_preparation_failure/inspect",
+          "parameters": [
+            "reader"
+          ]
+        },
+        {
+          "async": false,
+          "name": "InstalledLocalHost/_commit_preparation_failure/observe",
+          "parameters": [
+            "current"
           ]
         },
         {
@@ -50829,7 +51116,7 @@
           ]
         }
       ],
-      "sha256": "b61b706f121af5a61650312f0e78d787bd417e4087b63e3c4960b3a6b07fa4da",
+      "sha256": "9d4dc17ce5b672c3ac52e4cab9ee2fdb950712a863e72ce1437010cdca0f0c89",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -52532,6 +52819,122 @@
               {
                 "path": "packages/python-sdk/tests/test_local_check_ports.py",
                 "anchor": "def test_failed_child_cleanup_keeps_original_input_until_separate_return("
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "InstalledLocalHost/_commit_preparation_failure",
+            "InstalledLocalHost/_commit_preparation_failure/inspect",
+            "InstalledLocalHost/_commit_preparation_failure/observe"
+          ],
+          "exports": [
+            "LocalPreparationFailure"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "    def _commit_preparation_failure("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "    def _commit_preparation_failure("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "    def _commit_preparation_failure("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "    def _commit_preparation_failure("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _commit_preparation_failure("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_preparation_failure_journal.py",
+                "anchor": "def test_lost_commit_reply_keeps_same_failed_preparation_and_never_looks_up_or_retries("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "src/client_host_wasm/preparation.mbt",
+                "anchor": "pub fn close_preparation("
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "    def _commit_preparation_failure("
+              },
+              {
+                "path": "src/client_host_wasm/submission.mbt",
+                "anchor": "@buffers.reserve_output_buffer("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_journal_record.mbt",
+                "anchor": "pub fn decode_client_submitted_journal_row("
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_host_wasm/preparation_outcome_wbtest.mbt",
+                "anchor": "test \"prepared typed refusal remains the same original instead of negative count inference\""
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_preparation_failure_journal.py",
+                "anchor": "def test_lost_commit_reply_keeps_same_failed_preparation_and_never_looks_up_or_retries("
+              },
+              {
+                "path": "src/run_publication_host/client_saved_submission_public_view_wbtest.mbt",
+                "anchor": "test \"accepted failure candidate preserves same intent and refuses terminal or foreign originals\""
               }
             ]
           }
@@ -63447,7 +63850,7 @@
       "module": "packages/python-sdk/src/actql_sdk/_local_wasm_abi.py",
       "responsibilityFacet": "primary",
       "operations": [],
-      "sha256": "daff3328c9253fde5e1db74686a615e1b5a368d6b989bdc871c9cb3254bb062e",
+      "sha256": "94646e307c60860e2a1723ec867e0cc0fcf6264e84b863e12799277d3dc831ad",
       "role": "generated-binding",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -73671,7 +74074,7 @@
     },
     {
       "module": "src/client_host_wasm/submission_lookup.mbt",
-      "sha256": "8311d9382d2dedf284359c75a7072b071b1a9c4aab22ca7e76e36e381f343845",
+      "sha256": "9caa7fdef7ff95ee37c1530b323999abef85b5aee16c9175d9d25002d0d9e3dc",
       "exports": [],
       "operations": [
         {
@@ -73822,7 +74225,7 @@
     },
     {
       "module": "src/client_host_wasm/version.mbt",
-      "sha256": "62c4f4a51185c05fa06e27828731b27381f4781da38fd03f3ec0e03dfb6f01f0",
+      "sha256": "9a2f41f6aa25c37f5b03ab89d08862892819186b7ea627f8b4f8aaa0facceeda",
       "exports": [],
       "operations": [
         {
@@ -74043,6 +74446,1870 @@
               {
                 "path": "packages/python-sdk/tests/test_local_saved_read_ports.py",
                 "anchor": "def test_real_saved_descriptor_keeps_original_metadata_loan_and_current_refusal("
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_host_wasm/preparation.mbt",
+      "sha256": "0df21df8f40bd0e8b8332912a5d12fb15b702d38244c7234e3f18452655d06dd",
+      "exports": [],
+      "operations": [
+        {
+          "name": "bind_restored_preparation",
+          "declaration": "bind_restored_preparation ( nonce : Int64 , handle : Int , restoration_handle : Int , ) - > Int"
+        },
+        {
+          "name": "close_environment",
+          "declaration": "close_environment ( nonce : Int64 , handle : Int ) - > Int"
+        },
+        {
+          "name": "close_preparation",
+          "declaration": "close_preparation ( nonce : Int64 , handle : Int ) - > Int"
+        },
+        {
+          "name": "environment_body_cid",
+          "declaration": "environment_body_cid ( body : String ) - > String"
+        },
+        {
+          "name": "input_cursor",
+          "declaration": "input_cursor ( value : Instance , slot : @ buffers . BufferSlot , ) - > @ decode . Cursor ?"
+        },
+        {
+          "name": "install_environment",
+          "declaration": "install_environment ( nonce : Int64 , input : Int ) - > Int"
+        },
+        {
+          "name": "install_source_environment",
+          "declaration": "install_source_environment ( nonce : Int64 , input : Int ) - > Int"
+        },
+        {
+          "name": "preparation_failure_problem",
+          "declaration": "preparation_failure_problem ( record : StoredPreparation ) - > ( String , String ) ?"
+        },
+        {
+          "name": "prepare_program",
+          "declaration": "prepare_program ( nonce : Int64 , handle : Int ) - > Int"
+        },
+        {
+          "name": "prepared_outcome",
+          "declaration": "prepared_outcome ( nonce : Int64 , handle : Int ) - > Int"
+        },
+        {
+          "name": "prepared_results",
+          "declaration": "prepared_results ( nonce : Int64 , handle : Int ) - > Int"
+        },
+        {
+          "name": "prepared_tasks",
+          "declaration": "prepared_tasks ( nonce : Int64 , handle : Int ) - > Int"
+        },
+        {
+          "name": "reserve_preparation",
+          "declaration": "reserve_preparation ( nonce : Int64 , environment : Int , input : Int , kind : Int , ) - > Int"
+        },
+        {
+          "name": "stored_preparation_input",
+          "declaration": "stored_preparation_input ( record : StoredPreparation , ) - > @ preparation . LocalPreparedInput ?"
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing preparation, submission, Native reader and CLI Owners; D accepted-failure connection only, no new permission or physical ACK",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "bind_restored_preparation",
+            "close_environment",
+            "close_preparation",
+            "environment_body_cid",
+            "input_cursor",
+            "install_environment",
+            "install_source_environment",
+            "preparation_failure_problem",
+            "prepare_program",
+            "prepared_outcome",
+            "prepared_results",
+            "prepared_tasks",
+            "reserve_preparation",
+            "stored_preparation_input"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_host_wasm/preparation.mbt",
+                "anchor": "fn stored_preparation_input("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_host_wasm/preparation.mbt",
+                "anchor": "fn stored_preparation_input("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "src/client_host_wasm/preparation.mbt",
+                "anchor": "fn stored_preparation_input("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "src/client_host_wasm/preparation.mbt",
+                "anchor": "fn stored_preparation_input("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _commit_preparation_failure("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_preparation_failure_journal.py",
+                "anchor": "def test_lost_commit_reply_keeps_same_failed_preparation_and_never_looks_up_or_retries("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "src/client_host_wasm/preparation.mbt",
+                "anchor": "pub fn close_preparation("
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_host_wasm/preparation.mbt",
+                "anchor": "fn stored_preparation_input("
+              },
+              {
+                "path": "src/client_host_wasm/submission.mbt",
+                "anchor": "@buffers.reserve_output_buffer("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_journal_record.mbt",
+                "anchor": "pub fn decode_client_submitted_journal_row("
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_host_wasm/preparation_outcome_wbtest.mbt",
+                "anchor": "test \"prepared typed refusal remains the same original instead of negative count inference\""
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_preparation_failure_journal.py",
+                "anchor": "def test_lost_commit_reply_keeps_same_failed_preparation_and_never_looks_up_or_retries("
+              },
+              {
+                "path": "src/run_publication_host/client_saved_submission_public_view_wbtest.mbt",
+                "anchor": "test \"accepted failure candidate preserves same intent and refuses terminal or foreign originals\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_host_wasm/submission.mbt",
+      "sha256": "2b6ecc85638dbb1be8d1ded3ec75042a90d2c53630764f9cffd01ab24e4e99f2",
+      "exports": [],
+      "operations": [
+        {
+          "name": "begin_submission_cleanup",
+          "declaration": "begin_submission_cleanup ( nonce : Int64 , handle : Int ) - > Int"
+        },
+        {
+          "name": "close_submission_projection",
+          "declaration": "close_submission_projection ( nonce : Int64 , handle : Int ) - > Int"
+        },
+        {
+          "name": "produce_submission_projection",
+          "declaration": "produce_submission_projection ( nonce : Int64 , handle : Int ) - > Int"
+        },
+        {
+          "name": "required_number",
+          "declaration": "required_number ( object : @ decode . ObjectView , name : String ) - > Double ?"
+        },
+        {
+          "name": "reserve_submission_projection",
+          "declaration": "reserve_submission_projection ( nonce : Int64 , configuration : Int , input : Int , kind : Int , physical_ticket : Int , physical_copy_bytes : Int64 , ) - > Int"
+        },
+        {
+          "name": "retire_submission_output",
+          "declaration": "retire_submission_output ( nonce : Int64 , handle : Int ) - > Int"
+        },
+        {
+          "name": "submission_projection_length",
+          "declaration": "submission_projection_length ( nonce : Int64 , handle : Int ) - > Int"
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing preparation, submission, Native reader and CLI Owners; D accepted-failure connection only, no new permission or physical ACK",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "begin_submission_cleanup",
+            "close_submission_projection",
+            "produce_submission_projection",
+            "required_number",
+            "reserve_submission_projection",
+            "retire_submission_output",
+            "submission_projection_length"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_host_wasm/submission.mbt",
+                "anchor": "fn required_number(object : @decode.ObjectView, name : String) -> Double? {"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_host_wasm/submission.mbt",
+                "anchor": "fn required_number(object : @decode.ObjectView, name : String) -> Double? {"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "src/client_host_wasm/submission.mbt",
+                "anchor": "fn required_number(object : @decode.ObjectView, name : String) -> Double? {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "src/client_host_wasm/submission.mbt",
+                "anchor": "fn required_number(object : @decode.ObjectView, name : String) -> Double? {"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _commit_preparation_failure("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_preparation_failure_journal.py",
+                "anchor": "def test_lost_commit_reply_keeps_same_failed_preparation_and_never_looks_up_or_retries("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "src/client_host_wasm/preparation.mbt",
+                "anchor": "pub fn close_preparation("
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_host_wasm/submission.mbt",
+                "anchor": "fn required_number(object : @decode.ObjectView, name : String) -> Double? {"
+              },
+              {
+                "path": "src/client_host_wasm/submission.mbt",
+                "anchor": "@buffers.reserve_output_buffer("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_journal_record.mbt",
+                "anchor": "pub fn decode_client_submitted_journal_row("
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_host_wasm/preparation_outcome_wbtest.mbt",
+                "anchor": "test \"prepared typed refusal remains the same original instead of negative count inference\""
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_preparation_failure_journal.py",
+                "anchor": "def test_lost_commit_reply_keeps_same_failed_preparation_and_never_looks_up_or_retries("
+              },
+              {
+                "path": "src/run_publication_host/client_saved_submission_public_view_wbtest.mbt",
+                "anchor": "test \"accepted failure candidate preserves same intent and refuses terminal or foreign originals\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_host_wasm/submission_append.mbt",
+      "sha256": "221bee112054dd9e96f4ec7ee17270949cc4a538131da72c3b9ebe660995b363",
+      "exports": [],
+      "operations": [
+        {
+          "name": "observe_submission_append",
+          "declaration": "observe_submission_append ( value : Instance , record : StoredSubmissionProjection , configuration : StoredRunConfiguration , ) - > Result [ @ host . ClientSubmittedJournalAppendPlan , Int ]"
+        },
+        {
+          "name": "observe_submission_preparation_failure",
+          "declaration": "observe_submission_preparation_failure ( value : Instance , record : StoredSubmissionProjection , configuration : StoredRunConfiguration , ) - > Result [ ( @ host . ClientJournalPhysicalRow , Bytes ) , Int ]"
+        },
+        {
+          "name": "produce_submission_append",
+          "declaration": "produce_submission_append ( value : Instance , record : StoredSubmissionProjection , configuration : StoredRunConfiguration , ) - > Int"
+        },
+        {
+          "name": "produce_submission_preparation_failure",
+          "declaration": "produce_submission_preparation_failure ( value : Instance , record : StoredSubmissionProjection , configuration : StoredRunConfiguration , ) - > Int"
+        },
+        {
+          "name": "reserve_submission_preparation_failure",
+          "declaration": "reserve_submission_preparation_failure ( nonce : Int64 , configuration : Int , preparation : Int , input : Int , physical_ticket : Int , physical_copy_bytes : Int64 , ) - > Int"
+        },
+        {
+          "name": "submission_append_current",
+          "declaration": "submission_append_current ( value : Instance , record : StoredSubmissionProjection , configuration : StoredRunConfiguration , ) - > Result [ Unit , Int ]"
+        },
+        {
+          "name": "submission_append_run_inspection",
+          "declaration": "submission_append_run_inspection ( row : @ host . ClientJournalPhysicalRow , ) - > Result [ @ host . ClientRunJournalInspection , Int ]"
+        },
+        {
+          "name": "submission_run_inspection_with_identity",
+          "declaration": "submission_run_inspection_with_identity ( row : @ host . ClientJournalPhysicalRow , retained_identity : ( @ host . ClientRequestIdentity , @ publication . PublicationContract , ) ? , ) - > Result [ @ host . ClientRunJournalInspection , Int ]"
+        },
+        {
+          "name": "validate_submission_append",
+          "declaration": "validate_submission_append ( nonce : Int64 , handle : Int , current : Int , ) - > Int"
+        },
+        {
+          "name": "validate_submission_preparation_failure",
+          "declaration": "validate_submission_preparation_failure ( value : Instance , record : StoredSubmissionProjection , configuration : StoredRunConfiguration , ) - > Int"
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing preparation, submission, Native reader and CLI Owners; D accepted-failure connection only, no new permission or physical ACK",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "observe_submission_append",
+            "observe_submission_preparation_failure",
+            "produce_submission_append",
+            "produce_submission_preparation_failure",
+            "reserve_submission_preparation_failure",
+            "submission_append_current",
+            "submission_append_run_inspection",
+            "submission_run_inspection_with_identity",
+            "validate_submission_append",
+            "validate_submission_preparation_failure"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_host_wasm/submission_append.mbt",
+                "anchor": "fn submission_append_current("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_host_wasm/submission_append.mbt",
+                "anchor": "fn submission_append_current("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "src/client_host_wasm/submission_append.mbt",
+                "anchor": "fn submission_append_current("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "src/client_host_wasm/submission_append.mbt",
+                "anchor": "fn submission_append_current("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _commit_preparation_failure("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_preparation_failure_journal.py",
+                "anchor": "def test_lost_commit_reply_keeps_same_failed_preparation_and_never_looks_up_or_retries("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "src/client_host_wasm/preparation.mbt",
+                "anchor": "pub fn close_preparation("
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_host_wasm/submission_append.mbt",
+                "anchor": "fn submission_append_current("
+              },
+              {
+                "path": "src/client_host_wasm/submission.mbt",
+                "anchor": "@buffers.reserve_output_buffer("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_journal_record.mbt",
+                "anchor": "pub fn decode_client_submitted_journal_row("
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_host_wasm/preparation_outcome_wbtest.mbt",
+                "anchor": "test \"prepared typed refusal remains the same original instead of negative count inference\""
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_preparation_failure_journal.py",
+                "anchor": "def test_lost_commit_reply_keeps_same_failed_preparation_and_never_looks_up_or_retries("
+              },
+              {
+                "path": "src/run_publication_host/client_saved_submission_public_view_wbtest.mbt",
+                "anchor": "test \"accepted failure candidate preserves same intent and refuses terminal or foreign originals\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/cmd/native_client/local_adoption.mbt",
+      "sha256": "dfe1f3bc99664b67f36eb01dd6fad29ec66468cc86053b4d0266e691b0f77c1a",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[T]local_host_result",
+          "declaration": "[ T ] local_host_result ( value : Result [ T , @ local_host . NativeLocalAdoptionIssue ] , ) - > T raise ClientStop"
+        },
+        {
+          "name": "execute_native_local_adoption",
+          "declaration": "execute_native_local_adoption ( matches : @ argparse . Matches , operation : String , child : @ argparse . Matches , packaged_runtime ? : @ local_host . NativeLocalPackagedRuntime ?"
+        },
+        {
+          "name": "local_adoption_metadata_reply",
+          "declaration": "local_adoption_metadata_reply ( adopted : Bool , account_id : String , configuration_cid : String , adoption_cid : String , child : @ argparse . Matches , ) - > String raise ClientStop"
+        },
+        {
+          "name": "local_host_issue",
+          "declaration": "local_host_issue ( issue : @ local_host . NativeLocalAdoptionIssue ) - > String"
+        },
+        {
+          "name": "local_host_settings",
+          "declaration": "local_host_settings ( text : String ) - > LocalHostSettings raise ClientStop"
+        },
+        {
+          "name": "local_journal_migration_issue",
+          "declaration": "local_journal_migration_issue ( issue : @ local_host . NativeClientRunJournalIssue , ) - > String"
+        },
+        {
+          "name": "local_original_run_reference",
+          "declaration": "local_original_run_reference ( definition : @ publication . PublicationContract , scope : String , ) - > Json raise ClientStop"
+        },
+        {
+          "name": "local_request_lookup",
+          "declaration": "local_request_lookup ( host : @ local_host . NativeLocalHostConnection , settings : LocalHostSettings , crypto : @ local_crypto . Library , child : @ argparse . Matches , capture ? : @ local_host . NativeLocalJournalCapture ?"
+        },
+        {
+          "name": "local_settings_text",
+          "declaration": "local_settings_text ( object : @ decode . ObjectView , key : String , ) - > String raise ClientStop"
+        },
+        {
+          "name": "local_submission_lookup",
+          "declaration": "local_submission_lookup ( host : @ local_host . NativeLocalHostConnection , settings : LocalHostSettings , crypto : @ local_crypto . Library , input_root : String , child : @ argparse . Matches , capture ? : @ local_host . NativeLocalJournalCapture ?"
+        },
+        {
+          "name": "local_submission_lookup_reply",
+          "declaration": "local_submission_lookup_reply ( host : @ local_host . NativeLocalHostConnection , settings : LocalHostSettings , crypto : @ local_crypto . Library , reference : @ local_host . NativeClientSubmissionReference , scope : String , observed : @ local_host . NativeClientSubmittedIntentLookup , capture ? : @ local_host . NativeLocalJournalCapture ?"
+        },
+        {
+          "name": "local_submission_lookup_selected",
+          "declaration": "local_submission_lookup_selected ( host : @ local_host . NativeLocalHostConnection , settings : LocalHostSettings , crypto : @ local_crypto . Library , select_reference : ( ) - > @ local_host . NativeClientSubmissionReference raise ClientStop , capture ? : @ local_host . NativeLocalJournalCapture ?"
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing preparation, submission, Native reader and CLI Owners; D accepted-failure connection only, no new permission or physical ACK",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[T]local_host_result",
+            "execute_native_local_adoption",
+            "local_adoption_metadata_reply",
+            "local_host_issue",
+            "local_host_settings",
+            "local_journal_migration_issue",
+            "local_original_run_reference",
+            "local_request_lookup",
+            "local_settings_text",
+            "local_submission_lookup",
+            "local_submission_lookup_reply",
+            "local_submission_lookup_selected"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/cmd/native_client/local_adoption.mbt",
+                "anchor": "fn local_settings_text("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/cmd/native_client/local_adoption.mbt",
+                "anchor": "fn local_settings_text("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "src/cmd/native_client/local_adoption.mbt",
+                "anchor": "fn local_settings_text("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "src/cmd/native_client/local_adoption.mbt",
+                "anchor": "fn local_settings_text("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _commit_preparation_failure("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_preparation_failure_journal.py",
+                "anchor": "def test_lost_commit_reply_keeps_same_failed_preparation_and_never_looks_up_or_retries("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "src/client_host_wasm/preparation.mbt",
+                "anchor": "pub fn close_preparation("
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/cmd/native_client/local_adoption.mbt",
+                "anchor": "fn local_settings_text("
+              },
+              {
+                "path": "src/client_host_wasm/submission.mbt",
+                "anchor": "@buffers.reserve_output_buffer("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_journal_record.mbt",
+                "anchor": "pub fn decode_client_submitted_journal_row("
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_host_wasm/preparation_outcome_wbtest.mbt",
+                "anchor": "test \"prepared typed refusal remains the same original instead of negative count inference\""
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_preparation_failure_journal.py",
+                "anchor": "def test_lost_commit_reply_keeps_same_failed_preparation_and_never_looks_up_or_retries("
+              },
+              {
+                "path": "src/run_publication_host/client_saved_submission_public_view_wbtest.mbt",
+                "anchor": "test \"accepted failure candidate preserves same intent and refuses terminal or foreign originals\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/cmd/native_client/local_run_submission.mbt",
+      "sha256": "7d39922c7e057c46a9b375e4492a5343c9b806e248c9a2d5871d7b299ea973c6",
+      "exports": [],
+      "operations": [
+        {
+          "name": "local_explicit_submission_preflight",
+          "declaration": "local_explicit_submission_preflight ( host : @ local_host . NativeLocalHostConnection , capture : @ local_host . NativeLocalJournalCapture , settings : LocalHostSettings , crypto : @ local_crypto . Library , input_root : String , operation : String , child : @ argparse . Matches , ) - > LocalRunSubmissionPreflight raise ClientStop"
+        },
+        {
+          "name": "local_new_submission_reference",
+          "declaration": "local_new_submission_reference ( settings : LocalHostSettings , capture : @ local_host . NativeLocalJournalCapture , child : @ argparse . Matches , ) - > String raise ClientStop"
+        },
+        {
+          "name": "local_run_nonce_text",
+          "declaration": "local_run_nonce_text ( bytes : Bytes ) - > String"
+        },
+        {
+          "name": "local_run_random_nonce",
+          "declaration": "local_run_random_nonce ( crypto : @ local_crypto . Library , ) - > String raise ClientStop"
+        },
+        {
+          "name": "local_run_submission_failure",
+          "declaration": "local_run_submission_failure ( selection : LocalRunSubmission , original : String , ) - > String"
+        },
+        {
+          "name": "local_select_run_submission",
+          "declaration": "local_select_run_submission ( host : @ local_host . NativeLocalHostConnection , settings : LocalHostSettings , crypto : @ local_crypto . Library , scope : String , input_root : String , child : @ argparse . Matches , public_run : Bool , business ? : LocalCommandBusinessPreparation ?"
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing preparation, submission, Native reader and CLI Owners; D accepted-failure connection only, no new permission or physical ACK",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "local_explicit_submission_preflight",
+            "local_new_submission_reference",
+            "local_run_nonce_text",
+            "local_run_random_nonce",
+            "local_run_submission_failure",
+            "local_select_run_submission"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/cmd/native_client/local_run_submission.mbt",
+                "anchor": "fn local_new_submission_reference("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/cmd/native_client/local_run_submission.mbt",
+                "anchor": "fn local_new_submission_reference("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "src/cmd/native_client/local_run_submission.mbt",
+                "anchor": "fn local_new_submission_reference("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "src/cmd/native_client/local_run_submission.mbt",
+                "anchor": "fn local_new_submission_reference("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _commit_preparation_failure("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_preparation_failure_journal.py",
+                "anchor": "def test_lost_commit_reply_keeps_same_failed_preparation_and_never_looks_up_or_retries("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "src/client_host_wasm/preparation.mbt",
+                "anchor": "pub fn close_preparation("
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/cmd/native_client/local_run_submission.mbt",
+                "anchor": "fn local_new_submission_reference("
+              },
+              {
+                "path": "src/client_host_wasm/submission.mbt",
+                "anchor": "@buffers.reserve_output_buffer("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_journal_record.mbt",
+                "anchor": "pub fn decode_client_submitted_journal_row("
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_host_wasm/preparation_outcome_wbtest.mbt",
+                "anchor": "test \"prepared typed refusal remains the same original instead of negative count inference\""
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_preparation_failure_journal.py",
+                "anchor": "def test_lost_commit_reply_keeps_same_failed_preparation_and_never_looks_up_or_retries("
+              },
+              {
+                "path": "src/run_publication_host/client_saved_submission_public_view_wbtest.mbt",
+                "anchor": "test \"accepted failure candidate preserves same intent and refuses terminal or foreign originals\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/cmd/native_client/local_start.mbt",
+      "sha256": "c5578fedf6b5986481b4f7f59329269bc358ebe83244f4c209f93ec1d80cc494",
+      "exports": [],
+      "operations": [
+        {
+          "name": "local_aql_intent_input",
+          "declaration": "local_aql_intent_input ( root : String , text : String , format : String , child : @ argparse . Matches , ) - > Json raise ClientStop"
+        },
+        {
+          "name": "local_generation_cid",
+          "declaration": "local_generation_cid ( crypto : @ local_crypto . Library , ) - > String raise ClientStop"
+        },
+        {
+          "name": "local_intent_wire",
+          "declaration": "local_intent_wire ( root : String , operation : String , child : @ argparse . Matches , ) - > String raise ClientStop"
+        },
+        {
+          "name": "local_publication_field",
+          "declaration": "local_publication_field ( value : @ publication . RunEvidenceValue , field : String , ) - > String raise ClientStop"
+        },
+        {
+          "name": "local_publish_source",
+          "declaration": "local_publish_source ( work : @ local_host . NativeClientSourceWork , host : @ local_host . NativeLocalHostConnection , settings : LocalHostSettings , run : LocalRunInstallation , configuration : @ source_owner . ResidentSourceComputeConfiguration , compiled : @ run_host . ClientCompiledRun , definition : @ publication . PublicationContract , request : @ run_host . ClientRequestIdentity , reference : @ local_host . NativeClientSubmissionReference , attempt : String , crypto : @ local_crypto . Library , store : @ local_store . Store , ) - > String raise ClientStop"
+        },
+        {
+          "name": "local_run_operation_allowed",
+          "declaration": "local_run_operation_allowed ( host : @ local_host . NativeLocalHostConnection , settings : LocalHostSettings , crypto : @ local_crypto . Library , scope : String , operation : String , capture ? : @ local_host . NativeLocalJournalCapture ?"
+        },
+        {
+          "name": "local_run_publication_reply",
+          "declaration": "local_run_publication_reply ( definition : @ publication . PublicationContract , request : @ run_host . ClientRequestIdentity , reference : @ local_host . NativeClientSubmissionReference , run : LocalRunInstallation , compiled : @ run_host . ClientCompiledRun , published : @ local_publication . NativeRunPublicationResult , ) - > String raise ClientStop"
+        },
+        {
+          "name": "local_submission_start",
+          "declaration": "local_submission_start ( host : @ local_host . NativeLocalHostConnection , settings : LocalHostSettings , crypto : @ local_crypto . Library , sqlite : @ local_sqlite . Library , environment : @ checked . CheckEnvironment , input_root : String , operation : String , child : @ argparse . Matches , public_run ? : Bool"
+        },
+        {
+          "name": "local_submit_allowed",
+          "declaration": "local_submit_allowed ( host : @ local_host . NativeLocalHostConnection , settings : LocalHostSettings , crypto : @ local_crypto . Library , scope : String , ) - > Bool"
+        },
+        {
+          "name": "local_utc_now",
+          "declaration": "local_utc_now ( ) - > String"
+        },
+        {
+          "name": "local_utc_now_ffi",
+          "declaration": "local_utc_now_ffi ( bytes : Bytes , length : Int ) - > Bool"
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing preparation, submission, Native reader and CLI Owners; D accepted-failure connection only, no new permission or physical ACK",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "local_aql_intent_input",
+            "local_generation_cid",
+            "local_intent_wire",
+            "local_publication_field",
+            "local_publish_source",
+            "local_run_operation_allowed",
+            "local_run_publication_reply",
+            "local_submission_start",
+            "local_submit_allowed",
+            "local_utc_now",
+            "local_utc_now_ffi"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/cmd/native_client/local_start.mbt",
+                "anchor": "fn local_utc_now() -> String {"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/cmd/native_client/local_start.mbt",
+                "anchor": "fn local_utc_now() -> String {"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "src/cmd/native_client/local_start.mbt",
+                "anchor": "fn local_utc_now() -> String {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "src/cmd/native_client/local_start.mbt",
+                "anchor": "fn local_utc_now() -> String {"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _commit_preparation_failure("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_preparation_failure_journal.py",
+                "anchor": "def test_lost_commit_reply_keeps_same_failed_preparation_and_never_looks_up_or_retries("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "src/client_host_wasm/preparation.mbt",
+                "anchor": "pub fn close_preparation("
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/cmd/native_client/local_start.mbt",
+                "anchor": "fn local_utc_now() -> String {"
+              },
+              {
+                "path": "src/client_host_wasm/submission.mbt",
+                "anchor": "@buffers.reserve_output_buffer("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_journal_record.mbt",
+                "anchor": "pub fn decode_client_submitted_journal_row("
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_host_wasm/preparation_outcome_wbtest.mbt",
+                "anchor": "test \"prepared typed refusal remains the same original instead of negative count inference\""
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_preparation_failure_journal.py",
+                "anchor": "def test_lost_commit_reply_keeps_same_failed_preparation_and_never_looks_up_or_retries("
+              },
+              {
+                "path": "src/run_publication_host/client_saved_submission_public_view_wbtest.mbt",
+                "anchor": "test \"accepted failure candidate preserves same intent and refuses terminal or foreign originals\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/platform_native/client_host/submission.mbt",
+      "sha256": "5641a79e6e1719c7a4879e5151b6bfec7b522d88593020c14c9a147a96f6ec8f",
+      "exports": [],
+      "operations": [
+        {
+          "name": "admit_native_client_submission_reference",
+          "declaration": "admit_native_client_submission_reference ( wire : String , ) - > Result [ NativeClientSubmissionReference , NativeClientRunJournalIssue ]"
+        },
+        {
+          "name": "initialize_native_client_submitted_intents",
+          "declaration": "initialize_native_client_submitted_intents ( database : @ sqlite . Database , bootstrap ? : NativeClientJournalBootstrapAccess ?"
+        },
+        {
+          "name": "native_client_submission_reference_wire",
+          "declaration": "native_client_submission_reference_wire ( value : NativeClientSubmissionReference , ) - > String"
+        },
+        {
+          "name": "native_client_submission_request_id",
+          "declaration": "native_client_submission_request_id ( value : NativeClientSubmissionReference , ) - > String"
+        },
+        {
+          "name": "native_client_submitted_intent",
+          "declaration": "native_client_submitted_intent ( value : NativeClientSubmittedIntentRecord , ) - > @ host . ClientSubmittedIntent"
+        },
+        {
+          "name": "native_client_submitted_intent_reference",
+          "declaration": "native_client_submitted_intent_reference ( value : NativeClientSubmittedIntentRecord , ) - > NativeClientSubmissionReference"
+        },
+        {
+          "name": "native_client_submitted_intent_revision",
+          "declaration": "native_client_submitted_intent_revision ( value : NativeClientSubmittedIntentRecord , ) - > Int64"
+        },
+        {
+          "name": "native_client_submitted_preparation_problem",
+          "declaration": "native_client_submitted_preparation_problem ( value : NativeClientSubmittedIntentRecord , ) - > ( String , String ) ?"
+        },
+        {
+          "name": "native_submission_reference_issue",
+          "declaration": "native_submission_reference_issue ( issue : @ host . ClientSubmissionReferenceRecordIssue , ) - > NativeClientRunJournalIssue"
+        },
+        {
+          "name": "native_submission_reference_record",
+          "declaration": "native_submission_reference_record ( value : @ host . ClientSubmissionReferenceRecord , ) - > NativeClientSubmissionReference"
+        },
+        {
+          "name": "NativeClientRunJournal::inspect_submitted_intent_row",
+          "declaration": "NativeClientRunJournal : : inspect_submitted_intent_row ( self : NativeClientRunJournal , row : @ host . ClientJournalPhysicalRow , reads ? : NativeClientJournalReadAccess ?"
+        },
+        {
+          "name": "NativeClientRunJournal::inspect_submitted_intent_row_with_record",
+          "declaration": "NativeClientRunJournal : : inspect_submitted_intent_row_with_record ( self : NativeClientRunJournal , row : @ host . ClientJournalPhysicalRow , reads ? : NativeClientJournalReadAccess ?"
+        },
+        {
+          "name": "NativeClientRunJournal::lookup_submitted_intent",
+          "declaration": "NativeClientRunJournal : : lookup_submitted_intent ( self : NativeClientRunJournal , authority : NativeClientEpochAuthority , reference : NativeClientSubmissionReference , authority_scope_cid : String , current_authorization : Bool , now : Double , ) - > Result [ NativeClientSubmittedIntentLookup , NativeClientRunJournalIssue ]"
+        },
+        {
+          "name": "NativeClientRunJournal::lookup_submitted_intent_with_operations",
+          "declaration": "NativeClientRunJournal : : lookup_submitted_intent_with_operations ( self : NativeClientRunJournal , authority : NativeClientEpochAuthority , reference : NativeClientSubmissionReference , authority_scope_cid : String , current_authorization : Bool , now : Double , operations ? : NativeClientJournalOperationAccess ?"
+        },
+        {
+          "name": "NativeClientRunJournal::record_submitted_intent",
+          "declaration": "NativeClientRunJournal : : record_submitted_intent ( self : NativeClientRunJournal , authority : NativeClientEpochAuthority , reference : NativeClientSubmissionReference , intent : @ host . ClientSubmittedIntent , authority_scope_cid : String , current_authorization : Bool , now : Double , ) - > Result [ NativeClientSubmittedIntentRecord , NativeClientRunJournalIssue ]"
+        },
+        {
+          "name": "NativeClientRunJournal::record_submitted_intent_locked",
+          "declaration": "NativeClientRunJournal : : record_submitted_intent_locked ( self : NativeClientRunJournal , authority : NativeClientEpochAuthority , reference : NativeClientSubmissionReference , intent : @ host . ClientSubmittedIntent , authority_scope_cid : String , current_authorization : Bool , operations ? : NativeClientJournalOperationAccess ?"
+        },
+        {
+          "name": "NativeClientRunJournal::record_submitted_intent_with_operations",
+          "declaration": "NativeClientRunJournal : : record_submitted_intent_with_operations ( self : NativeClientRunJournal , authority : NativeClientEpochAuthority , reference : NativeClientSubmissionReference , intent : @ host . ClientSubmittedIntent , authority_scope_cid : String , current_authorization : Bool , now : Double , operations ? : NativeClientJournalOperationAccess ?"
+        },
+        {
+          "name": "NativeClientRunJournal::retained_submission",
+          "declaration": "NativeClientRunJournal : : retained_submission ( self : NativeClientRunJournal , reference : NativeClientSubmissionReference , reads ? : NativeClientJournalReadAccess ?"
+        },
+        {
+          "name": "NativeClientRunJournal::retained_submission_with_run",
+          "declaration": "NativeClientRunJournal : : retained_submission_with_run ( self : NativeClientRunJournal , reference : NativeClientSubmissionReference , reads ? : NativeClientJournalReadAccess ?"
+        },
+        {
+          "name": "NativeClientRunJournal::submitted_intent_custody",
+          "declaration": "NativeClientRunJournal : : submitted_intent_custody ( self : NativeClientRunJournal , reads ? : NativeClientJournalReadAccess ?"
+        },
+        {
+          "name": "NativeClientRunJournal::verify_submission_locked",
+          "declaration": "NativeClientRunJournal : : verify_submission_locked ( self : NativeClientRunJournal , authority : NativeClientEpochAuthority , reference : NativeClientSubmissionReference , authority_scope_cid : String , current_authorization : Bool , reads ? : NativeClientJournalReadAccess ?"
+        },
+        {
+          "name": "prepare_native_client_submission_reference",
+          "declaration": "prepare_native_client_submission_reference ( epoch : NativeClientSubmissionEpoch , nonce : String , ) - > Result [ NativeClientSubmissionReference , NativeClientRunJournalIssue ]"
+        },
+        {
+          "name": "submitted_intent_body",
+          "declaration": "submitted_intent_body ( reference : NativeClientSubmissionReference , intent : @ host . ClientSubmittedIntent , run_admission ? : NativeClientSubmittedRunAdmission ?"
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing preparation, submission, Native reader and CLI Owners; D accepted-failure connection only, no new permission or physical ACK",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "admit_native_client_submission_reference",
+            "initialize_native_client_submitted_intents",
+            "native_client_submission_reference_wire",
+            "native_client_submission_request_id",
+            "native_client_submitted_intent",
+            "native_client_submitted_intent_reference",
+            "native_client_submitted_intent_revision",
+            "native_client_submitted_preparation_problem",
+            "native_submission_reference_issue",
+            "native_submission_reference_record",
+            "NativeClientRunJournal::inspect_submitted_intent_row",
+            "NativeClientRunJournal::inspect_submitted_intent_row_with_record",
+            "NativeClientRunJournal::lookup_submitted_intent",
+            "NativeClientRunJournal::lookup_submitted_intent_with_operations",
+            "NativeClientRunJournal::record_submitted_intent",
+            "NativeClientRunJournal::record_submitted_intent_locked",
+            "NativeClientRunJournal::record_submitted_intent_with_operations",
+            "NativeClientRunJournal::retained_submission",
+            "NativeClientRunJournal::retained_submission_with_run",
+            "NativeClientRunJournal::submitted_intent_custody",
+            "NativeClientRunJournal::verify_submission_locked",
+            "prepare_native_client_submission_reference",
+            "submitted_intent_body"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/platform_native/client_host/submission.mbt",
+                "anchor": "pub fn native_client_submission_reference_wire("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/platform_native/client_host/submission.mbt",
+                "anchor": "pub fn native_client_submission_reference_wire("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "src/platform_native/client_host/submission.mbt",
+                "anchor": "pub fn native_client_submission_reference_wire("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "src/platform_native/client_host/submission.mbt",
+                "anchor": "pub fn native_client_submission_reference_wire("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _commit_preparation_failure("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_preparation_failure_journal.py",
+                "anchor": "def test_lost_commit_reply_keeps_same_failed_preparation_and_never_looks_up_or_retries("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "src/client_host_wasm/preparation.mbt",
+                "anchor": "pub fn close_preparation("
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/platform_native/client_host/submission.mbt",
+                "anchor": "pub fn native_client_submission_reference_wire("
+              },
+              {
+                "path": "src/client_host_wasm/submission.mbt",
+                "anchor": "@buffers.reserve_output_buffer("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_journal_record.mbt",
+                "anchor": "pub fn decode_client_submitted_journal_row("
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_host_wasm/preparation_outcome_wbtest.mbt",
+                "anchor": "test \"prepared typed refusal remains the same original instead of negative count inference\""
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_preparation_failure_journal.py",
+                "anchor": "def test_lost_commit_reply_keeps_same_failed_preparation_and_never_looks_up_or_retries("
+              },
+              {
+                "path": "src/run_publication_host/client_saved_submission_public_view_wbtest.mbt",
+                "anchor": "test \"accepted failure candidate preserves same intent and refuses terminal or foreign originals\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/platform_native/client_host/submitted_run.mbt",
+      "sha256": "923e0bcb65524f96539f550191f0fd3c2c8e408c9393d013efae3a31cbd86e44",
+      "exports": [],
+      "operations": [
+        {
+          "name": "native_client_submitted_run_admission",
+          "declaration": "native_client_submitted_run_admission ( record : NativeClientSubmittedIntentRecord , ) - > NativeClientSubmittedRunAdmission ?"
+        },
+        {
+          "name": "native_client_submitted_run_admission_revision",
+          "declaration": "native_client_submitted_run_admission_revision ( admission : NativeClientSubmittedRunAdmission , ) - > Int64"
+        },
+        {
+          "name": "native_client_submitted_run_definition_cid",
+          "declaration": "native_client_submitted_run_definition_cid ( admission : NativeClientSubmittedRunAdmission , ) - > String"
+        },
+        {
+          "name": "native_client_submitted_run_request",
+          "declaration": "native_client_submitted_run_request ( admission : NativeClientSubmittedRunAdmission , ) - > @ host . ClientRequestIdentity"
+        },
+        {
+          "name": "NativeClientRunJournal::accept_original_submitted_run",
+          "declaration": "NativeClientRunJournal : : accept_original_submitted_run ( self : NativeClientRunJournal , authority : NativeClientEpochAuthority , reference : NativeClientSubmissionReference , intent_cid : String , request : @ host . ClientRequestIdentity , definition : @ publication . PublicationContract , authority_scope_cid : String , current_authorization : Bool , effect_material_originals ? : String ?"
+        },
+        {
+          "name": "NativeClientRunJournal::accept_submitted_effect_run",
+          "declaration": "NativeClientRunJournal : : accept_submitted_effect_run ( self : NativeClientRunJournal , authority : NativeClientEpochAuthority , reference : NativeClientSubmissionReference , preparation : NativeClientSubmittedPreparation , request : @ host . ClientRequestIdentity , allowed : @ host . ClientEffectAllowedRun , definition : @ publication . PublicationContract , authority_scope_cid : String , current_authorization : Bool , now : Double , ) - > Result [ NativeClientSubmittedIntentRecord , NativeClientRunJournalIssue ]"
+        },
+        {
+          "name": "NativeClientRunJournal::accept_submitted_run",
+          "declaration": "NativeClientRunJournal : : accept_submitted_run ( self : NativeClientRunJournal , authority : NativeClientEpochAuthority , reference : NativeClientSubmissionReference , preparation : NativeClientSubmittedPreparation , request : @ host . ClientRequestIdentity , compiled : @ host . ClientCompiledRun , definition : @ publication . PublicationContract , authority_scope_cid : String , current_authorization : Bool , now : Double , ) - > Result [ NativeClientSubmittedIntentRecord , NativeClientRunJournalIssue ]"
+        },
+        {
+          "name": "NativeClientRunJournal::accept_submitted_run_with_operations",
+          "declaration": "NativeClientRunJournal : : accept_submitted_run_with_operations ( self : NativeClientRunJournal , authority : NativeClientEpochAuthority , reference : NativeClientSubmissionReference , preparation : NativeClientSubmittedPreparation , request : @ host . ClientRequestIdentity , compiled : @ host . ClientCompiledRun , definition : @ publication . PublicationContract , authority_scope_cid : String , current_authorization : Bool , now : Double , operations ? : NativeClientJournalOperationAccess ?"
+        },
+        {
+          "name": "NativeClientRunJournal::authorize_submitted_run",
+          "declaration": "NativeClientRunJournal : : authorize_submitted_run ( self : NativeClientRunJournal , authority : NativeClientEpochAuthority , reference : NativeClientSubmissionReference , request : @ host . ClientRequestIdentity , authority_scope_cid : String , current_authorization : Bool , now : Double , operations ? : NativeClientJournalOperationAccess ?"
+        },
+        {
+          "name": "NativeClientRunJournal::validate_submitted_run_admission",
+          "declaration": "NativeClientRunJournal : : validate_submitted_run_admission ( self : NativeClientRunJournal , record : NativeClientSubmittedIntentRecord , reads ? : NativeClientJournalReadAccess ?"
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing preparation, submission, Native reader and CLI Owners; D accepted-failure connection only, no new permission or physical ACK",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "native_client_submitted_run_admission",
+            "native_client_submitted_run_admission_revision",
+            "native_client_submitted_run_definition_cid",
+            "native_client_submitted_run_request",
+            "NativeClientRunJournal::accept_original_submitted_run",
+            "NativeClientRunJournal::accept_submitted_effect_run",
+            "NativeClientRunJournal::accept_submitted_run",
+            "NativeClientRunJournal::accept_submitted_run_with_operations",
+            "NativeClientRunJournal::authorize_submitted_run",
+            "NativeClientRunJournal::validate_submitted_run_admission"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/platform_native/client_host/submitted_run.mbt",
+                "anchor": "pub fn native_client_submitted_run_admission("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/platform_native/client_host/submitted_run.mbt",
+                "anchor": "pub fn native_client_submitted_run_admission("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "src/platform_native/client_host/submitted_run.mbt",
+                "anchor": "pub fn native_client_submitted_run_admission("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "src/platform_native/client_host/submitted_run.mbt",
+                "anchor": "pub fn native_client_submitted_run_admission("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _commit_preparation_failure("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_preparation_failure_journal.py",
+                "anchor": "def test_lost_commit_reply_keeps_same_failed_preparation_and_never_looks_up_or_retries("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "src/client_host_wasm/preparation.mbt",
+                "anchor": "pub fn close_preparation("
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/platform_native/client_host/submitted_run.mbt",
+                "anchor": "pub fn native_client_submitted_run_admission("
+              },
+              {
+                "path": "src/client_host_wasm/submission.mbt",
+                "anchor": "@buffers.reserve_output_buffer("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_journal_record.mbt",
+                "anchor": "pub fn decode_client_submitted_journal_row("
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_host_wasm/preparation_outcome_wbtest.mbt",
+                "anchor": "test \"prepared typed refusal remains the same original instead of negative count inference\""
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_preparation_failure_journal.py",
+                "anchor": "def test_lost_commit_reply_keeps_same_failed_preparation_and_never_looks_up_or_retries("
+              },
+              {
+                "path": "src/run_publication_host/client_saved_submission_public_view_wbtest.mbt",
+                "anchor": "test \"accepted failure candidate preserves same intent and refuses terminal or foreign originals\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/run_publication_host/client_journal_row_encoding.mbt",
+      "sha256": "aa84127500641e41f940623cbdd72c7e7db1e8083f0ee9862bba0a9816434282",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_run_journal_row_body",
+          "declaration": "client_run_journal_row_body ( record : ClientRunJournalEncoding , local_run_policy_originals ? : String ?"
+        },
+        {
+          "name": "client_run_journal_row_body_from_wires",
+          "declaration": "client_run_journal_row_body_from_wires ( record : ClientRunJournalEncoding , request : String , definition : String , local_run_policy_originals ? : String ?"
+        },
+        {
+          "name": "client_submitted_intent_journal_row_body",
+          "declaration": "client_submitted_intent_journal_row_body ( reference_wire : String , intent : ClientSubmittedIntent , run_admission ? : ( ClientRequestIdentity , String , Int64 ) ?"
+        }
+      ],
+      "role": "common-semantics",
+      "owner": "Existing preparation, submission, Native reader and CLI Owners; D accepted-failure connection only, no new permission or physical ACK",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_run_journal_row_body",
+            "client_run_journal_row_body_from_wires",
+            "client_submitted_intent_journal_row_body"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/run_publication_host/client_journal_row_encoding.mbt",
+                "anchor": "pub fn client_run_journal_row_body("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/run_publication_host/client_journal_row_encoding.mbt",
+                "anchor": "pub fn client_run_journal_row_body("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "src/run_publication_host/client_journal_row_encoding.mbt",
+                "anchor": "pub fn client_run_journal_row_body("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "src/run_publication_host/client_journal_row_encoding.mbt",
+                "anchor": "pub fn client_run_journal_row_body("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _commit_preparation_failure("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_preparation_failure_journal.py",
+                "anchor": "def test_lost_commit_reply_keeps_same_failed_preparation_and_never_looks_up_or_retries("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "src/client_host_wasm/preparation.mbt",
+                "anchor": "pub fn close_preparation("
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/run_publication_host/client_journal_row_encoding.mbt",
+                "anchor": "pub fn client_run_journal_row_body("
+              },
+              {
+                "path": "src/client_host_wasm/submission.mbt",
+                "anchor": "@buffers.reserve_output_buffer("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_journal_record.mbt",
+                "anchor": "pub fn decode_client_submitted_journal_row("
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_host_wasm/preparation_outcome_wbtest.mbt",
+                "anchor": "test \"prepared typed refusal remains the same original instead of negative count inference\""
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_preparation_failure_journal.py",
+                "anchor": "def test_lost_commit_reply_keeps_same_failed_preparation_and_never_looks_up_or_retries("
+              },
+              {
+                "path": "src/run_publication_host/client_saved_submission_public_view_wbtest.mbt",
+                "anchor": "test \"accepted failure candidate preserves same intent and refuses terminal or foreign originals\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/run_publication_host/client_saved_submission_public_view.mbt",
+      "sha256": "a6b5fe3c34abf04479bff88a72b64c511e768580bfe5e12896a0e74b8287084f",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_saved_submission_admission_wire",
+          "declaration": "client_saved_submission_admission_wire ( value : ClientSavedSubmissionSnapshot , ) - > Result [ String , ClientSavedSubmissionViewIssue ]"
+        },
+        {
+          "name": "client_saved_submission_preparation_failure_body",
+          "declaration": "client_saved_submission_preparation_failure_body ( value : ClientSavedSubmissionSnapshot , intent : ClientSubmittedIntent , problem : ( String , String ) , ) - > Result [ Bytes , ClientSavedSubmissionViewIssue ]"
+        }
+      ],
+      "role": "common-semantics",
+      "owner": "Existing preparation, submission, Native reader and CLI Owners; D accepted-failure connection only, no new permission or physical ACK",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_saved_submission_admission_wire",
+            "client_saved_submission_preparation_failure_body"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/run_publication_host/client_saved_submission_public_view.mbt",
+                "anchor": "pub fn client_saved_submission_admission_wire("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/run_publication_host/client_saved_submission_public_view.mbt",
+                "anchor": "pub fn client_saved_submission_admission_wire("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "src/run_publication_host/client_saved_submission_public_view.mbt",
+                "anchor": "pub fn client_saved_submission_admission_wire("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "src/run_publication_host/client_saved_submission_public_view.mbt",
+                "anchor": "pub fn client_saved_submission_admission_wire("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _commit_preparation_failure("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_preparation_failure_journal.py",
+                "anchor": "def test_lost_commit_reply_keeps_same_failed_preparation_and_never_looks_up_or_retries("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "src/client_host_wasm/preparation.mbt",
+                "anchor": "pub fn close_preparation("
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/run_publication_host/client_saved_submission_public_view.mbt",
+                "anchor": "pub fn client_saved_submission_admission_wire("
+              },
+              {
+                "path": "src/client_host_wasm/submission.mbt",
+                "anchor": "@buffers.reserve_output_buffer("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_journal_record.mbt",
+                "anchor": "pub fn decode_client_submitted_journal_row("
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_host_wasm/preparation_outcome_wbtest.mbt",
+                "anchor": "test \"prepared typed refusal remains the same original instead of negative count inference\""
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_preparation_failure_journal.py",
+                "anchor": "def test_lost_commit_reply_keeps_same_failed_preparation_and_never_looks_up_or_retries("
+              },
+              {
+                "path": "src/run_publication_host/client_saved_submission_public_view_wbtest.mbt",
+                "anchor": "test \"accepted failure candidate preserves same intent and refuses terminal or foreign originals\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/run_publication_host/client_submitted_journal_record.mbt",
+      "sha256": "f328048fe1aba908966e4ebe9be249ae1edf189075dbd8e4f32314e04c9cc41d",
+      "exports": [],
+      "operations": [
+        {
+          "name": "decode_client_submitted_journal_row",
+          "declaration": "decode_client_submitted_journal_row ( body : Bytes , ) - > Result [ ClientSubmittedJournalEncoding , ClientJournalDecodingIssue ]"
+        },
+        {
+          "name": "validate_client_submitted_retained_run",
+          "declaration": "validate_client_submitted_retained_run ( reference : ClientSubmissionReferenceRecord , admission : ( ClientRequestIdentity , String , Int64 ) , retained_request : ClientRequestIdentity , retained_definition : @ publication . PublicationContract , retained_revision : Int64 , ) - > Result [ Unit , ClientJournalDecodingIssue ]"
+        }
+      ],
+      "role": "common-semantics",
+      "owner": "Existing preparation, submission, Native reader and CLI Owners; D accepted-failure connection only, no new permission or physical ACK",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "decode_client_submitted_journal_row",
+            "validate_client_submitted_retained_run"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/run_publication_host/client_submitted_journal_record.mbt",
+                "anchor": "pub fn decode_client_submitted_journal_row("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/run_publication_host/client_submitted_journal_record.mbt",
+                "anchor": "pub fn decode_client_submitted_journal_row("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_journal_record.mbt",
+                "anchor": "pub fn decode_client_submitted_journal_row("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_journal_record.mbt",
+                "anchor": "pub fn decode_client_submitted_journal_row("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _commit_preparation_failure("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_preparation_failure_journal.py",
+                "anchor": "def test_lost_commit_reply_keeps_same_failed_preparation_and_never_looks_up_or_retries("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "src/client_host_wasm/preparation.mbt",
+                "anchor": "pub fn close_preparation("
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/run_publication_host/client_submitted_journal_record.mbt",
+                "anchor": "pub fn decode_client_submitted_journal_row("
+              },
+              {
+                "path": "src/client_host_wasm/submission.mbt",
+                "anchor": "@buffers.reserve_output_buffer("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_journal_record.mbt",
+                "anchor": "pub fn decode_client_submitted_journal_row("
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_host_wasm/preparation_outcome_wbtest.mbt",
+                "anchor": "test \"prepared typed refusal remains the same original instead of negative count inference\""
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_preparation_failure_journal.py",
+                "anchor": "def test_lost_commit_reply_keeps_same_failed_preparation_and_never_looks_up_or_retries("
+              },
+              {
+                "path": "src/run_publication_host/client_saved_submission_public_view_wbtest.mbt",
+                "anchor": "test \"accepted failure candidate preserves same intent and refuses terminal or foreign originals\""
               }
             ]
           }

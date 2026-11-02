@@ -321,6 +321,10 @@ fn local_explicit_submission_preflight(
         @run_host.client_submitted_intent_wire(intent) {
         stop("LocalSubmissionIntentConflict")
       }
+      if @local_host.native_client_submitted_preparation_problem(record)
+        is Some(_) {
+        stop("LocalSubmissionPreparationFailed")
+      }
       match @local_host.native_client_submitted_run_admission(record) {
         None => ExplicitSubmissionInput(selection, original_intent)
         Some(_) =>

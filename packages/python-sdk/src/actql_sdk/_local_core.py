@@ -1493,6 +1493,36 @@ class LocalCore:
             self._loans[ticket] = value
             return value
 
+    def reserve_submission_preparation_failure(self, configuration: int, preparation: int,
+                                             source: _Input, *, cleanup: Callable[[], bool]) -> _Output:
+        """Retain the original typed preparation and its terminal row candidate.
+
+        The Core checks the same failed preparation and accepted intent. This
+        reservation supplies neither a classification nor a Store acknowledgement.
+        """
+        with self._lock:
+            self._owned_input(source)
+            if (self._closing or type(configuration) is not int or not 0 < configuration < 2**31
+                    or type(preparation) is not int or not 0 < preparation < 2**31
+                    or not callable(cleanup)):
+                raise ValueError('Invalid original Local preparation failure reservation')
+            ticket = self._next_ticket
+            if ticket >= 2**31:
+                raise RuntimeError('Local Core input identity exhausted')
+            self._next_ticket += 1
+            limit = 1048576
+            self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
+            physical_bytes = (self._output_copy_bytes(limit)
+                              + sys.getsizeof(_Output(self._identity, ticket, 0, limit, 'submission_append')))
+            handle = self._call('submission', 'reserve_failure', configuration, preparation,
+                                source.handle, ticket, physical_bytes)
+            if handle <= 0:
+                del self._inputs[ticket]
+                raise LocalCoreError('reserve_submission_preparation_failure', handle)
+            value = _Output(self._identity, ticket, handle, limit, 'submission_append')
+            self._loans[ticket] = value
+            return value
+
     def reserve_client_check(self, environment: int, configuration: int, source: _Input,
                              kind: int, *, cleanup: Callable[[], bool]) -> _Output:
         """Retain same-Host reporting custody before the actual Common call."""

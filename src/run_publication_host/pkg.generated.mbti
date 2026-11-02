@@ -1121,6 +1121,8 @@ pub fn client_saved_run_state_update_row(ClientSavedRunStateUpdate) -> (String, 
 
 pub fn client_saved_submission_admission_wire(ClientSavedSubmissionSnapshot) -> Result[String, ClientSavedSubmissionViewIssue]
 
+pub fn client_saved_submission_preparation_failure_body(ClientSavedSubmissionSnapshot, ClientSubmittedIntent, (String, String)) -> Result[Bytes, ClientSavedSubmissionViewIssue]
+
 pub fn client_saved_submission_record(ClientSavedSubmissionSnapshot) -> ClientSubmittedJournalEncoding
 
 pub fn client_saved_submission_revision(ClientSavedSubmissionSnapshot) -> Int64
@@ -1215,7 +1217,7 @@ pub fn client_submitted_intent_cid(ClientSubmittedIntent) -> String
 
 pub fn client_submitted_intent_effect_compatible(ClientSubmittedIntent, PreparedClientEffectComputation) -> Bool
 
-pub fn client_submitted_intent_journal_row_body(String, ClientSubmittedIntent, run_admission? : (ClientRequestIdentity, String, Int64)?, run_state_original? : String?, run_state_observation? : (Int64, String?)?) -> Result[Bytes, ClientJournalEncodingIssue]
+pub fn client_submitted_intent_journal_row_body(String, ClientSubmittedIntent, run_admission? : (ClientRequestIdentity, String, Int64)?, run_state_original? : String?, run_state_observation? : (Int64, String?)?, preparation_problem? : (String, String)?) -> Result[Bytes, ClientJournalEncodingIssue]
 
 pub fn client_submitted_intent_requests_commit_stop(ClientSubmittedIntent) -> Bool
 
@@ -4470,6 +4472,7 @@ pub(all) struct ClientSubmittedJournalEncoding {
   run_admission : (ClientRequestIdentity, String, Int64)?
   run_state_original : String?
   run_state_observation : (Int64, String?)?
+  preparation_problem : (String, String)?
 }
 
 pub struct ClientSubmittedNameBinding {
