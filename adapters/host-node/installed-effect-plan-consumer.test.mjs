@@ -7,6 +7,7 @@ import {prepareInstalledEffectManagedPlanRun, readInstalledEffectManagedPlanRun}
 import {bindInstalledManagedSources} from './installed-managed-source.mjs';
 import {selectAcquiredEffectSources, selectAcquiredEffectPlanInputs} from './acquired-effect-sources.mjs';
 import {openAcquiredEffectComputation} from './acquired-effect-computation.mjs';
+import {prepareInstalledRowCaptureChild} from './installed-row-capture-cleanup.mjs';
 
 // Original runtime/admission ports are explicit. These tests exercise the real
 // Node owner/consumers, not actual Common funding, vendor work or normal support.
@@ -280,4 +281,182 @@ test('an original planned Resource read never substitutes for the provider Crede
       occurrence, ledger: {}}), error => error === beforeRead);
     assert.equal(grants, provider ? 1 : 0); assert.equal(reads, 1); assert.equal(closed, 1);
   }
+});
+
+
+// Execute the original recovered Row Effect and its actual physical-route
+// guard/retirement. Credential/Core/provider ports are explicit, never a new
+// Common Plan, Resource grant or ordinary Saved acceptance.
+const recoveryRowSource = readFileSync(new URL('./installed-row-effect.mjs', import.meta.url), 'utf8');
+const recoveryRowNodes = [];
+(function walk(node) {
+  if (!node || typeof node !== 'object') return;
+  if (node.type === 'FunctionDeclaration' && node.id.name === 'prepareRecovered' ||
+      node.type === 'VariableDeclarator' && node.id.name === 'physicalRoute') recoveryRowNodes.push(node);
+  for (const child of Object.values(node)) if (Array.isArray(child)) child.forEach(walk);
+  else if (child && typeof child === 'object') walk(child);
+})(parse(recoveryRowSource, {ecmaVersion: 'latest', sourceType: 'module'}));
+const recoveryNode = recoveryRowNodes.find(node => node.type === 'FunctionDeclaration');
+const recoveryRouteNode = recoveryRowNodes.find(node => node.type === 'VariableDeclarator').init;
+
+function recoveredPhysicalFixture({managed = true, pending = false, failPrepare = false, prepareFailure, reenter, closeDuringRetain = false, storedResponse} = {}) {
+  const prepared = {}, request = {}, value = {}, operationPlan = {}, preview = {}, computation = {}, storedResults = {},
+    definition = {identity: 'original-definition'};
+  const events = [], child = {}, originalCurrent = {}, current = {}, entry = {request: {}}, member = {memberIndex: 0};
+  const body = {invocation_cid: 'original-invocation', run_identity_cid: 'original-run',
+    authoring_context: {authoring_context_cid: 'original-authoring'}, effects: [{capability_evidence_cid: 'original-capability', changes: [{}]}]};
+  const owner = {managedPlanRecipe: {credentialOperations: [{}]}, owned: {}};
+  const run = {prepared, request, value, operationPlan, definitionOriginal: {definition}, closed: false, controlConstruction: (receiver, method, args) => Reflect.apply(method, receiver, args)};
+  let supplied, retained, stage, routeOptions, closed = false, allowClose = !pending;
+  const ledger = {close() {events.push('ledger-close'); closed = true;},
+    readClaimedResponse() {events.push('stored-read'); return {};},
+    recoverClaimFacts() {return {members: [{claims: []}]};}};
+  const moon = {clientRequestRelation: (left, right) => left === right ? 1 : 2,
+    strategyPublicationContractIdentity: original => original.identity}; run.runtime = moon;
+  const fail = code => {throw Object.assign(new Error(code), {code});};
+  const realRoute = new Function('ownerOf', 'fail', 'return (' +
+    recoveryRowSource.slice(recoveryRouteNode.start, recoveryRouteNode.end) + ');')(() => owner, fail);
+  const control = {effectComputationPreviewWire: () => JSON.stringify(body),
+    effectComputationPreviewLedgerIdentity: () => originalCurrent,
+    effectComputationPreviewSemanticCid: () => 'original-preview'};
+  const limits = {preview: {}, key: {}, maxRows: 1, maxWork: 1, maxFrontierWork: 1};
+  const ports = {moon, localContractLimits: {}, singular: undefined, ROUTING_VERSION: 'original-version',
+    text: value => typeof value === 'string' && value.length > 0, selectionChanged: () => assert.fail('No target selection'),
+    recoveredMembers: () => [member], bindRunResources() {}, selectionFence: () => () => {},
+    memberDispatch: () => 'original-dispatch', limits,
+    effect: {recoveredPreviewKeys: () => [], admitPreviewIdentity: () => ({})},
+    openLedger() {events.push('ledger-open'); return ledger;},
+    recoveredEntries: () => ({entries: [[entry]], currents: [current]}),
+    admitCapability: () => ({identity: 'original-capability'}), orderedSourceIndexes: () => [0],
+    physicalRoute(options) {routeOptions = options; return realRoute(options);},
+    owners: [owner], scopes: () => [{}], canonicalJson: JSON.stringify, fail,
+    admitRow: () => ({}), settle() {events.push('settle');},
+    async recoverProjectedEffectResponse() {events.push('stored-await'); await storedResponse; return {recovered: {}};},
+    prepareCredentialOperation(options) {
+      supplied = options; events.push('operation');
+      assert.strictEqual(options.managedEffect, run);
+      assert.equal(options.phase, 'write'); assert.equal(options.rowIndex, 0);
+      assert.strictEqual(options.member, member);
+      let retired = false;
+      const original = {async prepare() {events.push('prepare'); if (failPrepare) throw prepareFailure; return child;},
+        async release() {
+          events.push('release'); if (reenter) await reenter(retained);
+          if (!allowClose || !options.retireRequestAliases()) return false;
+          retired = true; return true;
+        }, retry() {return this.release();}, status: () => ({pending: !retired})};
+      return prepareInstalledRowCaptureChild({children: options.requestChildren,
+        create: () => original, assertCurrent: () => {}, signal: undefined});
+    }};
+  const prepare = new Function(...Object.keys(ports), 'return ' +
+    recoveryRowSource.slice(recoveryNode.start, recoveryNode.end))(...Object.values(ports));
+  const facts = {moon, control, store: {}, recovered: {prepared, runDefinition: definition, requestIdentity: request, requestScope: {},
+    computation: {computation, preview, storedResults}}, continuation: {version: 'original-version',
+    program_id: 'original-program', stage_id: 'original-stage', members: [{dispatch_request_cid: 'original-dispatch'}]},
+    managedEffect: managed ? run : undefined, retainRecoveryOwner(value) {retained = value; if (closeDuringRetain) void value.cleanup();}};
+  return {facts, run, child, events, entry, current, ledger, get owner() {return retained;},
+    get options() {return supplied;}, get closed() {return closed;},
+    begin() {stage = prepare(facts); return stage;},
+    operate() {return routeOptions.physicalOperations({member, rowIndex: 0, phase: 'write', operation: 'original-write', assertCurrent() {}});},
+    allowClose() {allowClose = true;}, stage: () => stage};
+}
+
+test('recovered Effect physical route retains the same original operation child under its existing cleanup owner', async () => {
+  const f = recoveredPhysicalFixture(); f.begin();
+  assert.strictEqual(await f.operate(), f.child);
+  assert.equal(f.owner.cleanupPending(), true);
+  assert.equal(f.closed, false);
+  assert.equal(await f.owner.cleanup(), true);
+  assert.equal(f.closed, true);
+  assert.deepEqual(f.events, ['ledger-open', 'operation', 'prepare', 'release', 'ledger-close']);
+});
+
+
+test('recovered Effect pending child keeps the Ledger and original retry until actual retirement', async () => {
+  const f = recoveredPhysicalFixture({pending: true}); f.begin(); await f.operate();
+  assert.equal(await f.owner.cleanup(), false); assert.equal(f.owner.cleanupPending(), true);
+  assert.equal(f.closed, false); assert.equal(f.events.includes('ledger-close'), false);
+  f.allowClose(); assert.equal(await f.stage().dispose(), true);
+  assert.equal(f.owner.cleanupPending(), false);
+  assert.deepEqual(f.events, ['ledger-open', 'operation', 'prepare', 'release', 'release', 'ledger-close']);
+  assert.equal(await f.owner.cleanup(), true);
+  assert.equal(f.events.filter(event => event === 'ledger-close').length, 1);
+  await assert.rejects(async () => f.operate(), {code: 'InstalledRowEffectRouteRetired'});
+});
+
+test('recovered Effect cleanup observes reentry as pending instead of deadlocking or closing its parent early', async () => {
+  const observations = [];
+  const f = recoveredPhysicalFixture({reenter: async owner => observations.push(await owner.cleanup())});
+  f.begin(); await f.operate();
+  assert.equal(await f.owner.cleanup(), true); assert.deepEqual(observations, [false]);
+  assert.deepEqual(f.events, ['ledger-open', 'operation', 'prepare', 'release', 'ledger-close']);
+});
+
+test('recovered Effect failed child preparation preserves undefined and retains its original cleanup', async () => {
+  const f = recoveredPhysicalFixture({failPrepare: true, prepareFailure: undefined, pending: true}); f.begin();
+  let thrown = false;
+  try {await f.operate();} catch (error) {thrown = true; assert.strictEqual(error, undefined);}
+  assert.equal(thrown, true); assert.equal(f.options.requestChildren.length, 1);
+  assert.equal(await f.owner.cleanup(), false); assert.equal(f.closed, false);
+  f.allowClose(); assert.equal(await f.owner.cleanup(), true);
+  assert.equal(f.events.filter(event => event === 'operation').length, 1);
+});
+
+test('recovered Effect refuses missing or foreign managed originals without a legacy physical substitute', async () => {
+  const missing = recoveredPhysicalFixture({managed: false});
+  assert.throws(() => missing.begin(), {code: 'InstalledEffectPhysicalPlanUnavailable'});
+  assert.equal(missing.events.includes('operation'), false);
+  assert.equal(await missing.owner.cleanup(), true);
+  const foreign = recoveredPhysicalFixture(); foreign.run.request = {};
+  assert.throws(() => foreign.begin(), {code: 'ForeignInstalledEffectManagedRun'});
+  assert.deepEqual(foreign.events, []);
+});
+
+test('recovered Effect retains its Owner before a reentrant constructor cleanup and remains closeable', async () => {
+  const f = recoveredPhysicalFixture({closeDuringRetain: true});
+  assert.throws(() => f.begin(), {code: 'InstalledRowEffectRouteRetired'});
+  assert.equal(f.closed, false); assert.equal(f.owner.cleanupPending(), true);
+  assert.equal(await f.owner.cleanup(), true);
+  assert.deepEqual(f.events, ['ledger-open', 'ledger-close']);
+});
+
+
+test('recovered Effect existing Site custody waits for the same operation child before capture resources', async () => {
+  const site = readFileSync(new URL('./installed-effect-site.mjs', import.meta.url), 'utf8');
+  const node = parse(site, {ecmaVersion: 'latest', sourceType: 'module'}).body
+    .find(node => node.type === 'FunctionDeclaration' && node.id.name === 'cleanupCustody');
+  assert(node);
+  const make = new Function('fail', 'return ' + site.slice(node.start, node.end))(
+    code => {throw Object.assign(new Error(code), {code});});
+  const f = recoveredPhysicalFixture({pending: true}), stage = f.begin(); await f.operate();
+  const custody = make(); let captureClose = 0;
+  custody.attach(stage); custody.attachPhysical(f.owner);
+  custody.retainRecoveryResources({close() {captureClose++; return true;}, status: () => ({pending: true})});
+  await custody.close(); assert.equal(await custody.cleanup(), false);
+  assert.equal(captureClose, 0); assert.equal(f.closed, false);
+  f.allowClose(); assert.equal(await custody.cleanup(), true);
+  assert.equal(captureClose, 1); assert.equal(custody.cleanupPending(), false);
+  assert.equal(f.events.filter(event => event === 'ledger-close').length, 1);
+});
+
+test('recovered Effect stored-response projection holds its original Ledger until the same await settles', async () => {
+  let finish;
+  const gate = new Promise(resolve => {finish = resolve;}), f = recoveredPhysicalFixture({storedResponse: gate});
+  const stage = f.begin(), work = stage.apply.reconcileStoredResponses({members: [{claims: [{}]}], preview: {}});
+  assert.equal(f.events.includes('stored-await'), true);
+  assert.equal(await f.owner.cleanup(), false); assert.equal(f.closed, false);
+  finish(); await assert.rejects(work, {code: 'InstalledRowEffectRouteRetired'});
+  assert.equal(f.events.includes('settle'), false);
+  assert.equal(await f.owner.cleanup(), true); assert.equal(f.closed, true);
+});
+
+
+test('recovered Effect binds its existing managed Plan to the same saved Definition before opening its Ledger', async () => {
+  for (const original of [undefined, {identity: 'foreign-definition'}]) {
+    const f = recoveredPhysicalFixture(); f.run.definitionOriginal = {definition: original};
+    assert.throws(() => f.begin(), {code: 'ForeignInstalledEffectManagedRun'});
+    assert.deepEqual(f.events, []);
+  }
+  const f = recoveredPhysicalFixture(); f.begin();
+  assert.equal(await f.owner.cleanup(), true);
+  assert.deepEqual(f.events, ['ledger-open', 'ledger-close']);
 });

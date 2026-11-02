@@ -69711,7 +69711,7 @@
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "3eeac6a1fb18ea7d21f991693c4036570114d36369360a383935f264e048d4ca",
+      "sha256": "79ca3701669b4cd28a2e7ed90480c078c5582b4e376db41eeb0a69287fa2b9f4",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -71106,6 +71106,21 @@
           "async": false
         },
         {
+          "name": "createRowEffectStage/prepareRecovered/closeRecovery/closeRecovery",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/prepareRecovered/closeRecovery/closeRecovery/flight/flight",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createRowEffectStage/prepareRecovered/closeRecovery/closeRecovery/flight/flight#2",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "createRowEffectStage/prepareRecovered/dispatches/dispatches",
           "parameters": [
             "member"
@@ -71157,11 +71172,6 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage/prepareRecovered/finish/finish/finish#6",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "createRowEffectStage/prepareRecovered/finish/finish/previewRows/previewRows",
           "parameters": [
             "member"
@@ -71177,6 +71187,11 @@
           "async": true
         },
         {
+          "name": "createRowEffectStage/prepareRecovered/finish/finish/reconcileStoredResponses/reconcileStoredResponses/assertRecoveredCurrent/assertRecoveredCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "createRowEffectStage/prepareRecovered/finish/finish/reconcileStoredResponses/reconcileStoredResponses/recovery/recovery",
           "parameters": [],
           "async": true
@@ -71189,16 +71204,6 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage/prepareRecovered/ledgerOwner/init:cleanup/init:cleanup",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "createRowEffectStage/prepareRecovered/ledgerOwner/init:close/init:close",
-          "parameters": [],
-          "async": true
-        },
-        {
           "name": "createRowEffectStage/prepareRecovered/ledgerOwner/ledgerOwner",
           "parameters": [],
           "async": false
@@ -71209,6 +71214,18 @@
             "member",
             "index"
           ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/prepareRecovered/physicalOperations/physicalOperations",
+          "parameters": [
+            "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/prepareRecovered/physicalOperations/physicalOperations/init:assertCurrent/init:assertCurrent",
+          "parameters": [],
           "async": false
         },
         {
@@ -71242,9 +71259,21 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage/prepareRecovered/releaseRecoveryChildren/releaseRecoveryChildren",
+          "name": "createRowEffectStage/prepareRecovered/requestsPending/requestsPending",
           "parameters": [],
-          "async": true
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/prepareRecovered/requestsPending/requestsPending/requestsPending",
+          "parameters": [
+            "child"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/prepareRecovered/retireRequestAliases/retireRequestAliases",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "createRowEffectStage/readDecision/readDecision",
@@ -72976,14 +73005,11 @@
             "createRowEffectStage/prepareRecovered/finish/finish/finish#3",
             "createRowEffectStage/prepareRecovered/finish/finish/finish#4",
             "createRowEffectStage/prepareRecovered/finish/finish/finish#5",
-            "createRowEffectStage/prepareRecovered/finish/finish/finish#6",
             "createRowEffectStage/prepareRecovered/finish/finish/finish/finish",
             "createRowEffectStage/prepareRecovered/finish/finish/previewRows/previewRows",
             "createRowEffectStage/prepareRecovered/finish/finish/reconcileStoredResponses/reconcileStoredResponses",
             "createRowEffectStage/prepareRecovered/finish/finish/reconcileStoredResponses/reconcileStoredResponses/recovery/recovery",
             "createRowEffectStage/prepareRecovered/finish/finish/reconcileStoredResponses/reconcileStoredResponses/recovery/recovery#2",
-            "createRowEffectStage/prepareRecovered/ledgerOwner/init:cleanup/init:cleanup",
-            "createRowEffectStage/prepareRecovered/ledgerOwner/init:close/init:close",
             "createRowEffectStage/prepareRecovered/ledgerOwner/ledgerOwner",
             "createRowEffectStage/prepareRecovered/prepareRecovered",
             "createRowEffectStage/prepareRecovered/prepareRecovered#2",
@@ -75593,8 +75619,7 @@
             "createRowEffectStage/prepareRecovered/finish/finish",
             "createRowEffectStage/prepareRecovered/memberIndexes/memberIndexes",
             "createRowEffectStage/prepareRecovered/recoveryPending/recoveryPending",
-            "createRowEffectStage/prepareRecovered/recoveryPending/recoveryPending/recoveryPending",
-            "createRowEffectStage/prepareRecovered/releaseRecoveryChildren/releaseRecoveryChildren"
+            "createRowEffectStage/prepareRecovered/recoveryPending/recoveryPending/recoveryPending"
           ],
           "exports": [],
           "attributes": {
@@ -76421,6 +76446,82 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Request-owned execution preparation"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createRowEffectStage/prepareRecovered/closeRecovery/closeRecovery",
+            "createRowEffectStage/prepareRecovered/closeRecovery/closeRecovery/flight/flight",
+            "createRowEffectStage/prepareRecovered/closeRecovery/closeRecovery/flight/flight#2",
+            "createRowEffectStage/prepareRecovered/finish/finish/reconcileStoredResponses/reconcileStoredResponses/assertRecoveredCurrent/assertRecoveredCurrent",
+            "createRowEffectStage/prepareRecovered/physicalOperations/physicalOperations",
+            "createRowEffectStage/prepareRecovered/physicalOperations/physicalOperations/init:assertCurrent/init:assertCurrent",
+            "createRowEffectStage/prepareRecovered/requestsPending/requestsPending",
+            "createRowEffectStage/prepareRecovered/requestsPending/requestsPending/requestsPending",
+            "createRowEffectStage/prepareRecovered/retireRequestAliases/retireRequestAliases"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Recovered Effect physical children"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Recovered Effect physical children"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Recovered Effect physical children"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Recovered Effect physical children"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Recovered Effect physical children"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Recovered Effect physical children"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Recovered Effect physical children"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Recovered Effect physical children"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Recovered Effect physical children"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Recovered Effect physical children"
               }
             ]
           }

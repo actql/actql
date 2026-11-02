@@ -2941,3 +2941,28 @@ original; they do not issue another resource budget or a provider reader. The
 separate original read supplied by the adopted Run is used unchanged. Pending
 physical close, failed native retirement and consumed-parent-return failures
 retain their existing distinct duties and alias-retirement fences.
+
+
+### Recovered Effect physical children
+
+The recovered row Effect uses its original installed managed Run and Plan for
+physical credential operations. The typed Request relation must match the
+saved journal Request, and the existing native publication projection must name
+that same saved Definition. Equal operation labels, Preview CIDs or recipe DATA do
+not provide that original, and an absent managed Plan keeps the physical route
+unavailable. This continuation neither compiles a Program nor creates a Run.
+
+The existing recovered Ledger cleanup owner retains operation children through
+the same capture retainer used by fresh execution. Route/request aliases retire
+before those children return their original operation borrow. Pending or failed
+child cleanup keeps the Ledger and captured material alive; only the original
+child's retirement permits Ledger close. Reentrant cleanup observes pending
+instead of awaiting the flight which is already awaiting that child. It never
+creates a second cleanup owner or a physical stop acknowledgement.
+
+Stored-response reconstruction retains that same Ledger throughout the actual
+await and projection. Closing fences new projection/settlement, and the existing
+owner cannot retire while an original reconstruction is in flight. The Site's
+ordinary cleanup still waits for these duties before returning the retained
+capture-decode resources. Physical operation failure, native retirement, durable
+outcome and capture-resource retirement remain separate observations.
