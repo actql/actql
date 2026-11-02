@@ -760,7 +760,7 @@ test('deep proof scheduling covers its complete snapshot and safety inputs witho
     'proofs/ci-evidence/receipts.mjs', 'scripts/new-tool.mjs', 'unknown/config']) {
     assert.equal(deepProofRequired(selectTargets([path])), true, path);
   }
-  for (const path of ['README.md', 'packages/sdk/format.mjs', 'adapters/connectors/rest/format.test.mjs']) {
+  for (const path of ['README.md', 'LICENSE', 'CONTRIBUTING.md']) {
     const selection = selectTargets([path], {event: 'push'});
     assert.equal(selection.profile, 'full'); assert.deepEqual(selection.targets, all);
     assert.equal(deepProofRequired(selection), false, path);
@@ -770,6 +770,48 @@ test('deep proof scheduling covers its complete snapshot and safety inputs witho
   for (const options of [{failure: 'unavailable'}, {event: 'schedule'}, {event: 'workflow_dispatch'}])
     assert.equal(deepProofRequired(selectTargets(['README.md'], options)), true);
   assert.equal(deepProofRequired(selectTargets([])), true);
+});
+
+test('unclassified adapter and package safety inputs retain deep campaigns', () => {
+  const duckdbWitness = 'adapters/connectors/duckdb/node/test/standard-host.test.mjs';
+  const nest = JSON.parse(readFileSync(new URL('../proofs/bounded-session/nest-obligations.json', import.meta.url), 'utf8'));
+  assert(nest.retainedSuites.includes(duckdbWitness), 'Use the actual retained Nest proof input');
+  for (const path of [
+    'adapters/host-node/infer-original-installation.mjs',
+    'packages/python-sdk/src/actql_sdk/_local_core.py',
+    'adapters/workers/wrangler.toml',
+    'packages/sdk/tsconfig.json',
+    duckdbWitness,
+    'packages/sdk/format.mjs',
+    'adapters/connectors/rest/format.test.mjs',
+  ]) for (const event of ['pull_request', 'push']) {
+    const selection = selectTargets([path], {event});
+    assert.equal(selection.profile, 'full', path);
+    assert.deepEqual(selection.targets, all, path);
+    assert.equal(selection.macos, true, path);
+    assert.equal(deepProofRequired(selection), true, `${event}/${path}`);
+  }
+});
+
+test('unclassified safety changes require proof success while reviewed shallow changes require skips', () => {
+  for (const event of ['pull_request', 'push']) for (const [path, deep] of [
+    ['adapters/host-node/infer-original-installation.mjs', true],
+    ['README.md', false],
+  ]) {
+    const selection = selectTargets([path], {event});
+    const needs = results(selection);
+    for (const name of ['session-evidence', 'pipeline-evidence']) needs[name].result = deep ? 'success' : 'skipped';
+    const lines = verifyGate(plan(selection), needs, {...context, event});
+    for (const name of ['session-evidence', 'pipeline-evidence']) {
+      assert(lines.some(line => line.startsWith(`${deep ? 'PASS' : 'NOT APPLICABLE'} ${name}:`)));
+      assert.throws(() => verifyGate(plan(selection), {...needs,
+        [name]: {result: deep ? 'skipped' : 'success'}}, {...context, event}), undefined, `${event}/${path}/${name}`);
+    }
+    const scheduleNeeds = {'select-targets': {outputs: {profile: 'full', deep_proofs: String(deepProofRequired(selection))}}};
+    for (const name of ['session-evidence', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity', 'pipeline-capacity-mutants']) {
+      assert.equal(scheduled(name, scheduleNeeds), deep, `${event}/${path}/${name}`);
+    }
+  }
 });
 
 test('shallow and deep aggregate expectations reject every wrong status, including cheap validation', () => {
