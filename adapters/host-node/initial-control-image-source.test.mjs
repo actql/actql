@@ -103,16 +103,27 @@ test('a symbolic-link final component cannot supply an original image', t => {
     error => error.code === 'ELOOP' || error.code === 'EMLINK');
 });
 
-test('frozen read failure and close Unknown retain the same FD and original retry without rereading', t => {
+test('read failure keeps its original cause when the original descriptor closes normally', t => {
+  const f = fixture(t), primary = Object.freeze(new Error('OriginalImageReadFailure'));
+  let opened, reads = 0, closes = 0;
+  const capture = controlled({...fs,
+    openSync(...args) { opened = fs.openSync(...args); return opened; },
+    readSync(...args) { fs.readSync(...args); reads++; throw primary; },
+    closeSync(fd) { assert.equal(fd, opened); closes++; return fs.closeSync(fd); }});
+  assert.throws(() => capture(f.path, f.expected), error => error === primary);
+  assert.equal(reads, 1);
+  assert.equal(closes, 1);
+  assert.throws(() => fs.fstatSync(opened), {code: 'EBADF'});
+});
+
+test('a pre-close refusal stays pending without retrying the original integer or read', t => {
   const f = fixture(t), primary = Object.freeze(new Error('OriginalImageReadFailure'));
   const closeFailure = Object.freeze(new Error('OriginalImageCloseUnknown'));
-  let fd, reads = 0, closes = 0, allowClose = false, carrier;
+  let fd, reads = 0, closes = 0, carrier;
+  t.after(() => { if (fd !== undefined) fs.closeSync(fd); });
   const functions = {...fs, openSync(...args) { fd = fs.openSync(...args); return fd; },
-    readSync() { reads++; throw primary; }, closeSync(original) {
-      assert.equal(original, fd); closes++;
-      if (!allowClose) throw closeFailure;
-      return fs.closeSync(original);
-    }};
+    readSync(...args) { fs.readSync(...args); reads++; throw primary; },
+    closeSync(original) { assert.equal(original, fd); closes++; throw closeFailure; }};
   const capture = controlled(functions);
   try { capture(f.path, f.expected); } catch (cause) { carrier = cause; }
   assert.equal(carrier.code, 'InitialControlImageCleanupPending');
@@ -120,38 +131,90 @@ test('frozen read failure and close Unknown retain the same FD and original retr
   assert.equal(carrier.closeFailure, closeFailure);
   const original = carrier.cleanupHandle;
   assert.equal(original.primaryFailure, primary);
-  assert.equal(original.status().pending, true);
-  assert.ok(fs.fstatSync(fd).isFile());
+  assert.ok(Object.isFrozen(original));
   functions.closeSync = () => { throw new Error('ReplacementMustNotRun'); };
-  assert.throws(() => original.retry(), error => error === closeFailure);
-  assert.equal(original.status().pending, true);
-  allowClose = true;
-  assert.equal(original.retry().pending, false);
-  assert.equal(original.retry().pending, false);
-  assert.equal(closes, 3);
+  for (let index = 0; index < 2; index++) {
+    assert.equal(original.retry().pending, true);
+    const status = original.status();
+    assert.equal(status.pending, true);
+    assert.equal(status.errors.length, 1);
+    assert.equal(status.errors[0], closeFailure);
+    assert.ok(Object.isFrozen(status));
+    assert.ok(Object.isFrozen(status.errors));
+    assert.ok(fs.fstatSync(fd).isFile());
+  }
+  assert.equal(closes, 1);
   assert.equal(reads, 1);
-  assert.throws(() => fs.fstatSync(fd), {code: 'EBADF'});
 });
 
-test('an unconfirmed close with otherwise valid bytes cannot return Source or retire a sibling FD', t => {
+for (const failure of ['read', 'hash']) {
+  test(`${failure} failure and close-then-throw never close a foreign file reusing the same FD`, t => {
+    const f = fixture(t), primary = Object.freeze(new Error('OriginalImageReadFailure'));
+    const closeFailure = Object.freeze(new Error('OriginalImageCloseUnknown'));
+    const foreignPath = join(f.directory, 'foreign');
+    fs.writeFileSync(foreignPath, 'foreign original bytes');
+    let fd, foreign, reads = 0, closes = 0, carrier;
+    t.after(() => {
+      if (foreign === undefined) return;
+      try { fs.closeSync(foreign); } catch (error) { if (error.code !== 'EBADF') throw error; }
+    });
+    const capture = controlled({...fs,
+      openSync(...args) { fd = fs.openSync(...args); return fd; },
+      readSync(...args) {
+        const count = fs.readSync(...args); reads++;
+        if (failure === 'read') throw primary;
+        return count;
+      },
+      closeSync(original) {
+        assert.equal(original, fd); closes++;
+        fs.closeSync(original);
+        if (closes === 1) {
+          foreign = fs.openSync(foreignPath, 'r');
+          assert.equal(foreign, fd, 'the real OS must reuse the released numeric descriptor');
+        }
+        throw closeFailure;
+      }});
+    const expected = failure === 'hash' ? {...f.expected, sha256: '0'.repeat(64)} : f.expected;
+    try { capture(f.path, expected); } catch (cause) { carrier = cause; }
+    assert.equal(carrier.code, 'InitialControlImageCleanupPending');
+    if (failure === 'read') assert.equal(carrier.cause, primary);
+    else assert.equal(carrier.cause.code, 'InitialControlImageChanged');
+    assert.equal(carrier.cleanupHandle.primaryFailure, carrier.cause);
+    assert.equal(carrier.closeFailure, closeFailure);
+    const before = reads, identity = fs.fstatSync(foreign, {bigint: true});
+    for (let index = 0; index < 2; index++) {
+      assert.equal(carrier.cleanupHandle.retry().pending, true);
+      const after = fs.fstatSync(foreign, {bigint: true});
+      assert.equal(after.dev, identity.dev);
+      assert.equal(after.ino, identity.ino);
+    }
+    const actual = Buffer.alloc(22);
+    assert.equal(fs.readSync(foreign, actual, 0, actual.length, 0), actual.length);
+    assert.equal(actual.toString(), 'foreign original bytes');
+    assert.equal(closes, 1);
+    assert.equal(reads, before);
+  });
+}
+
+test('an unconfirmed close cannot return valid Source or become confirmed from EBADF', t => {
   const f = fixture(t);
-  const sibling = fs.openSync(join(f.directory, 'sibling'), 'wx');
-  t.after(() => fs.closeSync(sibling));
-  let fd, allowClose = false, reads = 0, carrier;
-  const capture = controlled({...fs, openSync(...args) { fd = fs.openSync(...args); return fd; },
-    readSync(...args) { reads++; return fs.readSync(...args); }, closeSync(original) {
-      assert.equal(original, fd);
-      if (!allowClose) return false;
-      return fs.closeSync(original);
+  let fd, reads = 0, closes = 0, carrier;
+  const capture = controlled({...fs,
+    openSync(...args) { fd = fs.openSync(...args); return fd; },
+    readSync(...args) { reads++; return fs.readSync(...args); },
+    closeSync(original) {
+      assert.equal(original, fd); closes++;
+      fs.closeSync(original);
+      return false;
     }});
   try { capture(f.path, f.expected); } catch (cause) { carrier = cause; }
   assert.equal(carrier.code, 'InitialControlImageCleanupPending');
+  assert.equal(carrier.cleanupHandle.primaryFailure, carrier.closeFailure);
+  assert.throws(() => fs.fstatSync(fd), {code: 'EBADF'});
   const before = reads;
+  assert.equal(carrier.cleanupHandle.retry().pending, true);
+  assert.equal(carrier.cleanupHandle.retry().pending, true);
   assert.equal(carrier.cleanupHandle.status().pending, true);
-  assert.ok(fs.fstatSync(fd).isFile());
-  assert.ok(fs.fstatSync(sibling).isFile());
-  allowClose = true;
-  assert.equal(carrier.cleanupHandle.retry().pending, false);
+  assert.equal(closes, 1);
   assert.equal(reads, before);
-  assert.ok(fs.fstatSync(sibling).isFile());
 });

@@ -47,8 +47,8 @@ function captureInitialControlImageSource(path, expected) {
   }
   // A substituted pipe/device must not block the preload before its regular
   // file observation. NONBLOCK does not change regular-file read semantics.
-  let fd = openSync(path, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
-  let primary, failed = false;
+  const fd = openSync(path, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
+  let primary, failed = false, closeState = 'not_attempted';
   try {
     const first = fstatSync(fd, {bigint: true});
     if ((first.mode & fileTypeMask) !== regularFileType ||
@@ -82,26 +82,18 @@ function captureInitialControlImageSource(path, expected) {
   } catch (cause) { failed = true; primary = cause; throw cause; }
   finally {
     try {
+      // Mark the attempt before entering native close: an exception does not
+      // establish whether the integer has already been released and reused.
+      closeState = 'pending';
       if (closeSync(fd) !== undefined) fail('InitialControlImageCleanupPending');
-      fd = undefined;
+      closeState = 'closed';
     }
     catch (cause) {
-      const first = cause;
-      let latest = cause;
-      const status = () => freeze({pending: fd !== undefined,
-        errors: freeze(first === latest ? [first] : [first, latest])});
-      const retry = () => {
-        if (fd !== undefined) {
-          try {
-            if (closeSync(fd) !== undefined) fail('InitialControlImageCleanupPending');
-            fd = undefined;
-          }
-          catch (error) { latest = error; throw error; }
-        }
-        return status();
-      };
-      // Always keep the same close function and numeric FD. Never reopen or
-      // reread a failed image, overwrite another duty, or mutate a frozen cause.
+      const errors = freeze([cause]);
+      const status = () => freeze({pending: closeState !== 'closed', errors});
+      // Only observe this original unresolved duty. Never issue another close
+      // for its numeric FD, inspect a replacement path/FD as an ACK, or reread.
+      const retry = () => status();
       const cleanupHandle = freeze({status, retry, primaryFailure: failed ? primary : cause});
       const carrier = new NativeError('InitialControlImageCleanupPending', {cause: failed ? primary : cause});
       carrier.code = 'InitialControlImageCleanupPending';
