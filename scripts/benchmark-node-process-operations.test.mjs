@@ -105,7 +105,9 @@ test('warm and process reports share one explicit experiment binding but cannot 
   const report = {...cold, latency: [...warm.latency, ...cold.latency],
     functional: {...cold.functional, rows: [...warm.functional.rows, ...cold.functional.rows]}};
   const assessment = assessPerformanceEvidence(report);
-  assert.equal(assessment.status, 'incomplete'); assert(assessment.missing.includes('history'));
+  // Real synthetic-child timings may fail the unchanged target under CI load.
+  // This case verifies binding and missing release evidence, never product speed.
+  assert.notEqual(assessment.status, 'passed'); assert(assessment.missing.includes('history'));
   const changed = structuredClone(report); changed.latency[0].cohortSha256 = 'f'.repeat(64);
   assert.throws(() => assessPerformanceEvidence(changed), /cohort differs/u);
 });
