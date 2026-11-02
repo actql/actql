@@ -6110,13 +6110,24 @@ async function openPreparedInstalledHost(options, initialEntry) {
         }
         if (Object.hasOwn(run, 'failure')) throw run.failure;
         if (run.value === undefined) throw clientOperationError('NodeManagedRunAdmissionUnavailable');
-        const parent = run.value;
-        checked(Reflect.apply(run.check, runtime, [parent, prepared, run.request]));
+        const parent = run.value, request = run.request, kind = run.preparationKind;
+        // The original Effect record carries a bound Plan getter, not a Pure
+        // check. One current operation reads that SAME original tuple; no
+        // independent check or Plan reconstruction precedes Source work.
+        const effect = kind === 'effect-plan';
+        const observe = effect ? run.readPlan : run.check;
+        const plan = effect ? run.operationPlan : undefined;
+        if (typeof observe !== 'function' || effect && plan === undefined) {
+          throw clientOperationError('ForeignInstalledSourcePreparation');
+        }
+        const observed = checked(Reflect.apply(observe, runtime, [parent, prepared, request]));
         // The current callback can retire or replace this original Run.
         // Recheck before the Source can prepare or expose its capacity.
         if (record.computeRuns?.get(prepared) !== run || run.closed ||
-            run.runtime !== runtime || run.prepared !== prepared ||
-            run.sourceProfile !== selected || run.value !== parent) {
+            run.runtime !== runtime || run.prepared !== prepared || run.request !== request ||
+            run.preparationKind !== kind || run.sourceProfile !== selected || run.value !== parent ||
+            (effect ? observed !== plan || run.operationPlan !== plan || run.readPlan !== observe
+              : run.check !== observe)) {
           throw clientOperationError('ForeignInstalledSourcePreparation');
         }
         if (Object.hasOwn(run, 'failure')) throw run.failure;

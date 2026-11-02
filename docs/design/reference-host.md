@@ -2870,6 +2870,11 @@ buffers, native projection results and distinct Grants remain additive.
 
 ### Request-owned execution preparation
 
+The shared Source binding reads the same retained Plan getter for an Effect
+record and the original current check for a Pure record. These alternatives
+construct no second Plan or execution permit. After that callback, original
+record, Request, parent and Plan identity fences precede provider work.
+
 The ordinary execution installer requires its existing Request preparation
 owner. It receives that owner's original checked/compiler result and retains
 the original Environment, Parameters cursor and restoration associations.
