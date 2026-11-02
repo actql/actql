@@ -866,7 +866,23 @@ fn local_submission_lookup_reply(
         ),
       )
       match @local_host.native_client_submitted_run_admission(record) {
-        None => fields.set("phase", Json::string("preparing"))
+        None =>
+          match
+            @local_host.native_client_submitted_preparation_problem(record) {
+            None => fields.set("phase", Json::string("preparing"))
+            Some((code, classification)) => {
+              fields.set("phase", Json::string("preparation_failed"))
+              fields.set(
+                "problem",
+                Json::object(
+                  Map::from_array([
+                    ("code", Json::string(code)),
+                    ("classification", Json::string(classification)),
+                  ]),
+                ),
+              )
+            }
+          }
         Some(admission) => {
           // Resolve the original durable Run rather than rebuilding a reference
           // from current settings or treating admission revision as control.

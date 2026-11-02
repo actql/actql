@@ -310,6 +310,10 @@ fn local_submission_start(
     if !current() {
       stop("LocalSubmissionAuthorizationDenied")
     }
+    if @local_host.native_client_submitted_preparation_problem(original)
+      is Some(_) {
+      stop("LocalSubmissionPreparationFailed")
+    }
     if @local_host.native_client_submitted_run_admission(original) is Some(_) {
       // Observe the original Run; never recompile its lifetime or reopen Source.
       return observe_original()

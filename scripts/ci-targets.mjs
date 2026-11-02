@@ -1,9 +1,8 @@
-// Main integration uses full coverage; historical PR profiles remain interpretable.
+// Main integration uses full coverage; PRs select their applicable checks.
 // An exact maintenance inventory may omit whole unrelated job families.
 // Selected evidence campaigns retain their complete three-target contract.
 import assert from 'node:assert/strict';
 import {focusedPattern, eligibleFocusedChanges, readFocusedTests, validateFocusedTests} from './ci-focused-tests.mjs';
-import {actionsReader, fullCheckpointJobs, resolveMainBaseline, validateMainBaseline} from './ci-main-base.mjs';
 import {appendFileSync, readFileSync} from 'node:fs';
 import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
@@ -29,7 +28,7 @@ export const maintenanceFiles = Object.freeze([
 ]);
 const maintenance = new Set(maintenanceFiles);
 export const gateJobs = Object.freeze(['select-targets', 'preflight', 'lint', 'core', 'host', 'client',
-  'native', 'spec', 'session-evidence', 'pipeline-evidence', 'native-macos',
+  'native', 'spec', 'session-evidence', 'pipeline-evidence', 'native-macos', 'python-wheels',
   'native-separated-network', 'workers', 'connector-addition', 'duckdb-node', 'focused-tests']);
 const validPath = path => typeof path === 'string' && path.length > 0 && !/[\0\r\n]/u.test(path)
   && !path.startsWith('/') && !path.split('/').some(part => ['', '.', '..'].includes(part));
@@ -46,6 +45,31 @@ const reviewedPortableFiles = new Set([
   'src/source_span/span.mbt',
   'scripts/worktree-inventory.mjs',
 ]);
+// A targeted Draft acceptance lane, not a claim of complete Draft product coverage.
+// Shared core changes still receive full applicable verification when Ready/main.
+const pythonWheelInputs = new Set([
+  '.github/workflows/ci.yml', '.github/actions/setup-toolchain/action.yml',
+  'scripts/ci-targets.mjs', 'scripts/ci-targets.test.mjs', 'scripts/ci-preflight.mjs',
+  'scripts/ci-preflight.test.mjs', 'scripts/ci-focused-tests.mjs',
+  'scripts/ci-python-wheels.py', 'scripts/test_ci_python_wheels.py',
+  'scripts/fixtures/ci-python-installed-audit.py', 'scripts/fixtures/ci-python-installed-health.py',
+  'scripts/fixtures/ci-python-installed-run.py',
+  'scripts/fixtures/python-product-installed.py', 'scripts/fixtures/python-local-duckdb-physical.py',
+  'scripts/build-python-product-wheels.py', 'scripts/produce-python-local-runtime.py',
+  'scripts/compile-python-local-image.py', 'scripts/python_release_cohort.py',
+  'scripts/prepare-python-local-runtime.py', 'scripts/generate-local-wasm-abi.py',
+  'scripts/python_interface_inventory.py', 'scripts/release-version.mjs',
+  'scripts/setup-moonbit.mjs', 'toolchain.json', 'moon.mod', 'package.json', 'package-lock.json',
+]);
+export function pythonWheelAcceptanceRequired(selection) {
+  validateSelection(selection);
+  if (selection.profile === 'full') return true;
+  if (!selection.profile.startsWith('draft')) return false;
+  // Failed/unavailable diff cannot silently omit the lane. --no-renames keeps
+  // deleted old paths and added new paths in this same source-bound inventory.
+  return selection.paths.length === 0 || selection.paths.some(path => pythonWheelInputs.has(path)
+    || /^packages\/python-(?:product|sdk|local-runtime)\//u.test(path));
+}
 export function pullRequestDraft(event, payload) {
   if (event !== 'pull_request') return null;
   assert(['opened', 'synchronize', 'reopened', 'ready_for_review', 'converted_to_draft'].includes(payload?.action), 'Unsupported PR lifecycle event');
@@ -56,14 +80,12 @@ export function pullRequestDraft(event, payload) {
   return draft;
 }
 export function selectTargets(paths, {draft = null, event = 'pull_request', mainIntegration = event === 'push', nativeMacos = false, failure = null,
-  targetSensitiveDiff = false, maintenanceChanges = null, focusedChanges = null, focusedTests = null, mainBaseline = null} = {}) {
-  if (mainBaseline !== null) validateMainBaseline(mainBaseline);
+  targetSensitiveDiff = false, maintenanceChanges = null, focusedChanges = null, focusedTests = null} = {}) {
   const validPaths = Array.isArray(paths) && paths.every(validPath);
   const full = reason => ({schema: 'actql-ci-targets/0.1', targets: [...all], macos: true, reason,
-    profile: 'full', event, paths: validPaths ? [...paths] : [], maintenanceChanges: null, focusedChanges: null, focusedTests: null, mainBaseline});
+    profile: 'full', event, paths: validPaths ? [...paths] : [], maintenanceChanges: null, focusedChanges: null, focusedTests: null});
   // Automatic main integration always executes the existing full profile.
-  // Historical bounded selections remain interpretable; their receipts are not
-  // upgraded into full checkpoints or release authorization.
+  // No historical run or cumulative diff is needed for an unconditional full run.
   if (mainIntegration) {
     assert(['push', 'workflow_dispatch'].includes(event), 'Invalid main integration event');
     const result = full('Main integration requires every full runtime and proof family');
@@ -77,12 +99,12 @@ export function selectTargets(paths, {draft = null, event = 'pull_request', main
       if (!failure && focusedTests && eligibleFocusedChanges(paths, focusedChanges)) {
         try { validateFocusedTests(paths, focusedChanges, focusedTests); focused = true; } catch {}
       }
-      return {...full('Draft preparation only: normal required verification deferred until ready_for_review; not mergeable'),
-        profile: focused ? 'draft-focused' : 'draft', targets: ['js'], macos: false, mainBaseline: null,
+      return {...full('Draft preparation with targeted Python acceptance when applicable; full verification deferred until ready_for_review; not mergeable'),
+        profile: focused ? 'draft-focused' : 'draft', targets: ['js'], macos: false,
         focusedChanges: focused ? focusedChanges : null, focusedTests: focused ? focusedTests : null};
     }
   }
-  if (event !== 'pull_request' && !(event === 'push' && mainBaseline)) {
+  if (event !== 'pull_request') {
     const result = full(failure ? `Full core verification: ${failure}` : `Full core verification selected for ${event}`);
     // Preserve the existing explicit opt-in for an on-demand working branch.
     if (event === 'workflow_dispatch') result.macos = nativeMacos;
@@ -98,12 +120,11 @@ export function selectTargets(paths, {draft = null, event = 'pull_request', main
     return {...full('Reviewed fixed-request tests: execute changed files and owning JS family; unrelated runtime/proof families not applicable'),
       profile: 'focused-tests', targets: ['js'], macos: false, focusedChanges, focusedTests};
   }
-  if (event === 'push') return full('Main cumulative changes require full runtime target coverage');
   if (targetSensitiveDiff) return full('Target-specific syntax or runtime boundary changed');
   const path = paths.find(path => sensitive.test(path) || !reviewedPortableFiles.has(path));
   if (path) return full(`Target-sensitive or unclassified input: ${path}`);
   return {...full(''), targets: ['js'], macos: false,
-    reason: 'Reviewed portable paths: PR core uses JS; full targets and optional macOS require a manual integration checkpoint'};
+    reason: 'Reviewed portable paths: PR core uses JS; full targets run on main integration; optional macOS can be requested manually'};
 }
 function eligibleMaintenance(paths, changes) {
   return paths.length > 0 && paths.every(path => maintenance.has(path))
@@ -116,7 +137,7 @@ function eligibleMaintenance(paths, changes) {
 }
 export function validateSelection(selection) {
   assert.deepEqual(Object.keys(selection ?? {}).sort(), ['schema', 'targets', 'macos', 'reason',
-    'profile', 'event', 'paths', 'maintenanceChanges', 'focusedChanges', 'focusedTests', 'mainBaseline'].sort(), 'Invalid selection fields');
+    'profile', 'event', 'paths', 'maintenanceChanges', 'focusedChanges', 'focusedTests'].sort(), 'Invalid selection fields');
   assert.equal(selection?.schema, 'actql-ci-targets/0.1');
   assert.deepEqual(selection.targets, selection.targets?.length === 1 ? ['js'] : all);
   assert.equal(typeof selection.macos, 'boolean');
@@ -124,11 +145,7 @@ export function validateSelection(selection) {
   assert(['full', 'maintenance', 'focused-tests', 'draft', 'draft-focused'].includes(selection.profile), 'Invalid selection profile');
   assert(typeof selection.event === 'string' && selection.event.length, 'Missing selection event');
   assert(Array.isArray(selection.paths) && selection.paths.every(validPath), 'Invalid selection paths');
-  if (selection.mainBaseline !== null) {
-    assert.equal(selection.event, 'push', 'Main checkpoint belongs only to push');
-    validateMainBaseline(selection.mainBaseline);
-  }
-  if (selection.profile !== 'full') assert(selection.event === 'pull_request' || selection.event === 'push' && selection.mainBaseline, 'Narrow main selection requires verified checkpoint');
+  if (selection.profile !== 'full') assert.equal(selection.event, 'pull_request', 'Narrow selection requires a PR event');
   if (selection.profile === 'maintenance') {
     assert(eligibleMaintenance(selection.paths, selection.maintenanceChanges), 'Invalid maintenance inventory');
     assert.deepEqual(selection.targets, ['js']);
@@ -136,7 +153,6 @@ export function validateSelection(selection) {
   } else assert.equal(selection.maintenanceChanges, null, 'Unexpected maintenance inventory');
   if (selection.profile.startsWith('draft')) {
     assert.equal(selection.event, 'pull_request', 'Draft profile requires a PR event');
-    assert.equal(selection.mainBaseline, null, 'Draft cannot reuse a main checkpoint');
     assert.deepEqual(selection.targets, ['js']);
     assert.equal(selection.macos, false);
   }
@@ -159,19 +175,19 @@ export function verifyGate(plan, needs, {event, sourceRevision, draft = null}) {
   assert(sha.test(sourceRevision) && plan.sourceRevision === sourceRevision, 'Selection belongs to another checkout');
   const selection = validateSelection(plan.selection);
   assert.equal(selection.event, event, 'Selection belongs to another event');
-  assert(draft !== true && !selection.profile.startsWith('draft'),
-    'Draft preparation is not merge verification: awaiting ready_for_review to execute normal required coverage');
-  if (selection.mainBaseline) assert.equal(selection.mainBaseline.testedSha, sourceRevision, 'Main checkpoint belongs to another tested checkout');
   assert.deepEqual(Object.keys(needs ?? {}).sort(), [...gateJobs].sort(), 'Incomplete gate dependency inventory');
   const lines = [];
   for (const name of gateJobs) {
     const required = ['select-targets', 'preflight', 'lint', 'spec'].includes(name)
-      || selection.profile === 'focused-tests' && name === 'focused-tests'
+      || ['focused-tests', 'draft-focused'].includes(selection.profile) && name === 'focused-tests'
+      || name === 'python-wheels' && pythonWheelAcceptanceRequired(selection)
       || selection.profile === 'full' && name !== 'focused-tests' && (name !== 'native-macos' || selection.macos);
     const expected = required ? 'success' : 'skipped';
     assert.equal(needs[name]?.result, expected, `${name}: expected ${expected}`);
     lines.push(`${required ? 'PASS' : 'NOT APPLICABLE'} ${name}: ${required ? 'required job completed' : selection.reason}`);
   }
+  assert(draft !== true && !selection.profile.startsWith('draft'),
+    'Draft preparation is not merge verification: awaiting ready_for_review to execute normal required coverage');
   return lines;
 }
 export function readChanges(payload, git = args => execFileSync('git', args,
@@ -241,37 +257,28 @@ async function main() {
   const draft = pullRequestDraft(process.env.GITHUB_EVENT_NAME,
     process.env.GITHUB_EVENT_NAME === 'pull_request'
       ? JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8')) : null);
-  let changes = {paths: []}, failure = null, mainBaseline = null;
+  let changes = {paths: []}, failure = null;
   if (process.env.GITHUB_EVENT_NAME === 'pull_request') {
     try { changes = readChanges(JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8'))); }
     catch (error) { failure = error.message; }
   }
   if (process.env.GITHUB_EVENT_NAME === 'push') {
-    try {
-      const payload = JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8'));
-      assert.equal(payload.ref, 'refs/heads/main', 'Not a main push');
-      const baseline = await resolveMainBaseline({testedSha: process.env.GITHUB_SHA,
-        repository: process.env.GITHUB_REPOSITORY, repositoryId: payload.repository?.id,
-        requiredJobs: fullCheckpointJobs(gateJobs.filter(name => name !== 'focused-tests')),
-        request: actionsReader({repository: process.env.GITHUB_REPOSITORY, token: process.env.GITHUB_TOKEN})});
-      if (baseline.baseSha) {
-        mainBaseline = baseline;
-        changes = readChanges(payload, undefined, {baseRevision: baseline.baseSha});
-      } else failure = baseline.reason;
-    } catch { failure = 'Main checkpoint or cumulative diff unavailable'; }
+    const payload = JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8'));
+    assert.equal(payload.ref, 'refs/heads/main', 'Not a main push');
+    assert.equal(payload.after, process.env.GITHUB_SHA, 'Different pushed revision');
   }
   const selected = validateSelection(selectTargets(changes.paths, {event: process.env.GITHUB_EVENT_NAME, draft,
     mainIntegration: process.env.GITHUB_EVENT_NAME === 'push' ||
       process.env.GITHUB_EVENT_NAME === 'workflow_dispatch' && process.env.GITHUB_REF === 'refs/heads/main',
     nativeMacos: process.env.NATIVE_MACOS === 'true', failure, targetSensitiveDiff: changes.targetSensitiveDiff,
     maintenanceChanges: changes.maintenanceChanges,
-    focusedChanges: changes.focusedChanges, focusedTests: changes.focusedTests, mainBaseline}));
+    focusedChanges: changes.focusedChanges, focusedTests: changes.focusedTests}));
   const sourceRevision = execFileSync('git', ['rev-parse', 'HEAD'], {encoding: 'utf8'}).trim();
   assert(sha.test(sourceRevision) && sourceRevision === process.env.GITHUB_SHA, 'Unexpected tested checkout');
   const plan = {sourceRevision, selection: selected};
-  appendFileSync(process.env.GITHUB_OUTPUT, `targets=${JSON.stringify(selected.targets)}\nmacos=${selected.macos}\nprofile=${selected.profile}\nplan=${JSON.stringify(plan)}\n`);
+  appendFileSync(process.env.GITHUB_OUTPUT, `targets=${JSON.stringify(selected.targets)}\nmacos=${selected.macos}\nprofile=${selected.profile}\npython_wheels=${pythonWheelAcceptanceRequired(selected)}\nplan=${JSON.stringify(plan)}\n`);
   console.log(JSON.stringify(selected, null, 2));
   if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY,
-    `Job profile: ${selected.profile}\n\nCore targets when selected: ${selected.targets.join(', ')}\n\nmacOS: ${selected.macos ? 'required' : 'not applicable for this run'}\n\n${selected.reason}\n\nUnselected families produce no execution evidence. Selected proof campaigns retain all three targets.\n`);
+    `Job profile: ${selected.profile}\n\nCore targets when selected: ${selected.targets.join(', ')}\n\nNative macOS diagnostic: ${selected.macos ? 'required' : 'not applicable for this run'}\n\nPython wheel acceptance: ${pythonWheelAcceptanceRequired(selected) ? "required" : "not selected"}\n\n${selected.reason}\n\nUnselected families produce no execution evidence. Selected proof campaigns retain all three targets.\n`);
 }
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) await main();

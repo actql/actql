@@ -380,20 +380,20 @@ test('source/config and gated workflow declare exact Quick 10/5 and fail closed'
   assert.deepEqual(policy.quick, {warmSamples: 10, coldSamples: 5});
   assert.deepEqual(policy.release, {warmSamples: 100, coldSamples: 30});
   const workflow = await readFile(new URL('../.github/workflows/health-monitor.yml', import.meta.url), 'utf8');
-  assert.match(workflow, /ACTQL_MAIN_CI_ENABLED == 'true'/);
+  assert.doesNotMatch(workflow, /ACTQL_MAIN_CI_ENABLED/);
   assert.match(workflow, /repository.visibility == 'public'/);
   assert.match(workflow, /toJSON\(github.event.repository.private\) == 'false'/);
   assert.match(workflow, /retention-days: 30/); assert.match(workflow, /npm run health:quick/);
   assert.doesNotMatch(workflow, /ACTQL_HEALTH_MONITOR_ENABLED/);
-  const guard = "vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false'";
+  const guard = "github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false'";
   for (const job of Object.values(parse(workflow).jobs)) {
     assert(job.if.startsWith('${{ ' + guard));
-    for (const [enabled, visibility, privateFlag, expected] of [
-      [undefined, 'public', false, false], ['false', 'public', false, false],
-      ['true', undefined, false, false], ['true', 'private', true, false],
-      ['true', 'public', undefined, false], ['true', 'public', null, false],
-      ['true', 'public', 'false', false], ['true', 'public', false, true]]) {
-      assert.equal(runInNewContext(guard, {vars: {ACTQL_MAIN_CI_ENABLED: enabled},
+    for (const [visibility, privateFlag, expected] of [
+      ['public', false, true],
+      [undefined, false, false], ['private', true, false],
+      ['public', undefined, false], ['public', null, false],
+      ['public', 'false', false], ['public', false, true]]) {
+      assert.equal(runInNewContext(guard, {
         github: {event: {repository: {visibility, private: privateFlag}}}, toJSON: JSON.stringify}), expected);
     }
   }
@@ -505,7 +505,12 @@ test('ordinary Python short-query fixtures exactly match the Node independent li
   assert.equal(result.status, 0, result.stderr);
   const fixtures = JSON.parse(result.stdout);
   for (const operation of ['warm-join', 'warm-union', 'warm-decimal-sum', 'warm-parameters', 'warm-unicode']) {
-    assert.deepEqual(fixtures[operation], nodeWarmSmallQueryFixtures.find(row => row.operation === operation));
+    // Python accepts bindings in sql keyword arguments; Node uses the separate
+    // bindings argument. Compare their values without equating API shapes.
+    const {parameters, ...nodeFixture} = nodeWarmSmallQueryFixtures.find(row => row.operation === operation);
+    const pythonFixture = parameters === undefined ? nodeFixture
+      : {...nodeFixture, options: {...nodeFixture.options, parameters}};
+    assert.deepEqual(fixtures[operation], pythonFixture);
   }
 });
 test('installed and raw-browser bytes report deltas without inventing an unspecified size gate', () => {

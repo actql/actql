@@ -15,14 +15,14 @@ test('PR admission compares current head with event head, not the synthetic test
   assert.deepEqual(revisionToCheck(env, payload), {ref: 'pull/123/head', expected: head});
   assert.deepEqual(await assertCurrentRevision(env, payload, async (repo, ref) => {
     assert.equal(repo, 'actql/actql'); assert.equal(ref, 'pull/123/head'); return head;
-  }), {ref: 'pull/123/head', revision: head});
-  await assert.rejects(assertCurrentRevision(env, payload, async () => newer), /superseded/u);
+  }, {checkoutRevision: merge}), {ref: 'pull/123/head', revision: head});
+  await assert.rejects(assertCurrentRevision(env, payload, async () => newer, {checkoutRevision: merge}), /superseded/u);
 });
 test('main-only advance does not invalidate an unchanged PR head', async () => {
   const calls = [];
   const result = await assertCurrentRevision(env,
     {...payload, pull_request: {...payload.pull_request, base: {sha: newer}}},
-    async (repo, ref) => { calls.push(ref); return head; });
+    async (repo, ref) => { calls.push(ref); return head; }, {checkoutRevision: merge});
   assert.equal(result.revision, head);
   assert.deepEqual(calls, ['pull/123/head']);
 });
@@ -30,15 +30,15 @@ test('working-branch push and dispatch admission retain the latest-ref guard', a
   for (const event of ['push', 'workflow_dispatch']) {
     const context = {...env, GITHUB_EVENT_NAME: event, GITHUB_REF: 'refs/heads/feature'};
     assert.deepEqual(revisionToCheck(context, {}), {ref: 'heads/feature', expected: merge});
-    await assertCurrentRevision(context, {}, async () => merge);
-    await assert.rejects(assertCurrentRevision(context, {}, async () => newer), /superseded/u);
+    await assertCurrentRevision(context, {}, async () => merge, {checkoutRevision: merge});
+    await assert.rejects(assertCurrentRevision(context, {}, async () => newer, {checkoutRevision: merge}), /superseded/u);
   }
 });
 test('unavailable, malformed or ambiguous latest revision fails closed', async () => {
   for (const current of [null, '', 'abc', [], {}, '0'.repeat(39)]) {
     await assert.rejects(assertCurrentRevision(env, payload, async () => current));
   }
-  await assert.rejects(assertCurrentRevision(env, payload, async () => { throw Error('offline'); }), /offline/u);
+  await assert.rejects(assertCurrentRevision(env, payload, async () => { throw Error('offline'); }, {checkoutRevision: merge}), /offline/u);
   for (const invalid of [{}, {number: 0}, {number: 123, pull_request: {head: {sha: 'bad'}}}]) {
     assert.throws(() => revisionToCheck(env, invalid));
   }
@@ -164,4 +164,21 @@ test('fixed main exception rejects missing or conflicting event, repository, wor
   for (const checkoutRevision of [null, newer, 'invalid']) {
     await assert.rejects(assertCurrentRevision(context, body, async () => merge, {checkoutRevision}));
   }
+});
+
+
+test('PR admission requires the tested merge checkout while retaining its distinct head identity', async () => {
+  for (const checkoutRevision of [null, head, newer]) {
+    await assert.rejects(assertCurrentRevision(env, payload, async () => head,
+      {checkoutRevision}), /Checkout differs/u);
+  }
+  const forkPayload = {...payload, pull_request: {...payload.pull_request,
+    head: {...payload.pull_request.head, repo: {full_name: 'contributor/actql'}},
+    base: {sha: newer, repo: {full_name: 'actql/actql'}}}};
+  const checked = await assertCurrentRevision(env, forkPayload, async (repository, ref) => {
+    assert.equal(repository, 'actql/actql');
+    assert.equal(ref, 'pull/123/head');
+    return head;
+  }, {checkoutRevision: merge});
+  assert.equal(checked.revision, head);
 });

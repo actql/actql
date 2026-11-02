@@ -4,7 +4,7 @@ from threading import RLock
 import unittest
 
 from actql_sdk._local_core import LocalCore, LocalCoreError, _Input
-from actql_sdk._local_preparation import LocalPreparation, PreparedShape
+from actql_sdk._local_preparation import LocalPreparation, LocalPreparationFailure, PreparedShape
 
 
 class PreparationCustodyTests(unittest.TestCase):
@@ -30,7 +30,7 @@ class PreparationCustodyTests(unittest.TestCase):
             if name.startswith('install_') or name == 'reserve_preparation':
                 next_handle[0] += 1
                 return next_handle[0]
-            return {'prepare': 0, 'prepared_results': 1, 'prepared_tasks': 2,
+            return {'prepare': 0, 'prepared_outcome': 1, 'prepared_results': 1, 'prepared_tasks': 2,
                     'close_preparation': 0, 'close_environment': 0}[name]
 
         core._call = call
@@ -52,7 +52,7 @@ class PreparationCustodyTests(unittest.TestCase):
             self.assertIs(core._loans[2], document)
         self.assertEqual(calls[0], ('install_environment', (11,)))
         self.assertTrue(all(name in ('install_environment', 'reserve_preparation',
-                                   'prepare', 'prepared_results', 'prepared_tasks')
+                                   'prepare', 'prepared_outcome', 'prepared_results', 'prepared_tasks')
                             for name, _ in calls))
 
     def test_published_environment_uses_original_owner_entry(self):
@@ -154,7 +154,8 @@ class PreparationCustodyTests(unittest.TestCase):
         loan = adapter.reserve(environment, document, format='program')
         codes.update(prepared_results=0, prepared_tasks=0)
         self.assertEqual(adapter.prepare(loan), PreparedShape(0, 0))
-        self.assertEqual(calls[-3:], [('prepare', (loan.handle,)),
+        self.assertEqual(calls[-4:], [('prepare', (loan.handle,)),
+                                     ('prepared_outcome', (loan.handle,)),
                                      ('prepared_results', (loan.handle,)),
                                      ('prepared_tasks', (loan.handle,))])
 
@@ -188,3 +189,56 @@ class PreparationCustodyTests(unittest.TestCase):
             adapter.reserve(environment, document, format='text')
         self.assertEqual(adapter._preparations, {})
         self.assertIs(core._loans[document.ticket], document)
+
+
+    def test_typed_original_failure_does_not_read_plan_counts_or_reprepare(self):
+        core, adapter, config, document, calls, codes = self.bridge()
+        environment = adapter.install_environment(config, profile='source-free')
+        loan = adapter.reserve(environment, document, format='submitted')
+        codes['prepared_outcome'] = 2
+        with self.assertRaises(LocalPreparationFailure) as issue:
+            adapter.prepare(loan)
+        failure = issue.exception
+        self.assertIs(adapter.failed_original(failure), loan)
+        self.assertIs(core._loans[document.ticket], document)
+        self.assertEqual([name for name, _ in calls][-2:], ['prepare', 'prepared_outcome'])
+        self.assertFalse(any(name in ('prepared_results', 'prepared_tasks') for name, _ in calls))
+        before = len(calls)
+        self.assertIs(adapter.failed_original(failure), loan)
+        self.assertEqual(len(calls), before)
+        self.assertTrue(adapter.close_preparation(loan))
+        with self.assertRaises(ValueError):
+            adapter.failed_original(failure)
+        self.assertTrue(adapter.close_environment(environment))
+
+    def test_failure_data_rejects_copies_foreign_aliases_and_nonterminal_status(self):
+        _, adapter, config, document, calls, codes = self.bridge()
+        environment = adapter.install_environment(config, profile='source-free')
+        loan = adapter.reserve(environment, document, format='submitted')
+        codes['prepared_outcome'] = 2
+        with self.assertRaises(LocalPreparationFailure) as issue:
+            adapter.prepare(loan)
+        failure = issue.exception
+        _, foreign, _, _, _, _ = self.bridge()
+        before = len(calls)
+        # Exception copying already refuses its original-only constructor.
+        with self.assertRaises(TypeError):
+            copy.copy(failure)
+        for original, owner in [(failure, foreign),
+                                (LocalPreparationFailure(adapter._identity, loan), adapter)]:
+            with self.assertRaises(ValueError):
+                owner.failed_original(original)
+        self.assertEqual(len(calls), before)
+        for status in [0, -41, 3, False]:
+            _, other, conf, source, observed, values = self.bridge()
+            env = other.install_environment(conf, profile='source-free')
+            pending = other.reserve(env, source, format='submitted')
+            values['prepared_outcome'] = status
+            with self.assertRaises((LocalCoreError, RuntimeError)):
+                other.prepare(pending)
+            self.assertFalse(other._failures)
+            self.assertEqual(observed[-1][0], 'prepared_outcome')
+            self.assertTrue(other.close_preparation(pending))
+            self.assertTrue(other.close_environment(env))
+        self.assertTrue(adapter.close_preparation(loan))
+        self.assertTrue(adapter.close_environment(environment))

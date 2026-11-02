@@ -32,6 +32,18 @@ class PreparedShape:
     tasks: int
 
 
+class LocalPreparationFailure(RuntimeError):
+    """The same preparation Owner retained a known failure, not a transport error.
+
+    This object supplies neither a public phase nor a durable receipt. The
+    Host must commit and independently read its original terminal outcome.
+    """
+    def __init__(self, owner: object, preparation: _Preparation) -> None:
+        super().__init__('Original Local preparation failed')
+        self._owner = owner
+        self.preparation = preparation
+
+
 class LocalPreparation:
     """Use one installed Core and its exact, already-accounted input loans.
 
@@ -48,6 +60,7 @@ class LocalPreparation:
         self._identity = object()
         self._environments: dict[int, _Environment] = {}
         self._preparations: dict[int, _Preparation] = {}
+        self._failures: dict[int, LocalPreparationFailure] = {}
 
     def _active(self) -> None:
         self._nominal()
@@ -123,7 +136,18 @@ class LocalPreparation:
         with self._core._lock:
             self._active()
             self._preparation(value)
+            if value.handle in self._failures:
+                raise RuntimeError('Original Local preparation already failed; retain its outcome')
             self._core._check('prepare', self._core._call('program', 'prepare', value.handle))
+            outcome = self._core._call('program', 'prepared_outcome', value.handle)
+            if type(outcome) is not int or outcome not in (0, 1, 2):
+                raise RuntimeError('Invalid original Local preparation outcome')
+            if outcome == 2:
+                failure = LocalPreparationFailure(self._identity, value)
+                self._failures[value.handle] = failure
+                raise failure
+            if outcome != 1:
+                raise LocalCoreError('prepared_outcome', outcome)
             results = self._core._call('program', 'prepared_results', value.handle)
             if results < 0:
                 raise LocalCoreError('prepared_results', results)
@@ -131,6 +155,16 @@ class LocalPreparation:
             if tasks < 0:
                 raise LocalCoreError('prepared_tasks', tasks)
             return PreparedShape(results, tasks)
+
+    def failed_original(self, failure: LocalPreparationFailure) -> _Preparation:
+        """Borrow the same issued failure DATA without preparing or granting work."""
+        with self._core._lock:
+            self._nominal()
+            if (type(failure) is not LocalPreparationFailure or failure._owner is not self._identity
+                    or self._failures.get(failure.preparation.handle) is not failure):
+                raise ValueError('Foreign or retired original Local preparation failure')
+            self._preparation(failure.preparation)
+            return failure.preparation
 
     def close_preparation(self, value: _Preparation) -> bool:
         """Return the same original borrow only when its Core Owner succeeds."""
@@ -141,6 +175,7 @@ class LocalPreparation:
                 return False
             self._core._check('close_preparation', code)
             del self._preparations[value.handle]
+            self._failures.pop(value.handle, None)
             return True
 
     def close_environment(self, value: _Environment) -> bool:

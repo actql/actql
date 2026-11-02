@@ -286,6 +286,13 @@ pub fn validate_submission_append(
   handle : Int,
   current : Int,
 ) -> Int {
+  if selected(nonce) is Some(value) &&
+    value.submissions.get(handle) is Some(record) &&
+    record.kind == 9 &&
+    value.run_configurations.get(record.configuration) is Some(configuration) &&
+    configuration.host_current == Some(current) {
+    return validate_submission_preparation_failure(value, record, configuration)
+  }
   if selected(nonce).bind(value => value.submissions.get(handle))
     is Some({ kind: 4 | 5 | 6 | 7 | 8, .. }) {
     return validate_submission_lookup(nonce, handle, current)
@@ -323,5 +330,149 @@ pub fn validate_submission_append(
       }
     }
     _ => -32
+  }
+}
+
+///|
+/// Attach the actual failed preparation before producing a terminal candidate.
+/// The existing output/loan Owner retains both inputs through CAS and cleanup.
+pub fn reserve_submission_preparation_failure(
+  nonce : Int64,
+  configuration : Int,
+  preparation : Int,
+  input : Int,
+  physical_ticket : Int,
+  physical_copy_bytes : Int64,
+) -> Int {
+  guard selected(nonce) is Some(value) &&
+    value.preparations.get(preparation) is Some(original) &&
+    original.kind == 3 &&
+    original.started &&
+    original.restoration is None &&
+    original.outcome is Some(Err(_)) else {
+    return -2
+  }
+  let handle = reserve_submission_projection(
+    nonce, configuration, input, 9, physical_ticket, physical_copy_bytes,
+  )
+  if handle > 0 {
+    value.submissions[handle].failure_preparation = Some(preparation)
+  }
+  handle
+}
+
+///|
+fn observe_submission_preparation_failure(
+  value : Instance,
+  record : StoredSubmissionProjection,
+  configuration : StoredRunConfiguration,
+) -> Result[(@host.ClientJournalPhysicalRow, Bytes), Int] {
+  match submission_append_current(value, record, configuration) {
+    Err(code) => return Err(code)
+    Ok(_) => ()
+  }
+  guard record.kind == 9 &&
+    record.failure_preparation is Some(handle) &&
+    value.preparations.get(handle) is Some(original) &&
+    original.kind == 3 &&
+    original.started &&
+    original.restoration is None &&
+    preparation_failure_problem(original) is Some(problem) &&
+    @buffers.buffer_wire(value.pool, original.slot) is Some(wire) else {
+    return Err(-2)
+  }
+  let text = @utf8.decode(wire) catch { _ => return Err(-12) }
+  let intent = match
+    @host.prepare_client_submitted_intent(text, 65536, 8192, 64) {
+    Ok(value) => value
+    Err(_) => return Err(-31)
+  }
+  let saved = match observe_submission_lookup(value, record, configuration) {
+    Ok(Some(value)) => value
+    Ok(None) => return Err(-42)
+    Err(code) => return Err(code)
+  }
+  let body = match
+    @host.client_saved_submission_preparation_failure_body(
+      saved, intent, problem,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(-32)
+  }
+  match submission_append_current(value, record, configuration) {
+    Err(code) => Err(code)
+    Ok(_) => Ok((@host.client_saved_submission_row(saved), body))
+  }
+}
+
+///|
+fn produce_submission_preparation_failure(
+  value : Instance,
+  record : StoredSubmissionProjection,
+  configuration : StoredRunConfiguration,
+) -> Int {
+  if record.output_closed {
+    return -5
+  }
+  if record.produced {
+    return 0
+  }
+  if record.invoked {
+    return -33
+  }
+  record.invoked = true
+  let (before, body) = match
+    observe_submission_preparation_failure(value, record, configuration) {
+    Ok(value) => value
+    Err(code) => return code
+  }
+  let writer = @encode.writer(1048576, 8, 1) catch { _ => return -34 }
+  let wire = try {
+    @encode.begin_object(writer)
+    @encode.key(writer, "key")
+    @encode.string_value(writer, before.key)
+    @encode.key(writer, "revision")
+    @encode.string_value(writer, before.revision.to_string())
+    @encode.key(writer, "before")
+    @encode.string_value(writer, @utf8.decode(before.body))
+    @encode.key(writer, "body")
+    @encode.string_value(writer, @utf8.decode(body))
+    @encode.end_object(writer)
+    @encode.finish(writer)
+  } catch {
+    _ => return -34
+  }
+  match submission_append_current(value, record, configuration) {
+    Err(code) => return code
+    Ok(_) => ()
+  }
+  let result = status(
+    @buffers.supply_buffer_output(value.pool, record.slot, @utf8.encode(wire)),
+  )
+  if result == 0 {
+    record.failure_plan = Some((before, body))
+    record.produced = true
+  }
+  result
+}
+
+///|
+fn validate_submission_preparation_failure(
+  value : Instance,
+  record : StoredSubmissionProjection,
+  configuration : StoredRunConfiguration,
+) -> Int {
+  guard record.produced &&
+    !record.output_closed &&
+    record.failure_plan is Some((before, body)) else {
+    return -2
+  }
+  match observe_submission_preparation_failure(value, record, configuration) {
+    Ok((actual, after)) if before.key == actual.key &&
+      before.revision == actual.revision &&
+      before.body == actual.body &&
+      body == after => 0
+    Ok(_) => -32
+    Err(code) => code
   }
 }
