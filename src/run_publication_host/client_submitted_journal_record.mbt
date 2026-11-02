@@ -10,6 +10,8 @@ pub(all) struct ClientSubmittedJournalEncoding {
   // Original public observation counter/key, separate from SQL/control CAS.
   // None is historical absence, not a newly issued zero-counter row.
   run_state_observation : (Int64, String?)?
+  // An existing accepted preparation terminal; never a Run admission.
+  preparation_problem : (String, String)?
 }
 
 ///|
@@ -31,8 +33,9 @@ pub fn decode_client_submitted_journal_row(
     })
     is Ok(cursor) &&
     @decode.closed_object(cursor, [
-      "intent", "phase", "reference", "run_admission", "run_state_key", "run_state_original",
-      "run_state_revision", "version",
+      "intent", "phase", "preparation_problem_classification", "preparation_problem_code",
+      "reference", "run_admission", "run_state_key", "run_state_original", "run_state_revision",
+      "version",
     ])
     is Ok(object) else {
     return Err(CustodyLost)
@@ -97,7 +100,29 @@ pub fn decode_client_submitted_journal_row(
     }
     _ => return Err(CustodyLost)
   }
-  if phase != (if run_admission is Some(_) { "ready" } else { "preparing" }) ||
+  let preparation_problem = match
+    (
+      @decode.lookup(object, "preparation_problem_code"),
+      @decode.lookup(object, "preparation_problem_classification"),
+    ) {
+    (None, None) => None
+    (Some(code), Some(classification)) => {
+      guard @decode.text(code) is Ok(code) &&
+        @decode.text(classification) is Ok(classification) else {
+        return Err(CustodyLost)
+      }
+      Some((code, classification))
+    }
+    _ => return Err(CustodyLost)
+  }
+  let expected_phase = if run_admission is Some(_) {
+    "ready"
+  } else if preparation_problem is Some(_) {
+    "preparation_failed"
+  } else {
+    "preparing"
+  }
+  if phase != expected_phase ||
     !client_submitted_intent_transition(phase, phase) {
     return Err(CustodyLost)
   }
@@ -108,6 +133,7 @@ pub fn decode_client_submitted_journal_row(
       run_admission~,
       run_state_original~,
       run_state_observation~,
+      preparation_problem~,
     ) {
     Ok(original) if original == body =>
       Ok({
@@ -116,6 +142,7 @@ pub fn decode_client_submitted_journal_row(
         run_admission,
         run_state_original,
         run_state_observation,
+        preparation_problem,
       })
     _ => Err(CustodyLost)
   }

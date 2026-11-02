@@ -123,7 +123,26 @@ pub fn client_submitted_intent_journal_row_body(
   run_admission? : (ClientRequestIdentity, String, Int64)? = None,
   run_state_original? : String? = None,
   run_state_observation? : (Int64, String?)? = None,
+  preparation_problem? : (String, String)? = None,
 ) -> Result[Bytes, ClientJournalEncodingIssue] {
+  if preparation_problem is Some((code, classification)) {
+    if run_admission is Some(_) ||
+      run_state_original is Some(_) ||
+      run_state_observation is Some(_) ||
+      code.is_empty() ||
+      @utf8.encode(code).length() > 256 ||
+      ![
+        "invalid_input", "requirements", "implementation_limit", "authorization",
+        "operation_failed",
+      ].contains(classification) {
+      return Err(Encoding)
+    }
+    for character in code.iter() {
+      if character.to_int() < 32 || character.to_int() == 127 {
+        return Err(Encoding)
+      }
+    }
+  }
   let wire = client_submitted_intent_wire(intent)
   // This physical profile is explicitly finite. Capacity does not classify
   // the caller's Program as invalid or provide permission to retry it.
@@ -156,10 +175,18 @@ pub fn client_submitted_intent_journal_row_body(
       writer,
       if run_admission is Some(_) {
         "ready"
+      } else if preparation_problem is Some(_) {
+        "preparation_failed"
       } else {
         "preparing"
       },
     )
+    if preparation_problem is Some((code, classification)) {
+      @encode.key(writer, "preparation_problem_classification")
+      @encode.string_value(writer, classification)
+      @encode.key(writer, "preparation_problem_code")
+      @encode.string_value(writer, code)
+    }
     @encode.key(writer, "reference")
     @encode.string_value(writer, reference_wire)
     if run_admission is Some((request, definition_cid, revision)) {
