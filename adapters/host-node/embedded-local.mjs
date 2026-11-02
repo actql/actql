@@ -146,7 +146,9 @@ import {installHostObservation, observationTraceParent,
   captureManagedRunObservation} from '../host-common/observation.mjs';
 import {installNodeClientDispatchOwner, confirmNodeRunCancellation, cancelNodeRunContinuation,
   observeNodeRestoredModelStop, observeNodeRestoredLocalStop, recordNodeRunPhysicalStop} from './client-dispatch-owner.mjs';
-import {retainInstalledHostInitializationFailure, retainInstalledHostRuntimeFailure} from
+import {prepareOrdinaryHostJournal} from './ordinary-host-journal.mjs';
+import {prepareOrdinaryHostResult} from './ordinary-host-result.mjs';
+import {originalInitialControlClose, retainInstalledHostInitializationFailure, retainInstalledHostRuntimeFailure} from
   './installed-host-cleanup.mjs';
 import {issueInferTrustedRuntimeView, checkInferTrustedRuntimeView,
   forgetInferTrustedRuntimeView, associateInferTrustedStartupView,
@@ -267,8 +269,7 @@ export function readHostResultPublicationPreparation(originals) {
   const control = runtimeCore(runtime).publicationControl;
   return Object.freeze({runtime, control, root: journal.root, principalId: journal.principalId,
     privateEvidenceKey: originals.installation.mockAccount?.evidenceKey.key,
-    storeAuthorityCid: cid({version: 'actql-local-store-owner/0.1',
-      root: journal.root, principalId: journal.principalId})});
+    storeAuthorityCid: localPublicationStoreAuthorityCid(journal.root, journal.principalId)});
 }
 
 // Only the fixed startup calls this after the same pending SDK request has
@@ -1919,8 +1920,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       {hostCapacityPolicyCid: effectiveHostCapacityPolicyCid}),
     ...(hostLookupExecutionPolicy === undefined ? {} :
       {hostLookupExecutionPolicyCid: contentCid(hostLookupExecutionPolicy)})});
-  const storeAuthorityCid = cid({version: 'actql-local-store-owner/0.1',
-    root, principalId});
+  const storeAuthorityCid = localPublicationStoreAuthorityCid(root, principalId);
   let journal;
   let originalJournalClose, publicationOwnership;
   let unselectedJournalAttempted = false, unselectedJournalFailure;
@@ -2137,16 +2137,8 @@ async function openInstalledHost(originalInstallation, preparation) {
     }
     if (modelRuntimeView !== undefined) assertNewModelRuntime();
     try {
-    const storeOptions = {
-      directory: join(root, 'publication'), storeAuthorityCid,
-      capacityBytes: 512 * 1024 * 1024,
-      maxObjectBytes: localOutputLimits.maxWireBytes,
-      // A JSON value node occupies at least one byte in the selected wire.
-      // This is parser support, not an additional memory/resource grant.
-      maxObjects: 10000, maxContractNodes: localOutputLimits.maxWireBytes,
-      maxContractDepth: 64,
-      privateEvidenceKey: effectInstallation?.privateEvidenceKey ?? effectEvidenceKey?.key,
-    };
+    const storeOptions = localPublicationStoreOptions(root, storeAuthorityCid,
+      effectInstallation?.privateEvidenceKey ?? effectEvidenceKey?.key);
     store = preparation === undefined
       ? await openLocalPublicationStore(storeOptions, control, undefined, undefined, publicationOwnership)
       : await preparation.openResultPublicationStore(storeOptions, control);
@@ -5597,6 +5589,54 @@ function installedRemoteHttpTransport(host, {authenticate, loopbackHttp}, shutdo
   });
 }
 
+function localPublicationStoreAuthorityCid(root, principalId) {
+  return cid({version: 'actql-local-store-owner/0.1', root, principalId});
+}
+
+function localPublicationStoreOptions(root, storeAuthorityCid, privateEvidenceKey) {
+  return {
+    directory: join(root, 'publication'), storeAuthorityCid,
+    capacityBytes: 512 * 1024 * 1024,
+    maxObjectBytes: localOutputLimits.maxWireBytes,
+    // A JSON value node occupies at least one byte in the selected wire.
+    // This is parser support, not an additional memory/resource grant.
+    maxObjects: 10000, maxContractNodes: localOutputLimits.maxWireBytes,
+    maxContractDepth: 64, privateEvidenceKey,
+  };
+}
+
+// Publishing is an explicit pre-start operation. Keep its actual first Root
+// admission through key creation and Store adoption, instead of leaving a
+// marker that makes the later Host look like an existing, keyless installation.
+// These existing owners grant no Run, Site, request or provider operation.
+async function preparePublicationRoot(root, principalId) {
+  const host = {};
+  const originals = {host, installation: {root}, generation: host,
+    supplier: preparePublicationRoot, moduleLifetime: import.meta};
+  const journal = prepareOrdinaryHostJournal(originals);
+  const closeJournal = originalInitialControlClose(journal);
+  let result, closeResult;
+  async function closeServices() {
+    if (closeResult !== undefined) await closeResult();
+    await closeJournal();
+  }
+  try {
+    await journal.admitRootFormat(root);
+    const moon = await import(runtimeUrl.href);
+    const control = runtimeCore(moon).publicationControl;
+    const storeAuthorityCid = localPublicationStoreAuthorityCid(root, principalId);
+    result = prepareOrdinaryHostResult(originals, Object.freeze({root, storeAuthorityCid, control}),
+      readHostResultPublicationRunRequirements, readHostEffectResultPublicationRunRequirements);
+    closeResult = originalInitialControlClose(result);
+    await result.initialize();
+    await result.openStore(localPublicationStoreOptions(root, storeAuthorityCid), control);
+    await closeServices();
+    return moon;
+  } catch (cause) {
+    throw await retainInstalledHostInitializationFailure(cause, {journal, closeJournal: closeServices});
+  }
+}
+
 // Publish the installed source's declaration for a Host state directory
 // (the embedded Local Host's by default) from its source profile
 // (`ACTQL_LOCAL_SOURCE_PROFILE` by default). This is the explicit step a Host
@@ -5605,11 +5645,11 @@ export async function publishInstalledSource({sourceProfilePath, directory,
   resolveSourceSecret, signal, connectorTable} = {}) {
   if (connectorTable !== undefined) assertInstalledConnectorTable(connectorTable);
   const root = directory === undefined ? localStateRoot() : resolve(directory);
-  await admitHostRootFormat(root);
-  const moon = await import(runtimeUrl.href);
+  const principalId = userInfo().username;
+  const moon = await preparePublicationRoot(root, principalId);
   return publishInstalledSourceProfile(
     sourceProfilePath ?? process.env.ACTQL_LOCAL_SOURCE_PROFILE, {root,
-      principalId: userInfo().username, moon, runtimeUrl,
+      principalId, moon, runtimeUrl,
       resolveSecret: resolveSourceSecret, signal, connectorTable});
 }
 
@@ -5624,14 +5664,14 @@ export async function publishInstalledEffect({effectProfilePath, directory,
   hostCapacityPolicy = snapshotHostCapacityPolicy(hostCapacityPolicy);
   hostLookupExecutionPolicy = snapshotHostLookupExecutionPolicy(hostLookupExecutionPolicy);
   const root = directory === undefined ? localStateRoot() : resolve(directory);
-  await admitHostRootFormat(root);
-  const moon = await import(runtimeUrl.href);
+  const principalId = userInfo().username;
+  const moon = await preparePublicationRoot(root, principalId);
   const baseEnvironmentWire = selectInstalledHostEnvironment(moon, (await readFile(join(packageRoot,
     'spec/local-check-environment.json'), 'utf8')).trimEnd(), hostCapacityPolicy,
     hostLookupExecutionPolicy);
   return publishInstalledEffectProfile(
     effectProfilePath ?? process.env.ACTQL_LOCAL_EFFECT_PROFILE, {root,
-      principalId: userInfo().username, moon, runtimeUrl,
+      principalId, moon, runtimeUrl,
       baseEnvironmentWire, resolveSecret: resolveEffectSecret, signal, connectorTable});
 }
 

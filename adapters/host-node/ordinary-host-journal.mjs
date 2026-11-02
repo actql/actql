@@ -154,7 +154,10 @@ export function prepareOrdinaryHostJournal(originals) {
     },
     publicationOwnership() {
       current();
-      if (journal === undefined || ownership === undefined || ownershipForwarded) {
+      // Explicit pre-start publication adopts the Store without opening SQLite.
+      // The same acquired exclusion and its native/key dependencies still own
+      // the one transfer; an absent Journal supplies no additional authority.
+      if (ownership === undefined || ownershipForwarded) {
         throw new TypeError('ForeignInstalledHostPublicationOwnership');
       }
       ownershipForwarded = true; return ownership;

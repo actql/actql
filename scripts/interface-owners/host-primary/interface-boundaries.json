@@ -6752,6 +6752,23 @@
           "async": false
         },
         {
+          "name": "localPublicationStoreAuthorityCid",
+          "parameters": [
+            "root",
+            "principalId"
+          ],
+          "async": false
+        },
+        {
+          "name": "localPublicationStoreOptions",
+          "parameters": [
+            "root",
+            "storeAuthorityCid",
+            "privateEvidenceKey"
+          ],
+          "async": false
+        },
+        {
           "name": "localStateRoot",
           "parameters": [],
           "async": false
@@ -9844,6 +9861,19 @@
             "value"
           ],
           "async": false
+        },
+        {
+          "name": "preparePublicationRoot",
+          "parameters": [
+            "root",
+            "principalId"
+          ],
+          "async": true
+        },
+        {
+          "name": "preparePublicationRoot/closeServices",
+          "parameters": [],
+          "async": true
         },
         {
           "name": "prepareRequestMockModelPlan",
@@ -18700,6 +18730,77 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "localPublicationStoreAuthorityCid",
+            "localPublicationStoreOptions",
+            "preparePublicationRoot",
+            "preparePublicationRoot/closeServices"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Explicit publication initialization"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Explicit publication initialization"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Explicit publication initialization"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Explicit publication initialization"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Explicit publication initialization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Explicit publication initialization"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Explicit publication initialization"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Explicit publication initialization"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Explicit publication initialization"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Explicit publication initialization"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -18816,7 +18917,7 @@
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "10ab316b0361f43e9466b441470d577f411eec09b763d13ab3a1d134f8aa5d0c"
+      "sha256": "44e7d5bd5ee9a2b98587b25ee38718f7c744b8aeaae25d89e802835da245b15b"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",

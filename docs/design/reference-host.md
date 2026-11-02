@@ -913,6 +913,17 @@ An owner-only immutable intent precedes the key write, and adoption records the
 same key generation and Store contract after the actual Store opens. Reopen
 validates and durably reconciles those originals without rewriting the key.
 Missing or corrupt adopted/interrupted material refuses rather than rekeying.
+
+### Explicit publication initialization
+
+Explicit Source/Effect publication is also a pre-start initializer. Its same
+Root admission retains the Journal owner's actual Store exclusion through key
+selection and Store adoption, then closes Result/Store before releasing that
+exclusion and invoking provider publication. This path opens no SQLite Journal
+or business Run. A later Host reopens the same adopted generation; publication
+cannot consume the first-Root marker alone and leave a keyless new installation.
+A failed close remains with the original initialization cleanup and prevents
+provider publication until its real owners acknowledge release.
 An old no-key Store without positive first-adoption metadata keeps plain Result
 support but cannot infer a Content key capability from absence. Key setup adds
 no Account, Effect, approval or egress right and changes no evidence AAD.
