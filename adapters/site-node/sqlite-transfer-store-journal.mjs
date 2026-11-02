@@ -9,6 +9,9 @@ import {
 } from 'node:fs';
 import {join} from 'node:path';
 
+import {createSqliteTransaction, throwSqliteInitializationFailure} from
+  '../host-common/sqlite-transaction.mjs';
+
 const fail = (code, cause) => {
   throw Object.assign(new Error(code, {cause}), {code});
 };
@@ -21,21 +24,6 @@ function syncDirectory(path) {
   const descriptor = openSync(path, 'r');
   try { fsyncSync(descriptor); }
   finally { closeSync(descriptor); }
-}
-
-function transaction(database, body) {
-  database.exec('BEGIN IMMEDIATE');
-  try {
-    const value = body();
-    database.exec('COMMIT');
-    return value;
-  } catch (error) {
-    try { database.exec('ROLLBACK'); }
-    catch (rollback) {
-      fail('RemoteTransferStoreJournalRollbackFailed', rollback);
-    }
-    throw error;
-  }
 }
 
 export function openSqliteTransferStoreJournal(root, {
@@ -61,6 +49,7 @@ export function openSqliteTransferStoreJournal(root, {
     readOnly: false,
     enableForeignKeyConstraints: true,
   });
+  const transaction = createSqliteTransaction(database, 'RemoteTransferStoreJournal');
   let closed = false;
   try {
     database.exec('PRAGMA journal_mode = WAL');
@@ -91,7 +80,7 @@ export function openSqliteTransferStoreJournal(root, {
         UNIQUE (request_cid, use_id)
       ) STRICT;
     `);
-    transaction(database, () => {
+    transaction.run(() => {
       const row = database.prepare(
         'SELECT value FROM journal_metadata WHERE key = ?',
       ).get('schema_version');
@@ -105,10 +94,10 @@ export function openSqliteTransferStoreJournal(root, {
     });
     if (!existed) syncDirectory(directory);
   } catch (error) {
-    database.close();
-    throw error;
+    throwSqliteInitializationFailure(database, error, 'transfer-store-journal');
   }
 
+  try {
   const select = database.prepare(
     'SELECT * FROM store_uses WHERE use_cid = ?',
   );
@@ -152,6 +141,7 @@ export function openSqliteTransferStoreJournal(root, {
 
   const active = () => {
     if (closed) fail('RemoteTransferStoreJournalClosed');
+    transaction.assertUsable();
   };
   const requireControl = control => {
     const storeUse = control?.storeUse;
@@ -221,7 +211,7 @@ export function openSqliteTransferStoreJournal(root, {
           Buffer.byteLength(manifestJson, 'utf8') > maxManifestBytes) {
         fail('InvalidRemoteTransferStoreUse');
       }
-      return transaction(database, () => {
+      return transaction.run(() => {
         const existing = select.get(useCid);
         if (existing !== undefined) {
           if (existing.request_cid !== requestCid ||
@@ -268,7 +258,7 @@ export function openSqliteTransferStoreJournal(root, {
           key.some(value => !text(value))) {
         fail('InvalidRemoteTransferStoreTransition');
       }
-      transaction(database, () => {
+      transaction.run(() => {
         const row = select.get(key[0]);
         if (row === undefined) fail('RemoteTransferStoreUseMissing');
         const current = state(row);
@@ -318,4 +308,7 @@ export function openSqliteTransferStoreJournal(root, {
       return true;
     },
   });
+  } catch (error) {
+    throwSqliteInitializationFailure(database, error, 'transfer-store-journal');
+  }
 }

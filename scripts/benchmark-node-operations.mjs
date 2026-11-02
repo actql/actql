@@ -549,8 +549,12 @@ export async function runNodePriorityBenchmark({manifestPath, consumer, output, 
       }
       beforeClose = observation.status();
     } catch (error) {resourceFailures.push(nodeBenchmarkFailure(error));}
-    if (client) try {await client.close(); report.cleanup.closed = true;}
-    catch (error) {report.cleanup.failure = nodeBenchmarkFailure(error);}
+    if (client) {
+      const closeStart = process.hrtime.bigint();
+      try {await client.close(); report.cleanup.closed = true;}
+      catch (error) {report.cleanup.failure = nodeBenchmarkFailure(error);}
+      finally {report.cleanup.wallNs = Number(process.hrtime.bigint() - closeStart);}
+    }
     if (observation) try {
       if (!client) await observation.close(); // Only the unadopted observer belongs to this collector.
       afterClose = observation.status();

@@ -230,6 +230,13 @@ export async function open({stateDir}) {
   return{all:async()=>(await ensure()).rows,then:(resolve,reject)=>ensure().then(value=>value.selected).then(resolve,reject)};
  },close:async()=>{assert(!closed);closed=true;await event('close',null);
  ${fault === 'package' ? `await appendFile(${JSON.stringify(join(base, 'index.mjs'))},'\\n// changed during close\\n');` : ''}
+ ${['close-resolve', 'close-reject'].includes(fault) ? `
+ const startNs=process.hrtime.bigint();
+ await new Promise(resolve=>setImmediate(resolve));
+ const endNs=process.hrtime.bigint();
+ await writeFile(stateDir+'/original-close-span',JSON.stringify({startNs:String(startNs),endNs:String(endNs)}));
+ ${fault === 'close-reject' ? "throw Object.assign(new Error('original close refused'),{code:'ClientCleanupPending',cleanupPending:true});" : ''}
+ ` : ''}
  }};
 }`);
   await writeFile(join(base, 'index.mjs'), code, {mode: 0o644});
@@ -705,4 +712,38 @@ test('record-only warm waits for its one original close acknowledgement', async 
   assert.equal(report.cleanup.closed, true);
   assert.equal(report.measurements.length, 8);
   assert.equal(await readFile(join(options.output, 'new-state/close-attempts'), 'utf8'), 'close\n');
+});
+
+test('priority first-close duration encloses the original awaited success', async t => {
+  const options = await priorityFixture(t, 'close-resolve');
+  const report = await runNodePriorityBenchmark(options);
+  const span = JSON.parse(await readFile(join(options.output, 'new-state/original-close-span'), 'utf8'));
+  const originalAwaitedNs = Number(BigInt(span.endNs) - BigInt(span.startNs));
+  assert(Number.isSafeInteger(report.cleanup.wallNs) && report.cleanup.wallNs > 0);
+  assert(originalAwaitedNs > 0 && report.cleanup.wallNs >= originalAwaitedNs);
+  assert.equal(report.cleanup.closed, true);
+  assert.equal(report.cleanup.failure, undefined);
+  assert.equal((await priorityEvents(options)).filter(row => row.kind === 'close').length, 1);
+  assert.deepEqual(report.publicCallAttempts, {sql: 4, savedResultAll: 3});
+  assert(report.functional.rows.every(row => row.completed));
+  assert.equal(report.priorityAssessment.status, 'incomplete');
+  assert.equal(report.fullAcceptance, false);
+});
+
+test('priority first-close duration retains the original rejection without another close', async t => {
+  const options = await priorityFixture(t, 'close-reject');
+  const report = await runNodePriorityBenchmark(options);
+  const span = JSON.parse(await readFile(join(options.output, 'new-state/original-close-span'), 'utf8'));
+  const originalAwaitedNs = Number(BigInt(span.endNs) - BigInt(span.startNs));
+  assert(Number.isSafeInteger(report.cleanup.wallNs) && report.cleanup.wallNs > 0);
+  assert(originalAwaitedNs > 0 && report.cleanup.wallNs >= originalAwaitedNs);
+  assert.equal(report.cleanup.closed, false);
+  assert.equal(report.cleanup.failure.message, 'original close refused');
+  assert.equal(report.cleanup.failure.code, 'ClientCleanupPending');
+  assert.equal(report.cleanup.failure.cleanupPending, true);
+  assert.equal((await priorityEvents(options)).filter(row => row.kind === 'close').length, 1);
+  assert.deepEqual(report.publicCallAttempts, {sql: 4, savedResultAll: 3});
+  assert(report.functional.rows.every(row => !row.completed && !Object.hasOwn(row, 'actualSha256')));
+  assert.equal(report.priorityAssessment.status, 'failed');
+  assert.equal(report.fullAcceptance, false);
 });

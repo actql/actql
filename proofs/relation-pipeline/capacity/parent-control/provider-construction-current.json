@@ -4,7 +4,7 @@
     {
       "name": "selected_relation_provider",
       "path": "src/connectors/local/selected_relation_provider.mbt",
-      "sourceDigest": "b917b4a66a1a27b6513d12d9d842ab97df90dc0621b4cfcd8a303c2c46271274",
+      "sourceDigest": "cfbd44acaee5639d6b0caac0692c671a490e5881afbd6c2b66b06f5c4c6a1d53",
       "binding": "managed_provider_with_numeric"
     },
     {
@@ -69,8 +69,8 @@
     }
   ],
   "sourcePremises": {
-    "src/connectors/local/managed_provider.mbt": "8fb17b1b340baeb343b1f9d9037f8db0e132fd5055fea5ce64d0cc271535aec4",
-    "src/execution_relation/generated_sequence.mbt": "c6ee6afc5adcda37f708444eac28645cd19269b76e3377602da874f17c3ee673"
+    "src/connectors/local/managed_provider.mbt": "b772695204d0e16c9d0b61c44a2fce1d0040c27b49f80a84b75f67355d468480",
+    "src/execution_relation/generated_sequence.mbt": "53be245e5164a1294c256276fea4ce75697bd2c8fdaebe6ea25e87818db17472"
   },
   "bounds": {
     "providerRecords": 11,
@@ -81,5 +81,10 @@
   },
   "scope": "one simultaneous eleven-candidate Relation selection construction; borrowed configuration and callback execution excluded",
   "completeParentUpper": false,
-  "completePipelineUpper": false
+  "completePipelineUpper": false,
+  "wrapperDigests": {
+    "managed_provider": "97c7881276b3a72486a9095b5c320496b231e97ef7aef148f6e3a45f8e52128b",
+    "managed_provider_with_inputs": "1161662194fc637d95e72e00c78f059787a45ae204270ff7ce60aa5a4f397134",
+    "managed_provider_with_numeric": "6fbdba5a2ad1efbb95bd7e3f8da81861b7d48c9de7c7a2155f2e4de53e29ef7e"
+  }
 }

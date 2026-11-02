@@ -195,6 +195,20 @@ class OriginalSDKDeliveryStore:
             finally:
                 self._active = False
 
+    def prepare_original_payload(self, request: _Input, clock: _Input) -> OriginalReaderFacts:
+        """Prepare codecs and select their same original payload in one read.
+
+        Only these fixed Core observations share the existing current/Store
+        frame. No descriptor is opened, no read grant or write is combined,
+        and a failed final physical fence returns no selected original.
+        """
+        def prepare(first: _Output, configuration: int) -> OriginalReaderFacts:
+            self._core.prepare_publication_sdk_payload_codecs(first, clock, configuration)
+            if self._closing:
+                raise RuntimeError('Original SDK delivery storage is closing')
+            return self._selected_original_payload(first, configuration)
+        return self._payload_observation(request, clock, prepare)
+
     def _payload_observation(self, request: _Input, clock: _Input,
                              action: Callable[[_Output, int], _T], *,
                              original: tuple[_Output, OriginalReaderFacts] | None = None) -> _T:
@@ -275,17 +289,18 @@ class OriginalSDKDeliveryStore:
             raise ValueError('Original bound Saved payload material changed')
         self._core._owned_output(first, 'publication_commit_export')
 
+    def _selected_original_payload(self, first: _Output, configuration: int) -> OriginalReaderFacts:
+        result = self._core.publication_sdk_payload_ordinal(first, configuration, field='result')
+        binding = self._core.publication_sdk_payload_ordinal(first, configuration, field='binding')
+        matches = [fact for fact in self._observation._facts
+                   if fact._result == result and fact._binding_index == binding]
+        if len(matches) != 1:
+            raise ValueError('Original SDK selected reader inventory is unavailable')
+        return matches[0]
+
     def selected_original_payload(self, request: _Input, clock: _Input) -> OriginalReaderFacts:
         """Route Core's original ordinals; no Python selection or read permit."""
-        def select(first: _Output, configuration: int) -> OriginalReaderFacts:
-            result = self._core.publication_sdk_payload_ordinal(first, configuration, field='result')
-            binding = self._core.publication_sdk_payload_ordinal(first, configuration, field='binding')
-            matches = [fact for fact in self._observation._facts
-                       if fact._result == result and fact._binding_index == binding]
-            if len(matches) != 1:
-                raise ValueError('Original SDK selected reader inventory is unavailable')
-            return matches[0]
-        return self._payload_observation(request, clock, select)
+        return self._payload_observation(request, clock, self._selected_original_payload)
 
     def bind_original_payload(self, request: _Input, clock: _Input,
                               fact: OriginalReaderFacts) -> None:

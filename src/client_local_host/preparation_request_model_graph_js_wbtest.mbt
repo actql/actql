@@ -555,7 +555,7 @@ priv struct RequestAcquiredModelCaptureFixture {
   scope : @publication_host.ClientModelReadScope
   run : ClientInstalledManagedRun
   read : ClientInstalledSourceRead
-  source : @row_source_host.RowRun
+  _source : @row_source_host.RowRun
   capture : @row_source_host.RowSourceCapture
   verify_hook : Ref[(() -> Unit)?]
 }
@@ -687,7 +687,7 @@ fn request_acquired_model_capture_fixture(
     scope,
     run,
     read,
-    source,
+    _source: source,
     capture,
     verify_hook,
   }

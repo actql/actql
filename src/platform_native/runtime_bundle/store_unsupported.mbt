@@ -320,6 +320,7 @@ pub fn NativeRuntimeBundleStore::close_checked(
 ///|
 #warnings("-unused_value")
 fn retain_native_store_imports() -> Unit {
+  ignore(runtime_bundle_trust_sets([]))
   ignore(@sha.hasher())
   ignore(@utf8.encode(""))
   let writer = @encode.writer(16, 16, 1) catch { _ => return }

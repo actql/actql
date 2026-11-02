@@ -138,7 +138,6 @@ test "retained static Effect compilation preserves original supplied input witho
   let compilation_limits = {
     ..limits.program,
     checking: {
-      ..limits.program.checking,
       input: {
         ..limits.program.checking.input,
         source: { ..limits.program.checking.input.source, max_input_bytes: 0, },

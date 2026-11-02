@@ -1,6 +1,5 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
 import {inspectScalarCode, scalarSites, providerSymbolText} from './provider-callback-code.mjs';
 import {inspectProviderConstructionPoint} from './provider-construction.mjs';
 // Independent tiny ARM64 object/link pair. Addresses deliberately differ;
@@ -80,8 +79,8 @@ test('unrelated C translation-unit symbols do not become provider identity colli
   assert(selected.includes('__M0connectors5local_callback'));
 });
 
-import {retainedConstructionRead} from './provider-construction-adopted-review.mjs';
-const read = retainedConstructionRead(path => readFileSync(new URL(`../../../../${path}`, import.meta.url)));
+import {retainedConstructionFixtureRead} from '../../fixtures/retained-construction-source.mjs';
+const read = retainedConstructionFixtureRead;
 const constructionFacts = () => [{...facts()[0], kind:'provider construction observation',
   providers:11, records:11, arraySlots:11, callbacks:24, defaultArrays:1,
   indexedBytes:1504, unclassifiedCaptures:0}];

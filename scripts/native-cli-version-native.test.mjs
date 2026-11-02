@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {readFile, writeFile} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
 import {join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import test from 'node:test';
@@ -13,7 +14,7 @@ const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 
 test('Native package version: actual compiled getter uses immutable bounded literals and ignores runtime version inputs', async () => {
   const moon = resolve(process.env.MOON_HOME ?? ''); assert(process.env.MOON_HOME, 'Select the pinned Native toolchain');
-  const scratch = await createOwnedScratch({parent: '/private/tmp', prefix: 'actql-native-version-c-',
+  const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-native-version-c-',
     label: 'Native version C mechanism, not full CLI', preserve: true});
   const fixture = join(scratch.path, 'fixture.c');
   await writeFile(fixture, '#include "moonbit.h"\n#include <assert.h>\n#include <stdio.h>\n' +

@@ -15,6 +15,9 @@ const paths = ['src/connectors/local/selected_relation_provider.mbt',
   'src/connectors/local/managed_provider.mbt',
   'src/execution_relation/generated_sequence.mbt'];
 
+// Archived source correspondence only. Current constructor admission uses the
+// direct census in provider-construction.mjs, without these reverse deltas.
+
 // Reverse only the independently reviewed literal deltas. Both complete blobs
 // are pinned: an unknown change, absent hunk or duplicate occurrence refuses.
 // Reconstructed text is evidence for the old checker, never runtime code.
