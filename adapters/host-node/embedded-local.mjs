@@ -3561,6 +3561,13 @@ async function openInstalledHost(originalInstallation, preparation) {
     computeConfigurations: {local:localSnapshotConfiguration}});
   const startDispatch = dispatchOwner.start;
   const recoverEffectCapture = (ref, signal, managed, retainRecoveryResources) => {
+    // An existing live Request already owns this exact compiler. Its saved
+    // material admission must bind that original instead of compiling again.
+    // A wire-only cold restoration still needs its own funded continuation.
+    const originalCompilation = managed?.definitionOriginal?.compilation;
+    if (managed !== undefined && originalCompilation === undefined) {
+      throw clientOperationError('ForeignInstalledEffectManagedRun');
+    }
     const retained = journal.lookupRunDefinition(ref, moon, control);
     if (retained === undefined || typeof retained.requestId !== 'string') {
       throw new Error('EffectRecoveryRequestMismatch');
@@ -3582,7 +3589,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       restoreOriginal: (saved, requestIdentity) => {
         const original = saved.runAdmissionEvidence?.updateTargetRunOriginal;
         let restored = original === undefined ? {} : updateTargetOriginals.restoreRun(
-          original, saved.runDefinition, requestIdentity);
+          original, saved.runDefinition, requestIdentity, originalCompilation);
         const originalSubmittedIntent = journal.originalSubmittedIntent(requestIdentity,
           {namespaceId}, moon, control);
         if (originalSubmittedIntent !== undefined &&
@@ -3593,7 +3600,7 @@ async function openInstalledHost(originalInstallation, preparation) {
               throw new Error('RequestedEffectStopOriginalUnavailable');
             }
             restored = updateTargetOriginals.restoreEffectMaterials(wire,
-              saved.runDefinition, requestIdentity);
+              saved.runDefinition, requestIdentity, originalCompilation);
           }
           if (moon.strategyRunEvidenceJson(moon.clientProgramAllowedEffectRunPrepared(restored.allowed)) !==
                 saved.runAdmissionEvidence.prepared ||

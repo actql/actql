@@ -437,7 +437,7 @@
     },
     {
       "module": "adapters/host-node/installed-update-originals.mjs",
-      "sha256": "cb7c21be820a6523f85c130edeb0f00736c178b9f485ff602f7d10be70d08d67",
+      "sha256": "02af2e593c33882d329c363d97122ecced9b575a25cf10b89484e5116ef56010",
       "exports": [
         "installUpdateTargetOriginals"
       ],

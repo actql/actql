@@ -166,11 +166,12 @@ export function installUpdateTargetOriginals({moon, control, installedEffect, li
           expectedSelectionCid !== updateTargetSelectionsCid(selections, moon) ||
           !updateTargetRunOriginalShape(original, evidence, moon)) fail();
       const restored = restoreRun(original, runDefinition, identity, compilation);
-      if (!same(capturePrepared(prepared, compilation),
-        capturePrepared(restored.prepared, restored.compilation))) fail();
-      // The restored pair authenticates the saved material. Execution keeps
-      // this caller's preparation, so retain its own nominal selection too.
-      return bind(selections, original.installations);
+      // Core bound the complete saved material to this exact compiler. Keep
+      // that SAME returned pair; encoding both preparations and checking the
+      // same installation again would repeat this boundary's existing work.
+      if (restored.prepared !== prepared || restored.compilation !== compilation) fail();
+      return Object.freeze({updateTargetSelections: restored.updateTargetSelections,
+        assertUpdateSelectionCurrent: restored.assertUpdateSelectionCurrent});
     },
   });
 }

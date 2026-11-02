@@ -211,8 +211,15 @@ current authority, an approval or permission to write.
 The existing installed `validateRun` caller supplies its already-owned compiler
 through this route. Its method and receiver are captured at installation;
 a missing typed entry or refused binding does not fall back to wire-only
-preparation. Independent wire-only callers retain their existing restoration
-contract. Connecting a cold Host's same-Request Plan construction and adoption
+preparation. After the typed binding, the caller compares the same prepared and
+compiler references and retains its returned original selection/current closure.
+It does not re-encode both preparations or repeat that boundary's installation
+current callback. Selection DATA conversion may return distinct arrays borrowing
+the same Core original; wrapper reference equality is not nominal proof.
+The existing live capture-recovery caller also forwards its retained managed
+Run compiler for target-original and requested-stop material restoration. A
+live record missing that compiler refuses instead of selecting wire-only work.
+Independent wire-only callers retain their existing restoration contract. Connecting a cold Host's same-Request Plan construction and adoption
 remains a separate caller obligation: this projection does not create that Plan,
 fund its constructors or establish ordinary restoration acceptance.
 

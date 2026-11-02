@@ -8,6 +8,8 @@ import {bindInstalledManagedSources} from './installed-managed-source.mjs';
 import {selectAcquiredEffectSources, selectAcquiredEffectPlanInputs} from './acquired-effect-sources.mjs';
 import {openAcquiredEffectComputation} from './acquired-effect-computation.mjs';
 import {prepareInstalledRowCaptureChild} from './installed-row-capture-cleanup.mjs';
+import {retainUpdateTargetSelection, originalUpdateTargetSelectionsCid, updateTargetSelectionMatchesRun}
+  from './update-target-original-shape.mjs';
 
 // Original runtime/admission ports are explicit. These tests exercise the real
 // Node owner/consumers, not actual Common funding, vendor work or normal support.
@@ -465,7 +467,7 @@ test('recovered Effect binds its existing managed Plan to the same saved Definit
 // Actual installed original-material helper and normal validateRun caller.
 // Native codec/selection/data ports are explicit; this proves JS handoff and
 // no legacy compiler fallback, not an installation or capacity admission.
-function installedOriginalCompilerFixture({available = true, refusal} = {}) {
+function installedOriginalCompilerFixture({available = true, refusal, forbidProjection = false} = {}) {
   const source = readFileSync(new URL('./installed-update-originals.mjs', import.meta.url), 'utf8');
   const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
   const found = new Map();
@@ -481,8 +483,10 @@ function installedOriginalCompilerFixture({available = true, refusal} = {}) {
   })(ast);
   assert.equal(found.size, 4);
   const prepared = {}, compilation = {}, allowed = {}, identity = {}, definition = {};
-  const selections = [], materials = {}, original = {materialsWire: 'original-materials', installations: []};
-  const runDefinition = {identity: 'original-definition'}, binding = {}, calls = [];
+  const materials = {}, original = {materialsWire: 'original-materials', installations: []};
+  const runDefinition = {identity: 'original-definition'}, calls = [], counts = {bindings: 0};
+  const originalSelection = {}, foreignPrepared = {};
+  let binding;
   const fail = () => {throw Object.assign(new Error('InstalledEffectOriginalSelectionChanged'),
     {code: 'InstalledEffectOriginalSelectionChanged'});};
   const moon = {clientProgramAdmitEffectRunMaterials(wire, run, ...args) {
@@ -492,7 +496,16 @@ function installedOriginalCompilerFixture({available = true, refusal} = {}) {
     clientProgramEffectRunMaterialsCompilation: value => {assert.strictEqual(value, materials); return compilation;},
     clientProgramEffectRunMaterialsAllowed: value => {assert.strictEqual(value, materials); return allowed;},
     clientProgramEffectRunMaterialsDefinition: value => {assert.strictEqual(value, materials); return definition;},
-    clientProgramEffectRunMaterialsTargetSelections: value => {assert.strictEqual(value, materials); return ok(selections);}};
+    clientProgramEffectRunMaterialsTargetSelections: value => {assert.strictEqual(value, materials); return ok([]);},
+    clientProgramEffectTargetSelectionOriginal: () => [originalSelection],
+    clientProgramEffectTargetSelectionMatchesPrepared(value, owner) {
+      return value === originalSelection && (owner === prepared || owner === foreignPrepared);
+    },
+    clientProgramEffectTargetSelectionWire: () => '[]',
+    clientProgramEffectTargetSelectionCid: () => 'original-selection',
+    clientProgramEffectTargetSelectionMatchesRun(value, owner, run) {
+      return value === originalSelection && owner === prepared && run === definition;
+    }};
   if (available) moon.clientProgramAdmitEffectRunMaterialsWithCompilation = function(wire, run, original, request, ...flags) {
     assert.strictEqual(this, moon); assert.strictEqual(original, compilation); assert.strictEqual(request, identity);
     assert.equal(wire, 'original-materials'); assert.equal(run, runDefinition.identity);
@@ -501,17 +514,20 @@ function installedOriginalCompilerFixture({available = true, refusal} = {}) {
   };
   const ports = {moon, features: [false, true, true, true, true, false, false], checked, fail,
     runUpdateSelectionCid: () => 'original-selection', updateTargetRunOriginalShape: () => true,
-    selectionsOf: value => {assert.strictEqual(value, prepared); return selections;},
-    updateTargetSelectionsCid: value => {assert.strictEqual(value, selections); return 'original-selection';},
-    updateTargetSelectionMatchesRun: (selected, value, run) => selected === selections && value === prepared && run === definition,
-    bind: () => binding, compilations: new WeakMap(),
-    capturePrepared(value, original) {assert.strictEqual(value, prepared); assert.strictEqual(original, compilation); return binding;},
+    // The actual conversion creates distinct DATA arrays borrowing the SAME
+    // opaque selection. Equal wrapper identity must never stand in for it.
+    selectionsOf: value => retainUpdateTargetSelection(moon, value),
+    updateTargetSelectionsCid: originalUpdateTargetSelectionsCid,
+    updateTargetSelectionMatchesRun,
+    bind(selected) {counts.bindings++; binding = {updateTargetSelections: selected,
+      assertUpdateSelectionCurrent() {}}; return binding;}, compilations: new WeakMap(),
+    capturePrepared(value, original) {if (forbidProjection) assert.fail('Retained original must not be encoded again'); assert.strictEqual(value, prepared); assert.strictEqual(original, compilation); return binding;},
     same: (left, right) => left === right};
   const nodes = ['admitWithCompilation', 'restoreEffectMaterials', 'restoreRun'].map(name => found.get(name));
   const code = nodes.map(node => source.slice(node.start, node.end)).join('\n') +
     ';return {restoreEffectMaterials,validateRun:({' + source.slice(found.get('validateRun').start, found.get('validateRun').end) + '}).validateRun};';
   const owner = new Function(...Object.keys(ports), code)(...Object.values(ports));
-  return {owner, moon, prepared, compilation, identity, original, runDefinition, binding, calls,
+  return {owner, moon, prepared, compilation, identity, original, runDefinition, get binding() {return binding;}, calls, counts, foreignPrepared,
     validate() {return owner.validateRun({prepared, compilation, evidence: {updateTargetRunOriginal: original}, runDefinition, identity});}};
 }
 
@@ -519,7 +535,7 @@ test('installed original Run validation binds its same compiler once and never r
   const f = installedOriginalCompilerFixture();
   f.moon.clientProgramAdmitEffectRunMaterialsWithCompilation = () => assert.fail('No changed implementation lookup');
   f.moon.clientProgramAdmitEffectRunMaterials = () => assert.fail('No duplicate check or compiler');
-  assert.strictEqual(f.validate(), f.binding);
+  assert.deepEqual(f.validate(), f.binding);
   assert.deepEqual(f.calls, ['same-original']);
 });
 
@@ -537,4 +553,92 @@ test('independent wire-only material restoration remains on its existing declare
   const restored = f.owner.restoreEffectMaterials('original-materials', f.runDefinition, f.identity);
   assert.strictEqual(restored.prepared, f.prepared); assert.strictEqual(restored.compilation, f.compilation);
   assert.deepEqual(f.calls, ['wire-only']);
+});
+
+// Core already admitted the complete wire against this original compiler.
+// The caller must preserve the exact returned pair without encoding it twice.
+test('bound original Effect validation does not re-encode its Prepared materials', () => {
+  const f = installedOriginalCompilerFixture({forbidProjection: true});
+  const validated = f.validate();
+  assert.deepEqual(validated, f.binding);
+  assert.strictEqual(validated.updateTargetSelections, f.binding.updateTargetSelections);
+  assert.strictEqual(validated.assertUpdateSelectionCurrent, f.binding.assertUpdateSelectionCurrent);
+  assert.deepEqual(f.calls, ['same-original']);
+  assert.equal(f.counts.bindings, 1, 'one original selection/current binding at the same boundary');
+});
+
+test('bound original Effect validation rejects a foreign Prepared despite equal selection DATA', () => {
+  const f = installedOriginalCompilerFixture({forbidProjection: true});
+  assert.throws(() => f.owner.validateRun({prepared: f.foreignPrepared, compilation: f.compilation,
+    evidence: {updateTargetRunOriginal: f.original}, runDefinition: f.runDefinition, identity: f.identity}),
+    {code: 'InstalledEffectOriginalSelectionChanged'});
+  assert.equal(f.counts.bindings, 1);
+});
+
+// The existing embedded Host closure is extracted unchanged. Journal, codec
+// and current/resource services are explicit ports, not ordinary admission.
+function installedCaptureOriginalFixture({marked = true, live = true} = {}) {
+  const source = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
+  const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
+  let entry;
+  (function visit(node) {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'VariableDeclaration' && node.declarations.length === 1 &&
+        node.declarations[0].id.name === 'recoverEffectCapture') {assert.equal(entry, undefined); entry = node;}
+    for (const child of Object.values(node)) if (Array.isArray(child)) child.forEach(visit);
+    else if (child && typeof child === 'object') visit(child);
+  })(ast);
+  assert(entry);
+  const compilation = {}, requestIdentity = {}, runDefinition = {}, ref = {runDefinitionCid: 'original-run'};
+  const managed = live ? {definitionOriginal: {compilation}} : undefined, calls = [];
+  const original = {}, allowed = {}, preparedEvidence = {}, authorizationEvidence = {};
+  const evidence = {effectOriginalRunWire: 'original-wire', prepared: preparedEvidence, authorization: authorizationEvidence,
+    ...(marked ? {updateTargetRunOriginal: original} : {})};
+  const saved = {runDefinition, runAdmissionEvidence: evidence};
+  const restored = {materials: {}, allowed};
+  const moon = {clientSubmittedIntentRequestsCommitStop: () => true,
+    strategyRunEvidenceJson: value => value,
+    clientProgramAllowedEffectRunPrepared: () => preparedEvidence,
+    clientProgramAllowedEffectRunAuthorization: () => authorizationEvidence};
+  const intent = {intent: {}, assertCurrent() {calls.push('intent-current');}};
+  const ports = {moon, control: {}, namespaceId: 'scope', authorityScopeCid: 'authority', principalId: 'principal',
+    localContractLimits: {}, journal: {
+      lookupRunDefinition: () => ({requestId: 'original-request'}),
+      originalSubmittedIntent(value) {assert.strictEqual(value, requestIdentity); return intent;}},
+    store: {}, updateTargetOriginals: {
+      restoreRun(value, definition, request, compiler) {
+        assert.strictEqual(value, original); assert.strictEqual(definition, runDefinition);
+        assert.strictEqual(request, requestIdentity); assert.strictEqual(compiler, live ? compilation : undefined);
+        calls.push('target-original'); return restored;
+      }, restoreEffectMaterials(wire, definition, request, compiler) {
+        assert.equal(wire, 'original-wire'); assert.strictEqual(definition, runDefinition);
+        assert.strictEqual(request, requestIdentity); assert.strictEqual(compiler, live ? compilation : undefined);
+        calls.push('stop-original'); return restored;
+      }},
+    clientOperationError: code => Object.assign(new Error(code), {code}),
+    preparation: {}, hostConnection: () => true, storeAuthorityCid: 'store',
+    recoverAdmittedEffectRun(options) {return options.restoreOriginal(saved, requestIdentity);}};
+  const recover = new Function(...Object.keys(ports), source.slice(entry.start, entry.end) + ';return recoverEffectCapture;')(...Object.values(ports));
+  return {recover: () => recover(ref, undefined, managed), managed, calls, restored};
+}
+
+test('existing live capture recovery forwards its same retained compiler for target and stopped originals', () => {
+  for (const marked of [true, false]) {
+    const f = installedCaptureOriginalFixture({marked});
+    assert.strictEqual(f.recover().allowed, f.restored.allowed);
+    assert.deepEqual(f.calls, [marked ? 'target-original' : 'stop-original', 'intent-current']);
+  }
+});
+
+test('existing capture recovery rejects missing live compiler instead of selecting wire-only restoration', () => {
+  const f = installedCaptureOriginalFixture();
+  delete f.managed.definitionOriginal.compilation;
+  assert.throws(f.recover, {code: 'ForeignInstalledEffectManagedRun'});
+  assert.deepEqual(f.calls, []);
+});
+
+test('independent cold capture original keeps its explicit wire-only qualification', () => {
+  const f = installedCaptureOriginalFixture({live: false});
+  assert.strictEqual(f.recover().allowed, f.restored.allowed);
+  assert.deepEqual(f.calls, ['target-original', 'intent-current']);
 });

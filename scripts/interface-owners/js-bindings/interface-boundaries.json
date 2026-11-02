@@ -57096,7 +57096,7 @@
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "d2b8778d87438fda543463e4621fed1a8c62ed73fd3b3c891e48ed7b1eaa7024"
+      "sha256": "5b2d97cfbe08d2c3795365cef5a2dc9ddb9bd7a8102523943af0dd2f33270488"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
