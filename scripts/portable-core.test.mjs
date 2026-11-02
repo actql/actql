@@ -409,6 +409,7 @@ test('target metadata keeps the actual manifest production and test imports dist
   assert.deepEqual(packageImports(source), [
     {path: 'actql/actql/encode_core', alias: 'encode', scope: 'production'},
     {path: 'actql/actql/decode_core', alias: 'decode', scope: 'production'},
+    {path: 'actql/actql/decode_shape', alias: 'shape', scope: 'production'},
     {path: 'actql/actql/source_value', alias: 'source', scope: 'wbtest'},
   ]);
 });

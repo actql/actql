@@ -1,15 +1,14 @@
-// Registered initialization cases use Common/Resource/Site and real file I/O.
-// The provider-domain case uses explicit facade ports to inspect Job/request
-// originals; it is not lifecycle evidence. Genuine bound-owner controls live in
+// Profile/identity/registration DATA and explicit domain facade ports only.
+// Real Common/Resource/Site initialization, malformed input and cleanup live in
 // installed-bound-construction.actual.test.mjs and its failure companion.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {mkdtemp,writeFile,readFile,readdir,rm,realpath} from 'node:fs/promises';
+import {mkdtemp,writeFile,readdir,rm,realpath} from 'node:fs/promises';
 import {readFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join,isAbsolute} from 'node:path';
 import {fileURLToPath,pathToFileURL} from 'node:url';
-import {createHash,generateKeyPairSync} from 'node:crypto';
+import {createHash} from 'node:crypto';
 import {types as nodeTypes} from 'node:util';
 import {parse} from 'acorn';
 import {checkInstalledBigQuerySourceProfile,checkInstalledBigQuerySiteProfile,
@@ -21,11 +20,6 @@ import {checked} from '../../../host-common/runtime-result.mjs';
 import {captureConfigurationReaders,readSourceProfileJson,readBoundedConfigurationText} from '../../../host-node/source-profile-json.mjs';
 import {readHostBundles,generateInstallations} from '../../../../scripts/connector-host-bundles.mjs';
 import {installedConnectorTable,loadInstalledConnectorModule} from '../../../host-node/installed-connectors.mjs';
-import {loadInstalledSource} from '../../../host-node/installed-source.mjs';
-import {installedConnectors} from '../../../connectors-builtin/installations.generated.mjs';
-import {installedSourceFixtureLifetime} from '../../../host-node/fixtures/installed-source-initialization.mjs';
-import {openHttpsExchangeFixture} from '../../../site-node/https-exchange-fixture.mjs';
-import {observeOwnScopedStateFds} from '../../../../scripts/fixtures/external-rest/conformance.mjs';
 const root=fileURLToPath(new URL('../../../../',import.meta.url));
 const canonical=x=>canonicalJson(x,{dataKeys:true});
 const cid=x=>'sha256:'+createHash('sha256').update(canonical(x)).digest('hex');
@@ -109,68 +103,6 @@ test('BigQuery normal generated table selects the real source role without an in
   const actual=await loadInstalledConnectorModule(selected);assert.equal(actual.load,loadInstalledBigQuerySource);
   assert.equal(actual.identityParts,installedBigQuerySourceIdentityParts);assert.equal(actual.check,checkInstalledBigQuerySourceProfile);
   assert(selected.implementationFiles.some(x=>x.path==='adapters/connectors/bigquery/host/installed-bigquery-source.mjs'));
-});
-
-async function registeredFixture(t){
-  const lifetime=installedSourceFixtureLifetime(t),f=await fixture(t);
-  const api=await openHttpsExchangeFixture(lifetime.transportContext);
-  const keys=generateKeyPairSync('ed25519');
-  await writeFile(f.site.credentialPrivateKeyPath,keys.privateKey.export({format:'pem',type:'pkcs8'}),{mode:0o600,flag:'wx'});
-  f.site.apiOrigin=api.origin;f.site.caPath=api.caPath;
-  f.metadata.apiOrigin=api.origin;
-  f.metadata.body=Buffer.from(JSON.stringify({kind:'bigquery#table',etag:'original-metadata',type:'TABLE',
-    tableReference:{projectId:'acme-project',datasetId:'product',tableId:'usage'},
-    schema:{fields:[{name:'ACCOUNT_ID',type:'STRING',mode:'REQUIRED'}]}})).toString('base64');
-  await writeFile(f.sitePath,JSON.stringify(f.site));await writeFile(f.metadataPath,JSON.stringify(f.metadata));
-  const accountConfiguration={version:'actql-execution-account-config/0.1',account_id:'bigquery-initialization',entries:[{
-    entry_id:'source-read',outcome:'allow',principal:{all:true},connection:{any_of:['bigquery:bigquery']},
-    resource:{any_of:['usage']},operation:{any_of:['read']},exclusions:[]}]};
-  const profile={...f.profile,accountConfigurationWire:JSON.stringify(accountConfiguration)};
-  const profilePath=join(f.path,'profile.json');await writeFile(profilePath,JSON.stringify(profile));
-  const runtimeUrl=new URL('../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js',import.meta.url);
-  const moon=await import(runtimeUrl.href),runtimeBundleCid='sha256:'+createHash('sha256').update(await readFile(runtimeUrl)).digest('hex');
-  const installation=installedConnectors.find(entry=>entry.name==='bigquery');
-  const baseEnvironmentWire=(await readFile(new URL('../../../../spec/local-check-environment.json',import.meta.url),'utf8')).trimEnd();
-  const initialized=lifetime.open({root:f.path,moon,installation,runtimeBundleCid,baseEnvironmentWire});
-  let secrets=0;
-  const load=()=>loadInstalledSource(profilePath,{root:f.path,principalId:'operator',moon,runtimeUrl,
-    baseEnvironmentWire,installationServices:initialized.installationServices,
-    resolveSecret(){secrets++;assert.fail('Initialization must not resolve a business credential');}});
-  t.after(()=>assert.equal(observeOwnScopedStateFds([f.path]).scopedStateFd0,true));
-  return {f,lifetime,api,load,moon,secrets:()=>secrets};
-}
-
-test('registered BigQuery load joins actual Source parent constructor registration and cleanup',async t=>{
-  const {lifetime,api,load,secrets}=await registeredFixture(t);
-  const source=await load();lifetime.sources.push(source);
-  assert.equal(source.connectorRegistration,'bigquery');
-  assert.equal(source.connectorBindings[0].connectorId,'bigquery');
-  assert.equal(typeof source.prepare,'function');assert.equal(typeof source.close,'function');
-  assert.equal(secrets(),0);assert.deepEqual(api.seen(),[]);
-});
-
-test('registered BigQuery malformed binary input keeps original refusal and initial cleanup',async t=>{
-  const {f,api,load,secrets}=await registeredFixture(t);
-  await writeFile(f.metadataPath,JSON.stringify({...f.metadata,body:f.metadata.body+'\n'}));
-  await assert.rejects(load(),cause=>{
-    assert.equal(cause.primaryFailure?.code,'InvalidInstalledBigQueryMetadata');
-    assert.equal(cause.cleanupPending,false);assert.deepEqual(cause.cleanupErrors,[]);return true;
-  });
-  assert.equal(secrets(),0);assert.deepEqual(api.seen(),[]);
-});
-
-test('registered BigQuery native schema refusal retires the same initial material before Site',async t=>{
-  const {f,api,load,secrets,moon}=await registeredFixture(t);
-  await writeFile(f.metadataPath,JSON.stringify({...f.metadata,body:Buffer.from('{}').toString('base64')}));
-  const nativeLimits=moon.clientProgramBigQueryDescriptionLimits(limits.maxBytes,limits.maxNodes,limits.maxDepth,limits.maxFields,limits.maxNameBytes,limits.maxSchemaBytes);
-  const expected=moon.clientProgramBigQueryDescribeTable(f.profile.project,f.profile.dataset,f.profile.table,Buffer.from('{}'),nativeLimits);
-  assert.equal(expected.$tag,0);
-  // Same typed refusal constructor/fields; no guessed minified name or Host code.
-  await assert.rejects(load(),cause=>{
-    assert.deepEqual(cause.primaryFailure?.cause,expected._0);
-    assert.equal(cause.cleanupPending,false);assert.deepEqual(cause.cleanupErrors,[]);return true;
-  });
-  assert.equal(secrets(),0);assert.deepEqual(api.seen(),[]);
 });
 
 test('BigQuery domain facade preserves original acquisition Job and request callbacks',async t=>{

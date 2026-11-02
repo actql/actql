@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {readFile, writeFile} from 'node:fs/promises';
+import {openHttpsExchangeFixture} from '../site-node/https-exchange-fixture.mjs';
+import {observeOwnScopedStateFds} from '../../scripts/fixtures/external-rest/conformance.mjs';
 import {boundConstructionActualFixture} from './fixtures/bound-construction-actual.fixture.mjs';
 import {installedConnectors} from '../connectors-builtin/installations.generated.mjs';
 import {createInstalledConnectorTable} from './installed-connectors.mjs';
@@ -720,4 +723,62 @@ test('refused pure Environment workspace does not become ungranted debt on sibli
   assert.equal(sibling.connectorRegistration, 'bigquery');
   await f.close();
   assert.equal(f.retire(), true);
+});
+
+// Same real Host constructor/parent as the existing bound-owner cases. Only
+// provider metadata and loopback Site DATA are authored here; no new owner.
+async function registeredBigQueryRefusalFixture(t) {
+  const f = await boundConstructionActualFixture(t);
+  const selected = await f.profile();
+  const api = await openHttpsExchangeFixture(t);
+  const site = JSON.parse(await readFile(selected.value.siteProfilePath, 'utf8'));
+  const metadata = JSON.parse(await readFile(selected.value.metadataPath, 'utf8'));
+  site.apiOrigin = api.origin;
+  site.caPath = api.caPath;
+  metadata.apiOrigin = api.origin;
+  await writeFile(selected.value.siteProfilePath, JSON.stringify(site));
+  await writeFile(selected.value.metadataPath, JSON.stringify(metadata));
+  return {f, selected, api, metadata};
+}
+
+test('registered BigQuery malformed binary input keeps original refusal and initial cleanup', async t => {
+  const {f, selected, api, metadata} = await registeredBigQueryRefusalFixture(t);
+  await writeFile(selected.value.metadataPath, JSON.stringify({...metadata, body: metadata.body + '\n'}));
+  await assert.rejects(f.load(selected), cause => {
+    assert.equal(cause.primaryFailure?.code, 'InvalidInstalledBigQueryMetadata');
+    assert.equal(cause.cleanupPending, false);
+    assert.deepEqual(cause.cleanupErrors, []);
+    return true;
+  });
+  assert.equal(f.secretReads(), 0);
+  assert.deepEqual(api.seen(), []);
+  assert.equal(f.sources.length, 0);
+  await f.close();
+  assert.equal(f.retire(), true);
+  assert.equal(observeOwnScopedStateFds([f.root]).scopedStateFd0, true);
+});
+
+test('registered BigQuery native schema refusal retires the same initial material before Site', async t => {
+  const {f, selected, api, metadata} = await registeredBigQueryRefusalFixture(t);
+  await writeFile(selected.value.metadataPath, JSON.stringify({...metadata,
+    body: Buffer.from('{}').toString('base64')}));
+  const {moon} = f, {limits} = selected.value;
+  const nativeLimits = moon.clientProgramBigQueryDescriptionLimits(limits.maxBytes,
+    limits.maxNodes, limits.maxDepth, limits.maxFields, limits.maxNameBytes, limits.maxSchemaBytes);
+  const expected = moon.clientProgramBigQueryDescribeTable(selected.value.project,
+    selected.value.dataset, selected.value.table, Buffer.from('{}'), nativeLimits);
+  assert.equal(expected.$tag, 0);
+  // Same original typed refusal, without replacing the Core constructor.
+  await assert.rejects(f.load(selected), cause => {
+    assert.deepEqual(cause.primaryFailure?.cause, expected._0);
+    assert.equal(cause.cleanupPending, false);
+    assert.deepEqual(cause.cleanupErrors, []);
+    return true;
+  });
+  assert.equal(f.secretReads(), 0);
+  assert.deepEqual(api.seen(), []);
+  assert.equal(f.sources.length, 0);
+  await f.close();
+  assert.equal(f.retire(), true);
+  assert.equal(observeOwnScopedStateFds([f.root]).scopedStateFd0, true);
 });
