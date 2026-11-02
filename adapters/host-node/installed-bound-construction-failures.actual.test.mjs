@@ -426,6 +426,7 @@ test('specialized Salesforce Site physical cleanup refusal keeps its real parent
   // This is after the real specialized Site returns, not a fabricated
   // exception inside its otherwise synchronous constructor tail.
   const fault = f.failCurrentAfterJournal(selected);
+  let cleanupHandle;
   try {
     await assert.rejects(f.load(selected, {connectorTable}), error => {
       failure = error;
@@ -433,6 +434,7 @@ test('specialized Salesforce Site physical cleanup refusal keeps its real parent
     });
     assert.equal(fault.calls, 1);
     assert.equal(failure.cleanupHandle.status().pending, true);
+    cleanupHandle = failure.cleanupHandle;
     assert.equal(f.retire(), false);
     assert.equal(physicalCloses, 0);
     assert.doesNotThrow(() => originalAuthorization.assertConfigurationCurrent(),
@@ -444,7 +446,7 @@ test('specialized Salesforce Site physical cleanup refusal keeps its real parent
     }
   } finally {
     available = true;
-    if (failure) assert.equal((await failure.cleanupHandle.retry()).pending, false);
+    if (cleanupHandle !== undefined) assert.equal((await cleanupHandle.retry()).pending, false);
   }
   assert.equal(physicalCloses, 1);
   assert.throws(() => originalAuthorization.assertConfigurationCurrent(),

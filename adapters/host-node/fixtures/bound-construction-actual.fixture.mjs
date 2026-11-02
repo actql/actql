@@ -78,13 +78,11 @@ export async function boundConstructionActualFixture(t) {
   };
   const current = () => {
     assert.equal(active, true, 'same initial parent remains current');
-    if (currentFault !== undefined && currentFault.calls === 0 && existsSync(currentFault.path)) {
-      // This existing currentness callback runs after actual Site acquisition.
-      // Observe real descriptors, then fail once; no cleanup method is mocked.
+    if (currentFault !== undefined && currentFault.calls === 0 &&
+        (currentFault.journal ? currentFault.siteReturned !== undefined : existsSync(currentFault.path))) {
+      // The actual bound Site has returned to its original custody owner.
+      // /proc descriptors remain an additional Linux assertion, not readiness.
       currentFault.descriptors = currentFault.journal ? openJournalDescriptors(currentFault.path) : undefined;
-      // Explicit publication may have left a closed journal file. Only an
-      // actual descriptor reacquisition arms a physical Site failure.
-      if (currentFault.descriptors !== undefined && currentFault.descriptors.length === 0) return;
       currentFault.calls++;
       throw currentFault.failure;
     }
@@ -329,6 +327,32 @@ export async function boundConstructionActualFixture(t) {
   }
   async function load(selection, {connectorTable} = {}) {
     try {
+      const role = selection.role === 'effect' ? 'effect' : 'source';
+      if (currentFault?.selection === selection) {
+        const fault = currentFault;
+        const entry = installedConnectorForTable(connectorTable ??
+          createInstalledConnectorTable(installedConnectors), role, selection.value);
+        const originalRole = entry[role];
+        connectorTable = createInstalledConnectorTable([{...entry, [role]: {...originalRole,
+          async load() {
+            const module = await Reflect.apply(originalRole.load, originalRole, []);
+            return {...module, load(profile, options) {
+              const original = options.construction;
+              const observe = name => async (...args) => {
+                const opened = await Reflect.apply(original[name], original, args);
+                // The original bound method has retained this exact Site pair.
+                // Do not infer acquisition from a closed publication file.
+                fault.siteReturned = opened;
+                current();
+                return opened;
+              };
+              const construction = Object.freeze({...original,
+                openRowSite: observe('openRowSite'),
+                openSpecializedSite: observe('openSpecializedSite')});
+              return Reflect.apply(module.load, module, [profile, {...options, construction}]);
+            }};
+          }}}]);
+      }
       const loader = selection.role === 'effect' ? loadInstalledEffect : loadInstalledSource;
       const source = await loader(selection.path, {root, principalId: 'operator',
         moon, runtimeUrl, baseEnvironmentWire: environment, installationServices: services, connectorTable,
@@ -366,7 +390,7 @@ export async function boundConstructionActualFixture(t) {
     },
     failCurrentAfterJournal(selection) {
       assert.equal(currentFault, undefined);
-      currentFault = {path: selection.journalPath, journal: true, calls: 0,
+      currentFault = {selection, path: selection.journalPath, journal: true, calls: 0,
         failure: new Error('OriginalPostSiteCurrentFailure'), descriptors: undefined};
       return currentFault;
     },
