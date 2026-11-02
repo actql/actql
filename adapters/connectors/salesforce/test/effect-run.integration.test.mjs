@@ -31,9 +31,7 @@ import {installNodeClientRequestLookup} from '../../../host-node/client-request-
 
 import {createClientHttpHandler} from '../../../host-node/client-http.mjs';
 
-import {installNodeClientEffectProgramPreparation,
-  installNodeClientProgramPreparation} from
-  '../../../host-node/client-program-preparation.mjs';
+import {fundedClientPreparation} from '../../../host-node/funded-client-preparation.fixture.mjs';
 
 import {completeCapturedEffectRun, runCapturedEffectComputation,
   runCapturedInternalStrategy,
@@ -236,11 +234,10 @@ test('public Effect submit rejects an unsupported checked acquisition shape befo
     const terminal = await effectFixture({splitSource: true,
       writeKind: 'create', memberIds: ['save', 'save_again'],
       sourceIds: ['001000000000001', '001000000000002']});
-    const prepareTerminal = installNodeClientEffectProgramPreparation({
-      moon, environment: terminal.environment,
-    });
-    const supported = prepareTerminal({kind: 'aql',
-      input: {text: terminal.document, format: 'json'}, parameters: null});
+    const terminalOutcome = moon.clientProgramPrepareEffectComputationWithParameters(
+      terminal.document, 'json', terminal.environment, undefined, []);
+    const supported = moon.clientProgramEffectPreparationReady(terminalOutcome);
+    assert.ok(supported, moon.clientProgramEffectPreparationIssueCode(terminalOutcome));
     // The shared source-free DAG compiler now supports this terminal shape.
     // Compilation alone is not a claim that its public publication is closed.
     checked(moon.clientProgramCompileLocalEffects(supported));
@@ -267,8 +264,8 @@ test('public Effect submit rejects an unsupported checked acquisition shape befo
       environmentDocument.evidence_bundle_cid, false, false, true, false, false, false, false);
     assert.ok(environment);
     const unsupported = {document: JSON.stringify(program), environment};
-    const prepare = installNodeClientEffectProgramPreparation({moon, environment});
-    const prepared = prepare({kind: 'aql',
+    const prepare = await fundedClientPreparation(t, {moon, environment, allowEffects: true});
+    const prepared = await prepare({kind: 'aql',
       input: {text: unsupported.document, format: 'json'},
       parameters: null});
     assert.equal(moon.clientProgramEffectCompilationIssueCode(
@@ -361,9 +358,9 @@ test('public Effect submit rejects an unsupported checked acquisition shape befo
 test('Effect publication preparation failure reserves no physical start',
   async t => {
     const fixture = await effectFixture();
-    const prepare = installNodeClientEffectProgramPreparation({moon,
-      environment: fixture.environment});
-    const prepared = prepare({kind: 'aql', input: {text: fixture.document,
+    const prepare = await fundedClientPreparation(t, {moon,
+      environment: fixture.environment, allowEffects: true});
+    const prepared = await prepare({kind: 'aql', input: {text: fixture.document,
       format: 'json'}, parameters: null});
     await mkdir(scratch, {recursive: true});
     const directory = await mkdtemp(join(scratch.pathname,

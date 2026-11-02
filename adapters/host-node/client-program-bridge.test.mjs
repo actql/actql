@@ -28,9 +28,7 @@ import {installNodeClientRunAttach} from './client-run-attach.mjs';
 import {installNodeClientRunStateObservation} from './client-run-state.mjs';
 import {installNodeClientRunStart} from './client-run-start.mjs';
 import {createClientHttpHandler} from './client-http.mjs';
-import {installNodeClientEffectProgramPreparation,
-  installNodeClientProgramPreparation} from
-  './client-program-preparation.mjs';
+import {fundedClientPreparation} from './funded-client-preparation.fixture.mjs';
 import {completeCapturedEffectRun, recoverAdmittedEffectRun,
   runCapturedEffectComputation,
   runCapturedInternalStrategy,
@@ -1643,8 +1641,7 @@ test('public submit rejects checker failures before Run admission', async t => {
   const {environment} = await checkedFixture();
   const document = await readFile(new URL('parameter-values.json', fixture),
     'utf8');
-  const prepareSubmit = installNodeClientProgramPreparation({
-    moon, environment});
+  const prepareSubmit = await fundedClientPreparation(t, {moon, environment});
   let admissions = 0;
   let admittedIdentity, admittedRequestId;
   await mkdir(scratch, {recursive: true});
@@ -1737,10 +1734,10 @@ test('public submit rejects checker failures before Run admission', async t => {
     } finally {
       client.close();
     }
-    const prepared = prepareSubmit({kind: 'aql',
+    const prepared = await prepareSubmit({kind: 'aql',
       input: {text: document, format: 'json'}, parameters: {n: 2}});
     assert.equal(moon.clientProgramResultName(prepared, 0), 'answer');
-    const objectPrepared = prepareSubmit({kind: 'program',
+    const objectPrepared = await prepareSubmit({kind: 'program',
       input: JSON.parse(document), parameters: {n: 2}});
     assert.equal(moon.clientProgramSemanticsCid(objectPrepared),
       moon.clientProgramSemanticsCid(prepared));
@@ -2162,8 +2159,7 @@ test('public Values submit computes and reads its real Local Result',
           maxRetainedValueBytes: 4096, maxRows: 100,
           maxBatchRows: 10, maxBatchRetainedValueBytes: 2048},
       });
-      const prepareSubmit = installNodeClientProgramPreparation({
-        moon, environment});
+      const prepareSubmit = await fundedClientPreparation(t, {moon, environment});
       const submit = async ({preparedProgram, requestId, principalId,
         connection}) => {
         const requested = moon.clientProgramRequestIdentity(
@@ -3710,12 +3706,12 @@ test('internal Client bridge retains Effect closure without public apply',
   });
 
 test('installed Effect preparation retains the checked Program owner',
-  async () => {
+  async t => {
     const {document, environment} = await effectFixture();
-    const prepare = installNodeClientEffectProgramPreparation({
-      moon, environment, evidence: [],
+    const prepare = await fundedClientPreparation(t, {
+      moon, environment, allowEffects: true,
     });
-    const owned = prepare({kind: 'program', input: JSON.parse(document),
+    const owned = await prepare({kind: 'program', input: JSON.parse(document),
       parameters: null});
     const direct = moon.clientProgramEffectPreparationReady(
       moon.clientProgramPrepareEffectComputationWithParameters(
@@ -3725,27 +3721,25 @@ test('installed Effect preparation retains the checked Program owner',
       moon.clientProgramEffectDefinitionCid(direct));
     assert.equal(moon.clientProgramEffectEnvironmentCid(owned),
       moon.clientProgramEffectEnvironmentCid(direct));
-    assert.throws(() => prepare({kind: 'aql',
+    await assert.rejects(prepare({kind: 'aql',
       input: {text: document, format: 'auto'}, parameters: null}),
     {code: 'ClientProgramInvalidInput'});
-    assert.throws(() => prepare({kind: 'aql',
+    await assert.rejects(prepare({kind: 'aql',
       input: {text: document.replace('mapping:crm.account.v1',
         'mapping:crm.foreign.v1'), format: 'json'}, parameters: null}),
     {code: 'ClientProgramRejected'});
-    assert.throws(() => installNodeClientProgramPreparation({
-      moon, environment,
-    })({kind: 'program', input: JSON.parse(document), parameters: null}),
+    const pureOnly = await fundedClientPreparation(t, {moon, environment});
+    await assert.rejects(pureOnly({kind: 'program', input: JSON.parse(document), parameters: null}),
     {code: 'ClientProgramUnsupported'});
   });
 
 test('one installed preparation distinguishes Effect and pure owners',
-  async () => {
+  async t => {
     const {document, environment} = await effectFixture();
-    const prepare = installNodeClientProgramPreparation({moon, environment,
-      allowEffects: true});
+    const prepare = await fundedClientPreparation(t, {moon, environment, allowEffects: true});
     const effectRequest = {kind: 'aql', input: {text: document,
       format: 'json'}, parameters: null};
-    const effect = prepare(effectRequest);
+    const effect = await prepare(effectRequest);
     assert.equal(prepare.kindOf(effect), 'effectful');
     prepare.assertOwned(effect);
     assert.equal(moon.clientProgramEffectResultCount(effect), 1);
@@ -3756,12 +3750,12 @@ test('one installed preparation distinguishes Effect and pure owners',
       ['answer']);
     const pureDocument = JSON.parse(document);
     delete pureDocument.stages[0].effects;
-    const pure = prepare({kind: 'program', input: pureDocument,
+    const pure = await prepare({kind: 'program', input: pureDocument,
       parameters: null});
     assert.equal(prepare.kindOf(pure), 'effect_free');
     prepare.assertOwned(pure);
-    const foreign = installNodeClientProgramPreparation({moon,
-      environment, allowEffects: true})(effectRequest);
+    const other = await fundedClientPreparation(t, {moon, environment, allowEffects: true});
+    const foreign = await other(effectRequest);
     assert.throws(() => prepare.kindOf(foreign),
       {message: 'Foreign Client preparation'});
     assert.throws(() => prepare.assertOwned(foreign),
