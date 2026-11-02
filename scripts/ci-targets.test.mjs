@@ -709,6 +709,7 @@ test('Draft normal Python and CI changes automatically select real wheel accepta
     'scripts/ci-targets.mjs', 'scripts/ci-preflight.mjs', 'scripts/ci-focused-tests.mjs',
     'scripts/ci-python-wheels.py', 'scripts/test_ci_python_wheels.py',
     'scripts/fixtures/ci-python-installed-audit.py', 'scripts/fixtures/ci-python-installed-health.py',
+    'scripts/fixtures/ci-python-installed-run.py',
     'scripts/fixtures/python-product-installed.py', 'scripts/fixtures/python-local-duckdb-physical.py',
     'scripts/build-python-product-wheels.py', 'scripts/produce-python-local-runtime.py',
     'scripts/compile-python-local-image.py', 'scripts/prepare-python-local-runtime.py',

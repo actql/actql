@@ -144,5 +144,65 @@ class InstalledAuditTests(unittest.TestCase):
                 audit.audit(path, path / 'report.json')
 
 
+class FailureLocationTests(unittest.TestCase):
+    def test_suppressed_context_reports_locations_not_private_values(self):
+        import io
+        diagnostics = load('ci_installed_run', SCRIPTS / 'fixtures/ci-python-installed-run.py')
+        try:
+            try:
+                raise ValueError('private-reference-secret')
+            except ValueError:
+                raise RuntimeError('public-unknown') from None
+        except RuntimeError as failure:
+            original_context = failure.__context__
+            stream = io.StringIO()
+            diagnostics.report_contexts(failure, stream)
+            self.assertIs(failure.__context__, original_context)
+            self.assertTrue(failure.__suppress_context__)
+            text = stream.getvalue()
+        self.assertNotIn('private-reference-secret', text)
+        self.assertNotIn('public-unknown', text)
+        records = [json.loads(line) for line in text.splitlines()]
+        self.assertEqual([record['exception_type'] for record in records], ['RuntimeError', 'ValueError'])
+        for record in records:
+            self.assertTrue(record['frames'])
+            for frame in record['frames']:
+                self.assertEqual(set(frame), {'file', 'line', 'function'})
+                self.assertEqual(frame['file'], Path(__file__).name)
+                self.assertGreater(frame['line'], 0)
+
+    def test_same_failure_is_raised_once_even_if_diagnostics_fail(self):
+        diagnostics = load('ci_installed_run_once', SCRIPTS / 'fixtures/ci-python-installed-run.py')
+        original = RuntimeError('public-unknown')
+        with patch.object(diagnostics.runpy, 'run_path', side_effect=original) as execute, patch.object(
+                diagnostics, 'report_contexts', side_effect=OSError('diagnostics unavailable')):
+            with self.assertRaises(RuntimeError) as raised:
+                diagnostics.run_consumer(Path('/external/fixture.py'))
+        self.assertIs(raised.exception, original)
+        execute.assert_called_once_with('/external/fixture.py', run_name='__main__')
+
+    def test_chain_and_output_are_bounded(self):
+        import io
+        diagnostics = load('ci_installed_run_bounds', SCRIPTS / 'fixtures/ci-python-installed-run.py')
+        error = ValueError('private')
+        for _ in range(100):
+            next_error = ValueError('private')
+            next_error.__context__ = error
+            error = next_error
+        stream = io.StringIO()
+        diagnostics.report_contexts(error, stream)
+        self.assertLessEqual(len(stream.getvalue().encode()), diagnostics.MAX_OUTPUT_BYTES)
+        self.assertEqual(len(stream.getvalue().splitlines()), diagnostics.MAX_CONTEXTS)
+
+    def test_cycle_is_not_repeated(self):
+        import io
+        diagnostics = load('ci_installed_run_cycle', SCRIPTS / 'fixtures/ci-python-installed-run.py')
+        error = ValueError('private')
+        error.__context__ = error
+        stream = io.StringIO()
+        diagnostics.report_contexts(error, stream)
+        self.assertEqual(len(stream.getvalue().splitlines()), 1)
+
+
 if __name__ == '__main__':
     unittest.main()

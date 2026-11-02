@@ -131,7 +131,8 @@ def run_acceptance(destination: Path) -> None:
                     '--index-url', 'https://pypi.org/simple', '--no-cache-dir', '--no-compile',
                     '--constraint', constraints, '--report', destination / 'pip-report.json', wheels[-1]],
         cwd=destination, env=env)
-    for name in ('python-product-installed.py', 'ci-python-installed-audit.py', 'ci-python-installed-health.py'):
+    for name in ('python-product-installed.py', 'ci-python-installed-audit.py', 'ci-python-installed-health.py',
+                 'ci-python-installed-run.py'):
         shutil.copyfile(ROOT / 'scripts/fixtures' / name, destination / name)
     def audit(name):
         run(name, [consumer, '-I', '-B', destination / 'ci-python-installed-audit.py',
@@ -141,12 +142,14 @@ def run_acceptance(destination: Path) -> None:
         work = destination / facade
         work.mkdir()
         for phase in ('initial', 'resume'):
-            run(f'{facade}-{phase}', [consumer, '-I', '-B', destination / 'python-product-installed.py',
+            run(f'{facade}-{phase}', [consumer, '-I', '-B', destination / 'ci-python-installed-run.py',
+                destination / 'python-product-installed.py',
                 '--version', version, '--mode', 'local', '--facade', facade, '--phase', phase,
                 '--receipt', work / 'original.json'], cwd=work, env=env, timeout=180)
     health = destination / 'health'
     health.mkdir()
-    run('health', [consumer, '-I', '-B', destination / 'ci-python-installed-health.py'], cwd=health, env=env, timeout=180)
+    run('health', [consumer, '-I', '-B', destination / 'ci-python-installed-run.py',
+                   destination / 'ci-python-installed-health.py'], cwd=health, env=env, timeout=180)
     audit('installed-after')
     verify_built_cohort(cohort_directory, source, version)
     clean()
