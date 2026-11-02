@@ -116,3 +116,66 @@ test "Strategy keeps settled holding stage when actual Common reservation settle
   assert_eq(@resources.ledger_usage(ledger), pending)
   assert_eq(releases.val, 0)
 }
+
+///|
+test "asynchronous reference current refusal precedes numeric payload and keeps original reservation" {
+  let prepared_original = Ref(1)
+  let root = cleanup_original_root(
+    cleanup_create_loader(cleanup_test_url()),
+    prepared_original,
+    () => (),
+  )
+  let admission = @resources.prepare_node_managed_run_admission(
+    root, prepared_original,
+  ).unwrap()
+  let ledger = @resources.start_node_managed_run_admission(admission).unwrap()
+  let (run, _) = captured_graph_fixture(
+    numeric_dag=true,
+    original_ledger=Some(ledger),
+  )
+  let bootstrap = @resources.reserve_capacity(ledger, 1024L, 1024L).unwrap()
+  let identity = @resources.begin_original_ledger_inventory(
+    ledger, bootstrap, 16, 16, 0,
+  ).unwrap()
+  let installed = @conformance.configure_subset(
+    run,
+    dispatch_test_generated(run),
+    1,
+  )
+  let runtime = @builtin.configured_host_runtime(installed)
+  let task = @host_driver.prepare_next_compute_task(runtime, ())
+    .unwrap()
+    .unwrap()
+  let work = @reference_driver.begin_numeric_contribution(
+    @builtin.configured_reference_compute_module(
+      @builtin.configured_host_modules(installed),
+    ).unwrap(),
+    @host_driver.compute_host_dispatch(runtime),
+    task,
+  ).unwrap()
+  let origin = Ref(7)
+  let descriptor = @resources.issue_recorded_original_ledger_descriptor(
+    identity, origin,
+  ).unwrap()
+  let claim = @resources.fund_original_read(ledger, origin, descriptor, 7L, 5L).unwrap()
+  let consumer = @resources.claim_funded_read_preparation(claim, origin, 7L, 5L).unwrap()
+  @resources.enter_funded_read_consumer(consumer, origin, 7L, 5L).unwrap()
+  @resources.park_original_resource_consumer(consumer, origin).unwrap()
+  |> ignore
+  let before = @resources.ledger_usage(ledger)
+  assert_true(
+    @reference_driver.execute_async_numeric(work)
+    is Err(Physical(ResourceParked)),
+  )
+  assert_eq(@resources.ledger_usage(ledger), before)
+  assert_true(@reference_driver.complete_async_numeric(work) is Err(NotReady))
+  @reference_driver.close_async_numeric(work)
+  assert_true(
+    @reference_driver.settle_async_numeric(work)
+    is Err(Physical(ResourceParked)),
+  )
+  // The same original restriction also refuses retirement. Keep its capacity;
+  // a local payload close is not permission to unpark or a resource ACK.
+  assert_eq(@resources.ledger_usage(ledger), before)
+  assert_false(@strategy.captured_task_completed(run, 1))
+}
