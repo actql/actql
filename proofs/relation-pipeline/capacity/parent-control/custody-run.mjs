@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync, writeFileSync, mkdirSync, existsSync, unlinkSync, copyFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { spawnSync } from 'node:child_process';
+import { spawnProofCommand } from '../../../bounded-session/native-command.mjs';
 import { root, environment, moon, toolchain } from '../../execute.mjs';
 import { custodyInput, custodyCleanupStep, custodyOverlay, auditCustody } from './custody.mjs';
 import { snapshot, hash } from '../../inventory.mjs';
@@ -33,7 +33,7 @@ try {
   writeFileSync(join(root, `${prefix}.source.json`), JSON.stringify(executedSource, null, 2) + '\n');
   writeFileSync(join(root, `${prefix}.fixture.mbt`), overlay[fixture]);
   writeFileSync(join(root, `${prefix}.input.json`), JSON.stringify({ case: case_, program: input }, null, 2) + '\n');
-  const result = spawnSync(moon, command, { cwd: root, env: { ...environment,
+  const result = spawnProofCommand(moon, command, target, { cwd: root, env: { ...environment,
     [variable]: JSON.stringify(input), ACTQL_RELATION_PIPELINE_CUSTODY_MODE: mode }, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 });
   const log = `${result.stdout ?? ''}${result.stderr ?? ''}`;
   writeFileSync(join(root, `${prefix}.log`), log);
