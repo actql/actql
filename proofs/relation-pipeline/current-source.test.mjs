@@ -92,3 +92,12 @@ test('current source rejects a committed symlink above a selected input', t => {
   git(root, 'diff', '--quiet', 'HEAD', '--', 'docs/spec/language.md');
   assert.throws(() => checkCurrentSource(root), /Non-regular current proof input/);
 });
+
+test('current source rejects an untracked ancestor supplying selected bytes', t => {
+  const root = fixture(t);
+  mkdirSync(join(root, 'outside/spec'), {recursive: true});
+  writeFileSync(join(root, 'outside/spec/language.md'), 'unbound specification\n');
+  symlinkSync('outside', join(root, 'docs'), 'dir');
+  git(root, 'diff', '--quiet', 'HEAD', '--', 'docs/spec/language.md');
+  assert.throws(() => checkCurrentSource(root), /Untracked current proof inputs/);
+});
