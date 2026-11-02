@@ -107,13 +107,11 @@ pub fn installed_json_source_reader_capacity(
 }
 
 ///|
-fn installed_json_source_reader_capacity_with_decoder(
+fn installed_source_reader_retained_inventory(
   limits : Array[Int],
   columns : Int,
   secret_bytes : Int,
-  response_workspace : (Int, Int, Int) -> @execution.PreparationRepresentationUnits?,
-  sequential_preserving? : Bool = false,
-) -> @execution.ExecutionCapacity? {
+) -> @execution.PreparationRepresentationUnits? {
   // Same field order as the installed JSON reader's immutable limits view.
   // response/total/nodes/depth/rows/totalRows/pages/pageSize/cursor/identity/
   // target/valueNodes/valueText/rowWire/rowNodes/rowDepth.
@@ -127,7 +125,6 @@ fn installed_json_source_reader_capacity_with_decoder(
   }
   let response = limits[0].to_int64()
   let total = limits[1].to_int64()
-  let rows = limits[4].to_int64()
   let ids = limits[5].to_int64()
   let pages = limits[6].to_int64()
   let cursors = pages
@@ -207,6 +204,52 @@ fn installed_json_source_reader_capacity_with_decoder(
     owned_utf16_units: text,
     owned_wire_bytes: raw,
   }
+  Some(retained)
+}
+
+///|
+fn installed_source_reader_control_inventory() -> @execution.PreparationRepresentationUnits {
+  let native_control_headers = 7L
+  let native_control_slots = 14L
+  let native_control_words = 11L
+  {
+    record_headers: 20L + native_control_headers,
+    reference_slots: 3L +
+    18L +
+    3L +
+    18L +
+    5L +
+    6L +
+    2L +
+    1L +
+    6L +
+    4L +
+    4L +
+    15L +
+    native_control_slots,
+    scalar_words: 12L + native_control_words,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }
+}
+
+///|
+fn installed_json_source_reader_capacity_with_decoder(
+  limits : Array[Int],
+  columns : Int,
+  secret_bytes : Int,
+  response_workspace : (Int, Int, Int) -> @execution.PreparationRepresentationUnits?,
+  sequential_preserving? : Bool = false,
+) -> @execution.ExecutionCapacity? {
+  guard installed_source_reader_retained_inventory(
+      limits, columns, secret_bytes,
+    )
+    is Some(retained) else {
+    return None
+  }
+  let response = limits[0].to_int64()
+  let rows = limits[4].to_int64()
+  let fields = columns.to_int64()
   // Provider projection, admitted values and the parsed output row page
   // coexist with the Source/indexed workspace below. JSON-node pricing comes
   // from B's shared
@@ -252,24 +295,9 @@ fn installed_json_source_reader_capacity_with_decoder(
   // three Boolean words), two original-fact references in the existing input
   // record and one first-invocation reference in the existing read arguments.
   // These are borrowed originals, never copied acquisition or grant payloads.
-  let native_control_headers = 7L
-  let native_control_slots = 14L
-  let native_control_words = 11L
+  let controls = installed_source_reader_control_inventory()
   let workspace : @execution.PreparationRepresentationUnits = {
-    record_headers: 20L + native_control_headers,
-    reference_slots: 3L +
-    18L +
-    3L +
-    18L +
-    5L +
-    6L +
-    2L +
-    1L +
-    6L +
-    4L +
-    4L +
-    15L + native_control_slots,
-    scalar_words: 12L + native_control_words,
+    ..controls,
     owned_utf16_units: response +
     3L * limits[13].to_int64() +
     limits[10].to_int64() +
@@ -573,4 +601,39 @@ pub fn installed_preserving_json_source_reader_capacity_with_request(
   // all original response-prefix and returned request data simultaneously;
   // only their completed constructor workspaces are sequential.
   standard_create_sequence_pair_capacity(reader, request)
+}
+
+///|
+/// Same shared Reader/response/binding controls for a native typed protocol.
+/// Its original domain recipe supplies all parser/index/typed-codec material;
+/// no generic JSON row serialization or a second raw decoder is selected.
+/// A missing native constructor quote remains unavailable, never zero/default.
+pub fn installed_native_source_reader_capacity(
+  limits : Array[Int],
+  columns : Int,
+  secret_bytes : Int,
+  native : @execution.ExecutionCapacity?,
+) -> @execution.ExecutionCapacity? {
+  guard native is Some(native) &&
+    installed_source_reader_retained_inventory(limits, columns, secret_bytes)
+    is Some(retained) else {
+    return None
+  }
+  let controls = installed_source_reader_control_inventory()
+  guard @execution.preparation_execution_capacity({
+      retained,
+      workspace: {
+        ..controls,
+        owned_utf16_units: limits[10].to_int64(),
+        owned_wire_bytes: limits[0].to_int64(),
+      },
+      retained_nodes: 0L,
+      workspace_nodes: 0L,
+      retained_bytes: 0L,
+      workspace_bytes: 0L,
+    })
+    is Some(reader) else {
+    return None
+  }
+  @execution.add_execution_capacity(reader, native)
 }

@@ -186,3 +186,27 @@ test "preserving decoder owner retains the installed original structural invento
     )
   }
 }
+
+///|
+test "native typed Source composes only shared Reader controls with its original codec" {
+  let limits = [4, 6, 3, 4, 2, 3, 2, 2, 5, 7, 8, 2, 9, 10, 11, 4]
+  let codec = @execution.execution_capacity(17L, 23L).unwrap()
+  let capacity = installed_native_source_reader_capacity(
+    limits,
+    2,
+    3,
+    Some(codec),
+  ).unwrap()
+  // Same independent retained vector3488. Native shared controls are
+  // 27H/99R/23W=1408B, target8U=16B and one physical response4B.
+  // The codec alone owns its actual parser/typed projection; no row wire or
+  // generic raw JSON decoder is allocated or priced by this alternative.
+  assert_eq(@execution.execution_capacity_retained_bytes(capacity), 3505L)
+  assert_eq(@execution.execution_capacity_execution_bytes(capacity), 4939L)
+  assert_true(
+    installed_native_source_reader_capacity(limits, 2, 3, None) is None,
+  )
+  assert_true(
+    installed_native_source_reader_capacity([], 2, 3, Some(codec)) is None,
+  )
+}
