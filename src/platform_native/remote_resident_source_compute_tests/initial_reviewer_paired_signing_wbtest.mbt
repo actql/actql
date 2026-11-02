@@ -160,7 +160,9 @@ fn paired_initial_reviewer_signing(
       new=checkpoint.checkpoint.run_definition_cid().unwrap(),
     )
   let unsigned = if fixture.attest_host {
-    let now = @values.epoch_milliseconds_timestamp(@env.now().to_int64()).unwrap()
+    let now = @values.epoch_milliseconds_timestamp(
+      @env.now().reinterpret_as_int64(),
+    ).unwrap()
     unsigned.replace_all(old="2026-10-10T00:00:00.000Z", new=now)
   } else {
     unsigned

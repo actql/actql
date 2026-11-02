@@ -47,7 +47,7 @@ fn retained_effect_review_retention_store(
   }
   let initial_host = initial_reviewer is Some((fixture, _)) &&
     fixture.attest_host
-  let now = @env.now().to_int64()
+  let now = @env.now().reinterpret_as_int64()
   let created_at = if initial_host {
     @values.epoch_milliseconds_timestamp(now).unwrap()
   } else {

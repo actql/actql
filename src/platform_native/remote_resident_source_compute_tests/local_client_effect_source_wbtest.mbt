@@ -510,7 +510,7 @@ fn native_local_effect_capture_acceptance(
     name,
     () => {
       if initial_reviewer is Some(fixture) && fixture.attest_host {
-        @values.epoch_milliseconds_timestamp(@env.now().to_int64()).unwrap_or(
+        @values.epoch_milliseconds_timestamp(@env.now().reinterpret_as_int64()).unwrap_or(
           "",
         )
       } else {
