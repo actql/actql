@@ -107,7 +107,8 @@ test('actual Salesforce caller selects the same complete native Reader before pu
   assert.equal(row.limits.maxPageRows, selected.limits.maxRows);
   assert.equal(row.limits.maxCaptureRows, selected.limits.maxTotalRows);
   assert.equal(row.projectSite().referenceCurrent, site.referenceCurrent);
-  for (const name of ['managedCaptureCapacity', 'managedWholeSourceCapacity', 'managedEffectPlanSelection']) {
+  for (const name of ['managedCaptureCapacity', 'managedWholeSourceCapacity', 'managedEffectPlanSelection',
+    'openCapture', 'retainedCapture', 'ordinaryRecoveryBinding']) {
     assert.ok(row.publicationSurface.includes(name), `Normal caller retains ${name}`);
   }
   const facts = await row.prepareRead({prepared, acquisition, decision: {basis: 'policy'}, resource: 'Account',

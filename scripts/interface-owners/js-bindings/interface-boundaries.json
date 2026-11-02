@@ -8845,7 +8845,7 @@
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "86160b56c38261fb2fe4324b87b42302ed411a16b1df55bec28ba4f3cd0bcbb0",
+      "sha256": "ad25a887d4066ec578653e5b45867f1e4e2bbe7653c5a1b40f6f4e90ad782838",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [

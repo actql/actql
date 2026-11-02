@@ -288,7 +288,8 @@ async function installedSalesforceAdapter({moon, queryMoon, site, authorization,
       'connectorRegistration', 'connectorRevision', 'environmentWire', 'connectorBindings',
       'readAuthorization', 'sourceAccess', 'sourceReadAccesses', 'admitsSource',
       'ledgerCapacity', 'managedCaptureCapacity', 'managedWholeSourceCapacity',
-      'managedEffectPlanSelection', 'prepare', 'open', 'close']),
+      'managedEffectPlanSelection', 'ordinaryRecoveryBinding', 'retainedCapture',
+      'prepare', 'open', 'openCapture', 'close']),
     originalSourceAccess: Object.freeze({authorization, connection: site.connection}),
     // These functions retain this same original Salesforce Site. The alias
     // selects its existing issuer; it does not create a second grant Owner.

@@ -379,3 +379,11 @@ callback closes the Run. The same reader/Row cleanup still owns pending, failed
 and Unknown duties. Workspace retirement uses the grown native extent and may
 return only its transient portion after the original reader actually retires;
 final closure retains the original physical/accounting obligations.
+
+### Original Salesforce capture publication
+
+The Salesforce publication surface retains the common Row Source's original
+`openCapture`, `retainedCapture` and `ordinaryRecoveryBinding` methods. The
+existing descriptor projection preserves their functions and receiver contract;
+it creates no additional capture, recovery owner or permission. All original
+prepared-input, currentness and retirement checks remain in the common methods.
