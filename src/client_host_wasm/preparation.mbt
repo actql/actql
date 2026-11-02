@@ -426,3 +426,18 @@ pub fn close_environment(nonce : Int64, handle : Int) -> Int {
   }
   result
 }
+
+///|
+/// Read only this original Owner's retained typed outcome. Counts, exception
+/// codes and a second parser invocation cannot supply this classification.
+pub fn prepared_outcome(nonce : Int64, handle : Int) -> Int {
+  guard selected(nonce) is Some(value) &&
+    value.preparations.get(handle) is Some(record) else {
+    return -2
+  }
+  match record.outcome {
+    None => 0
+    Some(Ok(_)) => 1
+    Some(Err(_)) => 2
+  }
+}
