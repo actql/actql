@@ -4172,6 +4172,23 @@ pub fn strategy_site_retain_holding(
 }
 
 ///|
+#export_name("strategySitePrepareHoldingRestoration")
+pub fn strategy_site_prepare_holding_restoration(
+  site : @site.ExecutionSite,
+  bytes : Int64,
+) -> @site.SiteHoldingRestoration? {
+  @site.prepare_site_holding_restoration(site, bytes)
+}
+
+///|
+#export_name("strategySiteAcquireRestoredHolding")
+pub fn strategy_site_acquire_restored_holding(
+  restoration : @site.SiteHoldingRestoration,
+) -> @site.SiteHolding? {
+  restoration.acquire()
+}
+
+///|
 #export_name("strategySiteReleaseHolding")
 pub fn strategy_site_release_holding(holding : @site.SiteHolding) -> Bool {
   @site.release_site_holding(holding)
@@ -6421,11 +6438,56 @@ pub fn strategy_remote_runtime_custody_create() -> @remote.RemoteRuntimeCustody 
 }
 
 ///|
+#export_name("strategyRemoteRuntimeRestoreFailedPartialCustody")
+pub fn strategy_remote_runtime_restore_failed_partial_custody(
+  record : @remote.DispatchRecord,
+  expected_revision : Int,
+  source_request_cid : String,
+  source_wire : String,
+  material_generation : String,
+  source_measurement_cid : String,
+  measurement : @remote.RemoteManagedOutputMeasurement,
+  source_owner : String,
+  source_generation : String,
+  process_request_cid : String,
+  process_material_generation : String,
+  process_owner : String,
+  process_generation : String,
+) -> @remote.RemoteRuntimeCustody raise NodeHostFailure {
+  match
+    @remote.restore_remote_runtime_failed_partial_custody(
+      record, expected_revision, source_request_cid, source_wire, material_generation,
+      source_measurement_cid, measurement, source_owner, source_generation, process_request_cid,
+      process_material_generation, process_owner, process_generation,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
 #export_name("strategyRemoteRuntimeCustodyAcquireOperation")
 pub fn strategy_remote_runtime_custody_acquire_operation(
   custody : @remote.RemoteRuntimeCustody,
 ) -> Bool {
   @remote.remote_runtime_custody_acquire_operation(custody)
+}
+
+///|
+#export_name("strategyRemoteRuntimeRestoreCompletedCleanupCustody")
+pub fn strategy_remote_runtime_restore_completed_cleanup_custody(
+  record : @remote.DispatchRecord,
+  evidence : @remote.RemoteExecutionEvidence,
+  subject : @remote.RemoteManagedOutputSubject,
+  measurement : @remote.RemoteManagedOutputMeasurement,
+) -> @remote.RemoteRuntimeCustody raise NodeHostFailure {
+  match
+    @remote.restore_remote_runtime_completed_cleanup_custody(
+      record, evidence, subject, measurement,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
 }
 
 ///|
@@ -14321,6 +14383,23 @@ pub fn async_strategy_site_retain_holding(
 }
 
 ///|
+#export_name("asyncStrategySitePrepareHoldingRestoration")
+pub fn async_strategy_site_prepare_holding_restoration(
+  site : @site.ExecutionSite,
+  bytes : Int64,
+) -> @site.SiteHoldingRestoration? {
+  @site.prepare_site_holding_restoration(site, bytes)
+}
+
+///|
+#export_name("asyncStrategySiteAcquireRestoredHolding")
+pub fn async_strategy_site_acquire_restored_holding(
+  restoration : @site.SiteHoldingRestoration,
+) -> @site.SiteHolding? {
+  restoration.acquire()
+}
+
+///|
 #export_name("asyncStrategySiteReleaseHolding")
 pub fn async_strategy_site_release_holding(holding : @site.SiteHolding) -> Bool {
   @site.release_site_holding(holding)
@@ -16570,11 +16649,56 @@ pub fn async_strategy_remote_runtime_custody_create() -> @remote.RemoteRuntimeCu
 }
 
 ///|
+#export_name("asyncStrategyRemoteRuntimeRestoreFailedPartialCustody")
+pub fn async_strategy_remote_runtime_restore_failed_partial_custody(
+  record : @remote.DispatchRecord,
+  expected_revision : Int,
+  source_request_cid : String,
+  source_wire : String,
+  material_generation : String,
+  source_measurement_cid : String,
+  measurement : @remote.RemoteManagedOutputMeasurement,
+  source_owner : String,
+  source_generation : String,
+  process_request_cid : String,
+  process_material_generation : String,
+  process_owner : String,
+  process_generation : String,
+) -> @remote.RemoteRuntimeCustody raise AsyncHostFailure {
+  match
+    @remote.restore_remote_runtime_failed_partial_custody(
+      record, expected_revision, source_request_cid, source_wire, material_generation,
+      source_measurement_cid, measurement, source_owner, source_generation, process_request_cid,
+      process_material_generation, process_owner, process_generation,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
 #export_name("asyncStrategyRemoteRuntimeCustodyAcquireOperation")
 pub fn async_strategy_remote_runtime_custody_acquire_operation(
   custody : @remote.RemoteRuntimeCustody,
 ) -> Bool {
   @remote.remote_runtime_custody_acquire_operation(custody)
+}
+
+///|
+#export_name("asyncStrategyRemoteRuntimeRestoreCompletedCleanupCustody")
+pub fn async_strategy_remote_runtime_restore_completed_cleanup_custody(
+  record : @remote.DispatchRecord,
+  evidence : @remote.RemoteExecutionEvidence,
+  subject : @remote.RemoteManagedOutputSubject,
+  measurement : @remote.RemoteManagedOutputMeasurement,
+) -> @remote.RemoteRuntimeCustody raise AsyncHostFailure {
+  match
+    @remote.restore_remote_runtime_completed_cleanup_custody(
+      record, evidence, subject, measurement,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
 }
 
 ///|
