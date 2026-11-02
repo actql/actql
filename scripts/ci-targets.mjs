@@ -57,9 +57,8 @@ export function deepProofRequired(selection) {
   return selection.paths.some(path => {
     if (snapshotFiles.includes(path) || snapshotDirectories.some(root => path === root || path.startsWith(`${root}/`))) return true;
     if (sensitive.test(path) || /^(?:scripts|proofs|spec|portability|\.github)\//u.test(path)) return true;
-    // These JS/Python integration trees are outside the proof source snapshot.
-    // Ownership, resource, platform and build edits were already caught above.
-    if (/^(?:adapters|packages)\//u.test(path)) return false;
+    // Integration paths can still own resources, build configuration or proof
+    // inputs. Only an exact reviewed nondependency may omit deep campaigns.
     return !reviewedPortableFiles.has(path) && !maintenance.has(path);
   });
 }
