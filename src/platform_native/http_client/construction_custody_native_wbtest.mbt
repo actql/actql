@@ -55,6 +55,21 @@ fn failed_http_constructor(
 }
 
 ///|
+// Capability DATA from this SAME Library was observed before retirement.
+// Client/path cleanup cannot supply the missing system TLS retirement ACK.
+// Keep one physical close call for each original assertion, including reentry.
+fn require_constructor_library_retirement(
+  library : Library,
+  has_tls_cleanup : Bool,
+) -> Unit raise {
+  if has_tls_cleanup {
+    library.close_checked().unwrap()
+  } else {
+    assert_true(library.close_checked() is Err(Transport(_)))
+  }
+}
+
+///|
 test "HTTP construction distinguishes refusal from actual missing-library custody" {
   assert_true(
     load_library_with_custody("", diagnostic_ceiling=Some(256))
@@ -108,6 +123,7 @@ test "failed HTTP symbol load retains unknown unload without repeating a consume
 ///|
 test "HTTP partial path acquisition retains original metadata through cleanup failure" {
   let library = required_http_custody_library()
+  let has_tls_cleanup = retirement_fixture_has_tls_cleanup(library)
   assert_true(
     library.create_authenticated_client_with_custody(
       "/fixture/ca.pem",
@@ -140,14 +156,15 @@ test "HTTP partial path acquisition retains original metadata through cleanup fa
   // Client metadata acknowledgement is not Library/global libcurl retirement.
   assert_true(physical_equal(original.original_library, library))
   assert_true(!library.version().is_empty())
-  library.close_checked().unwrap()
-  library.close_checked().unwrap()
+  require_constructor_library_retirement(library, has_tls_cleanup)
+  require_constructor_library_retirement(library, has_tls_cleanup)
   assert_true(library.version().is_empty())
 }
 
 ///|
 test "HTTP constructor cleanup reply loss observes the same retired metadata before acknowledgement" {
   let library = required_http_custody_library()
+  let has_tls_cleanup = retirement_fixture_has_tls_cleanup(library)
   let original = failed_http_constructor(library)
   let client = original.client.unwrap()
   fail_http_constructor_retirement(client, 0, 1)
@@ -173,12 +190,13 @@ test "HTTP constructor cleanup reply loss observes the same retired metadata bef
   positive.close_checked().unwrap()
   assert_false(positive.close())
   assert_true(positive.response_limit() is Err(Closed))
-  library.close_checked().unwrap()
+  require_constructor_library_retirement(library, has_tls_cleanup)
 }
 
 ///|
 test "ready HTTP Library retirement waits for its original Client and refuses new children" {
   let library = required_http_custody_library()
+  let has_tls_cleanup = retirement_fixture_has_tls_cleanup(library)
   let original = library
     .create_authenticated_client_with_custody(
       "/fixture/ca.pem",
@@ -209,6 +227,6 @@ test "ready HTTP Library retirement waits for its original Client and refuses ne
   original.close_checked().unwrap()
   original.close_checked().unwrap()
   assert_true(original.response_limit() is Err(Closed))
-  library.close_checked().unwrap()
-  library.close_checked().unwrap()
+  require_constructor_library_retirement(library, has_tls_cleanup)
+  require_constructor_library_retirement(library, has_tls_cleanup)
 }

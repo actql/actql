@@ -40,7 +40,8 @@ import {pinnedEngineContracts} from
 
 const focus = process.env.ACTQL_TEST_NATIVE_HTTP_FOCUS;
 if (focus !== undefined &&
-    !['remote-client-poll', 'http-retirement', 'http-symbol-unload'].includes(focus)) {
+    !['remote-client-poll', 'http-retirement', 'http-symbol-unload',
+      'http-constructor-retirement'].includes(focus)) {
   throw new Error('unsupported native HTTP test focus');
 }
 const focusedRequests = [];
@@ -1087,6 +1088,29 @@ verification: try {
       '/outbound/poll', '/outbound/query', '/probe', '/outbound/observation',
       '/outbound/status-observation', '/outbound/status-observation',
     ]);
+    break verification;
+  }
+  if (focus === 'http-constructor-retirement') {
+    // Original constructor/current/cleanup cases only. The selected image
+    // determines its actual TLS retirement expectation; no product fallback.
+    for (const selected of [
+      'HTTP partial path acquisition retains original metadata through cleanup failure',
+      'HTTP constructor cleanup reply loss observes the same retired metadata before acknowledgement',
+      'ready HTTP Library retirement waits for its original Client and refuses new children',
+    ]) {
+      const child = spawn(process.execPath, ['--input-type=module', '-e',
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; " +
+        "process.exitCode=runFocusedTests('moon',['--target','native','--jobs','1'," +
+        "'src/platform_native/http_client/construction_custody_native_wbtest.mbt'," +
+        "'--filter',process.argv[1]],{cwd:process.cwd(),timeout:120000});",
+        selected], {
+        cwd: new URL('../', import.meta.url), stdio: 'inherit',
+        env: {...process.env, ACTQL_TEST_NATIVE_HTTP_LIBRARY: library},
+      });
+      const [code, signal] = await once(child, 'exit');
+      assert.equal(code, 0,
+        `focused HTTP constructor retirement failed: ${selected}: ${code ?? signal}`);
+    }
     break verification;
   }
   if (focus === 'http-symbol-unload') {
