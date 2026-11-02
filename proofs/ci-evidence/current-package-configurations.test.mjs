@@ -102,3 +102,43 @@ test('single current map binds exact per-entry reviews and full literal import c
     }
   }
 });
+
+// This is a finite configuration-input review, not a compiler or VM witness.
+test('current physical Resource review binds platform VM selectors and refuses stale or changed input', () => {
+  const path = 'src/physical_resources/moon.pkg';
+  const revision = '3484e0f43d8eee0013bb5fb8fba03e7fc873377f';
+  const reviewed = gitTree(root, revision);
+  const bytes = reviewed.read(path), body = bytes.toString();
+  const digest = '23447fecf75b00a7f5f5828d0dd27c9711a4386d34d3e3320ae805950b4ccfeb';
+  assert.equal(hash(bytes), digest);
+  execFileSync('git', ['merge-base', '--is-ancestor', revision, 'HEAD'], {cwd: root});
+  const prior = gitTree(root, '523ada3259bf9e8147f746727fbfd56065036fd5').read(path);
+  const selectors = '    "platform_vm_capacity_wasm.mbt": [ "wasm" ],\n' +
+    '    "platform_vm_capacity_unsupported.mbt": [ "not", "wasm" ],\n';
+  assert.equal(body.split(selectors).length, 2);
+  assert.equal(body.replace(selectors, ''), prior.toString());
+  assert.deepEqual(packageImports(body).imports, packageImports(prior.toString()).imports);
+  assert.deepEqual(currentPackageConfigurationReviewFor(request(path, digest)), {
+    revision, target: 'js', toolchainDigest,
+    moonRevision: packageConfigurationReview.moonRevision,
+    rule: 'literal-target-selectors-with-bound-source-membership',
+  });
+  const head = gitTree(root, execFileSync('git', ['rev-parse', 'HEAD'], {cwd: root, encoding: 'utf8'}).trim());
+  assert.deepEqual(head.read(path), bytes);
+  const selected = packageSourceInputs({tree: head, packages: ['src/physical_resources'], target: 'js'});
+  assert.deepEqual(selected.unresolved, []);
+  for (const member of ['platform_vm_capacity_wasm.mbt', 'platform_vm_capacity_unsupported.mbt']) {
+    const input = 'src/physical_resources/' + member;
+    assert(selected.paths.includes(input), 'Target clauses never hide original source membership');
+    assert.equal(head.entries.get(input).mode, '100644');
+  }
+  for (const changed of [prior.toString(), body + '\noptions(pre_build: {command: "unreviewed"})\n',
+    body.replace('"platform_vm_capacity_wasm.mbt": [ "wasm" ]',
+      '"platform_vm_capacity_wasm.mbt": [ "native" ]')]) {
+    assert.notEqual(changed, body);
+    assert.equal(currentPackageConfigurationReviewFor(request(path, hash(changed))), null);
+    const altered = {...head, read: member => member === path ? Buffer.from(changed) : head.read(member)};
+    assert(packageSourceInputs({tree: altered, packages: ['src/physical_resources'], target: 'js'})
+      .unresolved.includes('Unreviewed package configuration: ' + path));
+  }
+});
